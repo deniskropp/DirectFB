@@ -64,6 +64,12 @@ DirectResult  sawman_withdraw_window           ( SaWMan                *sawman,
 
 DirectResult  sawman_update_geometry           ( SaWManWindow          *sawwin );
 
+DFBResult     sawman_restack_window            ( SaWMan                 *sawman,
+                                                 SaWManWindow           *sawwin,
+                                                 SaWManWindow           *relative,
+                                                 int                     relation,
+                                                 DFBWindowStackingClass  stacking );
+
 DirectResult  sawman_set_opacity               ( SaWMan                *sawman,
                                                  SaWManWindow          *sawwin,
                                                  u8                     opacity );

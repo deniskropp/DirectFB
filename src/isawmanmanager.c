@@ -42,6 +42,9 @@
 
 
 
+D_DEBUG_DOMAIN( SaWMan_Manager, "SaWMan/Manager", "SaWMan Manager Interface" );
+
+
 static void
 ISaWManManager_Destruct( ISaWManManager *thiz )
 {
@@ -343,10 +346,10 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
 
      /*
        not yet implemented:
-       SWMCF_KEY_SELECTION, SWMCF_ASSOCIATION, SWMCF_STACKING, SWMCF_CURSOR_FLAGS, SWMCF_CURSOR_RESOLUTION
+       SWMCF_KEY_SELECTION, SWMCF_CURSOR_FLAGS, SWMCF_CURSOR_RESOLUTION
      */
 
-     if (flags & ~(SWMCF_ALL - SWMCF_KEY_SELECTION - SWMCF_ASSOCIATION - SWMCF_STACKING - SWMCF_CURSOR_FLAGS - SWMCF_CURSOR_RESOLUTION))
+     if (flags & ~(SWMCF_ALL - SWMCF_KEY_SELECTION - SWMCF_CURSOR_FLAGS - SWMCF_CURSOR_RESOLUTION))
           return DFB_INVARG;
 
      if( config == NULL )
@@ -419,6 +422,9 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
      if (flags & SWMCF_OPAQUE)
           window->config.opaque = config->opaque;
 
+     if (flags & CWCF_STACKING)
+          sawman_restack_window( sawman, sawwin, sawwin, 0, config->stacking );
+
      if (flags & SWMCF_OPACITY)
           sawman_set_opacity( sawman, sawwin, config->opacity );
 
@@ -440,6 +446,78 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
 
      if (flags & SWMCF_DST_GEOMETRY)
           window->config.dst_geometry = config->dst_geometry;
+
+     if (flags & CWCF_ASSOCIATION && window->config.association != config->association) {
+          SaWManWindow *parent = NULL;
+
+          /* Dissociate first */
+          if (sawwin->parent_window) {
+               int index;
+
+               dfb_window_unlink( &sawwin->parent_window );
+
+               index = fusion_vector_index_of( &parent->children, sawwin );
+               D_ASSERT( index >= 0 );
+               D_ASSERT( index < parent->children.count );
+
+               fusion_vector_remove( &parent->children, index );
+
+               sawwin->parent = NULL;
+
+               window->config.association = 0;
+          }
+
+
+
+          /* Lookup new parent window. */
+          if (config->association) {
+               D_DEBUG_AT( SaWMan_Manager, "  -> new parent win id %u\n", config->association );
+
+               direct_list_foreach (parent, sawman->windows) {
+                    D_MAGIC_ASSERT( parent, SaWManWindow );
+                    D_ASSERT( parent->window != NULL );
+
+                    if (parent->id == config->association)
+                         break;
+               }
+
+               if (!parent) {
+                    D_ERROR( "SaWMan/WM: Can't find parent window with ID %d!\n", config->association );
+                    return DFB_IDNOTFOUND;
+               }
+
+               D_MAGIC_ASSERT( parent, SaWManWindow );
+               D_ASSERT( parent->window != NULL );
+
+#ifndef OLD_COREWINDOWS_STRUCTURE
+               if (parent->window->toplevel != window->toplevel) {
+                    D_ERROR( "SaWMan/WM: Can't associate windows with different toplevel!\n" );
+                    return DFB_INVARG;
+               }
+#endif
+
+               D_DEBUG_AT( SaWMan_Manager, "  -> parent window %p\n", parent );
+
+
+               ret = dfb_window_link( &sawwin->parent_window, parent->window );
+               if (ret) {
+                    D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", config->association );
+                    return ret;
+               }
+
+               ret = fusion_vector_add( &parent->children, sawwin );
+               if (ret) {
+                    dfb_window_unlink( &sawwin->parent_window );
+                    return ret;
+               }
+
+
+               sawwin->parent = parent;
+
+               /* Write back new association */
+               window->config.association = config->association;
+          }
+     }
 
      if (flags & (SWMCF_POSITION | SWMCF_SIZE | SWMCF_SRC_GEOMETRY | SWMCF_DST_GEOMETRY | SWMCF_ASSOCIATION))
           sawman_update_geometry( sawwin );
