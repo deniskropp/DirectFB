@@ -252,6 +252,15 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
                info->handle = (SaWManWindowHandle)window;
                info->caps   = window->caps;
                SAWMANWINDOWCONFIG_COPY( &info->config, &window->window->config )
+               info->config.key_selection = window->window->config.key_selection;
+               info->config.keys          = window->window->config.keys;
+               info->config.num_keys      = window->window->config.num_keys;
+               info->resource_id          = window->window->resource_id;
+               info->application_id       = window->window->config.application_id;
+               info->win_id               = window->window->id;
+               info->flags = window->flags
+                             | (window->window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
+                             | (window->window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
 
                callbacks->WindowAdded( context, info );
           }
