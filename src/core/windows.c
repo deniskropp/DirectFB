@@ -166,6 +166,7 @@ create_region( CoreDFB                 *core,
                CoreLayerContext        *context,
                CoreWindow              *window,
                DFBSurfacePixelFormat    format,
+               DFBSurfaceColorSpace     colorspace,
                DFBSurfaceCapabilities   surface_caps,
                CoreLayerRegion        **ret_region,
                CoreSurface            **ret_surface )
@@ -187,6 +188,7 @@ create_region( CoreDFB                 *core,
      config.width         = window->config.bounds.w;
      config.height        = window->config.bounds.h;
      config.format        = format;
+     config.colorspace    = colorspace;
      config.options       = context->config.options & DLOP_FLICKER_FILTERING;
      config.source        = (DFBRectangle) { 0, 0, config.width, config.height };
      config.dest          = window->config.bounds;
@@ -233,11 +235,12 @@ create_region( CoreDFB                 *core,
           }
      } while (ret);
 
-     scon.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-     scon.size.w = config.width;
-     scon.size.h = config.height;
-     scon.format = format;
-     scon.caps   = surface_caps | DSCAPS_VIDEOONLY;
+     scon.flags          = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
+     scon.size.w         = config.width;
+     scon.size.h         = config.height;
+     scon.format         = format;
+     scon.colorspace     = colorspace;
+     scon.caps           = surface_caps | DSCAPS_VIDEOONLY;
 
      ret = dfb_surface_create( core, &scon, CSTF_SHARED | CSTF_LAYER, context->layer_id, NULL, &surface );
      if (ret) {
@@ -321,6 +324,7 @@ dfb_window_create( CoreWindowStack             *stack,
      DFBWindowCapabilities   caps;
      DFBSurfaceCapabilities  surface_caps;
      DFBSurfacePixelFormat   pixelformat;
+     DFBSurfaceColorSpace    colorspace;
      DFBWindowID             toplevel_id;
 
      D_DEBUG_AT( Core_Windows, "%s( %p )\n", __FUNCTION__, stack );
@@ -345,6 +349,7 @@ dfb_window_create( CoreWindowStack             *stack,
 
      caps         = desc->caps;
      pixelformat  = desc->pixelformat;
+     colorspace   = desc->colorspace;
      surface_caps = desc->surface_caps & (DSCAPS_INTERLACED    | DSCAPS_SEPARATED  |
                                           DSCAPS_PREMULTIPLIED | DSCAPS_DEPTH      |
                                           DSCAPS_STATIC_ALLOC  | DSCAPS_SYSTEMONLY |
@@ -386,6 +391,15 @@ dfb_window_create( CoreWindowStack             *stack,
 
                pixelformat = DSPF_RGB16;
           }
+     }
+
+     /* Set the color space. */
+     if (colorspace == DSCS_UNKNOWN) {
+          colorspace = DFB_COLORSPACE_DEFAULT(pixelformat);
+     }
+     else if (! DFB_COLORSPACE_IS_COMPATIBLE(colorspace, pixelformat)) {
+          dfb_windowstack_unlock( stack );
+          return DFB_INVARG;
      }
 
      /* Choose window surface policy */
@@ -498,7 +512,7 @@ dfb_window_create( CoreWindowStack             *stack,
 
                /* Create a region for the window. */
                ret = create_region( layer->core, context, window,
-                                    pixelformat, surface_caps, &region, &surface );
+                                    pixelformat, colorspace, surface_caps, &region, &surface );
                if (ret) {
                     D_MAGIC_CLEAR( window );
                     fusion_object_destroy( &window->object );
@@ -543,7 +557,8 @@ dfb_window_create( CoreWindowStack             *stack,
                if (!window->surface) {
                     /* Create the surface for the window. */
                     ret = dfb_surface_create_simple( layer->core, config.bounds.w, config.bounds.h,
-                                                     pixelformat, surface_caps, CSTF_SHARED | CSTF_WINDOW,
+                                                     pixelformat, colorspace, surface_caps, 
+                                                     CSTF_SHARED | CSTF_WINDOW,
                                                      (desc->flags & DWDESC_RESOURCE_ID) ?
                                                      desc->resource_id : window->id,
                                                      region->surface ?
@@ -1602,7 +1617,8 @@ dfb_window_ungrab_key( CoreWindow                 *window,
 
 DFBResult
 dfb_window_repaint( CoreWindow          *window,
-                    const DFBRegion     *region,
+                    const DFBRegion     *left_region,
+                    const DFBRegion     *right_region,
                     DFBSurfaceFlipFlags  flags )
 {
      DFBResult        ret;
@@ -1611,7 +1627,8 @@ dfb_window_repaint( CoreWindow          *window,
      D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( window->stack != NULL );
 
-     DFB_REGION_ASSERT_IF( region );
+     DFB_REGION_ASSERT_IF( left_region );
+     DFB_REGION_ASSERT_IF( right_region );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -1623,7 +1640,7 @@ dfb_window_repaint( CoreWindow          *window,
           return DFB_DESTROYED;
      }
 
-     ret = dfb_wm_update_window( window, region, flags );
+     ret = dfb_wm_update_window( window, left_region, right_region, flags );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );

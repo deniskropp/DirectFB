@@ -116,6 +116,14 @@ DFBResult dfb_layer_context_set_coloradjustment( CoreLayerContext            *co
 DFBResult dfb_layer_context_get_coloradjustment( CoreLayerContext            *context,
                                                  DFBColorAdjustment          *ret_adjustment );
 
+DFBResult dfb_layer_context_set_stereo_depth   ( CoreLayerContext            *context,
+                                                 bool                         follow_video,
+                                                 int                          z );
+
+DFBResult dfb_layer_context_get_stereo_depth   ( CoreLayerContext            *context,
+                                                 bool                        *follow_video,
+                                                 int                         *ret_z );
+
 DFBResult dfb_layer_context_set_field_parity   ( CoreLayerContext            *context,
                                                  int                          field );
 

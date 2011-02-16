@@ -156,7 +156,8 @@ static DFBResult primarySetRegion     ( CoreLayer                  *layer,
                                         CoreLayerRegionConfigFlags  updated,
                                         CoreSurface                *surface,
                                         CorePalette                *palette,
-                                        CoreSurfaceBufferLock      *lock );
+                                        CoreSurfaceBufferLock      *left_lock,
+                                        CoreSurfaceBufferLock      *right_lock );
 
 static DFBResult primaryRemoveRegion  ( CoreLayer                  *layer,
                                         void                       *driver_data,
@@ -169,7 +170,8 @@ static DFBResult primaryFlipRegion    ( CoreLayer                  *layer,
                                         void                       *region_data,
                                         CoreSurface                *surface,
                                         DFBSurfaceFlipFlags         flags,
-                                        CoreSurfaceBufferLock      *lock );
+                                        CoreSurfaceBufferLock      *left_lock,
+                                        CoreSurfaceBufferLock      *right_lock );
 
 
 static DisplayLayerFuncs primaryLayerFuncs = {
@@ -1407,7 +1409,8 @@ primarySetRegion( CoreLayer                  *layer,
                   CoreLayerRegionConfigFlags  updated,
                   CoreSurface                *surface,
                   CorePalette                *palette,
-                  CoreSurfaceBufferLock      *lock )
+                  CoreSurfaceBufferLock      *left_lock,
+                  CoreSurfaceBufferLock      *right_lock )
 {
      DFBResult    ret;
      FBDevShared *shared = dfb_fbdev->shared;
@@ -1436,12 +1439,12 @@ primarySetRegion( CoreLayer                  *layer,
                }
 
                ret = dfb_fbdev_set_mode( mode, surface, config->source.x,
-                                         lock->offset / lock->pitch + config->source.y );
+                                         left_lock->offset / left_lock->pitch + config->source.y );
                if (ret)
                     return ret;
           }
           else {
-               ret = dfb_fbdev_pan( config->source.x, lock->offset / lock->pitch + config->source.y, true );
+               ret = dfb_fbdev_pan( config->source.x, left_lock->offset / left_lock->pitch + config->source.y, true );
                if (ret)
                     return ret;
           }
@@ -1474,7 +1477,8 @@ primaryFlipRegion( CoreLayer             *layer,
                    void                  *region_data,
                    CoreSurface           *surface,
                    DFBSurfaceFlipFlags    flags,
-                   CoreSurfaceBufferLock *lock )
+                   CoreSurfaceBufferLock *left_lock,
+                   CoreSurfaceBufferLock *right_lock )
 {
      DFBResult ret;
      CoreLayerRegionConfig *config = &dfb_fbdev->shared->config;
@@ -1486,7 +1490,7 @@ primaryFlipRegion( CoreLayer             *layer,
           dfb_screen_wait_vsync( dfb_screens_at(DSCID_PRIMARY) );
 
      ret = dfb_fbdev_pan( config->source.x,
-                          lock->offset / lock->pitch + config->source.y,
+                          left_lock->offset / left_lock->pitch + config->source.y,
                           (flags & DSFLIP_WAITFORSYNC) == DSFLIP_ONSYNC );
      if (ret)
           return ret;

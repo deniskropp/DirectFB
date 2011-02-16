@@ -681,6 +681,9 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
      if (patch->flags & DSECONF_SLOW_BLANKING)
           patched->slow_blanking = patch->slow_blanking;
 
+     if (patch->flags & DSECONF_FRAMING)
+          patched->framing = patch->framing;
+
      return DFB_OK;
 }
 

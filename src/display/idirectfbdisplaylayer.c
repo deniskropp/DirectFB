@@ -635,7 +635,8 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
      memset( &wd, 0, sizeof(wd) );
 
      wd.flags = DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_POSX | DWDESC_POSY |
-                DWDESC_PIXELFORMAT | DWDESC_SURFACE_CAPS | DWDESC_CAPS;
+                DWDESC_PIXELFORMAT | DWDESC_COLORSPACE | DWDESC_SURFACE_CAPS | 
+                DWDESC_CAPS;
 
      wd.width  = (desc->flags & DWDESC_WIDTH)  ? desc->width  : 480;
      wd.height = (desc->flags & DWDESC_HEIGHT) ? desc->height : 300;
@@ -649,6 +650,9 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
 
      if (desc->flags & DWDESC_PIXELFORMAT)
           wd.pixelformat = desc->pixelformat;
+
+     if (desc->flags & DWDESC_COLORSPACE) 
+          wd.colorspace = desc->colorspace;
 
      if (desc->flags & DWDESC_SURFACE_CAPS)
           wd.surface_caps = desc->surface_caps;
@@ -840,6 +844,45 @@ IDirectFBDisplayLayer_SetColorAdjustment( IDirectFBDisplayLayer    *thiz,
           return DFB_OK;
 
      return dfb_layer_context_set_coloradjustment( data->context, adj );
+}
+
+static DFBResult
+IDirectFBDisplayLayer_SetStereoDepth( IDirectFBDisplayLayer    *thiz,
+                                      bool                      follow_video,
+                                      int                       z )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!follow_video && (z < -DLSO_FIXED_LIMIT || z > DLSO_FIXED_LIMIT))
+          return DFB_INVARG;
+
+     if (!(data->context->config.options & DLOP_LR_MONO) &&
+         !(data->context->config.options & DLOP_STEREO)) {
+          return DFB_INVARG;
+     }
+
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
+
+     return dfb_layer_context_set_stereo_depth( data->context, follow_video, z );
+}
+
+static DFBResult
+IDirectFBDisplayLayer_GetStereoDepth( IDirectFBDisplayLayer *thiz,
+                                      bool                  *follow_video,
+                                      int                   *z )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!(data->context->config.options & DLOP_LR_MONO) &&
+         !(data->context->config.options & DLOP_STEREO)) {
+          return DFB_INVARG;
+     }
+
+     if (!z || !follow_video)
+          return DFB_INVARG;
+
+     return dfb_layer_context_get_stereo_depth( data->context, follow_video, z );
 }
 
 static DFBResult
@@ -1083,6 +1126,8 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetRotation           = IDirectFBDisplayLayer_SetRotation;
      thiz->GetRotation           = IDirectFBDisplayLayer_GetRotation;
      thiz->GetWindowByResourceID = IDirectFBDisplayLayer_GetWindowByResourceID;
+     thiz->SetStereoDepth        = IDirectFBDisplayLayer_SetStereoDepth;
+     thiz->GetStereoDepth        = IDirectFBDisplayLayer_GetStereoDepth;
 
      return DFB_OK;
 }

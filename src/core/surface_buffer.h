@@ -240,8 +240,12 @@ dfb_surface_buffer_index( CoreSurfaceBuffer *buffer )
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      for (index=0; index<MAX_SURFACE_BUFFERS; index++) {
-          if (surface->buffers[index] == buffer)
+          if (surface->left_buffers[index] == buffer)
                return index;
+
+          if (surface->config.caps & DSCAPS_STEREO) 
+               if (surface->right_buffers[index] == buffer)
+                    return index;
      }
 
      D_ASSERT( index<MAX_SURFACE_BUFFERS );

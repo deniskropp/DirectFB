@@ -208,7 +208,8 @@ static DFBResult wm_update_stack   ( CoreWindowStack        *stack,
 static DFBResult wm_update_window  ( CoreWindow             *window,
                                      void                   *wm_data,
                                      void                   *window_data,
-                                     const DFBRegion        *region,
+                                     const DFBRegion        *left_region,
+                                     const DFBRegion        *right_region,
                                      DFBSurfaceFlipFlags     flags );
 
 static DFBResult wm_update_cursor  ( CoreWindowStack        *stack,

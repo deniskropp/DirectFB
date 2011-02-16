@@ -78,6 +78,11 @@ DFBResult dfb_layer_region_flip_update  ( CoreLayerRegion      *region,
                                           const DFBRegion      *update,
                                           DFBSurfaceFlipFlags   flags );
 
+DFBResult
+dfb_layer_region_flip_update_stereo     ( CoreLayerRegion      *region,
+                                          const DFBRegion      *left_update,
+                                          const DFBRegion      *right_update,
+                                          DFBSurfaceFlipFlags   flags );
 
 /*
  * Configuration

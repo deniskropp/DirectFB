@@ -53,6 +53,7 @@ D_DEBUG_DOMAIN( DFB_Updates, "DirectFB/Updates", "DirectFB Updates" );
 /**********************************************************************************************************************/
 
 const DirectFBPixelFormatNames( dfb_pixelformat_names );
+const DirectFBColorSpaceNames( dfb_colorspace_names );
 
 /**********************************************************************************************************************/
 
@@ -659,6 +660,19 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
           if (format == dfb_pixelformat_names[i].format)
                return dfb_pixelformat_names[i].name;
      } while (dfb_pixelformat_names[i++].format != DSPF_UNKNOWN);
+
+     return "<invalid>";
+}
+ 
+const char *
+dfb_colorspace_name( DFBSurfaceColorSpace colorspace )
+{
+     int i = 0;
+
+     do {
+          if (colorspace == dfb_colorspace_names[i].colorspace)
+               return dfb_colorspace_names[i].name;
+     } while (dfb_colorspace_names[i++].colorspace != DSCS_UNKNOWN);
 
      return "<invalid>";
 }

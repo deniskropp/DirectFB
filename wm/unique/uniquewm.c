@@ -93,7 +93,7 @@ load_foo( CoreDFB *core, WMShared *shared )
      D_MAGIC_ASSERT( shared, WMShared );
 
      ret = dfb_surface_create_simple( core, foo_desc.width, foo_desc.height, foo_desc.pixelformat,
-                                      DSCAPS_NONE, CSTF_SHARED, 0, NULL, &shared->foo_surface );
+                                      foo_desc.colorspace, DSCAPS_NONE, CSTF_SHARED, 0, NULL, &shared->foo_surface );
      if (ret) {
           D_DERROR( ret, "UniQuE/WM: Could not create %dx%d surface for border tiles!\n",
                     foo_desc.width, foo_desc.height );

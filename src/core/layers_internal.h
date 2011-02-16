@@ -133,6 +133,9 @@ struct __DFB_CoreLayerContext {
 
      DFBColorAdjustment          adjustment; /* Color adjustment of the layer.*/
 
+     bool                        follow_video;    /* Stereo ofset is deteremined by video metadata. */
+     int                         z;               /* Stereo offset to use when the layer is mixed. */
+
      CoreWindowStack            *stack;      /* Every layer has its own
                                                 windowstack as every layer has
                                                 its own pixel buffer. */
@@ -165,7 +168,8 @@ struct __DFB_CoreLayerRegion {
      CoreLayerRegionConfig       config;
 
      CoreSurface                *surface;
-     CoreSurfaceBufferLock       surface_lock;
+     CoreSurfaceBufferLock       left_buffer_lock;
+     CoreSurfaceBufferLock       right_buffer_lock;
      GlobalReaction              surface_reaction;
 
      void                       *region_data;

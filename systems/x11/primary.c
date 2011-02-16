@@ -441,7 +441,8 @@ primarySetRegion( CoreLayer                  *layer,
                   CoreLayerRegionConfigFlags  updated,
                   CoreSurface                *surface,
                   CorePalette                *palette,
-                  CoreSurfaceBufferLock      *lock )
+                  CoreSurfaceBufferLock      *left_lock,
+                  CoreSurfaceBufferLock      *right_lock )
 {
      DFBResult  ret;
 
@@ -489,7 +490,8 @@ primaryFlipRegion( CoreLayer             *layer,
                    void                  *region_data,
                    CoreSurface           *surface,
                    DFBSurfaceFlipFlags    flags,
-                   CoreSurfaceBufferLock *lock )
+                   CoreSurfaceBufferLock *left_lock,
+                   CoreSurfaceBufferLock *right_lock )
 {
      DFBX11       *x11 = driver_data;
      X11LayerData *lds = layer_data;
@@ -503,7 +505,7 @@ primaryFlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
-     return dfb_x11_update_screen( x11, lds, &region, lock );
+     return dfb_x11_update_screen( x11, lds, &region, left_lock );
 }
 
 static DFBResult
@@ -512,8 +514,10 @@ primaryUpdateRegion( CoreLayer             *layer,
                      void                  *layer_data,
                      void                  *region_data,
                      CoreSurface           *surface,
-                     const DFBRegion       *update,
-                     CoreSurfaceBufferLock *lock )
+                     const DFBRegion       *left_update,
+                     CoreSurfaceBufferLock *left_lock,
+                     const DFBRegion       *right_update,
+                     CoreSurfaceBufferLock *right_lock )
 {
      DFBX11       *x11 = driver_data;
      X11LayerData *lds = layer_data;
@@ -525,10 +529,10 @@ primaryUpdateRegion( CoreLayer             *layer,
      if (x11->shared->x_error)
           return DFB_FAILURE;
 
-     if (update && !dfb_region_region_intersect( &region, update ))
+     if (left_update && !dfb_region_region_intersect( &region, left_update ))
           return DFB_OK;
 
-     return dfb_x11_update_screen( x11, lds, &region, lock );
+     return dfb_x11_update_screen( x11, lds, &region, left_lock );
 }
 
 static DisplayLayerFuncs primaryLayerFuncs = {

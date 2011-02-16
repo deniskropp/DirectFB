@@ -446,6 +446,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
 {
      DFBResult ret;
      DFBSurfacePixelFormat format;
+     DFBSurfaceColorSpace colorspace;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -457,6 +458,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
      format = dfb_pixelformat_for_depth( bpp );
      if (format == DSPF_UNKNOWN)
           return DFB_INVARG;
+     colorspace = DFB_COLORSPACE_DEFAULT(format);
 
      switch (data->level) {
           case DFSCL_NORMAL:
@@ -477,6 +479,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                config.width       = width;
                config.height      = height;
                config.pixelformat = format;
+               config.colorspace  = colorspace;
 
                ret = dfb_layer_context_set_configuration( data->primary.context,
                                                           &config );
@@ -487,9 +490,10 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
           }
      }
 
-     data->primary.width  = width;
-     data->primary.height = height;
-     data->primary.format = format;
+     data->primary.width      = width;
+     data->primary.height     = height;
+     data->primary.format     = format;
+     data->primary.colorspace = colorspace;
 
      return DFB_OK;
 }
@@ -520,6 +524,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      int width = 256;
      int height = 256;
      DFBSurfacePixelFormat format;
+     DFBSurfaceColorSpace colorspace;
      DFBSurfaceCapabilities caps = DSCAPS_NONE;
      CoreSurface *surface = NULL;
      unsigned long resource_id = 0;
@@ -536,12 +541,15 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
      if (desc->flags & DSDESC_HINTS && desc->hints & DSHF_FONT) {
           format = dfb_config->font_format;
+          colorspace = DFB_COLORSPACE_DEFAULT(format);
 
           if (dfb_config->font_premult)
                caps = DSCAPS_PREMULTIPLIED;
      }
-     else
+     else {
           format = config.pixelformat;
+          colorspace = config.colorspace;
+     }
 
      if (!desc || !interface)
           return DFB_INVARG;
@@ -578,6 +586,16 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           D_DEBUG_AT( IDFB, "  -> format %s\n", dfb_pixelformat_name(desc->pixelformat) );
 
           format = desc->pixelformat;
+          colorspace = DFB_COLORSPACE_DEFAULT(format);
+     }
+
+     if (desc->flags & DSDESC_COLORSPACE) {
+          D_DEBUG_AT( IDFB, "  -> colorspace %s\n", dfb_colorspace_name(desc->pixelformat) );
+
+          if (!DFB_COLORSPACE_IS_COMPATIBLE(desc->colorspace, format))
+               return DFB_INVARG;
+
+          colorspace = desc->colorspace;
      }
 
      if (desc->flags & DSDESC_RESOURCE_ID)
@@ -632,14 +650,20 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           if (desc->flags & DSDESC_PREALLOCATED)
                return DFB_INVARG;
 
-          if (desc->flags & DSDESC_PIXELFORMAT)
+          if (desc->flags & DSDESC_PIXELFORMAT)   // FIXME COLORSPACE
                format = desc->pixelformat;
-          else if (data->primary.format)
+          else if (data->primary.format) {
                format = data->primary.format;
-          else if (dfb_config->mode.format)
+               colorspace = data->primary.colorspace;
+          }
+          else if (dfb_config->mode.format) {
                format = dfb_config->mode.format;
-          else
+               colorspace = DFB_COLORSPACE_DEFAULT(format);
+          }
+          else {
                format = config.pixelformat;
+               colorspace = config.colorspace;
+          }
 
           if (desc->flags & DSDESC_WIDTH)
                width = desc->width;
@@ -673,7 +697,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          ret = dfb_surface_create_simple( data->core,
                                                           width, height,
-                                                          format, caps,
+                                                          format, colorspace, caps,
                                                           CSTF_SHARED, resource_id,
                                                           NULL, &surface );
                          if (ret)
@@ -709,7 +733,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          memset( &wd, 0, sizeof(wd) );
 
                          wd.flags = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT |
-                                    DWDESC_PIXELFORMAT | DWDESC_SURFACE_CAPS | DWDESC_CAPS;
+                                    DWDESC_PIXELFORMAT | DWDESC_COLORSPACE | DWDESC_SURFACE_CAPS | DWDESC_CAPS;
 
                          if (dfb_config->scaled.width && dfb_config->scaled.height) {
                               wd.posx = (config.width  - dfb_config->scaled.width)  / 2;
@@ -723,6 +747,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          wd.width        = width;
                          wd.height       = height;
                          wd.pixelformat  = format;
+                         wd.colorspace   = colorspace;
                          wd.surface_caps = caps & ~DSCAPS_FLIPPING;
 
                          switch (format) {
@@ -781,7 +806,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     CoreLayerRegion  *region;
                     CoreLayerContext *context = data->primary.context;
 
-                    config.flags |= DLCONF_BUFFERMODE | DLCONF_PIXELFORMAT |
+                    config.flags |= DLCONF_BUFFERMODE | DLCONF_PIXELFORMAT | DLCONF_COLORSPACE |
                                     DLCONF_WIDTH | DLCONF_HEIGHT;
 
                     /* Source compatibility with older programs */
@@ -807,6 +832,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          config.buffermode = DLBM_FRONTONLY;
 
                     config.pixelformat = format;
+                    config.colorspace  = colorspace;
                     config.width       = width;
                     config.height      = height;
 
@@ -916,11 +942,12 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                return DFB_INVARG;
           }
 
-          config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS | CSCONF_PREALLOCATED;
-          config.size.w = width;
-          config.size.h = height;
-          config.format = format;
-          config.caps   = caps;
+          config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS | CSCONF_PREALLOCATED;
+          config.size.w       = width;
+          config.size.h       = height;
+          config.format       = format;
+          config.colorspace   = colorspace;
+          config.caps         = caps;
 
           config.preallocated[0].addr  = desc->preallocated[0].data;
           config.preallocated[0].pitch = desc->preallocated[0].pitch;
@@ -935,11 +962,12 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      else {
           CoreSurfaceConfig config;
 
-          config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-          config.size.w = width;
-          config.size.h = height;
-          config.format = format;
-          config.caps   = caps;
+          config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
+          config.size.w       = width;
+          config.size.h       = height;
+          config.format       = format;
+          config.colorspace   = colorspace;
+          config.caps         = caps;
 
           ret = dfb_surface_create( data->core, &config, CSTF_NONE, resource_id, NULL, &surface );
           if (ret)

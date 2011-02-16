@@ -1396,6 +1396,56 @@ IDirectFBWindow_SetCursorPosition( IDirectFBWindow    *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBWindow_SetStereoDepth( IDirectFBWindow *thiz,
+                                int              z )
+{
+     CoreWindowConfig config;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (z < -DLSO_FIXED_LIMIT || z > DLSO_FIXED_LIMIT)
+          return DFB_INVARG;
+
+     if (!(data->window->caps & DWCAPS_LR_MONO) &&
+         !(data->window->caps & DWCAPS_STEREO)) {
+          return DFB_INVARG;
+     }
+
+     config.z = z;
+
+     return dfb_window_set_config( data->window, &config, CWCF_STEREO_DEPTH );
+}
+
+static DFBResult
+IDirectFBWindow_GetStereoDepth( IDirectFBWindow *thiz,
+                                int             *z )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (!(data->window->caps & DWCAPS_LR_MONO) &&
+         !(data->window->caps & DWCAPS_STEREO)) {
+          return DFB_INVARG;
+     }
+
+     if (!z)
+          return DFB_INVARG;
+
+     *z = data->window->config.z;
+
+     return DFB_OK;
+}
+
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
@@ -1474,6 +1524,8 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->SetCursorFlags = IDirectFBWindow_SetCursorFlags;
      thiz->SetCursorResolution = IDirectFBWindow_SetCursorResolution;
      thiz->SetCursorPosition = IDirectFBWindow_SetCursorPosition;
+     thiz->GetStereoDepth = IDirectFBWindow_GetStereoDepth;
+     thiz->SetStereoDepth = IDirectFBWindow_SetStereoDepth;
 
      return DFB_OK;
 }
