@@ -2506,8 +2506,8 @@ typedef enum {
      DSETV_PAL_N          = 0x00000080, /* PAL N support (specific) */
      DSETV_PAL_NC         = 0x00000100, /* PAL NC support (specific) */
      DSETV_NTSC_M_JPN     = 0x00000200, /* NTSC_JPN support */
-     DSETV_NTSC_443       = 0x00000800, /* NTSC with 4.43MHz colour carrier */
      DSETV_DIGITAL        = 0x00000400, /* TV standards from the digital domain.  specify resolution, scantype, frequency.*/
+     DSETV_NTSC_443       = 0x00000800, /* NTSC with 4.43MHz colour carrier */
      DSETV_ALL            = 0x00000FFF  /* All TV Standards*/
 } DFBScreenEncoderTVStandards;
 
