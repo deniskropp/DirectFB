@@ -19,6 +19,7 @@ else
 NON_PURE_VOODOO_PROGS = \
 	coretest_blit2	\
 	fusion_call	\
+	fusion_call_bench	\
 	fusion_fork	\
 	fusion_reactor	\
 	fusion_skirmish	\
@@ -93,6 +94,9 @@ direct_test_LDADD   = $(libdirect)
 
 fusion_call_SOURCES = fusion_call.c
 fusion_call_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+fusion_call_bench_SOURCES = fusion_call_bench.c
+fusion_call_bench_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 fusion_fork_SOURCES = fusion_fork.c
 fusion_fork_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
