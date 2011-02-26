@@ -12,6 +12,7 @@ dfbtest_window_flip_once
 direct_stream
 direct_test
 fusion_call
+fusion_call_bench
 fusion_fork
 fusion_reactor
 fusion_skirmish
