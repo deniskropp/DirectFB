@@ -3909,7 +3909,8 @@ static DFBResult
 wm_update_window( CoreWindow          *window,
                   void                *wm_data,
                   void                *window_data,
-                  const DFBRegion     *region,    /* surface coordinates! */
+                  const DFBRegion     *left_region,    /* surface coordinates! */
+                  const DFBRegion     *right_region,   /* surface coordinates! */
                   DFBSurfaceFlipFlags  flags )
 {
      CoreWindowStack *stack;
@@ -3918,14 +3919,14 @@ wm_update_window( CoreWindow          *window,
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
 
-     DFB_REGION_ASSERT_IF( region );
+     DFB_REGION_ASSERT_IF( left_region );
 
      stack = window->stack;
      D_ASSERT( stack != NULL );
 
-     send_update_event( window, stack->stack_data, region );
+     send_update_event( window, stack->stack_data, left_region );
 
-     update_window( window, window_data, region, flags, false, false, true );
+     update_window( window, window_data, left_region, flags, false, false, true );
 
      process_updates( stack->stack_data, wm_data, stack, window->primary_region, flags );
 
@@ -3993,7 +3994,8 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           /* Create the cursor backing store surface. */
           ret = dfb_surface_create_simple( wmdata->core, size.w, size.h,
-                                           context->config.pixelformat, caps, CSTF_SHARED | CSTF_CURSOR,
+                                           context->config.pixelformat, context->config.colorspace, 
+                                           caps, CSTF_SHARED | CSTF_CURSOR,
                                            0, /* FIXME: no shared cursor objects, no cursor id */
                                            NULL, &cursor_bs );
           if (ret) {

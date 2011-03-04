@@ -490,13 +490,13 @@ handle_expose( const XExposeEvent *expose )
                dfb_layer_region_lock( region );
 
                /* Get the surface of the region. */
-               if (region->surface && region->surface_lock.buffer) {
+               if (region->surface && region->left_buffer_lock.buffer) {
                     DFBRegion update = { expose->x, expose->y,
                                          expose->x + expose->width  - 1,
                                          expose->y + expose->height - 1 };
 
                     funcs->UpdateRegion( layer, layer->driver_data, layer->layer_data,
-                                         region->region_data, region->surface, &update, &region->surface_lock );
+                                         region->region_data, region->surface, &update, &region->left_buffer_lock, NULL, NULL );
                }
 
                /* Unlock the region. */

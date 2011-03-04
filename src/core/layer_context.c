@@ -301,7 +301,10 @@ dfb_layer_context_activate( CoreLayerContext *context )
      fusion_vector_foreach (region, index, context->regions) {
           /* first reallocate.. */
           if (region->surface) {
-               D_ASSERT( region->surface_lock.buffer == NULL );
+               D_ASSERT( region->left_buffer_lock.buffer == NULL );
+               if (region->surface->config.caps & DSCAPS_STEREO) {
+                    D_ASSERT( region->right_buffer_lock.buffer == NULL );
+               }
 
                ret = reallocate_surface( layer, region, &region->config );
                if (ret)
@@ -750,8 +753,12 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                          // state, so the buffer (region->surface_lock.buffer)
                          // can be NULL even when not frozen.
 
-                         if (region->surface_lock.buffer)
-                              dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
+                         bool stereo = !!(region->surface->config.caps & DSCAPS_STEREO);
+
+                         if (region->left_buffer_lock.buffer)
+                              dfb_surface_unlock_buffer( region->surface, &region->left_buffer_lock );
+                         if (stereo && region->right_buffer_lock.buffer)
+                              dfb_surface_unlock_buffer( region->surface, &region->right_buffer_lock );
                     }
                }
 
@@ -818,6 +825,9 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
      if (config->flags & DLCONF_PIXELFORMAT)
           context->config.pixelformat = config->pixelformat;
+
+     if (config->flags & DLCONF_COLORSPACE)
+          context->config.colorspace = config->colorspace;
 
      if (config->flags & DLCONF_BUFFERMODE)
           context->config.buffermode = config->buffermode;
@@ -1308,6 +1318,57 @@ dfb_layer_context_get_coloradjustment( CoreLayerContext   *context,
 }
 
 DFBResult
+dfb_layer_context_set_stereo_depth( CoreLayerContext         *context,
+                                    bool                      follow_video,
+                                    int                       z )
+{
+     DFBResult           ret;
+     CoreLayer          *layer;
+
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %d, %d )\n", __FUNCTION__, context, follow_video, z );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+
+     layer = dfb_layer_at( context->layer_id );
+
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->funcs != NULL );
+
+     if (!layer->funcs->SetStereoDepth)
+          return DFB_UNSUPPORTED;
+
+     /* set new adjustment */
+     ret = layer->funcs->SetStereoDepth( layer, layer->driver_data, layer->layer_data, 
+                                         follow_video, z );
+     if (ret)
+          return ret;
+
+     /* keep new offset info */
+     context->follow_video = follow_video;
+     context->z = z;
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_layer_context_get_stereo_depth( CoreLayerContext   *context,
+                                    bool               *ret_follow_video,
+                                    int                *ret_z )
+{
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p )\n", __FUNCTION__, context, 
+          ret_follow_video, ret_z );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+     D_ASSERT( ret_z != NULL );
+     D_ASSERT( ret_follow_video != NULL );
+
+     *ret_follow_video = context->follow_video;
+     *ret_z = context->z;
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_layer_context_set_field_parity( CoreLayerContext *context,
                                     int               field )
 {
@@ -1655,6 +1716,16 @@ build_updated_config( CoreLayer                   *layer,
      if (update->flags & DLCONF_PIXELFORMAT) {
           flags |= CLRCF_FORMAT;
           ret_config->format = update->pixelformat;
+
+          flags |= CLRCF_COLORSPACE;
+          ret_config->colorspace = DFB_COLORSPACE_DEFAULT(ret_config->format);
+     }
+
+     /* Change color space. */
+     if (update->flags & DLCONF_COLORSPACE) {
+          flags |= CLRCF_COLORSPACE;
+          ret_config->colorspace = DFB_COLORSPACE_IS_COMPATIBLE(update->colorspace, ret_config->format) ?
+               update->colorspace : DFB_COLORSPACE_DEFAULT(ret_config->format);
      }
 
      /* Change buffer mode. */
@@ -1760,16 +1831,20 @@ allocate_surface( CoreLayer             *layer,
           if (config->options & DLOP_DEINTERLACING)
                caps |= DSCAPS_INTERLACED;
 
+          if (config->options & DLOP_STEREO)
+               caps |= DSCAPS_STEREO;
+
           /* Add available surface capabilities. */
           caps |= config->surface_caps & (DSCAPS_INTERLACED |
                                           DSCAPS_SEPARATED  |
                                           DSCAPS_PREMULTIPLIED);
 
-          scon.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-          scon.size.w = config->width;
-          scon.size.h = config->height;
-          scon.format = config->format;
-          scon.caps   = caps;
+          scon.flags          = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
+          scon.size.w         = config->width;
+          scon.size.h         = config->height;
+          scon.format         = config->format;
+          scon.colorspace     = config->colorspace;
+          scon.caps           = caps;
 
           if (shared->contexts.primary == region->context)
                type |= CSTF_SHARED;
@@ -1831,10 +1906,11 @@ reallocate_surface( CoreLayer             *layer,
                                            region->region_data,
                                            config, surface );
 
-     sconfig.flags = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+     sconfig.flags = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
 
      sconfig.caps = surface->config.caps & ~(DSCAPS_FLIPPING  | DSCAPS_INTERLACED |
-                                             DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED | DSCAPS_ROTATED);
+                                             DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED | 
+                                             DSCAPS_ROTATED | DSCAPS_STEREO);
 
      switch (config->buffermode) {
           case DLBM_TRIPLE:
@@ -1865,9 +1941,13 @@ reallocate_surface( CoreLayer             *layer,
      if (config->options & DLOP_DEINTERLACING)
           sconfig.caps |= DSCAPS_INTERLACED;
 
-     sconfig.size.w = config->width;
-     sconfig.size.h = config->height;
-     sconfig.format = config->format;
+     if (config->options & DLOP_STEREO)
+          sconfig.caps |= DSCAPS_STEREO;
+
+     sconfig.size.w      = config->width;
+     sconfig.size.h      = config->height;
+     sconfig.format      = config->format;
+     sconfig.colorspace  = config->colorspace;
 
      ret = dfb_surface_lock( surface );
      if (ret)

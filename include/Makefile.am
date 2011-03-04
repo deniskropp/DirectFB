@@ -43,6 +43,8 @@ directfb_strings.h: directfb.h $(MKNAMES) Makefile
 
 	$(MKNAMES) DFBSurfacePixelFormat DSPF UNKNOWN PixelFormat format $(INCP)/directfb.h >> $@
 
+	$(MKNAMES) DFBSurfaceColorSpace DSCS UNKNOWN ColorSpace colorspace $(INCP)/directfb.h >> $@
+
 	$(MKNAMES) DFBInputDeviceTypeFlags DIDTF NONE InputDeviceTypeFlags type $(INCP)/directfb.h \
 	   | grep -v DIDTF_ALL >> $@
 

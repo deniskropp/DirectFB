@@ -89,19 +89,19 @@ main( int argc, char *argv[] )
       *                                                   150x150
       */
 
-     ret = dfb_surface_create_simple( core, 100, 100, DSPF_ARGB, DSCAPS_NONE, CSTF_NONE, 0, NULL, &dst );
+     ret = dfb_surface_create_simple( core, 100, 100, DSPF_ARGB, DSCS_RGB, DSCAPS_NONE, CSTF_NONE, 0, NULL, &dst );
      if (ret) {
           D_DERROR( ret, "CoreTest/Blit2: dfb_surface_create_simple(dst) failed!\n" );
           goto error_dst;
      }
 
-     ret = dfb_surface_create_simple( core, 100, 100, DSPF_ARGB, DSCAPS_NONE, CSTF_NONE, 0, NULL, &src );
+     ret = dfb_surface_create_simple( core, 100, 100, DSPF_ARGB, DSCS_RGB, DSCAPS_NONE, CSTF_NONE, 0, NULL, &src );
      if (ret) {
           D_DERROR( ret, "CoreTest/Blit2: dfb_surface_create_simple(src) failed!\n" );
           goto error_src;
      }
 
-     ret = dfb_surface_create_simple( core, 150, 150, DSPF_ARGB, DSCAPS_NONE, CSTF_NONE, 0, NULL, &src2 );
+     ret = dfb_surface_create_simple( core, 150, 150, DSPF_ARGB, DSCS_RGB, DSCAPS_NONE, CSTF_NONE, 0, NULL, &src2 );
      if (ret) {
           D_DERROR( ret, "CoreTest/Blit2: dfb_surface_create_simple(src2) failed!\n" );
           goto error_src2;

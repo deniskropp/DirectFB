@@ -257,9 +257,6 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      /* calculate physical address according to destination rect */
      unsigned long phys = lock.phys + DFB_BYTES_PER_LINE(dst_surface->config.format, rect.x) + rect.y * lock.pitch;
 
-     /* physical address of the c plane */
-     unsigned long cphys = 0;
-
      shjpeg_pixelformat pixelfmt;
 
      switch (dst_surface->config.format) {
@@ -274,12 +271,9 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                break;
           case DSPF_NV12:
                pixelfmt = SHJPEG_PF_NV12;
-               cphys = lock.phys + lock.pitch * dst_surface->config.size.h 
-                         + DFB_BYTES_PER_LINE(dst_surface->config.format, rect.x) + (rect.y/2) * lock.pitch;
                break;
           case DSPF_NV16:
                pixelfmt = SHJPEG_PF_NV16;
-               cphys = phys + lock.pitch * dst_surface->config.size.h;
                break;
           case DSPF_A8:
                pixelfmt = SHJPEG_PF_GRAYSCALE;
@@ -290,7 +284,7 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      }
 
 
-     if (shjpeg_decode_run( data->info, pixelfmt, phys, cphys, rect.w, rect.h, lock.pitch) < 0)
+     if (shjpeg_decode_run( data->info, pixelfmt, phys, rect.w, rect.h, lock.pitch) < 0)
           ret = DFB_FAILURE;
 
      dfb_surface_unlock_buffer( dst_surface, &lock );
@@ -455,17 +449,17 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
 
           /* backup callbacks and private data and setup for file io */
           shjpeg_sops *sops_tmp       = data->info->sops;
-          void        *private_tmp = data->info->private;
+          void        *private_tmp = data->info->priv_data;
 
           data->info->sops = &sops_file;
-          data->info->private = (void*) &fd;
+          data->info->priv_data = (void*) &fd;
 
           if (shjpeg_encode(data->info, pixelfmt, lock.phys, jpeg_size.w, jpeg_size.h, lock.pitch) < 0)
                ret = DFB_FAILURE;
 
           /* restore callbacks and private data */
           data->info->sops = sops_tmp;
-          data->info->private = private_tmp;
+          data->info->priv_data = private_tmp;
                                               
           dfb_surface_unlock_buffer( src_surface, &lock );
      }
@@ -536,7 +530,7 @@ Construct( IDirectFBImageProvider *thiz,
 
           /* set callbacks to context */
           data->info->sops = &sops_databuffer;
-          data->info->private = (void*) buffer;
+          data->info->priv_data = (void*) buffer;
 
           if (shjpeg_decode_init( data->info ) < 0) {
                buffer->Release( buffer );

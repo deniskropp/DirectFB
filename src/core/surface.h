@@ -73,10 +73,11 @@ typedef enum {
      CSCONF_SIZE         = 0x00000001,
      CSCONF_FORMAT       = 0x00000002,
      CSCONF_CAPS         = 0x00000004,
+     CSCONF_COLORSPACE   = 0x00000008,
 
      CSCONF_PREALLOCATED = 0x00000010,
 
-     CSCONF_ALL          = 0x00000017
+     CSCONF_ALL          = 0x0000001F
 } CoreSurfaceConfigFlags;
 
 typedef enum {
@@ -102,6 +103,7 @@ typedef struct {
 
      DFBDimension             size;
      DFBSurfacePixelFormat    format;
+     DFBSurfaceColorSpace     colorspace;
      DFBSurfaceCapabilities   caps;
 
      struct {
@@ -206,9 +208,10 @@ struct __DFB_CoreSurface
      int                      field;
      u8                       alpha_ramp[4];
 
-     CoreSurfaceBuffer       *buffers[MAX_SURFACE_BUFFERS];
+     CoreSurfaceBuffer      **buffers;
+     CoreSurfaceBuffer       *left_buffers[MAX_SURFACE_BUFFERS];
+     CoreSurfaceBuffer       *right_buffers[MAX_SURFACE_BUFFERS];
      int                      num_buffers;
-
      int                      buffer_indices[MAX_SURFACE_BUFFERS];
 
      unsigned int             flips;
@@ -244,6 +247,7 @@ DFBResult dfb_surface_create_simple ( CoreDFB                      *core,
                                       int                           width,
                                       int                           height,
                                       DFBSurfacePixelFormat         format,
+                                      DFBSurfaceColorSpace          colorspace,
                                       DFBSurfaceCapabilities        caps,
                                       CoreSurfaceTypeFlags          type,
                                       unsigned long                 resource_id,
@@ -457,6 +461,32 @@ typedef enum {
      DFB_LAYER_REGION_SURFACE_LISTENER,
      DFB_WINDOWSTACK_BACKGROUND_IMAGE_LISTENER
 } DFB_SURFACE_GLOBALS;
+
+static inline void 
+dfb_surface_set_stereo_eye( CoreSurface          *surface,
+                            DFBSurfaceStereoEye   eye )
+{
+     D_ASSERT( surface != NULL );
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( eye & (DSSE_LEFT | DSSE_RIGHT) );
+
+     if (eye & DSSE_LEFT) 
+          surface->buffers = surface->left_buffers;
+     else
+          surface->buffers = surface->right_buffers;
+}
+
+static inline  DFBSurfaceStereoEye
+dfb_surface_get_stereo_eye( CoreSurface *surface )
+{
+     D_ASSERT( surface != NULL );
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (surface->buffers == surface->left_buffers) 
+          return DSSE_LEFT;
+     else
+          return DSSE_RIGHT;
+}
 
 #endif
 

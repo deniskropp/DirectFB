@@ -563,7 +563,10 @@ typedef enum {
 
      DLCAPS_CLIP_REGIONS      = 0x00400000,  /* Supports IDirectFBDisplayLayer::SetClipRegions(). */
 
-     DLCAPS_ALL               = 0x0073FFFF
+     DLCAPS_LR_MONO           = 0x01000000,  /* Supports L/R mono stereoscopic display. */
+     DLCAPS_STEREO            = 0x02000000,  /* Supports independent L/R stereoscopic display. */
+
+     DLCAPS_ALL               = 0x0373FFFF
 } DFBDisplayLayerCapabilities;
 
 /*
@@ -598,7 +601,22 @@ typedef enum {
      DLOP_DST_COLORKEY        = 0x00000010,  /* Enable dest. color key. */
      DLOP_OPACITY             = 0x00000020,  /* Make usage of the global alpha
                                                 factor set by SetOpacity. */
-     DLOP_FIELD_PARITY        = 0x00000040   /* Set field parity */
+     DLOP_FIELD_PARITY        = 0x00000040,  /* Set field parity */
+
+     DLOP_LR_MONO             = 0x00000100,	/* Layer has a single set of surface buffers and a stereo depth. The number 
+                                                of buffers in each set is deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc 
+                                                as usual. If they exist, the windows on this layer must not be stereo or 
+                                                L/R mono, otherwise window information will be lost when they are composited 
+                                                to the layer. The layer contents (composited windows if they exist) will
+                                                be shifted horizontally left and right by the stereo depth value when
+                                                the layer is composited on the display screen. */
+     DLOP_STEREO              = 0x00000200,	/* Layer has 2 independent sets of surface buffers (left eye & right eye 
+                                                buffers), each with unique content. The number of buffers in each set is
+                                                deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc as usual. This option
+                                                is required if any of the windows on this layer have DWCAPS_STEREO or 
+                                                DWCAPS_LR_MONO set, otherwise the stereo or L/R depth content of the
+                                                windows cannot be preserved when compositing to the layer. */
+     DLOP_ALL                 = 0x000003FF
 } DFBDisplayLayerOptions;
 
 /*
@@ -635,6 +653,7 @@ typedef enum {
      DSDESC_PALETTE      = 0x00000020,  /* Initialize the surfaces palette
                                            with the entries specified in the
                                            description. */
+     DSDESC_COLORSPACE   = 0x00000040,  /* colorspace field is valid */
 
      DSDESC_RESOURCE_ID  = 0x00000100,  /* user defined resource id for general purpose
                                            surfaces is specified, or resource id of window,
@@ -643,7 +662,7 @@ typedef enum {
      DSDESC_HINTS        = 0x00000200,  /* Flags for optimized allocation and pixel format selection are set.
                                            See also DFBSurfaceHintFlags. */
 
-     DSDESC_ALL          = 0x0000033F   /* all of these */
+     DSDESC_ALL          = 0x0000037F   /* all of these */
 } DFBSurfaceDescriptionFlags;
 
 /*
@@ -690,6 +709,9 @@ typedef enum {
      DSCAPS_PREMULTIPLIED = 0x00001000,  /* Surface stores data with premultiplied alpha. */
 
      DSCAPS_DEPTH         = 0x00010000,  /* A depth buffer is allocated. */
+
+     DSCAPS_STEREO        = 0x00020000,  /* Both left & right buffers are allocated. Only valid with windows and
+                                            layers with the DLOP_STEREO or DWCAPS_STEREO flags set. */
 
      DSCAPS_SHARED        = 0x00100000,  /* The surface will be accessible among processes. */
 
@@ -905,6 +927,8 @@ typedef enum {
      DWDESC_STACKING     = 0x00000200,  /* Initial stacking class has been set. */
 
      DWDESC_TOPLEVEL_ID  = 0x00000400,  /* The top level window is set in toplevel_id field. */
+     
+     DWDESC_COLORSPACE   = 0x00000800,  /* colorspace field is valid */
 
      DWDESC_RESOURCE_ID  = 0x00001000,  /* Resource id for window surface creation has been set. */
 } DFBWindowDescriptionFlags;
@@ -950,8 +974,21 @@ typedef enum {
 
      DWCAPS_NOFOCUS      = 0x00000100,  /* Window will never get focus or receive key events, unless it grabs them. */
 
+     DWCAPS_LR_MONO      = 0x00001000,	/* Window has a single set of surface buffers and a stereo depth. The number 
+                                           of buffers in each set is deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc 
+                                           as usual. Selecting this option requires the underlying layer to have 
+                                           DLOP_STEREO set, otherwise the stereo depth for the left and right eye 
+                                           cannot be preserved when compositing to the underlying layer. The buffer is
+                                           composited to both the left and right eye buffers of the layer with an x-axis
+                                           right and left shift of depth pixels, respectively. */
+     DWCAPS_STEREO       = 0x00002000,	/* Window has 2 independent sets of surface buffers (left eye & right eye 
+                                           buffers), each with unique content. The number of buffers in each set is
+                                           deteremined by DSCAPS_DOUBLE, DSCAPS_TRIPLE, etc as usual. Selecting this 
+                                           option requires the underlying layer to have DLOP_STEREO set, otherwise 
+                                           the independent content of the left and right eye cannot be preserved when 
+                                           compositing to the layer. */
 
-     DWCAPS_ALL          = 0x0000013F   /* All of these. */
+     DWCAPS_ALL          = 0x0000313F   /* All of these. */
 } DFBWindowCapabilities;
 
 /*
@@ -1286,6 +1323,56 @@ typedef enum {
 
 #define DFB_PIXELFORMAT_INV_ALPHA(fmt)  (((fmt) & 0x80000000) !=  0)
 
+#define DFB_COLOR_IS_RGB(fmt)           \
+     (((fmt) == DSPF_ARGB1555)     ||   \
+      ((fmt) == DSPF_RGB16)        ||   \
+      ((fmt) == DSPF_RGB24)        ||   \
+      ((fmt) == DSPF_RGB32)        ||   \
+      ((fmt) == DSPF_ARGB)         ||   \
+      ((fmt) == DSPF_RGB332)       ||   \
+      ((fmt) == DSPF_AiRGB)        ||   \
+      ((fmt) == DSPF_ARGB2554)     ||   \
+      ((fmt) == DSPF_ARGB4444)     ||   \
+      ((fmt) == DSPF_RGBA4444)     ||   \
+      ((fmt) == DSPF_ARGB1666)     ||   \
+      ((fmt) == DSPF_ARGB6666)     ||   \
+      ((fmt) == DSPF_RGB18)        ||   \
+      ((fmt) == DSPF_RGB444)       ||   \
+      ((fmt) == DSPF_RGB555)       ||   \
+      ((fmt) == DSPF_BGR555))
+
+#define DFB_COLOR_IS_YUV(fmt)           \
+     (((fmt) == DSPF_YUY2)         ||   \
+      ((fmt) == DSPF_UYVY)         ||   \
+      ((fmt) == DSPF_I420)         ||   \
+      ((fmt) == DSPF_YV12)         ||   \
+      ((fmt) == DSPF_NV12)         ||   \
+      ((fmt) == DSPF_NV16)         ||   \
+      ((fmt) == DSPF_NV21)         ||   \
+      ((fmt) == DSPF_AYUV))
+
+/*
+ * Color space used by the colors in the surface. 
+ */
+typedef enum {
+     DSCS_UNKNOWN             = 0,
+     DSCS_RGB                 = 1,                /* standard RGB */
+     DSCS_BT601               = 2,                /* ITU BT.601 */
+     DSCS_BT601_FULLRANGE     = 3,                /* ITU BT.601 Full Range */
+     DSCS_BT709               = 4                 /* ITU BT.709 */
+} DFBSurfaceColorSpace;
+
+#define DFB_NUM_COLORSPACES   5
+
+#define DFB_COLORSPACE_IS_COMPATIBLE(cs, fmt)                              \
+     ((DFB_COLOR_IS_RGB((fmt)) &&  ((cs) == DSCS_RGB))                ||   \
+      (DFB_COLOR_IS_YUV((fmt)) && (((cs) == DSCS_BT601)               ||   \
+                                   ((cs) == DSCS_BT601_FULLRANGE)     ||   \
+                                   ((cs) == DSCS_BT709))))
+
+#define DFB_COLORSPACE_DEFAULT(fmt)     \
+     (DFB_COLOR_IS_RGB((fmt)) ? DSCS_RGB : DFB_COLOR_IS_YUV((fmt)) ? DSCS_BT601 : DSCS_UNKNOWN)
+
 /*
  * Hint flags for optimized allocation, format selection etc.
  */
@@ -1310,6 +1397,7 @@ typedef struct {
      int                                width;       /* pixel width */
      int                                height;      /* pixel height */
      DFBSurfacePixelFormat              pixelformat; /* pixel format */
+     DFBSurfaceColorSpace               colorspace;  /* color space */
 
      struct {
           void                         *data;        /* data pointer of existing buffer */
@@ -1500,9 +1588,10 @@ typedef struct {
      int                                width;        /* pixel width */
      int                                height;       /* pixel height */
      DFBSurfacePixelFormat              pixelformat;  /* pixel format */
+     DFBSurfaceColorSpace               colorspace;   /* color space */
      int                                posx;         /* distance from left layer border */
      int                                posy;         /* distance from upper layer border */
-     DFBSurfaceCapabilities             surface_caps; /* pixel format */
+     DFBSurfaceCapabilities             surface_caps; /* surface capabilities */
      DFBWindowID                        parent_id;    /* window id of parent window */
      DFBWindowOptions                   options;      /* initial window options */
      DFBWindowStackingClass             stacking;     /* initial stacking class */
@@ -2130,8 +2219,8 @@ typedef enum {
      DLCONF_OPTIONS           = 0x00000010,
      DLCONF_SOURCE            = 0x00000020,
      DLCONF_SURFACE_CAPS      = 0x00000040,
-
-     DLCONF_ALL               = 0x0000007F
+     DLCONF_COLORSPACE        = 0x00000080,
+     DLCONF_ALL               = 0x000000FF
 } DFBDisplayLayerConfigFlags;
 
 /*
@@ -2143,6 +2232,7 @@ typedef struct {
      int                           width;         /* Pixel width */
      int                           height;        /* Pixel height */
      DFBSurfacePixelFormat         pixelformat;   /* Pixel format */
+     DFBSurfaceColorSpace          colorspace;    /* Color space */
      DFBDisplayLayerBufferMode     buffermode;    /* Buffer mode */
      DFBDisplayLayerOptions        options;       /* Enable capabilities */
      DFBDisplayLayerSourceID       source;        /* Selected layer source */
@@ -2150,6 +2240,9 @@ typedef struct {
      DFBSurfaceCapabilities        surface_caps;  /* Choose surface capabilities, available:
                                                      INTERLACED, SEPARATED, PREMULTIPLIED. */
 } DFBDisplayLayerConfig;
+
+#define DLSO_FIXED_LIMIT      0x7f      /* Stereo fixed depth value must be between +DLSO_FIXED_LIMIT 
+                                           and -DLSO_FIXED_LIMIT. */
 
 /*
  * Screen Power Mode.
@@ -2413,8 +2506,8 @@ typedef enum {
      DSETV_PAL_N          = 0x00000080, /* PAL N support (specific) */
      DSETV_PAL_NC         = 0x00000100, /* PAL NC support (specific) */
      DSETV_NTSC_M_JPN     = 0x00000200, /* NTSC_JPN support */
-     DSETV_NTSC_443       = 0x00000800, /* NTSC with 4.43MHz colour carrier */
      DSETV_DIGITAL        = 0x00000400, /* TV standards from the digital domain.  specify resolution, scantype, frequency.*/
+     DSETV_NTSC_443       = 0x00000800, /* NTSC with 4.43MHz colour carrier */
      DSETV_ALL            = 0x00000FFF  /* All TV Standards*/
 } DFBScreenEncoderTVStandards;
 
@@ -2466,22 +2559,24 @@ typedef struct {
  * Flags for display encoder configuration.
  */
 typedef enum {
-     DSECONF_NONE         = 0x00000000, /* None of these. */
+     DSECONF_NONE             = 0x00000000, /* None of these. */
 
-     DSECONF_TV_STANDARD  = 0x00000001, /* Set TV standard. */
-     DSECONF_TEST_PICTURE = 0x00000002, /* Set test picture mode. */
-     DSECONF_MIXER        = 0x00000004, /* Select mixer. */
-     DSECONF_OUT_SIGNALS  = 0x00000008, /* Select generated output signal(s). */
-     DSECONF_SCANMODE     = 0x00000010, /* Select interlaced or progressive output. */
-     DSECONF_TEST_COLOR   = 0x00000020, /* Set color for DSETP_SINGLE. */
-     DSECONF_ADJUSTMENT   = 0x00000040, /* Set color adjustment. */
-     DSECONF_FREQUENCY    = 0x00000080, /* Set Output Frequency*/
+     DSECONF_TV_STANDARD      = 0x00000001, /* Set TV standard. */
+     DSECONF_TEST_PICTURE     = 0x00000002, /* Set test picture mode. */
+     DSECONF_MIXER            = 0x00000004, /* Select mixer. */
+     DSECONF_OUT_SIGNALS      = 0x00000008, /* Select generated output signal(s). */
+     DSECONF_SCANMODE         = 0x00000010, /* Select interlaced or progressive output. */
+     DSECONF_TEST_COLOR       = 0x00000020, /* Set color for DSETP_SINGLE. */
+     DSECONF_ADJUSTMENT       = 0x00000040, /* Set color adjustment. */
+     DSECONF_FREQUENCY        = 0x00000080, /* Set Output Frequency*/
 
-     DSECONF_CONNECTORS   = 0x00000100, /* Select output connector(s). */
-     DSECONF_SLOW_BLANKING = 0x00000200, /* Can select slow blanking support. */
-     DSECONF_RESOLUTION    = 0x00000400, /* Can change resolution of the encoder.*/
+     DSECONF_CONNECTORS       = 0x00000100, /* Select output connector(s). */
+     DSECONF_SLOW_BLANKING    = 0x00000200, /* Can select slow blanking support. */
+     DSECONF_RESOLUTION       = 0x00000400, /* Can change resolution of the encoder.*/
 
-     DSECONF_ALL          = 0x000007FF
+     DSECONF_FRAMING          = 0x00000800, /* Set method for delivering pictures to display. */
+
+     DSECONF_ALL              = 0x00000FFF
 } DFBScreenEncoderConfigFlags;
 
 /*
@@ -2504,26 +2599,53 @@ typedef enum {
 } DFBScreenEncoderTestPicture;
 
 /*
+ * Encoder picture delivery method.
+ */
+typedef enum {
+     DSEPF_UNKNOWN                 = 0,
+     DSEPF_MONO                    = 0x00000001,  /* Normal output to non-stereoscopic (3D) TV. No 
+                                                     L/R content provided to TV. Frame is output on 
+                                                     each vsync. */
+     DSEPF_STEREO_PACKED_HORIZ     = 0x00000002,  /* L/R frames are downscaled horizontally by 2 and 
+                                                     packed side-by-side into a single frame, left on left 
+                                                     half of frame. The packed frame is output on each 
+                                                     vsync. Some stereoscopic TV's support this mode 
+                                                     using HDMI v1.3 and a special menu configuration. */
+     DSEPF_STEREO_PACKED_VERT      = 0x00000004,  /* L/R frames are downscaled vertically by 2 and 
+                                                     packed into a single frame, left on top. The packed 
+                                                     frame is output on each vsync. Some stereoscopic TV's
+                                                     support this mode using HDMI v1.3 and a special
+                                                     menu configuration. */     
+     DSEPF_STEREO_SEQUENTIAL       = 0x00000008   /* Full resolution L/R frames are delivered sequentially 
+                                                     to the TV, alternating left & right. Vsync occurs at 
+                                                     2x equivalent non-stereo frequency (i.e. 24Hz output 
+                                                     frequency causes 48Hz vsync frequency to obtain both 
+                                                     left & right frames at 24Hz rate). Requires HDMI v1.4. */
+} DFBScreenEncoderPictureFraming;
+
+
+/*
  * Configuration of a display encoder.
  */
 typedef struct {
-     DFBScreenEncoderConfigFlags   flags;         /* Validates struct members. */
+     DFBScreenEncoderConfigFlags        flags;              /* Validates struct members. */
 
-     DFBScreenEncoderTVStandards   tv_standard;   /* TV standard. */
-     DFBScreenEncoderTestPicture   test_picture;  /* Test picture mode. */
-     int                           mixer;         /* Selected mixer. */
-     DFBScreenOutputSignals        out_signals;   /* Generated output signals. */
-     DFBScreenOutputConnectors     out_connectors; /* Selected output connector(s). */
-     DFBScreenOutputSlowBlankingSignals     slow_blanking;/* Slow Blanking signals. */
+     DFBScreenEncoderTVStandards        tv_standard;        /* TV standard. */
+     DFBScreenEncoderTestPicture        test_picture;       /* Test picture mode. */
+     int                                mixer;              /* Selected mixer. */
+     DFBScreenOutputSignals             out_signals;        /* Generated output signals. */
+     DFBScreenOutputConnectors          out_connectors;     /* Selected output connector(s). */
+     DFBScreenOutputSlowBlankingSignals slow_blanking;      /* Slow Blanking signals. */
 
-     DFBScreenEncoderScanMode      scanmode;      /* Interlaced or progressive output. */
+     DFBScreenEncoderScanMode           scanmode;           /* Interlaced or progressive output. */
 
-     DFBColor                      test_color;    /* Color for DSETP_SINGLE. */
+     DFBColor                           test_color;         /* Color for DSETP_SINGLE. */
 
-     DFBColorAdjustment            adjustment;    /* Color adjustment. */
+     DFBColorAdjustment                 adjustment;         /* Color adjustment. */
 
-     DFBScreenEncoderFrequency     frequency;     /* Selected Output Frequency*/
-     DFBScreenOutputResolution     resolution;    /* Selected Output resolution*/
+     DFBScreenEncoderFrequency          frequency;          /* Selected Output Frequency*/
+     DFBScreenOutputResolution          resolution;         /* Selected Output resolution*/
+     DFBScreenEncoderPictureFraming     framing;            /* Selected picture delivery method. */
 } DFBScreenEncoderConfig;
 
 
@@ -2907,6 +3029,32 @@ D_DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           int                                 width,
           int                                 height
      );
+
+     /*
+      * Get stereo depth. 
+      */
+     DFBResult (*GetStereoDepth) (
+         IDirectFBDisplayLayer               *thiz,          
+         bool                                *follow_video,
+         int                                 *z
+    );	 
+
+
+     /*
+      * Set stereo depth. 
+      *  
+      * If follow_video is true then the pixel offset value from the video metadata will be used to set the 
+      * perceived depth. Otherwise, the z value specified will cause the left eye buffer 
+      * content to be shifted on the x-axis by +z and the right eye buffer to be shifted 
+      * by -z. A positive z value will cause the layer to appear closer than 
+      * the TV plane while a negative z value will make the layer appear farther away. The 
+      * depth is limited to a value between +DLSO_FIXED_LIMIT and -DLSO_FIXED_LIMIT.
+      */
+     DFBResult (*SetStereoDepth) (
+         IDirectFBDisplayLayer               *thiz,          
+         bool                                 follow_video,
+         int                                  z
+    );	 
 
 
    /** Misc Settings **/
@@ -3308,6 +3456,16 @@ typedef enum {
 } DFBSurfaceLockFlags;
 
 /*
+ * Stereo eye buffer.
+ */
+typedef enum {
+     DSSE_LEFT           = 0x00000001,  /* Left eye buffers to be used for all future 
+                                           operations on this surface. */
+     DSSE_RIGHT          = 0x00000002   /* Right eye buffers to be used for all future 
+                                           operations on this surface. */
+} DFBSurfaceStereoEye;
+
+/*
  * Available Porter/Duff rules.
  */
 typedef enum {
@@ -3508,6 +3666,30 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
    /** Buffer operations **/
 
      /*
+      * Get the current stereo eye. 
+      *  
+      * Only applicable to window/layer surfaces with the DWCAPS_STEREO or DLOP_STEREO 
+      * option. This method will retrieve which set of buffers (left or right) is currently 
+      * active for operations on this surface.  
+      */
+     DFBResult (*GetStereoEye) (
+          IDirectFBSurface         *thiz,
+          DFBSurfaceStereoEye      *ret_eye
+     );
+
+     /*
+      * Select the stereo eye for future operations. 
+      *  
+      * Only applicable to window/layer surfaces with the DWCAPS_STEREO or DLOP_STEREO 
+      * option. This method will specify which set of buffers (left or right) is to be 
+      * used for future operations on this surface.  
+      */
+     DFBResult (*SetStereoEye) (
+          IDirectFBSurface         *thiz,
+          DFBSurfaceStereoEye       eye
+     );
+
+     /*
       * Lock the surface for the access type specified.
       *
       * Returns a data pointer and the line pitch of it.<br>
@@ -3555,6 +3737,25 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*Flip) (
           IDirectFBSurface         *thiz,
           const DFBRegion          *region,
+          DFBSurfaceFlipFlags       flags
+     );
+
+     /*
+      * Flip/Update stereo surface buffers. Flips both the left and right
+      * buffers simultaneously to ensure synchronization between the two.
+      * Only applicable to window and layer surfaces with the DWCAPS_STEREO
+      * or DLOP_STEREO option set; will fail with all other surfaces.
+      *
+      * If no region is specified the whole surface is flipped,
+      * otherwise blitting is used to update the region.
+      * If surface capabilities don't include DSCAPS_FLIPPING,
+      * this method has the effect to make visible changes
+      * made to the surface contents.
+      */
+     DFBResult (*FlipStereo) (
+          IDirectFBSurface         *thiz,
+          const DFBRegion          *left_region,
+          const DFBRegion          *right_region,
           DFBSurfaceFlipFlags       flags
      );
 
@@ -5124,6 +5325,10 @@ typedef enum {
      DWCF_ALL            = 0x0000003F
 } DFBWindowCursorFlags;
 
+
+#define DWSO_FIXED_LIMIT      0x80      /* Fixed stereo depth value must be between +DWSO_FIXED_LIMIT 
+                                           and -DWSO_FIXED_LIMIT. */
+
 /*******************
  * IDirectFBWindow *
  *******************/
@@ -5627,6 +5832,27 @@ D_DEFINE_INTERFACE(   IDirectFBWindow,
           const DFBWindowGeometry       *geometry
      );
 
+     /*
+      * Get stereo depth. 
+      */
+     DFBResult (*GetStereoDepth) (
+         IDirectFBWindow                *thiz,          
+         int                            *z
+     ); 
+
+     /*
+      * Set stereo depth. 
+      *  
+      * The depth value specified will cause the left eye buffer content to be shifted on the
+      * x-axis by +z and the right eye buffer to be shifted by -z value. A positive
+      * z value will cause the layer to appear closer than the TV plane while a negative
+      * z value will make the layer appear farther away. The depth is limited to a value
+      * between +DLSO_FIXED_LIMIT and -DLSO_FIXED_LIMIT.
+      */
+     DFBResult (*SetStereoDepth) (
+         IDirectFBWindow                *thiz,          
+         int                             z
+     ); 
 
    /** Properties **/
 

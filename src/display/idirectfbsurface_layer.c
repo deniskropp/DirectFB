@@ -99,6 +99,9 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
      if (!data->base.surface)
           return DFB_DESTROYED;
 
+     if (data->base.surface->config.caps & DSCAPS_STEREO)
+          return DFB_UNSUPPORTED;
+
      if (data->base.locked)
           return DFB_LOCKED;
 
@@ -135,6 +138,112 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
      D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
      return dfb_layer_region_flip_update( data->region, &reg, flags );
+}
+
+static DFBResult
+IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
+                                   const DFBRegion     *left_region,
+                                   const DFBRegion     *right_region,
+                                   DFBSurfaceFlipFlags  flags )
+{
+     DFBRegion l_reg, r_reg;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, thiz, left_region, right_region, flags );
+
+     if (!data->base.surface)
+          return DFB_DESTROYED;
+
+     if (!(data->base.surface->config.caps & DSCAPS_STEREO))
+          return DFB_UNSUPPORTED;
+
+     if (data->base.locked)
+          return DFB_LOCKED;
+
+     if (!data->base.area.current.w || !data->base.area.current.h ||
+         (left_region && (left_region->x1 > left_region->x2 || left_region->y1 > left_region->y2)) ||
+         (right_region && (right_region->x1 > right_region->x2 || right_region->y1 > right_region->y2)))
+          return DFB_INVAREA;
+
+     IDirectFBSurface_StopAll( &data->base );
+
+     if (data->base.parent) {
+          IDirectFBSurface_data *parent_data;
+
+          DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
+
+          /* Signal end of sequence of operations. */
+          dfb_state_lock( &parent_data->state );
+          dfb_state_stop_drawing( &parent_data->state );
+          dfb_state_unlock( &parent_data->state );
+     }
+
+
+     dfb_region_from_rectangle( &l_reg, &data->base.area.current );
+     dfb_region_from_rectangle( &r_reg, &data->base.area.current );
+
+     if (left_region) {
+          DFBRegion clip = DFB_REGION_INIT_TRANSLATED( left_region,
+                                                       data->base.area.wanted.x,
+                                                       data->base.area.wanted.y );
+
+          if (!dfb_region_region_intersect( &l_reg, &clip ))
+               return DFB_INVAREA;
+     }
+     if (right_region) {
+          DFBRegion clip = DFB_REGION_INIT_TRANSLATED( right_region,
+                                                       data->base.area.wanted.x,
+                                                       data->base.area.wanted.y );
+
+          if (!dfb_region_region_intersect( &r_reg, &clip ))
+               return DFB_INVAREA;
+     }
+
+     D_DEBUG_AT( Surface, "  -> FLIPSTEREO %4d,%4d-%4dx%4d, %4d,%4d-%4dx%4d\n", 
+          DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
+
+     return dfb_layer_region_flip_update_stereo( data->region, &l_reg, &r_reg, flags );
+}
+
+static DFBResult
+IDirectFBSurface_Layer_GetStereoEye( IDirectFBSurface    *thiz,
+                                     DFBSurfaceStereoEye *ret_eye )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, *ret_eye );
+
+     if (!data->base.surface)
+          return DFB_DESTROYED;
+
+     if (!(data->base.surface->config.caps & DSCAPS_STEREO))
+          return DFB_UNSUPPORTED;
+
+     *ret_eye = data->base.surface->buffers == data->base.surface->left_buffers ? DSSE_LEFT : DSSE_RIGHT;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_Layer_SetStereoEye( IDirectFBSurface    *thiz,
+                                     DFBSurfaceStereoEye  eye )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+
+     D_DEBUG_AT( Surface, "%s( %p, %d )\n", __FUNCTION__, thiz, eye );
+
+     if (!data->base.surface)
+          return DFB_DESTROYED;
+
+     if (!(data->base.surface->config.caps & DSCAPS_STEREO))
+          return DFB_UNSUPPORTED;
+
+     dfb_surface_set_stereo_eye(data->base.surface, eye);
+
+     data->base.state.modified |= SMF_DESTINATION;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -237,7 +346,10 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
 
      thiz->Release       = IDirectFBSurface_Layer_Release;
      thiz->Flip          = IDirectFBSurface_Layer_Flip;
+     thiz->FlipStereo    = IDirectFBSurface_Layer_FlipStereo;
      thiz->GetSubSurface = IDirectFBSurface_Layer_GetSubSurface;
+     thiz->GetStereoEye  = IDirectFBSurface_Layer_GetStereoEye;
+     thiz->SetStereoEye  = IDirectFBSurface_Layer_SetStereoEye;
 
      return DFB_OK;
 }

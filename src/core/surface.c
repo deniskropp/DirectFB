@@ -125,11 +125,13 @@ dfb_surface_create( CoreDFB                  *core,
                     CorePalette              *palette,
                     CoreSurface             **ret_surface )
 {
-     DFBResult    ret = DFB_BUG;
-     int          i;
-     int          buffers;
-     CoreSurface *surface;
-     char         buf[64];
+     DFBResult           ret = DFB_BUG;
+     int                 i;
+     int                 buffers;
+     CoreSurface *       surface;
+     char                buf[64];
+     int                 num_eyes;
+     DFBSurfaceStereoEye eye;
 
      D_ASSERT( core != NULL );
      D_FLAGS_ASSERT( type, CSTF_ALL );
@@ -159,6 +161,12 @@ dfb_surface_create( CoreDFB                  *core,
                D_DEBUG_AT( Core_Surface, "  -> %s\n", dfb_pixelformat_name( config->format ) );
 
                surface->config.format = config->format;
+          }
+
+          if (config->flags & CSCONF_COLORSPACE) {
+               D_DEBUG_AT( Core_Surface, "  -> %s\n", dfb_colorspace_name( config->colorspace ) );
+
+               surface->config.colorspace = config->colorspace;
           }
 
           if (config->flags & CSCONF_CAPS) {
@@ -218,8 +226,9 @@ dfb_surface_create( CoreDFB                  *core,
 
      direct_serial_init( &surface->serial );
 
-     snprintf( buf, sizeof(buf), "Surface %dx%d %s", surface->config.size.w,
-               surface->config.size.h, dfb_pixelformat_name(surface->config.format) );
+     snprintf( buf, sizeof(buf), "Surface %dx%d %s %s", surface->config.size.w,
+               surface->config.size.h, dfb_pixelformat_name(surface->config.format),
+               dfb_colorspace_name(surface->config.colorspace) );
 
      fusion_ref_set_name( &surface->object.ref, buf );
 
@@ -261,26 +270,33 @@ dfb_surface_create( CoreDFB                  *core,
      dfb_system_surface_data_init(surface,surface->data);
 
      /* Create the Surface Buffers. */
-     for (i=0; i<buffers; i++) {
-          CoreSurfaceBuffer *buffer;
-
-          ret = dfb_surface_buffer_new( surface, CSBF_NONE, &buffer );
-          if (ret) {
-               D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
-               goto error;
-          }
-
-          surface->buffers[surface->num_buffers++] = buffer;
-
-          switch (i) {
-               case 0:
-                    surface->buffer_indices[CSBR_FRONT] = i;
-               case 1:
-                    surface->buffer_indices[CSBR_BACK] = i;
-               case 2:
-                    surface->buffer_indices[CSBR_IDLE] = i;
+     num_eyes = config->caps & DSCAPS_STEREO ? 2 : 1;
+     for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
+          dfb_surface_set_stereo_eye(surface, eye);
+          for (i=0; i<buffers; i++) {
+               CoreSurfaceBuffer *buffer;
+     
+               ret = dfb_surface_buffer_new( surface, CSBF_NONE, &buffer );
+               if (ret) {
+                    D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
+                    goto error;
+               }
+     
+               surface->buffers[i] = buffer;
+               if (eye == DSSE_LEFT)
+                    surface->num_buffers++;
+     
+               switch (i) {
+                    case 0:
+                         surface->buffer_indices[CSBR_FRONT] = i;
+                    case 1:
+                         surface->buffer_indices[CSBR_BACK] = i;
+                    case 2:
+                         surface->buffer_indices[CSBR_IDLE] = i;
+               }
           }
      }
+     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      fusion_object_activate( &surface->object );
 
@@ -291,10 +307,15 @@ dfb_surface_create( CoreDFB                  *core,
 error:
      D_MAGIC_CLEAR( surface );
 
-     for (i=0; i<MAX_SURFACE_BUFFERS; i++) {
-          if (surface->buffers[i])
-               dfb_surface_buffer_destroy( surface->buffers[i] );
+     num_eyes = config->caps & DSCAPS_STEREO ? 2 : 1;
+     for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
+          dfb_surface_set_stereo_eye(surface, eye);
+          for (i=0; i<MAX_SURFACE_BUFFERS; i++) {
+               if (surface->buffers[i])
+                    dfb_surface_buffer_destroy( surface->buffers[i] );
+          }
      }
+     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      /* release the system driver specific surface data */
      if (surface->data) {
@@ -317,6 +338,7 @@ dfb_surface_create_simple ( CoreDFB                 *core,
                             int                      width,
                             int                      height,
                             DFBSurfacePixelFormat    format,
+                            DFBSurfaceColorSpace     colorspace,
                             DFBSurfaceCapabilities   caps,
                             CoreSurfaceTypeFlags     type,
                             unsigned long            resource_id,
@@ -331,11 +353,12 @@ dfb_surface_create_simple ( CoreDFB                 *core,
      D_ASSERT( core != NULL );
      D_ASSERT( ret_surface != NULL );
 
-     config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-     config.size.w = width;
-     config.size.h = height;
-     config.format = format;
-     config.caps   = caps;
+     config.flags        = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
+     config.size.w       = width;
+     config.size.h       = height;
+     config.format       = format;
+     config.colorspace   = colorspace;
+     config.caps         = caps;
 
      return dfb_surface_create( core, &config, type, resource_id, palette, ret_surface );
 }
@@ -459,6 +482,8 @@ dfb_surface_reconfig( CoreSurface             *surface,
 {
      int i, buffers;
      DFBResult ret;
+     DFBSurfaceStereoEye eye;
+     int num_eyes;
 
      D_DEBUG_AT( Core_Surface, "%s( %p, %dx%d %s -> %dx%d %s )\n", __FUNCTION__, surface,
                  surface->config.size.w, surface->config.size.h, dfb_pixelformat_name( surface->config.format ),
@@ -492,19 +517,29 @@ dfb_surface_reconfig( CoreSurface             *surface,
 
 #if 1
      /* Precheck the Surface Buffers. */
-     for (i=0; i<surface->num_buffers; i++) {
-          if (surface->buffers[i]->locked) {
-               fusion_skirmish_dismiss( &surface->lock );
-               return DFB_LOCKED;
+     num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
+     for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
+          dfb_surface_set_stereo_eye(surface, eye);
+          for (i=0; i<surface->num_buffers; i++) {
+               if (surface->buffers[i]->locked) {
+                    fusion_skirmish_dismiss( &surface->lock );
+                    return DFB_LOCKED;
+               }
           }
      }
+     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 #endif
 
      /* Destroy the Surface Buffers. */
-     for (i=0; i<surface->num_buffers; i++) {
-          dfb_surface_buffer_destroy( surface->buffers[i] );
-          surface->buffers[i] = NULL;
+     num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
+     for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
+          dfb_surface_set_stereo_eye(surface, eye);
+          for (i=0; i<surface->num_buffers; i++) {
+               dfb_surface_buffer_destroy( surface->buffers[i] );
+               surface->buffers[i] = NULL;
+          }
      }
+     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      surface->num_buffers = 0;
 
@@ -539,26 +574,33 @@ dfb_surface_reconfig( CoreSurface             *surface,
      }
 
      /* Recreate the Surface Buffers. */
-     for (i=0; i<buffers; i++) {
-          CoreSurfaceBuffer *buffer;
-
-          ret = dfb_surface_buffer_new( surface, CSBF_NONE, &buffer );
-          if (ret) {
-               D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
-               goto error;
-          }
-
-          surface->buffers[surface->num_buffers++] = buffer;
-
-          switch (i) {
-               case 0:
-                    surface->buffer_indices[CSBR_FRONT] = i;
-               case 1:
-                    surface->buffer_indices[CSBR_BACK] = i;
-               case 2:
-                    surface->buffer_indices[CSBR_IDLE] = i;
+     num_eyes = config->caps & DSCAPS_STEREO ? 2 : 1;
+     for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
+          dfb_surface_set_stereo_eye(surface, eye);
+          for (i=0; i<buffers; i++) {
+               CoreSurfaceBuffer *buffer;
+     
+               ret = dfb_surface_buffer_new( surface, CSBF_NONE, &buffer );
+               if (ret) {
+                    D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
+                    goto error;
+               }
+     
+               surface->buffers[i] = buffer;
+               if (eye == DSSE_LEFT)
+                    surface->num_buffers++;
+     
+               switch (i) {
+                    case 0:
+                         surface->buffer_indices[CSBR_FRONT] = i;
+                    case 1:
+                         surface->buffer_indices[CSBR_BACK] = i;
+                    case 2:
+                         surface->buffer_indices[CSBR_IDLE] = i;
+               }
           }
      }
+     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      dfb_surface_notify( surface, CSNF_SIZEFORMAT );
 

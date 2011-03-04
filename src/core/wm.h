@@ -43,7 +43,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_wm_modules );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_WM_ABI_VERSION           9
+#define DFB_CORE_WM_ABI_VERSION          10
 
 #define DFB_CORE_WM_INFO_NAME_LENGTH     60
 #define DFB_CORE_WM_INFO_VENDOR_LENGTH   80
@@ -278,7 +278,8 @@ typedef struct {
      DFBResult (*UpdateWindow)      ( CoreWindow             *window,
                                       void                   *wm_data,
                                       void                   *window_data,
-                                      const DFBRegion        *region,
+                                      const DFBRegion        *left_region,
+                                      const DFBRegion        *right_region,
                                       DFBSurfaceFlipFlags     flags );
 
      DFBResult (*UpdateCursor)      ( CoreWindowStack        *stack,
@@ -380,7 +381,8 @@ DFBResult dfb_wm_update_stack       ( CoreWindowStack        *stack,
                                       DFBSurfaceFlipFlags     flags );
 
 DFBResult dfb_wm_update_window      ( CoreWindow             *window,
-                                      const DFBRegion        *region,
+                                      const DFBRegion        *left_region,
+                                      const DFBRegion        *right_region,
                                       DFBSurfaceFlipFlags     flags );
 
 DFBResult dfb_wm_update_cursor      ( CoreWindowStack        *stack,

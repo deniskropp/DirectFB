@@ -1185,9 +1185,12 @@ dfb_wm_update_stack( CoreWindowStack     *stack,
 
 DFBResult
 dfb_wm_update_window( CoreWindow          *window,
-                      const DFBRegion     *region,
+                      const DFBRegion     *left_region,
+                      const DFBRegion     *right_region,
                       DFBSurfaceFlipFlags  flags )
 {
+     bool stereo;
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->UpdateWindow != NULL );
@@ -1198,14 +1201,26 @@ dfb_wm_update_window( CoreWindow          *window,
      D_MAGIC_ASSERT( window->stack->context, CoreLayerContext );
      FUSION_SKIRMISH_ASSERT( &window->stack->context->lock );
 
-     DFB_REGION_ASSERT_IF( region );
+     DFB_REGION_ASSERT_IF( left_region );
+     DFB_REGION_ASSERT_IF( right_region );
 
-     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d], [%d,%d-%dx%d], 0x%x )\n", __FUNCTION__,
+     stereo = window->caps & DWCAPS_STEREO;
+
+     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d], [%d,%d-%dx%d],  )\n", __FUNCTION__,
                  window, DFB_RECTANGLE_VALS(&window->config.bounds),
-                 DFB_RECTANGLE_VALS_FROM_REGION(region), flags );
+                 DFB_RECTANGLE_VALS_FROM_REGION(left_region) );
+     if (left_region) {
+          D_DEBUG_AT( Core_WM, "%s( %s [%d,%d-%dx%d] )\n", __FUNCTION__,
+                      stereo ? "Left:" : "", DFB_RECTANGLE_VALS_FROM_REGION(left_region) );
+     }
+     if (right_region) {
+          D_DEBUG_AT( Core_WM, "%s( Right: [%d,%d-%dx%d] )\n", __FUNCTION__,
+                      DFB_RECTANGLE_VALS_FROM_REGION(right_region) );
+     }
+     D_DEBUG_AT( Core_WM, "%s( flags: 0x%x )\n", __FUNCTION__, flags );
 
-     return wm_local->funcs->UpdateWindow( window, wm_local->data,
-                                           window->window_data, region, flags );
+     return wm_local->funcs->UpdateWindow( window, wm_local->data, window->window_data, 
+                                           left_region, right_region, flags );
 }
 
 DFBResult

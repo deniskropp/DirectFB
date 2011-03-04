@@ -401,10 +401,12 @@ bool DIRECTFB_API dfb_line_segment_intersect( const DFBRegion *line,
  * Copied declaration of DFBPixelFormatName from directfb_strings.h
  */
 extern const struct DFBPixelFormatName DIRECTFB_API dfb_pixelformat_names[];
+extern const struct DFBColorSpaceName  DIRECTFB_API dfb_colorspace_names[];
 
 
 const char DIRECTFB_API *dfb_input_event_type_name ( DFBInputEventType     type );
 const char DIRECTFB_API *dfb_pixelformat_name      ( DFBSurfacePixelFormat format );
+const char DIRECTFB_API *dfb_colorspace_name       ( DFBSurfaceColorSpace  colorspace );
 const char DIRECTFB_API *dfb_window_event_type_name( DFBWindowEventType    type );
 
 DFBSurfacePixelFormat DIRECTFB_API dfb_pixelformat_for_depth( int depth );

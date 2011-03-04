@@ -892,7 +892,8 @@ static DFBResult
 wm_update_window( CoreWindow          *window,
                   void                *wm_data,
                   void                *window_data,
-                  const DFBRegion     *region,
+                  const DFBRegion     *left_region,
+                  const DFBRegion     *right_region,
                   DFBSurfaceFlipFlags  flags )
 {
      WindowData *data = window_data;
@@ -901,14 +902,14 @@ wm_update_window( CoreWindow          *window,
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
 
-     DFB_REGION_ASSERT_IF( region );
+     DFB_REGION_ASSERT_IF( left_region );
 
      D_MAGIC_ASSERT( data, WindowData );
 
      if (!data->window)
           return DFB_DESTROYED;
 
-     return unique_window_update( data->window, region, flags );
+     return unique_window_update( data->window, left_region, flags );
 }
 
 /**************************************************************************************************/
@@ -966,7 +967,8 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           /* Create the cursor backing store surface. */
           ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
-                                           region->config.format, caps, CSTF_SHARED | CSTF_CURSOR,
+                                           region->config.format, region->config.colorspace, 
+                                           caps, CSTF_SHARED | CSTF_CURSOR,
                                            0, /* FIXME: no shared cursor objects, no cursor id */
                                            NULL, &cursor_bs );
           if (ret) {

@@ -881,7 +881,7 @@ sub gen_doc ($$) {
    while (<>) {
       chomp;
    
-      if ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ ) {
+      if ( /^\s*D?_?DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ ) {
          $interface = $1;
 
          trim( \$interface );
@@ -896,7 +896,7 @@ sub gen_doc ($$) {
             $interfaces{$interface} = "$headline $detailed";
          }
       }
-      elsif ( /^\s*DEFINE_INTERFACE\s*\(\s*(\w+),\s*$/ ) {
+      elsif ( /^\s*D?_?DEFINE_INTERFACE\s*\(\s*(\w+),\s*$/ ) {
          parse_interface( $1 );
       }
       elsif ( /^\s*typedef\s+enum\s*\{?\s*$/ ) {

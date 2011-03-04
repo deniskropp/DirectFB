@@ -58,6 +58,7 @@ typedef enum {
      CWCF_COLOR_KEY     = 0x00000100,
      CWCF_OPAQUE        = 0x00000200,
      CWCF_COLOR         = 0x00000400,
+     CWCF_STEREO_DEPTH  = 0x00000800,
 
      CWCF_KEY_SELECTION = 0x00001000,
      CWCF_CURSOR_FLAGS  = 0x00002000,
@@ -70,7 +71,7 @@ typedef enum {
 
      CWCF_APPLICATION_ID= 0x00080000,
 
-     CWCF_ALL           = 0x000F777F
+     CWCF_ALL           = 0x000F7F7F
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
@@ -82,6 +83,7 @@ struct __DFB_CoreWindowConfig {
      DFBColor                 color;          /* color for DWCAPS_COLOR, never premultiplied! */
      u32                      color_key;      /* transparent pixel */
      DFBRegion                opaque;         /* region of the window forced to be opaque */
+     int                      z;              /* stereoscopic offset used to establish perceived depth */
 
      DFBWindowKeySelection    key_selection;  /* how to filter keys in focus */
      DFBInputDeviceKeySymbol *keys;           /* list of keys for DWKS_LIST */
@@ -274,11 +276,13 @@ dfb_window_change_events( CoreWindow         *window,
                           DFBWindowEventType  enable );
 
 /*
- * repaints part of a window, if region is NULL the whole window is repainted
+ * repaints part of a window, if region is NULL the whole window is repainted 
+ * right_region is ignored for all but stereo windows 
  */
 DFBResult
 dfb_window_repaint( CoreWindow          *window,
-                    const DFBRegion     *region,
+                    const DFBRegion     *left_region,
+                    const DFBRegion     *right_region,
                     DFBSurfaceFlipFlags  flags );
 
 /*

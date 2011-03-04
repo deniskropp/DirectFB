@@ -41,6 +41,7 @@ struct __DFB_CoreLayerRegionConfig {
      int                        width;            /* width of the source in pixels */
      int                        height;           /* height of the source in pixels */
      DFBSurfacePixelFormat      format;           /* pixel format of the source surface */
+     DFBSurfaceColorSpace       colorspace;       /* color space of the source surface */
      DFBSurfaceCapabilities     surface_caps;     /* capabilities of the source surface */
      DFBDisplayLayerBufferMode  buffermode;       /* surface buffer configuration */
 
@@ -98,6 +99,7 @@ typedef enum {
      CLRCF_BUFFERMODE   = 0x00000010,
      CLRCF_OPTIONS      = 0x00000020,
      CLRCF_SOURCE_ID    = 0x00000040,
+     CLRCF_COLORSPACE   = 0x00000080,
 
      CLRCF_SOURCE       = 0x00000100,
      CLRCF_DEST         = 0x00000200,
@@ -116,7 +118,7 @@ typedef enum {
 
      CLRCF_FREEZE       = 0x80000000,
 
-     CLRCF_ALL          = 0xB013377F
+     CLRCF_ALL          = 0xB01337FF
 } CoreLayerRegionConfigFlags;
 
 typedef struct {
@@ -199,6 +201,15 @@ typedef struct {
                                          void                   *layer_data,
                                          DFBColorAdjustment     *adjustment );
 
+     /*
+      * Set the stereo depth for L/R mono and stereo layers.     // FIXME: Use SetRegion()!
+      */
+     DFBResult (*SetStereoDepth)       ( CoreLayer              *layer,
+                                         void                   *driver_data,
+                                         void                   *layer_data,
+                                         bool                    follow_video,
+                                         int                     z );
+
 
    /** Region Control **/
 
@@ -232,7 +243,8 @@ typedef struct {
                                  CoreLayerRegionConfigFlags  updated,
                                  CoreSurface                *surface,
                                  CorePalette                *palette,
-                                 CoreSurfaceBufferLock      *lock );
+                                 CoreSurfaceBufferLock      *left_lock, 
+                                 CoreSurfaceBufferLock      *right_lock );
 
      /*
       * Remove a region from the layer.
@@ -251,7 +263,8 @@ typedef struct {
                                  void                       *region_data,
                                  CoreSurface                *surface,
                                  DFBSurfaceFlipFlags         flags,
-                                 CoreSurfaceBufferLock      *lock );
+                                 CoreSurfaceBufferLock      *left_lock, 
+                                 CoreSurfaceBufferLock      *right_lock );
 
      /*
       * Indicate updates to the front buffer content.
@@ -261,8 +274,10 @@ typedef struct {
                                  void                       *layer_data,
                                  void                       *region_data,
                                  CoreSurface                *surface,
-                                 const DFBRegion            *update,
-                                 CoreSurfaceBufferLock      *lock );
+                                 const DFBRegion            *left_update,
+                                 CoreSurfaceBufferLock      *left_lock, 
+                                 const DFBRegion            *right_update,
+                                 CoreSurfaceBufferLock      *right_lock );
 
      /*
       * Control hardware deinterlacing.

@@ -53,6 +53,7 @@ typedef struct {
           int                    width;    /* IDirectFB stores window width    */
           int                    height;   /* and height and the pixel depth   */
           DFBSurfacePixelFormat  format;   /* from SetVideoMode() parameters.  */
+          DFBSurfaceColorSpace   colorspace; /* from SetVideoMode() parameters.  */
 
           CoreWindow            *window;   /* implicitly created window */
           Reaction               reaction; /* for the focus listener */
