@@ -334,7 +334,8 @@ StartWinsock( void )
 DirectResult
 voodoo_link_init_connect( VoodooLink *link,
                           const char *hostname,
-                          int         port )
+                          int         port,
+                          bool        raw )
 {
      int                 ret; 
      struct sockaddr_in  addr;
@@ -373,7 +374,7 @@ voodoo_link_init_connect( VoodooLink *link,
 
      l->event  = WSACreateEvent();
 
-     if (!voodoo_config->link_raw) {
+     if (!raw) {
           link->code = 0x80008676;
 
           if (send( l->socket, (const char*) &link->code, sizeof(link->code), 0 ) != 4) {

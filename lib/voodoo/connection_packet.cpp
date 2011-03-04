@@ -102,7 +102,7 @@ VoodooConnectionPacket::VoodooConnectionPacket( VoodooManager *manager,
 
      input.buffer = (u8*) D_MALLOC( IN_BUF_MAX + VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader) );
 
-     D_INFO( "VoodooConnection/Packet: Allocated "_ZU" kB input buffer at %p\n", input_buffer_size, input.buffer );
+     D_INFO( "VoodooConnection/Packet: Allocated "_ZU" kB input buffer at %p\n", input_buffer_size/1024, input.buffer );
 
      direct_tls_register( &output.tls, NULL );
 

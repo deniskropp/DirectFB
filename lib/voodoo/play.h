@@ -42,12 +42,14 @@
 #define VOODOO_PLAYER_MODEL_LENGTH      96
 
 
+#define VOODOO_LINK_PORT    8676    // 'V' 'L'
+
 
 typedef enum {
     VPVF_NONE           = 0x00000000,
 
-    VPVF_LITTLE_ENDIAN  = 0x00000001,   /* No big endian support for now */
-    VPVF_32BIT_SERIALS  = 0x00000002,   /* Using 32bit message serials */
+    VPVF_LITTLE_ENDIAN  = 0x00000001,   /* Always set, no big endian support for now */
+    VPVF_32BIT_SERIALS  = 0x00000002,   /* Using 32bit message serials, always set */
 
     VPVF_ALL            = 0x00000003
 } VoodooPlayVersionFlags;
@@ -61,8 +63,9 @@ typedef enum {
     VPIF_NONE   = 0x00000000,
 
     VPIF_LEVEL2 = 0x00000001,
+    VPIF_LINK   = 0x00000002,   /* Supports new VoodooLink protocol */
 
-    VPIF_ALL    = 0x00000001
+    VPIF_ALL    = 0x00000003
 } VoodooPlayInfoFlags;
 
 typedef struct {
@@ -83,6 +86,15 @@ typedef enum {
     VPMT_DISCOVER,
     VPMT_SENDINFO,
 } VoodooPlayMessageType;
+
+/*
+
+ One play message on a new connection from both sides.
+ Both sides having received the other side's info know if the connection is to be closed or can succeed.
+
+ Game about endianness conversion: both sides randomly send 0 or 1 as part of the info,
+                                   if both are equal, then server converts, otherwise client
+*/
 
 typedef struct {
     /* Version information first in structure, fixed size (union!) */
@@ -149,9 +161,14 @@ DirectResult VOODOO_API voodoo_player_destroy  ( VoodooPlayer          *player )
 DirectResult VOODOO_API voodoo_player_broadcast( VoodooPlayer          *player );
 
 DirectResult VOODOO_API voodoo_player_lookup   ( VoodooPlayer          *player,
-                                                 const char            *name,
+                                                 const u8               uuid[16],
+                                                 VoodooPlayInfo        *ret_info,
                                                  char                  *ret_addr,
                                                  int                    max_addr );
+
+DirectResult VOODOO_API voodoo_player_lookup_by_address( VoodooPlayer          *player,
+                                                         const char            *addr,
+                                                         VoodooPlayInfo        *ret_info );
 
 DirectResult VOODOO_API voodoo_player_enumerate( VoodooPlayer          *player,
                                                  VoodooPlayerCallback   callback,

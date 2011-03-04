@@ -69,7 +69,8 @@ struct __V_VoodooLink {
 
 DirectResult VOODOO_API voodoo_link_init_connect( VoodooLink *link,
                                                   const char *hostname,
-                                                  int         port );
+                                                  int         port,
+                                                  bool        raw );
 
 DirectResult VOODOO_API voodoo_link_init_fd     ( VoodooLink *link,
                                                   int         fd[2] );

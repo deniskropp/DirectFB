@@ -30,6 +30,7 @@
 
 #include <direct/util.h>
 
+#include <voodoo/conf.h>
 #include <voodoo/init.h>
 #include <voodoo/play.h>
 
@@ -40,11 +41,13 @@ typedef void (*Func)( void );
 
 
 static Func init_funcs[] = {
-     __Voodoo_play_init
+     __Voodoo_conf_init,
+     __Voodoo_play_init,
 };
 
 static Func deinit_funcs[] = {
      __Voodoo_play_deinit,
+     __Voodoo_conf_deinit,
 };
 
 /**********************************************************************************************************************/

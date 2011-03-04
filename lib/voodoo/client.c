@@ -36,9 +36,11 @@
 #include <direct/list.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #include <voodoo/client.h>
+#include <voodoo/conf.h>
 #include <voodoo/internal.h>
 #include <voodoo/link.h>
 #include <voodoo/manager.h>
@@ -67,10 +69,14 @@ voodoo_client_create( const char     *host,
                       int             port,
                       VoodooClient  **ret_client )
 {
-     DirectResult  ret;
-     VoodooClient *client;
-     char          buf[100] = { 0 };
-     const char   *hostname = host;
+     DirectResult    ret;
+     VoodooClient   *client;
+     VoodooPlayer   *player;
+     int             bc_num  = 10;
+     int             bc_wait = 4000;
+     char            buf[100] = { 0 };
+     const char     *hostname = host;
+     bool            raw = true;
 
      D_ASSERT( ret_client != NULL );
 
@@ -89,36 +95,52 @@ voodoo_client_create( const char     *host,
           }
      }
 
-     if (!hostname || !hostname[0]) {
-          int           n;
-          VoodooPlayer *player;
 
-          ret = voodoo_player_create( NULL, &player );
-          if (ret) {
-               D_DERROR( ret, "Voodoo/Proxy: Could not create the player!\n" );
-               return ret;
-          }
-
-          for (n=0; n<10; n++) {
-               voodoo_player_broadcast( player );
-
-               direct_thread_sleep( 20000 );
-
-               if (voodoo_player_lookup( player, NULL, buf, sizeof(buf) ) == DR_OK)
-                    break;
-
-               direct_thread_sleep( 100000 );
-          }
-
-          voodoo_player_destroy( player );
-
-          if (!buf[0]) {
-               D_ERROR( "Voodoo/Play: Did not find any other player!\n" );
-               return DR_ITEMNOTFOUND;
-          }
-
-          hostname = buf;
+     ret = voodoo_player_create( NULL, &player );
+     if (ret) {
+          D_DERROR( ret, "Voodoo/Client: Could not create the player!\n" );
+          return ret;
      }
+
+     while (bc_num--) {
+          VoodooPlayInfo info;
+
+          // FIXME: resolve first, not late in voodoo_link_init_connect
+          if (hostname && hostname[0]) {
+               ret = voodoo_player_lookup_by_address( player, hostname, &info );
+               if (ret == DR_OK) {
+                    if (info.flags & VPIF_LINK)
+                         raw = false;
+                    
+                    break;
+               }
+          }
+          else {
+               ret = voodoo_player_lookup( player, NULL, &info, buf, sizeof(buf) );
+               if (ret == DR_OK) {
+                    if (info.flags & VPIF_LINK)
+                         raw = false;
+
+                    hostname = buf;
+
+                    break;
+               }
+          }
+
+          voodoo_player_broadcast( player );
+
+          direct_thread_sleep( bc_wait );
+
+          bc_wait += bc_wait;
+     }
+
+     voodoo_player_destroy( player );
+
+     if (!hostname || !hostname[0]) {
+          D_ERROR( "Voodoo/Play: Did not find any other player!\n" );
+          return DR_ITEMNOTFOUND;
+     }
+
 
      /* Allocate client structure. */
      client = D_CALLOC( 1, sizeof(VoodooClient) );
@@ -127,7 +149,7 @@ voodoo_client_create( const char     *host,
 
 
      /* Initialize client structure. */
-     ret = voodoo_link_init_connect( &client->vl, hostname, port );
+     ret = voodoo_link_init_connect( &client->vl, hostname, port, voodoo_config->link_raw || raw );
      if (ret) {
           D_DERROR( ret, "Voodoo/Client: Failed to initialize Voodoo Link!\n" );
           D_FREE( client );
