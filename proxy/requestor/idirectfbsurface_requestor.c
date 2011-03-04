@@ -44,6 +44,7 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <voodoo/conf.h>
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 #include <voodoo/message.h>
@@ -1247,7 +1248,8 @@ IDirectFBSurface_Requestor_Write( IDirectFBSurface   *thiz,
      r.w = rect->w;
      r.h = 1;
 
-     switch (format) {
+	 /* Use RLE only if Voodoo is not compressed already */
+     switch (voodoo_config->compression_min ? DSPF_UNKNOWN : format) {
           case DSPF_RGB16:
           case DSPF_ARGB1555: {
                unsigned int  num;
