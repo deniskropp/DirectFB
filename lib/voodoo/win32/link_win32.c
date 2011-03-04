@@ -39,6 +39,7 @@
 #include <direct/util.h>
 
 #include <voodoo/client.h>
+#include <voodoo/conf.h>
 #include <voodoo/internal.h>
 #include <voodoo/link.h>
 #include <voodoo/manager.h>
@@ -371,6 +372,17 @@ voodoo_link_init_connect( VoodooLink *link,
      direct_mutex_init( &l->lock );
 
      l->event  = WSACreateEvent();
+
+     if (!voodoo_config->link_raw) {
+          link->code = 0x80008676;
+
+          if (send( l->socket, (const char*) &link->code, sizeof(link->code), 0 ) != 4) {
+               D_ERROR( "Voodoo/Link: Coult not write initial four bytes!\n" );
+               // FIXME: how to close the socket?
+               D_FREE( l );
+               return DR_IO;
+          }
+     }
 
      link->priv        = l;
      link->Close       = Close;
