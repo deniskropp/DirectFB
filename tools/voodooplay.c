@@ -112,7 +112,7 @@ main( int argc, char *argv[] )
                for (i=1; i<argc; i++) {
                     char buf[100];
 
-                    if (voodoo_player_lookup( player, argv[i], buf, sizeof(buf) )) {
+                    if (voodoo_player_lookup( player, argv[i], NULL, buf, sizeof(buf) )) {
                          D_ERROR( "Voodoo/Play: No '%s' found!\n", argv[i] );
                          continue;
                     }
