@@ -130,13 +130,8 @@ sh7722TestRegion( CoreLayer                  *layer,
           case DSPF_RGB32:
           case DSPF_RGB24:
           case DSPF_RGB16:
-               break;
-
           case DSPF_NV12:
           case DSPF_NV16:
-               /* YUV only for first input */
-               if (slay->layer != SH7722_LAYER_INPUT1)
-                    fail |= CLRCF_FORMAT;
                break;
 
           default:
@@ -287,7 +282,7 @@ sh7722SetRegion( CoreLayer                  *layer,
                     break;
 
                case DSPF_RGB24:
-                    sdev->shbeu_src[n].s.format = REN_RGB24; //FIXME: implement in libshbeu
+                    sdev->shbeu_src[n].s.format = REN_BGR24;
                     break;
 
                case DSPF_RGB16:

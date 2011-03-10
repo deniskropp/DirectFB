@@ -289,7 +289,8 @@ WakeUp( VoodooLink *link )
 DirectResult
 voodoo_link_init_connect( VoodooLink *link,
                           const char *hostname,
-                          int         port )
+                          int         port,
+                          bool        raw )
 {
      DirectResult     ret;
      int              err;
@@ -395,7 +396,7 @@ voodoo_link_init_connect( VoodooLink *link,
      DUMP_SOCKET_OPTION( l->fd[0], SO_SNDBUF );
      DUMP_SOCKET_OPTION( l->fd[0], SO_RCVBUF );
 
-     if (!voodoo_config->link_raw) {
+     if (!raw) {
           link->code = 0x80008676;
 
           if (write( l->fd[1], &link->code, sizeof(link->code) ) != 4) {

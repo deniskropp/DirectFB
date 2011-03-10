@@ -36,6 +36,11 @@
 #include <stdarg.h>
 #include <time.h>
 
+#ifdef VOODOO_CONNECTION_RAW_DUMP
+#include <unistd.h>
+#include <fcntl.h>
+#endif
+
 extern "C" {
 #include <direct/clock.h>
 #include <direct/debug.h>
@@ -62,8 +67,8 @@ extern "C" {
 #include <vector>
 
 
-#define IN_BUF_MAX   (640 * 1024)
-#define OUT_BUF_MAX  (640 * 1024)
+#define IN_BUF_MAX   (256 * 1024)
+#define OUT_BUF_MAX  (256 * 1024)
 
 
 //namespace Voodoo {
@@ -83,7 +88,7 @@ VoodooConnectionRaw::VoodooConnectionRaw( VoodooManager *manager,
 
      input.start  = 0;
      input.last   = 0;
-     input.end    = 4;
+     input.end    = link->code ? 4 : 0;
      input.max    = 0;
 
      output.start = 0;
@@ -101,6 +106,8 @@ VoodooConnectionRaw::VoodooConnectionRaw( VoodooManager *manager,
      /* Allocate buffers. */
      input.buffer  = (u8*) D_MALLOC( IN_BUF_MAX + MAX_MSG_SIZE );
      output.buffer = (u8*) D_MALLOC( OUT_BUF_MAX );
+
+     D_INFO( "VoodooConnection/Raw: Allocated "_ZU" kB input buffer at %p\n", (IN_BUF_MAX + MAX_MSG_SIZE)/1024, input.buffer );
 
      memcpy( input.buffer, &link->code, sizeof(u32) );
 
@@ -151,6 +158,11 @@ void *
 VoodooConnectionRaw::io_loop()
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p )\n", __func__, this );
+
+#ifdef VOODOO_CONNECTION_RAW_DUMP
+     int dump_fd = open("voodoo_write.raw", O_TRUNC|O_CREAT|O_WRONLY, 0660 );
+     int dump_read_fd = open("voodoo_read.raw", O_TRUNC|O_CREAT|O_WRONLY, 0660 );
+#endif
 
      while (!manager->is_quit) {
           D_MAGIC_ASSERT( this, VoodooConnection );
@@ -215,6 +227,8 @@ VoodooConnectionRaw::io_loop()
                                 comp * 100 / chunk_write->length, chunk_write->length, comp );
                }
 #endif
+               D_DEBUG_AT( Voodoo_Input, "  { START "_ZD", LAST "_ZD", END "_ZD", MAX "_ZD" }\n",
+                           input.start, input.last, input.end, input.max );
 
                ret = link->SendReceive( link,
                                         chunks_write.data(), chunks_write.size(),
@@ -223,6 +237,10 @@ VoodooConnectionRaw::io_loop()
                     case DR_OK:
                          if (chunk_write && chunk_write->done) {
                               D_DEBUG_AT( Voodoo_Output, "  -> Sent "_ZD"/"_ZD" bytes...\n", chunk_write->done, chunk_write->length );
+
+#ifdef VOODOO_CONNECTION_RAW_DUMP
+                              write( dump_fd, chunk_write->ptr, chunk_write->done );
+#endif
 
                               output.start += (size_t) chunk_write->done;
 
@@ -259,6 +277,10 @@ VoodooConnectionRaw::io_loop()
 
                if (chunk_read && chunk_read->done) {
                     D_DEBUG_AT( Voodoo_Input, "  -> Received "_ZD" bytes...\n", chunk_read->done );
+
+#ifdef VOODOO_CONNECTION_RAW_DUMP
+                    write( dump_read_fd, chunk_read->ptr, chunk_read->done );
+#endif
 
                     input.end += (size_t) chunk_read->done;
 

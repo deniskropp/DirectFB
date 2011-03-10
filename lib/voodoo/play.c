@@ -55,6 +55,7 @@
 #include <direct/interface.h>
 #include <direct/list.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
 #include <direct/util.h>
@@ -108,6 +109,10 @@ static void *player_main_loop( DirectThread    *thread,
 /**********************************************************************************************************************/
 
 static const int one = 1;
+
+/**********************************************************************************************************************/
+
+static VoodooPlayer *g_VoodooPlayer;
 
 /**********************************************************************************************************************/
 
@@ -169,6 +174,11 @@ voodoo_player_create( const VoodooPlayInfo  *info,
      VoodooPlayer       *player;
 
      D_ASSERT( ret_player != NULL );
+
+     if (g_VoodooPlayer) {
+          *ret_player = g_VoodooPlayer;
+          return DR_OK;
+     }
 
      /* Create the player socket. */
      fd = socket( AF_INET, SOCK_DGRAM, 0 );
@@ -233,6 +243,8 @@ voodoo_player_create( const VoodooPlayInfo  *info,
      if (!player->info.uuid[0])
           generate_uuid( player->info.uuid );
 
+     player->info.flags |= VPIF_LINK;
+
      D_MAGIC_SET( player, VoodooPlayer );
 
      /* Start messaging thread */
@@ -241,6 +253,9 @@ voodoo_player_create( const VoodooPlayInfo  *info,
      /* Return the new player. */
      *ret_player = player;
 
+     if (!g_VoodooPlayer)
+          g_VoodooPlayer = player;
+
      return DR_OK;
 }
 
@@ -248,6 +263,9 @@ DirectResult
 voodoo_player_destroy( VoodooPlayer *player )
 {
      D_MAGIC_ASSERT( player, VoodooPlayer );
+
+     if (g_VoodooPlayer == player)
+          return DR_OK;
 
      player->quit = true;
 
@@ -298,10 +316,11 @@ voodoo_player_broadcast( VoodooPlayer *player )
 }
 
 DirectResult
-voodoo_player_lookup( VoodooPlayer *player,
-                      const char   *name,
-                      char         *ret_addr,
-                      int           max_addr )
+voodoo_player_lookup( VoodooPlayer   *player,
+                      const u8        uuid[16],
+                      VoodooPlayInfo *ret_info,
+                      char           *ret_addr,
+                      int             max_addr )
 {
      PlayerNode *node;
 
@@ -310,11 +329,59 @@ voodoo_player_lookup( VoodooPlayer *player,
      direct_mutex_lock( &player->lock );
 
      direct_list_foreach (node, player->nodes) {
-          if (!name || !name[0] || !strcmp( node->info.name, name )) {
-               direct_snputs( ret_addr, node->addr, max_addr );
+          if (!uuid || !memcmp( node->info.uuid, uuid, 16 )) {
+               if (ret_info)
+                    direct_memcpy( ret_info, &node->info, sizeof(VoodooPlayInfo) );
+
+               if (ret_addr)
+                    direct_snputs( ret_addr, node->addr, max_addr );
+
                direct_mutex_unlock( &player->lock );
                return DR_OK;
           }
+     }
+
+     if (uuid && !memcmp( player->info.uuid, uuid, 16 )) {
+          if (ret_info)
+               direct_memcpy( ret_info, &player->info, sizeof(VoodooPlayInfo) );
+
+          if (ret_addr)
+               direct_snputs( ret_addr, "127.0.0.1", max_addr );
+
+          direct_mutex_unlock( &player->lock );
+          return DR_OK;
+     }
+
+     direct_mutex_unlock( &player->lock );
+
+     return DR_ITEMNOTFOUND;
+}
+
+DirectResult
+voodoo_player_lookup_by_address( VoodooPlayer   *player,
+                                 const char     *addr,
+                                 VoodooPlayInfo *ret_info )
+{
+     PlayerNode *node;
+
+     D_MAGIC_ASSERT( player, VoodooPlayer );
+
+     direct_mutex_lock( &player->lock );
+
+     direct_list_foreach (node, player->nodes) {
+          if (!addr || !strcmp( node->addr, addr )) {
+               direct_memcpy( ret_info, &node->info, sizeof(VoodooPlayInfo) );
+
+               direct_mutex_unlock( &player->lock );
+               return DR_OK;
+          }
+     }
+
+     if (addr && !strcmp( "127.0.0.1", addr )) {
+          direct_memcpy( ret_info, &player->info, sizeof(VoodooPlayInfo) );
+
+          direct_mutex_unlock( &player->lock );
+          return DR_OK;
      }
 
      direct_mutex_unlock( &player->lock );

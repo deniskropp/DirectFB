@@ -57,6 +57,19 @@ const char   *voodoo_config_usage =
 
 /**********************************************************************************************************************/
 
+void
+__Voodoo_conf_init()
+{
+     voodoo_config->compression_min = 1;
+}
+
+void
+__Voodoo_conf_deinit()
+{
+}
+
+/**********************************************************************************************************************/
+
 DirectResult
 voodoo_config_set( const char *name, const char *value )
 {
