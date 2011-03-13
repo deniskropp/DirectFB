@@ -45,7 +45,8 @@ typedef enum {
      CORE_SDL,
      CORE_VNC,
      CORE_DEVMEM,
-     CORE_TI_CMEM
+     CORE_TI_CMEM,
+     CORE_MESA
 } CoreSystemType;
 
 typedef enum {
