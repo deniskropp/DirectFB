@@ -30,6 +30,12 @@ else
 FBDEV_DIR =
 endif
 
+if MESA_CORE
+MESA_DIR = mesa
+else
+MESA_DIR =
+endif
+
 if VNC_CORE
 VNC_DIR = vnc
 else
@@ -41,6 +47,7 @@ SUBDIRS = \
 	dummy \
 	$(DEVMEM_DIR) \
 	$(FBDEV_DIR) \
+	$(MESA_DIR) \
 	$(X11_DIR) \
 	$(SDL_DIR) \
 	$(OSX_DIR) \

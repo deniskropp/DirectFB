@@ -125,7 +125,8 @@ dummySetRegion( CoreLayer                  *layer,
                 CoreLayerRegionConfigFlags  updated,
                 CoreSurface                *surface,
                 CorePalette                *palette,
-                CoreSurfaceBufferLock      *lock )
+                CoreSurfaceBufferLock      *left_lock,
+                CoreSurfaceBufferLock      *right_lock )
 {
      return DFB_OK;
 }
