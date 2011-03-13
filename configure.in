@@ -769,6 +769,21 @@ AC_SUBST(VNC_CFLAGS)
 
 
 
+dnl Test for Mesa
+AC_ARG_ENABLE(mesa,
+              AC_HELP_STRING([--enable-mesa],
+                             [build with Mesa support @<:@default=auto@:>@]),
+              [], [enable_mesa=yes])
+if test "$enable_mesa" = "yes"; then
+  PKG_CHECK_MODULES(MESA, [gl glu egl libdrm], [enable_mesa=yes], [enable_mesa=no])
+fi
+
+AM_CONDITIONAL(MESA_CORE, test "$enable_mesa" = "yes")
+AC_SUBST(MESA_LIBS)
+AC_SUBST(MESA_CFLAGS)
+
+
+
 dnl Test for libsysfs
 AC_ARG_ENABLE(sysfs,
               AC_HELP_STRING([--enable-sysfs],
@@ -971,6 +986,7 @@ cyber5k=no
 davinci=no
 ep9x=no
 gl=no
+gles2=no
 glx=no
 i810=no
 i830=no
@@ -997,7 +1013,7 @@ AC_ARG_WITH(gfxdrivers,
                            [LIST is a comma separated selection of gfxdrivers]
                            [to build. Possible gfxdrivers are: all (builds all]
                            [drivers), none (builds none), ati128, cle266,]
-                           [cyber5k, davinci, ep9x, gl, i810, i830, mach64,]
+                           [cyber5k, davinci, ep9x, gl, gles2, i810, i830, mach64,]
                            [matrox, neomagic, nsc, nvidia, omap, pxa3xx,]
                            [radeon, savage, sh772x, sis315, tdfx, unichrome,]
                            [vmware. @<:@default=all@:>@]),
@@ -1009,6 +1025,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_davinci="$have_arm"
   checkfor_ep9x=yes
   checkfor_gl=yes
+  checkfor_gles2=yes
   checkfor_i810=yes
   checkfor_i830=yes
   checkfor_mach64=yes
@@ -1050,6 +1067,9 @@ else
                   ;;
           gl)
                   checkfor_gl=yes
+                  ;;
+          gles2)
+                  checkfor_gles2=yes
                   ;;
           i810)
                   checkfor_i810=yes
@@ -1135,6 +1155,12 @@ if test "$checkfor_gl" = "yes"; then
                   glx=yes
                   AC_DEFINE(USE_GLX,1,[Define to 1 if GLX has been selected or detected])
                   ])
+fi
+
+if test "$checkfor_gles2" = "yes"; then
+   if test "$enable_mesa" = "yes"; then
+      gles2=yes
+   fi
 fi
 
 if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
@@ -1632,6 +1658,7 @@ AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_DAVINCI, test "$davinci" = "yes")
 AM_CONDITIONAL(GFX_EP9X, test "$ep9x" = "yes")
 AM_CONDITIONAL(GFX_GL, test "$gl" = "yes")
+AM_CONDITIONAL(GFX_GLES2, test "$gles2" = "yes")
 AM_CONDITIONAL(GFX_GLX, test "$glx" = "yes")
 AM_CONDITIONAL(GFX_I810, test "$i810" = "yes")
 AM_CONDITIONAL(GFX_I830, test "$i830" = "yes")
@@ -1800,6 +1827,7 @@ systems/Makefile
 systems/devmem/Makefile
 systems/dummy/Makefile
 systems/fbdev/Makefile
+systems/mesa/Makefile
 systems/x11/Makefile
 systems/osx/Makefile
 systems/sdl/Makefile
@@ -1819,6 +1847,7 @@ gfxdrivers/cyber5k/Makefile
 gfxdrivers/davinci/Makefile
 gfxdrivers/ep9x/Makefile
 gfxdrivers/gl/Makefile
+gfxdrivers/gles2/Makefile
 gfxdrivers/i810/Makefile
 gfxdrivers/i830/Makefile
 gfxdrivers/mach64/Makefile
@@ -1924,6 +1953,7 @@ Building Tools              $with_tools
 Building System Modules:
   Linux FBDev support       $enable_fbdev
   Generic /dev/mem support  $enable_devmem
+  Mesa/DRM/KMS support      $enable_mesa                $MESA_CFLAGS $MESA_LIBS
   X11 support               $enable_x11                 $X11_CFLAGS $X11_LIBS
   OSX support               $enable_osx                 $OSX_CFLAGS $OSX_LIBS
   SDL support               $enable_sdl                 $SDL_CFLAGS $SDL_LIBS
@@ -1973,6 +2003,7 @@ Building Graphics Drivers:
   VMWare                    $vmware
   --
   OpenGL                    $gl (GLX: $glx)
+  OpenGL ES 2.0             $gles2 (Mesa: $enable_mesa)
 
 Building Input Drivers:
   DBox2 Remote              $enable_dbox2remote
