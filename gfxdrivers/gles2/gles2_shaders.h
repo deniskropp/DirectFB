@@ -130,32 +130,25 @@ void main (void) \
 
 
 /*
- * Using `discard' for colorkey can stall the pipe on some hardware.
- * Use an alpha of 0 with blending func (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
- * enabled instead.  This means that colorkey is incompatible with any existing
- * blend func as well as premultiply (which only makes sense with blending).
- * This shouldn't be a problem; if arbitrary blending is being used, then
- * colorkey is redundant.
- *
- * TODO: see if all(equal(gl_FragColor.rgb, dfbColorkey)) is a sufficient test.
+ * Source Color Keying.
  */
 static const char *blit_colorkey_frag_src = " \
-const float       e = 1.0 / 128.0; \
 uniform sampler2D dfbSampler; \
 uniform vec4      dfbColor; \
-uniform vec3      dfbColorkey; \
+uniform ivec3     dfbColorkey; \
 varying vec2   varTexCoord; \
 void main (void) \
 { \
-     gl_FragColor = texture2D(dfbSampler, varTexCoord); \
-     if (abs(gl_FragColor.r - dfbColorkey.r) < e && \
-         abs(gl_FragColor.g - dfbColorkey.g) < e && \
-	 abs(gl_FragColor.b - dfbColorkey.b) < e) { \
-	  gl_FragColor.a = 0.0; \
-     } else { \
-	  gl_FragColor.a = 1.0; \
-     } \
-     gl_FragColor *= dfbColor; \
+     vec4 value = texture2D(dfbSampler, varTexCoord); \
+\
+     int r = int(value.r*255.0+0.5); \
+     int g = int(value.g*255.0+0.5); \
+     int b = int(value.b*255.0+0.5); \
+\
+     if (r == dfbColorkey.x && g == dfbColorkey.y && b == dfbColorkey.z) \
+        discard; \
+\
+     gl_FragColor = value * dfbColor; \
 }";
 
 /* 

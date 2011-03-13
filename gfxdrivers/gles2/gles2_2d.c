@@ -422,28 +422,21 @@ gles2_validate_COLORKEY(GLES2DriverData *gdrv,
                         GLES2DeviceData *gdev,
                         CardState       *state)
 {
-     /*
-      * DFB's colorkey has fixed 8-bit components packed into a u32 in ARGB
-      * order, with nothing set in the alpha component (high byte).
-      *
-      * The dfbColorkey uniform shader variable is a lowp vec3 and expects
-      * components in the floating point range [0.0 - 1.0].
-      */
-     float r, g, b;
-     float s = 1.0f/255.0f;
      GLES2ProgramInfo *prog = &gdev->progs[gdev->prog_index];
 
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
-     r = ((state->src_colorkey & 0x00ff0000) >> 16) * s;
-     g = ((state->src_colorkey & 0x0000ff00) >>  8) * s;
-     b = ((state->src_colorkey & 0x000000ff) >>  0) * s;
+     /* convert RGB32 color values to int */
+     int r = (state->src_colorkey & 0x00FF0000) >> 16;
+     int g = (state->src_colorkey & 0x0000FF00) >>  8;
+     int b = (state->src_colorkey & 0x000000FF)      ;
 
-     glUniform3f(prog->dfbColorkey, r, g, b);
+     /* send converted color key to shader */
+     glUniform3iARB( prog->dfbColorkey, r, g, b );
 
      // Set the flag.
      GLES2_VALIDATE(COLORKEY);
-     D_DEBUG_AT(GLES2__2D, "  -> loaded colorkey %f %f %f\n", r, g, b);
+     D_DEBUG_AT(GLES2__2D, "  -> loaded colorkey %d %d %d\n", r, g, b);
 }
 
 /*
