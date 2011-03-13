@@ -93,7 +93,7 @@ main( int argc, char *argv[] )
      const char       *hostname = argv[1] ?: "127.0.0.1";
 
 
-     voodoo_link_init_connect( &link, hostname, 23239 );
+     voodoo_link_init_connect( &link, hostname, 23239, false );
 
      voodoo_manager_create( &link, NULL, NULL, &manager );
 
