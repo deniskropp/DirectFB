@@ -30,6 +30,8 @@
 #include <core/gfxcard.h>
 #include <core/system.h>
 
+#include <misc/conf.h>
+
 #include "vdpau_2d.h"
 #include "vdpau_gfxdriver.h"
 
@@ -95,6 +97,11 @@ driver_init_driver( CoreGraphicsDevice  *device,
      funcs->SetState      = vdpauSetState;
      funcs->FillRectangle = vdpauFillRectangle;
      funcs->Blit          = vdpauBlit;
+
+     if (!dfb_config->software_only) {
+          dfb_config->font_format  = DSPF_ARGB;
+          dfb_config->font_premult = true;
+     }
 
      return DFB_OK;
 }
