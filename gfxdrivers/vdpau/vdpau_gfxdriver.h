@@ -32,6 +32,8 @@ typedef struct {
      /* validation flags */
      int                                v_flags;
 
+     VdpOutputSurface                   white;
+
      /* cached/computed values */
      VdpOutputSurface                   dst;
      VdpOutputSurface                   src;

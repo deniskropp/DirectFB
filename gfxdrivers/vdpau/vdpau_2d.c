@@ -451,10 +451,31 @@ vdpauFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      VDPAUDriverData *vdrv = (VDPAUDriverData*) drv;
      VDPAUDeviceData *vdev = (VDPAUDeviceData*) dev;
+     DFBX11VDPAU     *vdp  = vdrv->vdp;
 
      D_DEBUG_AT( VDPAU_2D, "%s( %d,%d-%dx%d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( rect ) );
 
-//     return false;
+     VdpStatus status;
+     VdpRect   dst_rect;
+     VdpRect   src_rect;
+
+     dst_rect.x0 = rect->x;
+     dst_rect.y0 = rect->y;
+     dst_rect.x1 = rect->x + rect->w;
+     dst_rect.y1 = rect->y + rect->h;
+
+     src_rect.x0 = 0;
+     src_rect.y0 = 0;
+     src_rect.x1 = 1;
+     src_rect.y1 = 1;
+
+     status = vdp->OutputSurfaceRenderOutputSurface( vdev->dst, &dst_rect, vdev->white, &src_rect,
+                                                     &vdev->color, &vdev->blend, vdev->flags );
+     if (status) {
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceRenderOutputSurface() failed (status %d, '%s')!\n",
+                   status, vdp->GetErrorString( status ) );
+          return false;
+     }
 
      return true;
 }

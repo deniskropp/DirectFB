@@ -105,9 +105,32 @@ driver_init_device( CoreGraphicsDevice *device,
                     void               *driver_data,
                     void               *device_data )
 {
+     VDPAUDriverData *vdrv = driver_data;
      VDPAUDeviceData *vdev = device_data;
+     DFBX11VDPAU     *vdp  = vdrv->vdp;
 
      vdev->blend.struct_version = VDP_OUTPUT_SURFACE_RENDER_BLEND_STATE_VERSION;
+
+     VdpStatus status;
+
+     status = vdp->OutputSurfaceCreate( vdp->device, VDP_RGBA_FORMAT_B8G8R8A8, 1, 1, &vdev->white );
+     if (status) {
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceCreate( RGBA 1x1 ) failed (status %d, '%s')!\n",
+                   status, vdp->GetErrorString( status ) );
+          return DFB_FAILURE;
+     }
+
+     uint32_t    white_bits  = 0xffffffff;
+     const void *white_ptr   = &white_bits;
+     uint32_t    white_pitch = 4;
+     VdpRect     white_rect  = { 0, 0, 1, 1 };
+
+     status = vdp->OutputSurfacePutBitsNative( vdev->white, &white_ptr, &white_pitch, &white_rect );
+     if (status) {
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfacePutBitsNative( RGBA 1x1 ) failed (status %d, '%s')!\n",
+                   status, vdp->GetErrorString( status ) );
+          return DFB_FAILURE;
+     }
 
      /* fill device info */
      snprintf( device_info->vendor, DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "VDPAU" );
