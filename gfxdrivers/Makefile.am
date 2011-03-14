@@ -126,6 +126,12 @@ else
 UNICHROME_DIR =
 endif
 
+if GFX_VDPAU
+VDPAU_DIR = vdpau
+else
+VDPAU_DIR =
+endif
+
 if GFX_VMWARE
 VMWARE_DIR = vmware
 else
@@ -162,4 +168,5 @@ SUBDIRS = \
 	$(SIS315_DIR)	\
 	$(TDFX_DIR)	\
 	$(UNICHROME_DIR) \
+	$(VDPAU_DIR)	\
 	$(VMWARE_DIR)

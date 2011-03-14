@@ -1016,6 +1016,7 @@ sh772x=no
 sis315=no
 tdfx=no
 unichrome=no
+vdpau=no
 vmware=no
 
 if test "$have_linux" = "yes"; then
@@ -1029,7 +1030,7 @@ AC_ARG_WITH(gfxdrivers,
                            [cyber5k, davinci, ep9x, gl, gles2, i810, i830, mach64,]
                            [matrox, neomagic, nsc, nvidia, omap, pxa3xx,]
                            [radeon, savage, sh772x, sis315, tdfx, unichrome,]
-                           [vmware. @<:@default=all@:>@]),
+                           [vdpau, vmware. @<:@default=all@:>@]),
             [gfxdrivers="$withval"], [gfxdrivers=all])
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
@@ -1054,6 +1055,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_sis315=yes
   checkfor_tdfx=yes
   checkfor_unichrome=yes
+  checkfor_vdpau=yes
   checkfor_vmware=yes
 
   AC_MSG_RESULT(all)
@@ -1131,6 +1133,9 @@ else
                   ;;
           vmware)
                   checkfor_vmware=yes
+                  ;;
+          vdpau)
+                  checkfor_vdpau=yes
                   ;;
           *)
                   echo "Unknown gfxdriver $gfxdriver, exiting!"
@@ -1245,6 +1250,12 @@ fi
 
 if test "$checkfor_vmware" = "yes"; then
   vmware=yes
+fi
+
+if test "$checkfor_vdpau" = "yes"; then
+   if test "$enable_x11vdpau" = "yes"; then
+      vdpau=yes
+   fi
 fi
 
 # lets check for input driver
@@ -1689,6 +1700,7 @@ AM_CONDITIONAL(GFX_SIS315, test "$sis315" = "yes")
 AM_CONDITIONAL(GFX_TDFX, test "$tdfx" = "yes")
 AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
 AM_CONDITIONAL(GFX_VMWARE, test "$vmware" = "yes")
+AM_CONDITIONAL(GFX_VDPAU, test "$vdpau" = "yes")
 
 AM_CONDITIONAL(DBOX2REMOTE, test "$enable_dbox2remote" = "yes")
 AM_CONDITIONAL(DREAMBOXREMOTE, test "$enable_dreamboxremote" = "yes")
@@ -1880,6 +1892,7 @@ gfxdrivers/sh772x/Makefile
 gfxdrivers/sis315/Makefile
 gfxdrivers/tdfx/Makefile
 gfxdrivers/unichrome/Makefile
+gfxdrivers/vdpau/Makefile
 gfxdrivers/vmware/Makefile
 
 inputdrivers/Makefile
@@ -2018,6 +2031,7 @@ Building Graphics Drivers:
   VIA CLE266                $cle266
   VIA UniChrome             $unichrome
   VMWare                    $vmware
+  VDPAU                     $vdpau
   --
   OpenGL                    $gl (GLX: $glx)
   OpenGL ES 2.0             $gles2 (Mesa: $enable_mesa)
