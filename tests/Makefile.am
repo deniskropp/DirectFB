@@ -2,6 +2,13 @@
 
 if DIRECTFB_BUILD_VOODOO
 SUBDIRS = voodoo
+
+VOODOO_PROGS = \
+	voodoo_bench	\
+	voodoo_bench_client		\
+	voodoo_bench_server		\
+	voodoo_bench_client_unix	\
+	voodoo_bench_server_unix
 endif
 
 
@@ -40,11 +47,7 @@ bin_PROGRAMS = \
 	dfbtest_window_flip_once	\
 	direct_stream	\
 	direct_test	\
-	voodoo_bench	\
-	voodoo_bench_client		\
-	voodoo_bench_server		\
-	voodoo_bench_client_unix	\
-	voodoo_bench_server_unix
+	$(VOODOO_PROGS)
 
 libdirectfb = $(top_builddir)/src/libdirectfb.la
 libfusion = $(top_builddir)/lib/fusion/libfusion.la
