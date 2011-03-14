@@ -158,6 +158,7 @@ vdpau_validate_BLEND_DRAW( VDPAUDeviceData *vdev,
 
      /* Set the flag. */
      VDPAU_VALIDATE( BLEND_DRAW );
+     VDPAU_INVALIDATE( BLEND_BLIT );
 }
 
 /*
@@ -193,6 +194,7 @@ vdpau_validate_BLEND_BLIT( VDPAUDeviceData *vdev,
 
      /* Set the flag. */
      VDPAU_VALIDATE( BLEND_BLIT );
+     VDPAU_INVALIDATE( BLEND_DRAW );
 }
 
 /*
@@ -216,6 +218,7 @@ vdpau_validate_COLOR_DRAW( VDPAUDeviceData *vdev,
 
      /* Set the flag. */
      VDPAU_VALIDATE( COLOR_DRAW );
+     VDPAU_INVALIDATE( COLOR_BLIT );
 }
 
 /*
@@ -252,6 +255,7 @@ vdpau_validate_COLOR_BLIT( VDPAUDeviceData *vdev,
 
      /* Set the flag. */
      VDPAU_VALIDATE( COLOR_BLIT );
+     VDPAU_INVALIDATE( COLOR_DRAW );
 }
 
 /**************************************************************************************************/
