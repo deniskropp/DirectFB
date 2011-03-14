@@ -619,7 +619,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
 static int
 driver_get_available( void )
 {
-     return dfb_system_type() == CORE_X11;
+     return dfb_system_type() == CORE_X11VDPAU;
 }
 
 /*

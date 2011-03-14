@@ -224,6 +224,7 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
           { VDP_FUNC_ID_OUTPUT_SURFACE_DESTROY, (void**) &x11->vdp.OutputSurfaceDestroy },
           { VDP_FUNC_ID_OUTPUT_SURFACE_GET_BITS_NATIVE, (void**) &x11->vdp.OutputSurfaceGetBitsNative },
           { VDP_FUNC_ID_OUTPUT_SURFACE_PUT_BITS_NATIVE, (void**) &x11->vdp.OutputSurfacePutBitsNative },
+          { VDP_FUNC_ID_OUTPUT_SURFACE_RENDER_OUTPUT_SURFACE, (void**) &x11->vdp.OutputSurfaceRenderOutputSurface },
           { VDP_FUNC_ID_PRESENTATION_QUEUE_CREATE, (void**) &x11->vdp.PresentationQueueCreate },
           { VDP_FUNC_ID_PRESENTATION_QUEUE_DESTROY, (void**) &x11->vdp.PresentationQueueDestroy },
           { VDP_FUNC_ID_PRESENTATION_QUEUE_DISPLAY, (void**) &x11->vdp.PresentationQueueDisplay },
@@ -259,7 +260,7 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 static void
 system_get_info( CoreSystemInfo *info )
 {
-     info->type = CORE_X11;   
+     info->type = CORE_X11VDPAU;
      info->caps = CSCAPS_ACCELERATION;
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );

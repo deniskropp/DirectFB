@@ -98,6 +98,8 @@ typedef struct {
      VdpOutputSurfaceGetBitsNative       *OutputSurfaceGetBitsNative;
      VdpOutputSurfacePutBitsNative       *OutputSurfacePutBitsNative;
 
+     VdpOutputSurfaceRenderOutputSurface *OutputSurfaceRenderOutputSurface;
+
 
      VdpPresentationQueueCreate          *PresentationQueueCreate;
      VdpPresentationQueueDestroy         *PresentationQueueDestroy;
