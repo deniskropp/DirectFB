@@ -18,6 +18,12 @@ else
 X11_DIR =
 endif
 
+if X11VDPAU_CORE
+X11VDPAU_DIR = x11vdpau
+else
+X11VDPAU_DIR =
+endif
+
 if DEVMEM_CORE
 DEVMEM_DIR = devmem
 else
@@ -49,6 +55,7 @@ SUBDIRS = \
 	$(FBDEV_DIR) \
 	$(MESA_DIR) \
 	$(X11_DIR) \
+	$(X11VDPAU_DIR) \
 	$(SDL_DIR) \
 	$(OSX_DIR) \
 	$(VNC_DIR)
