@@ -378,26 +378,7 @@ primaryTestRegion( CoreLayer                  *layer,
      }
 
      switch (config->format) {
-          case DSPF_LUT8:
-          case DSPF_RGB16:
-          case DSPF_NV16:
-          case DSPF_RGB444:
-          case DSPF_ARGB4444:
-          case DSPF_RGBA4444:
-          case DSPF_RGB555:
-          case DSPF_ARGB1555:
-          case DSPF_RGBA5551:
-          case DSPF_BGR555:
-          case DSPF_RGB24:
-          case DSPF_RGB32:
           case DSPF_ARGB:
-          case DSPF_AYUV:
-          case DSPF_AVYU:
-          case DSPF_VYU:
-          case DSPF_UYVY:
-          case DSPF_ARGB8565:
-          case DSPF_YUV444P:
-          case DSPF_YV16:
                break;
 
           default:
