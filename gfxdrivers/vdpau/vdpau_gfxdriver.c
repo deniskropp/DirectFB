@@ -97,6 +97,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
      funcs->SetState      = vdpauSetState;
      funcs->FillRectangle = vdpauFillRectangle;
      funcs->Blit          = vdpauBlit;
+     funcs->StretchBlit   = vdpauStretchBlit;
 
      if (!dfb_config->software_only) {
           dfb_config->font_format  = DSPF_ARGB;

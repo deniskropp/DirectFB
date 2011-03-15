@@ -419,6 +419,7 @@ vdpauSetState( void                *drv,
                break;
 
           case DFXL_BLIT:
+          case DFXL_STRETCHBLIT:
                /* ...require valid source and blitting color/blend. */
                VDPAU_CHECK_VALIDATE( SOURCE );
                VDPAU_CHECK_VALIDATE( BLEND_BLIT );
@@ -505,6 +506,44 @@ vdpauBlit( void *drv, void *dev, DFBRectangle *srect, int dx, int dy )
      dst_rect.y0 = dy;
      dst_rect.x1 = dx + srect->w;
      dst_rect.y1 = dy + srect->h;
+
+     src_rect.x0 = srect->x;
+     src_rect.y0 = srect->y;
+     src_rect.x1 = srect->x + srect->w;
+     src_rect.y1 = srect->y + srect->h;
+
+     status = vdp->OutputSurfaceRenderOutputSurface( vdev->dst, &dst_rect, vdev->src, &src_rect,
+                                                     &vdev->color, &vdev->blend, vdev->flags );
+     if (status) {
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceRenderOutputSurface() failed (status %d, '%s')!\n",
+                   status, vdp->GetErrorString( status ) );
+          return false;
+     }
+
+     return true;
+}
+
+/*
+ * StretchBlit a surface using the current hardware state.
+ */
+bool
+vdpauStretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect )
+{
+     VDPAUDriverData *vdrv = (VDPAUDriverData*) drv;
+     VDPAUDeviceData *vdev = (VDPAUDeviceData*) dev;
+     DFBX11VDPAU     *vdp  = vdrv->vdp;
+
+     D_DEBUG_AT( VDPAU_2D, "%s( %d,%d-%dx%d -> %d,%d-%dx%d )\n", __FUNCTION__,
+                 DFB_RECTANGLE_VALS( srect ), DFB_RECTANGLE_VALS( drect ) );
+
+     VdpStatus status;
+     VdpRect   dst_rect;
+     VdpRect   src_rect;
+
+     dst_rect.x0 = drect->x;
+     dst_rect.y0 = drect->y;
+     dst_rect.x1 = drect->x + drect->w;
+     dst_rect.y1 = drect->y + drect->h;
 
      src_rect.x0 = srect->x;
      src_rect.y0 = srect->y;

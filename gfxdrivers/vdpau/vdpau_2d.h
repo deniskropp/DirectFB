@@ -34,7 +34,7 @@
                                            DSBLIT_COLORIZE           | \
                                            DSBLIT_SRC_PREMULTCOLOR)
 
-#define VDPAU_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT)
+#define VDPAU_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 
 DFBResult vdpauEngineSync   ( void                *drv,
@@ -66,6 +66,11 @@ bool      vdpauBlit         ( void                *drv,
                               DFBRectangle        *srect,
                               int                  dx,
                               int                  dy );
+
+bool      vdpauStretchBlit  ( void                *drv,
+                              void                *dev,
+                              DFBRectangle        *srect,
+                              DFBRectangle        *drect );
 
 #endif
 
