@@ -29,6 +29,8 @@
 
 
 typedef struct {
+     bool                               sync;
+
      /* validation flags */
      int                                v_flags;
 

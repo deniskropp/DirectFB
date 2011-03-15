@@ -271,6 +271,37 @@ vdpau_validate_COLOR_BLIT( VDPAUDeviceData *vdev,
 DFBResult
 vdpauEngineSync( void *drv, void *dev )
 {
+     VDPAUDriverData *vdrv = (VDPAUDriverData*) drv;
+     VDPAUDeviceData *vdev = (VDPAUDeviceData*) dev;
+     DFBX11VDPAU     *vdp  = vdrv->vdp;
+
+     D_DEBUG_AT( VDPAU_2D, "%s( %d,%d-%dx%d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( rect ) );
+
+     if (vdev->sync) {
+          VdpStatus  status;
+          VdpRect    rect;
+          u32        pixel;
+          void      *ptr   = &pixel;
+          uint32_t   pitch = 4;
+
+          rect.x0 = 0;
+          rect.y0 = 0;
+          rect.x1 = 1;
+          rect.y1 = 1;
+
+          /*
+           * Pseudo GetBits call, no other way found
+           */
+          status = vdp->OutputSurfaceGetBitsNative( vdev->dst, &rect, &ptr, &pitch );
+          if (status) {
+               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceGetBitsNative() failed (status %d, '%s')!\n",
+                        status, vdp->GetErrorString( status ) );
+               return DFB_FAILURE;
+          }
+
+          vdev->sync = false;
+     }
+
      return DFB_OK;
 }
 
@@ -474,6 +505,8 @@ vdpauFillRectangle( void *drv, void *dev, DFBRectangle *rect )
      src_rect.x1 = 1;
      src_rect.y1 = 1;
 
+     vdev->sync = true;
+
      status = vdp->OutputSurfaceRenderOutputSurface( vdev->dst, &dst_rect, vdev->white, &src_rect,
                                                      &vdev->color, &vdev->blend, vdev->flags );
      if (status) {
@@ -512,6 +545,8 @@ vdpauBlit( void *drv, void *dev, DFBRectangle *srect, int dx, int dy )
      src_rect.x1 = srect->x + srect->w;
      src_rect.y1 = srect->y + srect->h;
 
+     vdev->sync = true;
+
      status = vdp->OutputSurfaceRenderOutputSurface( vdev->dst, &dst_rect, vdev->src, &src_rect,
                                                      &vdev->color, &vdev->blend, vdev->flags );
      if (status) {
@@ -549,6 +584,8 @@ vdpauStretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect
      src_rect.y0 = srect->y;
      src_rect.x1 = srect->x + srect->w;
      src_rect.y1 = srect->y + srect->h;
+
+     vdev->sync = true;
 
      status = vdp->OutputSurfaceRenderOutputSurface( vdev->dst, &dst_rect, vdev->src, &src_rect,
                                                      &vdev->color, &vdev->blend, vdev->flags );
