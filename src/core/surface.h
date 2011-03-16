@@ -107,8 +107,9 @@ typedef struct {
      DFBSurfaceCapabilities   caps;
 
      struct {
-          void *addr;
-          int   pitch;
+          void          *addr;
+          int            pitch;
+          unsigned long  handle;
      }                        preallocated[MAX_SURFACE_BUFFERS];
 
      DFBDimension             min_size;
