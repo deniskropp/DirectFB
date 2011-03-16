@@ -26,7 +26,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-//#define DIRECT_ENABLE_DEBUG
+#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
 
@@ -96,7 +96,7 @@ x11InitPool( CoreDFB                    *core,
 
      ret_desc->caps              = CSPCAPS_NONE;
      ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
-     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
+     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL | CSTF_PREALLOCATED;
      ret_desc->priority          = CSPP_ULTIMATE;
 
      /* For showing our X11 window */
@@ -168,7 +168,7 @@ x11TestConfig( CoreSurfacePool         *pool,
           default:
                return DFB_UNSUPPORTED;
      }
-          
+
      return DFB_OK;
 }
 
@@ -183,6 +183,7 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
      CoreSurface            *surface;
      x11vdpauAllocationData *alloc = alloc_data;
      x11vdpauPoolLocalData  *local = pool_local;
+     DFBX11                 *x11   = local->x11;
      DFBX11VDPAU            *vdp   = local->vdp;
 
      D_DEBUG_AT( X11VDPAU_Surfaces, "%s()\n", __FUNCTION__ );
@@ -193,14 +194,25 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     VdpStatus status;
+     if (surface->type & CSTF_PREALLOCATED) {
+          alloc->surface = surface->config.preallocated[0].handle;
 
-     status = vdp->OutputSurfaceCreate( vdp->device, VDP_RGBA_FORMAT_B8G8R8A8,
-                                        surface->config.size.w, surface->config.size.h, &alloc->surface );
-     if (status) {
-          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceCreate( ARGB %dx%d ) failed (status %d, '%s'!\n",
-                   surface->config.size.w, surface->config.size.h, status, vdp->GetErrorString( status ) );
-          return DFB_FAILURE;
+          D_DEBUG_AT( X11VDPAU_Surfaces, "  -> preallocated from output surface %u\n", alloc->surface );
+     }
+     else {
+          VdpStatus status;
+
+          XLockDisplay( x11->display );
+          status = vdp->OutputSurfaceCreate( vdp->device, VDP_RGBA_FORMAT_B8G8R8A8,
+                                             surface->config.size.w, surface->config.size.h, &alloc->surface );
+          XUnlockDisplay( x11->display );
+          if (status) {
+               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceCreate( ARGB %dx%d ) failed (status %d, '%s'!\n",
+                        surface->config.size.w, surface->config.size.h, status, vdp->GetErrorString( status ) );
+               return DFB_FAILURE;
+          }
+
+          D_DEBUG_AT( X11VDPAU_Surfaces, "  -> created output surface %u\n", alloc->surface );
      }
 
      dfb_surface_calc_buffer_size( surface, 8, 2, &alloc->pitch, &allocation->size );
@@ -216,8 +228,10 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
                      CoreSurfaceAllocation *allocation,
                      void                  *alloc_data )
 {
+     CoreSurface            *surface;
      x11vdpauAllocationData *alloc = alloc_data;
      x11vdpauPoolLocalData  *local = pool_local;
+     DFBX11                 *x11   = local->x11;
      DFBX11VDPAU            *vdp   = local->vdp;
 
      D_DEBUG_AT( X11VDPAU_Surfaces, "%s()\n", __FUNCTION__ );
@@ -227,13 +241,22 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
-     VdpStatus status;
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
 
-     status = vdp->OutputSurfaceDestroy( alloc->surface );
-     if (status) {
-          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceDestroy() failed (status %d, '%s')!\n",
-                   status, vdp->GetErrorString( status ) );
-          return DFB_FAILURE;
+     if (surface->type & CSTF_PREALLOCATED) {
+     }
+     else {
+          VdpStatus status;
+
+          XLockDisplay( x11->display );
+          status = vdp->OutputSurfaceDestroy( alloc->surface );
+          XUnlockDisplay( x11->display );
+          if (status) {
+               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceDestroy() failed (status %d, '%s')!\n",
+                        status, vdp->GetErrorString( status ) );
+               return DFB_FAILURE;
+          }
      }
 
      return DFB_OK;
@@ -290,6 +313,7 @@ x11Read( CoreSurfacePool       *pool,
 {
      x11vdpauAllocationData *alloc = alloc_data;
      x11vdpauPoolLocalData  *local = pool_local;
+     DFBX11                 *x11   = local->x11;
      DFBX11VDPAU            *vdp   = local->vdp;
 
      CoreSurface *surface;
@@ -315,7 +339,9 @@ x11Read( CoreSurfacePool       *pool,
      src.x1 = rect->x + rect->w;
      src.y1 = rect->y + rect->h;
 
+     XLockDisplay( x11->display );
      status = vdp->OutputSurfaceGetBitsNative( alloc->surface, &src, ptrs, pitches );
+     XUnlockDisplay( x11->display );
      if (status) {
           D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceGetBitsNative() failed (status %d, '%s')!\n",
                    status, vdp->GetErrorString( status ) );
@@ -337,6 +363,7 @@ x11Write( CoreSurfacePool       *pool,
 {
      x11vdpauAllocationData *alloc = alloc_data;
      x11vdpauPoolLocalData  *local = pool_local;
+     DFBX11                 *x11   = local->x11;
      DFBX11VDPAU            *vdp   = local->vdp;
 
      CoreSurface *surface;
@@ -362,7 +389,9 @@ x11Write( CoreSurfacePool       *pool,
      dest.x1 = rect->x + rect->w;
      dest.y1 = rect->y + rect->h;
 
+     XLockDisplay( x11->display );
      status = vdp->OutputSurfacePutBitsNative( alloc->surface, ptrs, pitches, &dest );
+     XUnlockDisplay( x11->display );
      if (status) {
           D_ERROR( "DirectFB/X11/VDPAU: OutputSurfacePutBitsNative() failed (status %d, '%s')!\n",
                    status, vdp->GetErrorString( status ) );
