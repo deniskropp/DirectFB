@@ -3128,6 +3128,9 @@ wm_update_window( CoreWindow          *window,
                   void                *wm_data,
                   void                *window_data,
                   const DFBRegion     *region,    /* surface coordinates! */
+#if DIRECTFB_VERSION_CODE >= VERSION_CODE(1,5,0)
+                  const DFBRegion     *right_region,    /* surface coordinates! */
+#endif
                   DFBSurfaceFlipFlags  flags )
 {
      DFBResult        ret;
@@ -3598,6 +3601,9 @@ wm_update_cursor( CoreWindowStack       *stack,
           /* Create the cursor backing store surface. */
           ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
                                            context->config.pixelformat, DSCAPS_NONE,
+#if DIRECTFB_VERSION_CODE >= VERSION_CODE(1,5,0)
+                                           context->config.colorspace,
+#endif
                                            CSTF_SHARED | CSTF_CURSOR, 0, NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
