@@ -62,7 +62,7 @@ extern "C" {
 #include <vector>
 
 
-#define IN_BUF_MAX ((VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader)) * 3)
+#define IN_BUF_MAX ((VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader)) * 1)
 
 
 //namespace Voodoo {
