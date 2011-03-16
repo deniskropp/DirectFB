@@ -10,6 +10,7 @@ INCLUDES = \
 	$(X11VDPAU_CFLAGS)
 
 
+x11vdpau_includedir = $(includedir)/directfb-internal/x11vdpau
 systemsdir = $(MODULEDIR)/systems
 
 if BUILD_STATIC
@@ -23,20 +24,22 @@ libdirectfb_x11vdpau_la_LDFLAGS = \
 	-avoid-version	\
 	-module
 
-libdirectfb_x11vdpau_la_SOURCES = \
-	primary.c		\
+x11vdpau_include_HEADERS = \
 	primary.h		\
-	x11.c			\
 	x11.h			\
-	x11image.c		\
 	x11image.h		\
-	x11input.c		\
-	x11_surface_pool.c	\
 	x11_surface_pool.h	\
-	x11vdpau_surface_pool.c	\
 	x11vdpau_surface_pool.h	\
 	x11types.h		\
-	xwindow.h		\
+	xwindow.h
+
+libdirectfb_x11vdpau_la_SOURCES = \
+	primary.c		\
+	x11.c			\
+	x11image.c		\
+	x11input.c		\
+	x11_surface_pool.c	\
+	x11vdpau_surface_pool.c	\
 	xwindow.c
 
 libdirectfb_x11vdpau_la_LIBADD = \
