@@ -203,10 +203,10 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
           }
           else {
                // Just need the X & Y scale factors and constant offsets.
-               glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
+               glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
 
                D_DEBUG_AT(GLES2__2D, "  -> loaded scale factors %f %f\n",
-                          2.0f/w, -2.0f/h);
+                          2.0f/w, 2.0f/h);
           }
 
           GLES2_INVALIDATE(ALL);
@@ -340,10 +340,10 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
            * so blit source coordinates have to be normalized to tex coords in
            * the range [0..1].
            */
-          glUniform2f(prog->dfbTexScale, 1.0f/w, -1.0f/h);
+          glUniform2f(prog->dfbTexScale, 1.0f/w, 1.0f/h);
 
           D_DEBUG_AT(GLES2__2D, "  -> w %d h %d, scale x %f scale y %f\n",
-                     w, h, 1.0f/w, -1.0f/h);
+                     w, h, 1.0f/w, 1.0f/h);
 
           glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
           glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
