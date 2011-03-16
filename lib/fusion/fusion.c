@@ -2564,6 +2564,8 @@ DirectResult fusion_enter( int               world_index,
      D_MAGIC_SET( world, FusionWorld );
      D_MAGIC_SET( world->shared, FusionWorldShared );
 
+     fusion_skirmish_init( &world->shared->arenas_lock, "Fusion Arenas", world );
+
      *ret_world = world;
 
      return DR_OK;
