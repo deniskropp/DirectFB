@@ -48,11 +48,14 @@ extern "C"
 
 /**********************************************************************************************************************/
 
+#define VERSION_CODE( M, m, r )  (((M) * 1000) + ((m) * 100) + (r))
+#define DIRECTFB_VERSION_CODE    VERSION_CODE( DIRECTFB_MAJOR_VERSION,\
+                                               DIRECTFB_MINOR_VERSION,\
+                                               DIRECTFB_MICRO_VERSION )
+
 /* compatibility towards 1.2.x and 1.4.x DirectFB branches */
-#if DIRECTFB_MAJOR_VERSION==1
-#if DIRECTFB_MINOR_VERSION<=2
+#if DIRECTFB_VERSION_CODE < VERSION_CODE(1,4,0)
 #define OLD_COREWINDOWS_STRUCTURE
-#endif
 #endif
 
 #ifdef OLD_COREWINDOWS_STRUCTURE
