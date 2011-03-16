@@ -43,6 +43,7 @@
 
 #include <core/layers.h>
 #include <core/surface.h>
+#include <core/system.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -1064,6 +1065,9 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      xine_audio_port_t *ao;
      xine_stream_t     *stream;
      DFBResult          result;
+
+     if (dfb_system_type() == CORE_X11VDPAU)
+          return DFB_UNSUPPORTED;
      
      mrl = filename_to_mrl( ctx->filename );
      if (!mrl)
