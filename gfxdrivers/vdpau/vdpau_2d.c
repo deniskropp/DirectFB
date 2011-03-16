@@ -275,7 +275,7 @@ vdpauEngineSync( void *drv, void *dev )
      VDPAUDeviceData *vdev = (VDPAUDeviceData*) dev;
      DFBX11VDPAU     *vdp  = vdrv->vdp;
 
-     D_DEBUG_AT( VDPAU_2D, "%s( %d,%d-%dx%d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( rect ) );
+     D_DEBUG_AT( VDPAU_2D, "%s()\n", __FUNCTION__ );
 
      if (vdev->sync) {
           VdpStatus  status;
