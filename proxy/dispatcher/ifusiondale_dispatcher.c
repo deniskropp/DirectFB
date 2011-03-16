@@ -194,6 +194,8 @@ Construct( IFusionDale *thiz, VoodooManager *manager, VoodooInstanceID *ret_inst
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionDale_Dispatcher)
 
+     FusionDaleInit( NULL, NULL );
+
      ret = FusionDaleCreate( &real );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
