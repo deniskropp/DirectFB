@@ -229,6 +229,7 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
           { VDP_FUNC_ID_PRESENTATION_QUEUE_DESTROY, (void**) &x11->vdp.PresentationQueueDestroy },
           { VDP_FUNC_ID_PRESENTATION_QUEUE_DISPLAY, (void**) &x11->vdp.PresentationQueueDisplay },
           { VDP_FUNC_ID_PRESENTATION_QUEUE_GET_TIME, (void**) &x11->vdp.PresentationQueueGetTime },
+          { VDP_FUNC_ID_PRESENTATION_QUEUE_BLOCK_UNTIL_SURFACE_IDLE, (void**) &x11->vdp.PresentationQueueBlockUntilSurfaceIdle },
      };
 
      for (i=0; i<D_ARRAY_SIZE(funcs); i++) {

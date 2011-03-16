@@ -76,36 +76,38 @@ typedef struct {
 } DFBX11Shared;
 
 typedef struct {
-     VdpDevice                            device;
+     VdpDevice                                     device;
 
-     uint32_t                             api_version;
-     const char                          *information_string;
-
-
-     VdpGetProcAddress                   *GetProcAddress;
-     VdpGetErrorString                   *GetErrorString;
-     VdpGetApiVersion                    *GetApiVersion;
-     VdpGetInformationString             *GetInformationString;
+     uint32_t                                      api_version;
+     const char                                   *information_string;
 
 
-     VdpPresentationQueueTargetCreateX11 *PresentationQueueTargetCreateX11;
-     VdpPresentationQueueTargetDestroy   *PresentationQueueTargetDestroy;
+     VdpGetProcAddress                            *GetProcAddress;
+     VdpGetErrorString                            *GetErrorString;
+     VdpGetApiVersion                             *GetApiVersion;
+     VdpGetInformationString                      *GetInformationString;
 
 
-     VdpOutputSurfaceCreate              *OutputSurfaceCreate;
-     VdpOutputSurfaceDestroy             *OutputSurfaceDestroy;
-
-     VdpOutputSurfaceGetBitsNative       *OutputSurfaceGetBitsNative;
-     VdpOutputSurfacePutBitsNative       *OutputSurfacePutBitsNative;
-
-     VdpOutputSurfaceRenderOutputSurface *OutputSurfaceRenderOutputSurface;
+     VdpPresentationQueueTargetCreateX11          *PresentationQueueTargetCreateX11;
+     VdpPresentationQueueTargetDestroy            *PresentationQueueTargetDestroy;
 
 
-     VdpPresentationQueueCreate          *PresentationQueueCreate;
-     VdpPresentationQueueDestroy         *PresentationQueueDestroy;
+     VdpOutputSurfaceCreate                       *OutputSurfaceCreate;
+     VdpOutputSurfaceDestroy                      *OutputSurfaceDestroy;
 
-     VdpPresentationQueueDisplay         *PresentationQueueDisplay;
-     VdpPresentationQueueGetTime         *PresentationQueueGetTime;
+     VdpOutputSurfaceGetBitsNative                *OutputSurfaceGetBitsNative;
+     VdpOutputSurfacePutBitsNative                *OutputSurfacePutBitsNative;
+
+     VdpOutputSurfaceRenderOutputSurface          *OutputSurfaceRenderOutputSurface;
+
+
+     VdpPresentationQueueCreate                   *PresentationQueueCreate;
+     VdpPresentationQueueDestroy                  *PresentationQueueDestroy;
+
+     VdpPresentationQueueDisplay                  *PresentationQueueDisplay;
+     VdpPresentationQueueGetTime                  *PresentationQueueGetTime;
+
+     VdpPresentationQueueBlockUntilSurfaceIdle    *PresentationQueueBlockUntilSurfaceIdle;
 } DFBX11VDPAU;
 
 struct __DFB_X11 {
