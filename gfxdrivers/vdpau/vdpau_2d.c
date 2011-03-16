@@ -292,7 +292,9 @@ vdpauEngineSync( void *drv, void *dev )
           /*
            * Pseudo GetBits call, no other way found
            */
+          XLockDisplay( vdrv->display );
           status = vdp->OutputSurfaceGetBitsNative( vdev->dst, &rect, &ptr, &pitch );
+          XUnlockDisplay( vdrv->display );
           if (status) {
                D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceGetBitsNative() failed (status %d, '%s')!\n",
                         status, vdp->GetErrorString( status ) );
@@ -507,8 +509,10 @@ vdpauFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      vdev->sync = true;
 
+     XLockDisplay( vdrv->display );
      status = vdp->OutputSurfaceRenderOutputSurface( vdev->dst, &dst_rect, vdev->white, &src_rect,
                                                      &vdev->color, &vdev->blend, vdev->flags );
+     XUnlockDisplay( vdrv->display );
      if (status) {
           D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceRenderOutputSurface() failed (status %d, '%s')!\n",
                    status, vdp->GetErrorString( status ) );
@@ -547,8 +551,10 @@ vdpauBlit( void *drv, void *dev, DFBRectangle *srect, int dx, int dy )
 
      vdev->sync = true;
 
+     XLockDisplay( vdrv->display );
      status = vdp->OutputSurfaceRenderOutputSurface( vdev->dst, &dst_rect, vdev->src, &src_rect,
                                                      &vdev->color, &vdev->blend, vdev->flags );
+     XUnlockDisplay( vdrv->display );
      if (status) {
           D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceRenderOutputSurface() failed (status %d, '%s')!\n",
                    status, vdp->GetErrorString( status ) );
@@ -587,8 +593,10 @@ vdpauStretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect
 
      vdev->sync = true;
 
+     XLockDisplay( vdrv->display );
      status = vdp->OutputSurfaceRenderOutputSurface( vdev->dst, &dst_rect, vdev->src, &src_rect,
                                                      &vdev->color, &vdev->blend, vdev->flags );
+     XUnlockDisplay( vdrv->display );
      if (status) {
           D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceRenderOutputSurface() failed (status %d, '%s')!\n",
                    status, vdp->GetErrorString( status ) );

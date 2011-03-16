@@ -58,6 +58,7 @@ typedef struct {
 
 
 typedef struct {
+     Display     *display;
      DFBX11VDPAU *vdp;
 } VDPAUDriverData;
 

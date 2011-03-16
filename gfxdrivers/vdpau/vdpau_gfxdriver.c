@@ -87,7 +87,8 @@ driver_init_driver( CoreGraphicsDevice  *device,
      DFBX11          *x11  = dfb_system_data();
      VDPAUDriverData *vdrv = driver_data;
 
-     vdrv->vdp = &x11->vdp;
+     vdrv->vdp     = &x11->vdp;
+     vdrv->display = x11->display;
 
      /* initialize function pointers */
      funcs->EngineSync    = vdpauEngineSync;
@@ -121,7 +122,9 @@ driver_init_device( CoreGraphicsDevice *device,
 
      VdpStatus status;
 
+     XLockDisplay( vdrv->display );
      status = vdp->OutputSurfaceCreate( vdp->device, VDP_RGBA_FORMAT_B8G8R8A8, 1, 1, &vdev->white );
+     XUnlockDisplay( vdrv->display );
      if (status) {
           D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceCreate( RGBA 1x1 ) failed (status %d, '%s')!\n",
                    status, vdp->GetErrorString( status ) );
@@ -133,7 +136,9 @@ driver_init_device( CoreGraphicsDevice *device,
      uint32_t    white_pitch = 4;
      VdpRect     white_rect  = { 0, 0, 1, 1 };
 
+     XLockDisplay( vdrv->display );
      status = vdp->OutputSurfacePutBitsNative( vdev->white, &white_ptr, &white_pitch, &white_rect );
+     XUnlockDisplay( vdrv->display );
      if (status) {
           D_ERROR( "DirectFB/X11/VDPAU: OutputSurfacePutBitsNative( RGBA 1x1 ) failed (status %d, '%s')!\n",
                    status, vdp->GetErrorString( status ) );
