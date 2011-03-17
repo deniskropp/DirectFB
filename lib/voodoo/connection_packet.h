@@ -54,7 +54,7 @@ private:
           DirectMutex            lock;
           DirectWaitQueue        wait;
           DirectTLS              tls;
-          VoodooPacket          *packet;
+          DirectLink            *packets;
           VoodooPacket          *sending;
      } output;
 
