@@ -155,13 +155,17 @@ Dispatch_Call( IComaComponent *thiz, IComaComponent *real,
           return DR_ACCESSDENIED;
 
      if (length) {
+          void *ptr;
+
           ret = coma->GetLocal( coma, length, &arg );
           if (ret) {
                VOODOO_PARSER_END( parser );
                return ret;
           }
 
-          VOODOO_PARSER_READ_DATA( parser, arg, length );
+          VOODOO_PARSER_GET_ODATA( parser, ptr );
+
+          direct_memcpy( arg, ptr, length );
      }
      else
           arg = NULL;
