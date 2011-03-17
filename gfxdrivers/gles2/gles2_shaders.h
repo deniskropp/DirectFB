@@ -38,7 +38,7 @@ uniform vec2   dfbScale; \
 void main (void) \
 { \
      gl_Position.x = dfbScale.x * dfbPos.x - 1.0; \
-     gl_Position.y = dfbScale.y * dfbPos.y + 1.0; \
+     gl_Position.y = dfbScale.y * dfbPos.y - 1.0; \
      gl_Position.z = 0.0; \
      gl_Position.w = 1.0; \
 }";
@@ -88,11 +88,11 @@ varying vec2   varTexCoord; \
 void main (void) \
 { \
      gl_Position.x = dfbScale.x * dfbPos.x - 1.0; \
-     gl_Position.y = dfbScale.y * dfbPos.y + 1.0; \
+     gl_Position.y = dfbScale.y * dfbPos.y - 1.0; \
      gl_Position.z = 0.0; \
      gl_Position.w = 1.0; \
      varTexCoord.s = dfbTexScale.x * dfbUV.x; \
-     varTexCoord.t = dfbTexScale.y * dfbUV.y + 1.0; \
+     varTexCoord.t = dfbTexScale.y * dfbUV.y; \
 }";
 
 
@@ -111,7 +111,7 @@ void main (void) \
      vec3 pos = dfbMVPMatrix * dfbROMatrix * vec3(dfbPos, 1.0); \
      gl_Position = vec4(pos.x, pos.y, 0.0, pos.z); \
      varTexCoord.s = dfbTexScale.x * dfbUV.x; \
-     varTexCoord.t = dfbTexScale.y * dfbUV.y + 1.0; \
+     varTexCoord.t = dfbTexScale.y * dfbUV.y ; \
 }";
 
 
