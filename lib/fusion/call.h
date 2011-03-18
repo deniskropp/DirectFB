@@ -63,6 +63,13 @@ DirectResult FUSION_API fusion_call_execute( FusionCall          *call,
                                              void                *call_ptr,
                                              int                 *ret_val );
 
+DirectResult FUSION_API fusion_call_execute2( FusionCall          *call,
+                                              FusionCallExecFlags  flags,
+                                              int                  call_arg,
+                                              void                *ptr,
+                                              unsigned int         length,
+                                              int                 *ret_val );
+
 DirectResult FUSION_API fusion_call_return ( FusionCall          *call,
                                              unsigned int         serial,
                                              int                  val );
