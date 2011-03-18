@@ -35,6 +35,7 @@
 
 #include <core/core.h>
 #include <core/surface_pool.h>
+#include <core/system.h>
 
 
 /**********************************************************************************************************************/
@@ -108,10 +109,10 @@ localInitPool( CoreDFB                    *core,
      D_ASSERT( pool_local != NULL );
      D_ASSERT( ret_desc != NULL );
 
-     ret_desc->caps              = CSPCAPS_NONE;
+     ret_desc->caps              = CSPCAPS_VIRTUAL;
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE;
      ret_desc->types             = CSTF_FONT | CSTF_INTERNAL;
-     ret_desc->priority          = CSPP_PREFERED;
+     ret_desc->priority          = (dfb_system_caps() & CSCAPS_PREFER_SHM) ? CSPP_DEFAULT : CSPP_PREFERED;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "System Memory" );
 
