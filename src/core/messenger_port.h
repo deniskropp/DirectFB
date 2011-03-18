@@ -59,7 +59,7 @@ struct __FD_CoreMessengerPort {
 
      CoreMessenger         *messenger;
 
-     FusionSkirmish         lock;
+     FusionSkirmish        *lock;
 
      FusionHash            *nodes;
      FusionHash            *listeners;

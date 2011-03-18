@@ -205,9 +205,6 @@ messenger_port_destructor( FusionObject *object, bool zombie, void *ctx )
 
      fd_messenger_detach_global( messenger, &port->reaction );
 
-     fusion_skirmish_prevail( &port->lock );
-     fusion_skirmish_destroy( &port->lock );
-
      fusion_hash_iterate( port->nodes, node_iterator, port );
 
      D_ASSUME( fusion_hash_size( port->nodes ) == 0 );
@@ -258,9 +255,7 @@ fd_messenger_port_create( CoreDale           *core,
           goto error;
 
      /* Initialize lock. */
-     ret = fusion_skirmish_init( &port->lock, "Messenger Port", fd_core_world(core) );
-     if (ret)
-          goto error_skirmish;
+     port->lock = &messenger->lock;
 
      /* Initialize event node hash. */
      ret = fusion_hash_create( messenger->shmpool, HASH_INT, HASH_PTR, 11, &port->nodes );
@@ -276,7 +271,7 @@ fd_messenger_port_create( CoreDale           *core,
           goto error_hash2;
      }
 
-     fusion_reactor_set_lock( port->object.reactor, &port->lock );
+     fusion_reactor_set_lock( port->object.reactor, port->lock );
      fusion_reactor_direct( port->object.reactor, false );
 
      /* Attach global reaction to process all events. */
@@ -310,9 +305,6 @@ error_hash2:
      fusion_hash_destroy( port->nodes );
 
 error_hash:
-     fusion_skirmish_destroy( &port->lock );
-
-error_skirmish:
      fd_messenger_unlink( &port->messenger );
 
 error:
@@ -332,7 +324,7 @@ fd_messenger_port_add_event( CoreMessengerPort  *port,
      D_MAGIC_ASSERT( event, CoreMessengerEvent );
 
      /* Lock port. */
-     ret = fusion_skirmish_prevail( &port->lock );
+     ret = fusion_skirmish_prevail( port->lock );
      if (ret)
           return ret;
 
@@ -378,13 +370,13 @@ fd_messenger_port_add_event( CoreMessengerPort  *port,
      }
 
      /* Unlock port. */
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      return DR_OK;
 
 
 error:
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      return ret;
 }
@@ -405,7 +397,7 @@ fd_messenger_port_remove_event( CoreMessengerPort  *port,
      D_MAGIC_ASSERT( messenger, CoreMessenger );
 
      /* Lock port. */
-     ret = fusion_skirmish_prevail( &port->lock );
+     ret = fusion_skirmish_prevail( port->lock );
      if (ret)
           return ret;
 
@@ -424,7 +416,7 @@ fd_messenger_port_remove_event( CoreMessengerPort  *port,
           D_BUG( "node for event id %lu not found", event_id );
 
      /* Unlock port. */
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      return DR_OK;
 }
@@ -451,7 +443,7 @@ fd_messenger_port_add_listener( CoreMessengerPort        *port,
      D_MAGIC_ASSERT( messenger, CoreMessenger );
 
      /* Lock port. */
-     ret = fusion_skirmish_prevail( &port->lock );
+     ret = fusion_skirmish_prevail( port->lock );
      if (ret)
           return ret;
 
@@ -490,7 +482,7 @@ fd_messenger_port_add_listener( CoreMessengerPort        *port,
           D_BUG( "node for event id %lu not found", event_id );
 
      /* Unlock port. */
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      return DR_OK;
 
@@ -499,7 +491,7 @@ error:
      if (listener)
           SHFREE( messenger->shmpool, listener );
 
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      return ret;
 }
@@ -522,7 +514,7 @@ fd_messenger_port_remove_listener( CoreMessengerPort     *port,
      D_MAGIC_ASSERT( messenger, CoreMessenger );
 
      /* Lock port. */
-     ret = fusion_skirmish_prevail( &port->lock );
+     ret = fusion_skirmish_prevail( port->lock );
      if (ret)
           return ret;
 
@@ -530,7 +522,7 @@ fd_messenger_port_remove_listener( CoreMessengerPort     *port,
      ret = fusion_hash_remove( port->listeners, (void*) listener_id, NULL, &old_value );
      if (ret) {
           D_BUG( "listener id %lu not found", listener_id );
-          fusion_skirmish_dismiss( &port->lock );
+          fusion_skirmish_dismiss( port->lock );
           return ret;
      }
 
@@ -550,7 +542,7 @@ fd_messenger_port_remove_listener( CoreMessengerPort     *port,
      SHFREE( messenger->shmpool, listener );
 
      /* Unlock port. */
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      return DR_OK;
 }
@@ -569,7 +561,7 @@ fd_messenger_port_enum_listeners( CoreMessengerPort      *port,
      D_ASSERT( callback != NULL );
 
      /* Lock port. */
-     ret = fusion_skirmish_prevail( &port->lock );
+     ret = fusion_skirmish_prevail( port->lock );
      if (ret)
           return ret;
 
@@ -595,7 +587,7 @@ fd_messenger_port_enum_listeners( CoreMessengerPort      *port,
           D_BUG( "node for event id %lu not found", event_id );
 
      /* Unlock port. */
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      return DR_OK;
 }
@@ -661,7 +653,7 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
           D_MAGIC_ASSERT( port, CoreMessengerPort );
 
           /* Lock port. */
-          fusion_skirmish_prevail( &port->lock );
+          fusion_skirmish_prevail( port->lock );
           
           if (node->listeners) {
 //               dispatch->count++;
@@ -676,7 +668,7 @@ fd_messenger_event_dispatch( CoreMessengerEvent *event,
           }
 
           /* Unlock port. */
-          fusion_skirmish_dismiss( &port->lock );
+          fusion_skirmish_dismiss( port->lock );
      }
 
 
@@ -713,7 +705,7 @@ fd_messenger_port_send_event( CoreMessengerPort  *port,
      D_MAGIC_ASSERT( messenger, CoreMessenger );
 
      /* Lock port. */
-     ret = fusion_skirmish_prevail( &port->lock );
+     ret = fusion_skirmish_prevail( port->lock );
      if (ret)
           return ret;
 
@@ -721,7 +713,7 @@ fd_messenger_port_send_event( CoreMessengerPort  *port,
      node = fusion_hash_lookup( port->nodes, (void*) event_id );
      if (!node) {
           D_BUG( "node for event id %lu not found", event_id );
-          fusion_skirmish_dismiss( &port->lock );
+          fusion_skirmish_dismiss( port->lock );
           return DR_BUG;
      }
 
@@ -733,7 +725,7 @@ fd_messenger_port_send_event( CoreMessengerPort  *port,
      D_MAGIC_ASSERT( event, CoreMessengerEvent );
 
      /* Unlock port. */
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      ret = fd_messenger_event_dispatch( event, param, data_ptr, data_size );
 
@@ -762,7 +754,7 @@ fd_messenger_port_reaction( const void *msg_data,
      D_MAGIC_ASSERT( port->messenger, CoreMessenger );
 
      /* Lock port. */
-     ret = fusion_skirmish_prevail( &port->lock );
+     ret = fusion_skirmish_prevail( port->lock );
      if (ret) {
           D_BUG( "could not lock port" );
           return RS_REMOVE;
@@ -773,7 +765,7 @@ fd_messenger_port_reaction( const void *msg_data,
      if (!node) {
           /* Probably purged while the message was pending. */
           D_WARN( "node for event id %lu not found", notification->event_id );
-          fusion_skirmish_dismiss( &port->lock );
+          fusion_skirmish_dismiss( port->lock );
           return RS_OK;
      }
 
@@ -809,7 +801,7 @@ fd_messenger_port_reaction( const void *msg_data,
      node->count++;
 
      /* Unlock port. */
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
 
      /* Lock messenger. (has to happen without the port being locked!) */
@@ -820,7 +812,7 @@ fd_messenger_port_reaction( const void *msg_data,
      }
 
      /* Lock port. */
-     ret = fusion_skirmish_prevail( &port->lock );
+     ret = fusion_skirmish_prevail( port->lock );
      if (ret) {
           D_BUG( "could not lock port" );
           fd_messenger_unlock( messenger );
@@ -859,7 +851,7 @@ fd_messenger_port_reaction( const void *msg_data,
           purge_node( port, node );
 
      /* Unlock port. */
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      /* Unlock messenger. */
      fd_messenger_unlock( messenger );
@@ -916,7 +908,7 @@ _fd_messenger_port_messenger_listener( const void *msg_data,
      D_MAGIC_ASSERT( dispatch, CoreMessengerDispatch );
 
      /* Lock port. */
-     ret = fusion_skirmish_prevail( &port->lock );
+     ret = fusion_skirmish_prevail( port->lock );
      if (ret)
           return RS_REMOVE;
 
@@ -940,7 +932,7 @@ _fd_messenger_port_messenger_listener( const void *msg_data,
      }
      
      /* Unlock port. */
-     fusion_skirmish_dismiss( &port->lock );
+     fusion_skirmish_dismiss( port->lock );
 
      return RS_OK;
 }
