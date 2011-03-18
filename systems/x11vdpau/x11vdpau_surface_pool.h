@@ -33,7 +33,6 @@
 
 #include <vdpau/vdpau.h>
 
-#include "x11image.h"
 
 extern const SurfacePoolFuncs *x11vdpauSurfacePoolFuncs;
 

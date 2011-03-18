@@ -87,8 +87,12 @@ driver_init_driver( CoreGraphicsDevice  *device,
      DFBX11          *x11  = dfb_system_data();
      VDPAUDriverData *vdrv = driver_data;
 
+     vdrv->x11     = x11;
      vdrv->vdp     = &x11->vdp;
      vdrv->display = x11->display;
+
+     vdrv->render_draw.blend_state.struct_version = VDP_OUTPUT_SURFACE_RENDER_BLEND_STATE_VERSION;
+     vdrv->render_blit.blend_state.struct_version = VDP_OUTPUT_SURFACE_RENDER_BLEND_STATE_VERSION;
 
      /* initialize function pointers */
      funcs->EngineSync    = vdpauEngineSync;
@@ -117,8 +121,6 @@ driver_init_device( CoreGraphicsDevice *device,
      VDPAUDriverData *vdrv = driver_data;
      VDPAUDeviceData *vdev = device_data;
      DFBX11VDPAU     *vdp  = vdrv->vdp;
-
-     vdev->blend.struct_version = VDP_OUTPUT_SURFACE_RENDER_BLEND_STATE_VERSION;
 
      VdpStatus status;
 

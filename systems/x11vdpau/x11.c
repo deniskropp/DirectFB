@@ -37,6 +37,7 @@
 #include <directfb.h>
 
 #include <fusion/arena.h>
+#include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 #include <fusion/lock.h>
 
@@ -57,16 +58,14 @@
 
 
 #include "primary.h"
-#include "xwindow.h"
 #include "x11.h"
-#include "x11_surface_pool.h"
 #include "x11vdpau_surface_pool.h"
 
 #include <core/core_system.h>
 
 D_DEBUG_DOMAIN( X11_Core, "X11/Core", "Main X11 system functions" );
 
-DFB_CORE_SYSTEM( x11 )
+DFB_CORE_SYSTEM( x11vdpau )
 
 
 static VideoMode modes[] = {
@@ -98,32 +97,14 @@ static VideoMode modes[] = {
 
 /**********************************************************************************************************************/
 
-static FusionCallHandlerResult call_handler( int           caller,
-                                             int           call_arg,
-                                             void         *call_ptr,
-                                             void         *ctx,
-                                             unsigned int  serial,
-                                             int          *ret_val );
+static FusionCallHandlerResult X11_VDPAU_Dispatch( int           caller,
+                                                   int           call_arg,
+                                                   void         *call_ptr,
+                                                   void         *ctx,
+                                                   unsigned int  serial,
+                                                   int          *ret_val );
 
 /**********************************************************************************************************************/
-
-static DFBX11Shared *shared_for_error_handler;
-
-static int
-error_handler( Display *display, XErrorEvent *event )
-{
-     char buf[512];
-
-     D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
-
-     XGetErrorText( display, event->error_code, buf, sizeof(buf) );
-
-     D_ERROR( "X11/Core: Error! %s\n", buf );
-
-     shared_for_error_handler->x_error = True;
-
-     return 0;
-}
 
 static DFBResult
 InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
@@ -195,10 +176,6 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
           }
      }
 
-     if (XShmQueryExtension( x11->display ))
-          XShmQueryVersion( x11->display, &x11->xshm_major, &x11->xshm_minor, &x11->use_shm );
-
-
 
      /*
       * VDPAU
@@ -246,7 +223,7 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 
      D_INFO( "DirectFB/X11/VDPAU: API version %d - '%s'\n", x11->vdp.api_version, x11->vdp.information_string );
      
-
+     
      x11->screen = dfb_screens_register( NULL, x11, x11PrimaryScreenFuncs );
 
      dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
@@ -262,7 +239,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_X11VDPAU;
-     info->caps = CSCAPS_ACCELERATION;
+     info->caps = CSCAPS_ACCELERATION | CSCAPS_PREFER_SHM;
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
@@ -288,11 +265,6 @@ system_initialize( CoreDFB *core, void **data )
           return D_OOSHM();
      }
 
-     /* we need the error handler to signal the error to us, so
-        use a global static */
-     shared_for_error_handler = shared;
-     XSetErrorHandler( error_handler );
-
      /*
       * Local init (master and slave)
       */
@@ -307,14 +279,12 @@ system_initialize( CoreDFB *core, void **data )
      /*
       * Shared init (master only)
       */
-     shared->data_shmpool = dfb_core_shmpool_data( core );
-
-     shared->screen_size.w = x11->screenptr->width;
-     shared->screen_size.h = x11->screenptr->height;
+     shared->screen_size.w = dfb_config->mode.width  ?: x11->screenptr->width;
+     shared->screen_size.h = dfb_config->mode.height ?: x11->screenptr->height;
 
      fusion_skirmish_init( &shared->lock, "X11 System", dfb_core_world(core) );
 
-     fusion_call_init( &shared->call, call_handler, x11, dfb_core_world(core) );
+     fusion_call_init( &shared->call, X11_VDPAU_Dispatch, x11, dfb_core_world(core) );
 
 
      /*
@@ -326,7 +296,6 @@ system_initialize( CoreDFB *core, void **data )
      /*
       * Master init
       */
-     dfb_surface_pool_initialize( core, x11SurfacePoolFuncs, &shared->x11image_pool );
      dfb_surface_pool_initialize( core, x11vdpauSurfacePoolFuncs, &shared->vdpau_pool );
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "x11", shared );
@@ -371,9 +340,6 @@ system_join( CoreDFB *core, void **data )
      /*
       * Slave init
       */
-     if (shared->x11image_pool)
-          dfb_surface_pool_join( core, shared->x11image_pool, x11SurfacePoolFuncs );
-
      if (shared->vdpau_pool)
           dfb_surface_pool_join( core, shared->vdpau_pool, x11vdpauSurfacePoolFuncs );
 
@@ -386,16 +352,11 @@ system_shutdown( bool emergency )
      DFBX11       *x11    = dfb_system_data();
      DFBX11Shared *shared = x11->shared;
 
-     int i;
-
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
      /*
       * Master deinit
       */
-     if (shared->x11image_pool)
-          dfb_surface_pool_destroy( shared->x11image_pool );
-
      if (shared->vdpau_pool)
           dfb_surface_pool_destroy( shared->vdpau_pool );
 
@@ -407,20 +368,6 @@ system_shutdown( bool emergency )
 
      fusion_skirmish_prevail( &shared->lock );
 
-     /* close remaining windows */
-     for( i=0; i<dfb_layer_num(); i++ ) {
-          CoreLayer    *layer;
-          X11LayerData *lds;
-
-          layer = dfb_layer_at( i );
-          lds   = layer->layer_data;
-          if( lds->xw ) {
-              dfb_x11_close_window( x11, lds->xw );
-              lds->xw = 0;
-              shared->window_count--;
-          }
-     }
-
      fusion_skirmish_destroy( &shared->lock );
 
 
@@ -431,7 +378,7 @@ system_shutdown( bool emergency )
       * Local deinit (master and slave)
       */
      if (x11->display)
-         XCloseDisplay( x11->display );
+          XCloseDisplay( x11->display );
 
      D_FREE( x11 );
 
@@ -449,9 +396,6 @@ system_leave( bool emergency )
      /*
       * Slave deinit
       */
-     if (shared->x11image_pool)
-          dfb_surface_pool_leave( shared->x11image_pool );
-
      if (shared->vdpau_pool)
           dfb_surface_pool_leave( shared->vdpau_pool );
 
@@ -460,7 +404,7 @@ system_leave( bool emergency )
       * Local deinit (master and slave)
       */
      if (x11->display)
-         XCloseDisplay( x11->display );
+          XCloseDisplay( x11->display );
 
      D_FREE( x11 );
 
@@ -589,39 +533,171 @@ system_get_deviceid( unsigned int *ret_vendor_id,
 {
 }
 
+/**********************************************************************************************************************/
+
+static int
+X11_VDPAU_Dispatch_OutputSurfaceCreate( DFBX11                        *x11,
+                                        DFBX11CallOutputSurfaceCreate *create )
+{
+     DFBX11VDPAU *vdp = &x11->vdp;
+
+     VdpStatus        status;
+     VdpOutputSurface surface;
+
+     status = vdp->OutputSurfaceCreate( vdp->device, create->rgba_format,
+                                        create->width, create->height, &surface );
+     if (status) {
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceCreate( format %u, size %dx%d ) failed (status %d, '%s'!\n",
+                   create->rgba_format, create->width, create->height, status, vdp->GetErrorString( status ) );
+          return 0;
+     }
+
+     return (int) surface;
+}
+
+static int
+X11_VDPAU_Dispatch_OutputSurfaceDestroy( DFBX11                         *x11,
+                                         DFBX11CallOutputSurfaceDestroy *destroy )
+{
+     DFBX11VDPAU *vdp = &x11->vdp;
+
+     VdpStatus status;
+
+     status = vdp->OutputSurfaceDestroy( destroy->surface );
+     if (status)
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceDestroy( %u ) failed (status %d, '%s'!\n",
+                   destroy->surface, status, vdp->GetErrorString( status ) );
+
+     return (int) status;
+}
+
+static int
+X11_VDPAU_Dispatch_OutputSurfaceGetBitsNative( DFBX11                               *x11,
+                                               DFBX11CallOutputSurfaceGetBitsNative *get )
+{
+     if (!fusion_is_shared( dfb_core_world(x11->core), get->ptr )) {
+          D_ERROR( "DirectFB/X11/VDPAU: Pointer (%p) is not shared, discarding OutputSurfaceGetBitsNative()!\n", get->ptr );
+          return 0;
+     }
+
+
+     DFBX11VDPAU *vdp = &x11->vdp;
+
+     VdpStatus status;
+
+     status = vdp->OutputSurfaceGetBitsNative( get->surface,
+                                               &get->source_rect,
+                                               &get->ptr,
+                                               &get->pitch );
+     if (status)
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceGetBitsNative( surface %u ) failed (status %d, '%s'!\n",
+                   get->surface, status, vdp->GetErrorString( status ) );
+
+     return (int) status;
+}
+
+static int
+X11_VDPAU_Dispatch_OutputSurfacePutBitsNative( DFBX11                               *x11,
+                                               DFBX11CallOutputSurfacePutBitsNative *put )
+{
+     if (!fusion_is_shared( dfb_core_world(x11->core), put->ptr )) {
+          D_ERROR( "DirectFB/X11/VDPAU: Pointer (%p) is not shared, discarding OutputSurfacePutBitsNative()!\n", put->ptr );
+          return 0;
+     }
+
+
+     DFBX11VDPAU *vdp = &x11->vdp;
+
+     VdpStatus status;
+
+     status = vdp->OutputSurfacePutBitsNative( put->surface,
+                                               (void const * const *) &put->ptr,
+                                               &put->pitch,
+                                               &put->destination_rect );
+     if (status)
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfacePutBitsNative( surface %u ) failed (status %d, '%s'!\n",
+                   put->surface, status, vdp->GetErrorString( status ) );
+
+     return (int) status;
+}
+
+static int
+X11_VDPAU_Dispatch_OutputSurfaceRenderOutputSurface( DFBX11                                     *x11,
+                                                     DFBX11CallOutputSurfaceRenderOutputSurface *render )
+{
+     DFBX11VDPAU *vdp = &x11->vdp;
+
+     VdpStatus status;
+
+     status = vdp->OutputSurfaceRenderOutputSurface( render->destination_surface,
+                                                     &render->destination_rect,
+                                                     render->source_surface,
+                                                     &render->source_rect,
+                                                     &render->color,
+                                                     &render->blend_state,
+                                                     render->flags );
+     if (status)
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceRenderOutputSurface( dest %u, source %u ) failed (status %d, '%s'!\n",
+                   render->destination_surface, render->source_surface, status, vdp->GetErrorString( status ) );
+
+     return (int) status;
+}
+
+static int
+X11_VDPAU_Dispatch_PresentationQueueDisplay( DFBX11                             *x11,
+                                             DFBX11CallPresentationQueueDisplay *display )
+{
+     DFBX11VDPAU *vdp = &x11->vdp;
+
+     VdpStatus status;
+
+     status = vdp->PresentationQueueDisplay( display->presentation_queue,
+                                             display->surface,
+                                             display->clip_width,
+                                             display->clip_height,
+                                             display->earliest_presentation_time );
+     if (status)
+          D_ERROR( "DirectFB/X11/VDPAU: PresentationQueueDisplay( queue %u, surface %u ) failed (status %d, '%s'!\n",
+                   display->presentation_queue, display->surface, status, vdp->GetErrorString( status ) );
+
+     return (int) status;
+}
+
 static FusionCallHandlerResult
-call_handler( int           caller,
-              int           call_arg,
-              void         *call_ptr,
-              void         *ctx,
-              unsigned int  serial,
-              int          *ret_val )
+X11_VDPAU_Dispatch( int           caller,
+                    int           call_arg,
+                    void         *call_ptr,
+                    void         *ctx,
+                    unsigned int  serial,
+                    int          *ret_val )
 {
      DFBX11 *x11 = ctx;
 
+     XLockDisplay( x11->display );
+
      switch (call_arg) {
-          case X11_CREATE_WINDOW:
-               *ret_val = dfb_x11_create_window_handler( x11, call_ptr );
+          case X11_VDPAU_OUTPUT_SURFACE_CREATE:
+               *ret_val = X11_VDPAU_Dispatch_OutputSurfaceCreate( x11, call_ptr );
                break;
 
-          case X11_DESTROY_WINDOW:
-               *ret_val = dfb_x11_destroy_window_handler( x11, call_ptr );
+          case X11_VDPAU_OUTPUT_SURFACE_DESTROY:
+               *ret_val = X11_VDPAU_Dispatch_OutputSurfaceDestroy( x11, call_ptr );
                break;
 
-          case X11_UPDATE_SCREEN:
-               *ret_val = dfb_x11_update_screen_handler( x11, call_ptr );
+          case X11_VDPAU_OUTPUT_SURFACE_GET_BITS_NATIVE:
+               *ret_val = X11_VDPAU_Dispatch_OutputSurfaceGetBitsNative( x11, call_ptr );
                break;
 
-          case X11_SET_PALETTE:
-               *ret_val = dfb_x11_set_palette_handler( x11, call_ptr );
+          case X11_VDPAU_OUTPUT_SURFACE_PUT_BITS_NATIVE:
+               *ret_val = X11_VDPAU_Dispatch_OutputSurfacePutBitsNative( x11, call_ptr );
                break;
 
-          case X11_IMAGE_INIT:
-               *ret_val = dfb_x11_image_init_handler( x11, call_ptr );
+          case X11_VDPAU_OUTPUT_SURFACE_RENDER_OUTPUT_SURFACE:
+               *ret_val = X11_VDPAU_Dispatch_OutputSurfaceRenderOutputSurface( x11, call_ptr );
                break;
 
-          case X11_IMAGE_DESTROY:
-               *ret_val = dfb_x11_image_destroy_handler( x11, call_ptr );
+          case X11_VDPAU_PRESENTATION_QUEUE_DISPLAY:
+               *ret_val = X11_VDPAU_Dispatch_PresentationQueueDisplay( x11, call_ptr );
                break;
 
           default:
@@ -629,6 +705,8 @@ call_handler( int           caller,
                *ret_val = DFB_BUG;
                break;
      }
+
+     XUnlockDisplay( x11->display );
 
      return FCHR_RETURN;
 }

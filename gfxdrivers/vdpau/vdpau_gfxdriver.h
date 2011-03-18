@@ -29,37 +29,24 @@
 
 
 typedef struct {
-     bool                               sync;
+     bool                sync;
 
-     /* validation flags */
-     int                                v_flags;
+     VdpOutputSurface    white;
 
-     VdpOutputSurface                   white;
-
-     /* cached/computed values */
-     VdpOutputSurface                   dst;
-     VdpOutputSurface                   src;
-
-     VdpOutputSurfaceRenderBlendState   blend;
-     VdpColor                           color;
-     uint32_t                           flags;
-
-     /* cached/computed values */
-     unsigned long          dst_pitch;
-     DFBSurfacePixelFormat  dst_format;
-     unsigned long          dst_bpp;
-
-     unsigned long          src_pitch;
-     DFBSurfacePixelFormat  src_format;
-     unsigned long          src_bpp;
-
-     /** Add shared data here... **/
+     u32                 pixel;    /* dummy for syncing */
 } VDPAUDeviceData;
 
 
 typedef struct {
-     Display     *display;
-     DFBX11VDPAU *vdp;
+     DFBX11             *x11;
+     DFBX11VDPAU        *vdp;
+     Display            *display;
+
+     /* validation flags */
+     int                                        v_flags;
+
+     DFBX11CallOutputSurfaceRenderOutputSurface render_draw;
+     DFBX11CallOutputSurfaceRenderOutputSurface render_blit;
 } VDPAUDriverData;
 
 

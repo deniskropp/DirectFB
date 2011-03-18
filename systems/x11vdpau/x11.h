@@ -29,51 +29,20 @@
 #ifndef __X11SYSTEM__X11_H__
 #define __X11SYSTEM__X11_H__
 
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+
 #include <vdpau/vdpau_x11.h>
 
 #include <fusion/call.h>
 #include <fusion/lock.h>
+
 #include <core/layers.h>
 #include <core/surface.h>
-#include <core/surface_buffer.h>
 #include <core/surface_pool.h>
 
-#include "x11image.h"
-#include "xwindow.h"
+#include "x11types.h"
 
-typedef struct {
-     CoreLayerRegionConfig   config;
-     XWindow               **xw;
-} SetModeData;
-
-typedef struct {
-     DFBRegion              region;
-     CoreSurfaceBufferLock *lock;
-     XWindow               *xw;
-} UpdateScreenData;
-
-typedef struct {
-     XWindow               **xw;
-} DestroyData;
-
-typedef struct {
-     UpdateScreenData     update;
-     SetModeData          setmode;
-
-     FusionSkirmish       lock;
-     FusionCall           call;
-
-     FusionSHMPoolShared *data_shmpool;
-
-     CoreSurfacePool     *x11image_pool;
-     CoreSurfacePool     *vdpau_pool;
-
-     DFBDimension         screen_size;
-
-     int                  window_count; /* merely for optimizing wait loop */
-
-     Bool                 x_error;
-} DFBX11Shared;
 
 typedef struct {
      VdpDevice                                     device;
@@ -110,44 +79,86 @@ typedef struct {
      VdpPresentationQueueBlockUntilSurfaceIdle    *PresentationQueueBlockUntilSurfaceIdle;
 } DFBX11VDPAU;
 
+typedef struct {
+     FusionSkirmish                lock;
+     FusionCall                    call;
+
+     CoreSurfacePool              *vdpau_pool;
+
+     DFBDimension                  screen_size;
+
+     Window                        window;
+     int                           depth;
+
+     VdpPresentationQueueTarget    vdp_target;
+     VdpPresentationQueue          vdp_queue;
+} DFBX11Shared;
+
 struct __DFB_X11 {
-     DFBX11Shared        *shared;
+     DFBX11Shared                 *shared;
 
-     CoreDFB             *core;
-     CoreScreen          *screen;
+     CoreDFB                      *core;
+     CoreScreen                   *screen;
 
-     Bool                 use_shm;
-     int                  xshm_major;
-     int                  xshm_minor;
+     Display                      *display;
+     Screen                       *screenptr;
+     int                           screennum;
 
-     Display             *display;
-     Screen              *screenptr;
-     int                  screennum;
+     Visual                       *visuals[DFB_NUM_PIXELFORMATS];
 
-     Visual              *visuals[DFB_NUM_PIXELFORMATS];
-
-     DFBX11VDPAU          vdp;
+     DFBX11VDPAU                   vdp;
 };
 
 typedef enum {
-     X11_CREATE_WINDOW,
-     X11_UPDATE_SCREEN,
-     X11_SET_PALETTE,
-     X11_IMAGE_INIT,
-     X11_IMAGE_DESTROY,
-     X11_DESTROY_WINDOW,
+     X11_VDPAU_OUTPUT_SURFACE_CREATE,
+     X11_VDPAU_OUTPUT_SURFACE_DESTROY,
+     X11_VDPAU_OUTPUT_SURFACE_GET_BITS_NATIVE,
+     X11_VDPAU_OUTPUT_SURFACE_PUT_BITS_NATIVE,
+     X11_VDPAU_OUTPUT_SURFACE_RENDER_OUTPUT_SURFACE,
+     X11_VDPAU_PRESENTATION_QUEUE_DISPLAY,
 } DFBX11Call;
 
+typedef struct {
+     VdpRGBAFormat      rgba_format;
+     uint32_t           width;
+     uint32_t           height;
+} DFBX11CallOutputSurfaceCreate;
 
+typedef struct {
+     VdpOutputSurface   surface;
+} DFBX11CallOutputSurfaceDestroy;
 
-DFBResult dfb_x11_create_window_handler ( DFBX11 *x11, SetModeData *setmode );
-DFBResult dfb_x11_destroy_window_handler( DFBX11 *x11, DestroyData *destroy );
+typedef struct {
+     VdpOutputSurface   surface;
+     VdpRect            source_rect;
+     void              *ptr;
+     unsigned int       pitch;
+} DFBX11CallOutputSurfaceGetBitsNative;
 
-DFBResult dfb_x11_update_screen_handler ( DFBX11 *x11, UpdateScreenData *data );
-DFBResult dfb_x11_set_palette_handler   ( DFBX11 *x11, CorePalette *palette );
+typedef struct {
+     VdpOutputSurface   surface;
+     void              *ptr;
+     unsigned int       pitch;
+     VdpRect            destination_rect;
+} DFBX11CallOutputSurfacePutBitsNative;
 
-DFBResult dfb_x11_image_init_handler    ( DFBX11 *x11, x11Image *image );
-DFBResult dfb_x11_image_destroy_handler ( DFBX11 *x11, x11Image *image );
+typedef struct {
+     VdpOutputSurface                 destination_surface;
+     VdpRect                          destination_rect;
+     VdpOutputSurface                 source_surface;
+     VdpRect                          source_rect;
+     VdpColor                         color;
+     VdpOutputSurfaceRenderBlendState blend_state;
+     uint32_t                         flags;
+} DFBX11CallOutputSurfaceRenderOutputSurface;
+
+typedef struct {
+     VdpPresentationQueue presentation_queue;
+     VdpOutputSurface     surface;
+     uint32_t             clip_width;
+     uint32_t             clip_height;
+     VdpTime              earliest_presentation_time;
+} DFBX11CallPresentationQueueDisplay;
 
 
 #endif //__X11SYSTEM__X11_H__

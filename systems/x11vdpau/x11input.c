@@ -52,8 +52,6 @@
 #include <direct/mem.h>
 #include <direct/thread.h>
 
-#include "xwindow.h"
-
 #include "primary.h"
 #include "x11.h"
 
@@ -61,7 +59,7 @@
 
 D_DEBUG_DOMAIN( X11_Input, "X11/Input", "X11 Input/Key/Mouse handling" );
 
-DFB_INPUT_DRIVER( x11input )
+DFB_INPUT_DRIVER( x11inputvdpau )
 
 
 /*
@@ -451,66 +449,6 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
      }
 }
 
-static void
-handle_expose( const XExposeEvent *expose )
-{
-     CoreLayer               *layer = 0;
-     const DisplayLayerFuncs *funcs = 0;
-     CoreLayerContext        *context;
-     int                      i;
-
-     /* find the correct layer */
-     for( i=0; i<dfb_layer_num(); i++ ) {
-          X11LayerData *lds;
-
-          layer = dfb_layer_at( i );
-          lds   = (X11LayerData*)(layer->layer_data);
-          if( lds->xw && (lds->xw->window == expose->window) )
-               break;
-     }
-
-     /* layer not found? */
-     if( i==dfb_layer_num() )
-          return;
-
-     funcs = layer->funcs;
-
-     D_ASSERT( funcs != NULL );
-     D_ASSERT( funcs->UpdateRegion != NULL );
-
-     /* Get the currently active context. */
-     if (dfb_layer_get_active_context( layer, &context ) == DFB_OK) {
-          CoreLayerRegion *region;
-
-          /* Get the first region. */
-          if (dfb_layer_context_get_primary_region( context,
-                                                    false, &region ) == DFB_OK)
-          {
-               /* Lock the region to avoid tearing due to concurrent updates. */
-               dfb_layer_region_lock( region );
-
-               /* Get the surface of the region. */
-               if (region->surface && region->left_buffer_lock.buffer) {
-                    DFBRegion update = { expose->x, expose->y,
-                                         expose->x + expose->width  - 1,
-                                         expose->y + expose->height - 1 };
-
-                    funcs->UpdateRegion( layer, layer->driver_data, layer->layer_data,
-                                         region->region_data, region->surface, &update, &region->left_buffer_lock, NULL, NULL );
-               }
-
-               /* Unlock the region. */
-               dfb_layer_region_unlock( region );
-
-               /* Release the region. */
-               dfb_layer_region_unref( region );
-          }
-
-          /* Release the context. */
-          dfb_layer_context_unref( context );
-     }
-}
-
 /*
  * Input thread reading from device.
  * Generates events on incoming data.
@@ -530,7 +468,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
 
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
-          if (shared->window_count == 0) {
+          if (shared->window == 0) {
                /* no window, so no event */
                usleep( 50000 );
                continue;
@@ -587,7 +525,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
                     }
 
                     case Expose:
-                         handle_expose( &xEvent.xexpose );
+                         //handle_expose( &xEvent.xexpose );
                          break;
 
                     case DestroyNotify:
@@ -734,20 +672,12 @@ driver_get_keymap_entry( CoreInputDevice           *device,
 static void
 driver_close_device( void *driver_data )
 {
-     X11InputData *data   = driver_data;
-     DFBX11       *x11    = data->x11;
-     DFBX11Shared *shared = x11->shared;
+     X11InputData *data = driver_data;
 
      D_DEBUG_AT( X11_Input, "%s()\n", __FUNCTION__ );
 
      /* stop input thread */
      data->stop = true;
-
-     if (!shared->x_error) {
-          XLockDisplay( x11->display );
-          XSync( x11->display, False );
-          XUnlockDisplay( x11->display );
-     }
 
      /* it is possible that this "close" function is called from the same
       * thread that the input device is actually running on.

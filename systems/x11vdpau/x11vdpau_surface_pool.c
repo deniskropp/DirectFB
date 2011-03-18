@@ -36,10 +36,10 @@
 
 #include <fusion/shmalloc.h>
 
+#include <core/core.h>
 #include <core/surface_pool.h>
 
 #include "x11.h"
-#include "x11image.h"
 #include "x11vdpau_surface_pool.h"
 
 D_DEBUG_DOMAIN( X11VDPAU_Surfaces, "X11/VDPAU/Surfaces", "X11 VDPAU Surface Pool" );
@@ -184,7 +184,6 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
      x11vdpauAllocationData *alloc = alloc_data;
      x11vdpauPoolLocalData  *local = pool_local;
      DFBX11                 *x11   = local->x11;
-     DFBX11VDPAU            *vdp   = local->vdp;
 
      D_DEBUG_AT( X11VDPAU_Surfaces, "%s()\n", __FUNCTION__ );
 
@@ -200,17 +199,27 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
           D_DEBUG_AT( X11VDPAU_Surfaces, "  -> preallocated from output surface %u\n", alloc->surface );
      }
      else {
-          VdpStatus status;
+          DirectResult                  ret;
+          int                           retval;
+          DFBX11CallOutputSurfaceCreate create;
 
-          XLockDisplay( x11->display );
-          status = vdp->OutputSurfaceCreate( vdp->device, VDP_RGBA_FORMAT_B8G8R8A8,
-                                             surface->config.size.w, surface->config.size.h, &alloc->surface );
-          XUnlockDisplay( x11->display );
-          if (status) {
-               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceCreate( ARGB %dx%d ) failed (status %d, '%s'!\n",
-                        surface->config.size.w, surface->config.size.h, status, vdp->GetErrorString( status ) );
+          create.rgba_format = VDP_RGBA_FORMAT_B8G8R8A8;
+          create.width       = surface->config.size.w;
+          create.height      = surface->config.size.h;
+
+          ret = fusion_call_execute2( &x11->shared->call, FCEF_NONE, X11_VDPAU_OUTPUT_SURFACE_CREATE, &create, sizeof(create), &retval );
+          if (ret) {
+               D_DERROR( ret, "DirectFB/X11/VDPAU: fusion_call_execute2() failed!\n" );
+               return ret;
+          }
+
+          if (!retval) {
+               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceCreate( ARGB %dx%d ) failed!\n",
+                        surface->config.size.w, surface->config.size.h );
                return DFB_FAILURE;
           }
+
+          alloc->surface = (VdpOutputSurface) retval;
 
           D_DEBUG_AT( X11VDPAU_Surfaces, "  -> created output surface %u\n", alloc->surface );
      }
@@ -247,14 +256,21 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
      if (surface->type & CSTF_PREALLOCATED) {
      }
      else {
-          VdpStatus status;
+          DirectResult                   ret;
+          int                            retval;
+          DFBX11CallOutputSurfaceDestroy destroy;
 
-          XLockDisplay( x11->display );
-          status = vdp->OutputSurfaceDestroy( alloc->surface );
-          XUnlockDisplay( x11->display );
-          if (status) {
-               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceDestroy() failed (status %d, '%s')!\n",
-                        status, vdp->GetErrorString( status ) );
+          destroy.surface = alloc->surface;
+
+          ret = fusion_call_execute2( &x11->shared->call, FCEF_NONE, X11_VDPAU_OUTPUT_SURFACE_DESTROY, &destroy, sizeof(destroy), &retval );
+          if (ret) {
+               D_DERROR( ret, "DirectFB/X11/VDPAU: fusion_call_execute2() failed!\n" );
+               return ret;
+          }
+
+          if (retval) {
+               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceDestroy( %u ) failed (status %d, '%s'!\n",
+                        alloc->surface, retval, vdp->GetErrorString( retval ) );
                return DFB_FAILURE;
           }
      }
@@ -326,26 +342,56 @@ x11Read( CoreSurfacePool       *pool,
      surface = allocation->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     VdpStatus  status;
-     VdpRect    src;
-     void      *ptrs[3];
-     uint32_t   pitches[3];
 
-     ptrs[0]    = destination;
-     pitches[0] = pitch;
+     if (dfb_core_is_master( x11->core )) {
+          VdpStatus  status;
+          VdpRect    src;
+          void      *ptrs[3];
+          uint32_t   pitches[3];
 
-     src.x0 = rect->x;
-     src.y0 = rect->y;
-     src.x1 = rect->x + rect->w;
-     src.y1 = rect->y + rect->h;
+          ptrs[0]    = destination;
+          pitches[0] = pitch;
 
-     XLockDisplay( x11->display );
-     status = vdp->OutputSurfaceGetBitsNative( alloc->surface, &src, ptrs, pitches );
-     XUnlockDisplay( x11->display );
-     if (status) {
-          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceGetBitsNative() failed (status %d, '%s')!\n",
-                   status, vdp->GetErrorString( status ) );
-          return DFB_FAILURE;
+          src.x0 = rect->x;
+          src.y0 = rect->y;
+          src.x1 = rect->x + rect->w;
+          src.y1 = rect->y + rect->h;
+
+          XLockDisplay( x11->display );
+          status = vdp->OutputSurfaceGetBitsNative( alloc->surface, &src, ptrs, pitches );
+          XUnlockDisplay( x11->display );
+          if (status) {
+               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceGetBitsNative() failed (status %d, '%s')!\n",
+                        status, vdp->GetErrorString( status ) );
+               return DFB_FAILURE;
+          }
+     }
+     else {
+          DirectResult                         ret;
+          int                                  retval;
+          DFBX11CallOutputSurfaceGetBitsNative get;
+     
+          get.surface        = alloc->surface;
+          get.ptr            = destination;
+          get.pitch          = pitch;
+     
+          get.source_rect.x0 = rect->x;
+          get.source_rect.y0 = rect->y;
+          get.source_rect.x1 = rect->x + rect->w;
+          get.source_rect.y1 = rect->y + rect->h;
+     
+     
+          ret = fusion_call_execute2( &x11->shared->call, FCEF_NONE, X11_VDPAU_OUTPUT_SURFACE_GET_BITS_NATIVE, &get, sizeof(get), &retval );
+          if (ret) {
+               D_DERROR( ret, "DirectFB/X11/VDPAU: fusion_call_execute2() failed!\n" );
+               return ret;
+          }
+     
+          if (retval) {
+               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceGetBitsNative( %u ) failed (status %d, '%s'!\n",
+                        alloc->surface, retval, vdp->GetErrorString( retval ) );
+               return DFB_FAILURE;
+          }
      }
 
      return DFB_OK;
@@ -376,26 +422,56 @@ x11Write( CoreSurfacePool       *pool,
      surface = allocation->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     VdpStatus   status;
-     VdpRect     dest;
-     const void *ptrs[3];
-     uint32_t    pitches[3];
 
-     ptrs[0]    = source;
-     pitches[0] = pitch;
+     if (dfb_core_is_master( x11->core )) {
+          VdpStatus   status;
+          VdpRect     dest;
+          const void *ptrs[3];
+          uint32_t    pitches[3];
 
-     dest.x0 = rect->x;
-     dest.y0 = rect->y;
-     dest.x1 = rect->x + rect->w;
-     dest.y1 = rect->y + rect->h;
+          ptrs[0]    = source;
+          pitches[0] = pitch;
 
-     XLockDisplay( x11->display );
-     status = vdp->OutputSurfacePutBitsNative( alloc->surface, ptrs, pitches, &dest );
-     XUnlockDisplay( x11->display );
-     if (status) {
-          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfacePutBitsNative() failed (status %d, '%s')!\n",
-                   status, vdp->GetErrorString( status ) );
-          return DFB_FAILURE;
+          dest.x0 = rect->x;
+          dest.y0 = rect->y;
+          dest.x1 = rect->x + rect->w;
+          dest.y1 = rect->y + rect->h;
+
+          XLockDisplay( x11->display );
+          status = vdp->OutputSurfacePutBitsNative( alloc->surface, ptrs, pitches, &dest );
+          XUnlockDisplay( x11->display );
+          if (status) {
+               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfacePutBitsNative() failed (status %d, '%s')!\n",
+                        status, vdp->GetErrorString( status ) );
+               return DFB_FAILURE;
+          }
+     }
+     else {
+          DirectResult                         ret;
+          int                                  retval;
+          DFBX11CallOutputSurfacePutBitsNative put;
+     
+          put.surface             = alloc->surface;
+          put.ptr                 = source;
+          put.pitch               = pitch;
+     
+          put.destination_rect.x0 = rect->x;
+          put.destination_rect.y0 = rect->y;
+          put.destination_rect.x1 = rect->x + rect->w;
+          put.destination_rect.y1 = rect->y + rect->h;
+     
+     
+          ret = fusion_call_execute2( &x11->shared->call, FCEF_NONE, X11_VDPAU_OUTPUT_SURFACE_PUT_BITS_NATIVE, &put, sizeof(put), &retval );
+          if (ret) {
+               D_DERROR( ret, "DirectFB/X11/VDPAU: fusion_call_execute2() failed!\n" );
+               return ret;
+          }
+     
+          if (retval) {
+               D_ERROR( "DirectFB/X11/VDPAU: OutputSurfacePutBitsNative( %u ) failed (status %d, '%s'!\n",
+                        alloc->surface, retval, vdp->GetErrorString( retval ) );
+               return DFB_FAILURE;
+          }
      }
 
      return DFB_OK;

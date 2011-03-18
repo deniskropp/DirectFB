@@ -27,20 +27,14 @@ libdirectfb_x11vdpau_la_LDFLAGS = \
 x11vdpau_include_HEADERS = \
 	primary.h		\
 	x11.h			\
-	x11image.h		\
-	x11_surface_pool.h	\
 	x11vdpau_surface_pool.h	\
-	x11types.h		\
-	xwindow.h
+	x11types.h
 
 libdirectfb_x11vdpau_la_SOURCES = \
 	primary.c		\
 	x11.c			\
-	x11image.c		\
 	x11input.c		\
-	x11_surface_pool.c	\
-	x11vdpau_surface_pool.c	\
-	xwindow.c
+	x11vdpau_surface_pool.c
 
 libdirectfb_x11vdpau_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \
