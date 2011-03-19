@@ -1022,6 +1022,7 @@ neomagic=no
 nsc=no
 nvidia=no
 omap=no
+pvr2d=no
 pxa3xx=no
 radeon=no
 savage=no
@@ -1041,7 +1042,7 @@ AC_ARG_WITH(gfxdrivers,
                            [to build. Possible gfxdrivers are: all (builds all]
                            [drivers), none (builds none), ati128, cle266,]
                            [cyber5k, davinci, ep9x, gl, gles2, i810, i830, mach64,]
-                           [matrox, neomagic, nsc, nvidia, omap, pxa3xx,]
+                           [matrox, neomagic, nsc, nvidia, omap, pvr2d, pxa3xx,]
                            [radeon, savage, sh772x, sis315, tdfx, unichrome,]
                            [vdpau, vmware. @<:@default=all@:>@]),
             [gfxdrivers="$withval"], [gfxdrivers=all])
@@ -1061,6 +1062,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_nsc=yes
   checkfor_nvidia=yes
   checkfor_omap="$have_arm"
+  checkfor_pvr2d=yes
   checkfor_pxa3xx=yes
   checkfor_radeon=yes
   checkfor_savage=yes
@@ -1122,6 +1124,9 @@ else
                   ;;
           omap)
                   checkfor_omap=yes
+                  ;;
+          pvr2d)
+                  checkfor_pvr2d=yes
                   ;;
           pxa3xx)
                   checkfor_pxa3xx=yes
@@ -1224,6 +1229,12 @@ fi
 
 if test "$checkfor_omap" = "yes"; then
   omap=yes
+fi
+
+if test "$checkfor_pvr2d" = "yes"; then
+  if test "$enable_pvr2d" = "yes"; then
+    pvr2d=yes
+  fi
 fi
 
 if test "$checkfor_pxa3xx" = "yes"; then
@@ -1705,6 +1716,7 @@ AM_CONDITIONAL(GFX_NEOMAGIC, test "$neomagic" = "yes")
 AM_CONDITIONAL(GFX_NSC, test "$nsc" = "yes")
 AM_CONDITIONAL(GFX_NVIDIA, test "$nvidia" = "yes")
 AM_CONDITIONAL(GFX_OMAP, test "$omap" = "yes")
+AM_CONDITIONAL(GFX_PVR2D, test "$pvr2d" = "yes")
 AM_CONDITIONAL(GFX_PXA3XX, test "$pxa3xx" = "yes")
 AM_CONDITIONAL(GFX_RADEON, test "$radeon" = "yes")
 AM_CONDITIONAL(GFX_SAVAGE, test "$savage" = "yes")
@@ -1899,6 +1911,7 @@ gfxdrivers/nsc/Makefile
 gfxdrivers/nsc/include/Makefile
 gfxdrivers/nvidia/Makefile
 gfxdrivers/omap/Makefile
+gfxdrivers/pvr2d/Makefile
 gfxdrivers/pxa3xx/Makefile
 gfxdrivers/radeon/Makefile
 gfxdrivers/savage/Makefile
@@ -2036,6 +2049,7 @@ Building Graphics Drivers:
   NeoMagic                  $neomagic
   NSC Geode                 $nsc
   nVidia                    $nvidia
+  PVR2D                     $pvr2d
   PXA 3xx                   $pxa3xx
   Renesas SH7722/SH7723     $sh772x
   S3 Savage                 $savage

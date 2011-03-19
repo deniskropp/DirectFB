@@ -84,6 +84,12 @@ else
 OMAP_DIR =
 endif
 
+if GFX_PVR2D
+PVR2D_DIR = pvr2d
+else
+PVR2D_DIR =
+endif
+
 if GFX_PXA3XX
 PXA3XX_DIR = pxa3xx
 else
@@ -161,6 +167,7 @@ SUBDIRS = \
 	$(NSC_DIR)	\
 	$(NVIDIA_DIR)	\
 	$(OMAP_DIR)	\
+	$(PVR2D_DIR)	\
 	$(PXA3XX_DIR)	\
 	$(RADEON_DIR)	\
 	$(SAVAGE_DIR)	\
