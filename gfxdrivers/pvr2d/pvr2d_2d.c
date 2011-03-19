@@ -60,8 +60,9 @@ enum {
      COLOR_BLIT   = 0x00000200,
 
      BLENDFUNC    = 0x00010000,
+     BLITFLAGS    = 0x00020000,
 
-     ALL          = 0x0001033F
+     ALL          = 0x0003033F
 };
 
 /*
@@ -197,10 +198,21 @@ pvr2d_validate_SOURCE(PVR2DDriverData *gdrv,
      gdrv->bltinfo.pSrcMemInfo   = state->src.handle;
      gdrv->bltinfo.SrcOffset     = 0;
      gdrv->bltinfo.SrcStride     = state->src.pitch;
-     gdrv->bltinfo.SrcFormat     = PVR2D_RGB565;
      gdrv->bltinfo.SrcSurfWidth  = state->source->config.size.w;
      gdrv->bltinfo.SrcSurfHeight = state->source->config.size.h;
 
+     switch (state->source->config.format) {
+          case DSPF_ARGB:
+               gdrv->bltinfo.SrcFormat = PVR2D_ARGB8888;
+               break;
+
+          case DSPF_RGB16:
+               gdrv->bltinfo.SrcFormat = PVR2D_RGB565;
+               break;
+
+          default:
+               D_BUG( "unexpected pixelformat %d", state->source->config.format );
+     }
 
      // Set the flag.
      PVR2D_VALIDATE(SOURCE);
@@ -249,9 +261,30 @@ pvr2d_validate_BLENDFUNC(PVR2DDriverData *gdrv,
 {
      D_DEBUG_AT(PVR2D__2D, "%s()\n", __FUNCTION__);
 
+     gdrv->bltinfo.AlphaBlendingFunc = PVR2D_ALPHA_OP_SRC_DSTINV;
 
      // Set the flag.
      PVR2D_VALIDATE(BLENDFUNC);
+}
+
+/*
+ * Called by pvr2dSetState() to ensure that the blit flags are properly
+ * set for execution of drawing and blitting functions.
+ */
+static inline void
+pvr2d_validate_BLITFLAGS(PVR2DDriverData *gdrv,
+                         PVR2DDeviceData *gdev,
+                         CardState       *state)
+{
+     D_DEBUG_AT(PVR2D__2D, "%s()\n", __FUNCTION__);
+
+     gdrv->bltinfo.BlitFlags = PVR2D_BLIT_DISABLE_ALL;
+
+     if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+          gdrv->bltinfo.BlitFlags |= PVR2D_BLIT_PERPIXEL_ALPHABLEND_ENABLE;
+
+     // Set the flag.
+     PVR2D_VALIDATE(BLITFLAGS);
 }
 
 /******************************************************************************/
@@ -360,7 +393,7 @@ pvr2dCheckState(void                *drv,
      else {
           // Return if the source format is not supported.
           switch (state->source->config.format) {
-               //case DSPF_ARGB:
+               case DSPF_ARGB:
                //case DSPF_RGB32:
                case DSPF_RGB16:
                     break;
@@ -434,7 +467,7 @@ pvr2dSetState(void                *drv,
                PVR2D_INVALIDATE(COLOR_DRAW);
 
           if (modified & SMF_BLITTING_FLAGS)
-               PVR2D_INVALIDATE(COLOR_BLIT);
+               PVR2D_INVALIDATE(COLOR_BLIT | BLITFLAGS);
 
           if (modified & SMF_SOURCE)
                PVR2D_INVALIDATE(SOURCE);
@@ -488,6 +521,10 @@ pvr2dSetState(void                *drv,
 
           case DFXL_BLIT:
           case DFXL_STRETCHBLIT:
+               // ...require valid blit flags.
+               PVR2D_CHECK_VALIDATE(BLITFLAGS);
+
+
                // If alpha blending is used...
                if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                            DSBLIT_BLEND_COLORALPHA)) {

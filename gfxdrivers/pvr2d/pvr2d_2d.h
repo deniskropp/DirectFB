@@ -34,7 +34,7 @@
                                            //DFXL_DRAWLINE      | \
                                            //DFXL_FILLTRIANGLE)
 
-#define PVR2D_SUPPORTED_BLITTINGFLAGS     (DSBLIT_NOFX)//BLEND_ALPHACHANNEL | \
+#define PVR2D_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL)// | \
                                            //DSBLIT_BLEND_COLORALPHA   | \
                                            //DSBLIT_COLORIZE           | \
                                            //DSBLIT_ROTATE180          | \
