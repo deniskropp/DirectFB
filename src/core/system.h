@@ -48,6 +48,7 @@ typedef enum {
      CORE_TI_CMEM,
      CORE_MESA,
      CORE_X11VDPAU,
+     CORE_PVR2D,
 } CoreSystemType;
 
 typedef enum {
