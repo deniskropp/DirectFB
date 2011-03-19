@@ -24,6 +24,12 @@ else
 X11VDPAU_DIR =
 endif
 
+if PVR2D_CORE
+PVR2D_DIR = pvr2d
+else
+PVR2D_DIR =
+endif
+
 if DEVMEM_CORE
 DEVMEM_DIR = devmem
 else
@@ -51,6 +57,7 @@ endif
 
 SUBDIRS = \
 	dummy \
+	$(PVR2D_DIR) \
 	$(DEVMEM_DIR) \
 	$(FBDEV_DIR) \
 	$(MESA_DIR) \
