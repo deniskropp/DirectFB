@@ -992,9 +992,9 @@ gles2DrawRectangle(void *drv, void *dev, DFBRectangle *rect)
      GLES2DriverData *gdrv = drv;
 
      float x1 = rect->x + 1;
-     float y1 = rect->y;
+     float y1 = rect->y + 1;
      float x2 = rect->x + rect->w;
-     float y2 = rect->y + rect->h - 1;
+     float y2 = rect->y + rect->h;
 
      GLfloat pos[] = {
           x1, y1,   x2, y1,   x2, y2,   x1, y2
