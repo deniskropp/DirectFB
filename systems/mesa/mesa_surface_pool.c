@@ -115,6 +115,7 @@ mesaInitPool( CoreDFB                    *core,
      ret_desc->caps              = CSPCAPS_VIRTUAL;
 //     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_ACCEL1] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
      ret_desc->priority          = CSPP_DEFAULT;
      ret_desc->size              = dfb_config->video_length;
@@ -376,13 +377,20 @@ mesaLock( CoreSurfacePool       *pool,
      switch (lock->accessor) {
           case CSAID_GPU:
                if (lock->access & CSAF_WRITE)
-                    lock->handle = alloc->color_rb;
+                    lock->handle = (void*) (long) alloc->color_rb;
                else
-                    lock->handle = alloc->texture;
+                    lock->handle = (void*) (long) alloc->texture;
+               break;
+
+          case CSAID_ACCEL1:
+               if (lock->access & CSAF_WRITE)
+                    lock->handle = (void*) (long) alloc->color_rb;
+               else
+                    lock->handle = (void*) (long) alloc->image;
                break;
 
           case CSAID_LAYER0:
-               lock->handle = alloc->fb_id;
+               lock->handle = (void*) (long) alloc->fb_id;
                break;
 
           default:
@@ -433,9 +441,8 @@ mesaRead( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, MesaAllocationData );
-     D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+     D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, allocation );
 
      (void) alloc;
 
@@ -462,7 +469,7 @@ mesaWrite( CoreSurfacePool       *pool,
      surface = allocation->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+     D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, allocation );
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
