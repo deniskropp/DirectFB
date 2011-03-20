@@ -116,6 +116,9 @@ mesaFlipRegion( CoreLayer                  *layer,
      MesaData *mesa = driver_data;
 
      ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, left_lock->handle, 0, NULL );
+
+     dfb_surface_flip( surface, false );
+
      if (ret) {
           D_ERROR( "DirectFB/Mesa: drmModePageFlip() failed!\n" );
           return DFB_FAILURE;
