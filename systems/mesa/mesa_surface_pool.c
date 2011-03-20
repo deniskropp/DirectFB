@@ -359,8 +359,9 @@ mesaLock( CoreSurfacePool       *pool,
           void                  *alloc_data,
           CoreSurfaceBufferLock *lock )
 {
-//     MesaPoolLocalData  *local = pool_local;
+     MesaPoolLocalData  *local = pool_local;
      MesaAllocationData *alloc = alloc_data;
+     MesaData           *mesa;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -369,6 +370,9 @@ mesaLock( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
 
+     mesa = local->mesa;
+     D_ASSERT( mesa != NULL );
+
      lock->pitch  = alloc->pitch;
      lock->offset = 0;
      lock->addr   = NULL;
@@ -376,8 +380,11 @@ mesaLock( CoreSurfacePool       *pool,
 
      switch (lock->accessor) {
           case CSAID_GPU:
-               if (lock->access & CSAF_WRITE)
+               if (lock->access & CSAF_WRITE) {
+                    eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
+
                     lock->handle = (void*) (long) alloc->color_rb;
+               }
                else
                     lock->handle = (void*) (long) alloc->texture;
                break;
