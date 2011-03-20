@@ -42,7 +42,7 @@
                                            DSBLIT_ROTATE180          | \
                                            DSBLIT_SRC_PREMULTIPLY    | \
                                            DSBLIT_SRC_PREMULTCOLOR   | \
-                                           GLES2_SRC_COLORKEY)
+                                           DSBLIT_SRC_COLORKEY)
 
 #define GLES2_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | \
                                            DFXL_STRETCHBLIT)

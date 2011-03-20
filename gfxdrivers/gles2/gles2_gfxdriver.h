@@ -39,12 +39,6 @@
 #endif
 
 
-#ifdef GLES2_PVR2D
-#define GLES2_SRC_COLORKEY    0
-#else
-#define GLES2_SRC_COLORKEY    DSBLIT_SRC_COLORKEY
-#endif
-
 
 typedef enum {
      GLES2BF_UPDATE_TARGET  = 0x00000001,

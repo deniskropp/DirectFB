@@ -428,7 +428,6 @@ gles2_validate_COLORKEY(GLES2DriverData *gdrv,
                         GLES2DeviceData *gdev,
                         CardState       *state)
 {
-#if GLES2_SRC_COLORKEY
      GLES2ProgramInfo *prog = &gdev->progs[gdev->prog_index];
 
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
@@ -442,7 +441,6 @@ gles2_validate_COLORKEY(GLES2DriverData *gdrv,
      glUniform3iARB( prog->dfbColorkey, r, g, b );
 
      D_DEBUG_AT(GLES2__2D, "  -> loaded colorkey %d %d %d\n", r, g, b);
-#endif
 
      // Set the flag.
      GLES2_VALIDATE(COLORKEY);
