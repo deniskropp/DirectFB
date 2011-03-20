@@ -135,7 +135,7 @@ gles2_validate_SCISSOR(GLES2DriverData *gdrv,
 
      glEnable(GL_SCISSOR_TEST);
      glScissor(state->clip.x1,
-               surface->config.size.h - state->clip.y2 - 1,
+               state->clip.y1,
                state->clip.x2 - state->clip.x1 + 1,
                state->clip.y2 - state->clip.y1 + 1);
 
