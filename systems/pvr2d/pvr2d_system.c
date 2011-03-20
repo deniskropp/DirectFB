@@ -96,6 +96,78 @@ InitPVR2D( PVR2DData *pvr2d )
      return DFB_OK;
 }
 
+static DFBResult
+InitEGL( PVR2DData *pvr2d )
+{
+     EGLint iMajorVersion, iMinorVersion;
+     EGLint ai32ContextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+
+     pvr2d->eglDisplay = eglGetDisplay((int)0);
+
+     if (!eglInitialize(pvr2d->eglDisplay, &iMajorVersion, &iMinorVersion))
+          return DFB_INIT;
+
+     pvr2d->eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC) eglGetProcAddress("eglCreateImageKHR");
+     if (pvr2d->eglCreateImageKHR == NULL) {
+          D_ERROR( "DirectFB/PVR2D: eglCreateImageKHR not found!\n" );
+          return DFB_UNSUPPORTED;
+     }
+
+     pvr2d->glEGLImageTargetTexture2DOES = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC) eglGetProcAddress("glEGLImageTargetTexture2DOES");
+     if (pvr2d->glEGLImageTargetTexture2DOES == NULL) {
+          D_ERROR( "DirectFB/PVR2D: glEGLImageTargetTexture2DOES not found!\n" );
+          return DFB_UNSUPPORTED;
+     }
+
+
+     eglBindAPI(EGL_OPENGL_ES_API);
+     if (!TestEGLError("eglBindAPI"))
+          return DFB_INIT;
+
+     EGLint pi32ConfigAttribs[5];
+     pi32ConfigAttribs[0] = EGL_SURFACE_TYPE;
+     pi32ConfigAttribs[1] = EGL_WINDOW_BIT | EGL_PIXMAP_BIT;
+     pi32ConfigAttribs[2] = EGL_RENDERABLE_TYPE;
+     pi32ConfigAttribs[3] = EGL_OPENGL_ES2_BIT;
+     pi32ConfigAttribs[4] = EGL_NONE;
+
+     int iConfigs;
+     if (!eglChooseConfig(pvr2d->eglDisplay, pi32ConfigAttribs, &pvr2d->eglConfig, 1, &iConfigs) || (iConfigs != 1)) {
+          D_ERROR("DirectFB/PVR2D: eglChooseConfig() failed.\n");
+          return DFB_INIT;
+     }
+
+
+     pvr2d->nativePixmap.ePixelFormat = 0;
+     pvr2d->nativePixmap.eRotation    = 0;
+     pvr2d->nativePixmap.lWidth       = pvr2d->lDisplayWidth;
+     pvr2d->nativePixmap.lHeight      = pvr2d->lDisplayHeight;
+     pvr2d->nativePixmap.lStride      = pvr2d->lStride;
+     pvr2d->nativePixmap.lSizeInBytes = pvr2d->pFBMemInfo->ui32MemSize;
+     pvr2d->nativePixmap.pvAddress    = pvr2d->pFBMemInfo->ui32DevAddr;
+     pvr2d->nativePixmap.lAddress     = (long) pvr2d->pFBMemInfo->pBase;
+
+
+     pvr2d->eglSurface = eglCreatePixmapSurface( pvr2d->eglDisplay, pvr2d->eglConfig, &pvr2d->nativePixmap, NULL );
+     if (!TestEGLError("eglCreatePixmapSurface"))
+          return DFB_INIT;
+
+
+     pvr2d->eglContext = eglCreateContext(pvr2d->eglDisplay, pvr2d->eglConfig, NULL, ai32ContextAttribs);
+     if (!TestEGLError("eglCreateContext"))
+          return DFB_INIT;
+
+     eglMakeCurrent( pvr2d->eglDisplay, pvr2d->eglSurface, pvr2d->eglSurface, pvr2d->eglContext );
+     if (!TestEGLError("eglMakeCurrent"))
+          return DFB_INIT;
+
+     eglSwapInterval( pvr2d->eglDisplay, 1 );
+     if (!TestEGLError("eglSwapInterval"))
+          return DFB_INIT;
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
 
 static void
@@ -136,6 +208,13 @@ system_initialize( CoreDFB *core, void **ret_data )
      data->shared = shared;
 
      ret = InitPVR2D( data );
+     if (ret) {
+          SHFREE( pool, shared );
+          D_FREE( data );
+          return ret;
+     }
+
+     ret = InitEGL( data );
      if (ret) {
           SHFREE( pool, shared );
           D_FREE( data );

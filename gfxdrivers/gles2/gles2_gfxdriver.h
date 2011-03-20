@@ -23,6 +23,7 @@
 #ifndef __GLES2_GFXDRIVER_H__
 #define __GLES2_GFXDRIVER_H__
 
+#ifdef GLES2_MESA
 #define EGL_EGLEXT_PROTOTYPES
 #define GL_GLEXT_PROTOTYPES
 
@@ -30,7 +31,20 @@
 #include <GL/glext.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-//#include <GLES2/gl2.h>
+
+#define GLES2_USE_FBO
+
+#else
+#include <GLES2/gl2.h>
+#endif
+
+
+#ifdef GLES2_PVR2D
+#define GLES2_SRC_COLORKEY    0
+#else
+#define GLES2_SRC_COLORKEY    DSBLIT_SRC_COLORKEY
+#endif
+
 
 typedef enum {
      GLES2BF_UPDATE_TARGET  = 0x00000001,
@@ -102,7 +116,9 @@ typedef struct {
 } GLES2DeviceData;
 
 typedef struct {
+#ifdef GLES2_USE_FBO
      GLuint                   fbo;
+#endif
 
 
      DFBSurfaceBlittingFlags  blittingflags;

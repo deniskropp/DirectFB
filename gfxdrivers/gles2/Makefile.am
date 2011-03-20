@@ -7,7 +7,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src	   \
 	-I$(top_srcdir)/systems    \
 	-I$(top_srcdir)/gfxdrivers \
-	$(EGL_CFLAGS)
+	$(GLES2_CFLAGS)
 
 gles2_LTLIBRARIES = libdirectfb_gles2.la
 
@@ -28,7 +28,7 @@ libdirectfb_gles2_la_SOURCES =	\
 libdirectfb_gles2_la_LDFLAGS = \
 	-export-dynamic	       \
 	-avoid-version	       \
-	$(DFB_LDFLAGS) $(EGL_LIBS)
+	$(DFB_LDFLAGS) $(GLES2_LIBS)
 
 libdirectfb_gles2_la_LIBADD = \
 	$(top_builddir)/src/libdirectfb.la

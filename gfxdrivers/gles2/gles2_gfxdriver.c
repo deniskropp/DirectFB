@@ -20,11 +20,10 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define DIRECT_ENABLE_DEBUG
+//#define DIRECT_ENABLE_DEBUG
 
 #include <stdio.h>
 #include <string.h>
-#include <EGL/egl.h>
 
 #include <directfb.h>
 #include <direct/debug.h>
@@ -34,8 +33,6 @@
 #include <core/system.h>
 
 #include <misc/conf.h>
-
-//#include <egl/dfb_egl.h>
 
 #include "gles2_2d.h"
 #include "gles2_gfxdriver.h"
@@ -56,6 +53,7 @@ driver_probe(CoreGraphicsDevice *device)
 
      switch (dfb_system_type()) {
           case CORE_MESA:
+          case CORE_PVR2D:
                return 1;
 
           default:
@@ -118,8 +116,10 @@ driver_init_driver(CoreGraphicsDevice  *device,
      }
 
 
+#ifdef GLES2_USE_FBO
      glGenFramebuffers( 1, &drv->fbo );
      glBindFramebuffer( GL_FRAMEBUFFER_EXT, drv->fbo );
+#endif
 
      return DFB_OK;
 }
@@ -132,40 +132,9 @@ driver_init_device(CoreGraphicsDevice *device,
 {
      const char   *renderer;
      DFBResult     status;
-//     EGLSurface    pixmap;
-
-//     DFBEGL       *egl     = dfb_system_data();
-//     EGLDisplay    display = egl->display;
-//     EGLConfig     config  = egl->share_config;
-//     EGLContext    context = egl->share_context;
 
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
-#if 0
-     // Create a pixmap surface with default native pixmap type.
-     pixmap = eglCreatePixmapSurface(display, config,
-                                     (EGLNativePixmapType)0, NULL);
-#else
-     /*
-      * XXX hood - PVR 2D workaround - create a window surface for now, since
-      * the shared context created in systems/egl/egl.c/InitLocal() won't
-      * take EGL_PIXMAP_BIT for EGL_SURFACE_TYPE.
-      */
-//     pixmap = eglCreateWindowSurface(display, config,
-//				     (EGLNativeWindowType)0, NULL);
-#endif
-/*
-     if (pixmap == EGL_NO_SURFACE) {
-          D_ERROR("GLES2/Driver: Could not create a pixmap surface!\n");
-          return DFB_INIT;
-     }
-
-     if (!eglMakeCurrent(display, pixmap, pixmap, context)) {
-          D_ERROR("GLES2/Driver: Could not MakeCurrent!\n");
-       eglDestroySurface(display, pixmap);
-          return DFB_INIT;
-     }
-*/
      // Now that we have a connection and can query GLES.
      renderer = (const char*)glGetString(GL_RENDERER);
 
@@ -178,17 +147,12 @@ driver_init_device(CoreGraphicsDevice *device,
      // Initialize shader program objects, shared across all EGL contexts.
      status = gles2_init_shader_programs((GLES2DeviceData *)device_data);
 
-     // Free resources before returning DFB_OK or not.
-//     eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-//     eglDestroySurface(display, pixmap);
-
      if (status != DFB_OK) {
           D_ERROR("GLES2/Driver: Could not create shader program objects!\n");
           return status;
      }
 
      /* device limitations */
-     // XXX hood - TODO ? 
      device_info->limits.surface_byteoffset_alignment = 8;
      device_info->limits.surface_bytepitch_alignment  = 8;
 

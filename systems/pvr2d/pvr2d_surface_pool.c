@@ -65,7 +65,10 @@ typedef struct {
      int   size;
 
 
-     PVR2DMEMINFO *meminfo;
+     PVR2DMEMINFO         *meminfo;
+     NATIVE_PIXMAP_STRUCT  nativePixmap;
+     GLeglImageOES         eglImage;
+     GLuint                texture;
 } PVR2DAllocationData;
 
 /**********************************************************************************************************************/
@@ -274,11 +277,17 @@ pvr2dAllocateBuffer( CoreSurfacePool       *pool,
      dfb_surface_calc_buffer_size( surface, 8, 1, &alloc->pitch, &alloc->size );
 
      if (surface->type & CSTF_LAYER) {
+          /*
+           * Use Framebuffer
+           */
           alloc->meminfo = pvr2d->pFBMemInfo;
      }
      else {
           PVR2DERROR ePVR2DStatus;
-     
+
+          /*
+           * Allocate PVR2D Memory
+           */
           ePVR2DStatus = PVR2DMemAlloc( pvr2d->hPVR2DContext, alloc->size, 256, 0, &alloc->meminfo );
           if (ePVR2DStatus) {
                D_ERROR( "DirectFB/PVR2D: PVR2DMemAlloc( %d ) failed! (status %d)\n", alloc->size, ePVR2DStatus );
@@ -289,6 +298,61 @@ pvr2dAllocateBuffer( CoreSurfacePool       *pool,
      alloc->offset = 0;
 
      D_DEBUG_AT( PVR2D_Surfaces, "  -> offset %d, pitch %d, size %d\n", alloc->offset, alloc->pitch, alloc->size );
+
+
+     long ePixelFormat;
+
+     switch (surface->config.format) {
+          case DSPF_RGB16:
+               ePixelFormat = 0;
+               break;
+
+          case DSPF_ARGB:
+               ePixelFormat = 2;
+               break;
+
+          default:
+               break;
+     }
+
+
+     /*
+      * Native Pixmap
+      */
+     alloc->nativePixmap.ePixelFormat = ePixelFormat;
+     alloc->nativePixmap.eRotation    = 0;
+     alloc->nativePixmap.lWidth       = surface->config.size.w;
+     alloc->nativePixmap.lHeight      = surface->config.size.h;
+     alloc->nativePixmap.lStride      = alloc->pitch;
+     alloc->nativePixmap.lSizeInBytes = alloc->size;
+     alloc->nativePixmap.pvAddress    = alloc->meminfo->ui32DevAddr;
+     alloc->nativePixmap.lAddress     = (long) alloc->meminfo->pBase;
+
+
+     /*
+      * EGLImage
+      */
+     EGLint err;
+
+     alloc->eglImage = pvr2d->eglCreateImageKHR( pvr2d->eglDisplay, EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, &alloc->nativePixmap, NULL );
+     if ((err = eglGetError()) != EGL_SUCCESS) {
+          D_ERROR( "DirectFB/PVR2D: eglCreateImageKHR() failed! (error = %x)\n", err );
+          //return DFB_FAILURE;
+     }
+
+
+     /*
+      * Texture
+      */
+     glGenTextures( 1, &alloc->texture );
+
+     glBindTexture( GL_TEXTURE_2D, alloc->texture );
+
+     pvr2d->glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->eglImage );
+     if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/PVR2D: glEGLImageTargetTexture2DOES() failed! (error = %x)\n", err );
+          //return DFB_FAILURE;
+     }
 
      allocation->size   = alloc->size;
      allocation->offset = alloc->offset;
@@ -333,7 +397,7 @@ pvr2dDeallocateBuffer( CoreSurfacePool       *pool,
      }
      else {
           PVR2DERROR ePVR2DStatus;
-     
+
           ePVR2DStatus = PVR2DMemFree( pvr2d->hPVR2DContext, alloc->meminfo );
           if (ePVR2DStatus) {
                D_ERROR( "DirectFB/PVR2D: PVR2DMemFree() failed! (status %d)\n", ePVR2DStatus );
@@ -382,6 +446,7 @@ pvr2dLock( CoreSurfacePool       *pool,
 {
      PVR2DPoolLocalData  *local = pool_local;
      PVR2DAllocationData *alloc = alloc_data;
+     PVR2DData           *pvr2d;
 
      (void) local;
 
@@ -392,11 +457,21 @@ pvr2dLock( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( PVR2D_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
 
+     pvr2d = local->pvr2d;
+     D_ASSERT( pvr2d != NULL );
+
      lock->pitch  = alloc->pitch;
      lock->offset = alloc->offset;
      lock->addr   = alloc->meminfo->pBase;
      lock->phys   = alloc->meminfo->ui32DevAddr;
      lock->handle = alloc->meminfo;
+
+     if (lock->accessor == CSAID_GPU) {
+          if (lock->access & CSAF_WRITE)
+               lock->handle = alloc->meminfo;
+          else
+               lock->handle = alloc->texture;
+     }
 
      D_DEBUG_AT( PVR2D_SurfLock, "  -> offset %lu, pitch %d, addr %p, phys 0x%08lx\n",
                  lock->offset, lock->pitch, lock->addr, lock->phys );
@@ -426,6 +501,68 @@ pvr2dUnlock( CoreSurfacePool       *pool,
      return DFB_OK;
 }
 
+#if 0
+static DFBResult
+pvr2dRead( CoreSurfacePool       *pool,
+           void                  *pool_data,
+           void                  *pool_local,
+           CoreSurfaceAllocation *allocation,
+           void                  *alloc_data,
+           void                  *destination,
+           int                    pitch,
+           const DFBRectangle    *rect )
+{
+     PVR2DAllocationData *alloc = alloc_data;
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+     D_MAGIC_ASSERT( alloc, MesaAllocationData );
+     D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
+
+     D_DEBUG_AT( PVR2D_SurfLock, "%s( %p )\n", __FUNCTION__, allocation->buffer );
+
+     (void) alloc;
+
+     return DFB_OK;
+}
+
+static DFBResult
+pvr2dWrite( CoreSurfacePool       *pool,
+            void                  *pool_data,
+            void                  *pool_local,
+            CoreSurfaceAllocation *allocation,
+            void                  *alloc_data,
+            const void            *source,
+            int                    pitch,
+            const DFBRectangle    *rect )
+{
+     PVR2DAllocationData *alloc = alloc_data;
+     CoreSurface         *surface;
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+     D_MAGIC_ASSERT( alloc, MesaAllocationData );
+
+     surface = allocation->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     D_DEBUG_AT( PVR2D_SurfLock, "%s( %p )\n", __FUNCTION__, allocation->buffer );
+
+
+     EGLint err;
+
+     glBindTexture( GL_TEXTURE_2D, alloc->texture );
+
+     glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, source );
+     if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/PVR2D: glTexSubImage2D() failed! (error = %x)\n", err );
+          //return DFB_FAILURE;
+     }
+
+     return DFB_OK;
+}
+#endif
+
 static const SurfacePoolFuncs _pvr2dSurfacePoolFuncs = {
      PoolDataSize:       pvr2dPoolDataSize,
      PoolLocalDataSize:  pvr2dPoolLocalDataSize,
@@ -442,7 +579,10 @@ static const SurfacePoolFuncs _pvr2dSurfacePoolFuncs = {
      MuckOut:            pvr2dMuckOut,
 
      Lock:               pvr2dLock,
-     Unlock:             pvr2dUnlock
+     Unlock:             pvr2dUnlock,
+
+//     Read:               pvr2dRead,
+//     Write:              pvr2dWrite,
 };
 
 const SurfacePoolFuncs *pvr2dSurfacePoolFuncs = &_pvr2dSurfacePoolFuncs;

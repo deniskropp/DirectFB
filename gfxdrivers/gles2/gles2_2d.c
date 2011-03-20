@@ -20,7 +20,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define DIRECT_ENABLE_DEBUG
+//#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
 
@@ -158,7 +158,7 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
 
      D_DEBUG_AT( GLES2__2D, "%s( color_rb %u )\n", __FUNCTION__, color_rb );
 //     D_MAGIC_ASSERT(buffer, GLES2BufferData);
-
+#ifdef GLES2_USE_FBO
      glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT,
                                    GL_COLOR_ATTACHMENT0_EXT,
                                    GL_RENDERBUFFER_EXT,
@@ -167,7 +167,7 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
      if (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE) {
           D_ERROR( "DirectFB/GLES2: Framebuffer not complete\n" );
      }
-
+#endif
 
      if (1/*(buffer->flags & GLES2BF_UPDATE_TARGET)*/ ||
          (gdev->prog_index != gdev->prog_last)) {
@@ -203,7 +203,13 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
           }
           else {
                // Just need the X & Y scale factors and constant offsets.
+#ifdef GLES2_PVR2D
+               glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
+               glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
+#else
                glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
+               glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
+#endif
 
                D_DEBUG_AT(GLES2__2D, "  -> loaded scale factors %f %f\n",
                           2.0f/w, 2.0f/h);
@@ -422,6 +428,7 @@ gles2_validate_COLORKEY(GLES2DriverData *gdrv,
                         GLES2DeviceData *gdev,
                         CardState       *state)
 {
+#if GLES2_SRC_COLORKEY
      GLES2ProgramInfo *prog = &gdev->progs[gdev->prog_index];
 
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
@@ -434,9 +441,11 @@ gles2_validate_COLORKEY(GLES2DriverData *gdrv,
      /* send converted color key to shader */
      glUniform3iARB( prog->dfbColorkey, r, g, b );
 
+     D_DEBUG_AT(GLES2__2D, "  -> loaded colorkey %d %d %d\n", r, g, b);
+#endif
+
      // Set the flag.
      GLES2_VALIDATE(COLORKEY);
-     D_DEBUG_AT(GLES2__2D, "  -> loaded colorkey %d %d %d\n", r, g, b);
 }
 
 /*
@@ -640,6 +649,7 @@ gles2CheckState(void                *drv,
      switch (state->destination->config.format) {
           case DSPF_ARGB:
           case DSPF_RGB32:
+          case DSPF_RGB16:
                break;
           default:
                D_DEBUG_AT
@@ -662,6 +672,7 @@ gles2CheckState(void                *drv,
           switch (state->source->config.format) {
                case DSPF_ARGB:
                case DSPF_RGB32:
+               case DSPF_RGB16:
                     break;
                default:
                     D_DEBUG_AT

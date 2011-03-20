@@ -32,7 +32,17 @@
 
 #include <pvr2d.h>
 
+
+#define GL_GLEXT_PROTOTYPES
+
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+
+
+#define EGL_EGLEXT_PROTOTYPES
+
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 
 #include <fusion/shmalloc.h>
@@ -41,6 +51,19 @@
 
 
 extern const SurfacePoolFuncs *pvr2dSurfacePoolFuncs;
+
+
+typedef struct _NATIVE_PIXMAP_STRUCT
+{
+    long ePixelFormat;
+    long eRotation;
+    long lWidth;
+    long lHeight;
+    long lStride;
+    long lSizeInBytes;
+    long pvAddress;
+    long lAddress;
+}NATIVE_PIXMAP_STRUCT;
 
 
 typedef struct {
@@ -69,8 +92,28 @@ typedef struct {
      long                 lDisplayWidth;
      long                 lDisplayHeight;
      long                 lDisplayBitsPerPixel;
+
+     NATIVE_PIXMAP_STRUCT nativePixmap;
+
+     EGLConfig            eglConfig;
+     EGLDisplay           eglDisplay;
+     EGLSurface           eglSurface;
+     EGLContext           eglContext;
+
+     PFNEGLCREATEIMAGEKHRPROC                eglCreateImageKHR;
+     PFNGLEGLIMAGETARGETTEXTURE2DOESPROC     glEGLImageTargetTexture2DOES;
 } PVR2DData;
 
+static inline bool TestEGLError(const char* pszLocation)
+{
+     EGLint iErr = eglGetError();
+     if (iErr != EGL_SUCCESS) {
+          D_ERROR("DirectFB/PVR2D: %s failed (%d).\n", pszLocation, iErr);
+          return false;
+     }
+
+     return true;
+}
 
 #endif
 
