@@ -64,6 +64,7 @@ typedef struct {
      EGLint      name;
      EGLint      handle;
 
+     GLuint      fbo;
      GLuint      color_rb;
      GLuint      texture;
 
@@ -278,6 +279,13 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
 
 
+     GLint texture, fbo, rbo;
+
+     glGetIntegerv( GL_TEXTURE_BINDING_2D, &texture );
+     glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+     glGetIntegerv( GL_RENDERBUFFER_BINDING, &rbo );
+
+
      EGLint image_attribs[] = {
           EGL_WIDTH,                    surface->config.size.w,
           EGL_HEIGHT,                   surface->config.size.h,
@@ -308,6 +316,23 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
 
 
      /*
+      * Framebuffer
+      */
+     glGenFramebuffers( 1, &alloc->fbo );
+
+     glBindFramebuffer( GL_RENDERBUFFER_EXT, alloc->fbo );
+
+     glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT,
+                                   GL_COLOR_ATTACHMENT0_EXT,
+                                   GL_RENDERBUFFER_EXT,
+                                   alloc->color_rb );
+
+     if (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE) {
+          D_ERROR( "DirectFB/Mesa: Framebuffer not complete\n" );
+     }
+
+
+     /*
       * Texture
       */
      glGenTextures( 1, &alloc->texture );
@@ -315,6 +340,14 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
      glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->image );
+
+
+     /*
+      * Restore
+      */
+     glBindRenderbuffer( GL_RENDERBUFFER_EXT, rbo );
+     glBindFramebuffer( GL_RENDERBUFFER_EXT, fbo );
+     glBindTexture( GL_TEXTURE_2D, texture );
 
      eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
 
@@ -452,7 +485,9 @@ mesaRead( CoreSurfacePool       *pool,
           int                    pitch,
           const DFBRectangle    *rect )
 {
+     MesaPoolLocalData  *local = pool_local;
      MesaAllocationData *alloc = alloc_data;
+     MesaData           *mesa;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -460,7 +495,33 @@ mesaRead( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, allocation );
 
-     (void) alloc;
+     mesa = local->mesa;
+     D_ASSERT( mesa != NULL );
+
+
+     EGLContext context = eglGetCurrentContext();
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
+
+
+     GLint fbo;
+
+     glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+
+
+     glBindFramebuffer( GL_RENDERBUFFER_EXT, alloc->fbo );
+
+     glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT,
+                                   GL_COLOR_ATTACHMENT0_EXT,
+                                   GL_RENDERBUFFER_EXT,
+                                   alloc->color_rb );
+
+     glReadPixels( rect->x, rect->y, rect->w, rect->h, GL_BGRA, GL_UNSIGNED_BYTE, destination );
+
+
+     glBindFramebuffer( GL_RENDERBUFFER_EXT, fbo );
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
 
      return DFB_OK;
 }
@@ -475,8 +536,10 @@ mesaWrite( CoreSurfacePool       *pool,
            int                    pitch,
            const DFBRectangle    *rect )
 {
+     MesaPoolLocalData  *local = pool_local;
      MesaAllocationData *alloc = alloc_data;
      CoreSurface        *surface;
+     MesaData           *mesa;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -487,9 +550,28 @@ mesaWrite( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, allocation );
 
+     mesa = local->mesa;
+     D_ASSERT( mesa != NULL );
+
+
+     EGLContext context = eglGetCurrentContext();
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
+
+
+     GLint texture;
+
+     glGetIntegerv( GL_TEXTURE_BINDING_2D, &texture );
+
+
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
      glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_BGRA, GL_UNSIGNED_BYTE, source );
+
+
+     glBindTexture( GL_TEXTURE_2D, texture );
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
 
      return DFB_OK;
 }
