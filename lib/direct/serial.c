@@ -52,8 +52,8 @@ direct_serial_wait( DirectSerial       *serial,
      D_ASSERT( serial != NULL );
      D_ASSERT( source != NULL );
 
-     D_DEBUG_AT( Direct_Serial_Wait, " ## ## ## %s( %p '%s', %p '%s' ) ## ## %lu ## %lu ## ## ## ##\n", __FUNCTION__,
-                 serial, serial->name, source, source->name, serial->value, source->value );
+     D_DEBUG_AT( Direct_Serial_Wait, " ## ## ## %s( %p, %p ) ## ## %lu ## %lu ## ## ## ##\n", __FUNCTION__,
+                 serial, source, serial->value, source->value );
 
      D_MAGIC_ASSERT( serial, DirectSerial );
      D_MAGIC_ASSERT( source, DirectSerial );
@@ -84,8 +84,8 @@ direct_serial_notify( DirectSerial *serial, const DirectSerial *source )
      D_ASSERT( serial != NULL );
      D_ASSERT( source != NULL );
 
-     D_DEBUG_AT( Direct_Serial_Notify, " ###### %s( %p '%s', %p '%s' ) ### %lu <-= %lu ### ### ###\n", __FUNCTION__,
-                 serial, serial->name, source, source->name, serial->value, source->value );
+     D_DEBUG_AT( Direct_Serial_Notify, " ###### %s( %p, %p ) ### %lu <-= %lu ### ### ###\n", __FUNCTION__,
+                 serial, source, serial->value, source->value );
 
      D_MAGIC_ASSERT( serial, DirectSerial );
      D_MAGIC_ASSERT( source, DirectSerial );

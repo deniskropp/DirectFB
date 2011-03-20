@@ -140,9 +140,10 @@ void _fusion_reactor_process_message( FusionWorld   *world,
 /*
  * from call.c
  */
-void _fusion_call_process( FusionWorld       *world,
-                           int                call_id,
-                           FusionCallMessage *call );
+void _fusion_call_process ( FusionWorld        *world,
+                            int                 call_id,
+                            FusionCallMessage  *call,
+                            void               *ptr );
 
 #if FUSION_BUILD_KERNEL
 /*

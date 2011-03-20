@@ -18,6 +18,18 @@ else
 X11_DIR =
 endif
 
+if X11VDPAU_CORE
+X11VDPAU_DIR = x11vdpau
+else
+X11VDPAU_DIR =
+endif
+
+if PVR2D_CORE
+PVR2D_DIR = pvr2d
+else
+PVR2D_DIR =
+endif
+
 if DEVMEM_CORE
 DEVMEM_DIR = devmem
 else
@@ -45,10 +57,12 @@ endif
 
 SUBDIRS = \
 	dummy \
+	$(PVR2D_DIR) \
 	$(DEVMEM_DIR) \
 	$(FBDEV_DIR) \
 	$(MESA_DIR) \
 	$(X11_DIR) \
+	$(X11VDPAU_DIR) \
 	$(SDL_DIR) \
 	$(OSX_DIR) \
 	$(VNC_DIR)

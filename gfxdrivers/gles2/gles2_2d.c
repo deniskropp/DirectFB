@@ -20,7 +20,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define DIRECT_ENABLE_DEBUG
+//#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
 
@@ -135,7 +135,7 @@ gles2_validate_SCISSOR(GLES2DriverData *gdrv,
 
      glEnable(GL_SCISSOR_TEST);
      glScissor(state->clip.x1,
-               surface->config.size.h - state->clip.y2 - 1,
+               state->clip.y1,
                state->clip.x2 - state->clip.x1 + 1,
                state->clip.y2 - state->clip.y1 + 1);
 
@@ -158,7 +158,7 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
 
      D_DEBUG_AT( GLES2__2D, "%s( color_rb %u )\n", __FUNCTION__, color_rb );
 //     D_MAGIC_ASSERT(buffer, GLES2BufferData);
-
+#ifdef GLES2_USE_FBO
      glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT,
                                    GL_COLOR_ATTACHMENT0_EXT,
                                    GL_RENDERBUFFER_EXT,
@@ -167,7 +167,7 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
      if (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE) {
           D_ERROR( "DirectFB/GLES2: Framebuffer not complete\n" );
      }
-
+#endif
 
      if (1/*(buffer->flags & GLES2BF_UPDATE_TARGET)*/ ||
          (gdev->prog_index != gdev->prog_last)) {
@@ -203,10 +203,16 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
           }
           else {
                // Just need the X & Y scale factors and constant offsets.
+#ifdef GLES2_PVR2D
                glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
+               glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
+#else
+               glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
+               glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
+#endif
 
                D_DEBUG_AT(GLES2__2D, "  -> loaded scale factors %f %f\n",
-                          2.0f/w, -2.0f/h);
+                          2.0f/w, 2.0f/h);
           }
 
           GLES2_INVALIDATE(ALL);
@@ -340,10 +346,10 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
            * so blit source coordinates have to be normalized to tex coords in
            * the range [0..1].
            */
-          glUniform2f(prog->dfbTexScale, 1.0f/w, -1.0f/h);
+          glUniform2f(prog->dfbTexScale, 1.0f/w, 1.0f/h);
 
           D_DEBUG_AT(GLES2__2D, "  -> w %d h %d, scale x %f scale y %f\n",
-                     w, h, 1.0f/w, -1.0f/h);
+                     w, h, 1.0f/w, 1.0f/h);
 
           glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
           glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -422,28 +428,22 @@ gles2_validate_COLORKEY(GLES2DriverData *gdrv,
                         GLES2DeviceData *gdev,
                         CardState       *state)
 {
-     /*
-      * DFB's colorkey has fixed 8-bit components packed into a u32 in ARGB
-      * order, with nothing set in the alpha component (high byte).
-      *
-      * The dfbColorkey uniform shader variable is a lowp vec3 and expects
-      * components in the floating point range [0.0 - 1.0].
-      */
-     float r, g, b;
-     float s = 1.0f/255.0f;
      GLES2ProgramInfo *prog = &gdev->progs[gdev->prog_index];
 
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
-     r = ((state->src_colorkey & 0x00ff0000) >> 16) * s;
-     g = ((state->src_colorkey & 0x0000ff00) >>  8) * s;
-     b = ((state->src_colorkey & 0x000000ff) >>  0) * s;
+     /* convert RGB32 color values to int */
+     int r = (state->src_colorkey & 0x00FF0000) >> 16;
+     int g = (state->src_colorkey & 0x0000FF00) >>  8;
+     int b = (state->src_colorkey & 0x000000FF)      ;
 
-     glUniform3f(prog->dfbColorkey, r, g, b);
+     /* send converted color key to shader */
+     glUniform3iARB( prog->dfbColorkey, r, g, b );
+
+     D_DEBUG_AT(GLES2__2D, "  -> loaded colorkey %d %d %d\n", r, g, b);
 
      // Set the flag.
      GLES2_VALIDATE(COLORKEY);
-     D_DEBUG_AT(GLES2__2D, "  -> loaded colorkey %f %f %f\n", r, g, b);
 }
 
 /*
@@ -647,6 +647,7 @@ gles2CheckState(void                *drv,
      switch (state->destination->config.format) {
           case DSPF_ARGB:
           case DSPF_RGB32:
+          case DSPF_RGB16:
                break;
           default:
                D_DEBUG_AT
@@ -669,6 +670,7 @@ gles2CheckState(void                *drv,
           switch (state->source->config.format) {
                case DSPF_ARGB:
                case DSPF_RGB32:
+               case DSPF_RGB16:
                     break;
                default:
                     D_DEBUG_AT
@@ -990,9 +992,9 @@ gles2DrawRectangle(void *drv, void *dev, DFBRectangle *rect)
      GLES2DriverData *gdrv = drv;
 
      float x1 = rect->x + 1;
-     float y1 = rect->y;
+     float y1 = rect->y + 1;
      float x2 = rect->x + rect->w;
-     float y2 = rect->y + rect->h - 1;
+     float y2 = rect->y + rect->h;
 
      GLfloat pos[] = {
           x1, y1,   x2, y1,   x2, y2,   x1, y2

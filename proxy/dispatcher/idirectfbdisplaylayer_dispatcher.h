@@ -62,6 +62,7 @@
 #define IDIRECTFBDISPLAYLAYER_METHOD_ID_SetFieldParity            31
 #define IDIRECTFBDISPLAYLAYER_METHOD_ID_WaitForSync               32
 #define IDIRECTFBDISPLAYLAYER_METHOD_ID_GetWindowByResourceID     33
+#define IDIRECTFBDISPLAYLAYER_METHOD_ID_GetRotation               34
 
 /*
  * private data struct of IDirectFBDisplayLayer_Dispatcher

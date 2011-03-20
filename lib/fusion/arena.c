@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -52,7 +54,7 @@
 #include "fusion_internal.h"
 
 
-#if FUSION_BUILD_MULTI
+#if FUSION_BUILD_MULTI || 1
 
 D_DEBUG_DOMAIN( Fusion_Arena, "Fusion/Arena", "Fusion Arena" );
 
@@ -126,7 +128,9 @@ fusion_arena_enter (FusionWorld     *world,
      else {
           D_DEBUG ("Fusion/Arena: entering arena '%s' (joining)\n", name);
 
+#if FUSION_BUILD_MULTI
           fusion_shm_attach_unattached( world );
+#endif
 
           /* Call 'join' later. */
           func = join;

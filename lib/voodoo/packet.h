@@ -52,6 +52,10 @@ typedef struct {
 
 
 class VoodooPacket {
+public:
+     DirectLink          link;
+     bool                sending;
+
 private:
      void               *data;
      void               *current;
@@ -60,9 +64,12 @@ private:
      VoodooPacket( u32   size,
                    void *data )
           :
+          sending(false),
           data(data),
           current(data)
      {
+          memset( &link, 0, sizeof(link) );
+
           header.size         = size;
           header.flags        = VPHF_NONE;
           header.uncompressed = size;
@@ -72,9 +79,12 @@ private:
                    u32   uncompressed,
                    void *data )
           :
+          sending(false),
           data(data),
           current(data)
      {
+          memset( &link, 0, sizeof(link) );
+
           header.size         = size;
           header.flags        = VPHF_COMPRESSED;
           header.uncompressed = uncompressed;

@@ -1026,7 +1026,9 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                                    break; 
                               case FMT_CALL:
                                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
-                                   _fusion_call_process( world, header->msg_id, data );
+                                   _fusion_call_process( world, header->msg_id, data,
+                                                         (header->msg_size != sizeof(FusionCallMessage))
+                                                            ? data + sizeof(FusionCallMessage) : NULL );
                                    break;
                               case FMT_REACTOR:
                                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
@@ -2563,6 +2565,8 @@ DirectResult fusion_enter( int               world_index,
 
      D_MAGIC_SET( world, FusionWorld );
      D_MAGIC_SET( world->shared, FusionWorldShared );
+
+     fusion_skirmish_init( &world->shared->arenas_lock, "Fusion Arenas", world );
 
      *ret_world = world;
 

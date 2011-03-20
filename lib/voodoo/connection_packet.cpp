@@ -62,7 +62,7 @@ extern "C" {
 #include <vector>
 
 
-#define IN_BUF_MAX ((VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader)) * 3)
+#define IN_BUF_MAX ((VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader)) * 1)
 
 
 //namespace Voodoo {
@@ -85,7 +85,7 @@ VoodooConnectionPacket::VoodooConnectionPacket( VoodooManager *manager,
      input.end     = 0;
      input.max     = 0;
 
-     output.packet  = NULL;
+     output.packets = NULL;
      output.sending = NULL;
 
      /* Initialize all locks. */
@@ -191,26 +191,40 @@ VoodooConnectionPacket::io_loop()
                if (!output.sending) {
                     direct_mutex_lock( &output.lock );
 
-                    if (output.packet) {
-                         if (voodoo_config->compression_min && output.packet->size() >= voodoo_config->compression_min) {
-                              output.sending = VoodooPacket::Compressed( output.packet );
+                    if (output.packets) {
+                         VoodooPacket *packet = (VoodooPacket*) output.packets;
+
+                         D_ASSERT( packet->sending );
+
+                         if (voodoo_config->compression_min && packet->size() >= voodoo_config->compression_min) {
+                              output.sending = VoodooPacket::Compressed( packet );
+
+                              output.sending->sending = true;
+
+                              if (output.sending->flags() & VPHF_COMPRESSED) {
+                                   packet->sending = false;
+
+                                   direct_mutex_lock( &output.lock );
+
+                                   direct_list_remove( &output.packets, &packet->link );
+
+                                   direct_mutex_unlock( &output.lock );
+
+                                   direct_waitqueue_broadcast( &output.wait );
+                              }
                          }
                          else
-                              output.sending = output.packet;
-
-                         output.packet = NULL;
-
-                         direct_mutex_unlock( &output.lock );
-
-                         direct_waitqueue_broadcast( &output.wait );
+                              output.sending = packet;
                     }
-                    else
-                         direct_mutex_unlock( &output.lock );
+
+                    direct_mutex_unlock( &output.lock );
                }
 
 
                if (output.sending) {
                     packet = output.sending;
+
+                    D_ASSERT( packet->sending );
 
                     chunk_write = &chunks[1];
 
@@ -248,12 +262,24 @@ VoodooConnectionPacket::io_loop()
                               // FIXME
                               D_ASSERT( chunk_write->done == chunk_write->length );
 
-                              if (packet->flags() & VPHF_COMPRESSED)
-                                   delete packet;
-
-                              packet = NULL;
                               output.sending = NULL;
 
+                              packet->sending = false;
+
+                              if (packet->flags() & VPHF_COMPRESSED) {
+                                   delete packet;
+                              }
+                              else {
+                                   direct_mutex_lock( &output.lock );
+
+                                   direct_list_remove( &output.packets, &packet->link );
+
+                                   direct_mutex_unlock( &output.lock );
+
+                                   direct_waitqueue_broadcast( &output.wait );
+                              }
+
+                              packet = NULL;
 
                               // TODO: fetch output.packet already, in case of slow dispatch below
                          }
@@ -418,8 +444,17 @@ VoodooConnectionPacket::GetPacket( size_t length )
      }
 
      packet = packets->Get();
-     if (packet)
+     if (packet) {
+          if (packet->sending) {
+               direct_mutex_lock( &output.lock );
+
+               while (packet->sending)
+                    direct_waitqueue_wait( &output.wait, &output.lock );
+
+               direct_mutex_unlock( &output.lock );
+          }
           packet->reset( aligned );
+     }
 
      return packet;
 }
@@ -452,12 +487,13 @@ VoodooConnectionPacket::Flush( VoodooPacket *packet )
 
      direct_mutex_lock( &output.lock );
 
-     D_ASSERT( output.packet != packet );
+     D_ASSERT( !direct_list_contains_element_EXPENSIVE( output.packets, &packet->link ) );
 
-     while (output.packet)
-          direct_waitqueue_wait( &output.wait, &output.lock );
+     D_ASSERT( !packet->sending );
 
-     output.packet = packet;
+     packet->sending = true;
+
+     direct_list_append( &output.packets, &packet->link );
 
      direct_mutex_unlock( &output.lock );
 

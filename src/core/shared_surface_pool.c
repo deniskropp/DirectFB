@@ -36,6 +36,7 @@
 
 #include <core/core.h>
 #include <core/surface_pool.h>
+#include <core/system.h>
 
 #include <misc/conf.h>
 
@@ -99,10 +100,10 @@ sharedInitPool( CoreDFB                    *core,
      if (ret)
           return ret;
 
-     ret_desc->caps              = CSPCAPS_NONE;
+     ret_desc->caps              = CSPCAPS_VIRTUAL;
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
-     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_INTERNAL;
-     ret_desc->priority          = CSPP_DEFAULT;
+     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_INTERNAL | CSTF_EXTERNAL;
+     ret_desc->priority          = (dfb_system_caps() & CSCAPS_PREFER_SHM) ? CSPP_PREFERED : CSPP_DEFAULT;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Shared Memory" );
 

@@ -23,6 +23,8 @@
 #ifndef __GLES2_2D_H__
 #define __GLES2_2D_H__
 
+#include "gles2_gfxdriver.h"
+
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
 
@@ -38,9 +40,9 @@
                                            DSBLIT_BLEND_COLORALPHA   | \
                                            DSBLIT_COLORIZE           | \
                                            DSBLIT_ROTATE180          | \
-					   DSBLIT_SRC_COLORKEY       | \
-					   DSBLIT_SRC_PREMULTIPLY    | \
-                                           DSBLIT_SRC_PREMULTCOLOR)
+                                           DSBLIT_SRC_PREMULTIPLY    | \
+                                           DSBLIT_SRC_PREMULTCOLOR   | \
+                                           DSBLIT_SRC_COLORKEY)
 
 #define GLES2_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | \
                                            DFXL_STRETCHBLIT)

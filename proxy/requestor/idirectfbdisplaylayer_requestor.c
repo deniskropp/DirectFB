@@ -601,6 +601,38 @@ IDirectFBDisplayLayer_Requestor_GetWindowByResourceID( IDirectFBDisplayLayer  *t
      return ret;
 }
 
+static DFBResult
+IDirectFBDisplayLayer_Requestor_GetRotation( IDirectFBDisplayLayer *thiz,
+                                             int                   *ret_rotation )
+{
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
+
+     if (!ret_rotation)
+          return DFB_INVARG;
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDISPLAYLAYER_METHOD_ID_GetRotation, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret == DR_OK) {
+          VoodooMessageParser parser;
+
+          VOODOO_PARSER_BEGIN( parser, response );
+          VOODOO_PARSER_GET_INT( parser, *ret_rotation );
+          VOODOO_PARSER_END( parser );
+     }
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
+}
+
 /**************************************************************************************************/
 
 static DFBResult
@@ -655,6 +687,7 @@ Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetFieldParity        = IDirectFBDisplayLayer_Requestor_SetFieldParity;
      thiz->WaitForSync           = IDirectFBDisplayLayer_Requestor_WaitForSync;
      thiz->GetWindowByResourceID = IDirectFBDisplayLayer_Requestor_GetWindowByResourceID;
+     thiz->GetRotation           = IDirectFBDisplayLayer_Requestor_GetRotation;
 
      return DFB_OK;
 }
