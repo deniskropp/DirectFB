@@ -20,6 +20,14 @@ INCLUDES = \
 	-I$(top_srcdir)/src	\
 	-DLINUX_2_6
 
+if GFX_GLES2
+GL_PROGS = \
+	dfbtest_gl1	\
+	dfbtest_gl2
+else
+GL_PROGS =
+endif
+
 if DIRECTFB_BUILD_PURE_VOODOO
 NON_PURE_VOODOO_PROGS = 
 else
@@ -34,6 +42,7 @@ NON_PURE_VOODOO_PROGS = \
 endif
 
 bin_PROGRAMS = \
+	$(GL_PROGS)	\
 	$(NON_PURE_VOODOO_PROGS)	\
 	dfbtest_blit	\
 	dfbtest_blit2	\
@@ -74,6 +83,14 @@ dfbtest_fillrect_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_font_SOURCES = dfbtest_font.c
 dfbtest_font_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_gl1_SOURCES = dfbtest_gl1.c
+dfbtest_gl1_CFLAGS  = $(GLES2_CFLAGS)
+dfbtest_gl1_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GLES2_LIBS)
+
+dfbtest_gl2_SOURCES = dfbtest_gl2.c
+dfbtest_gl2_CFLAGS  = $(GLES2_CFLAGS)
+dfbtest_gl2_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GLES2_LIBS)
 
 dfbtest_mirror_SOURCES = dfbtest_mirror.c
 dfbtest_mirror_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
