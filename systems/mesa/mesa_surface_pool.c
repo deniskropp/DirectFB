@@ -258,6 +258,7 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      MesaPoolData       *data  = pool_data;
      MesaPoolLocalData  *local = pool_local;
      MesaAllocationData *alloc = alloc_data;
+     MesaData           *mesa;
 
      D_DEBUG_AT( Mesa_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 
@@ -266,9 +267,15 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( local, MesaPoolLocalData );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
+     mesa = local->mesa;
+     D_ASSERT( mesa != NULL );
+
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     EGLContext context = eglGetCurrentContext();
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
 
 
      EGLint image_attribs[] = {
@@ -308,6 +315,8 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
      glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->image );
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
 
 
      /*
