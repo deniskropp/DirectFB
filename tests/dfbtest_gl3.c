@@ -509,9 +509,9 @@ draw_gear(struct gear *gear, GLfloat *transform,
 static void
 gears_draw( bool real )
 {
-   const static GLfloat red[4] = { 0.8, 0.1, 0.0, 1.0 };
-   const static GLfloat green[4] = { 0.0, 0.8, 0.2, 1.0 };
-   const static GLfloat blue[4] = { 0.2, 0.2, 1.0, 1.0 };
+   const static GLfloat red[4] = { 0.9, 0.4, 0.2, 1.0 };
+   const static GLfloat green[4] = { 0.0, 0.9, 0.3, 1.0 };
+   const static GLfloat blue[4] = { 0.4, 0.4, 1.0, 1.0 };
    GLfloat transform[16];
    identity(transform);
 
@@ -689,10 +689,6 @@ InitTexture( Test    *test,
           D_DERROR( ret, "IDirectFB::CreateSurface( 256x256 ARGB ) failed!\n" );
           return ret;
      }
-
-     // FIXME: somehow it does not work without this, probably some allocation/context issue
-     texture->surface->Clear( texture->surface, 0xff, 0xff, 0xff, 0xff );
-
 
      /* 
       * Bind the OpenGL rendering context to our primary surface
