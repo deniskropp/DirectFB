@@ -40,6 +40,8 @@ Package: libdirectfb-1.5-system-fbdev
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-system-fbdev
+Conflicts: libdirectfb-system-fbdev
 Description: DirectFB - fbdev system module
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -51,6 +53,8 @@ Package: libdirectfb-1.5-system-x11
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-system-x11
+Conflicts: libdirectfb-system-x11
 Description: DirectFB - x11 system module
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -62,6 +66,8 @@ Package: libdirectfb-1.5-system-x11vdpau
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-system-x11vdpau
+Conflicts: libdirectfb-system-x11vdpau
 Description: DirectFB - x11vdpau system module
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -73,6 +79,8 @@ Package: libdirectfb-1.5-system-devmem
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-system-devmem
+Conflicts: libdirectfb-system-devmem
 Description: DirectFB - devmem system module
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -84,6 +92,8 @@ Package: libdirectfb-1.5-imageprovider-png
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-imageprovider-png
+Conflicts: libdirectfb-imageprovider-png
 Description: DirectFB - png image provider
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -95,6 +105,8 @@ Package: libdirectfb-1.5-imageprovider-jpeg
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-imageprovider-jpeg
+Conflicts: libdirectfb-imageprovider-jpeg
 Description: DirectFB - jpeg image provider
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -106,6 +118,8 @@ Package: libdirectfb-1.5-imageprovider-gif
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-imageprovider-gif
+Conflicts: libdirectfb-imageprovider-gif
 Description: DirectFB - gif image provider
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -117,6 +131,8 @@ Package: libdirectfb-1.5-imageprovider-dfiff
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-imageprovider-dfiff
+Conflicts: libdirectfb-imageprovider-dfiff
 Description: DirectFB - dfiff image provider
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -128,6 +144,8 @@ Package: libdirectfb-1.5-videoprovider-gif
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-videoprovider-gif
+Conflicts: libdirectfb-videoprovider-gif
 Description: DirectFB - gif video provider
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -139,6 +157,8 @@ Package: libdirectfb-1.5-videoprovider-v4l
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-videoprovider-v4l
+Conflicts: libdirectfb-videoprovider-v4l
 Description: DirectFB - v4l video provider
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -150,6 +170,8 @@ Package: libdirectfb-1.5-fontprovider-ft2
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-fontprovider-ft2
+Conflicts: libdirectfb-fontprovider-ft2
 Description: DirectFB - freetype2 font provider
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -161,6 +183,8 @@ Package: libdirectfb-1.5-fontprovider-dgiff
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-fontprovider-dgiff
+Conflicts: libdirectfb-fontprovider-dgiff
 Description: DirectFB - dgiff font provider
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
