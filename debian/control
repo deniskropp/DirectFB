@@ -17,9 +17,9 @@ Package: libdirectfb-1.5
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, linux-fusion-dkms
 Recommends: libdirecfb-imageprovider-gif, libdirecfb-imageprovider-png,
- libdirecfb-imageprovider--jpeg, libdirectfb-fontprovider-dgiff,
+ libdirecfb-imageprovider-jpeg, libdirectfb-fontprovider-dgiff,
  libdirectfbfontprovider-ft2
-Description: direct frame buffer graphics - shared libraries
+Description: DirectFB graphics - shared libraries
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
  of resource usage and overhead.
@@ -28,7 +28,7 @@ Package: libdirectfb-bin
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
-Description: direct frame buffer graphics - binaries
+Description: DirectFB graphics - binaries
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
  of resource usage and overhead.
@@ -40,7 +40,7 @@ Package: libdirectfb-system-fbdev
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
-Description: direct frame buffer graphics - fbdev system module
+Description: DirectFB graphics - fbdev system module
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
  of resource usage and overhead.
@@ -51,7 +51,7 @@ Package: libdirectfb-system-x11
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
-Description: direct frame buffer graphics - x11 system module
+Description: DirectFB graphics - x11 system module
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
  of resource usage and overhead.
@@ -62,7 +62,7 @@ Package: libdirectfb-system-x11vdpau
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
-Description: direct frame buffer graphics - x11vdpau system module
+Description: DirectFB graphics - x11vdpau system module
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
  of resource usage and overhead.
@@ -73,7 +73,7 @@ Package: libdirectfb-system-devmem
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
-Description: direct frame buffer graphics - devmem system module
+Description: DirectFB graphics - devmem system module
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
  of resource usage and overhead.
@@ -173,10 +173,10 @@ Section: libdevel
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends},
- libdirectfb-extra, libfreetype6-dev, libjpeg62-dev, libpng12-dev,
+ libfreetype6-dev, libjpeg62-dev, libpng12-dev,
  zlib1g-dev (>= 1:1.1.3), x11proto-core-dev, libx11-dev, libxext-dev,
  libsysfs-dev
-Description: direct frame buffer graphics library - development files
+Description: DirectFB graphics library - development files
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
  of resource usage and overhead.
