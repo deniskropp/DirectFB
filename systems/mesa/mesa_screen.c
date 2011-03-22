@@ -84,7 +84,7 @@ mesaInitScreen( CoreScreen           *screen,
 
      D_INFO( "DirectFB/Mesa: Got %d connectors, %d encoders\n", resources->count_connectors, resources->count_encoders );
 
-     for (i = 1; i < resources->count_connectors; i++) {
+     for (i = resources->count_connectors-1; i >= 0; i--) {
           connector = drmModeGetConnector( mesa->fd, resources->connectors[i] );
           if (connector == NULL)
                continue;
@@ -100,8 +100,10 @@ mesaInitScreen( CoreScreen           *screen,
           D_ERROR( "DirectFB/Mesa: No currently active connector found.\n" );
           return DFB_INIT;
      }
+     else
+          D_INFO( "DirectFB/Mesa: using connector %d.\n", i );
 
-     for (i = 1; i < resources->count_encoders; i++) {
+     for (i = resources->count_encoders-1; i >= 0; i--) {
           encoder = drmModeGetEncoder( mesa->fd, resources->encoders[i] );
 
           if (encoder == NULL)
