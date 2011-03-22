@@ -59,4 +59,5 @@ usr/lib/pkgconfig/direct.pc
 usr/lib/pkgconfig/directfb-internal.pc
 usr/lib/pkgconfig/directfb.pc
 usr/lib/pkgconfig/fusion.pc
+usr/lib/pkgconfig/voodoo.pc
 usr/share/man/man1/directfb-csource.1
