@@ -1,7 +1,7 @@
 Source: directfb
 Priority: optional
 Maintainer: Andreas Shimokawa <andi@directfb.org>
-Uploaders: Andreas Shimokawa <andi@directfb.org>
+Uploaders: Andreas Shimokawa <andi@directfb.org>, Denis Oliver Kropp <dok@directfb.org>
 Build-Depends: debhelper (>= 7.4.15), autoconf, automake,
  libtool, pkg-config, libfreetype6-dev, libjpeg62-dev, libpng12-dev,
  libts-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
@@ -16,9 +16,9 @@ Homepage: http://www.directfb.org/
 Package: libdirectfb-1.5
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, linux-fusion-dkms
-Recommends: libdirecfb-imageprovider-gif, libdirecfb-imageprovider-png,
- libdirecfb-imageprovider-jpeg, libdirectfb-fontprovider-dgiff,
- libdirectfbfontprovider-ft2
+Recommends: libdirectfb-1.5-imageprovider-gif, libdirectfb-1.5-imageprovider-png,
+ libdirectfb-1.5-imageprovider-jpeg, libdirectfb-1.5-fontprovider-dgiff,
+ libdirectfb-1.5-fontprovider-ft2
 Description: DirectFB - shared libraries
  DirectFB is a graphics library which was designed with embedded systems
  in mind. It offers maximum hardware accelerated performance at a minimum
@@ -36,7 +36,7 @@ Description: DirectFB - binaries
  This package contains the DirectFB background configuration tool
  and the directfbrc man page.
 
-Package: libdirectfb-system-fbdev
+Package: libdirectfb-1.5-system-fbdev
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -47,7 +47,7 @@ Description: DirectFB - fbdev system module
  .
  This package contains the FBDEV system module.
 
-Package: libdirectfb-system-x11
+Package: libdirectfb-1.5-system-x11
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -58,7 +58,7 @@ Description: DirectFB - x11 system module
  .
  This package contains the X11 system module.
 
-Package: libdirectfb-system-x11vdpau
+Package: libdirectfb-1.5-system-x11vdpau
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -69,7 +69,7 @@ Description: DirectFB - x11vdpau system module
  .
  This package contains the X11VDPAU system module.
 
-Package: libdirectfb-system-devmem
+Package: libdirectfb-1.5-system-devmem
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -80,7 +80,7 @@ Description: DirectFB - devmem system module
  .
  This package contains the DEVMEM system module.
 
-Package: libdirectfb-imageprovider-png
+Package: libdirectfb-1.5-imageprovider-png
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -91,7 +91,7 @@ Description: DirectFB - png image provider
  .
  This package contains the PNG image provider
 
-Package: libdirectfb-imageprovider-jpeg
+Package: libdirectfb-1.5-imageprovider-jpeg
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -102,7 +102,7 @@ Description: DirectFB - jpeg image provider
  .
  This package contains the JPEG image provider
 
-Package: libdirectfb-imageprovider-gif
+Package: libdirectfb-1.5-imageprovider-gif
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -113,7 +113,7 @@ Description: DirectFB - gif image provider
  .
  This package contains the GIF image provider
 
-Package: libdirectfb-imageprovider-dfiff
+Package: libdirectfb-1.5-imageprovider-dfiff
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -124,7 +124,7 @@ Description: DirectFB - dfiff image provider
  .
  This package contains the DFIFF image provider
 
-Package: libdirectfb-videoprovider-gif
+Package: libdirectfb-1.5-videoprovider-gif
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -135,7 +135,7 @@ Description: DirectFB - gif video provider
  .
  This package contains the GIF video provider
 
-Package: libdirectfb-videoprovider-v4l
+Package: libdirectfb-1.5-videoprovider-v4l
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -146,7 +146,7 @@ Description: DirectFB - v4l video provider
  .
  This package contains the V4L video provider
 
-Package: libdirectfb-fontprovider-ft2
+Package: libdirectfb-1.5-fontprovider-ft2
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
@@ -157,7 +157,7 @@ Description: DirectFB - freetype2 font provider
  .
  This package contains the FREETYPE2 font provider
 
-Package: libdirectfb-fontprovider-dgiff
+Package: libdirectfb-1.5-fontprovider-dgiff
 Architecture: any
 Depends: libdirectfb-1.5 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
