@@ -319,8 +319,10 @@ VoodooConnectionPacket::io_loop()
                          D_DEBUG_AT( Voodoo_Input, "  -> Next packet has %u ("_ZU") -> %u bytes (flags 0x%04x)...\n",
                                      header->size, aligned, header->uncompressed, header->flags );
 
-                         D_ASSERT( header->uncompressed >= (int) sizeof(VoodooMessageHeader) );
-                         D_ASSERT( header->uncompressed <= VOODOO_PACKET_MAX );
+                         if (input.end - last >= sizeof(VoodooPacketHeader)) {
+                              D_ASSERT( header->uncompressed >= (int) sizeof(VoodooMessageHeader) );
+                              D_ASSERT( header->uncompressed <= VOODOO_PACKET_MAX );
+                         }
 
                          if (sizeof(VoodooPacketHeader) + aligned > input.end - last) {
                               D_DEBUG_AT( Voodoo_Input, "  -> ...fetching tail of message.\n" );
