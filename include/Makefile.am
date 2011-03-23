@@ -13,6 +13,7 @@ include_HEADERS = \
 	directfb_util.h		\
 	directfb_version.h	\
 	directfbgl.h		\
+	directfbgl2.h		\
 	dfb_types.h		\
 	dfiff.h			\
 	dgiff.h

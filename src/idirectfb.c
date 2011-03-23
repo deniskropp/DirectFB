@@ -1558,12 +1558,6 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
      if (!type || !interface)
           return DFB_INVARG;
 
-     if (!strncmp( type, "IDirectFB", 9 )) {
-          D_ERROR( "IDirectFB::GetInterface() "
-                   "is not allowed for \"IDirectFB*\"!\n" );
-          return DFB_ACCESSDENIED;
-     }
-
      ret = DirectGetInterface( &funcs, type, implementation, DirectProbeInterface, arg );
      if (ret)
           return ret;

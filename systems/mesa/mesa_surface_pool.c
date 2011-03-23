@@ -64,6 +64,7 @@ typedef struct {
      EGLint      name;
      EGLint      handle;
 
+     GLuint      fbo;
      GLuint      color_rb;
      GLuint      texture;
 
@@ -115,6 +116,7 @@ mesaInitPool( CoreDFB                    *core,
      ret_desc->caps              = CSPCAPS_VIRTUAL;
 //     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_ACCEL1] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
      ret_desc->priority          = CSPP_DEFAULT;
      ret_desc->size              = dfb_config->video_length;
@@ -257,6 +259,7 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      MesaPoolData       *data  = pool_data;
      MesaPoolLocalData  *local = pool_local;
      MesaAllocationData *alloc = alloc_data;
+     MesaData           *mesa;
 
      D_DEBUG_AT( Mesa_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 
@@ -265,9 +268,22 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( local, MesaPoolLocalData );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
+     mesa = local->mesa;
+     D_ASSERT( mesa != NULL );
+
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     EGLContext context = eglGetCurrentContext();
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
+
+
+     GLint texture, fbo, rbo;
+
+     glGetIntegerv( GL_TEXTURE_BINDING_2D, &texture );
+     glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+     glGetIntegerv( GL_RENDERBUFFER_BINDING, &rbo );
 
 
      EGLint image_attribs[] = {
@@ -300,6 +316,23 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
 
 
      /*
+      * Framebuffer
+      */
+     glGenFramebuffers( 1, &alloc->fbo );
+
+     glBindFramebuffer( GL_RENDERBUFFER_EXT, alloc->fbo );
+
+     glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT,
+                                   GL_COLOR_ATTACHMENT0_EXT,
+                                   GL_RENDERBUFFER_EXT,
+                                   alloc->color_rb );
+
+     if (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE) {
+          D_ERROR( "DirectFB/Mesa: Framebuffer not complete\n" );
+     }
+
+
+     /*
       * Texture
       */
      glGenTextures( 1, &alloc->texture );
@@ -307,6 +340,16 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
      glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->image );
+
+
+     /*
+      * Restore
+      */
+     glBindRenderbuffer( GL_RENDERBUFFER_EXT, rbo );
+     glBindFramebuffer( GL_RENDERBUFFER_EXT, fbo );
+     glBindTexture( GL_TEXTURE_2D, texture );
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
 
 
      /*
@@ -358,8 +401,9 @@ mesaLock( CoreSurfacePool       *pool,
           void                  *alloc_data,
           CoreSurfaceBufferLock *lock )
 {
-//     MesaPoolLocalData  *local = pool_local;
+     MesaPoolLocalData  *local = pool_local;
      MesaAllocationData *alloc = alloc_data;
+     MesaData           *mesa;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -368,6 +412,9 @@ mesaLock( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
 
+     mesa = local->mesa;
+     D_ASSERT( mesa != NULL );
+
      lock->pitch  = alloc->pitch;
      lock->offset = 0;
      lock->addr   = NULL;
@@ -375,14 +422,24 @@ mesaLock( CoreSurfacePool       *pool,
 
      switch (lock->accessor) {
           case CSAID_GPU:
-               if (lock->access & CSAF_WRITE)
-                    lock->handle = alloc->color_rb;
+               if (lock->access & CSAF_WRITE) {
+                    eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
+
+                    lock->handle = (void*) (long) alloc->color_rb;
+               }
                else
-                    lock->handle = alloc->texture;
+                    lock->handle = (void*) (long) alloc->texture;
+               break;
+
+          case CSAID_ACCEL1:
+               if (lock->access & CSAF_WRITE)
+                    lock->handle = (void*) (long) alloc->color_rb;
+               else
+                    lock->handle = (void*) (long) alloc->image;
                break;
 
           case CSAID_LAYER0:
-               lock->handle = alloc->fb_id;
+               lock->handle = (void*) (long) alloc->fb_id;
                break;
 
           default:
@@ -428,16 +485,43 @@ mesaRead( CoreSurfacePool       *pool,
           int                    pitch,
           const DFBRectangle    *rect )
 {
+     MesaPoolLocalData  *local = pool_local;
      MesaAllocationData *alloc = alloc_data;
+     MesaData           *mesa;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, MesaAllocationData );
-     D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+     D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, allocation );
 
-     (void) alloc;
+     mesa = local->mesa;
+     D_ASSERT( mesa != NULL );
+
+
+     EGLContext context = eglGetCurrentContext();
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
+
+
+     GLint fbo;
+
+     glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+
+
+     glBindFramebuffer( GL_RENDERBUFFER_EXT, alloc->fbo );
+
+     glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT,
+                                   GL_COLOR_ATTACHMENT0_EXT,
+                                   GL_RENDERBUFFER_EXT,
+                                   alloc->color_rb );
+
+     glReadPixels( rect->x, rect->y, rect->w, rect->h, GL_BGRA, GL_UNSIGNED_BYTE, destination );
+
+
+     glBindFramebuffer( GL_RENDERBUFFER_EXT, fbo );
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
 
      return DFB_OK;
 }
@@ -452,8 +536,10 @@ mesaWrite( CoreSurfacePool       *pool,
            int                    pitch,
            const DFBRectangle    *rect )
 {
+     MesaPoolLocalData  *local = pool_local;
      MesaAllocationData *alloc = alloc_data;
      CoreSurface        *surface;
+     MesaData           *mesa;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -462,11 +548,30 @@ mesaWrite( CoreSurfacePool       *pool,
      surface = allocation->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+     D_DEBUG_AT( Mesa_SurfLock, "%s( %p )\n", __FUNCTION__, allocation );
+
+     mesa = local->mesa;
+     D_ASSERT( mesa != NULL );
+
+
+     EGLContext context = eglGetCurrentContext();
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
+
+
+     GLint texture;
+
+     glGetIntegerv( GL_TEXTURE_BINDING_2D, &texture );
+
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
      glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_BGRA, GL_UNSIGNED_BYTE, source );
+
+
+     glBindTexture( GL_TEXTURE_2D, texture );
+
+     eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
 
      return DFB_OK;
 }

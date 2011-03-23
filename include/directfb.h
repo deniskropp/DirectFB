@@ -131,6 +131,16 @@ D_DECLARE_INTERFACE( IDirectFBScreen )
  */
 D_DECLARE_INTERFACE( IDirectFBGL )
 
+/*
+ * Rendering context manager
+ */
+D_DECLARE_INTERFACE( IDirectFBGL2 )
+
+/*
+ * Rendering context
+ */
+D_DECLARE_INTERFACE( IDirectFBGL2Context )
+
 
 /*
  * Return code of all interface methods and most functions

@@ -28,6 +28,8 @@ libdirectfb_mesa_system_la_LDFLAGS = \
 	$(MESA_LIBS)
 
 libdirectfb_mesa_system_la_SOURCES = \
+	idirectfbgl2.c		\
+	idirectfbgl2context.c	\
 	mesa_layer.c		\
 	mesa_screen.c		\
 	mesa_system.c		\
