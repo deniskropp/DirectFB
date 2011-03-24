@@ -32,6 +32,7 @@ ifeq ($(DEB_HOST_ARCH_OS), linux)
     --enable-video4linux2 \
     --enable-multi \
     --enable-voodoo \
+    --disable-unique \
     --disable-mesa
 else
   conf_options := \
