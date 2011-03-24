@@ -16,7 +16,7 @@ Homepage: http://www.directfb.org/
 Package: libdirectfb-1.5
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, linux-fusion-dkms,
-libdirectfb-1.5-wm, libdirectdb-1.5-system
+ libdirectfb-1.5-wm, libdirectdb-1.5-system
 Recommends: libdirectfb-1.5-imageprovider-gif, libdirectfb-1.5-imageprovider-png,
  libdirectfb-1.5-imageprovider-jpeg, libdirectfb-1.5-fontprovider-dgiff,
  libdirectfb-1.5-fontprovider-ft2, libdirectfb-1.5-wm-default
