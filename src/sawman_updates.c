@@ -765,8 +765,11 @@ sawman_process_updates( SaWMan              *sawman,
 
                     dfb_layer_region_disable( tier->region );
 
-                    if (sawman->cursor.context && tier->context->layer_id == sawman->cursor.context->layer_id)
+                    if (sawman->cursor.context && tier->context->layer_id == sawman->cursor.context->layer_id) {
                          dfb_layer_activate_context( dfb_layer_at(sawman->cursor.context->layer_id), sawman->cursor.context );
+
+                         dfb_layer_region_flip_update( sawman->cursor.region, NULL, DSFLIP_NONE );
+                    }
                }
                dfb_updates_reset( &tier->updates );
                continue;
@@ -936,6 +939,9 @@ sawman_process_updates( SaWMan              *sawman,
                     dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
 
                     tier->active = true;
+
+                    if (sawman->cursor.context && tier->context->layer_id == sawman->cursor.context->layer_id)
+                         dfb_layer_activate_context( dfb_layer_at(tier->context->layer_id), tier->context );
 
                     dfb_layer_region_flip_update( tier->region, NULL, flags );
 

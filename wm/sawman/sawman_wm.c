@@ -983,6 +983,8 @@ handle_axis_motion( CoreWindowStack     *stack,
                     SaWManTier          *tier,
                     const DFBInputEvent *event )
 {
+     D_DEBUG_AT( SaWMan_WM, "%s( %p, %p )\n", __FUNCTION__, stack, sawman );
+
      D_ASSERT( stack != NULL );
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
@@ -1539,7 +1541,22 @@ wm_process_input( CoreWindowStack     *stack,
           return ret;
 
      /* Retrieve corresponding SaWManTier. */
-     if (!sawman_tier_by_stack( sawman, stack, &tier ) || tier != (SaWManTier*)sawman->tiers) {
+     if (sawman->cursor.context && stack == sawman->cursor.context->stack) {
+          direct_list_foreach (tier, sawman->tiers) {
+               if (tier->layer_id == sawman->cursor.context->layer_id)
+                    break;
+          }
+
+          if (!tier) {
+               D_DEBUG_AT( SaWMan_WM, "  -> cursor tier not found!\n" );
+               sawman_unlock( sawman );
+               return DFB_OK;
+          }
+
+          stack = tier->stack;
+     }
+     else if (!sawman_tier_by_stack( sawman, stack, &tier ) || tier != (SaWManTier*)sawman->tiers) {
+          D_DEBUG_AT( SaWMan_WM, "  -> not for me\n" );
           sawman_unlock( sawman );
           return DFB_OK;
      }
