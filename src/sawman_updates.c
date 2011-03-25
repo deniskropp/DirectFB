@@ -764,6 +764,9 @@ sawman_process_updates( SaWMan              *sawman,
                     tier->single_window = NULL;  /* enforce configuration to reallocate buffers */
 
                     dfb_layer_region_disable( tier->region );
+
+                    if (sawman->cursor.context && tier->context->layer_id == sawman->cursor.context->layer_id)
+                         dfb_layer_activate_context( dfb_layer_at(sawman->cursor.context->layer_id), sawman->cursor.context );
                }
                dfb_updates_reset( &tier->updates );
                continue;
@@ -1087,6 +1090,9 @@ no_single:
 
                DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
                dfb_updates_add( &tier->updates, &region );
+
+               if (sawman->cursor.context && tier->context->layer_id == sawman->cursor.context->layer_id)
+                    dfb_layer_activate_context( dfb_layer_at(tier->context->layer_id), tier->context );
           }
 
           tier->single_mode   = false;
