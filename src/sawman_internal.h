@@ -448,7 +448,7 @@ sawman_window_priority( const SaWManWindow *sawwin )
                return 0;
 
           default:
-               D_BUG( "unknown stacking class" );
+               D_BUG( "unknown stacking class %d", window->config.stacking );
                break;
      }
 
