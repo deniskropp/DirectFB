@@ -92,6 +92,8 @@ typedef struct {
 
      VdpPresentationQueueTarget    vdp_target;
      VdpPresentationQueue          vdp_queue;
+     VdpOutputSurface              vdp_surface;
+     CoreSurface                  *vdp_core_surface;
 } DFBX11Shared;
 
 struct __DFB_X11 {
