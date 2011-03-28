@@ -36,6 +36,9 @@
 
 DFB_INPUT_DRIVER( vncinput )
 
+
+CoreInputDevice *vncInputDevice = NULL;
+
 /* exported symbols */
 
 /*
@@ -79,6 +82,8 @@ driver_open_device( CoreInputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
+     vncInputDevice = device;
+
      /* set device name */
      snprintf( info->desc.name,
                DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "VNC Input" );
