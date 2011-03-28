@@ -12,6 +12,7 @@ usr/include/directfb-internal/input/*.h
 usr/include/directfb-internal/media/*.h
 usr/include/directfb-internal/misc/*.h
 usr/include/directfb-internal/windows/*.h
+usr/include/directfb-internal/x11vdpau/*.h
 usr/include/directfb/*.h
 usr/include/directfb/direct/*.h
 usr/include/directfb/direct/os/*.h  
