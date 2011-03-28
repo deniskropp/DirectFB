@@ -391,14 +391,10 @@ static void config_allocate( void )
           dfb_config->layers[i].background.mode        = DLBM_COLOR;
      }
 
-     dfb_config->layers[0].init               = true;
-     dfb_config->layers[0].background.color.a = 0xff;
-     dfb_config->layers[0].background.color.r = 0xc0;
-     dfb_config->layers[0].background.color.g = 0xb0;
-     dfb_config->layers[0].background.color.b = 0x90;
-     dfb_config->layers[0].stacking           = (1 << DWSC_UPPER)  |
-                                                (1 << DWSC_MIDDLE) |
-                                                (1 << DWSC_LOWER);
+     dfb_config->layers[0].init           = true;
+     dfb_config->layers[0].stacking       = (1 << DWSC_UPPER)  |
+                                            (1 << DWSC_MIDDLE) |
+                                            (1 << DWSC_LOWER);
 
 
      dfb_config->pci.bus                  = 1;
