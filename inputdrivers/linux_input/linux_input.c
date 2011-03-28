@@ -110,9 +110,7 @@ typedef unsigned long kernel_ulong_t;
 /* Exclude hot-plug stub functionality from this input provider. */
 #define DISABLE_INPUT_HOTPLUG_FUNCTION_STUB
 
-#ifdef LINUX_INPUT_USE_FBDEV
 #include <fbdev/fbdev.h>
-#endif
 
 #include <core/input_driver.h>
 
@@ -1219,19 +1217,19 @@ driver_get_available( void )
      int   i;
      char *tsdev;
 
-#ifdef LINUX_INPUT_USE_FBDEV
-     if (dfb_system_type() != CORE_FBDEV)
+     if (!(dfb_config->linux_input_force || (dfb_system_type() == CORE_FBDEV) || (dfb_system_type() == CORE_MESA) ))
           return 0;
 
-     FBDev *dfb_fbdev = (FBDev*) dfb_system_data();
-     D_ASSERT( dfb_fbdev );
+     if (dfb_system_type() == CORE_FBDEV) {
+          FBDev *dfb_fbdev = (FBDev*) dfb_system_data();
+          D_ASSERT( dfb_fbdev );
 
-     // Only allow USB keyboard and mouse support if the systems driver has
-     // the Virtual Terminal file ("/dev/tty0") open and available for use.
-     // FIXME:  Additional logic needed for system drivers not similar to fbdev?
-     if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0)
-          return 0;
-#endif
+          // Only allow USB keyboard and mouse support if the systems driver has
+          // the Virtual Terminal file ("/dev/tty0") open and available for use.
+          // FIXME:  Additional logic needed for system drivers not similar to fbdev?
+          if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0)
+               return 0;
+     }
 
      /* Use the devices specified in the configuration. */
      if (fusion_vector_has_elements( &dfb_config->linux_input_devices )) {
@@ -1436,21 +1434,19 @@ get_capability( void )
 
      InputDriverCapability   capabilities = IDC_NONE;
 
-#ifdef LINUX_INPUT_USE_FBDEV
-     FBDev *dfb_fbdev;
-
-     if (dfb_system_type() != CORE_FBDEV)
-          return 0;
-
-     dfb_fbdev = (FBDev*) dfb_system_data();
-     D_ASSERT( dfb_fbdev );
-
-     // Only allow USB keyboard and mouse support if the systems driver has
-     // the Virtual Terminal file ("/dev/tty0") open and available for use.
-     // FIXME:  Additional logic needed for system drivers not similar to fbdev?
-     if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0)
+     if (!(dfb_config->linux_input_force || (dfb_system_type() == CORE_FBDEV) || (dfb_system_type() == CORE_MESA) ))
           goto exit;
-#endif
+
+     if (dfb_system_type() == CORE_FBDEV) {
+          FBDev *dfb_fbdev = (FBDev*) dfb_system_data();
+          D_ASSERT( dfb_fbdev );
+
+          // Only allow USB keyboard and mouse support if the systems driver has
+          // the Virtual Terminal file ("/dev/tty0") open and available for use.
+          // FIXME:  Additional logic needed for system drivers not similar to fbdev?
+          if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0)
+               goto exit;
+     }
 
      capabilities |= IDC_HOTPLUG;
 
@@ -1788,12 +1784,12 @@ driver_open_device( CoreInputDevice  *device,
       data->index = number;
 
      if (info->desc.min_keycode >= 0 && info->desc.max_keycode >= info->desc.min_keycode) {
-#ifdef LINUX_INPUT_USE_FBDEV
-          FBDev *dfb_fbdev = dfb_system_data();
+          if (dfb_system_type() == CORE_FBDEV) {
+               FBDev *dfb_fbdev = dfb_system_data();
 
-          if (dfb_fbdev->vt)
-               data->vt_fd = dup( dfb_fbdev->vt->fd );
-#endif
+               if (dfb_fbdev->vt)
+                    data->vt_fd = dup( dfb_fbdev->vt->fd );
+          }
           if (data->vt_fd < 0)
                data->vt_fd = open( "/dev/tty0", O_RDWR | O_NOCTTY );
 

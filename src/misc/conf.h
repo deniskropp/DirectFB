@@ -253,6 +253,9 @@ typedef struct
      int           max_font_row_width;
 
      bool          core_sighandler;
+
+     bool          linux_input_force;              /* use linux-input with all system modules */
+
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;
