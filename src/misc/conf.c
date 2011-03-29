@@ -113,6 +113,7 @@ static const char *config_usage =
      "  [no-]capslock-meta             Map the CapsLock key to Meta\n"
      "  linux-input-ir-only            Ignore all non-IR Linux Input devices\n"
      "  [no-]linux-input-grab          Grab Linux Input devices?\n"
+     "  [no-]linux-input-force         Force using linux-input with all system modules\n"
      "  [no-]cursor                    Never create a cursor or handle it\n"
      "  [no-]cursor-automation         Automated cursor show/hide for windowed primary surfaces\n"
      "  [no-]cursor-updates            Never show a cursor, but still handle it\n"
@@ -391,14 +392,10 @@ static void config_allocate( void )
           dfb_config->layers[i].background.mode        = DLBM_COLOR;
      }
 
-     dfb_config->layers[0].init               = true;
-     dfb_config->layers[0].background.color.a = 0xff;
-     dfb_config->layers[0].background.color.r = 0xc0;
-     dfb_config->layers[0].background.color.g = 0xb0;
-     dfb_config->layers[0].background.color.b = 0x90;
-     dfb_config->layers[0].stacking           = (1 << DWSC_UPPER)  |
-                                                (1 << DWSC_MIDDLE) |
-                                                (1 << DWSC_LOWER);
+     dfb_config->layers[0].init           = true;
+     dfb_config->layers[0].stacking       = (1 << DWSC_UPPER)  |
+                                            (1 << DWSC_MIDDLE) |
+                                            (1 << DWSC_LOWER);
 
 
      dfb_config->pci.bus                  = 1;
@@ -419,6 +416,7 @@ static void config_allocate( void )
      dfb_config->mouse_gpm_source         = false;
      dfb_config->mouse_source             = D_STRDUP( DEV_NAME );
      dfb_config->linux_input_grab         = false;
+     dfb_config->linux_input_force        = false;
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
      dfb_config->wm                       = D_STRDUP( "default" );
@@ -868,6 +866,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-linux-input-grab" ) == 0) {
           dfb_config->linux_input_grab = false;
+     } else
+     if (strcmp (name, "linux-input-force" ) == 0) {
+          dfb_config->linux_input_force = true;
+     } else
+     if (strcmp (name, "no-linux-input-force" ) == 0) {
+          dfb_config->linux_input_force = false;
      } else
      if (strcmp (name, "motion-compression" ) == 0) {
           dfb_config->mouse_motion_compression = true;

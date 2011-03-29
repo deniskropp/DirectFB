@@ -36,8 +36,6 @@
 struct __D_DirectSerial {
      int            magic;
 
-     const char    *name;
-
      u32            overflow;
 
      unsigned long  value;
@@ -67,8 +65,6 @@ direct_serial_initialize( DirectSerial *serial, const char *name )
      D_DEBUG_AT( Direct_Serial, "%s( %p '%s' ) <<\n", __FUNCTION__, (void*) serial, name );
 
      D_ASSERT( serial != NULL );
-
-     serial->name     = name;
 
      serial->value    = 0;
      serial->overflow = 0;
@@ -143,7 +139,7 @@ direct_serial_increase( DirectSerial *serial )
 {
      D_ASSERT( serial != NULL );
 
-     D_DEBUG_AT( Direct_Serial, "%s( %p '%s' ) <- %lu ++\n", __FUNCTION__, (void*) serial, serial->name, serial->value );
+     D_DEBUG_AT( Direct_Serial, "%s( %p ) <- %lu ++\n", __FUNCTION__, (void*) serial, serial->value );
 
      D_MAGIC_ASSERT( serial, DirectSerial );
 
@@ -159,8 +155,8 @@ direct_serial_copy( DirectSerial *serial, const DirectSerial *source )
      D_ASSERT( serial != NULL );
      D_ASSERT( source != NULL );
 
-     D_DEBUG_AT( Direct_Serial, "%s( %p '%s', %p ) <- %lu = (%lu)\n", __FUNCTION__,
-                 (void*) serial, serial->name, (void*) source, source->value, serial->value );
+     D_DEBUG_AT( Direct_Serial, "%s( %p, %p ) <- %lu = (%lu)\n", __FUNCTION__,
+                 (void*) serial, (void*) source, source->value, serial->value );
 
      D_MAGIC_ASSERT( serial, DirectSerial );
      D_MAGIC_ASSERT( source, DirectSerial );
@@ -175,8 +171,8 @@ direct_serial_check( const DirectSerial *serial, const DirectSerial *source )
      D_ASSERT( serial != NULL );
      D_ASSERT( source != NULL );
 
-     D_DEBUG_AT( Direct_Serial, "%s( %p '%s', %p '%s' ) -- %lu == %lu\n", __FUNCTION__,
-                 (void*) serial, serial->name, (void*) source, source->name, serial->value, source->value );
+     D_DEBUG_AT( Direct_Serial, "%s( %p, %p ) -- %lu == %lu\n", __FUNCTION__,
+                 (void*) serial, (void*) source, serial->value, source->value );
 
      D_MAGIC_ASSERT( serial, DirectSerial );
      D_MAGIC_ASSERT( source, DirectSerial );
@@ -197,8 +193,8 @@ direct_serial_update( DirectSerial *serial, const DirectSerial *source )
      D_ASSERT( serial != NULL );
      D_ASSERT( source != NULL );
 
-     D_DEBUG_AT( Direct_Serial, "%s( %p '%s', %p '%s' ) <- %lu <-= %lu\n", __FUNCTION__,
-                 (void*) serial, serial->name, (void*) source, source->name, serial->value, source->value );
+     D_DEBUG_AT( Direct_Serial, "%s( %p, %p ) <- %lu <-= %lu\n", __FUNCTION__,
+                 (void*) serial, (void*) source, serial->value, source->value );
 
      D_MAGIC_ASSERT( serial, DirectSerial );
      D_MAGIC_ASSERT( source, DirectSerial );
@@ -234,8 +230,8 @@ direct_serial_diff( const DirectSerial *a, const DirectSerial *b )
      D_ASSERT( a != NULL );
      D_ASSERT( b != NULL );
 
-     D_DEBUG_AT( Direct_Serial, "%s( %p '%s', %p '%s' ) <- %lu - %lu\n", __FUNCTION__,
-                 (void*) a, a->name, (void*) b, b->name, a->value, b->value );
+     D_DEBUG_AT( Direct_Serial, "%s( %p, %p ) <- %lu - %lu\n", __FUNCTION__,
+                 (void*) a, (void*) b, a->value, b->value );
 
      D_MAGIC_ASSERT( a, DirectSerial );
      D_MAGIC_ASSERT( b, DirectSerial );

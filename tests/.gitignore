@@ -3,6 +3,9 @@ dfbtest_blit
 dfbtest_blit2
 dfbtest_fillrect
 dfbtest_font
+dfbtest_gl1
+dfbtest_gl2
+dfbtest_gl3
 dfbtest_mirror
 dfbtest_reinit
 dfbtest_scale
@@ -12,6 +15,7 @@ dfbtest_window_flip_once
 direct_stream
 direct_test
 fusion_call
+fusion_call_bench
 fusion_fork
 fusion_reactor
 fusion_skirmish

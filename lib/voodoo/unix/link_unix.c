@@ -194,29 +194,52 @@ SendReceive( VoodooLink  *link,
                default:
                     if (FD_ISSET( l->fd[1], &fds_write )) {
                          D_DEBUG_AT( Voodoo_Link, "  => WRITE\n" );
-
+/*
                          //printf("<-- event write\n");
-
+                         if (num_send)
+                              D_INFO( "send: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                                      ((const u8*)sends[0].ptr)[0],
+                                      ((const u8*)sends[0].ptr)[1],
+                                      ((const u8*)sends[0].ptr)[2],
+                                      ((const u8*)sends[0].ptr)[3],
+                                      ((const u8*)sends[0].ptr)[4],
+                                      ((const u8*)sends[0].ptr)[5],
+                                      ((const u8*)sends[0].ptr)[6],
+                                      ((const u8*)sends[0].ptr)[7],
+                                      ((const u8*)sends[0].ptr)[8],
+                                      ((const u8*)sends[0].ptr)[9],
+                                      ((const u8*)sends[0].ptr)[10],
+                                      ((const u8*)sends[0].ptr)[11],
+                                      ((const u8*)sends[0].ptr)[12],
+                                      ((const u8*)sends[0].ptr)[13],
+                                      ((const u8*)sends[0].ptr)[14],
+                                      ((const u8*)sends[0].ptr)[15] );
+*/
                          for (i=0; i<num_send; i++) {
-                              //printf("writing %d\n",sends[i].length);
-                              ret = send( l->fd[1], sends[i].ptr, sends[i].length, 0 );
-                              //printf("wrote %d/%d\n",ret,sends[i].length);
-                              if (ret < 0) {
-                                   if (errno == EAGAIN) {
-                                        break;
+                              while (sends[i].done != sends[i].length) {
+                                   //printf("writing %d\n",sends[i].length);
+                                   ret = send( l->fd[1], sends[i].ptr, sends[i].length, 0 );
+                                   //printf("wrote %d/%d\n",ret,sends[i].length);
+                                   if (ret < 0) {
+                                        //if (errno == EAGAIN) {
+                                        //     break;
+                                        //}
+                                        D_PERROR( "Voodoo/Link: Failed to send() data!\n" );
+                                        return DR_FAILURE;
                                    }
-                                   D_PERROR( "Voodoo/Link: Failed to send() data!\n" );
-                              }
-                              else {
-                                   sends[i].done = ret;
-                         
-                                   if (sends[i].done != sends[i].length) {
-                                        D_UNIMPLEMENTED();
-                                        return DR_UNIMPLEMENTED;
+                                   else {
+                                        sends[i].done += ret;
+
+                                        //if (sends[i].done != sends[i].length) {
+                                        //     D_UNIMPLEMENTED();
+                                        //     return DR_UNIMPLEMENTED;
+                                        //}
+                                        //
+                                        //return DR_OK;
                                    }
-                         
-                                   return DR_OK;
                               }
+
+                              return DR_OK;
                          }
                     }
      
@@ -227,7 +250,6 @@ SendReceive( VoodooLink  *link,
 
                          for (i=0; i<num_recv; i++) {
                               ret = recv( l->fd[0], recvs[i].ptr, recvs[i].length, 0 );
-                              //printf("read %d\n",ret);
                               if (ret < 0) {
                                    if (errno == EAGAIN) {
                                         break;
@@ -238,6 +260,26 @@ SendReceive( VoodooLink  *link,
 
                               if (!ret)
                                    return DR_IO;
+
+/*
+                              D_INFO( "recv: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                                      ((const u8*)recvs[i].ptr)[0],
+                                      ((const u8*)recvs[i].ptr)[1],
+                                      ((const u8*)recvs[i].ptr)[2],
+                                      ((const u8*)recvs[i].ptr)[3],
+                                      ((const u8*)recvs[i].ptr)[4],
+                                      ((const u8*)recvs[i].ptr)[5],
+                                      ((const u8*)recvs[i].ptr)[6],
+                                      ((const u8*)recvs[i].ptr)[7],
+                                      ((const u8*)recvs[i].ptr)[8],
+                                      ((const u8*)recvs[i].ptr)[9],
+                                      ((const u8*)recvs[i].ptr)[10],
+                                      ((const u8*)recvs[i].ptr)[11],
+                                      ((const u8*)recvs[i].ptr)[12],
+                                      ((const u8*)recvs[i].ptr)[13],
+                                      ((const u8*)recvs[i].ptr)[14],
+                                      ((const u8*)recvs[i].ptr)[15] );
+*/
           
                               recvs[i].done = ret;
           

@@ -288,6 +288,13 @@ VoodooConnectionRaw::io_loop()
                          VoodooMessageHeader *header;
                          size_t               aligned;
 
+                         D_DEBUG_AT( Voodoo_Input, "  { LAST "_ZD", INPUT LAST "_ZD" }\n", last, input.last );
+
+                         if (input.end - last < 4) {
+                              D_DEBUG_AT( Voodoo_Input, "  -> ...only %d bytes left\n", input.end - last );
+                              break;
+                         }
+
                          /* Get the message header. */
                          header  = (VoodooMessageHeader *)(input.buffer + last);
                          aligned = VOODOO_MSG_ALIGN( header->size );

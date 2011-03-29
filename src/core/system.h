@@ -45,15 +45,19 @@ typedef enum {
      CORE_SDL,
      CORE_VNC,
      CORE_DEVMEM,
-     CORE_TI_CMEM
+     CORE_TI_CMEM,
+     CORE_MESA,
+     CORE_X11VDPAU,
+     CORE_PVR2D,
 } CoreSystemType;
 
 typedef enum {
      CSCAPS_NONE         = 0x00000000,  /* None of these. */
 
      CSCAPS_ACCELERATION = 0x00000001,  /* HW acceleration supported, so probe graphics drivers. */
+     CSCAPS_PREFER_SHM   = 0x00000002,  /* Prefer shared memory surface pool over local memory pool. */
 
-     CSCAPS_ALL          = 0x00000001   /* All of these. */
+     CSCAPS_ALL          = 0x00000003   /* All of these. */
 } CoreSystemCapabilities;
 
 /*

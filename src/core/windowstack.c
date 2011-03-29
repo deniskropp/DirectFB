@@ -1015,6 +1015,21 @@ load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
                }
           }
 #endif
+          // premultiply
+          {
+               int i = MIN (40, lock.pitch/4);
+               u32 *tmp_data = data;
+
+               while (i--) {
+                    const u32 s = *tmp_data;
+                    const u32 a = (s >> 24) + 1;
+
+                    *tmp_data = ((((s & 0x00ff00ff) * a) >> 8) & 0x00ff00ff) |
+                                ((((s & 0x0000ff00) * a) >> 8) & 0x0000ff00) |
+                                ((((s & 0xff000000)    )     )             );
+                    ++tmp_data;
+               }
+          }
           data += lock.pitch;
      }
 
@@ -1036,7 +1051,7 @@ create_cursor_surface( CoreWindowStack *stack,
      CoreSurface            *surface;
      CoreLayer              *layer;
      CoreLayerContext       *context;
-     DFBSurfaceCapabilities  surface_caps = DSCAPS_NONE;
+     DFBSurfaceCapabilities  surface_caps = DSCAPS_PREMULTIPLIED;
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %dx%d )\n", __FUNCTION__, stack, width, height );
 

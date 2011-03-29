@@ -698,6 +698,25 @@ Dispatch_GetWindowByResourceID( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLay
 }
 
 static DirectResult
+Dispatch_GetRotation( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
+                      VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+     int          rotation;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
+
+     ret = real->GetRotation( real, &rotation );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, true, msg->header.serial,
+                                    DR_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_INT, rotation,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBDisplayLayer/Dispatcher: "
@@ -727,6 +746,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBDISPLAYLAYER_METHOD_ID_GetWindowByResourceID:
                return Dispatch_GetWindowByResourceID( dispatcher, real, manager, msg );
+
+          case IDIRECTFBDISPLAYLAYER_METHOD_ID_GetRotation:
+               return Dispatch_GetRotation( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;

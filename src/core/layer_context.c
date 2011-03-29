@@ -300,7 +300,7 @@ dfb_layer_context_activate( CoreLayerContext *context )
      /* Iterate through all regions. */
      fusion_vector_foreach (region, index, context->regions) {
           /* first reallocate.. */
-          if (region->surface) {
+          if (region->surface && region->surface->num_buffers == 0) {
                D_ASSERT( region->left_buffer_lock.buffer == NULL );
                if (region->surface->config.caps & DSCAPS_STEREO) {
                     D_ASSERT( region->right_buffer_lock.buffer == NULL );

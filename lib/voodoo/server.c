@@ -171,7 +171,8 @@ voodoo_server_create( const char    *_addr,
      }
 
      /* Initialize server structure. */
-     server->fd = fd;
+     server->fd   = fd;
+     server->fork = fork;
 
      {
           int zfd;

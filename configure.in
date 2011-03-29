@@ -143,6 +143,19 @@ fi
 AM_CONDITIONAL(X11_CORE, test "$enable_x11" = "yes")
 
 
+dnl Test for X11VDPAU
+AC_ARG_ENABLE(x11vdpau,
+              AC_HELP_STRING([--enable-x11vdpau],
+                             [build with X11/VDPAU support @<:@default=auto@:>@]),
+              [], [enable_x11vdpau=yes])
+if test "$enable_x11vdpau" = "yes"; then
+  PKG_CHECK_MODULES([X11VDPAU], [xproto x11 xext vdpau], [enable_x11vdpau="yes"], [enable_x11vdpau="no",
+    AC_MSG_WARN([*** no X11/VDPAU found -- building without X11/VDPAU support])])
+fi
+
+AM_CONDITIONAL(X11VDPAU_CORE, test "$enable_x11vdpau" = "yes")
+
+
 AC_CHECK_HEADERS(linux/compiler.h linux/unistd.h asm/page.h signal.h)
 
 
@@ -691,6 +704,19 @@ AM_CONDITIONAL(BUILDMMX, test "$enable_mmx" = "yes")
 
 
 
+dnl Test for PVR2D system
+AC_ARG_ENABLE(pvr2d,
+              AC_HELP_STRING([--enable-pvr2d],
+                             [build with PVR2D support @<:@default=yes@:>@]),
+              [], [enable_pvr2d=no])
+
+AM_CONDITIONAL(PVR2D_CORE, test "$enable_pvr2d" = "yes")
+
+AC_SUBST(PVR2D_LIBS)
+AC_SUBST(PVR2D_CFLAGS)
+
+
+
 dnl Test for DevMem system
 AC_ARG_ENABLE(devmem,
               AC_HELP_STRING([--enable-devmem],
@@ -711,10 +737,6 @@ if test "$have_linux" = "no"; then
   enable_fbdev=no
   AC_MSG_WARN([
 *** no linux kernel -- building without linux fbdev support.])
-fi
-
-if test "$enable_fbdev" = "yes"; then
-  AC_DEFINE(LINUX_INPUT_USE_FBDEV,1,[Define to 1 if Linux Input driver should use FBDev system module for console keymap queries.])
 fi
 
 AM_CONDITIONAL(FBDEV_CORE, test "$enable_fbdev" = "yes")
@@ -766,6 +788,21 @@ fi
 AM_CONDITIONAL(VNC_CORE, test "$enable_vnc" = "yes")
 AC_SUBST(VNC_LIBS)
 AC_SUBST(VNC_CFLAGS)
+
+
+
+dnl Test for Mesa
+AC_ARG_ENABLE(mesa,
+              AC_HELP_STRING([--enable-mesa],
+                             [build with Mesa support @<:@default=auto@:>@]),
+              [], [enable_mesa=yes])
+if test "$enable_mesa" = "yes"; then
+  PKG_CHECK_MODULES(MESA, [gl glu egl libdrm], [enable_mesa=yes], [enable_mesa=no])
+fi
+
+AM_CONDITIONAL(MESA_CORE, test "$enable_mesa" = "yes")
+AC_SUBST(MESA_LIBS)
+AC_SUBST(MESA_CFLAGS)
 
 
 
@@ -971,6 +1008,7 @@ cyber5k=no
 davinci=no
 ep9x=no
 gl=no
+gles2=no
 glx=no
 i810=no
 i830=no
@@ -980,6 +1018,7 @@ neomagic=no
 nsc=no
 nvidia=no
 omap=no
+pvr2d=no
 pxa3xx=no
 radeon=no
 savage=no
@@ -987,6 +1026,7 @@ sh772x=no
 sis315=no
 tdfx=no
 unichrome=no
+vdpau=no
 vmware=no
 
 if test "$have_linux" = "yes"; then
@@ -997,10 +1037,10 @@ AC_ARG_WITH(gfxdrivers,
                            [LIST is a comma separated selection of gfxdrivers]
                            [to build. Possible gfxdrivers are: all (builds all]
                            [drivers), none (builds none), ati128, cle266,]
-                           [cyber5k, davinci, ep9x, gl, i810, i830, mach64,]
-                           [matrox, neomagic, nsc, nvidia, omap, pxa3xx,]
+                           [cyber5k, davinci, ep9x, gl, gles2, i810, i830, mach64,]
+                           [matrox, neomagic, nsc, nvidia, omap, pvr2d, pxa3xx,]
                            [radeon, savage, sh772x, sis315, tdfx, unichrome,]
-                           [vmware. @<:@default=all@:>@]),
+                           [vdpau, vmware. @<:@default=all@:>@]),
             [gfxdrivers="$withval"], [gfxdrivers=all])
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
@@ -1009,6 +1049,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_davinci="$have_arm"
   checkfor_ep9x=yes
   checkfor_gl=yes
+  checkfor_gles2=yes
   checkfor_i810=yes
   checkfor_i830=yes
   checkfor_mach64=yes
@@ -1017,6 +1058,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_nsc=yes
   checkfor_nvidia=yes
   checkfor_omap="$have_arm"
+  checkfor_pvr2d=yes
   checkfor_pxa3xx=yes
   checkfor_radeon=yes
   checkfor_savage=yes
@@ -1024,6 +1066,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_sis315=yes
   checkfor_tdfx=yes
   checkfor_unichrome=yes
+  checkfor_vdpau=yes
   checkfor_vmware=yes
 
   AC_MSG_RESULT(all)
@@ -1051,6 +1094,9 @@ else
           gl)
                   checkfor_gl=yes
                   ;;
+          gles2)
+                  checkfor_gles2=yes
+                  ;;
           i810)
                   checkfor_i810=yes
                   ;;
@@ -1075,6 +1121,9 @@ else
           omap)
                   checkfor_omap=yes
                   ;;
+          pvr2d)
+                  checkfor_pvr2d=yes
+                  ;;
           pxa3xx)
                   checkfor_pxa3xx=yes
                   ;;
@@ -1098,6 +1147,9 @@ else
                   ;;
           vmware)
                   checkfor_vmware=yes
+                  ;;
+          vdpau)
+                  checkfor_vdpau=yes
                   ;;
           *)
                   echo "Unknown gfxdriver $gfxdriver, exiting!"
@@ -1137,6 +1189,22 @@ if test "$checkfor_gl" = "yes"; then
                   ])
 fi
 
+if test "$checkfor_gles2" = "yes"; then
+   if test "$enable_mesa" = "yes"; then
+      gles2=yes
+      GLES2_CFLAGS="$MESA_CFLAGS -DGLES2_MESA"
+      GLES2_LIBS=$MESA_LIBS
+   fi
+   if test "$enable_pvr2d" = "yes"; then
+      gles2=yes
+      GLES2_CFLAGS="$PVR2D_CFLAGS -DGLES2_PVR2D"
+      GLES2_LIBS=$PVR2D_LIBS
+   fi
+fi
+
+AC_SUBST(GLES2_LIBS)
+AC_SUBST(GLES2_CFLAGS)
+
 if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
   i810=yes
 fi
@@ -1167,6 +1235,12 @@ fi
 
 if test "$checkfor_omap" = "yes"; then
   omap=yes
+fi
+
+if test "$checkfor_pvr2d" = "yes"; then
+  if test "$enable_pvr2d" = "yes"; then
+    pvr2d=yes
+  fi
 fi
 
 if test "$checkfor_pxa3xx" = "yes"; then
@@ -1206,6 +1280,12 @@ fi
 
 if test "$checkfor_vmware" = "yes"; then
   vmware=yes
+fi
+
+if test "$checkfor_vdpau" = "yes"; then
+   if test "$enable_x11vdpau" = "yes"; then
+      vdpau=yes
+   fi
 fi
 
 # lets check for input driver
@@ -1632,6 +1712,7 @@ AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_DAVINCI, test "$davinci" = "yes")
 AM_CONDITIONAL(GFX_EP9X, test "$ep9x" = "yes")
 AM_CONDITIONAL(GFX_GL, test "$gl" = "yes")
+AM_CONDITIONAL(GFX_GLES2, test "$gles2" = "yes")
 AM_CONDITIONAL(GFX_GLX, test "$glx" = "yes")
 AM_CONDITIONAL(GFX_I810, test "$i810" = "yes")
 AM_CONDITIONAL(GFX_I830, test "$i830" = "yes")
@@ -1641,6 +1722,7 @@ AM_CONDITIONAL(GFX_NEOMAGIC, test "$neomagic" = "yes")
 AM_CONDITIONAL(GFX_NSC, test "$nsc" = "yes")
 AM_CONDITIONAL(GFX_NVIDIA, test "$nvidia" = "yes")
 AM_CONDITIONAL(GFX_OMAP, test "$omap" = "yes")
+AM_CONDITIONAL(GFX_PVR2D, test "$pvr2d" = "yes")
 AM_CONDITIONAL(GFX_PXA3XX, test "$pxa3xx" = "yes")
 AM_CONDITIONAL(GFX_RADEON, test "$radeon" = "yes")
 AM_CONDITIONAL(GFX_SAVAGE, test "$savage" = "yes")
@@ -1649,6 +1731,7 @@ AM_CONDITIONAL(GFX_SIS315, test "$sis315" = "yes")
 AM_CONDITIONAL(GFX_TDFX, test "$tdfx" = "yes")
 AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
 AM_CONDITIONAL(GFX_VMWARE, test "$vmware" = "yes")
+AM_CONDITIONAL(GFX_VDPAU, test "$vdpau" = "yes")
 
 AM_CONDITIONAL(DBOX2REMOTE, test "$enable_dbox2remote" = "yes")
 AM_CONDITIONAL(DREAMBOXREMOTE, test "$enable_dreamboxremote" = "yes")
@@ -1710,6 +1793,8 @@ AC_SUBST(DFB_LDFLAGS)
 AC_SUBST(DFB_INTERNAL_CFLAGS)
 AC_SUBST(X11_CFLAGS)
 AC_SUBST(X11_LIBS)
+AC_SUBST(X11VDPAU_CFLAGS)
+AC_SUBST(X11VDPAU_LIBS)
 AC_SUBST(SDL_CFLAGS)
 AC_SUBST(SDL_LIBS)
 AC_SUBST(TSLIB_CFLAGS)
@@ -1800,7 +1885,10 @@ systems/Makefile
 systems/devmem/Makefile
 systems/dummy/Makefile
 systems/fbdev/Makefile
+systems/mesa/Makefile
+systems/pvr2d/Makefile
 systems/x11/Makefile
+systems/x11vdpau/Makefile
 systems/osx/Makefile
 systems/sdl/Makefile
 systems/vnc/Makefile
@@ -1819,6 +1907,7 @@ gfxdrivers/cyber5k/Makefile
 gfxdrivers/davinci/Makefile
 gfxdrivers/ep9x/Makefile
 gfxdrivers/gl/Makefile
+gfxdrivers/gles2/Makefile
 gfxdrivers/i810/Makefile
 gfxdrivers/i830/Makefile
 gfxdrivers/mach64/Makefile
@@ -1828,6 +1917,7 @@ gfxdrivers/nsc/Makefile
 gfxdrivers/nsc/include/Makefile
 gfxdrivers/nvidia/Makefile
 gfxdrivers/omap/Makefile
+gfxdrivers/pvr2d/Makefile
 gfxdrivers/pxa3xx/Makefile
 gfxdrivers/radeon/Makefile
 gfxdrivers/savage/Makefile
@@ -1835,6 +1925,7 @@ gfxdrivers/sh772x/Makefile
 gfxdrivers/sis315/Makefile
 gfxdrivers/tdfx/Makefile
 gfxdrivers/unichrome/Makefile
+gfxdrivers/vdpau/Makefile
 gfxdrivers/vmware/Makefile
 
 inputdrivers/Makefile
@@ -1924,7 +2015,10 @@ Building Tools              $with_tools
 Building System Modules:
   Linux FBDev support       $enable_fbdev
   Generic /dev/mem support  $enable_devmem
+  Mesa/DRM/KMS support      $enable_mesa                $MESA_CFLAGS $MESA_LIBS
+  PVR2D                     $enable_pvr2d               $PVR2D_CFLAGS $PVR2D_LIBS
   X11 support               $enable_x11                 $X11_CFLAGS $X11_LIBS
+  X11/VDPAU support         $enable_x11vdpau            $X11VDPAU_CFLAGS $X11VDPAU_LIBS
   OSX support               $enable_osx                 $OSX_CFLAGS $OSX_LIBS
   SDL support               $enable_sdl                 $SDL_CFLAGS $SDL_LIBS
   VNC support               $enable_vnc                 $VNC_CFLAGS $VNC_LIBS
@@ -1961,6 +2055,7 @@ Building Graphics Drivers:
   NeoMagic                  $neomagic
   NSC Geode                 $nsc
   nVidia                    $nvidia
+  PVR2D                     $pvr2d
   PXA 3xx                   $pxa3xx
   Renesas SH7722/SH7723     $sh772x
   S3 Savage                 $savage
@@ -1971,8 +2066,11 @@ Building Graphics Drivers:
   VIA CLE266                $cle266
   VIA UniChrome             $unichrome
   VMWare                    $vmware
+  VDPAU                     $vdpau
   --
   OpenGL                    $gl (GLX: $glx)
+  OpenGL ES 2.0             $gles2 (Mesa:  $enable_mesa, PVR2D: $enable_pvr2d)
+                                       $GLES2_CFLAGS $GLES2_LIBS
 
 Building Input Drivers:
   DBox2 Remote              $enable_dbox2remote

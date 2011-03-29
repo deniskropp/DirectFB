@@ -71,7 +71,7 @@ struct __DFB_CoreScreen {
      CoreDFB              *core;
      CoreGraphicsDevice   *device;
 
-     ScreenFuncs          *funcs;
+     const ScreenFuncs    *funcs;
 
      void                 *driver_data;
      void                 *screen_data;   /* copy of shared->screen_data */

@@ -83,40 +83,46 @@ noinst_PROGRAMS = \
 libdirectfb = ../src/libdirectfb.la
 libfusion = ../lib/fusion/libfusion.la
 libdirect = ../lib/direct/libdirect.la
-libvoodoo = ../lib/voodoo/libvoodoo.la
+
+if DIRECTFB_BUILD_VOODOO
+libvoodoo = \
+        ../lib/voodoo/libvoodoo.la
+else
+libvoodoo =
+endif
 
 dfbdump_SOURCES = dfbdump.c
-dfbdump_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+dfbdump_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbg_SOURCES = dfbg.c
-dfbg_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbg_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(OSX_LIBS)
 
 dfbinfo_SOURCES = dfbinfo.c
-dfbinfo_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbinfo_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(OSX_LIBS)
 
 dfbinput_SOURCES = dfbinput.c
-dfbinput_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbinput_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(OSX_LIBS)
 
 dfbinspector_SOURCES = dfbinspector.c
-dfbinspector_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbinspector_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(OSX_LIBS)
 
 dfblayer_SOURCES = dfblayer.c
-dfblayer_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfblayer_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(OSX_LIBS)
 
 dfbmaster_SOURCES = dfbmaster.c
-dfbmaster_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbmaster_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(OSX_LIBS)
 
 dfbproxy_SOURCES = dfbproxy.c
-dfbproxy_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(libvoodoo)
+dfbproxy_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(libvoodoo)
 
 dfbscreen_SOURCES = dfbscreen.c
-dfbscreen_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbscreen_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(OSX_LIBS)
 
 #dfbsummon_SOURCES = dfbsummon.c
-#dfbsummon_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+#dfbsummon_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbpenmount_SOURCES = dfbpenmount.c
-dfbpenmount_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+dfbpenmount_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 mkdfiff_SOURCES = mkdfiff.c
 mkdfiff_LDADD   = $(LIBPNG_LIBS) $(libdirect)
@@ -125,10 +131,10 @@ mkdgiff_SOURCES = mkdgiff.c
 mkdgiff_LDADD   = $(FREETYPE_LIBS) $(libdirect)
 
 mkdgifft_SOURCES = mkdgifft.cpp
-mkdgifft_LDADD   = $(LIBPNG_LIBS) $(libdirectfb) $(libfusion) $(libdirect)
+mkdgifft_LDADD   = $(LIBPNG_LIBS) $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 fusion_bench_SOURCES = fusion_bench.c
-fusion_bench_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+fusion_bench_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbfx_SOURCES = dfbfx.c
 dfbfx_LDADD   = $(libdirect)
@@ -140,7 +146,7 @@ raw16toraw24_SOURCES = raw16toraw24.c
 raw32toraw24_SOURCES = raw32toraw24.c
 
 voodooplay_SOURCES = voodooplay.c
-voodooplay_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(libvoodoo)
+voodooplay_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 EXTRA_DIST = \
 	README			\

@@ -442,7 +442,7 @@ dfb_screen_core_resume( DFBScreenCore *data )
 CoreScreen *
 dfb_screens_register( CoreGraphicsDevice *device,
                       void               *driver_data,
-                      ScreenFuncs        *funcs )
+                      const ScreenFuncs  *funcs )
 {
      CoreScreen *screen;
 

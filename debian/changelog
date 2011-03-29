@@ -1,11 +1,23 @@
-directfb (0.9.19+0.9.20WIP-1) unstable; urgency=low
+directfb (1.5.0-20110329) maverick; urgency=low
 
-  * no changes to debian package, just changed version number.
+  * new upstream version
+  * package vnc system
+ -- Andreas Shimokawa <andi@directfb.org>  Thu, 24 Mar 2011 12:28:16 +0100
 
- -- Andreas Hundt <andi@fischlustig.de>  Tue,  29 Jul 2003 15:00:00 +0200
+directfb (1.5.0-20110324) maverick; urgency=low
 
-directfb (0.9.18+0.9.19WIP-1) unstable; urgency=low
+  * new upstream version, rename pacakage names for later 1.4 packaging
 
-  * unofficial debian packages
+ -- Andreas Shimokawa <andi@directfb.org>  Thu, 24 Mar 2011 12:28:16 +0100
 
- -- Andreas Hundt <andi@fischlustig.de>  Sun,  21 Apr 2003 08:33:49 +0200
+directfb (1.5.0-20110322) maverick; urgency=low
+
+  * change naming scheme of modules, set package version to current date
+
+ -- Andreas Shimokawa <andi@directfb.org>  Tue, 22 Mar 2011 23:59:16 +0100
+
+directfb (1.5.0-1) maverick; urgency=low
+
+  * initial package of DirectFB 1.5
+
+ -- Andreas Shimokawa <andi@directfb.org>  Tue, 22 Mar 2011 15:58:16 +0100

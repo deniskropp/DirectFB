@@ -131,6 +131,16 @@ D_DECLARE_INTERFACE( IDirectFBScreen )
  */
 D_DECLARE_INTERFACE( IDirectFBGL )
 
+/*
+ * Rendering context manager
+ */
+D_DECLARE_INTERFACE( IDirectFBGL2 )
+
+/*
+ * Rendering context
+ */
+D_DECLARE_INTERFACE( IDirectFBGL2Context )
+
 
 /*
  * Return code of all interface methods and most functions
@@ -1397,7 +1407,6 @@ typedef struct {
      int                                width;       /* pixel width */
      int                                height;      /* pixel height */
      DFBSurfacePixelFormat              pixelformat; /* pixel format */
-     DFBSurfaceColorSpace               colorspace;  /* color space */
 
      struct {
           void                         *data;        /* data pointer of existing buffer */
@@ -1413,6 +1422,8 @@ typedef struct {
                                                           purpose surfaces or id of layer or window */
 
      DFBSurfaceHintFlags                hints;       /* usage hints for optimized allocation, format selection etc. */
+
+     DFBSurfaceColorSpace               colorspace;  /* color space */
 } DFBSurfaceDescription;
 
 /*
@@ -1588,7 +1599,6 @@ typedef struct {
      int                                width;        /* pixel width */
      int                                height;       /* pixel height */
      DFBSurfacePixelFormat              pixelformat;  /* pixel format */
-     DFBSurfaceColorSpace               colorspace;   /* color space */
      int                                posx;         /* distance from left layer border */
      int                                posy;         /* distance from upper layer border */
      DFBSurfaceCapabilities             surface_caps; /* surface capabilities */
@@ -1599,6 +1609,8 @@ typedef struct {
      unsigned long                      resource_id;  /* resource id used to create the window surface */
 
      DFBWindowID                        toplevel_id;  /* top level window, if != 0 window will be a sub window */
+
+     DFBSurfaceColorSpace               colorspace;   /* color space */
 } DFBWindowDescription;
 
 /*

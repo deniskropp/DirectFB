@@ -124,6 +124,9 @@ VoodooManager::~VoodooManager()
      if (!is_quit)
           quit();
 
+     /* Remove connection */
+     delete connection;
+
      /* Destroy conditions. */
      direct_waitqueue_deinit( &response.wait_get );
      direct_waitqueue_deinit( &response.wait_put );
@@ -162,9 +165,6 @@ VoodooManager::quit()
      direct_waitqueue_broadcast( &response.wait_get );
      direct_waitqueue_broadcast( &response.wait_put );
      direct_mutex_unlock( &response.lock );
-
-     /* Remove connection */
-     delete connection;
 }
 
 void
