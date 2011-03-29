@@ -1,0 +1,5 @@
+usr/include/sawman/*.h
+usr/lib/directfb-*/wm/libdirectfbwm_sawman.a
+usr/lib/libsawman.so
+usr/lib/libsawman.a
+usr/lib/pkgconfig/sawman.pc
