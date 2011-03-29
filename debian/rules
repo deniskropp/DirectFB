@@ -61,7 +61,7 @@ override_dh_auto_configure:
 		--enable-static \
 		--enable-unique \
 		--disable-sdl \
-		--disable-vnc \
+		--enable-vnc \
 		--enable-x11
 
 override_dh_auto_build:
