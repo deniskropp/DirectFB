@@ -215,6 +215,7 @@ SendReceive( VoodooLink  *link,
                                         break;
                                    }
                                    D_PERROR( "Voodoo/Link: Failed to send() data error %d!\n", WSAGetLastError() );
+                                   return DR_IO;
                               }
                               else {
                                    sends[i].done = (size_t) ret;
@@ -242,7 +243,7 @@ SendReceive( VoodooLink  *link,
                                    }
                                    D_PERROR( "Voodoo/Link: Failed to recv() data error %d!\n", WSAGetLastError() );
                     //               direct_mutex_unlock( &l->lock );
-                                   return DR_FAILURE;
+                                   return DR_IO;
                               }
           
                               recvs[i].done = (size_t) ret;
