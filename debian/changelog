@@ -1,7 +1,14 @@
+directfb (1.5.0-20110330) maverick; urgency=low
+
+  * new upstream version
+
+ -- Andreas Shimokawa <andi@directfb.org>  Thu, 24 Mar 2011 12:28:16 +0100
+
 directfb (1.5.0-20110329) maverick; urgency=low
 
   * new upstream version
   * package vnc system
+
  -- Andreas Shimokawa <andi@directfb.org>  Thu, 24 Mar 2011 12:28:16 +0100
 
 directfb (1.5.0-20110324) maverick; urgency=low
