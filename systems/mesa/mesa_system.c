@@ -44,7 +44,7 @@
 #include <misc/conf.h>
 
 #include "mesa_system.h"
-
+#include "vt.h"
 
 #include <core/core_system.h>
 
@@ -56,7 +56,7 @@ static const char device_name[] = "/dev/dri/card0";
 
 /**********************************************************************************************************************/
 
-static MesaData *m_data;    /* FIXME: Fix Core System API to pass data in all functions. */
+MesaData *m_data;    /* FIXME: Fix Core System API to pass data in all functions. */
 
 /**********************************************************************************************************************/
 
@@ -149,11 +149,21 @@ system_initialize( CoreDFB *core, void **ret_data )
 
      mesa->shared = shared;
 
-     ret = InitLocal( mesa );
-     if (ret)
-          return ret;
+     m_data = mesa;
+     
+     if (dfb_config->vt) {
+          ret = dfb_vt_initialize();
+          if (ret) 
+               return DFB_INIT;
+     }
 
-     *ret_data = m_data = mesa;
+     ret = InitLocal( mesa );
+     if (ret) {
+          if (dfb_config->vt)
+               dfb_vt_shutdown( false );
+          return ret;
+     }
+     *ret_data = m_data;
 
      dfb_surface_pool_initialize( core, &mesaSurfacePoolFuncs, &shared->pool );
 
@@ -175,6 +185,12 @@ system_join( CoreDFB *core, void **ret_data )
      MesaDataShared *shared;
 
      D_ASSERT( m_data == NULL );
+
+     if (dfb_config->vt) {
+          ret = dfb_vt_join();
+          if (ret) 
+               return DFB_INIT;
+     }
 
      mesa = D_CALLOC( 1, sizeof(MesaData) );
      if (!mesa)
@@ -207,6 +223,8 @@ system_join( CoreDFB *core, void **ret_data )
 static DFBResult
 system_shutdown( bool emergency )
 {
+     DFBResult   ret;
+
      MesaDataShared *shared;
 
      D_ASSERT( m_data != NULL );
@@ -217,6 +235,12 @@ system_shutdown( bool emergency )
      dfb_surface_pool_destroy( shared->pool );
 
      SHFREE( shared->shmpool, shared );
+     
+     if (dfb_config->vt) {
+          ret = dfb_vt_shutdown( emergency );
+          if (ret)
+               return ret;
+     }
 
      D_FREE( m_data );
      m_data = NULL;
@@ -227,6 +251,8 @@ system_shutdown( bool emergency )
 static DFBResult
 system_leave( bool emergency )
 {
+     DFBResult   ret;
+
      MesaDataShared *shared;
 
      D_ASSERT( m_data != NULL );
@@ -235,6 +261,12 @@ system_leave( bool emergency )
      D_ASSERT( shared != NULL );
 
      dfb_surface_pool_leave( shared->pool );
+
+     if (dfb_config->vt) {
+          ret = dfb_vt_leave( emergency );
+          if (ret)
+               return ret;
+     }
 
      D_FREE( m_data );
      m_data = NULL;
