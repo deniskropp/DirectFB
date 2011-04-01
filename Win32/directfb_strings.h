@@ -50,6 +50,20 @@ struct DFBPixelFormatName {
 };
 
 
+struct DFBColorSpaceName {
+     DFBSurfaceColorSpace colorspace;
+     const char *name;
+};
+
+#define DirectFBColorSpaceNames(Identifier) struct DFBColorSpaceName Identifier[] = { \
+     { DSCS_RGB, "RGB" }, \
+     { DSCS_BT601, "BT601" }, \
+     { DSCS_BT601_FULLRANGE, "BT601_FULLRANGE" }, \
+     { DSCS_BT709, "BT709" }, \
+     { DSCS_UNKNOWN, "UNKNOWN" } \
+};
+
+
 struct DFBInputDeviceTypeFlagsName {
      DFBInputDeviceTypeFlags type;
      const char *name;
@@ -187,6 +201,8 @@ struct DFBDisplayLayerCapabilitiesName {
      { DLCAPS_SCREEN_POSITION, "SCREEN_POSITION" }, \
      { DLCAPS_SCREEN_SIZE, "SCREEN_SIZE" }, \
      { DLCAPS_CLIP_REGIONS, "CLIP_REGIONS" }, \
+     { DLCAPS_LR_MONO, "LR_MONO" }, \
+     { DLCAPS_STEREO, "STEREO" }, \
      { DLCAPS_NONE, "NONE" } \
 };
 
@@ -212,6 +228,7 @@ struct DFBWindowCapabilitiesName {
 };
 
 #define DirectFBWindowCapabilitiesNames(Identifier) struct DFBWindowCapabilitiesName Identifier[] = { \
+     { DWCAPS_LR_MONO, "LR_MONO" }, \
      { DWCAPS_ALPHACHANNEL, "ALPHACHANNEL" }, \
      { DWCAPS_DOUBLEBUFFER, "DOUBLEBUFFER" }, \
      { DWCAPS_INPUTONLY, "INPUTONLY" }, \
@@ -219,6 +236,8 @@ struct DFBWindowCapabilitiesName {
      { DWCAPS_SUBWINDOW, "SUBWINDOW" }, \
      { DWCAPS_COLOR, "COLOR" }, \
      { DWCAPS_NOFOCUS, "NOFOCUS" }, \
+     { DWCAPS_LR_MONO, "LR_MONO" }, \
+     { DWCAPS_STEREO, "STEREO" }, \
      { DWCAPS_NONE, "NONE" } \
 };
 
@@ -315,8 +334,8 @@ struct DFBScreenEncoderTVStandardsName {
      { DSETV_PAL_N, "PAL_N" }, \
      { DSETV_PAL_NC, "PAL_NC" }, \
      { DSETV_NTSC_M_JPN, "NTSC_M_JPN" }, \
-     { DSETV_NTSC_443, "NTSC_443" }, \
      { DSETV_DIGITAL, "DIGITAL" }, \
+     { DSETV_NTSC_443, "NTSC_443" }, \
      { DSETV_UNKNOWN, "UNKNOWN" } \
 };
 
@@ -486,6 +505,7 @@ struct DFBScreenEncoderConfigFlagsName {
      { DSECONF_CONNECTORS, "CONNECTORS" }, \
      { DSECONF_SLOW_BLANKING, "SLOW_BLANKING" }, \
      { DSECONF_RESOLUTION, "RESOLUTION" }, \
+     { DSECONF_FRAMING, "FRAMING" }, \
      { DSECONF_UNKNOWN, "UNKNOWN" } \
 };
 

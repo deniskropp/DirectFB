@@ -48,6 +48,7 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
+#include "vt.h"
 
 extern const SurfacePoolFuncs mesaSurfacePoolFuncs;
 
@@ -76,6 +77,8 @@ typedef struct {
      drmModeConnector    *connector;
      drmModeEncoder      *encoder;
      drmModeModeInfo      mode;
+     
+     VirtualTerminal     *vt;
 } MesaData;
 
 

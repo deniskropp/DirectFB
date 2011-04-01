@@ -198,6 +198,12 @@ public:
           return &header;
      }
 
+     inline const void *
+     data_start() const
+     {
+          return data;
+     }
+
      inline void *
      data_raw() const
      {

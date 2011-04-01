@@ -37,6 +37,9 @@
 
 #include <misc/conf.h>
 
+#include <xf86drm.h>  
+#include <i915_drm.h>
+
 #include "mesa_system.h"
 
 D_DEBUG_DOMAIN( Mesa_Surfaces, "Mesa/Surfaces", "Mesa Framebuffer Surface Pool" );
@@ -440,6 +443,17 @@ mesaLock( CoreSurfacePool       *pool,
 
           case CSAID_LAYER0:
                lock->handle = (void*) (long) alloc->fb_id;
+               break;
+
+          case CSAID_CPU:
+               {
+                    struct drm_i915_gem_mmap_gtt arg;
+                    memset(&arg, 0, sizeof(arg));
+                    arg.handle = alloc->handle;
+                          
+                    drmCommandWriteRead( local->mesa->fd, DRM_I915_GEM_MMAP_GTT, &arg, sizeof( arg ) );
+                    lock->addr = mmap( 0, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, local->mesa->fd, arg.offset );
+               }                                   
                break;
 
           default:

@@ -51,9 +51,9 @@ private:
      struct {
           DirectMutex            lock;
           DirectWaitQueue        wait;
-          u8                    *buffer;
-          size_t                 start;
-          size_t                 end;
+          DirectTLS              tls;
+          DirectLink            *packets;
+          VoodooPacket          *sending;
      } output;
 
 public:
@@ -79,6 +79,31 @@ private:
                                  void          *arg );
 
      void        *io_loop      ();
+
+     void         Flush        ( VoodooPacket *packet );
+
+
+
+private:
+     class Packets {
+     private:
+          VoodooPacket *packets[3];
+          size_t        next;
+
+     public:
+          VoodooPacket *active;
+
+     public:
+          Packets()
+               :
+               next(0),
+               active(NULL)
+          {
+               packets[0] = packets[1] = packets[2] = NULL;
+          }
+
+          VoodooPacket *Get();
+     };
 };
 
 
