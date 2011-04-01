@@ -78,11 +78,13 @@ InitLocal( MesaData *mesa )
      mesa->dpy = eglGetDRMDisplayMESA( mesa->fd );
      if (mesa->dpy == EGL_NO_DISPLAY) {
           D_ERROR( "DirectFB/Mesa: eglGetDisplay() failed!\n" );
+          close( mesa->fd );
           return DFB_INIT;
      }
 
      if (!eglInitialize(mesa->dpy, &major, &minor)) {
           D_ERROR( "DirectFB/Mesa: eglInitialize() failed!\n" );
+          close( mesa->fd );
           return DFB_INIT;
      }
 
@@ -94,6 +96,7 @@ InitLocal( MesaData *mesa )
 
      if (!strstr(extensions, "EGL_KHR_surfaceless_opengl")) {
           D_ERROR( "DirectFB/Mesa: No support for EGL_KHR_surfaceless_opengl!\n" );
+          close( mesa->fd );
           return DFB_UNSUPPORTED;
      }
 
@@ -161,6 +164,7 @@ system_initialize( CoreDFB *core, void **ret_data )
      if (ret) {
           if (dfb_config->vt)
                dfb_vt_shutdown( false );
+
           return ret;
      }
      *ret_data = m_data;
@@ -234,14 +238,13 @@ system_shutdown( bool emergency )
 
      dfb_surface_pool_destroy( shared->pool );
 
+     close( m_data->fd );
+
+     if (dfb_config->vt)
+          dfb_vt_shutdown( emergency );
+
      SHFREE( shared->shmpool, shared );
      
-     if (dfb_config->vt) {
-          ret = dfb_vt_shutdown( emergency );
-          if (ret)
-               return ret;
-     }
-
      D_FREE( m_data );
      m_data = NULL;
 
