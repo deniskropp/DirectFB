@@ -835,6 +835,7 @@ typedef enum {
      DFXL_DRAWLINE       = 0x00000004,  /* DrawLine() is accelerated. */
      DFXL_FILLTRIANGLE   = 0x00000008,  /* FillTriangle() is accelerated. */
      DFXL_FILLTRAPEZOID  = 0x00000010,  /* FillTrapezoid() is accelerated. */
+     DFXL_FILLQUADRANGLE = 0x00000020,  /* FillQuadrangle() is accelerated. */
 
      DFXL_BLIT           = 0x00010000,  /* Blit() and TileBlit() are accelerated. */
      DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit() is accelerated. */
@@ -844,8 +845,8 @@ typedef enum {
      DFXL_DRAWSTRING     = 0x01000000,  /* DrawString() and DrawGlyph() are accelerated. */
 
 
-     DFXL_ALL            = 0x010F001F,  /* All drawing/blitting functions. */
-     DFXL_ALL_DRAW       = 0x0000001F,  /* All drawing functions. */
+     DFXL_ALL            = 0x010F003F,  /* All drawing/blitting functions. */
+     DFXL_ALL_DRAW       = 0x0000003F,  /* All drawing functions. */
      DFXL_ALL_BLIT       = 0x010F0000,  /* All blitting functions. */
 } DFBAccelerationMask;
 
