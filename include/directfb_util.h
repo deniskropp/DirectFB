@@ -45,11 +45,6 @@ extern "C"
 #include <direct/types.h>
 #include <direct/debug.h>
 
-bool DIRECTFB_API dfb_region_intersect( DFBRegion *region,
-                                        int x1, int y1, int x2, int y2 );
-
-bool DIRECTFB_API dfb_region_region_intersect( DFBRegion       *region,
-                                               const DFBRegion *clip );
 
 bool DIRECTFB_API dfb_region_rectangle_intersect( DFBRegion          *region,
                                                   const DFBRectangle *rect );
@@ -471,11 +466,12 @@ void DIRECTFB_API dfb_rectangle_union ( DFBRectangle       *rect1,
 /**********************************************************************************************************************/
 
 
-static __inline__ void dfb_rectangle_from_region( DFBRectangle    *rect,
-                                                  const DFBRegion *region )
+
+static __inline__ void
+dfb_rectangle_from_region( DFBRectangle    *rect,
+                           const DFBRegion *region )
 {
      D_ASSERT( rect != NULL );
-
      DFB_REGION_ASSERT( region );
 
      rect->x = region->x1;
@@ -484,14 +480,27 @@ static __inline__ void dfb_rectangle_from_region( DFBRectangle    *rect,
      rect->h = region->y2 - region->y1 + 1;
 }
 
-static __inline__ void dfb_rectangle_from_rectangle_plus_insets( DFBRectangle       *rect,
-                                                                 const DFBRectangle *inner,
-                                                                 const DFBInsets    *insets )
+static __inline__ void
+dfb_rectangle_from_box( DFBRectangle *rect,
+                        const DFBBox *box )
 {
      D_ASSERT( rect != NULL );
-     D_ASSERT( insets != NULL );
+     DFB_BOX_ASSERT( box );
 
+     rect->x = box->x1;
+     rect->y = box->y1;
+     rect->w = box->x2 - box->x1;
+     rect->h = box->y2 - box->y1;
+}
+
+static __inline__ void
+dfb_rectangle_from_rectangle_plus_insets( DFBRectangle       *rect,
+                                          const DFBRectangle *inner,
+                                          const DFBInsets    *insets )
+{
+     D_ASSERT( rect != NULL );
      DFB_RECTANGLE_ASSERT( inner );
+     D_ASSERT( insets != NULL );
 
      rect->x = inner->x - insets->l;
      rect->y = inner->y - insets->t;
@@ -499,8 +508,154 @@ static __inline__ void dfb_rectangle_from_rectangle_plus_insets( DFBRectangle   
      rect->h = inner->h + insets->t + insets->b;
 }
 
-static __inline__ void dfb_region_from_rectangle( DFBRegion          *region,
-                                                  const DFBRectangle *rect )
+static __inline__ void
+dfb_rectangle_from_rotated( DFBRectangle       *rectangle,
+                            const DFBRectangle *from,
+                            const DFBDimension *size,
+                            int                 rotation )
+{
+     D_ASSERT( rectangle != NULL );
+
+     DFB_RECTANGLE_ASSERT( from );
+     D_ASSERT( size != NULL );
+     D_ASSERT( size->w > 0 );
+     D_ASSERT( size->h > 0 );
+     D_ASSUME( rotation == 0 || rotation == 90 || rotation == 180 || rotation == 270 );
+
+     switch (rotation) {
+          default:
+               D_BUG( "invalid rotation %d", rotation );
+          case 0:
+               *rectangle = *from;
+               break;
+
+          case 90:
+               rectangle->x = from->y;
+               rectangle->y = size->w - from->x - from->w;
+               rectangle->w = from->h;
+               rectangle->h = from->w;
+               break;
+
+          case 180:
+               rectangle->x = size->w - from->x - from->w;
+               rectangle->y = size->h - from->y - from->h;
+               rectangle->w = from->w;
+               rectangle->h = from->h;
+               break;
+
+          case 270:
+               rectangle->x = size->h - from->y - from->h;
+               rectangle->y = from->x;
+               rectangle->w = from->h;
+               rectangle->h = from->w;
+               break;
+     }
+
+     DFB_RECTANGLE_ASSERT( rectangle );
+}
+
+/**********************************************************************************************************************/
+
+static __inline__ void
+dfb_rectangle_translate( DFBRectangle *rect,
+                         int           dx,
+                         int           dy )
+{
+     DFB_RECTANGLE_ASSERT( rect );
+
+     rect->x += dx;
+     rect->y += dy;
+}
+
+static __inline__ void
+dfb_rectangle_resize( DFBRectangle *rect,
+                      int           width,
+                      int           height )
+{
+     DFB_RECTANGLE_ASSERT( rect );
+
+     D_ASSERT( width >= 0 );
+     D_ASSERT( height >= 0 );
+
+     rect->w = width;
+     rect->h = height;
+}
+
+/**********************************************************************************************************************/
+
+static __inline__ bool
+dfb_rectangle_region_intersects( const DFBRectangle *rect,
+                                 const DFBRegion    *region )
+{
+     DFB_RECTANGLE_ASSERT( rect );
+
+     DFB_REGION_ASSERT( region );
+
+     return (rect->x <= region->x2 &&
+             rect->y <= region->y2 &&
+             rect->x + rect->w > region->x1 &&
+             rect->y + rect->h > region->y1);
+}
+
+static __inline__ bool
+dfb_rectangle_box_intersect( DFBRectangle *rect,
+                             const DFBBox *box )
+{
+     DFB_RECTANGLE_ASSERT( rect );
+     DFB_BOX_ASSERT( box );
+
+     if (DFB_BOX_EMPTY( box ) ||
+         box->x2 <= rect->x ||
+         box->y2 <= rect->y ||
+         box->x1 >= rect->x + rect->w ||
+         box->y1 >= rect->y + rect->h)
+     {
+          rect->w = rect->h = 0;
+
+          return false;
+     }
+
+     if (rect->x < box->x1) {
+          rect->w -= box->x1 - rect->x;
+          rect->x  = box->x1;
+     }
+
+     if (rect->y < box->y1) {
+          rect->h -= box->y1 - rect->y;
+          rect->y  = box->y1;
+     }
+
+     if (rect->x + rect->w > box->x2)
+          rect->w = box->x2 - rect->x;
+
+     if (rect->y + rect->h > box->y2)
+          rect->h = box->y2 - rect->y;
+
+     return true;
+}
+
+static __inline__ void
+dfb_rectangle_subtract( DFBRectangle    *rect,
+                        const DFBInsets *insets )
+{
+     D_ASSERT( rect != NULL );
+     D_ASSERT( insets != NULL );
+
+     rect->x += insets->l;
+     rect->y += insets->t;
+     rect->w -= insets->l + insets->r;
+     rect->h -= insets->t + insets->b;
+
+     if (rect->w <= 0 || rect->h <= 0)
+          rect->w = rect->h = 0;
+}
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+static __inline__ void
+dfb_region_from_rectangle( DFBRegion          *region,
+                           const DFBRectangle *rect )
 {
      D_ASSERT( region != NULL );
 
@@ -515,34 +670,77 @@ static __inline__ void dfb_region_from_rectangle( DFBRegion          *region,
      region->y2 = rect->y + rect->h - 1;
 }
 
-void DIRECTFB_API dfb_region_from_rotated( DFBRegion          *region,
-                                           const DFBRegion    *from,
-                                           const DFBDimension *size,
-                                           int                 rotation );
-
-void DIRECTFB_API dfb_rectangle_from_rotated( DFBRectangle       *rectangle,
-                                              const DFBRectangle *from,
-                                              const DFBDimension *size,
-                                              int                 rotation );
-
-void DIRECTFB_API dfb_point_from_rotated_region( DFBPoint           *point,
-                                                 const DFBRegion    *from,
-                                                 const DFBDimension *size,
-                                                 int                 rotation );
-
-static __inline__ void dfb_rectangle_translate( DFBRectangle *rect,
-                                                int           dx,
-                                                int           dy )
+static __inline__ void
+dfb_region_from_rectangle_translated( DFBRegion          *region,
+                                      const DFBRectangle *rect,
+                                      const DFBPoint     *offset )
 {
+     D_ASSERT( region != NULL );
+     D_ASSERT( offset != NULL );
+
      DFB_RECTANGLE_ASSERT( rect );
 
-     rect->x += dx;
-     rect->y += dy;
+     D_ASSERT( rect->w > 0 );
+     D_ASSERT( rect->h > 0 );
+
+     region->x1 = offset->x + rect->x;
+     region->y1 = offset->y + rect->y;
+     region->x2 = offset->x + rect->x + rect->w - 1;
+     region->y2 = offset->y + rect->y + rect->h - 1;
 }
 
-static __inline__ void dfb_region_translate( DFBRegion *region,
-                                             int        dx,
-                                             int        dy )
+static __inline__ void
+dfb_region_from_rotated( DFBRegion          *region,
+                         const DFBRegion    *from,
+                         const DFBDimension *size,
+                         int                 rotation )
+{
+     D_ASSERT( region != NULL );
+
+     DFB_REGION_ASSERT( from );
+     D_ASSERT( size != NULL );
+     D_ASSERT( size->w > 0 );
+     D_ASSERT( size->h > 0 );
+     D_ASSUME( rotation == 0 || rotation == 90 || rotation == 180 || rotation == 270 );
+
+     switch (rotation) {
+          default:
+               D_BUG( "invalid rotation %d", rotation );
+          case 0:
+               *region = *from;
+               break;
+
+          case 90:
+               region->x1 = from->y1;
+               region->y1 = size->w - from->x2 - 1;
+               region->x2 = from->y2;
+               region->y2 = size->w - from->x1 - 1;
+               break;
+
+          case 180:
+               region->x1 = size->w - from->x2 - 1;
+               region->y1 = size->h - from->y2 - 1;
+               region->x2 = size->w - from->x1 - 1;
+               region->y2 = size->h - from->y1 - 1;
+               break;
+
+          case 270:
+               region->x1 = size->h - from->y2 - 1;
+               region->y1 = from->x1;
+               region->x2 = size->h - from->y1 - 1;
+               region->y2 = from->x2;
+               break;
+     }
+
+     DFB_REGION_ASSERT( region );
+}
+
+/**********************************************************************************************************************/
+
+static __inline__ void
+dfb_region_translate( DFBRegion *region,
+                      int        dx,
+                      int        dy )
 {
      DFB_REGION_ASSERT( region );
 
@@ -552,22 +750,10 @@ static __inline__ void dfb_region_translate( DFBRegion *region,
      region->y2 += dy;
 }
 
-static __inline__ void dfb_rectangle_resize( DFBRectangle *rect,
-                                             int           width,
-                                             int           height )
-{
-     DFB_RECTANGLE_ASSERT( rect );
-
-     D_ASSERT( width >= 0 );
-     D_ASSERT( height >= 0 );
-
-     rect->w = width;
-     rect->h = height;
-}
-
-static __inline__ void dfb_region_resize( DFBRegion *region,
-                                          int        width,
-                                          int        height )
+static __inline__ void
+dfb_region_resize( DFBRegion *region,
+                   int        width,
+                   int        height )
 {
      DFB_REGION_ASSERT( region );
 
@@ -578,11 +764,14 @@ static __inline__ void dfb_region_resize( DFBRegion *region,
      region->y2 = region->y1 + height - 1;
 }
 
-static __inline__ bool dfb_region_intersects( const DFBRegion *region,
-                                              int              x1,
-                                              int              y1,
-                                              int              x2,
-                                              int              y2 )
+/**********************************************************************************************************************/
+
+static __inline__ bool
+dfb_region_intersects( const DFBRegion *region,
+                       int              x1,
+                       int              y1,
+                       int              x2,
+                       int              y2 )
 {
      DFB_REGION_ASSERT( region );
 
@@ -595,8 +784,9 @@ static __inline__ bool dfb_region_intersects( const DFBRegion *region,
              region->y2 >= y1);
 }
 
-static __inline__ bool dfb_region_region_intersects( const DFBRegion *region,
-                                                     const DFBRegion *other )
+static __inline__ bool
+dfb_region_region_intersects( const DFBRegion *region,
+                              const DFBRegion *other )
 {
      DFB_REGION_ASSERT( region );
      DFB_REGION_ASSERT( other );
@@ -607,8 +797,80 @@ static __inline__ bool dfb_region_region_intersects( const DFBRegion *region,
              region->y2 >= other->y1);
 }
 
-static __inline__ bool dfb_region_region_extends( const DFBRegion *a,
-                                                  const DFBRegion *b )
+static __inline__ bool
+dfb_region_intersect( DFBRegion *region,
+                      int x1, int y1, int x2, int y2 )
+{
+     if (region->x2 < x1 ||
+         region->y2 < y1 ||
+         region->x1 > x2 ||
+         region->y1 > y2)
+          return false;
+
+     if (region->x1 < x1)
+          region->x1 = x1;
+
+     if (region->y1 < y1)
+          region->y1 = y1;
+
+     if (region->x2 > x2)
+          region->x2 = x2;
+
+     if (region->y2 > y2)
+          region->y2 = y2;
+
+     return true;
+}
+
+static __inline__ bool
+dfb_region_region_intersect( DFBRegion       *region,
+                             const DFBRegion *clip )
+{
+     if (region->x2 < clip->x1 ||
+         region->y2 < clip->y1 ||
+         region->x1 > clip->x2 ||
+         region->y1 > clip->y2)
+          return false;
+
+     if (region->x1 < clip->x1)
+          region->x1 = clip->x1;
+
+     if (region->y1 < clip->y1)
+          region->y1 = clip->y1;
+
+     if (region->x2 > clip->x2)
+          region->x2 = clip->x2;
+
+     if (region->y2 > clip->y2)
+          region->y2 = clip->y2;
+
+     return true;
+}
+
+/**********************************************************************************************************************/
+
+static __inline__ bool
+dfb_region_region_contains( const DFBRegion *a,
+                            const DFBRegion *b )
+{
+     if (a->x1 > b->x1)
+          return false;
+
+     if (a->y1 > b->y1)
+          return false;
+
+     if (a->x2 < b->x2)
+          return false;
+
+     if (a->y2 < b->y2)
+          return false;
+
+     return true;
+}
+
+static __inline__ bool
+dfb_region_region_extends( const DFBRegion *a,
+                           const DFBRegion *b )
 {
      if (a->x1 == b->x1 && a->x2 == b->x2)
           return (a->y1 == b->y2 - 1) || (a->y2 == b->y1 - 1);
@@ -619,8 +881,9 @@ static __inline__ bool dfb_region_region_extends( const DFBRegion *a,
      return false;
 }
 
-static __inline__ void dfb_region_region_union( DFBRegion       *region,
-                                                const DFBRegion *other )
+static __inline__ void
+dfb_region_region_union( DFBRegion       *region,
+                         const DFBRegion *other )
 {
      DFB_REGION_ASSERT( region );
      DFB_REGION_ASSERT( other );
@@ -638,24 +901,12 @@ static __inline__ void dfb_region_region_union( DFBRegion       *region,
           region->y2 = other->y2;
 }
 
-static __inline__ bool dfb_rectangle_region_intersects( const DFBRectangle *rect,
-                                                    const DFBRegion    *region )
-{
-     DFB_RECTANGLE_ASSERT( rect );
-
-     DFB_REGION_ASSERT( region );
-
-     return (rect->x <= region->x2 &&
-             rect->y <= region->y2 &&
-             rect->x + rect->w > region->x1 &&
-             rect->y + rect->h > region->y1);
-}
-
-static __inline__ void dfb_region_clip( DFBRegion *region,
-                                        int        x1,
-                                        int        y1,
-                                        int        x2,
-                                        int        y2 )
+static __inline__ void
+dfb_region_clip( DFBRegion *region,
+                 int        x1,
+                 int        y1,
+                 int        x2,
+                 int        y2 )
 {
      DFB_REGION_ASSERT( region );
 
@@ -674,31 +925,487 @@ static __inline__ void dfb_region_clip( DFBRegion *region,
           region->y2 = y2;
 }
 
-static __inline__ void dfb_rectangle_subtract( DFBRectangle    *rect,
-                                               const DFBInsets *insets )
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+static __inline__ void
+dfb_box_from_rectangle( DFBBox             *box,
+                        const DFBRectangle *rect )
 {
-     D_ASSERT( rect != NULL );
-     D_ASSERT( insets != NULL );
+     D_ASSERT( box != NULL );
 
-     rect->x += insets->l;
-     rect->y += insets->t;
-     rect->w -= insets->l + insets->r;
-     rect->h -= insets->t + insets->b;
+     DFB_RECTANGLE_ASSERT( rect );
 
-     if (rect->w <= 0 || rect->h <= 0)
-          rect->w = rect->h = 0;
+     box->x1 = rect->x;
+     box->y1 = rect->y;
+     box->x2 = rect->x + rect->w;
+     box->y2 = rect->y + rect->h;
 }
 
+static __inline__ void
+dfb_box_from_rectangle_translated( DFBBox             *box,
+                                   const DFBRectangle *rect,
+                                   const DFBPoint     *offset )
+{
+     D_ASSERT( box != NULL );
+     DFB_RECTANGLE_ASSERT( rect );
+     D_ASSERT( offset != NULL );
+
+     box->x1 = offset->x + rect->x;
+     box->y1 = offset->y + rect->y;
+     box->x2 = offset->x + rect->x + rect->w;
+     box->y2 = offset->y + rect->y + rect->h;
+}
+
+static __inline__ void
+dfb_box_from_rotated( DFBBox             *box,
+                      const DFBBox       *from,
+                      const DFBDimension *size,
+                      int                 rotation )
+{
+     D_ASSERT( box != NULL );
+
+     DFB_REGION_ASSERT( from );
+     D_ASSERT( size != NULL );
+     D_ASSERT( size->w > 0 );
+     D_ASSERT( size->h > 0 );
+     D_ASSUME( rotation == 0 || rotation == 90 || rotation == 180 || rotation == 270 );
+
+     switch (rotation) {
+          default:
+               D_BUG( "invalid rotation %d", rotation );
+          case 0:
+               *box = *from;
+               break;
+
+          case 90:
+               box->x1 = from->y1;
+               box->y1 = size->w - from->x2;
+               box->x2 = from->y2;
+               box->y2 = size->w - from->x1;
+               break;
+
+          case 180:
+               box->x1 = size->w - from->x2;
+               box->y1 = size->h - from->y2;
+               box->x2 = size->w - from->x1;
+               box->y2 = size->h - from->y1;
+               break;
+
+          case 270:
+               box->x1 = size->h - from->y2;
+               box->y1 = from->x1;
+               box->x2 = size->h - from->y1;
+               box->y2 = from->x2;
+               break;
+     }
+
+     DFB_REGION_ASSERT( box );
+}
+
+/**********************************************************************************************************************/
+
+static __inline__ void
+dfb_box_translate( DFBBox *box,
+                   int     dx,
+                   int     dy )
+{
+     DFB_REGION_ASSERT( box );
+
+     box->x1 += dx;
+     box->y1 += dy;
+     box->x2 += dx;
+     box->y2 += dy;
+}
+
+static __inline__ void
+dfb_box_resize( DFBBox *box,
+                int     width,
+                int     height )
+{
+     DFB_REGION_ASSERT( box );
+
+     D_ASSERT( width >= 0 );
+     D_ASSERT( height >= 0 );
+
+     box->x2 = box->x1 + width;
+     box->y2 = box->y1 + height;
+}
+
+/**********************************************************************************************************************/
+
+static __inline__ bool
+dfb_box_box_contains( const DFBBox *a,
+                      const DFBBox *b )
+{
+     if (a->x1 > b->x1)
+          return false;
+
+     if (a->y1 > b->y1)
+          return false;
+
+     if (a->x2 < b->x2)
+          return false;
+
+     if (a->y2 < b->y2)
+          return false;
+
+     return true;
+}
+
+static __inline__ bool
+dfb_box_intersects( const DFBBox *box,
+                    int           x1,
+                    int           y1,
+                    int           x2,
+                    int           y2 )
+{
+     DFB_BOX_ASSERT( box );
+
+     D_ASSERT( x1 <= x2 );
+     D_ASSERT( y1 <= y2 );
+
+     return (box->x1 < x2 &&
+             box->y1 < y2 &&
+             box->x2 > x1 &&
+             box->y2 > y1);
+}
+
+static __inline__ bool
+dfb_box_box_intersects( const DFBBox *box,
+                        const DFBBox *other )
+{
+     DFB_BOX_ASSERT( box );
+     DFB_BOX_ASSERT( other );
+
+     return (box->x1 < other->x2 &&
+             box->y1 < other->y2 &&
+             box->x2 > other->x1 &&
+             box->y2 > other->y1);
+}
+
+static __inline__ bool
+dfb_box_intersect( DFBBox *box,
+                   int x1, int y1, int x2, int y2 )
+{
+     DFB_BOX_ASSERT( box );
+
+     D_ASSERT( x1 <= x2 );
+     D_ASSERT( y1 <= y2 );
+
+     if (DFB_BOX_EMPTY( box ))
+          return false;
+
+     if (box->x2 <= x1 ||
+         box->y2 <= y1 ||
+         box->x1 >= x2 ||
+         box->y1 >= y2)
+          return false;
+
+     if (box->x1 < x1)
+          box->x1 = x1;
+
+     if (box->y1 < y1)
+          box->y1 = y1;
+
+     if (box->x2 > x2)
+          box->x2 = x2;
+
+     if (box->y2 > y2)
+          box->y2 = y2;
+
+     return true;
+}
+
+static __inline__ bool
+dfb_box_box_intersect( DFBBox       *box,
+                       const DFBBox *clip )
+{
+     DFB_BOX_ASSERT( box );
+     DFB_BOX_ASSERT( clip );
+
+     if (DFB_BOX_EMPTY( box ))
+          return false;
+
+     if (DFB_BOX_EMPTY( clip ) ||
+         box->x2 <= clip->x1 ||
+         box->y2 <= clip->y1 ||
+         box->x1 >= clip->x2 ||
+         box->y1 >= clip->y2)
+     {
+          return false;
+     }
+
+     if (box->x1 < clip->x1)
+          box->x1 = clip->x1;
+
+     if (box->y1 < clip->y1)
+          box->y1 = clip->y1;
+
+     if (box->x2 > clip->x2)
+          box->x2 = clip->x2;
+
+     if (box->y2 > clip->y2)
+          box->y2 = clip->y2;
+
+     return true;
+}
+
+static __inline__ bool
+dfb_box_region_intersects( const DFBBox    *box,
+                           const DFBRegion *clip )
+{
+     DFB_BOX_ASSERT( box );
+     D_ASSERT( clip != NULL );
+
+     if (DFB_BOX_EMPTY( box ))
+          return false;
+
+     if (clip->x1 > clip->x2 ||
+         clip->y1 > clip->y2 ||
+         box->x2 <= clip->x1 ||
+         box->y2 <= clip->y1 ||
+         box->x1 > clip->x2 ||
+         box->y1 > clip->y2)
+     {
+          return false;
+     }
+
+     return true;
+}
+
+static __inline__ bool
+dfb_box_region_intersect( DFBBox          *box,
+                          const DFBRegion *clip )
+{
+     DFB_BOX_ASSERT( box );
+     D_ASSERT( clip != NULL );
+
+     if (DFB_BOX_EMPTY( box ))
+          return false;
+
+     if (clip->x1 > clip->x2 ||
+         clip->y1 > clip->y2 ||
+         box->x2 <= clip->x1 ||
+         box->y2 <= clip->y1 ||
+         box->x1 > clip->x2 ||
+         box->y1 > clip->y2)
+     {
+          box->x2 = box->x1;
+          box->y2 = box->y1;
+
+          return false;
+     }
+
+     if (box->x1 < clip->x1)
+          box->x1 = clip->x1;
+
+     if (box->y1 < clip->y1)
+          box->y1 = clip->y1;
+
+     if (box->x2 > clip->x2 + 1)
+          box->x2 = clip->x2 + 1;
+
+     if (box->y2 > clip->y2 + 1)
+          box->y2 = clip->y2 + 1;
+
+     return true;
+}
+
+/**********************************************************************************************************************/
+
+static __inline__ bool
+dfb_box_box_extends( const DFBBox *a,
+                     const DFBBox *b )
+{
+     DFB_BOX_ASSERT( a );
+     DFB_BOX_ASSERT( b );
+
+     if (a->x1 == b->x1 && a->x2 == b->x2)
+          return (a->y1 == b->y2) || (a->y2 == b->y1);
+
+     if (a->y1 == b->y1 && a->y2 == b->y2)
+          return (a->x1 == b->x2) || (a->x2 == b->x1);
+
+     return false;
+}
+
+static __inline__ void
+dfb_box_box_union( DFBBox       *box,
+                   const DFBBox *other )
+{
+     DFB_BOX_ASSERT( box );
+     DFB_BOX_ASSERT( other );
+
+     if (DFB_BOX_EMPTY( other ))
+          return;
+
+     if (DFB_BOX_EMPTY( box )) {
+          *box = *other;
+     }
+     else {
+          if (box->x1 > other->x1)
+               box->x1 = other->x1;
+
+          if (box->y1 > other->y1)
+               box->y1 = other->y1;
+
+          if (box->x2 < other->x2)
+               box->x2 = other->x2;
+
+          if (box->y2 < other->y2)
+               box->y2 = other->y2;
+     }
+}
+
+static __inline__ void
+dfb_box_region_union( DFBBox          *box,
+                      const DFBRegion *region )
+{
+     DFB_BOX_ASSERT( box );
+     DFB_REGION_ASSERT( region );
+
+     if (DFB_BOX_EMPTY( box )) {
+          *box = DFB_BOX_INIT_FROM_REGION( region );
+     }
+     else {
+          if (box->x1 > region->x1)
+               box->x1 = region->x1;
+
+          if (box->y1 > region->y1)
+               box->y1 = region->y1;
+
+          if (box->x2 < region->x2 + 1)
+               box->x2 = region->x2 + 1;
+
+          if (box->y2 < region->y2 + 1)
+               box->y2 = region->y2 + 1;
+     }
+}
+
+static __inline__ void
+dfb_box_clip( DFBBox *box,
+              int     x1,
+              int     y1,
+              int     x2,
+              int     y2 )
+{
+     DFB_BOX_ASSERT( box );
+
+     D_ASSERT( dfb_box_intersects( box, x1, y1, x2, y2 ) );
+
+     if (box->x1 < x1)
+          box->x1 = x1;
+
+     if (box->y1 < y1)
+          box->y1 = y1;
+
+     if (box->x2 > x2)
+          box->x2 = x2;
+
+     if (box->y2 > y2)
+          box->y2 = y2;
+}
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
 /*
  * Compute line segment intersection.
  * Return true if intersection point exists within the given segment.
  */
-bool DIRECTFB_API dfb_line_segment_intersect( const DFBRegion *line,
-                                              const DFBRegion *seg,
-                                              int             *x,
-                                              int             *y );
+static __inline__ bool
+dfb_line_segment_intersect( const DFBRegion *line,
+                            const DFBRegion *seg,
+                            int             *x,
+                            int             *y )
+{
+     int x1, x2, x3, x4;
+     int y1, y2, y3, y4;
+     int num, den;
 
+     D_ASSERT( line != NULL );
+     D_ASSERT( seg != NULL );
+
+     x1 = seg->x1;  y1 = seg->y1;  x2 = seg->y2;  y2 = seg->y2;
+     x3 = line->x1; y3 = line->y1; x4 = line->x2; y4 = line->y2;
+
+     num = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
+     den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+
+     if (!den) /* parallel */
+          return false;
+
+     if (num && ((num < 0) != (den < 0) || abs(num) > abs(den))) /* not within segment */
+          return false;
+
+     if (x)
+          *x = (s64)(x2 - x1) * num / den + x1;
+     if (y)
+          *y = (s64)(y2 - y1) * num / den + y1;
+
+     return true;
+}
+
+/**********************************************************************************************************************/
+
+static __inline__ void
+dfb_point_from_rotated_region( DFBPoint           *point,
+                               const DFBRegion    *from,
+                               const DFBDimension *size,
+                               int                 rotation )
+{
+     D_ASSERT( point != NULL );
+
+     DFB_REGION_ASSERT( from );
+     D_ASSERT( size != NULL );
+     D_ASSERT( size->w > 0 );
+     D_ASSERT( size->h > 0 );
+     D_ASSUME( rotation == 0 || rotation == 90 || rotation == 180 || rotation == 270 );
+
+     switch (rotation) {
+          default:
+               D_BUG( "invalid rotation %d", rotation );
+          case 0:
+               point->x = from->x1;
+               point->y = from->y1;
+               break;
+
+          case 90:
+               point->x = from->y1;
+               point->y = size->w - from->x2 - 1;
+               break;
+
+          case 180:
+               point->x = size->w - from->x2 - 1;
+               point->y = size->h - from->y2 - 1;
+               break;
+
+          case 270:
+               point->x = size->h - from->y2 - 1;
+               point->y = from->x1;
+               break;
+     }
+
+     D_ASSERT( point->x >= 0 );
+     D_ASSERT( point->y >= 0 );
+     D_ASSERT( point->x < size->w );
+     D_ASSERT( point->y < size->h );
+}
+
+static __inline__ void
+dfb_point_translate( DFBPoint *point,
+                     int       dx,
+                     int       dy )
+{
+     D_ASSERT( point != NULL );
+
+     point->x += dx;
+     point->y += dy;
+}
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
 /*
  * Copied declaration of DFBPixelFormatName from directfb_strings.h
