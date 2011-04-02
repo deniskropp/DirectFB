@@ -1045,7 +1045,7 @@ AC_ARG_WITH(gfxdrivers,
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
   checkfor_cle266=no
-  checkfor_cyber5k=yes
+  checkfor_cyber5k=no
   checkfor_davinci="$have_arm"
   checkfor_ep9x=yes
   checkfor_gl=yes
@@ -1060,14 +1060,14 @@ if test "$gfxdrivers" = "all"; then
   checkfor_omap="$have_arm"
   checkfor_pvr2d=yes
   checkfor_pxa3xx=yes
-  checkfor_radeon=yes
-  checkfor_savage=yes
+  checkfor_radeon=no
+  checkfor_savage=no
   checkfor_sh772x=yes
   checkfor_sis315=yes
   checkfor_tdfx=yes
-  checkfor_unichrome=yes
+  checkfor_unichrome=no
   checkfor_vdpau=yes
-  checkfor_vmware=yes
+  checkfor_vmware=no
 
   AC_MSG_RESULT(all)
 else 
