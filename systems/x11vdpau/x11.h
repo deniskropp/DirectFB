@@ -139,7 +139,7 @@ typedef struct {
 
 typedef struct {
      VdpOutputSurface   surface;
-     void              *ptr;
+     const void        *ptr;
      unsigned int       pitch;
      VdpRect            destination_rect;
 } DFBX11CallOutputSurfacePutBitsNative;
