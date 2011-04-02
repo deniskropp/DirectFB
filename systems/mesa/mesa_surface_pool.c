@@ -382,6 +382,7 @@ mesaDeallocateBuffer( CoreSurfacePool       *pool,
 {
      MesaPoolData       *data  = pool_data;
      MesaAllocationData *alloc = alloc_data;
+     MesaPoolLocalData  *local = pool_local;
 
      D_DEBUG_AT( Mesa_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 
@@ -390,6 +391,8 @@ mesaDeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( alloc, MesaAllocationData );
 
+     drmModeRmFB( local->mesa->fd,  alloc->fb_id );
+     eglDestroyImageKHR( local->mesa->dpy, alloc->image );
 
      D_MAGIC_CLEAR( alloc );
 

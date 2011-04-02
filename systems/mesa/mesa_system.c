@@ -238,6 +238,11 @@ system_shutdown( bool emergency )
 
      dfb_surface_pool_destroy( shared->pool );
 
+     /* cleanup EGL related stuff */
+     eglDestroyContext( m_data->dpy, m_data->ctx );
+     eglTerminate( m_data->dpy );
+
+     /* close drm fd */
      close( m_data->fd );
 
      if (dfb_config->vt)
