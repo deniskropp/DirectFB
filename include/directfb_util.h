@@ -74,39 +74,51 @@ void DIRECTFB_API dfb_rectangle_union ( DFBRectangle       *rect1,
                                         const DFBRectangle *rect2 );
 
 
-#define DFB_RECTANGLE_ASSERT(r)              \
-     do {                                    \
-          D_ASSERT( (r) != NULL );           \
-          D_ASSERT( (r)->w >= 0 );           \
-          D_ASSERT( (r)->h >= 0 );           \
-     } while (0)
+/**********************************************************************************************************************/
 
-#define DFB_RECTANGLE_ASSERT_IF(r)           \
-     do {                                    \
-          if ((r) != NULL) {                 \
-               D_ASSERT( (r)->w >= 0 );      \
-               D_ASSERT( (r)->h >= 0 );      \
-          }                                  \
-     } while (0)
+#define DFB_RECTANGLE_CHECK(r)     \
+      ((r) != NULL &&              \
+       (r)->x1 <= (r)->x2 &&       \
+       (r)->y1 <= (r)->y2)
 
-#define DFB_RECTANGLE_VALS(r)                (r)->x, (r)->y, (r)->w, (r)->h
-#define DFB_RECTANGLE_VALS_FROM_REGION(r)    (r)->x1, (r)->y1, (r)->x2-(r)->x1+1, (r)->y2-(r)->y1+1
-#define DFB_RECTANGLE_INIT_FROM_REGION(r)    (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_REGION(r) }
-#define DFB_RECTANGLE_CONTAINS_POINT(r,X,Y)  (((X) >= (r)->x) && ((X) < (r)->x + (r)->w) && \
-                                              ((Y) >= (r)->y) && ((Y) < (r)->y + (r)->h))
-
-#define DFB_RECTANGLES_DEBUG_AT( Domain, rects, num )                                                         \
-     do {                                                                                                     \
-          unsigned int i;                                                                                     \
-                                                                                                              \
-          for (i=0; i<(num); i++)                                                                             \
-               D_DEBUG_AT( Domain, "  -> [%2d] %4d,%4d-%4dx%4d\n", i, DFB_RECTANGLE_VALS(&(rects)[i]) );      \
-     } while (0)
+#define DFB_RECTANGLE_CHECK_IF(r)  \
+      ((r) == NULL ||              \
+       ((r)->w >= 0 &&             \
+        (r)->h >= 0))
 
 
-#define DFB_TRIANGLE_VALS(t)                 (t)->x1, (t)->y1, (t)->x2, (t)->y2, (t)->x3, (t)->y3
+#define DFB_RECT_FORMAT                                "%4d,%4d-%4dx%4d"
 
-#define DFB_COLORKEY_VALS(c)                 (c)->r, (c)->g, (c)->b, (c)->index
+#define DFB_RECTANGLE_VALS(r)                          (r)->x, (r)->y, (r)->w, (r)->h
+
+#define DFB_RECTANGLE_EMPTY(r)                         ((r)->w == 0 || (r)->h == 0)
+#define DFB_RECTANGLE_FULL(r)                          (!DFB_RECTANGLE_EMPTY(r))
+
+#define DFB_RECTANGLE_VALS_FROM_DIMENSION(d)           0, 0, (d)->w, (d)->h
+#define DFB_RECTANGLE_INIT_FROM_DIMENSION(d)           (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_DIMENSION(d) }
+
+#define DFB_RECTANGLE_VALS_FROM_DIMENSION_VALS(w,h)    0, 0, (w), (h)
+#define DFB_RECTANGLE_INIT_FROM_DIMENSION_VALS(w,h)    (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_DIMENSION_VALS(w,h) }
+
+#define DFB_RECTANGLE_VALS_FROM_REGION(r)              (r)->x1, (r)->y1, (r)->x2-(r)->x1+1, (r)->y2-(r)->y1+1
+#define DFB_RECTANGLE_INIT_FROM_REGION(r)              (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_REGION(r) }
+
+#define DFB_RECTANGLE_VALS_FROM_REGION_TRANSLATED(r,x,y)    (r)->x1 + (x), (r)->y1 + (y), (r)->x2-(r)->x1+1, (r)->y2-(r)->y1+1
+#define DFB_RECTANGLE_INIT_FROM_REGION_TRANSLATED(r,x,y)    (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_REGION_TRANSLATED(r,x,y) }
+
+#define DFB_RECTANGLE_VALS_FROM_BOX(b)                 (b)->x1, (b)->y1, (b)->x2-(b)->x1, (b)->y2-(b)->y1
+#define DFB_RECTANGLE_INIT_FROM_BOX(b)                 (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_BOX(b) }
+
+#define DFB_RECTANGLE_VALS_FROM_BOX_TRANSLATED(b,x,y)  (b)->x1 + (x), (b)->y1 + (y), (b)->x2-(b)->x1, (b)->y2-(b)->y1
+#define DFB_RECTANGLE_INIT_FROM_BOX_TRANSLATED(b,x,y)  (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_BOX_TRANSLATED(b,x,y) }
+
+#define DFB_RECTANGLE_VALS_FROM_BOX_VALS(x1,y1,x2,y2)  (b)->x1, (b)->y1, (b)->x2-(b)->x1, (b)->y2-(b)->y1
+#define DFB_RECTANGLE_INIT_FROM_BOX_VALS(x1,y1,x2,y2)  (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_BOX_VALS(x1,y1,x2,y2) }
+
+#define DFB_RECTANGLE_CONTAINS_POINT(r,X,Y)            (((X) >= (r)->x) && ((X) < (r)->x + (r)->w) && \
+                                                        ((Y) >= (r)->y) && ((Y) < (r)->y + (r)->h))
+
+/**********************************************************************************************************************/
 
 #define DFB_REGION_CHECK(r)     \
       ((r) != NULL &&           \
@@ -118,54 +130,345 @@ void DIRECTFB_API dfb_rectangle_union ( DFBRectangle       *rect1,
        ((r)->x1 <= (r)->x2 &&   \
         (r)->y1 <= (r)->y2))
 
-#define DFB_REGION_ASSERT(r)                 \
-     do {                                    \
-          D_ASSERT( (r) != NULL );           \
-          D_ASSERT( (r)->x1 <= (r)->x2 );    \
-          D_ASSERT( (r)->y1 <= (r)->y2 );    \
-     } while (0)
 
-#define DFB_REGION_ASSERT_IF(r)                   \
-     do {                                         \
-          if ((r) != NULL) {                      \
-               D_ASSERT( (r)->x1 <= (r)->x2 );    \
-               D_ASSERT( (r)->y1 <= (r)->y2 );    \
-          }                                       \
-     } while (0)
+#define DFB_REGION_FORMAT                              "%4d,%4d-%4d,%4d"
 
+#define DFB_REGION_VALS(r)                             (r)->x1, (r)->y1, (r)->x2, (r)->y2
 
-#define DFB_REGION_VALS(r)                   (r)->x1, (r)->y1, (r)->x2, (r)->y2
+#define DFB_REGION_VALS_FROM_DIMENSION(d)              0, 0, (d)->w-1, (d)->h-1
+#define DFB_REGION_INIT_FROM_DIMENSION(d)              (DFBRegion){ DFB_REGION_VALS_FROM_DIMENSION(d) }
 
-#define DFB_REGION_VALS_FROM_DIMENSION(d)    0, 0, (d)->w-1, (d)->h-1
-#define DFB_REGION_INIT_FROM_DIMENSION(d)    (DFBRegion){ DFB_REGION_VALS_FROM_DIMENSION(d) }
-
-#define DFB_REGION_VALS_FROM_RECTANGLE(r)    (r)->x, (r)->y, (r)->x+(r)->w-1, (r)->y+(r)->h-1
-#define DFB_REGION_INIT_FROM_RECTANGLE(r)    (DFBRegion){ DFB_REGION_VALS_FROM_RECTANGLE(r) }
+#define DFB_REGION_VALS_FROM_RECTANGLE(r)              (r)->x, (r)->y, (r)->x+(r)->w-1, (r)->y+(r)->h-1
+#define DFB_REGION_INIT_FROM_RECTANGLE(r)              (DFBRegion){ DFB_REGION_VALS_FROM_RECTANGLE(r) }
 
 #define DFB_REGION_VALS_FROM_RECTANGLE_VALS(x,y,w,h)   (x), (y), (x)+(w)-1, (y)+(h)-1
 #define DFB_REGION_INIT_FROM_RECTANGLE_VALS(x,y,w,h)   (DFBRegion){ DFB_REGION_VALS_FROM_RECTANGLE_VALS(x,y,w,h) }
 
-#define DFB_REGION_VALS_TRANSLATED(r,x,y)    (r)->x1 + x, (r)->y1 + y, (r)->x2 + x, (r)->y2 + y
-#define DFB_REGION_INIT_TRANSLATED(r,x,y)    (DFBRegion){ DFB_REGION_VALS_TRANSLATED(r,x,y) }
+#define DFB_REGION_VALS_FROM_BOX(b)                    (b)->x1, (b)->y1, (b)->x2-1, (b)->y2-1
+#define DFB_REGION_INIT_FROM_BOX(b)                    (DFBRegion){ DFB_REGION_VALS_FROM_BOX(b) }
 
-#define DFB_REGION_VALS_INTERSECTED(r,X1,Y1,X2,Y2)   (r)->x1 > (X1) ? (r)->x1 : (X1),      \
-                                                     (r)->y1 > (Y1) ? (r)->y1 : (Y1),      \
-                                                     (r)->x2 < (X2) ? (r)->x2 : (X2),      \
-                                                     (r)->y2 < (Y2) ? (r)->y2 : (Y2)
-#define DFB_REGION_INIT_INTERSECTED(r,X1,Y1,X2,Y2)   (DFBRegion){ DFB_REGION_VALS_INTERSECTED(r,X1,Y1,X2,Y2) }
+#define DFB_REGION_VALS_TRANSLATED(r,x,y)              (r)->x1 + x, (r)->y1 + y, (r)->x2 + x, (r)->y2 + y
+#define DFB_REGION_INIT_TRANSLATED(r,x,y)              (DFBRegion){ DFB_REGION_VALS_TRANSLATED(r,x,y) }
+
+#define DFB_REGION_VALS_INTERSECTED(r,X1,Y1,X2,Y2)     (r)->x1 > (X1) ? (r)->x1 : (X1),      \
+                                                       (r)->y1 > (Y1) ? (r)->y1 : (Y1),      \
+                                                       (r)->x2 < (X2) ? (r)->x2 : (X2),      \
+                                                       (r)->y2 < (Y2) ? (r)->y2 : (Y2)
+#define DFB_REGION_INIT_INTERSECTED(r,X1,Y1,X2,Y2)     (DFBRegion){ DFB_REGION_VALS_INTERSECTED(r,X1,Y1,X2,Y2) }
 
 
-#define DFB_REGION_CONTAINS_POINT(r,X,Y)     (((X) >= (r)->x1) && ((X) <= (r)->x2) && \
-                                              ((Y) >= (r)->y1) && ((Y) <= (r)->y2))
+#define DFB_REGION_CONTAINS_POINT(r,X,Y)               (((X) >= (r)->x1) && ((X) <= (r)->x2) && \
+                                                        ((Y) >= (r)->y1) && ((Y) <= (r)->y2))
+
+/**********************************************************************************************************************/
+
+#define DFB_BOX_CHECK(b)      \
+      ((b) != NULL &&         \
+       (b)->x1 <= (b)->x2 &&  \
+       (b)->y1 <= (b)->y2)
+
+#define DFB_BOX_CHECK_IF(r)   \
+      ((b) == NULL ||         \
+       ((b)->x1 <= (b)->x2 && \
+        (b)->y1 <= (b)->y2))
 
 
-#define DFB_REGIONS_DEBUG_AT( Domain, regions, num )                                                          \
+#define DFB_BOX_VALS(b)                                (b)->x1, (b)->y1, (b)->x2, (b)->y2
+#define DFB_BOX_INIT(x1,y1,x2,y2)                      (DFBBox){ x1, y1, x2, y2 }
+
+#define DFB_BOX_WIDTH(b)                               ((b)->x2 - (b)->x1)
+#define DFB_BOX_HEIGHT(b)                              ((b)->y2 - (b)->y1)
+#define DFB_BOX_SIZE(b)                                (DFB_BOX_WIDTH(b) * DFB_BOX_HEIGHT(b))
+
+#define DFB_BOX_EQUAL(b1,b2)                           (((b1) == (b2)) || ( (b1)->x1 == (b2)->x1 && (b1)->y1 == (b2)->y1 && (b1)->x2 == (b2)->x2 && (b1)->y2 == (b2)->y2 ))
+#define DFB_BOX_EMPTY(b)                               ((b)->x1 == (b)->x2 || (b)->y1 == (b)->y2)
+#define DFB_BOX_FULL(b)                                (!DFB_BOX_EMPTY(b))
+#define DFB_BOX_RESET(b)                               do { (b)->x2 = (b)->x1; (b)->y2 = (b)->y1; } while (0)
+
+#define DFB_BOX_VALS_FROM_DIMENSION(d)                 0, 0, (d)->w, (d)->h
+#define DFB_BOX_INIT_FROM_DIMENSION(d)                 (DFBBox){ DFB_BOX_VALS_FROM_DIMENSION(d) }
+
+#define DFB_BOX_VALS_FROM_DIMENSION_VALS(w,h)          0, 0, (w), (h)
+#define DFB_BOX_INIT_FROM_DIMENSION_VALS(w,h)          (DFBBox){ DFB_BOX_VALS_FROM_DIMENSION_VALS(w,h) }
+
+#define DFB_BOX_VALS_FROM_RECTANGLE(r)                 (r)->x, (r)->y, (r)->x+(r)->w, (r)->y+(r)->h
+#define DFB_BOX_INIT_FROM_RECTANGLE(r)                 (DFBBox){ DFB_BOX_VALS_FROM_RECTANGLE(r) }
+
+#define DFB_BOX_VALS_FROM_RECTANGLE_VALS(x,y,w,h)      (x), (y), (x)+(w), (y)+(h)
+#define DFB_BOX_INIT_FROM_RECTANGLE_VALS(X,Y,W,H)      (DFBBox){ DFB_BOX_VALS_FROM_RECTANGLE_VALS(X,Y,W,H) }
+
+#define DFB_BOX_VALS_FROM_REGION(r)                    (r)->x1, (r)->y1, (r)->x2+1, (r)->y2+1
+#define DFB_BOX_INIT_FROM_REGION(r)                    (DFBBox){ DFB_BOX_VALS_FROM_REGION(r) }
+
+#define DFB_BOX_VALS_TRANSLATED(b,x,y)                 (b)->x1 + x, (b)->y1 + y, (b)->x2 + x, (b)->y2 + y
+#define DFB_BOX_INIT_TRANSLATED(b,x,y)                 (DFBBox){ DFB_BOX_VALS_TRANSLATED(b,x,y) }
+
+#define DFB_BOX_VALS_AT_ZERO(b)                        0, 0, DFB_BOX_WIDTH(b), DFB_BOX_HEIGHT(b)
+#define DFB_BOX_INIT_AT_ZERO(b)                        (DFBBox){ DFB_BOX_VALS_AT_ZERO(b) }
+
+/**********************************************************************************************************************/
+
+#define DFB_DIMENSION_VALS(d)                          (d)->w, (d)->h
+#define DFB_DIMENSION_INIT(w,h)                        (DFBDimension){ w, h }
+
+#define DFB_DIMENSION_VALS_FROM_BOX(b)                 DFB_BOX_WIDTH(b), DFB_BOX_HEIGHT(b)
+#define DFB_DIMENSION_INIT_FROM_BOX(b)                 (DFBDimension){ DFB_DIMENSION_VALS_FROM_BOX(b) }
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+#define DFB_LINE_VALS(l)                               (l)->x1, (l)->y1, (l)->x2, (l)->y2
+
+/**********************************************************************************************************************/
+
+#define DFB_POINT_VALS(p)                              (p)->x, (p)->y
+#define DFB_POINT_INIT(x,y)                            (DFBPoint){ x, y }
+
+#define DFB_POINT_VALS_FROM_BOX(b)                     (b)->x1, (b)->y1
+#define DFB_POINT_INIT_FROM_BOX(b)                     (DFBPoint){ DFB_POINT_VALS_FROM_BOX(b) }
+
+/**********************************************************************************************************************/
+
+#define DFB_TRIANGLE_FORMAT                            "%4d,%4d-%4d,%4d-%4d,%4d"
+
+#define DFB_TRIANGLE_VALS(t)                           (t)->x1, (t)->y1, (t)->x2, (t)->y2, (t)->x3, (t)->y3
+#define DFB_TRIANGLE_INIT(x1,y1,x2,y2,x3,y3)           (DFBTriangle){ x1, y1, x2, y2, x3, y3 }
+
+/**********************************************************************************************************************/
+
+#define DFB_SPAN_VALS(s)                               (s)->x, (s)->w
+#define DFB_SPAN_INIT(x,w)                             (DFBSpan){ x, w }
+#define DFB_SPAN_VALS_AT(s,y)                          (s)->x, y, (s)->w
+
+/**********************************************************************************************************************/
+
+#define DFB_COLOR_FORMAT                               "%02x %02x %02x %02x"
+
+#define DFB_COLOR_VALS(c)                              (c)->a, (c)->r, (c)->g, (c)->b
+#define DFB_COLOR_INIT(a,r,g,b)                        (DFBColor){ a, r, g, b }
+
+/**********************************************************************************************************************/
+
+#define DFB_COLORKEY_VALS(c)                           (c)->r, (c)->g, (c)->b, (c)->index
+#define DFB_COLORKEY_INIT(r,g,b,index)                 (DFBColorKey){ r, g, b, index }
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+#if D_DEBUG_ENABLED
+
+#define DFB_RECTANGLE_ASSERT(r)                                                                               \
+     do {                                                                                                     \
+          D_ASSERT( (r) != NULL );                                                                            \
+          D_ASSERT( (r)->w >= 0 );                                                                            \
+          D_ASSERT( (r)->h >= 0 );                                                                            \
+     } while (0)
+
+#define DFB_RECTANGLE_ASSERT_IF(r)                                                                            \
+     do {                                                                                                     \
+          if ((r) != NULL) {                                                                                  \
+               D_ASSERT( (r)->w >= 0 );                                                                       \
+               D_ASSERT( (r)->h >= 0 );                                                                       \
+          }                                                                                                   \
+     } while (0)
+
+#define DFB_REGION_ASSERT(r)                                                                                  \
+     do {                                                                                                     \
+          D_ASSERT( (r) != NULL );                                                                            \
+          D_ASSERT( (r)->x1 <= (r)->x2 );                                                                     \
+          D_ASSERT( (r)->y1 <= (r)->y2 );                                                                     \
+     } while (0)
+
+#define DFB_REGION_ASSERT_IF(r)                                                                               \
+     do {                                                                                                     \
+          if ((r) != NULL) {                                                                                  \
+               D_ASSERT( (r)->x1 <= (r)->x2 );                                                                \
+               D_ASSERT( (r)->y1 <= (r)->y2 );                                                                \
+          }                                                                                                   \
+     } while (0)
+
+#define DFB_BOX_ASSERT(b)                                                                                     \
+     do {                                                                                                     \
+          D_ASSERT( (b) != NULL );                                                                            \
+          D_ASSERT( (b)->x1 <= (b)->x2 );                                                                     \
+          D_ASSERT( (b)->y1 <= (b)->y2 );                                                                     \
+     } while (0)
+
+#define DFB_BOX_ASSERT_IF(b)                                                                                  \
+     do {                                                                                                     \
+          if ((b) != NULL) {                                                                                  \
+               D_ASSERT( (b)->x1 <= (b)->x2 );                                                                \
+               D_ASSERT( (b)->y1 <= (b)->y2 );                                                                \
+          }                                                                                                   \
+     } while (0)
+
+
+#define DFB_RECTANGLES_DEBUG_AT( Domain, rects, num )                                                         \
      do {                                                                                                     \
           unsigned int i;                                                                                     \
                                                                                                               \
           for (i=0; i<(num); i++)                                                                             \
-               D_DEBUG_AT( Domain, "  -> [%2d] %4d,%4d-%4d,%4d\n", i, DFB_REGION_VALS(&(regions)[i]) );       \
+               D_DEBUG_AT( Domain, "  -> [%3d] %4d,%4d-%4dx%4d\n", i, DFB_RECTANGLE_VALS(&(rects)[i]) );      \
      } while (0)
+
+#define DFB_RECTANGLES2_DEBUG_AT( Domain, rects, rects2, num )                                                \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%3d] %4d,%4d-%4dx%4d <- %4d,%4d-%4dx%4d\n", i,                      \
+                                   DFB_RECTANGLE_VALS(&(rects)[i]), DFB_RECTANGLE_VALS(&(rects2)[i]) );       \
+     } while (0)
+
+#define DFB_RECTANGLES_POINTS_DEBUG_AT( Domain, rects, points, num )                                          \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%3d] %4d,%4d-%4dx%4d <- %4d,%4d\n", i,                              \
+                                   DFB_RECTANGLE_VALS(&(rects)[i]), DFB_POINT_VALS(&(points)[i]) );           \
+     } while (0)
+
+
+#define DFB_BOXES2_DEBUG_AT( Domain, boxes, boxes2, num )                                                     \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%3d] %4d,%4d-%4dx%4d <- %4d,%4d-%4dx%4d\n", i,                      \
+                                   DFB_RECTANGLE_VALS_FROM_BOX(&(boxes)[i]), DFB_RECTANGLE_VALS_FROM_BOX(&(boxes2)[i]) );       \
+     } while (0)
+
+
+#define DFB_REGIONS_LOG( Domain, LEVEL, regs, num )                                                             \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%3d] %4d,%4d-%4dx%4d\n", i, DFB_RECTANGLE_VALS_FROM_REGION(&((regs)[i])) );\
+     } while (0)
+
+#define DFB_REGIONS_DEBUG_AT( Domain, regs, num )                                                             \
+     DFB_REGIONS_LOG( Domain, DEBUG, regs, num )                                                              \
+
+
+#define DFB_BOXES_LOG( Domain, _LEVEL, boxes, num )                                                           \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_LOG( Domain, _LEVEL, "  -> [%3d] %4d,%4d-%4dx%4d\n", i, DFB_RECTANGLE_VALS_FROM_BOX(&(boxes)[i]) );\
+     } while (0)
+
+#define DFB_BOXES_DEBUG_AT( Domain, boxes, num )                                                              \
+     do {                                                                                                     \
+          DFB_BOXES_LOG( Domain, DEBUG, boxes, num );                                                         \
+     } while (0)
+
+#define DFB_LINES_DEBUG_AT( Domain, lines, num )                                                              \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%3d] %4d,%4d-%4d,%4d\n", i, DFB_LINE_VALS(&(lines)[i]) );           \
+     } while (0)
+
+#define DFB_POINTS_DEBUG_AT( Domain, points, num )                                                            \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%3d] %4d,%4d\n", i, DFB_POINT_VALS(&(points)[i]) );                 \
+     } while (0)
+
+#define DFB_TRIANGLES_DEBUG_AT( Domain, tris, num )                                                           \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%3d] %4d,%4d-%4d,%4d-%4d,%4d\n", i, DFB_TRIANGLE_VALS(&(tris)[i]) );\
+     } while (0)
+
+#define DFB_SPANS_DEBUG_AT( Domain, spans, num, y )                                                           \
+     do {                                                                                                     \
+          unsigned int i;                                                                                     \
+                                                                                                              \
+          for (i=0; i<(num); i++)                                                                             \
+               D_DEBUG_AT( Domain, "  -> [%3d] %4d,%4d-%4d\n", i, DFB_SPAN_VALS_AT(&(spans)[i],y+i) );        \
+     } while (0)
+
+
+#else
+
+#define DFB_RECTANGLE_ASSERT(r)                                                                               \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_RECTANGLE_ASSERT_IF(r)                                                                            \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_REGION_ASSERT(r)                                                                                  \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_REGION_ASSERT_IF(r)                                                                               \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_BOX_ASSERT(b)                                                                                     \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_BOX_ASSERT_IF(b)                                                                                  \
+     do {                                                                                                     \
+     } while (0)
+
+
+#define DFB_RECTANGLES_DEBUG_AT( Domain, rects, num )                                                         \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_RECTANGLES2_DEBUG_AT( Domain, rects, rects2, num )                                                \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_RECTANGLES_POINTS_DEBUG_AT( Domain, rects, points, num )                                          \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_REGIONS_DEBUG_AT( Domain, regs, num )                                                             \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_BOXES_LOG( Domain, _LEVEL, boxes, num )                                                           \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_BOXES_DEBUG_AT( Domain, boxes, num )                                                              \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_LINES_DEBUG_AT( Domain, lines, num )                                                              \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_POINTS_DEBUG_AT( Domain, points, num )                                                            \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_TRIANGLES_DEBUG_AT( Domain, tris, num )                                                           \
+     do {                                                                                                     \
+     } while (0)
+
+#define DFB_SPANS_DEBUG_AT( Domain, spans, num, y )                                                           \
+     do {                                                                                                     \
+     } while (0)
+
+#endif
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
 
 static __inline__ void dfb_rectangle_from_region( DFBRectangle    *rect,
