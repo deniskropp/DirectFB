@@ -12,6 +12,7 @@ include_HEADERS = \
 	directfb_strings.h	\
 	directfb_util.h		\
 	directfb_version.h	\
+	directfb_water.h	\
 	directfbgl.h		\
 	directfbgl2.h		\
 	dfb_types.h		\
@@ -41,6 +42,8 @@ directfb_keynames.h: directfb_keyboard.h $(MKNAMES) Makefile
 directfb_strings.h: directfb.h $(MKNAMES) Makefile
 	@echo '#ifndef __DIRECTFB_STRINGS_H__' > $@
 	@echo '#define __DIRECTFB_STRINGS_H__' >> $@
+	@echo '#include <directfb.h>' >> $@
+	@echo '#include <directfb_water.h>' >> $@
 
 	$(MKNAMES) DFBSurfacePixelFormat DSPF UNKNOWN PixelFormat format $(INCP)/directfb.h >> $@
 
@@ -124,6 +127,9 @@ directfb_strings.h: directfb.h $(MKNAMES) Makefile
 
 	$(MKNAMES) DFBAccelerationMask DFXL NONE AccelerationMask mask $(INCP)/directfb.h \
 	   | grep -v DFXL_ALL >> $@
+
+	$(MKNAMES) WaterElementType WET UNKNOWN WaterElementType type $(INCP)/directfb_water.h \
+	   | grep -v WET_ALL >> $@
 
 	@echo '' >> $@
 	@echo '#endif' >> $@
