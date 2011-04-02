@@ -1139,11 +1139,6 @@ static DFBResult
 region_buffer_unlock( CoreLayerRegion *region,
                       bool             unlockSurface)
 {
-     DFBResult               ret;
-     CoreSurfaceAccessFlags  flags;
-     CoreSurfaceBuffer      *buffer;
-     CoreSurfaceAllocation  *allocation;
-
      D_ASSERT(region != NULL);
 
      D_DEBUG_AT( Core_Layers, "%s(): region=%p, lock buffer=%p\n", __FUNCTION__, (void *)region, (void *)region->left_buffer_lock.buffer );
