@@ -29,18 +29,43 @@
 #ifndef __VNC__VNC_H__
 #define __VNC__VNC_H__
 
+#include <directfb.h>
+
+#include <rfb/rfb.h>
+
 #include <fusion/call.h>
 #include <fusion/lock.h>
 
-typedef struct {
-     FusionSkirmish  lock;
-     FusionCall      call;
+#include <core/layers.h>
+#include <core/screens.h>
 
-     CoreSurface    *primary;
-     CoreDFB        *core;
-     
+
+typedef struct {
+     FusionCall          call;
+
+     DFBDimension        screen_size;
+     void               *screen_buffer;
+     CoreSurface        *screen_surface;
+} DFBVNCShared;
+
+typedef struct {
+     DFBVNCShared       *shared;
+
+     CoreDFB            *core;
+
+     CoreScreen         *screen;
+     CoreLayer          *layer;
+
+     rfbScreenInfoPtr    rfb_screen;
 } DFBVNC;
 
+typedef enum {
+     VNC_MARK_RECT_AS_MODIFIED,
+} DFBVNCCall;
+
+typedef struct {
+     DFBRegion           region;
+} DFBVNCMarkRectAsModified;
 
 #endif
 

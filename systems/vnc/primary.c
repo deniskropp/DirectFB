@@ -41,8 +41,10 @@
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
+#include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/palette.h>
+#include <core/state.h>
 #include <core/surface.h>
 #include <core/system.h>
 #include <core/input.h>
@@ -61,14 +63,18 @@
 #include "primary.h"
 
 
+D_DEBUG_DOMAIN( VNC_Layer,  "VNC/Layer",  "VNC Layer" );
+
+/**********************************************************************************************************************/
+
 /******************************************************************************/
 /*VNC server setup*/
 /* Here we create a structure so that every client has it's own pointer */
 
 typedef struct ClientData {
-  int oldButtonMask;
-  int oldButton;
-  int oldx,oldy;
+     DFBVNC *vnc;
+     int oldButtonMask;
+     int oldx,oldy;
 } ClientData;
 
 static void process_key_event(rfbBool down, rfbKeySym key, struct _rfbClientRec* cl);
@@ -77,23 +83,7 @@ static bool translate_key(rfbKeySym key, DFBInputEvent *evt );
 static void clientgone(rfbClientPtr cl);
 static enum rfbNewClientAction newclient(rfbClientPtr cl);
 
-
-
-static DFBEnumerationResult attach_input_device( CoreInputDevice *device, void *ctx );
-
-static DFBResult dfb_vnc_set_video_mode( CoreDFB* core, CoreLayerRegionConfig *config );
-static DFBResult dfb_vnc_update_screen( CoreDFB *core, DFBRegion *region );
-static DFBResult dfb_vnc_set_palette( CorePalette *palette );
-
-static DFBResult update_screen( CoreSurface *surface,
-                                int x, int y, int w, int h );
-
-static void* vnc_server_thread( DirectThread *thread, void *data );
-
-extern DFBVNC *dfb_vnc;
-extern CoreDFB *dfb_vnc_core;
-rfbScreenInfoPtr rfb_screen = NULL;
-static CoreInputDevice *vncInputDevice;
+extern CoreInputDevice *vncInputDevice;
 
 /******************************************************************************/
 
@@ -104,12 +94,91 @@ primaryInitScreen( CoreScreen           *screen,
                    void                 *screen_data,
                    DFBScreenDescription *description )
 {
+     int            argc   = 0;
+     char         **argv   = NULL;
+     DFBVNC        *vnc    = driver_data;
+     DFBVNCShared  *shared = vnc->shared;
+
      /* Set the screen capabilities. */
      description->caps = DSCCAPS_NONE;
 
      /* Set the screen name. */
-     snprintf( description->name,
-               DFB_SCREEN_DESC_NAME_LENGTH, "VNC Primary Screen" );
+     direct_snputs( description->name, "VNC Primary Screen", DFB_SCREEN_DESC_NAME_LENGTH );
+
+     /*
+      * Allocate shared memory for RFB screen frame buffer
+      */
+     shared->screen_buffer = SHCALLOC( dfb_core_shmpool_data(vnc->core), shared->screen_size.h, 4 * shared->screen_size.w );
+     if (!shared->screen_buffer)
+          return D_OOSHM();
+
+
+     /* Set video mode */
+     vnc->rfb_screen = rfbGetScreen( &argc, argv, shared->screen_size.w, shared->screen_size.h, 8, 3, 4 );
+     if (!vnc->rfb_screen) {
+          D_ERROR( "DirectFB/VNC: rfbGetScreen( %dx%d, 8, 3, 4 ) failed!\n", shared->screen_size.w, shared->screen_size.h );
+          SHFREE( dfb_core_shmpool_data(vnc->core), shared->screen_buffer );
+          return DFB_FAILURE;
+     }
+
+     vnc->rfb_screen->screenData = vnc;
+
+     rfbNewFramebuffer( vnc->rfb_screen, shared->screen_buffer, shared->screen_size.w, shared->screen_size.h, 8, 3, 4 );
+
+
+     /* Connect key handler */
+
+     vnc->rfb_screen->kbdAddEvent   = process_key_event;
+     vnc->rfb_screen->ptrAddEvent   = process_pointer_event;
+     vnc->rfb_screen->newClientHook = newclient;
+     vnc->rfb_screen->autoPort      = TRUE;
+
+     /* Initialize VNC */
+
+     rfbInitServer(vnc->rfb_screen);
+
+     if (vnc->rfb_screen->listenSock == -1) {
+          D_ERROR( "DirectFB/VNC: rfbInitServer() failed to initialize listening socket!\n" );
+          SHFREE( dfb_core_shmpool_data(vnc->core), shared->screen_buffer );
+          return DFB_FAILURE;
+     }
+
+
+     DFBResult         ret;
+     CoreSurfaceConfig config;
+
+     config.flags                  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS | CSCONF_PREALLOCATED;
+     config.size.w                 = shared->screen_size.w;
+     config.size.h                 = shared->screen_size.h;
+     config.format                 = DSPF_ABGR;
+     config.caps                   = DSCAPS_SYSTEMONLY;// | DSCAPS_SHARED;
+     config.preallocated[0].addr   = shared->screen_buffer;
+     config.preallocated[0].handle = 0;
+     config.preallocated[0].pitch  = shared->screen_size.w * 4;
+
+     ret = dfb_surface_create( vnc->core, &config, CSTF_PREALLOCATED, 0, NULL, &shared->screen_surface );
+     if (ret) {
+          D_DERROR( ret, "DirectFB/VNC: Could not create preallocated screen surface!\n" );
+          SHFREE( dfb_core_shmpool_data(vnc->core), shared->screen_buffer );
+          return ret;
+     }
+
+
+     rfbRunEventLoop( vnc->rfb_screen, -1, TRUE );
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryShutdownScreen( CoreScreen *screen,
+                       void       *driver_data,
+                       void       *screen_data )
+{
+     DFBVNC *vnc = driver_data;
+
+     rfbScreenCleanup( vnc->rfb_screen );
+
+     SHFREE( dfb_core_shmpool_data(vnc->core), vnc->shared->screen_buffer );
 
      return DFB_OK;
 }
@@ -121,40 +190,28 @@ primaryGetScreenSize( CoreScreen *screen,
                       int        *ret_width,
                       int        *ret_height )
 {
-     D_ASSERT( dfb_vnc != NULL );
+     DFBVNC *vnc = driver_data;
 
-     if (dfb_vnc->primary) {
-          *ret_width  = dfb_vnc->primary->config.size.w;
-          *ret_height = dfb_vnc->primary->config.size.h;
-     }
-     else {
-          if (dfb_config->mode.width)
-               *ret_width  = dfb_config->mode.width;
-          else
-               *ret_width  = 640;
-
-          if (dfb_config->mode.height)
-               *ret_height = dfb_config->mode.height;
-          else
-               *ret_height = 480;
-     }
+     *ret_width  = vnc->shared->screen_size.w;
+     *ret_height = vnc->shared->screen_size.h;
 
      return DFB_OK;
 }
 
-static ScreenFuncs primaryScreenFuncs = {
-     .InitScreen    = primaryInitScreen,
-     .GetScreenSize = primaryGetScreenSize,
+static const ScreenFuncs _vncPrimaryScreenFuncs = {
+     .InitScreen     = primaryInitScreen,
+     .ShutdownScreen = primaryShutdownScreen,
+     .GetScreenSize  = primaryGetScreenSize,
 };
 
-ScreenFuncs *vncPrimaryScreenFuncs = &primaryScreenFuncs;
+const ScreenFuncs *vncPrimaryScreenFuncs = &_vncPrimaryScreenFuncs;
 
 /******************************************************************************/
 
 static int
 primaryLayerDataSize( void )
 {
-     return 0;
+     return sizeof(VNCLayerData);
 }
 
 static int
@@ -171,11 +228,15 @@ primaryInitLayer( CoreLayer                  *layer,
                   DFBDisplayLayerConfig      *config,
                   DFBColorAdjustment         *adjustment )
 {
+     DFBVNC *vnc = driver_data;
+
      D_DEBUG( "DirectFB/VNC: primaryInitLayer\n");
-          
+
      /* set capabilities and type */
-     description->caps = DLCAPS_SURFACE;
-     description->type = DLTF_GRAPHICS;
+     description->caps             = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION | DLCAPS_ALPHACHANNEL;
+     description->type             = DLTF_GRAPHICS;
+     description->surface_caps     = DSCAPS_SYSTEMONLY | DSCAPS_SHARED;
+     description->surface_accessor = CSAID_CPU;
 
      /* set name */
      snprintf( description->name,
@@ -185,23 +246,15 @@ primaryInitLayer( CoreLayer                  *layer,
      config->flags       = DLCONF_WIDTH       | DLCONF_HEIGHT |
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
      config->buffermode  = DLBM_FRONTONLY;
-
-     if (dfb_config->mode.width)
-          config->width  = dfb_config->mode.width;
-     else
-          config->width  = 640;
-
-     if (dfb_config->mode.height)
-          config->height = dfb_config->mode.height;
-     else
-          config->height = 480;
+     config->width       = vnc->shared->screen_size.w;
+     config->height      = vnc->shared->screen_size.h;
 
      if (dfb_config->mode.format != DSPF_UNKNOWN)
           config->pixelformat = dfb_config->mode.format;
      else if (dfb_config->mode.depth > 0)
           config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
      else
-          config->pixelformat = DSPF_RGB24;
+          config->pixelformat = DSPF_RGB32;
 
      return DFB_OK;
 }
@@ -219,6 +272,7 @@ primaryTestRegion( CoreLayer                  *layer,
           case DLBM_FRONTONLY:
           case DLBM_BACKSYSTEM:
           case DLBM_BACKVIDEO:
+          case DLBM_TRIPLE:
                break;
 
           default:
@@ -249,6 +303,73 @@ primaryAddRegion( CoreLayer             *layer,
 }
 
 static DFBResult
+UpdateScreen( DFBVNC                *vnc,
+              VNCLayerData          *data,
+              const DFBRectangle    *update,
+              CoreSurfaceBufferLock *lock )
+{
+     DFBVNCShared *shared = vnc->shared;
+     DFBRegion     clip   = { 0, 0, shared->screen_size.w - 1, shared->screen_size.h - 1};
+     CardState     state;
+
+     D_DEBUG_AT( VNC_Layer, "%s()\n", __FUNCTION__ );
+
+     if (update) {
+          if (!dfb_region_rectangle_intersect( &clip, update )) {
+               D_DEBUG_AT( VNC_Layer, "  -> update not intersecting with screen area!\n" );
+               return DFB_OK;
+          }
+     }
+
+     dfb_state_init( &state, vnc->core );
+
+     state.destination = shared->screen_surface;
+     state.source      = lock ? lock->buffer->surface : NULL;
+     state.clip        = clip;
+
+     if (!lock ||
+         data->config.dest.x != 0 || data->config.dest.y != 0 ||
+         data->config.dest.w != shared->screen_size.w ||
+         data->config.dest.h != shared->screen_size.h)
+     {
+          DFBRectangle rect = {
+               0, 0, shared->screen_size.w, shared->screen_size.h
+          };
+
+          dfb_gfxcard_fillrectangles( &rect, 1, &state );
+     }
+
+     if (lock) {
+          DFBRectangle src = data->config.source;
+          DFBRectangle dst = data->config.dest;
+
+          dfb_gfxcard_stretchblit( &src, &dst, &state );
+     }
+
+     dfb_gfxcard_sync();
+
+     state.destination = NULL;
+     state.source      = NULL;
+
+     dfb_state_destroy( &state );
+
+
+     DirectResult             ret;
+     DFBVNCMarkRectAsModified mark;
+
+     mark.region = clip;
+
+     ret = fusion_call_execute2( &shared->call, FCEF_ONEWAY,
+                                 VNC_MARK_RECT_AS_MODIFIED, &mark, sizeof(mark), NULL );
+     if (ret) {
+          D_DERROR( ret, "DirectFB/VNC: fusion_call_execute2() failed!\n" );
+          return ret;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
 primarySetRegion( CoreLayer                  *layer,
                   void                       *driver_data,
                   void                       *layer_data,
@@ -257,24 +378,19 @@ primarySetRegion( CoreLayer                  *layer,
                   CoreLayerRegionConfigFlags  updated,
                   CoreSurface                *surface,
                   CorePalette                *palette,
-                  CoreSurfaceBufferLock      *lock )
+                  CoreSurfaceBufferLock      *left_lock,
+                  CoreSurfaceBufferLock      *right_lock )
 {
-     DFBResult ret;
+     DFBVNC       *vnc  = driver_data;
+     VNCLayerData *data = layer_data;
 
-     D_DEBUG( "DirectFB/VNC: primarySetRegion\n");
+     D_DEBUG_AT( VNC_Layer, "%s()\n", __FUNCTION__ );
 
-     ret = dfb_vnc_set_video_mode( dfb_vnc_core, config );
-     if (ret)
-          return ret;
+     data->config = *config;
 
-     if (surface)
-          dfb_vnc->primary = surface;
+     if (data->shown)
+          return UpdateScreen( vnc, data, NULL, left_lock );
 
-     if (palette)
-          dfb_vnc_set_palette( palette );
-
-     driver_data = (void*) rfb_screen; 
-     
      return DFB_OK;
 }
 
@@ -284,9 +400,14 @@ primaryRemoveRegion( CoreLayer             *layer,
                      void                  *layer_data,
                      void                  *region_data )
 {
-     dfb_vnc->primary = NULL;
+     DFBVNC       *vnc  = driver_data;
+     VNCLayerData *data = layer_data;
 
-     return DFB_OK;
+     D_DEBUG_AT( VNC_Layer, "%s()\n", __FUNCTION__ );
+
+     data->shown = false;
+
+     return UpdateScreen( vnc, data, NULL, NULL );
 }
 
 static DFBResult
@@ -296,11 +417,19 @@ primaryFlipRegion( CoreLayer             *layer,
                    void                  *region_data,
                    CoreSurface           *surface,
                    DFBSurfaceFlipFlags    flags,
-                   CoreSurfaceBufferLock *lock )
+                   CoreSurfaceBufferLock *left_lock,
+                   CoreSurfaceBufferLock *right_lock )
 {
+     DFBVNC       *vnc  = driver_data;
+     VNCLayerData *data = layer_data;
+
+     D_DEBUG_AT( VNC_Layer, "%s()\n", __FUNCTION__ );
+
      dfb_surface_flip( surface, false );
 
-     return dfb_vnc_update_screen( dfb_vnc_core, NULL );
+     data->shown = true;
+
+     return UpdateScreen( vnc, data, &data->config.dest, left_lock );
 }
 
 static DFBResult
@@ -309,86 +438,27 @@ primaryUpdateRegion( CoreLayer             *layer,
                      void                  *layer_data,
                      void                  *region_data,
                      CoreSurface           *surface,
-                     const DFBRegion       *update,
-                     CoreSurfaceBufferLock *lock )
+                     const DFBRegion       *left_update,
+                     CoreSurfaceBufferLock *left_lock,
+                     const DFBRegion       *right_update,
+                     CoreSurfaceBufferLock *right_lock )
 {
-     if (update) {
-          DFBRegion region = *update;
+     DFBVNC       *vnc    = driver_data;
+     VNCLayerData *data   = layer_data;
 
-          return dfb_vnc_update_screen( dfb_vnc_core, &region );
-     }
+     DFBRectangle  update = data->config.dest;
 
-     return dfb_vnc_update_screen( dfb_vnc_core, NULL );
+     D_DEBUG_AT( VNC_Layer, "%s()\n", __FUNCTION__ );
+
+     if (left_update && !dfb_rectangle_intersect_by_region( &update, left_update ))
+          return DFB_OK;
+
+     data->shown = true;
+
+     return UpdateScreen( vnc, data, &update, left_lock );
 }
 
-static DFBResult
-primaryAllocateSurface( CoreLayer              *layer,
-                        void                   *driver_data,
-                        void                   *layer_data,
-                        void                   *region_data,
-                        CoreLayerRegionConfig  *config,
-                        CoreSurface           **ret_surface )
-{
-     CoreSurfaceConfig conf;
-
-     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-     conf.size.w = config->width;
-     conf.size.h = config->height;
-     conf.format = config->format;
-     conf.caps   = DSCAPS_SYSTEMONLY;
-
-     if (config->buffermode != DLBM_FRONTONLY)
-          conf.caps |= DSCAPS_DOUBLE;
-
-     return dfb_surface_create( dfb_vnc_core, &conf, CSTF_LAYER, DLID_PRIMARY, NULL, ret_surface );
-}
-
-static DFBResult
-primaryReallocateSurface( CoreLayer             *layer,
-                          void                  *driver_data,
-                          void                  *layer_data,
-                          void                  *region_data,
-                          CoreLayerRegionConfig *config,
-                          CoreSurface           *surface )
-{
-     DFBResult         ret;
-     CoreSurfaceConfig conf;
-
-     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-     conf.size.w = config->width;
-     conf.size.h = config->height;
-     conf.format = config->format;
-     conf.caps   = DSCAPS_SYSTEMONLY;
-
-     if (config->buffermode != DLBM_FRONTONLY)
-          conf.caps |= DSCAPS_DOUBLE;
-
-     ret = dfb_surface_reconfig( surface, &conf );
-     if (ret)
-          return ret;
-
-     if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
-          DFBResult    ret;
-          CorePalette *palette;
-
-          ret = dfb_palette_create( NULL,    /* FIXME */
-                                    1 << DFB_COLOR_BITS_PER_PIXEL( config->format ),
-                                    &palette );
-          if (ret)
-               return ret;
-
-          if (config->format == DSPF_LUT8)
-               dfb_palette_generate_rgb332_map( palette );
-
-          dfb_surface_set_palette( surface, palette );
-
-          dfb_palette_unref( palette );
-     }
-
-     return DFB_OK;
-}
-
-static DisplayLayerFuncs primaryLayerFuncs = {
+static const DisplayLayerFuncs _vncPrimaryLayerFuncs = {
      .LayerDataSize     = primaryLayerDataSize,
      .RegionDataSize    = primaryRegionDataSize,
      .InitLayer         = primaryInitLayer,
@@ -399,418 +469,105 @@ static DisplayLayerFuncs primaryLayerFuncs = {
      .RemoveRegion      = primaryRemoveRegion,
      .FlipRegion        = primaryFlipRegion,
      .UpdateRegion      = primaryUpdateRegion,
-
-     .AllocateSurface   = primaryAllocateSurface,
-     .ReallocateSurface = primaryReallocateSurface,
 };
 
-DisplayLayerFuncs *vncPrimaryLayerFuncs = &primaryLayerFuncs;
+const DisplayLayerFuncs *vncPrimaryLayerFuncs = &_vncPrimaryLayerFuncs;
 
 
-/******************************************************************************/
-
-static DFBResult
-update_screen( CoreSurface *surface, int x, int y, int w, int h )
-{
-     DFBResult              ret;
-     int                    i, j, k;
-     void                  *dst, *p;
-     void                  *src, *q;
-     CoreSurfaceBufferLock  lock;
-
-     D_ASSERT( surface != NULL );
-     D_ASSERT( rfb_screen != NULL );
-     D_ASSERT( rfb_screen->frameBuffer != NULL );
-
-     ret = dfb_surface_lock_buffer( surface, CSBR_FRONT, CSAID_CPU, CSAF_READ, &lock );
-     if (ret) {
-          D_DERROR( ret, "DirectFB/VNC: Couldn't lock layer surface!\n" );
-          return ret;
-     }
-
-     src = lock.addr + DFB_BYTES_PER_LINE( surface->config.format, x ) + y * lock.pitch;
-
-     dst = rfb_screen->frameBuffer + x * rfb_screen->depth/8 + y * rfb_screen->width * rfb_screen->depth/8;
-
-     for (i=0; i<h; ++i) {
-          /*direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );*/
-          for (j=0, p=src, q=dst; j<w; j++, 
-              p += DFB_BYTES_PER_PIXEL(surface->config.format),
-              q += rfb_screen->depth/8) {
-               /*direct_memcpy( q, p, DFB_BYTES_PER_PIXEL(surface->config.format));*/
-               /**(char*) q = *(char*) (p+2);
-               *(char*) (q+1) = *(char*) (p+1);
-               *(char*) (q+2) = *(char*) p;*/
-               for (k=0; k<DFB_BYTES_PER_PIXEL(surface->config.format); k++)
-                    *(char*) (q+k) = *(char*) (p+DFB_BYTES_PER_PIXEL(surface->config.format)-1-k);
-          }
-
-          src += lock.pitch;
-          dst += rfb_screen->width * rfb_screen->depth/8;
-     }
-
-     rfbMarkRectAsModified ( rfb_screen, x, y, x+w, y+h );
-
-     dfb_surface_unlock_buffer( surface, &lock );
-
-
-#if 0 /* Mire test */
-
-     maxx = screen->width ;
-     maxy = screen->height ;
-     bpp = screen->depth/8 ;
-     buffer = screen->frameBuffer ;
-
-
-      for(j=0;j<maxy;++j) {
-         for(i=0;i<maxx;++i) {
-                       buffer[(j*maxx+i)*bpp+0]=(i+j)*128/(maxx+maxy); /* red */
-                         buffer[(j*maxx+i)*bpp+1]=i*128/maxx; /* green */
-                           buffer[(j*maxx+i)*bpp+2]=j*256/maxy; /* blue */
-                               }
-                 buffer[j*maxx*bpp+0]=0xff;
-                 buffer[j*maxx*bpp+1]=0xff;
-                     buffer[j*maxx*bpp+2]=0xff;
-                     buffer[j*maxx*bpp+3]=0xff;
-                       }
-     
-
-       
-       rfbMarkRectAsModified ( screen, 0, 0, 600, 800);
-#endif
-     
-     return DFB_OK;
-}
-
-/******************************************************************************/
-
-typedef enum {
-     VNC_SET_VIDEO_MODE,
-     VNC_UPDATE_SCREEN,
-     VNC_SET_PALETTE
-} DFBVNCCall;
-
-static DFBResult
-dfb_vnc_set_video_mode_handler( CoreLayerRegionConfig *config )
-{
-     int argc = 0;
-     char** argv = NULL;
-
-     D_DEBUG( "DirectFB/VNC: layer config properties\n");
-
-     if(rfb_screen) /*!!! FIXME*/
-         return DFB_OK;
-
-     fusion_skirmish_prevail( &dfb_vnc->lock );
-
-     /* Set video mode */
-     rfb_screen = rfbGetScreen(&argc, argv, config->width, config->height, DFB_BITS_PER_PIXEL(config->format)/3, 3, 4);
-     
-     D_DEBUG( "DirectFB/VNC: rfbGetScreen parameters: width %d height %d bitspersample %d samplesperpixel %d bytesperpixel %d\n", config->width, config->height, DFB_BITS_PER_PIXEL(config->format)/3, 3, 4);
-     
-     /*screen = rfbGetScreen(&argc, argv, config->width, config->height, 8, 3, 4);*/
-
-     if ( rfb_screen == NULL )
-     {
-             D_ERROR( "DirectFB/VNC: Couldn't set %dx%dx%d video mode\n",
-                      config->width, config->height,
-                      DFB_COLOR_BITS_PER_PIXEL(config->format) );
-
-             fusion_skirmish_dismiss( &dfb_vnc->lock );
-
-             return DFB_FAILURE;
-     }
-
-     if(DFB_COLOR_BITS_PER_PIXEL(config->format) == DSPF_RGB16)
-     {
-        rfb_screen->serverFormat.redShift = 11;
-        rfb_screen->serverFormat.greenShift = 5;
-        rfb_screen->serverFormat.blueShift = 0;
-        rfb_screen->serverFormat.redMax = 31;
-        rfb_screen->serverFormat.greenMax = 63;
-        rfb_screen->serverFormat.blueMax = 31;
-     }
-    
-     /* screen->serverFormat.trueColour=FALSE; */
-
-     rfb_screen->frameBuffer = malloc(rfb_screen->width * rfb_screen->height * rfb_screen->depth / 8) ;
-     
-     if ( ! rfb_screen->frameBuffer )
-     {
-             fusion_skirmish_dismiss( &dfb_vnc->lock );
-
-             return DFB_NOSYSTEMMEMORY;
-     }
-
-     /* Connect key handler */
-
-     rfb_screen->kbdAddEvent = process_key_event;
-     rfb_screen->ptrAddEvent = process_pointer_event;
-     rfb_screen->newClientHook = newclient;
-     
-     /* Initialize VNC */
-     
-     rfbInitServer(rfb_screen);
-     
-     /* Now creating a thread to process the server */
-
-     direct_thread_create( DTT_OUTPUT, vnc_server_thread, rfb_screen, "VNC Output" ); 
-    
-     fusion_skirmish_dismiss( &dfb_vnc->lock );
-
-     return DFB_OK;
-}
-
-static void*
-vnc_server_thread( DirectThread *thread, void *data )
-{
-   rfbRunEventLoop(rfb_screen, -1, FALSE); 
-   return NULL;
-}
-
-
-static DFBResult
-dfb_vnc_update_screen_handler( DFBRegion *region )
-{
-     DFBResult    ret;
-     CoreSurface *surface;
-      
-      D_ASSERT(dfb_vnc);
-      
-      surface = dfb_vnc->primary;
-
-     fusion_skirmish_prevail( &dfb_vnc->lock );
-
-     if (!region)
-          ret = update_screen( surface, 0, 0, surface->config.size.w, surface->config.size.h );
-     else
-          ret = update_screen( surface,
-                               region->x1,  region->y1,
-                               region->x2 - region->x1 + 1,
-                               region->y2 - region->y1 + 1 );
-
-     fusion_skirmish_dismiss( &dfb_vnc->lock );
-
-     return DFB_OK;
-}
-
-static DFBResult
-dfb_vnc_set_palette_handler( CorePalette *palette )
-{
-     unsigned int i;
-     uint8_t* map;
-
-     rfb_screen->colourMap.count = palette->num_entries;
-     rfb_screen->colourMap.is16 = false;
-     rfb_screen->serverFormat.trueColour=FALSE;
-
-     D_DEBUG( "DirectFB/VNC: setting colourmap of size %d\n", palette->num_entries);
-     
-     if( (map = (uint8_t*) malloc(rfb_screen->colourMap.count*sizeof(uint8_t)*3)) == NULL )
-          return DFB_NOSYSTEMMEMORY;
-
-     for (i=0; i<palette->num_entries; i++) {
-          *(map++) = palette->entries[i].r;
-          *(map++) = palette->entries[i].g;
-          *(map++) = palette->entries[i].b;
-     }
-
-     fusion_skirmish_prevail( &dfb_vnc->lock );
-
-     if( rfb_screen->colourMap.data.bytes )
-          free(rfb_screen->colourMap.data.bytes);
-     rfb_screen->colourMap.data.bytes = map;
-
-     fusion_skirmish_dismiss( &dfb_vnc->lock );
-
-     return DFB_OK;
-}
-
-FusionCallHandlerResult
-dfb_vnc_call_handler( int           caller,
-                      int           call_arg,
-                      void         *call_ptr,
-                      void         *ctx,
-                      unsigned int  serial,
-                      int          *ret_val )
-{
-     switch (call_arg) {
-          case VNC_SET_VIDEO_MODE:
-               *ret_val = dfb_vnc_set_video_mode_handler( call_ptr );
-               break;
-
-          case VNC_UPDATE_SCREEN:
-               *ret_val = dfb_vnc_update_screen_handler( call_ptr );
-               break;
-
-          case VNC_SET_PALETTE:
-               *ret_val = dfb_vnc_set_palette_handler( call_ptr );
-               break;
-
-          default:
-               D_BUG( "unknown call" );
-               *ret_val = DFB_BUG;
-               break;
-     }
-
-     return FCHR_RETURN;
-}
-
-static DFBResult
-dfb_vnc_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
-{
-     int                    ret;
-     CoreLayerRegionConfig *tmp = NULL;
-
-     D_ASSERT( config != NULL );
-
-     if (dfb_core_is_master( core ))
-          return dfb_vnc_set_video_mode_handler( config );
-
-     if (!fusion_is_shared( dfb_core_world(core), config )) {
-          tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(CoreLayerRegionConfig) );
-          if (!tmp)
-               return D_OOSHM();
-
-          direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
-     }
-
-     fusion_call_execute( &dfb_vnc->call, FCEF_NONE, VNC_SET_VIDEO_MODE,
-                          tmp ? tmp : config, &ret );
-
-     if (tmp)
-          SHFREE( dfb_core_shmpool(core), tmp );
-
-     return ret;
-}
-
-static DFBResult
-dfb_vnc_update_screen( CoreDFB *core, DFBRegion *region )
-{
-     int        ret;
-     DFBRegion *tmp = NULL;
-
-     if (dfb_core_is_master( core ))
-          return dfb_vnc_update_screen_handler( region );
-
-     if (region) {
-          if (!fusion_is_shared( dfb_core_world(core), region )) {
-               tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(DFBRegion) );
-               if (!tmp)
-                    return D_OOSHM();
-
-               direct_memcpy( tmp, region, sizeof(DFBRegion) );
-          }
-     }
-
-     fusion_call_execute( &dfb_vnc->call, FCEF_NONE, VNC_UPDATE_SCREEN,
-                          tmp ? tmp : region, &ret );
-
-     if (tmp)
-          SHFREE( dfb_core_shmpool(core), tmp );
-
-     return DFB_OK;
-}
-
-static DFBResult
-dfb_vnc_set_palette( CorePalette *palette )
-{
-     int ret;
-
-     fusion_call_execute( &dfb_vnc->call, FCEF_NONE, VNC_SET_PALETTE,
-                          palette, &ret );
-
-     return ret;
-}
+/**********************************************************************************************************************/
 
 /**
   VNC Server setup
 **/
 
-static DFBEnumerationResult
-attach_input_device( CoreInputDevice *device,
-                      void            *ctx )
+static void
+clientgone(rfbClientPtr cl)
 {
-  vncInputDevice = device;
-  return DFENUM_OK;
+     D_FREE( cl->clientData );
 }
 
-static void clientgone(rfbClientPtr cl)
+static enum rfbNewClientAction
+newclient(rfbClientPtr cl)
 {
-  free(cl->clientData);
+     ClientData *cd;
+     DFBVNC     *vnc = cl->screen->screenData;
+
+     cd = D_CALLOC( 1, sizeof(ClientData) );
+     if (!cd) {
+          D_OOM();
+          return RFB_CLIENT_REFUSE;
+     }
+
+     cd->vnc = vnc;
+
+     cl->clientData     = cd;
+     cl->clientGoneHook = clientgone;
+
+     return RFB_CLIENT_ACCEPT;
 }
 
-static enum rfbNewClientAction newclient(rfbClientPtr cl)
+static void
+send_button_event( DFBInputDeviceButtonIdentifier button,
+                   bool                           press )
 {
-  cl->clientData = (void*)calloc(sizeof(ClientData),1);
-  cl->clientGoneHook = clientgone;
-  return RFB_CLIENT_ACCEPT;
+     if (vncInputDevice) {
+          DFBInputEvent evt;
+     
+          evt.flags  = DIEF_NONE;
+          evt.type   = press ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+          evt.button = button;
+     
+          dfb_input_dispatch( vncInputDevice, &evt );
+     }
 }
 
-
-static void 
+static void
 process_pointer_event(int buttonMask, int x, int y, rfbClientPtr cl)
 {
+     if (vncInputDevice) {
+          ClientData    *cd = cl->clientData;
+          DFBInputEvent  evt;
+     
+          evt.type    = DIET_AXISMOTION;
+          evt.flags   = DIEF_AXISABS | DIEF_MIN | DIEF_MAX;
+     
+          if (cd->oldx != x) {
+               cd->oldx = x;
+     
+               evt.axis    = DIAI_X;
+               evt.axisabs = x;
+               evt.min     = 0;
+               evt.max     = cd->vnc->shared->screen_size.w - 1;
+     
+               dfb_input_dispatch( vncInputDevice, &evt );
+          }
+     
+          if (cd->oldy != y) {
+               cd->oldy = y;
+     
+               evt.axis    = DIAI_Y;
+               evt.axisabs = y;
+               evt.min     = 0;
+               evt.max     = cd->vnc->shared->screen_size.h - 1;
+     
+               dfb_input_dispatch( vncInputDevice, &evt );
+          }
+     
+          if (buttonMask != cd->oldButtonMask) {
+               if ((buttonMask & (1 << 0)) != (cd->oldButtonMask & (1 << 0)))
+                    send_button_event( DIBI_LEFT, !!(buttonMask & (1 << 0)) );
+     
+               if ((buttonMask & (1 << 1)) != (cd->oldButtonMask & (1 << 1)))
+                    send_button_event( DIBI_MIDDLE, !!(buttonMask & (1 << 1)) );
+     
+               if ((buttonMask & (1 << 2)) != (cd->oldButtonMask & (1 << 2)))
+                    send_button_event( DIBI_RIGHT, !!(buttonMask & (1 << 2)) );
+     
+               cd->oldButtonMask = buttonMask;
+          }
+     }
 
-    DFBInputEvent evt;
-    int button;
-
-    if( vncInputDevice == NULL ){
-        /* Attach to first input device */
-        dfb_input_enumerate_devices( attach_input_device,NULL, DICAPS_ALL );
-        D_ASSERT(vncInputDevice); 
-    }
-
-    ClientData* cd=cl->clientData;
-    if(buttonMask != cd->oldButtonMask ) {
-        int mask = buttonMask^cd->oldButtonMask;
-        if( mask & (1 << 0)) { 
-            button=DIBI_LEFT;
-        } else if( mask & (1 << 1)) {
-            button=DIBI_MIDDLE;
-        } else if( mask & (1 << 2)) {
-            button=DIBI_RIGHT;
-        } else {
-            return;
-        }
-        evt.flags = DIEF_NONE;
-                
-        if(cd->oldButton > button ) {
-            evt.type = DIET_BUTTONRELEASE;
-            evt.button=cd->oldButton;
-            cd->oldButton=0;
-        }else {
-            evt.type = DIET_BUTTONPRESS;
-            evt.button=button;
-            cd->oldButton=button;
-            cd->oldButtonMask=buttonMask;
-        }
-        dfb_input_dispatch( vncInputDevice, &evt );
-        cd->oldx=x; 
-        cd->oldy=y; 
-        return;
-    }
-
-    evt.type    = DIET_AXISMOTION;
-    evt.flags   = DIEF_AXISABS;
-
-    if( cd->oldx != x ) {
-          evt.axis    = DIAI_X;
-          evt.axisabs = x;
-          dfb_input_dispatch( vncInputDevice, &evt );
-    }
-
-    if( cd->oldy != y ) {
-          evt.axis    = DIAI_Y;
-          evt.axisabs = x;
-          dfb_input_dispatch( vncInputDevice, &evt );
-    }
-    cd->oldx=x; 
-    cd->oldy=y; 
-
-    dfb_input_dispatch( vncInputDevice, &evt );
-    rfbDefaultPtrAddEvent(buttonMask,x,y,cl);
-
+     rfbDefaultPtrAddEvent(buttonMask,x,y,cl);
 }
 
 /*
@@ -819,21 +576,17 @@ process_pointer_event(int buttonMask, int x, int y, rfbClientPtr cl)
 static void
 process_key_event(rfbBool down, rfbKeySym key, rfbClientPtr cl)
 {
-    DFBInputEvent evt;
-    if( vncInputDevice == NULL ){
-        /* Attach to first input device */
-        dfb_input_enumerate_devices( attach_input_device,NULL, DICAPS_ALL );
-        D_ASSERT(vncInputDevice); 
-    }
-     if (down)
-          evt.type = DIET_KEYPRESS;
-     else
-          evt.type = DIET_KEYRELEASE;
-                                                                                  
-     if (translate_key( key, &evt )) {
-          dfb_input_dispatch( vncInputDevice, &evt );
+     if (vncInputDevice) {
+          DFBInputEvent evt;
+     
+          if (down)
+               evt.type = DIET_KEYPRESS;
+          else
+               evt.type = DIET_KEYRELEASE;
+     
+          if (translate_key( key, &evt ))
+               dfb_input_dispatch( vncInputDevice, &evt );
      }
-
 }
 
 
@@ -842,13 +595,13 @@ translate_key(rfbKeySym key, DFBInputEvent *evt )
 {
      /* Unicode */
      if (key <= 0xf000) {
-         evt->flags = DIEF_KEYSYMBOL;
-         evt->key_symbol = key;
-         return true;
+          evt->flags = DIEF_KEYSYMBOL;
+          evt->key_symbol = key;
+          return true;
      }
 
      /* Dead keys */
-     /* todo */     
+     /* todo */
 
      /* Numeric keypad */
      if (key >= XK_KP_0  &&  key <= XK_KP_9) {
@@ -907,7 +660,7 @@ translate_key(rfbKeySym key, DFBInputEvent *evt )
                break;
 
 
-          /* Arrows + Home/End pad */
+               /* Arrows + Home/End pad */
           case XK_Up:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_UP;
@@ -932,7 +685,7 @@ translate_key(rfbKeySym key, DFBInputEvent *evt )
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_INSERT;
                break;
-                                                                                
+
           case XK_Delete:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_DELETE;
@@ -959,7 +712,7 @@ translate_key(rfbKeySym key, DFBInputEvent *evt )
                break;
 
 
-          /* Key state modifier keys */
+               /* Key state modifier keys */
           case XK_Num_Lock:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_NUM_LOCK;
@@ -1029,16 +782,16 @@ translate_key(rfbKeySym key, DFBInputEvent *evt )
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_HYPER_L;
                break;
-                                                                                
+
           case XK_Hyper_R:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_HYPER_R;
                break;
 
-          /*case ??:
-               evt->flags = DIEF_KEYID;
-               evt->key_id = DIKI_ALTGR;
-               break;*/
+               /*case ??:
+                    evt->flags = DIEF_KEYID;
+                    evt->key_id = DIKI_ALTGR;
+                    break;*/
 
           case XK_BackSpace:
                evt->flags = DIEF_KEYID;
@@ -1058,14 +811,14 @@ translate_key(rfbKeySym key, DFBInputEvent *evt )
           case XK_Escape:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_ESCAPE;
-                    break;
+               break;
 
           case XK_Pause:
                evt->flags = DIEF_KEYID;
                evt->key_id = DIKI_PAUSE;
                break;
 
-          /* Miscellaneous function keys */
+               /* Miscellaneous function keys */
           case XK_Help:
                evt->flags = DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_HELP;

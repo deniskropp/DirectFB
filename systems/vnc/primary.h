@@ -34,8 +34,8 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
-extern ScreenFuncs       *vncPrimaryScreenFuncs;
-extern DisplayLayerFuncs *vncPrimaryLayerFuncs;
+extern const ScreenFuncs       *vncPrimaryScreenFuncs;
+extern const DisplayLayerFuncs *vncPrimaryLayerFuncs;
 
 FusionCallHandlerResult
 dfb_vnc_call_handler( int           caller,
@@ -44,6 +44,12 @@ dfb_vnc_call_handler( int           caller,
                       void         *ctx,
                       unsigned int  serial,
                       int          *ret_val );
+
+
+typedef struct {
+     bool                     shown;
+     CoreLayerRegionConfig    config;
+} VNCLayerData;
 
 #endif
 

@@ -53,6 +53,7 @@ bin_PROGRAMS = \
 	dfbtest_reinit	\
 	dfbtest_scale	\
 	dfbtest_sync	\
+	dfbtest_water	\
 	dfbtest_window	\
 	dfbtest_window_flip_once	\
 	direct_stream	\
@@ -108,6 +109,9 @@ dfbtest_scale_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_sync_SOURCES = dfbtest_sync.c
 dfbtest_sync_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_water_SOURCES = dfbtest_water.c
+dfbtest_water_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_window_SOURCES = dfbtest_window.c
 dfbtest_window_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)

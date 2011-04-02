@@ -10,6 +10,7 @@ dfbtest_mirror
 dfbtest_reinit
 dfbtest_scale
 dfbtest_sync
+dfbtest_water
 dfbtest_window
 dfbtest_window_flip_once
 direct_stream

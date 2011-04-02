@@ -33,7 +33,8 @@ libdirectfb_mesa_system_la_SOURCES = \
 	mesa_layer.c		\
 	mesa_screen.c		\
 	mesa_system.c		\
-	mesa_surface_pool.c
+	mesa_surface_pool.c     \
+	vt.c
 
 libdirectfb_mesa_system_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \

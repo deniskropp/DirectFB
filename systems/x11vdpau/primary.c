@@ -45,6 +45,7 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/palette.h>
+#include <core/state.h>
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 #include <core/system.h>
@@ -192,6 +193,39 @@ primaryInitScreen( CoreScreen           *screen,
           XUnlockDisplay( x11->display );
           return DFB_FAILURE;
      }
+
+
+
+     status = x11->vdp.OutputSurfaceCreate( x11->vdp.device, VDP_RGBA_FORMAT_B8G8R8A8,
+                                            shared->screen_size.w, shared->screen_size.h, &shared->vdp_surface );
+     if (status) {
+          D_ERROR( "DirectFB/X11/VDPAU: OutputSurfaceCreate( RGBA %dx%d ) failed (status %d, '%s')!\n",
+                   shared->screen_size.w, shared->screen_size.h, status, x11->vdp.GetErrorString( status ) );
+          XUnlockDisplay( x11->display );
+          return DFB_FAILURE;
+     }
+
+
+     DFBResult          ret;
+     CoreSurfaceConfig  config;
+
+     config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS | CSCONF_PREALLOCATED;
+     config.size.w = shared->screen_size.w;
+     config.size.h = shared->screen_size.h;
+     config.format = DSPF_ARGB;
+     config.caps   = DSCAPS_VIDEOONLY;
+     config.preallocated[0].addr   = NULL;
+     config.preallocated[0].handle = shared->vdp_surface;
+     config.preallocated[0].pitch  = shared->screen_size.w * 4;
+
+     ret = dfb_surface_create( x11->core, &config, CSTF_EXTERNAL | CSTF_PREALLOCATED,
+                               shared->vdp_surface, NULL, &shared->vdp_core_surface );
+     if (ret) {
+          D_DERROR( ret, "DirectFB/Xine/VDPAU: Could not create preallocated output surface!\n" );
+          XUnlockDisplay( x11->display );
+          return ret;
+     }
+
 
      XUnlockDisplay( x11->display );
 
@@ -370,7 +404,7 @@ primaryInitLayer( CoreLayer                  *layer,
      }
 
      /* set capabilities and type */
-     description->caps = DLCAPS_SURFACE;
+     description->caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION | DLCAPS_ALPHACHANNEL;
      description->type = DLTF_GRAPHICS;
 
      /* set name */
@@ -453,7 +487,7 @@ primaryTestRegion( CoreLayer                  *layer,
                break;
      }
 
-     if (config->options)
+     if (config->options & ~(DLOP_ALPHACHANNEL)) 
           fail |= CLRCF_OPTIONS;
 
      if (failed)
@@ -476,6 +510,72 @@ primaryAddRegion( CoreLayer             *layer,
 }
 
 static DFBResult
+DisplaySurface( DFBX11                *x11,
+                X11LayerData          *lds,
+                VdpPresentationQueue   queue,
+                CoreSurfaceBufferLock *lock )
+{
+     DirectResult                        ret;
+     DFBX11Shared                       *shared = x11->shared;
+     DFBX11CallPresentationQueueDisplay  display;
+
+     display.presentation_queue         = queue;
+     display.clip_width                 = 0;
+     display.clip_height                = 0;
+     display.earliest_presentation_time = 0;
+
+     if (lock &&
+         lds->config.dest.x == 0 && lds->config.dest.y == 0 &&
+         lds->config.dest.w == shared->screen_size.w &&
+         lds->config.dest.h == shared->screen_size.h)
+     {
+          display.surface = (VdpOutputSurface) (unsigned long) lock->handle;
+     }
+     else {
+          CardState    state;
+          DFBRectangle rect;
+
+          dfb_state_init( &state, x11->core );
+
+          state.destination = shared->vdp_core_surface;
+          state.source      = lock ? lock->buffer->surface : NULL;
+          state.clip.x1     = 0;
+          state.clip.y1     = 0;
+          state.clip.x2     = shared->screen_size.w - 1;
+          state.clip.y2     = shared->screen_size.h - 1;
+
+          rect.x = 0;
+          rect.y = 0;
+          rect.w = shared->screen_size.w;
+          rect.h = shared->screen_size.h;
+
+          dfb_gfxcard_fillrectangles( &rect, 1, &state );
+
+          if (lock)
+               dfb_gfxcard_stretchblit( &lds->config.source, &lds->config.dest, &state );
+
+          dfb_gfxcard_sync();
+
+          state.destination = NULL;
+          state.source      = NULL;
+
+          dfb_state_destroy( &state );
+
+
+          display.surface = shared->vdp_surface;
+     }
+
+     ret = fusion_call_execute2( &x11->shared->call, FCEF_ONEWAY,
+                                 X11_VDPAU_PRESENTATION_QUEUE_DISPLAY, &display, sizeof(display), NULL );
+     if (ret) {
+          D_DERROR( ret, "DirectFB/X11/VDPAU: fusion_call_execute2() failed!\n" );
+          return ret;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
 primarySetRegion( CoreLayer                  *layer,
                   void                       *driver_data,
                   void                       *layer_data,
@@ -487,7 +587,16 @@ primarySetRegion( CoreLayer                  *layer,
                   CoreSurfaceBufferLock      *left_lock,
                   CoreSurfaceBufferLock      *right_lock )
 {
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+     X11LayerData *lds    = layer_data;
+
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     lds->config = *config;
+
+     if (lds->shown)
+          return DisplaySurface( x11, layer_data, shared->vdp_queue, left_lock );
 
      return DFB_OK;
 }
@@ -498,51 +607,15 @@ primaryRemoveRegion( CoreLayer             *layer,
                      void                  *layer_data,
                      void                  *region_data )
 {
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+     X11LayerData *lds    = layer_data;
+
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
-     return DFB_OK;
-}
+     lds->shown = false;
 
-static DFBResult
-DisplaySurface( DFBX11               *x11,
-                VdpPresentationQueue  queue,
-                VdpOutputSurface      surface )
-{
-//     VdpStatus status;
-     VdpTime   current = 0;
-/*
-     status = vdp->PresentationQueueGetTime( queue, &current );
-     if (status) {
-          D_ERROR( "DirectFB/X11/VDPAU: PresentationQueueGetTime() failed (status %d, '%s')!\n",
-                   status, vdp->GetErrorString( status ) );
-          return DFB_FAILURE;
-     }
-*/
-
-     DirectResult                       ret;
-     DFBX11CallPresentationQueueDisplay display;
-
-     display.presentation_queue         = queue;
-     display.surface                    = surface;
-     display.clip_width                 = 0;
-     display.clip_height                = 0;
-     display.earliest_presentation_time = current;
-
-     ret = fusion_call_execute2( &x11->shared->call, FCEF_ONEWAY, X11_VDPAU_PRESENTATION_QUEUE_DISPLAY, &display, sizeof(display), NULL );
-     if (ret) {
-          D_DERROR( ret, "DirectFB/X11/VDPAU: fusion_call_execute2() failed!\n" );
-          return ret;
-     }
-
-/*
-     status = vdp->PresentationQueueDisplay( queue, surface, 0, 0, current );
-     if (status) {
-          D_ERROR( "DirectFB/X11/VDPAU: PresentationQueueDisplay() failed (status %d, '%s')!\n",
-                   status, vdp->GetErrorString( status ) );
-          return DFB_FAILURE;
-     }
-*/
-     return DFB_OK;
+     return DisplaySurface( x11, layer_data, shared->vdp_queue, NULL );
 }
 
 static DFBResult
@@ -557,12 +630,15 @@ primaryFlipRegion( CoreLayer             *layer,
 {
      DFBX11       *x11    = driver_data;
      DFBX11Shared *shared = x11->shared;
+     X11LayerData *lds    = layer_data;
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      dfb_surface_flip( surface, false );
 
-     return DisplaySurface( x11, shared->vdp_queue, (VdpOutputSurface) (unsigned long) left_lock->handle );
+     lds->shown = true;
+
+     return DisplaySurface( x11, layer_data, shared->vdp_queue, left_lock );
 }
 
 static DFBResult
@@ -578,6 +654,7 @@ primaryUpdateRegion( CoreLayer             *layer,
 {
      DFBX11       *x11    = driver_data;
      DFBX11Shared *shared = x11->shared;
+     X11LayerData *lds    = layer_data;
 
      DFBRegion     region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
@@ -586,7 +663,9 @@ primaryUpdateRegion( CoreLayer             *layer,
      if (left_update && !dfb_region_region_intersect( &region, left_update ))
           return DFB_OK;
 
-     return DisplaySurface( x11, shared->vdp_queue, (VdpOutputSurface) (unsigned long) left_lock->handle );
+     lds->shown = true;
+
+     return DisplaySurface( x11, layer_data, shared->vdp_queue, left_lock );
 }
 
 static DisplayLayerFuncs primaryLayerFuncs = {

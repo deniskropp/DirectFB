@@ -91,8 +91,8 @@ VoodooConnectionRaw::VoodooConnectionRaw( VoodooManager *manager,
      input.end    = link->code ? 4 : 0;
      input.max    = 0;
 
-     output.start = 0;
-     output.end   = 0;
+     output.packets = NULL;
+     output.sending = NULL;
 
      /* Initialize all locks. */
      direct_recursive_mutex_init( &output.lock );
@@ -105,9 +105,10 @@ VoodooConnectionRaw::VoodooConnectionRaw( VoodooManager *manager,
 
      /* Allocate buffers. */
      input.buffer  = (u8*) D_MALLOC( IN_BUF_MAX + MAX_MSG_SIZE );
-     output.buffer = (u8*) D_MALLOC( OUT_BUF_MAX );
 
      D_INFO( "VoodooConnection/Raw: Allocated "_ZU" kB input buffer at %p\n", (IN_BUF_MAX + MAX_MSG_SIZE)/1024, input.buffer );
+
+     direct_tls_register( &output.tls, NULL );
 
      memcpy( input.buffer, &link->code, sizeof(u32) );
 
@@ -138,7 +139,6 @@ VoodooConnectionRaw::~VoodooConnectionRaw()
      direct_mutex_deinit( &output.lock );
 
      /* Deallocate buffers. */
-     D_FREE( output.buffer );
      D_FREE( input.buffer );
 }
 
@@ -180,11 +180,10 @@ VoodooConnectionRaw::io_loop()
                VoodooChunk  *chunk_read  = NULL;
                VoodooChunk  *chunk_write = NULL;
                size_t        last        = input.last;
+               VoodooPacket *packet      = NULL;
 
                std::vector<VoodooChunk> chunks_write;
                std::vector<VoodooChunk> chunks_read;
-
-               direct_mutex_lock( &output.lock );
 
                if (input.end < input.max) {
                     chunk_read = &chunks[0];
@@ -198,37 +197,42 @@ VoodooConnectionRaw::io_loop()
                     chunk_read = chunks_read.data();
                }
 
-               if (output.end > output.start) {
+               if (!output.sending) {
+                    direct_mutex_lock( &output.lock );
+
+                    if (output.packets) {
+                         VoodooPacket *packet = (VoodooPacket*) output.packets;
+
+                         D_ASSERT( packet->sending );
+
+                         output.sending = packet;
+                    }
+
+                    direct_mutex_unlock( &output.lock );
+               }
+
+
+               if (output.sending) {
+                    packet = output.sending;
+
+                    D_ASSERT( packet->sending );
+
                     chunk_write = &chunks[1];
 
-                    chunk_write->ptr    = output.buffer + output.start;
-                    chunk_write->length = output.end - output.start;
+                    chunk_write->ptr    = (void*) packet->data_start();
+                    chunk_write->length = VOODOO_MSG_ALIGN(packet->size());
                     chunk_write->done   = 0;
 
-                    if (chunk_write->length > 65536) {
-                         chunk_write->length = 65536;
-                    }
+                    //if (chunk_write->length > 65536)
+                         //chunk_write->length = 65536;
 
                     chunks_write.push_back( chunks[1] );
 
                     chunk_write = chunks_write.data();
                }
 
-               if (!chunk_write)
-                    direct_mutex_unlock( &output.lock );
-
-#if 0
-               if (chunk_write) {
-                    char buf[chunk_write->length*4/3];
-
-                    size_t comp = direct_fastlz_compress( chunk_write->ptr, chunk_write->length, buf );
-
-                    D_DEBUG_AT( Voodoo_Output, "  -> Compressed "_ZU"%% ("_ZU" -> "_ZU")\n",
-                                comp * 100 / chunk_write->length, chunk_write->length, comp );
-               }
-#endif
-               D_DEBUG_AT( Voodoo_Input, "  { START "_ZD", LAST "_ZD", END "_ZD", MAX "_ZD" }\n",
-                           input.start, input.last, input.end, input.max );
+               //D_DEBUG_AT( Voodoo_Input, "  { START "_ZD", LAST "_ZD", END "_ZD", MAX "_ZD" }\n",
+               //            input.start, input.last, input.end, input.max );
 
                ret = link->SendReceive( link,
                                         chunks_write.data(), chunks_write.size(),
@@ -238,21 +242,33 @@ VoodooConnectionRaw::io_loop()
                          if (chunk_write && chunk_write->done) {
                               D_DEBUG_AT( Voodoo_Output, "  -> Sent "_ZD"/"_ZD" bytes...\n", chunk_write->done, chunk_write->length );
 
+                              // FIXME
+                              D_ASSERT( chunk_write->done == chunk_write->length );
+
 #ifdef VOODOO_CONNECTION_RAW_DUMP
                               write( dump_fd, chunk_write->ptr, chunk_write->done );
 #endif
 
-                              output.start += (size_t) chunk_write->done;
+                              output.sending = NULL;
 
-                              //direct_mutex_lock( &output.lock );
+                              packet->sending = false;
 
-                              if (output.start == output.end) {
-                                   output.start = output.end = 0;
+                              if (packet->flags() & VPHF_COMPRESSED) {
+                                   delete packet;
+                              }
+                              else {
+                                   direct_mutex_lock( &output.lock );
+
+                                   direct_list_remove( &output.packets, &packet->link );
+
+                                   direct_mutex_unlock( &output.lock );
 
                                    direct_waitqueue_broadcast( &output.wait );
                               }
 
-                              //direct_mutex_unlock( &output.lock );
+                              packet = NULL;
+
+                              // TODO: fetch output.packet already, in case of slow dispatch below
                          }
                          break;
 
@@ -270,8 +286,8 @@ VoodooConnectionRaw::io_loop()
                          break;
                }
 
-               if (chunk_write)
-                    direct_mutex_unlock( &output.lock );
+               // FIXME
+               D_ASSERT( packet == output.sending );
 
 
 
@@ -287,6 +303,13 @@ VoodooConnectionRaw::io_loop()
                     do {
                          VoodooMessageHeader *header;
                          size_t               aligned;
+
+                         D_DEBUG_AT( Voodoo_Input, "  { LAST "_ZD", INPUT LAST "_ZD" }\n", last, input.last );
+
+                         if (input.end - last < 4) {
+                              D_DEBUG_AT( Voodoo_Input, "  -> ...only %d bytes left\n", input.end - last );
+                              break;
+                         }
 
                          /* Get the message header. */
                          header  = (VoodooMessageHeader *)(input.buffer + last);
@@ -350,28 +373,9 @@ VoodooConnectionRaw::lock_output( int    length,
           return DR_LIMITEXCEEDED;
      }
 
-     int aligned = VOODOO_MSG_ALIGN( length );
+     D_UNIMPLEMENTED();
 
-     direct_mutex_lock( &output.lock );
-
-     while (output.end + aligned > OUT_BUF_MAX) {
-          link->WakeUp( link );
-
-          direct_waitqueue_wait( &output.wait, &output.lock );
-
-          if (manager->is_quit) {
-               direct_mutex_lock( &output.lock );
-               return DR_DESTROYED;
-          }
-     }
-
-     *ret_ptr = output.buffer + output.end;
-
-     D_DEBUG_AT( Voodoo_Output, "  -> offset "_ZD", aligned length %d\n", output.end, aligned );
-
-     output.end += aligned;
-
-     return DR_OK;
+     return DR_UNIMPLEMENTED;
 }
 
 DirectResult
@@ -381,12 +385,9 @@ VoodooConnectionRaw::unlock_output( bool flush )
 
      D_MAGIC_ASSERT( this, VoodooConnection );
 
-     direct_mutex_unlock( &output.lock );
+     D_UNIMPLEMENTED();
 
-     if (flush)
-          link->WakeUp( link );
-
-     return DR_OK;
+     return DR_UNIMPLEMENTED;
 }
 
 VoodooPacket *
@@ -403,28 +404,40 @@ VoodooConnectionRaw::GetPacket( size_t length )
           return NULL;
      }
 
-     int aligned = VOODOO_MSG_ALIGN( length );
+     size_t aligned = VOODOO_MSG_ALIGN( length );
 
-     direct_mutex_lock( &output.lock );
 
-     while (output.end + aligned > OUT_BUF_MAX) {
-          link->WakeUp( link );
+     Packets *packets = (Packets*) direct_tls_get( output.tls );
 
-          direct_waitqueue_wait( &output.wait, &output.lock );
+     if (!packets) {
+          packets = new Packets();
 
-          if (manager->is_quit) {
-               direct_mutex_lock( &output.lock );
-               return NULL;
-          }
+          direct_tls_set( output.tls, packets );
      }
 
-     D_DEBUG_AT( Voodoo_Output, "  -> offset "_ZD", aligned length %d\n", output.end, aligned );
+     VoodooPacket *packet = packets->active;
 
-     output.end += aligned;
+     if (packet) {
+          if (packet->append( aligned ))
+               return packet;
 
-     static VoodooPacket *packet = VoodooPacket::New( (u32) 0, NULL );
+          Flush( packet );
+     }
 
-     return VoodooPacket::Reset( packet, aligned, output.buffer + output.end - aligned );
+     packet = packets->Get();
+     if (packet) {
+          if (packet->sending) {
+               direct_mutex_lock( &output.lock );
+
+               while (packet->sending)
+                    direct_waitqueue_wait( &output.wait, &output.lock );
+
+               direct_mutex_unlock( &output.lock );
+          }
+          packet->reset( aligned );
+     }
+
+     return packet;
 }
 
 void
@@ -434,11 +447,73 @@ VoodooConnectionRaw::PutPacket( VoodooPacket *packet, bool flush )
 
      D_MAGIC_ASSERT( this, VoodooConnection );
 
+     Packets *packets = (Packets*) direct_tls_get( output.tls );
+
+     D_ASSERT( packets != NULL );
+     D_ASSERT( packet == packets->active );
+
+     if (flush) {
+          Flush( packet );
+
+          packets->active = NULL;
+     }
+}
+
+void
+VoodooConnectionRaw::Flush( VoodooPacket *packet )
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p, packet %p )\n", __func__, this, packet );
+
+     D_MAGIC_ASSERT( this, VoodooConnection );
+
+     direct_mutex_lock( &output.lock );
+
+     D_ASSERT( !direct_list_contains_element_EXPENSIVE( output.packets, &packet->link ) );
+
+     D_ASSERT( !packet->sending );
+
+     packet->sending = true;
+
+     direct_list_append( &output.packets, &packet->link );
+
      direct_mutex_unlock( &output.lock );
 
-     if (flush)
-          link->WakeUp( link );
+     link->WakeUp( link );
+}
 
-//     delete packet;
+VoodooPacket *
+VoodooConnectionRaw::Packets::Get()
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::Packets::%s( %p )\n", __func__, this );
+
+     VoodooPacket *packet;
+
+     if (packets[2]) {
+          packet = packets[next];
+
+          D_DEBUG_AT( Voodoo_Connection, "  -> reusing %p\n", packet );
+     }
+     else if (packets[1]) {
+          packet = packets[2] = VoodooPacket::New( 0 );
+
+          D_DEBUG_AT( Voodoo_Connection, "  -> new [2] %p\n", packet );
+     }
+     else if (packets[0]) {
+          packet = packets[1] = VoodooPacket::New( 0 );
+
+          D_DEBUG_AT( Voodoo_Connection, "  -> new [1] %p\n", packet );
+     }
+     else {
+          packet = packets[0] = VoodooPacket::New( 0 );
+
+          D_DEBUG_AT( Voodoo_Connection, "  -> new [0] %p\n", packet );
+     }
+
+     if (packet)
+          next = (next+1) % 3;
+
+     active = packet;
+
+     return packet;
 }
 

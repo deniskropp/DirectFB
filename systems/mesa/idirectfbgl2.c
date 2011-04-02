@@ -214,6 +214,7 @@ Probe( void *ctx, ... )
 static DirectResult
 Construct( void *interface, ... )
 {
+     IDirectFB    *dfb;
      IDirectFBGL2 *thiz = interface;
      CoreDFB      *core;
 
@@ -221,6 +222,7 @@ Construct( void *interface, ... )
 
      va_list tag;
      va_start(tag, interface);
+     dfb = va_arg(tag, IDirectFB *);
      core = va_arg(tag, CoreDFB *);
      va_end( tag );
 

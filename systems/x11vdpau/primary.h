@@ -37,7 +37,10 @@ extern ScreenFuncs       *x11PrimaryScreenFuncs;
 extern DisplayLayerFuncs *x11PrimaryLayerFuncs;
 
 typedef struct {
-     int      layer_id;
+     int                      layer_id;
+     bool                     shown;
+
+     CoreLayerRegionConfig    config;
 } X11LayerData;
 
 #endif // __X11__PRIMARY_H__

@@ -92,6 +92,8 @@ typedef struct {
 
      VdpPresentationQueueTarget    vdp_target;
      VdpPresentationQueue          vdp_queue;
+     VdpOutputSurface              vdp_surface;
+     CoreSurface                  *vdp_core_surface;
 } DFBX11Shared;
 
 struct __DFB_X11 {
@@ -137,7 +139,7 @@ typedef struct {
 
 typedef struct {
      VdpOutputSurface   surface;
-     void              *ptr;
+     const void        *ptr;
      unsigned int       pitch;
      VdpRect            destination_rect;
 } DFBX11CallOutputSurfacePutBitsNative;

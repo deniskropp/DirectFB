@@ -1993,6 +1993,74 @@ clip_blit_rotated( DFBRectangle *srect, DFBRectangle *drect, const DFBRegion *cl
      }
 }
 
+void
+dfb_gfxcard_fillquadrangles( DFBPoint *points, int num, CardState *state )
+{
+     bool hw = false;
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %p )\n", __FUNCTION__, points, num, state );
+
+     D_MAGIC_ASSERT( state, DFBGraphicsState );
+     D_ASSERT( points != NULL );
+
+     /* The state is locked during graphics operations. */
+     dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
+
+     if (dfb_gfxcard_state_check( state, DFXL_FILLQUADRANGLE ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_FILLQUADRANGLE ))
+     {
+          if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
+              !D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLQUADRANGLE ) /*&&
+              !dfb_clip_quadrangle( &state->clip, &lines[i] )*/)
+               return;
+
+          hw = card->funcs.FillQuadrangles( card->driver_data, card->device_data, points, num );
+
+          dfb_gfxcard_state_release( state );
+     }
+
+     if (!hw) {
+          if (gAcquire( state, DFXL_FILLTRIANGLE )) {
+               int i;
+
+               for (i=0; i<num*4; i+=4) {
+                    if (state->render_options & DSRO_MATRIX) {
+                         DFB_TRANSFORM(points[i+0].x, points[i+0].y, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(points[i+1].x, points[i+1].y, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(points[i+2].x, points[i+2].y, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(points[i+3].x, points[i+3].y, state->matrix, state->affine_matrix);
+                    }
+
+                    DFBTriangle tri1 = {
+                         points[i+0].x, points[i+0].y,
+                         points[i+1].x, points[i+1].y,
+                         points[i+2].x, points[i+2].y
+                    };
+
+                    DFBTriangle tri2 = {
+                         points[i+0].x, points[i+0].y,
+                         points[i+2].x, points[i+2].y,
+                         points[i+3].x, points[i+3].y
+                    };
+
+                    /* sort triangles (matrix could have rotated them */
+                    dfb_sort_triangle( &tri1 );
+                    dfb_sort_triangle( &tri2 );
+
+                    fill_tri( &tri1, state, false );
+                    fill_tri( &tri2, state, false );
+               }
+
+               gRelease( state );
+          }
+     }
+
+     dfb_state_unlock( state );
+}
+
 void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 {
      bool         hw    = false;

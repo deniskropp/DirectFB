@@ -1,0 +1,15 @@
+usr/bin/dfbdump
+usr/bin/dfbfx
+usr/bin/dfbg
+usr/bin/dfbinfo
+usr/bin/dfbinput
+usr/bin/dfbinspector
+usr/bin/dfblayer
+usr/bin/dfbmaster
+usr/bin/dfbpenmount
+usr/bin/dfbscreen
+usr/bin/mkdfiff
+usr/bin/mkdgiff
+usr/bin/uwmdump
+usr/share/man/man1/dfbg.1
+usr/share/man/man5/directfbrc.5

@@ -1,0 +1,77 @@
+.TH directfb-config 1 2006-06-14 0.9.25.1 "DirectFB User's Manual"
+.SH NAME
+directfb-config \- script to get information about the installed version of directfb
+.SH SYNOPSIS
+.B directfb\-config
+.RB [ \-\-prefix [=\fIDIR\fP]]
+.RB [ \-\-exec\-prefix [=\fIDIR\fP]]
+.RB [ \-\-version ]
+.RB [ \-\-libs ]
+.RB [ \-\-cflags ]
+.RB [ \-\-input =\fI<driver>\fP[,\fI<driver>\fP]...]
+.RB [ \-\-graphics =\fI<driver>\fP[,\fI<driver>\fP]...]
+.RB [ \-\-fonts =\fI<impl>\fP[,\fI<impl>\fP]...]
+.RB [ \-\-imageprovider =\fI<impl>\fP[,\fI<impl>\fP]...]
+.RB [ \-\-videoprovider =\fI<impl>\fP[,\fI<impl>\fP]...]
+.SH DESCRIPTION
+.PP
+\fIdirectfb\-config\fP is a tool that is used to configure to determine
+the compiler and linker flags that should be used to compile
+and link programs that use \fIdirectfb\fP. It is also used internally
+to the .m4 macros for GNU autoconf that are included with \fIdirectfb\fP.
+.
+.SH OPTIONS
+\fIdirectfb\-config\fP accepts the following options:
+.TP 8
+.B \-\-version
+Print the currently installed version of \fIdirectfb\fP on the standard output.
+.TP 8
+.B \-\-libs
+Print the linker flags that are necessary to link a \fIdirectfb\fP program.
+.TP 8
+.B \-\-cflags
+Print the compiler flags that are necessary to compile a \fIdirectfb\fP program.
+.TP 8
+.BR \-\-prefix [=\fIDIR\fP]
+If specified, use PREFIX instead of the installation prefix that \fIdirectfb\fP
+was built with when computing the output for the \fB\-\-cflags\fP and
+\fB\-\-libs\fP options. This option is also used for the exec prefix
+if \fB\-\-exec\-prefix\fP was not specified. This option must be specified
+before any \fB\-\-libs\fP or \fB\-\-cflags\fP options.
+.TP 8
+.BR \-\-exec\-prefix [=\fIDIR\fP]
+If specified, use PREFIX instead of the installation exec prefix that
+\fIdirectfb\fP was built with when computing the output for the \fB\-\-cflags\fP
+and \fB\-\-libs\fP options. This option must be specified before any
+\fB\-\-libs\fP or \fB\-\-cflags\fP options.
+.TP 8
+.BR \-\-input =\fI<driver>\fP[,\fI<driver>\fP]...
+Print the linker flags necessary to statically link the listed input drivers
+into the object.
+.TP 8
+.BR \-\-graphics =\fI<driver>\fP[,\fI<driver>\fP]...
+Print the linker flags necessary to statically link the listed graphic drivers
+into the object.
+.TP 8
+.BR \-\-fonts =\fI<impl>\fP[,\fI<impl>\fP]...
+Print the linker flags necessary to statically link the listed font
+implementations into the object.
+.TP 8
+.BR \-\-imageprovider =\fI<impl>\fP[,\fI<impl>\fP]...
+Print the linker flags necessary to statically link the listed imageprovider
+implementations into the object.
+.TP 8
+.BR \-\-videoprovider =\fI<impl>\fP[,\fI<impl>\fP]...
+Print the linker flags necessary to statically link the listed videoprovider
+implementations into the object.
+.SH COPYRIGHT
+Copyright \(co  1998 Owen Taylor
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
+provided that the above copyright notice appear in all copies and that
+both that copyright notice and this permission notice appear in
+supporting documentation.
+
+Adapted to directfb by Guillem Jover <guillem@debian.org>.
+
