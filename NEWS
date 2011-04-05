@@ -1,3 +1,41 @@
+1.4.12
+------
+
+API | IDirectFBFont
+- Add DFFA_AUTOHINTING forcing use of the auto-hinter over the font's native hinter.
+- Add DFFA_SOFTHINTING selecting a lighter hinting algorithm. It generates glyphs which
+  are more fuzzy, but better resemble their original shape. It implies use of the auto-hinter.
+
+Runtime Options
+- Add "no-core-sighandler" option to disable core signal handler for emergency shutdowns.
+
+Graphics Core
+- Support software clipping for vertical and horizontal flips.
+  This does not work in combination with DSBLIT_ROTATE_ flags yet. The software driver cannot combine DSBLIT_FLIP_
+  and DSBLIT_ROTATE_ anyway, correct clipping here would cause a segfault in software rendering code.
+- When falling back to triangles in dfb_gfxcard_filltrapezoids() the return value of card->funcs.FillTriangle() was misinterpreted.
+
+Modules
+- No longer try to call the constructor function directly as the name does not match the module name anyhow anymore.
+
+Build
+- Fix builds outside of the source directory.
+
+libvoodoo
+- Use 32bit message serials. Sorry for breaking compatibility, but most known applications use 32bit serials already anyhow...
+
+SH772x
+- Update calls to libshbeu for new API. Tested on MS7724 board (SH7724) using df_andi.
+- Use pkg-config to detect and use SH772x dependencies.
+- Register phys memory with UIOMux. This significantly improves the performance on sh772x devices.
+  The sh772x gfx code uses an external library (libshbeu) to access the BEU hardware. In order for this library to
+  understand that the virtual addresses passed to it are for contiguous memory, the memory must be registered with
+  another external library (UIOMux).
+- Update calls to libshjpeg for current API.
+- Fix DSPF_RGB24 handling.
+- Remove restriction for only one NV12 layer. The BEU driver can handle any mixture of color formats on each of inputs.
+
+
 1.4.11
 ------
 

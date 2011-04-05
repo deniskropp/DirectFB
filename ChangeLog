@@ -1,3 +1,202 @@
+commit afda5eb53d5394bef8ddd7c3829de9a87b97f41f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Apr 5 23:06:49 2011 +0100
+
+    configure: bump version to 1.4.12
+
+commit 0a412f0532be70d0c045a6706469c21859fc1fd5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Apr 5 23:05:03 2011 +0100
+
+    voodoo: Use 32bit message serials.
+    
+    Sorry for breaking compatibility...
+
+commit d519914d857d5389896649f5606b0fa24966a794
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Tue Feb 8 15:42:48 2011 +0000
+
+    sh772x: Remove restriction for only one NV12 layer
+    
+    The BEU driver can handle any mixture of color formats on each of
+    inputs.
+    
+    Signed-off-by: Phil Edworthy <phil.edworthy@renesas.com>
+    Signed-off-by: Andreas Shimokawa <andi@directfb.org>
+
+commit ca633fe06f7dcc8505b9dab0e473e87a6266316c
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Tue Feb 8 09:17:08 2011 +0000
+
+    sh772x: Fix DSPF_RGB24 handling
+    
+    Signed-off-by: Phil Edworthy <phil.edworthy@renesas.com>
+    Signed-off-by: Andreas Shimokawa <andi@directfb.org>
+
+commit 6d490b4a2cb444cba16001fc7ff4ea8baa331f52
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Fri Feb 4 16:39:36 2011 +0000
+
+    sh772x: Bump version of libshjpeg (minor API change)
+    
+    Signed-off-by: Phil Edworthy <phil.edworthy@renesas.com>
+    Signed-off-by: Andreas Shimokawa <andi@directfb.org>
+
+commit 1267c6367e29f184e27dd91ec31b17044d2a7f21
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Thu Dec 16 11:53:56 2010 +0000
+
+    sh772x: Update calls to libshjpeg for current api
+    
+    Signed-off-by: Phil Edworthy <phil.edworthy@renesas.com>
+    Signed-off-by: Andreas Shimokawa <andi@directfb.org>
+
+commit 6695a75840c61c1a4f7530b149921782df34c0fa
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Feb 7 15:32:08 2011 +0100
+
+    vnc: compile fix (include directfb_util.h)
+    (cherry picked from commit 00942ece717e94d1ea172679deed47170d28ffe3)
+
+commit c6a3483ffa05484dd1ffcb6b465b9218f60699ec
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Feb 7 13:04:12 2011 +0100
+
+    sh772x: Register phys memory with UIOMux
+    
+    This is patch significantly improves the performance on sh772x devices.
+    
+    The sh772x gfx code uses an external library (libshbeu) to access the
+    BEU hardware. In order for this library to understand that the virtual
+    addresses passed to it are for contiguous memory, the memory must be
+    registered with another external library (UIOMux).
+    
+    Signed-off-by: Phil Edworthy <phil.edworthy@renesas.com>
+    (cherry picked from commit b37828dd5dcd970a207b81fa771c71acb3b5aa26)
+
+commit d5da8ef260d445d5bb3ca1af4bcd1bd1158d4300
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Feb 7 12:48:34 2011 +0100
+
+    sh772x: Use pkg-config to detect and use SH772x dependencies.
+    
+    Signed-off-by: Phil Edworthy <phil.edworthy@renesas.com>
+    (cherry picked from commit c65413eee0f2ed8ed09d6c84b0b2762321b0ce87)
+
+commit a382aa0d24ddbece3de0b6a971cdf2f28846d179
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Feb 7 12:43:38 2011 +0100
+
+    sh772x: Update calls to libshbeu for new api
+    
+    Tested on MS7724 board (SH7724) using df_andi
+    
+    Signed-off-by: Phil Edworthy <phil.edworthy@renesas.com>
+    (cherry picked from commit 4916fc886ca855857bfbedb3e0ce43498639e38c)
+
+commit 3724bfe1f6f53b011a6e5cc283c67f88520bb7f1
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Jan 17 13:30:18 2011 +0100
+
+    gfxcard:
+    bugfix: when falling back to triangles in dfb_gfxcard_filltrapezoids() the
+    return value of card->funcs.FillTriangle() what misinterpreted.
+
+commit 811a8c01a12994c9f8074c2d6a643759fc413e3d
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Dec 15 17:32:32 2010 +0000
+
+    build: fix out of tree builds
+
+commit cf97dc3db41a138e03645e128bc74ac98a074ae2
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Nov 29 18:04:49 2010 +0000
+
+    configure.in: fix linotype formatting by using AC_HELP_STRING
+
+commit 5073855e4756a3be09e505372229b406821094cd
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Nov 29 18:01:38 2010 +0000
+
+    configure.in: fix some PKG_CHECK_MODULES lines
+
+commit d6e7eada56fb3e6c9d12b1445c626a5ac9b7c4c8
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Nov 29 15:33:39 2010 +0000
+
+    whitespace & indentation
+
+commit cfbf92472cb3cee7bd82559e30d3b21176fb48a5
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Nov 22 10:27:51 2010 +0000
+
+    Revert "If a dlopen()'ed module did not register itself, try to dlsym() and call"
+    
+    This reverts commit f1a8923dc6a4499e0bb24814e3e251753850043b.
+    
+    Currently, DirectFB's lib/direct/modules.c will try to call a function with
+    a name of shared_library_name with lib and .so removed in case the module
+    did not have an __attribute__((constructor)) function. This works for many
+    cases of the existing modules in the DirectFB source tree, but not for all:
+    
+    1) the constructor function name of many (but not all) modules has had the
+    string "_ctor" added a while ago.
+    
+    2) some modules don't fit into this naming scheme (all which use the
+    DIRECT_INTERFACE_IMPLEMENTATION macro to implement an interface), as they
+    use different cApITAliSaTION rules for the function type name vs. the
+    shared library name (e.g. IDirectFBImageProvider_GIF_ctor() vs.
+    libidirectfbimageprovider_gif.so).
+    
+    These two actually mean that trying to call a 'default' constructor function
+    after dlopen() has not been useful for quite a while.
+
+commit b368aac6b87cf760264d66cf5c0286cd1dbeb02d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Nov 22 12:19:57 2010 +0100
+
+    gfxcard: support clipping for vertical and horizontal flips
+    
+    this does not work in combination with DSBLIT_ROTATE_ flags yet.
+    The software driver cant combine DSBLIT_FLIP_ and DSBLIT_ROTATE_ anyway,
+    correct clipping here would cause a segfault in generic.c.
+
+commit 77b3439ca4ee99fcd9a616c989bfd1c3e4e73739
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Nov 17 16:15:05 2010 +0100
+
+    core: added option to disable core signal handler for emergency shutdowns
+    
+    This is helpful for applications that have their own signal handler that
+    deinializes DirectFB resources.
+    
+    the new options are:
+    
+    core-sighandler     (default, same behaviour as before)
+    no-core-sighandler
+
+commit f46caa17db499699b44af63af8a7beb0bc37f180
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Wed Nov 10 14:30:40 2010 +0100
+
+    font: add font attributes to control the hinting algorithm
+    
+    Add font attributes to control the hinting algorithm used by the
+    FreeType font provider:
+    
+      DFFA_AUTOHINTING forces use of the auto-hinter over the font's
+      native hinter.
+    
+      DFFA_SOFTHINTING selects a lighter hinting algorithm. It
+      generates glyphs which are more fuzzy but better resemble
+      their original shape. It implies use of the auto-hinter.
+
+commit 75cd2932df7930a8064350e72ffe420847a3235d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Nov 15 22:31:29 2010 +0100
+
+    release 1.4.11
+
 commit 756cae8913299750275dddc046babdb2c53ead78
 Author: Andreas Shimokawa <andi@directfb.org>
 Date:   Thu Nov 11 11:56:56 2010 +0100
