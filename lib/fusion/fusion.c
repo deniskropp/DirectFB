@@ -44,6 +44,7 @@
 #include <direct/debug.h>
 #include <direct/direct.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/signals.h>
 #include <direct/thread.h>
@@ -73,6 +74,8 @@ D_DEBUG_DOMAIN( Fusion_Main_Dispatch, "Fusion/Main/Dispatch", "Fusion - High lev
 /**********************************************************************************************************************/
 
 static void                      *fusion_dispatch_loop ( DirectThread *thread,
+                                                         void         *arg );
+static void                      *fusion_deferred_loop ( DirectThread *thread,
                                                          void         *arg );
 
 /**********************************************************************************************************************/
@@ -732,6 +735,17 @@ fusion_enter( int               world_index,
           goto error4;
      }
 
+     /* Start the deferred thread. */
+     world->deferred.thread = direct_thread_create( DTT_MESSAGING,
+                                                    fusion_deferred_loop,
+                                                    world, "Fusion Deferred" );
+     if (!world->deferred.thread) {
+          ret = DR_FAILURE;
+          goto error4;
+     }
+
+     pthread_cond_init( &world->deferred.queue, NULL );
+     pthread_mutex_init( &world->deferred.lock, NULL );
 
      /* Let others enter the world. */
      if (enter.fusion_id == FUSION_ID_MASTER) {
@@ -757,6 +771,9 @@ fusion_enter( int               world_index,
 
 
 error4:
+     if (world->deferred.thread)
+          direct_thread_destroy( world->deferred.thread );
+
      if (world->dispatch_loop)
           direct_thread_destroy( world->dispatch_loop );
 
@@ -867,9 +884,20 @@ fusion_exit( FusionWorld *world,
 
           /* Wait for its termination. */
           direct_thread_join( world->dispatch_loop );
+
+
+          /* Wake up the deferred call thread. */
+          pthread_cond_signal( &world->deferred.queue );
+
+          /* Wait for its termination. */
+          direct_thread_join( world->deferred.thread );
      }
 
      direct_thread_destroy( world->dispatch_loop );
+     direct_thread_destroy( world->deferred.thread );
+
+     pthread_mutex_destroy( &world->deferred.lock );
+     pthread_cond_destroy( &world->deferred.queue );
 
      /* Master has to deinitialize shared data. */
      if (fusion_master( world )) {
@@ -1026,9 +1054,33 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                                    break; 
                               case FMT_CALL:
                                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
-                                   _fusion_call_process( world, header->msg_id, data,
-                                                         (header->msg_size != sizeof(FusionCallMessage))
-                                                            ? data + sizeof(FusionCallMessage) : NULL );
+
+                                   /* If the call comes from kernel space it is most likely a destructor call, defer it */
+                                   if (((FusionCallMessage*) data)->caller == 0) {
+                                        DeferredCall *deferred;
+
+                                        deferred = D_CALLOC( 1, sizeof(DeferredCall) + header->msg_size );
+                                        if (!deferred) {
+                                             D_OOM();
+                                             break;
+                                        }
+
+                                        deferred->header = *header;
+
+                                        direct_memcpy( deferred + 1, data, header->msg_size );
+
+                                        pthread_mutex_lock( &world->deferred.lock );
+
+                                        direct_list_append( &world->deferred.list, &deferred->link );
+
+                                        pthread_mutex_unlock( &world->deferred.lock );
+
+                                        pthread_cond_signal( &world->deferred.queue );
+                                   }
+                                   else
+                                        _fusion_call_process( world, header->msg_id, data,
+                                                              (header->msg_size != sizeof(FusionCallMessage))
+                                                              ?data + sizeof(FusionCallMessage) : NULL );
                                    break;
                               case FMT_REACTOR:
                                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
@@ -1056,6 +1108,71 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                }
           }
      }
+
+     D_PERROR( "Fusion/Receiver: reading from fusion device failed!\n" );
+
+     return NULL;
+}
+
+static void *
+fusion_deferred_loop( DirectThread *thread, void *arg )
+{
+     FusionWorld *world = arg;
+
+     D_DEBUG_AT( Fusion_Main_Dispatch, "%s() running...\n", __FUNCTION__ );
+
+     pthread_mutex_lock( &world->deferred.lock );
+
+     while (world->refs) {
+          DeferredCall *deferred;
+
+          D_MAGIC_ASSERT( world, FusionWorld );
+
+          deferred = (DeferredCall*) world->deferred.list;
+          if (!deferred) {
+               pthread_cond_wait( &world->deferred.queue, &world->deferred.lock );
+
+               continue;
+          }
+
+          direct_list_remove( &world->deferred.list, &deferred->link );
+
+          pthread_mutex_unlock( &world->deferred.lock );
+
+
+          FusionReadMessage *header = &deferred->header;
+          void              *data   = header + 1;
+
+          switch (header->msg_type) {
+               case FMT_SEND:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SEND!\n" );
+                    break; 
+               case FMT_CALL:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
+                    _fusion_call_process( world, header->msg_id, data,
+                                          (header->msg_size != sizeof(FusionCallMessage))
+                                             ? data + sizeof(FusionCallMessage) : NULL );
+                    break;
+               case FMT_REACTOR:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
+                    _fusion_reactor_process_message( world, header->msg_id, header->msg_channel, data );
+                    break;
+               case FMT_SHMPOOL:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );
+                    _fusion_shmpool_process( world, header->msg_id, data );
+                    break;
+               default:
+                    D_DEBUG( "Fusion/Receiver: discarding message of unknown type '%d'\n",
+                             header->msg_type );
+                    break;
+          }
+
+          D_FREE( deferred );
+
+          pthread_mutex_lock( &world->deferred.lock );
+     }
+
+     pthread_mutex_unlock( &world->deferred.lock );
 
      D_PERROR( "Fusion/Receiver: reading from fusion device failed!\n" );
 

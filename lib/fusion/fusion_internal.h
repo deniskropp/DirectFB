@@ -115,7 +115,22 @@ struct __Fusion_FusionWorld {
      FusionForkCallback   fork_callback;
      
      void                *fusionee;
+
+     struct {
+          DirectThread        *thread;
+          pthread_cond_t       queue;
+          pthread_mutex_t      lock;
+          DirectLink          *list;
+     }                    deferred;
 };
+
+typedef struct {
+     DirectLink          link;
+
+     FusionReadMessage   header;
+
+     /* message data follows */
+} DeferredCall;
 
 /*******************************************
  *  Fusion internal function declarations  *
