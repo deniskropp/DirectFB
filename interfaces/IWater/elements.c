@@ -456,9 +456,6 @@ TEST_Render_Rectangle( State                    *state,
           if (flags & WEF_DRAW) {
                D_DEBUG_AT( IWater_TEST_Elem, "  -> DRAW + FILL\n" );
 
-               SetWaterColor( state, &state->attributes[WAT_DRAW_COLOR].color );
-               SetWaterColor( state, &state->attributes[WAT_FILL_COLOR].color );
-
                if (TEST_ANY_TRANSFORM( &state->attributes[WAT_RENDER_TRANSFORM].transform )) {
                     for (i=0; i<n; i++) {
                          int          num;
@@ -475,6 +472,8 @@ TEST_Render_Rectangle( State                    *state,
 
                          D_DEBUG_AT( IWater_TEST_Elem, "  -> inner %4d,%4d - %4dx%4d [%d]\n", DFB_RECTANGLE_VALS( &rects[i] ), i );
 
+                         SetWaterColor( state, &state->attributes[WAT_FILL_COLOR].color );
+
                          dfb_gfxcard_fillrectangles( &rects[i], 1, &state->state );
 
 
@@ -485,17 +484,23 @@ TEST_Render_Rectangle( State                    *state,
                               D_DEBUG_AT( IWater_TEST_Elem, "  -> %4d,%4d - %4dx%4d [%d]\n", DFB_RECTANGLE_VALS( &outlines[l] ), l );
 #endif
 
+                         SetWaterColor( state, &state->attributes[WAT_DRAW_COLOR].color );
+
                          dfb_gfxcard_fillrectangles( &outlines[0], num, &state->state );
                     }
                }
                else {
                     for (i=0; i<n; i++) {
+                         SetWaterColor( state, &state->attributes[WAT_DRAW_COLOR].color );
+
                          dfb_gfxcard_drawrectangle( &rects[i], &state->state );
 
                          rects[i].x += 1;
                          rects[i].y += 1;
                          rects[i].w -= 2;
                          rects[i].h -= 2;
+
+                         SetWaterColor( state, &state->attributes[WAT_FILL_COLOR].color );
 
                          dfb_gfxcard_fillrectangles( &rects[i], 1, &state->state );
                     }
@@ -704,9 +709,6 @@ TEST_Render_Rectangle_To_FillQuad( State                    *state,
           if (flags & WEF_DRAW) {
                D_DEBUG_AT( IWater_TEST_Elem, "  -> DRAW + FILL\n" );
 
-               SetWaterColor( state, &state->attributes[WAT_DRAW_COLOR].color );
-               SetWaterColor( state, &state->attributes[WAT_FILL_COLOR].color );
-
                if (TEST_ANY_TRANSFORM( &state->attributes[WAT_RENDER_TRANSFORM].transform )) {
                     for (i=0; i<n; i++) {
                          int          num;
@@ -723,6 +725,7 @@ TEST_Render_Rectangle_To_FillQuad( State                    *state,
 
                          D_DEBUG_AT( IWater_TEST_Elem, "  -> inner %4d,%4d - %4dx%4d [%d]\n", DFB_RECTANGLE_VALS( &rects[i] ), i );
 
+                         SetWaterColor( state, &state->attributes[WAT_FILL_COLOR].color );
                          dfb_gfxcard_fillrectangles( &rects[i], 1, &state->state );
 
 
@@ -733,6 +736,7 @@ TEST_Render_Rectangle_To_FillQuad( State                    *state,
                               D_DEBUG_AT( IWater_TEST_Elem, "  -> %4d,%4d - %4dx%4d [%d]\n", DFB_RECTANGLE_VALS( &outlines[l] ), l );
 #endif
 
+                         SetWaterColor( state, &state->attributes[WAT_DRAW_COLOR].color );
                          dfb_gfxcard_fillrectangles( &outlines[0], num, &state->state );
                     }
                }
@@ -752,8 +756,6 @@ TEST_Render_Rectangle_To_FillQuad( State                    *state,
           else {
                D_DEBUG_AT( IWater_TEST_Elem, "  -> FILL only\n" );
 
-               SetWaterColor( state, &state->attributes[WAT_FILL_COLOR].color );
-
                if (TEST_ANY_TRANSFORM( &state->attributes[WAT_RENDER_TRANSFORM].transform )) {
                     TEST_Transform_Rectangles( &state->attributes[WAT_RENDER_TRANSFORM].transform, rects, n );
 
@@ -764,6 +766,7 @@ TEST_Render_Rectangle_To_FillQuad( State                    *state,
 #endif
                }
 
+               SetWaterColor( state, &state->attributes[WAT_FILL_COLOR].color );
                dfb_gfxcard_fillrectangles( &rects[0], n, &state->state );
           }
      }
@@ -973,6 +976,7 @@ TEST_Render_Quadrangle( State                    *state,
                         unsigned int              num_values )
 {
      int         i, n;
+#if 0
      DFBTriangle tris[num_values/8 * 2];
 
      D_DEBUG_AT( IWater_TEST_Elem, "%s( %p [%u] )\n", __FUNCTION__, values, num_values );
@@ -1013,7 +1017,37 @@ TEST_Render_Quadrangle( State                    *state,
      SetWaterColor( state, &state->attributes[WAT_FILL_COLOR].color );
 
      dfb_gfxcard_filltriangles( tris, n, &state->state );
+#else
+     DFBPoint points[num_values/2];
 
+     D_DEBUG_AT( IWater_TEST_Elem, "%s( %p [%u] )\n", __FUNCTION__, values, num_values );
+
+     for (n=0, i=0; i<num_values; n++, i+=2) {
+          points[n].x = values[i+0].i;
+          points[n].y = values[i+1].i;
+     }
+
+     D_DEBUG_AT( IWater_TEST_Elem, "  -> %d points\n", n );
+
+     if (!n)
+          return DFB_OK;
+
+#if D_DEBUG_ENABLED
+     for (i=0; i<n; i++)
+          D_DEBUG_AT( IWater_TEST_Elem, "  -> %4d,%4d [%d]\n", DFB_POINT_VALS( &points[i] ), i );
+#endif
+
+     TEST_Transform_Points( &state->attributes[WAT_RENDER_TRANSFORM].transform, points, n );
+
+#if D_DEBUG_ENABLED
+     for (i=0; i<n; i++)
+          D_DEBUG_AT( IWater_TEST_Elem, "  -> %4d,%4d [%d]\n", DFB_POINT_VALS( &points[i] ), i );
+#endif
+
+     SetWaterColor( state, &state->attributes[WAT_FILL_COLOR].color );
+
+     dfb_gfxcard_fillquadrangles( points, n / 4, &state->state );
+#endif
      return DFB_OK;
 }
 
