@@ -133,6 +133,7 @@ sub substitute_links ($) {
 
    # Automatic type links
    $str =~ s/(\s)($PROJECT[\w0-9]+)/\1\<a\ href=\"types\.html#\2\"\>\2\<\/a\>/g;
+   $str =~ s/(\s)(Water[\w0-9]+)/\1\<a\ href=\"types\.html#\2\"\>\2\<\/a\>/g;
 
    # Explicit type links
    $str =~ s/(\s)\@\_(\w[\w0-9]+)/\1\<a\ href=\"types\.html#\2\"\>\2\<\/a\>/g;
