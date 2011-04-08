@@ -124,6 +124,8 @@ struct __Fusion_FusionWorld {
      }                    deferred;
 };
 
+#if FUSION_BUILD_MULTI
+# if FUSION_BUILD_KERNEL
 typedef struct {
      DirectLink          link;
 
@@ -131,6 +133,8 @@ typedef struct {
 
      /* message data follows */
 } DeferredCall;
+# endif
+#endif
 
 /*******************************************
  *  Fusion internal function declarations  *
