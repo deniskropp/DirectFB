@@ -100,8 +100,8 @@ fusion_arena_enter (FusionWorld     *world,
      D_MAGIC_ASSERT( world, FusionWorld );
 
      D_ASSERT( name != NULL );
-     D_ASSERT( initialize != NULL );
-     D_ASSERT( join != NULL );
+//     D_ASSERT( initialize != NULL );
+//     D_ASSERT( join != NULL );
      D_ASSERT( ret_arena != NULL );
 
      D_DEBUG_AT( Fusion_Arena, "%s( '%s' )\n", __FUNCTION__, name );
@@ -143,7 +143,8 @@ fusion_arena_enter (FusionWorld     *world,
      *ret_arena = arena;
 
      /* Call 'initialize' or 'join'. */
-     error = func (arena, ctx);
+     if (func)
+          error = func (arena, ctx);
 
      /* Return the return value of the callback. */
      if (ret_error)
