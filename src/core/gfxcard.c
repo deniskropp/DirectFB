@@ -2100,6 +2100,45 @@ DFBVertex_Transform( DFBVertex    *v,
      }
 }
 
+static void
+GenefxVertexAffine_Transform( GenefxVertexAffine *v,
+                              unsigned int        num,
+                              s32                 matrix[9],
+                              bool                affine )
+{
+     if (affine) {
+          for (unsigned int i=0; i<num; i++) {
+               int _x, _y;
+
+               _x = ((v[i].x) * matrix[0] + (v[i].y) * matrix[1] + matrix[2]) / 0x10000;
+               _y = ((v[i].x) * matrix[3] + (v[i].y) * matrix[4] + matrix[5]) / 0x10000;
+
+               v[i].x = _x;
+               v[i].y = _y;
+          }
+     }
+     else {
+          for (unsigned int i=0; i<num; i++) {
+               int _x, _y, _w;
+
+               _x = ((v[i].x) * matrix[0] + (v[i].y) * matrix[1] + matrix[2]);
+               _y = ((v[i].x) * matrix[3] + (v[i].y) * matrix[4] + matrix[5]);
+               _w = ((v[i].x) * matrix[6] + (v[i].y) * matrix[7] + matrix[8]);
+               if (!_w) {
+                    _x = (_x < 0) ? -0x7fffffff : 0x7fffffff;
+                    _y = (_y < 0) ? -0x7fffffff : 0x7fffffff;
+               }
+               else {
+                    _x /= _w;
+                    _y /= _w;
+               }
+
+               v[i].x = _x;
+               v[i].y = _y;
+          }
+     }
+}
+
 
 void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 {
@@ -2180,39 +2219,31 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
                    state->matrix[6] != 0 || state->matrix[7] != 0)
                {
                     if (gAcquire( state, DFXL_TEXTRIANGLES )) {
-                         DFBVertex v[4];
+                         GenefxVertexAffine v[4];
 
                          v[0].x = dx;
                          v[0].y = dy;
-                         v[0].z = 0;
-                         v[0].w = 0;
-                         v[0].s = rect->x / (float) state->source->config.size.w;
-                         v[0].t = rect->y / (float) state->source->config.size.h;
+                         v[0].s = rect->x * 0x10000;
+                         v[0].t = rect->y * 0x10000;
 
                          v[1].x = dx + rect->w - 1;
                          v[1].y = dy;
-                         v[1].z = 0;
-                         v[1].w = 0;
-                         v[1].s = (rect->x + rect->w - 1) / (float) state->source->config.size.w;
+                         v[1].s = (rect->x + rect->w - 1) * 0x10000;
                          v[1].t = v[0].t;
 
                          v[2].x = dx + rect->w - 1;
                          v[2].y = dy + rect->h - 1;
-                         v[2].z = 0;
-                         v[2].w = 0;
                          v[2].s = v[1].s;
-                         v[2].t = (rect->y + rect->h - 1) / (float) state->source->config.size.h;
+                         v[2].t = (rect->y + rect->h - 1) * 0x10000;
 
                          v[3].x = dx;
                          v[3].y = dy + rect->h - 1;
-                         v[3].z = 0;
-                         v[3].w = 0;
                          v[3].s = v[0].s;
                          v[3].t = v[2].t;
 
-                         DFBVertex_Transform( v, 4, state->matrix, state->affine_matrix );
+                         GenefxVertexAffine_Transform( v, 4, state->matrix, state->affine_matrix );
 
-                         gTextureTriangles( state, v, 4, DTTF_FAN );
+                         Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN );
 
                          gRelease( state );
                     }
@@ -2690,7 +2721,7 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
 
      if (!hw) {
           if (gAcquire( state, DFXL_TEXTRIANGLES )) {
-               gTextureTriangles( state, vertices, num, formation );
+               Genefx_TextureTriangles( state, vertices, num, formation );
                gRelease( state );
           }
      }

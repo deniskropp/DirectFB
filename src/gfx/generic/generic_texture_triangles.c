@@ -69,15 +69,15 @@ D_DEBUG_DOMAIN( Genefx_TexTriangles, "Genefx/TexTriangles", "Genefx Texture Tria
 /**********************************************************************************************************************/
 
 void
-Genefx_TextureTriangle( GenefxState  *gfxs,
-                        GenefxVertex *v0,
-                        GenefxVertex *v1,
-                        GenefxVertex *v2 )
+Genefx_TextureTriangleAffine( GenefxState        *gfxs,
+                              GenefxVertexAffine *v0,
+                              GenefxVertexAffine *v1,
+                              GenefxVertexAffine *v2 )
 {
      D_DEBUG_AT( Genefx_TexTriangles, "%s( state %p, v0 %p, v1 %p, v2 %p )\n", __func__, gfxs, v0, v1, v2 );
 
 
-     GenefxVertex *v_tmp;
+     GenefxVertexAffine *v_tmp;
 
      int y_update = -1;
 
@@ -308,10 +308,34 @@ Genefx_TextureTriangle( GenefxState  *gfxs,
 /**********************************************************************************************************************/
 
 void
-gTextureTriangles( CardState            *state,
-                   DFBVertex            *vertices,
-                   int                   num,
-                   DFBTriangleFormation  formation )
+Genefx_TextureTriangles( CardState            *state,
+                         DFBVertex            *vertices,
+                         int                   num,
+                         DFBTriangleFormation  formation )
+{
+     /*
+      * Convert vertices
+      */
+     GenefxVertexAffine genefx_vertices[num];
+
+     for (int i=0; i<num; i++) {
+          genefx_vertices[i].x = vertices[i].x;
+          genefx_vertices[i].y = vertices[i].y;
+          genefx_vertices[i].s = vertices[i].s * state->source->config.size.w * 0x10000;
+          genefx_vertices[i].t = vertices[i].t * state->source->config.size.h * 0x10000;
+     }
+
+     // FIXME: Implement perspective correct mapping
+     Genefx_TextureTrianglesAffine( state, genefx_vertices, num, formation );
+}
+
+/**********************************************************************************************************************/
+
+void
+Genefx_TextureTrianglesAffine( CardState            *state,
+                               GenefxVertexAffine   *vertices,
+                               int                   num,
+                               DFBTriangleFormation  formation )
 {
      GenefxState *gfxs = state->gfxs;
 
@@ -330,59 +354,46 @@ gTextureTriangles( CardState            *state,
 
 
      /*
-      * Convert vertices
-      */
-     GenefxVertex genefx_vertices[num];
-
-     for (int i=0; i<num; i++) {
-          genefx_vertices[i].x = vertices[i].x;
-          genefx_vertices[i].y = vertices[i].y;
-          genefx_vertices[i].s = vertices[i].s * state->source->config.size.w * 0x10000;
-          genefx_vertices[i].t = vertices[i].t * state->source->config.size.h * 0x10000;
-     }
-
-
-     /*
       * Render triangles
       */
      int index = 0;
 
      for (index=0; index<num;) {
-          GenefxVertex *v[3];
+          GenefxVertexAffine *v[3];
 
           /*
            * Triangle Fetch
            */
 
           if (index == 0) {
-               v[0] = &genefx_vertices[index+0];
-               v[1] = &genefx_vertices[index+1];
-               v[2] = &genefx_vertices[index+2];
+               v[0] = &vertices[index+0];
+               v[1] = &vertices[index+1];
+               v[2] = &vertices[index+2];
 
                index += 3;
           }
           else {
                switch (formation) {
                     case DTTF_LIST:
-                         v[0] = &genefx_vertices[index+0];
-                         v[1] = &genefx_vertices[index+1];
-                         v[2] = &genefx_vertices[index+2];
+                         v[0] = &vertices[index+0];
+                         v[1] = &vertices[index+1];
+                         v[2] = &vertices[index+2];
 
                          index += 3;
                          break;
 
                     case DTTF_STRIP:
-                         v[0] = &genefx_vertices[index-2];
-                         v[1] = &genefx_vertices[index-1];
-                         v[2] = &genefx_vertices[index+0];
+                         v[0] = &vertices[index-2];
+                         v[1] = &vertices[index-1];
+                         v[2] = &vertices[index+0];
 
                          index += 1;
                          break;
 
                     case DTTF_FAN:
-                         v[0] = &genefx_vertices[0];
-                         v[1] = &genefx_vertices[index-1];
-                         v[2] = &genefx_vertices[index+0];
+                         v[0] = &vertices[0];
+                         v[1] = &vertices[index-1];
+                         v[2] = &vertices[index+0];
 
                          index += 1;
                          break;
@@ -403,7 +414,7 @@ gTextureTriangles( CardState            *state,
                        dfb_pixelformat_name(gfxs->src_format) );
           }
 
-          Genefx_TextureTriangle( gfxs, v[0], v[1], v[2] );
+          Genefx_TextureTriangleAffine( gfxs, v[0], v[1], v[2] );
      }
 
      Genefx_ABacc_flush( gfxs );
