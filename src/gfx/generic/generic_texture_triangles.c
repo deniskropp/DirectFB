@@ -133,7 +133,11 @@ Genefx_TextureTriangle( GenefxState  *gfxs,
       * Triangle Setup
       */
 
-     int height      = v2->y - v0->y;
+     int height = v2->y - v0->y;
+
+     if (height < 1)
+          return;
+
      int half_top    = v1->y - v0->y;
      int half_bottom = v2->y - v1->y;
 
