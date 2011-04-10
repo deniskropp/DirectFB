@@ -2683,9 +2683,40 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                
                if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
                    state->matrix[3] != 0 || state->matrix[4] < 0  ||
-                   state->matrix[6] != 0 || state->matrix[7] != 0) {
-                    D_WARN( "rotation not yet implemented" );
+                   state->matrix[6] != 0 || state->matrix[7] != 0)
+               {
+                    if (gAcquire( state, DFXL_TEXTRIANGLES )) {
+                         GenefxVertexAffine v[4];
+
+                         v[0].x = drect->x;
+                         v[0].y = drect->y;
+                         v[0].s = srect->x * 0x10000;
+                         v[0].t = srect->y * 0x10000;
+
+                         v[1].x = drect->x + drect->w - 1;
+                         v[1].y = drect->y;
+                         v[1].s = (srect->x + srect->w - 1) * 0x10000;
+                         v[1].t = v[0].t;
+
+                         v[2].x = drect->x + drect->w - 1;
+                         v[2].y = drect->y + drect->h - 1;
+                         v[2].s = v[1].s;
+                         v[2].t = (srect->y + srect->h - 1) * 0x10000;
+
+                         v[3].x = drect->x;
+                         v[3].y = drect->y + drect->h - 1;
+                         v[3].s = v[0].s;
+                         v[3].t = v[2].t;
+
+                         GenefxVertexAffine_Transform( v, 4, state->matrix, state->affine_matrix );
+
+                         Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN );
+
+                         gRelease( state );
+                    }
+
                     dfb_state_unlock( state );
+
                     return;
                }
                
