@@ -112,6 +112,9 @@ struct _GenefxState {
      int AopY;
      int BopY;
 
+     int s;
+     int t;
+
      /*
       * color keys
       */
@@ -148,7 +151,8 @@ struct _GenefxState {
 
      int Ostep; /* controls horizontal blitting direction */
 
-     int SperD;     /* for scaled routines only */
+     int SperD;     /* for scaled/texture routines only */
+     int TperD;     /* for texture routines only */
      int Xphase;    /* initial value for fractional steps (zero if not clipped) */
 
      bool need_accumulator;
@@ -156,6 +160,8 @@ struct _GenefxState {
      int *trans;
      int  num_trans;
 };
+
+/**********************************************************************************************************************/
 
 
 void gGetDriverInfo( GraphicsDriverInfo *info );
@@ -170,5 +176,89 @@ void gDrawLine      ( CardState *state, DFBRegion    *line );
 void gBlit          ( CardState *state, DFBRectangle *rect, int dx, int dy );
 void gStretchBlit   ( CardState *state, DFBRectangle *srect, DFBRectangle *drect );
 
+void gTextureTriangles( CardState            *state,
+                        DFBVertex            *vertices,
+                        int                   num,
+                        DFBTriangleFormation  formation );
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+typedef struct {
+     int x;
+     int y;
+     int s;
+     int t;
+} GenefxVertex;
+
+/**********************************************************************************************************************/
+
+void Genefx_TextureTriangle( GenefxState  *gfxs,
+                             GenefxVertex *v0,
+                             GenefxVertex *v1,
+                             GenefxVertex *v2 );
+
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+
+#define CHECK_PIPELINE()                                                             \
+     {                                                                               \
+          if (!gfxs->funcs[0])                                                       \
+               return;                                                               \
+                                                                                     \
+          if (dfb_config->software_trace) {                                          \
+               int         i;                                                        \
+               GenefxFunc *funcs = gfxs->funcs;                                      \
+                                                                                     \
+               direct_log_lock( NULL );                                              \
+               direct_log_printf( NULL, "  Software Fallback Pipeline:\n" );         \
+                                                                                     \
+               for (i=0; funcs[i]; ++i)                                              \
+                    direct_log_printf( NULL, "    [%2d] %s\n", i,                    \
+                                       direct_trace_lookup_symbol_at( funcs[i] ) );  \
+                                                                                     \
+               direct_log_printf( NULL, "\n" );                                      \
+               direct_log_unlock( NULL );                                            \
+          }                                                                          \
+     }
+
+#define RUN_PIPELINE()                     \
+     {                                     \
+          int         i;                   \
+          GenefxFunc *funcs = gfxs->funcs; \
+                                           \
+          for (i=0; funcs[i]; ++i)         \
+               funcs[i]( gfxs );           \
+     }
+
+
+
+/**********************************************************************************************************************/
+
+typedef void (*XopAdvanceFunc)( GenefxState *gfxs );
+
+
+void Genefx_Aop_xy( GenefxState *gfxs, int x, int y );
+
+void Genefx_Aop_crab( GenefxState *gfxs );
+
+void Genefx_Aop_next( GenefxState *gfxs );
+
+void Genefx_Aop_prev( GenefxState *gfxs );
+
+
+void Genefx_Bop_xy( GenefxState *gfxs, int x, int y );
+
+void Genefx_Bop_next( GenefxState *gfxs );
+
+void Genefx_Bop_prev( GenefxState *gfxs );
+
+/**********************************************************************************************************************/
+
+bool Genefx_ABacc_prepare( GenefxState *gfxs, int width );
+
+void Genefx_ABacc_flush( GenefxState *gfxs );
 
 #endif

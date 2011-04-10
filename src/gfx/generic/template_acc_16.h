@@ -358,6 +358,30 @@ static void Sacc_OP_Aop_PFI(StoK)( GenefxState *gfxs )
      }
 }
 
+/********************************* Sop_PFI_TEX_to_Dacc ***************************/
+
+static void Sop_PFI_OP_Dacc(TEX_to)( GenefxState *gfxs )
+{
+     int                l     = gfxs->length;
+     int                i     = gfxs->Xphase;
+     int                SperD = gfxs->SperD;
+     u16               *S     = gfxs->Sop[0];
+     int                Ostep = gfxs->Ostep;
+     GenefxAccumulator *D     = gfxs->Dacc;
+
+     if (Ostep != 1)
+          D_UNIMPLEMENTED();
+
+     while (l--) {
+          u16 s = S[i>>16];
+
+          EXPAND( *D, s );
+
+          D++;
+          i += SperD;
+     }
+}
+
 /******************************************************************************/
 
 #undef RGB_MASK
