@@ -363,22 +363,26 @@ static void Sacc_OP_Aop_PFI(StoK)( GenefxState *gfxs )
 static void Sop_PFI_OP_Dacc(TEX_to)( GenefxState *gfxs )
 {
      int                l     = gfxs->length;
-     int                i     = gfxs->Xphase;
+     int                s     = gfxs->s;
+     int                t     = gfxs->t;
      int                SperD = gfxs->SperD;
+     int                TperD = gfxs->TperD;
      u16               *S     = gfxs->Sop[0];
      int                Ostep = gfxs->Ostep;
      GenefxAccumulator *D     = gfxs->Dacc;
+     int                sp2   = gfxs->src_pitch / 2;
 
      if (Ostep != 1)
           D_UNIMPLEMENTED();
 
      while (l--) {
-          u16 s = S[i>>16];
+          u32 p = S[(s>>16) + (t>>16) * sp2];
 
-          EXPAND( *D, s );
+          EXPAND( *D, p );
 
           D++;
-          i += SperD;
+          s += SperD;
+          t += TperD;
      }
 }
 
