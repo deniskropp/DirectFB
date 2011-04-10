@@ -2317,13 +2317,41 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
           if (state->render_options & DSRO_MATRIX) {
                if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
                    state->matrix[3] != 0 || state->matrix[4] < 0  ||
-                   state->matrix[6] != 0 || state->matrix[7] != 0) {
-                    D_WARN( "rotation not yet implemented" );
-                    dfb_state_unlock( state );
-                    return;
+                   state->matrix[6] != 0 || state->matrix[7] != 0)
+               {
+                    if (gAcquire( state, DFXL_TEXTRIANGLES )) {
+                         for (; i<num; i++) {
+                              GenefxVertexAffine v[4];
+
+                              v[0].x = points[i].x;
+                              v[0].y = points[i].y;
+                              v[0].s = rects[i].x * 0x10000;
+                              v[0].t = rects[i].y * 0x10000;
+
+                              v[1].x = points[i].x + rects[i].w - 1;
+                              v[1].y = points[i].y;
+                              v[1].s = (rects[i].x + rects[i].w - 1) * 0x10000;
+                              v[1].t = v[0].t;
+
+                              v[2].x = points[i].x + rects[i].w - 1;
+                              v[2].y = points[i].y + rects[i].h - 1;
+                              v[2].s = v[1].s;
+                              v[2].t = (rects[i].y + rects[i].h - 1) * 0x10000;
+
+                              v[3].x = points[i].x;
+                              v[3].y = points[i].y + rects[i].h - 1;
+                              v[3].s = v[0].s;
+                              v[3].t = v[2].t;
+
+                              GenefxVertexAffine_Transform( v, 4, state->matrix, state->affine_matrix );
+
+                              Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN );
+                         }
+
+                         gRelease( state );
+                    }
                }
-               
-               if (gAcquire( state, DFXL_STRETCHBLIT )) {
+               else if (gAcquire( state, DFXL_STRETCHBLIT )) {
                     for (; i<num; i++) {
                          DFBRectangle drect;
                          int          x1, y1, x2, y2;
