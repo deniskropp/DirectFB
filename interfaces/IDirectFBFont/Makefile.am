@@ -49,7 +49,8 @@ libidirectfbfont_ft2_la_SOURCES = idirectfbfont_ft2.c
 libidirectfbfont_ft2_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/src/libdirectfb.la \
-	$(FREETYPE_LIBS)
+	$(FREETYPE_LIBS) \
+	$(LIBM)
 
 libidirectfbfont_ft2_la_LDFLAGS = -avoid-version -module
 
