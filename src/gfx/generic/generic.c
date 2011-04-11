@@ -5649,6 +5649,50 @@ static const GenefxFunc Sop_PFI_TEX_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
 };
 
+/********************************* Sop_PFI_TEX_Kto_Dacc ****************************/
+
+
+static const GenefxFunc Sop_PFI_TEX_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = Sop_argb1555_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB16)]    = Sop_rgb16_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,//Sop_rgb24_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sop_rgb32_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sop_argb_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sop_abgr_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,//Sop_a8_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,//Sop_yuy2_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,//Sop_rgb332_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_UYVY)]     = NULL,//Sop_uyvy_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_I420)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT8)]     = NULL,//Sop_lut8_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ALUT44)]   = NULL,//Sop_alut44_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)]    = Sop_airgb_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV16)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB2554)] = Sop_argb2554_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] = Sop_argb4444_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA4444)] = Sop_rgba4444_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV21)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AYUV)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A4)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = NULL,//Sop_argb1666_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = NULL,//Sop_argb6666_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = NULL,//Sop_rgb18_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = Sop_xrgb4444_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = Sop_xrgb1555_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_BGR555)]   = Sop_xbgr1555_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sop_rgba5551_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,//Sop_yuv444p_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,//Sop_argb8565_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,//Sop_avyu_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,//Sop_vyu_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
+};
+
 /********************************* Sacc_Sto_Aop_PFI ***************************/
 
 static void Sacc_Sto_Aop_argb6666( GenefxState *gfxs )
@@ -10445,9 +10489,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    gfxs->Skey = state->src_colorkey;
 
-                                   D_UNIMPLEMENTED();
-                                   break;
-                                   //*funcs++ = Sop_PFI_TEX_Kto_Dacc[src_pfi];
+                                   *funcs++ = Sop_PFI_TEX_Kto_Dacc[src_pfi];
                               }
                               else {
                                    *funcs++ = Sop_PFI_TEX_to_Dacc[src_pfi];

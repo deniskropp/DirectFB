@@ -266,6 +266,38 @@ static void Sop_PFI_OP_Dacc(TEX_to)( GenefxState *gfxs )
      }
 }
 
+/********************************* Sop_PFI_TEX_Kto_Dacc ***************************/
+
+static void Sop_PFI_OP_Dacc(TEX_Kto)( GenefxState *gfxs )
+{
+     int                l     = gfxs->length;
+     int                s     = gfxs->s;
+     int                t     = gfxs->t;
+     int                SperD = gfxs->SperD;
+     int                TperD = gfxs->TperD;
+     u32               *S     = gfxs->Sop[0];
+     u32                Skey  = gfxs->Skey;
+     int                Ostep = gfxs->Ostep;
+     GenefxAccumulator *D     = gfxs->Dacc;
+     int                sp4   = gfxs->src_pitch / 4;
+
+     if (Ostep != 1)
+          D_UNIMPLEMENTED();
+
+     while (l--) {
+          u32 p = S[(s>>16) + (t>>16) * sp4];
+
+          if ((p & RGB_MASK) != Skey)
+               EXPAND( *D, p );
+          else
+               D->RGB.a = 0xF000;
+
+          D++;
+          s += SperD;
+          t += TperD;
+     }
+}
+
 /******************************************************************************/
 
 #undef RGB_MASK
