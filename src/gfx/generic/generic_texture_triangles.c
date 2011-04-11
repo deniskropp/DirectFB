@@ -119,8 +119,18 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
           return;
      }
 
-     // FIXME: add horizontal pre-clipping as well
+     /*
+      * Horizontal Pre-Clipping
+      */
+     if (v0->x > clip->x2 && v1->x > clip->x2 && v2->x > clip->x2) {
+          D_DEBUG_AT( Genefx_TexTriangles, "  -> totally clipped right\n" );
+          return;
+     }
 
+     if (v0->x < clip->x1 && v1->x < clip->x1 && v2->x < clip->x1) {
+          D_DEBUG_AT( Genefx_TexTriangles, "  -> totally clipped left\n" );
+          return;
+     }
 
 
      int y_update = -1;
@@ -438,7 +448,7 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
                RUN_PIPELINE();
           }
           else
-               D_DEBUG_AT( Genefx_TexTriangles, "  -> y %4d, totally clipped (horizontal)\n", y );
+               D_DEBUG_AT( Genefx_TexTriangles, "  -> y %4d, totally clipped line\n", y );
 
           /*
            * Increments
