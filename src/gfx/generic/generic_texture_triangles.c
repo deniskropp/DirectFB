@@ -68,7 +68,49 @@ D_DEBUG_DOMAIN( Genefx_TexTriangles, "Genefx/TexTriangles", "Genefx Texture Tria
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
-#define COORD_SHIFT 18
+
+typedef struct {
+   int xi;
+   int xf;
+   int mi;
+   int mf;
+   int _2dy;
+} DDA;
+
+#define SETUP_DDA(xs,ys,xe,ye,dda)         \
+     do {                                  \
+          int dx = (xe) - (xs);            \
+          int dy = (ye) - (ys);            \
+          dda.xi = (xs);                   \
+          if (dy != 0) {                   \
+               dda.mi = dx / dy;           \
+               dda.mf = 2*(dx % dy);       \
+               dda.xf = -dy;               \
+               dda._2dy = 2 * dy;          \
+               if (dda.mf < 0) {           \
+                    dda.mf += 2 * ABS(dy); \
+                    dda.mi--;              \
+               }                           \
+          }                                \
+          else {                           \
+               dda.mi = 0;                 \
+               dda.mf = 0;                 \
+               dda.xf = 0;                 \
+               dda._2dy = 0;               \
+          }                                \
+     } while (0)
+
+
+#define INC_DDA(dda)                       \
+     do {                                  \
+          dda.xi += dda.mi;                \
+          dda.xf += dda.mf;                \
+          if (dda.xf > 0) {                \
+               dda.xi++;                   \
+               dda.xf -= dda._2dy;         \
+          }                                \
+     } while (0)
+
 
 void
 Genefx_TextureTriangleAffine( GenefxState        *gfxs,
@@ -112,7 +154,7 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
       * Vertical Pre-Clipping
       */
      int y_top    = v0->y;
-     int y_bottom = v2->y - 1;
+     int y_bottom = v2->y;
 
      if (y_top > clip->y2 || y_bottom < clip->y1) {
           D_DEBUG_AT( Genefx_TexTriangles, "  -> totally clipped (vertical)\n" );
@@ -167,15 +209,13 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
 
      /*
       * Triangle Setup
+      *
+      * FIXME: This could be simplified
       */
 
      int height      = v2->y - v0->y;
      int half_top    = v1->y - v0->y;
      int half_bottom = v2->y - v1->y;
-
-     int xl, xr;
-     int dxl, dxr;
-     int dxl2, dxr2;
 
      int sl, sr;
      int tl, tr;
@@ -193,12 +233,6 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
                return;
           }
 
-          xl = v0->x << COORD_SHIFT;
-          xr = v1->x << COORD_SHIFT;
-
-          dxl = dxl2 = ((v2->x << COORD_SHIFT) - xl) / height;
-          dxr = dxr2 = ((v2->x << COORD_SHIFT) - xr) / height;
-
           sl = v0->s;
           sr = v1->s;
 
@@ -210,8 +244,6 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
 
           dtl = dtl2 = (v2->t - tl) / height;
           dtr = dtr2 = (v2->t - tr) / height;
-
-          D_ASSERT( dxr < dxl );
      }
      /* Flat bottom */
      else if (v1->y == v2->y) {
@@ -222,11 +254,6 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
                return;
           }
 
-          xl = xr = v0->x << COORD_SHIFT;
-
-          dxl = dxl2 = ((v1->x << COORD_SHIFT) - xl) / height;
-          dxr = dxr2 = ((v2->x << COORD_SHIFT) - xr) / height;
-
           sl = sr = v0->s;
 
           dsl = dsl2 = (v1->s - sl) / height;
@@ -236,12 +263,9 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
 
           dtl = dtl2 = (v1->t - tl) / height;
           dtr = dtr2 = (v2->t - tr) / height;
-
-          D_ASSERT( dxr > dxl );
      }
      /* Two parts */
      else {
-          xl = xr = v0->x << COORD_SHIFT;
           sl = sr = v0->s;
           tl = tr = v0->t;
 
@@ -250,12 +274,6 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
           /* Update left */
           if (x_v1 > v1->x) {
                D_DEBUG_AT( Genefx_TexTriangles, "  -> two parts, update left\n" );
-
-               dxl = ((v1->x << COORD_SHIFT) - xl) / half_top;
-               dxr = ((v2->x << COORD_SHIFT) - xr) / height;
-
-               dxl2 = ((v2->x - v1->x) << COORD_SHIFT) / half_bottom;
-               dxr2 = dxr;
 
                dsl = (v1->s - sl) / half_top;
                dsr = (v2->s - sr) / height;
@@ -273,12 +291,6 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
           else if (x_v1 < v1->x) {
                D_DEBUG_AT( Genefx_TexTriangles, "  -> two parts, update right\n" );
 
-               dxl = ((v2->x << COORD_SHIFT) - xl) / height;
-               dxr = ((v1->x << COORD_SHIFT) - xr) / half_top;
-
-               dxl2 = dxl;
-               dxr2 = ((v2->x - v1->x) << COORD_SHIFT) / half_bottom;
-
                dsl = (v2->s - sl) / height;
                dsr = (v1->s - sr) / half_top;
 
@@ -295,11 +307,12 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
                D_DEBUG_AT( Genefx_TexTriangles, "  -> all points on one line\n" );
                return;
           }
-
-          D_ASSERT( dxr > dxl );
      }
 
-     D_DEBUG_AT( Genefx_TexTriangles, "  -> dxl %d, dxr %d, dxl2 %d, dxr2 %d, height %d\n", dxl, dxr, dxl2, dxr2, height );
+     DDA dda1 = { .xi = 0 }, dda2 = { .xi = 0 };
+
+     SETUP_DDA(v0->x, v0->y, v2->x, v2->y, dda1);
+     SETUP_DDA(v0->x, v0->y, v1->x, v1->y, dda2);
 
 
      /*
@@ -318,19 +331,18 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
      }
 
      if (y_top > v0->y) {
+          for (int y=v0->y; y<y_top; y++) {
+               INC_DDA(dda1);
+               INC_DDA(dda2);
+          }
+
           /* Two parts */
           if (y_update != -1 && y_top > y_update) {
-               xl += dxl * (y_update - v0->y) + dxl2 * (y_top - v1->y);
-               xr += dxr * (y_update - v0->y) + dxr2 * (y_top - v1->y);
-
                sl += dsl * (y_update - v0->y) + dsl2 * (y_top - v1->y);
                sr += dsr * (y_update - v0->y) + dsr2 * (y_top - v1->y);
 
                tl += dtl * (y_update - v0->y) + dtl2 * (y_top - v1->y);
                tr += dtr * (y_update - v0->y) + dtr2 * (y_top - v1->y);
-
-               dxl = dxl2;
-               dxr = dxr2;
 
                dsl = dsl2;
                dsr = dsr2;
@@ -342,19 +354,15 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
           }
           /* One part or only top clipped */
           else {
-               xl += dxl * (y_top - v0->y);
-               xr += dxr * (y_top - v0->y);
-
                sl += dsl * (y_top - v0->y);
                sr += dsr * (y_top - v0->y);
 
                tl += dtl * (y_top - v0->y);
                tr += dtr * (y_top - v0->y);
 
-               D_DEBUG_AT( Genefx_TexTriangles, "  -> clipped one part\n", y_top, clip->y1 );
+               D_DEBUG_AT( Genefx_TexTriangles, "  -> clipped one part\n" );
           }
      }
-
 
      /*
       * Loop over clipped lines
@@ -364,51 +372,29 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
            * Slope update (for bottom half)
            */
           if (y == y_update) {
-               /* Left */
-               if (dxl != dxl2) {
-                    dxl = dxl2;
-                    dsl = dsl2;
-                    dtl = dtl2;
+               dsl = dsl2;
+               dtl = dtl2;
 
-                    D_DEBUG_AT( Genefx_TexTriangles, "  -> updating left, off by %d\n", xl - (v1->x << COORD_SHIFT) );
-
-                    xl = v1->x << COORD_SHIFT;
-                    sl = v1->s;
-                    tl = v1->t;
-               }
-               /* Right */
-               else if (dxr != dxr2) {
-                    dxr = dxr2;
-                    dsr = dsr2;
-                    dtr = dtr2;
-
-                    D_DEBUG_AT( Genefx_TexTriangles, "  -> updating right, off by %d\n", xr - (v1->x << COORD_SHIFT) );
-
-                    xr = v1->x << COORD_SHIFT;
-                    sr = v1->s;
-                    tr = v1->t;
-               }
+               dsr = dsr2;
+               dtr = dtr2;
           }
 
+          if (y == v1->y)
+               SETUP_DDA(v1->x, v1->y, v2->x, v2->y, dda2);
 
-          D_ASSERT( xr - xl >= -100 );  // FIXME: try to get better precision
-
-          if (xl > xr)
-               xl = xr;
 
           /*
            * Scanline Setup
            */
-          int len = ((xr - xl) >> COORD_SHIFT) + 1;
-          int x1  = xl >> COORD_SHIFT;
+          int len = ABS( dda1.xi - dda2.xi );
+          int x1  = MIN( dda1.xi, dda2.xi );
           int x2  = x1 + len - 1;
 
           D_DEBUG_AT( Genefx_TexTriangles,
-                      "  -> y %4d, xl %d (%d), xr %d (%d), len %d (%d), x1 %d, x2 %d\n",
-                      y, xl, xl >> COORD_SHIFT, xr, xr >> COORD_SHIFT, len, x2 - x1, x1, x2 );
+                      "  -> y %4d, len %d, x1 %d, x2 %d\n", y, len, x1, x2 );
 
 
-          if (x1 <= clip->x2 && x2 >= clip->x1) {
+          if (len > 0 && x1 <= clip->x2 && x2 >= clip->x1) {
                int SperD = (sr - sl) / len;
                int TperD = (tr - tl) / len;
 
@@ -426,8 +412,8 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
                     x2 = clip->x2;
 
                D_DEBUG_AT( Genefx_TexTriangles,
-                           "  ->         xl %d (%d), xr %d (%d), len %d (%d), x1 %d, x2 %d, sl %d, sr %d, tl %d, tr %d, SperD %d, TperD %d\n",
-                           xl, xl >> COORD_SHIFT, xr, xr >> COORD_SHIFT, len, x2 - x1, x1, x2, sl, sr, tl, tr, SperD, TperD );
+                           "  ->         len %d, x1 %d, x2 %d, sl %d, sr %d, tl %d, tr %d, SperD %d, TperD %d\n",
+                           len, x1, x2, sl, sr, tl, tr, SperD, TperD );
 
                /*
                 * Pipeline Setup
@@ -453,14 +439,14 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
           /*
            * Increments
            */
-          xl += dxl;
-          xr += dxr;
-
           sl += dsl;
           sr += dsr;
 
           tl += dtl;
           tr += dtr;
+
+          INC_DDA(dda1);
+          INC_DDA(dda2);
      }
 }
 
