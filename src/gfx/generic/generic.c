@@ -5607,6 +5607,27 @@ static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /********************************* Sop_PFI_TEX_to_Dacc ****************************/
 
+static void Sop_a8_TEX_to_Dacc( GenefxState *gfxs )
+{
+     int                l     = gfxs->length;
+     int                s     = gfxs->s;
+     int                t     = gfxs->t;
+     int                SperD = gfxs->SperD;
+     int                TperD = gfxs->TperD;
+     u8                *S     = gfxs->Sop[0];
+     GenefxAccumulator *D     = gfxs->Dacc;
+
+     while (l--) {
+          D->RGB.a = S[(s>>16) + (t>>16) * gfxs->src_pitch];
+          D->RGB.r = 0xFF;
+          D->RGB.g = 0xFF;
+          D->RGB.b = 0xFF;
+
+          D++;
+          s += SperD;
+          t += TperD;
+     }
+}
 
 static const GenefxFunc Sop_PFI_TEX_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = Sop_argb1555_TEX_to_Dacc,
@@ -5615,7 +5636,7 @@ static const GenefxFunc Sop_PFI_TEX_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sop_rgb32_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sop_argb_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sop_abgr_TEX_to_Dacc,
-     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,//Sop_a8_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Sop_a8_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,//Sop_yuy2_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,//Sop_rgb332_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_UYVY)]     = NULL,//Sop_uyvy_TEX_to_Dacc,
