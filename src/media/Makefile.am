@@ -35,4 +35,5 @@ libdirectfb_media_la_SOURCES = \
 	idirectfbdatabuffer_file.c	\
 	idirectfbdatabuffer_memory.c	\
 	idirectfbdatabuffer_streamed.c
-libdirectfb_media_la_LDFLAGS = $(MEDIALIB)
+
+libdirectfb_media_la_LIBADD = $(LIBM)
