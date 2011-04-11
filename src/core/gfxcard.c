@@ -2243,7 +2243,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 
                          GenefxVertexAffine_Transform( v, 4, state->matrix, state->affine_matrix );
 
-                         Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN );
+                         Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN, &state->clip );
 
                          gRelease( state );
                     }
@@ -2345,7 +2345,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
 
                               GenefxVertexAffine_Transform( v, 4, state->matrix, state->affine_matrix );
 
-                              Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN );
+                              Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN, &state->clip );
                          }
 
                          gRelease( state );
@@ -2569,13 +2569,46 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
           if (state->render_options & DSRO_MATRIX) {
                if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
                    state->matrix[3] != 0 || state->matrix[4] < 0  ||
-                   state->matrix[6] != 0 || state->matrix[7] != 0) {
-                    D_WARN( "rotation not yet implemented" );
-                    dfb_state_unlock( state );
-                    return;
+                   state->matrix[6] != 0 || state->matrix[7] != 0)
+               {
+                    if (gAcquire( state, DFXL_TEXTRIANGLES )) {
+                         /* Build mesh */
+                         for (; dy1 < dy2; dy1 += rect->h) {
+                              for (; dx1 < dx2; dx1 += rect->w) {
+                                   GenefxVertexAffine v[4];
+
+                                   v[0].x = dx1;
+                                   v[0].y = dy1;
+                                   v[0].s = rect->x * 0x10000;
+                                   v[0].t = rect->y * 0x10000;
+
+                                   v[1].x = dx1 + rect->w - 1;
+                                   v[1].y = dy1;
+                                   v[1].s = (rect->x + rect->w - 1) * 0x10000;
+                                   v[1].t = v[0].t;
+
+                                   v[2].x = dx1 + rect->w - 1;
+                                   v[2].y = dy1 + rect->h - 1;
+                                   v[2].s = v[1].s;
+                                   v[2].t = (rect->y + rect->h - 1) * 0x10000;
+
+                                   v[3].x = dx1;
+                                   v[3].y = dy1 + rect->h - 1;
+                                   v[3].s = v[0].s;
+                                   v[3].t = v[2].t;
+
+                                   GenefxVertexAffine_Transform( v, 4, state->matrix, state->affine_matrix );
+
+                                   Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN, &state->clip );
+                              }
+
+                              dx1 = odx;
+                         }
+
+                         gRelease( state );
+                    }
                }
-               
-               if (gAcquire( state, DFXL_STRETCHBLIT )) {
+               else if (gAcquire( state, DFXL_STRETCHBLIT )) {
                     for (; dy1 < dy2; dy1 += rect->h) {
                          for (; dx1 < dx2; dx1 += rect->w) {
                               DFBRectangle drect;
@@ -2710,7 +2743,7 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 
                          GenefxVertexAffine_Transform( v, 4, state->matrix, state->affine_matrix );
 
-                         Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN );
+                         Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN, &state->clip );
 
                          gRelease( state );
                     }
@@ -2780,7 +2813,7 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
 
      if (!hw) {
           if (gAcquire( state, DFXL_TEXTRIANGLES )) {
-               Genefx_TextureTriangles( state, vertices, num, formation );
+               Genefx_TextureTriangles( state, vertices, num, formation, &state->clip );
                gRelease( state );
           }
      }
