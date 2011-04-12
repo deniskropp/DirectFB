@@ -395,6 +395,8 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
 
 
           if (len > 0 && x1 <= clip->x2 && x2 >= clip->x1) {
+               int csl   = sl;
+               int ctl   = tl;
                int SperD = (sr - sl) / len;
                int TperD = (tr - tl) / len;
 
@@ -402,8 +404,12 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
                 * Horizontal Clipping
                 */
                if (x1 < clip->x1) {
-                    sl += SperD * (clip->x1 - x1);
-                    tl += TperD * (clip->x1 - x1);
+                    D_DEBUG_AT( Genefx_TexTriangles,
+                                "  ->         clipping x1 to %d, SperD * %d = %d\n",
+                                clip->x1, (clip->x1 - x1), SperD * (clip->x1 - x1) );
+
+                    csl += SperD * (clip->x1 - x1);
+                    ctl += TperD * (clip->x1 - x1);
 
                     x1 = clip->x1;
                }
@@ -412,8 +418,8 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
                     x2 = clip->x2;
 
                D_DEBUG_AT( Genefx_TexTriangles,
-                           "  ->         len %d, x1 %d, x2 %d, sl %d, sr %d, tl %d, tr %d, SperD %d, TperD %d\n",
-                           len, x1, x2, sl, sr, tl, tr, SperD, TperD );
+                           "  ->         len %d, x1 %d, x2 %d, csl %d, sr %d, ctl %d, tr %d, SperD %d, TperD %d\n",
+                           len, x1, x2, csl, sr, ctl, tr, SperD, TperD );
 
                /*
                 * Pipeline Setup
@@ -423,8 +429,8 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
 
                gfxs->SperD  = SperD;
                gfxs->TperD  = TperD;
-               gfxs->s      = sl;
-               gfxs->t      = tl;
+               gfxs->s      = csl;
+               gfxs->t      = ctl;
 
                Genefx_Aop_xy( gfxs, x1, y );
 
