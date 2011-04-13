@@ -86,4 +86,63 @@ do {\
      }\
 } while(0)
 
+
+
+
+#define DUFF_1_D() \
+               case 1:\
+                    SET_PIXEL( D[0] );
+
+#define DUFF_2_D() \
+               case 3:\
+                    SET_PIXEL( D[2] );\
+               case 2:\
+                    SET_PIXEL( D[1] );\
+               DUFF_1_D()
+
+#define DUFF_3_D() \
+               case 7:\
+                    SET_PIXEL( D[6] );\
+               case 6:\
+                    SET_PIXEL( D[5] );\
+               case 5:\
+                    SET_PIXEL( D[4] );\
+               case 4:\
+                    SET_PIXEL( D[3] );\
+               DUFF_2_D()
+
+#define DUFF_4_D() \
+               case 15:\
+                    SET_PIXEL( D[14] );\
+               case 14:\
+                    SET_PIXEL( D[13] );\
+               case 13:\
+                    SET_PIXEL( D[12] );\
+               case 12:\
+                    SET_PIXEL( D[11] );\
+               case 11:\
+                    SET_PIXEL( D[10] );\
+               case 10:\
+                    SET_PIXEL( D[9] );\
+               case 9:\
+                    SET_PIXEL( D[8] );\
+               case 8:\
+                    SET_PIXEL( D[7] );\
+               DUFF_3_D()
+
+#define SET_PIXEL_DUFFS_DEVICE_N_D( D, w, n ) \
+do {\
+     while (w) {\
+          register int l = w & ((1 << n) - 1);\
+          switch (l) {\
+               default:\
+                    l = (1 << n);\
+                    SET_PIXEL( D[(1 << n)-1] );\
+               DUFF_##n##_D()\
+          }\
+          D += l;\
+          w -= l;\
+     }\
+} while(0)
+
 #endif
