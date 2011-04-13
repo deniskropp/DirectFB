@@ -1,3 +1,9 @@
+directfb (1.5.0-20110413) maverick; urgency=low
+
+  * new upstream version
+
+ -- Andreas Shimokawa <andi@directfb.org>  Wed, 13 Apr 2011 15:28:16 +0100
+
 directfb (1.5.0-20110330) maverick; urgency=low
 
   * new upstream version
