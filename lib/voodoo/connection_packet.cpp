@@ -62,9 +62,6 @@ extern "C" {
 #include <vector>
 
 
-#define IN_BUF_MAX ((VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader)) * 1)
-
-
 //namespace Voodoo {
 
 D_DEBUG_DOMAIN( Voodoo_Connection, "Voodoo/Connection", "Voodoo Connection" );
@@ -76,35 +73,9 @@ D_DEBUG_DOMAIN( Voodoo_Output,     "Voodoo/Output",     "Voodoo Output" );
 VoodooConnectionPacket::VoodooConnectionPacket( VoodooManager *manager,
                                                 VoodooLink    *link )
      :
-     VoodooConnection( manager, link )
+     VoodooConnectionLink( manager, link )
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p )\n", __func__, this );
-
-     input.start   = 0;
-     input.last    = 0;
-     input.end     = 0;
-     input.max     = 0;
-
-     output.packets = NULL;
-     output.sending = NULL;
-
-     /* Initialize all locks. */
-     direct_recursive_mutex_init( &output.lock );
-
-     /* Initialize all wait conditions. */
-     direct_waitqueue_init( &output.wait );
-
-     /* Set default buffer limit. */
-     input.max = IN_BUF_MAX;
-
-     /* Allocate buffers. */
-     size_t input_buffer_size = IN_BUF_MAX + VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader);
-
-     input.buffer = (u8*) D_MALLOC( IN_BUF_MAX + VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader) );
-
-     D_INFO( "VoodooConnection/Packet: Allocated "_ZU" kB input buffer at %p\n", input_buffer_size/1024, input.buffer );
-
-     direct_tls_register( &output.tls, NULL );
 
      io = direct_thread_create( DTT_DEFAULT, io_loop_main, this, "Voodoo IO" );
 }
@@ -117,43 +88,22 @@ VoodooConnectionPacket::~VoodooConnectionPacket()
 
      link->WakeUp( link );
 
-     /* Acquire locks and wake up waiters. */
-     direct_mutex_lock( &output.lock );
-     direct_waitqueue_broadcast( &output.wait );
-     direct_mutex_unlock( &output.lock );
-
      /* Wait for manager threads exiting. */
      direct_thread_join( io );
      direct_thread_destroy( io );
-
-     /* Destroy conditions. */
-     direct_waitqueue_deinit( &output.wait );
-
-     /* Destroy locks. */
-     direct_mutex_deinit( &output.lock );
-
-     /* Deallocate buffers. */
-     D_FREE( input.buffer );
-
-     // FIXME: delete pending output.packet? tls?
 }
 
 /**********************************************************************************************************************/
 
-void *
-VoodooConnectionPacket::io_loop_main( DirectThread *thread, void *arg )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p, thread %p )\n", __func__, arg, thread );
-
-     VoodooConnectionPacket *connection = (VoodooConnectionPacket*) arg;
-
-     return connection->io_loop();
-}
+// FIXME: temporary hotfix, refactor this code
+#define FORCE_INPUT_EVERY 5
 
 void *
 VoodooConnectionPacket::io_loop()
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p )\n", __func__, this );
+
+     int output_only = 0;
 
      while (!manager->is_quit) {
           D_MAGIC_ASSERT( this, VoodooConnection );
@@ -162,7 +112,7 @@ VoodooConnectionPacket::io_loop()
                input.start = 0;
                input.end   = 0;
                input.last  = 0;
-               input.max   = IN_BUF_MAX;
+               input.max   = VOODOO_CONNECTION_LINK_INPUT_BUF_MAX;
           }
 
           if (!manager->is_quit) {
@@ -176,18 +126,6 @@ VoodooConnectionPacket::io_loop()
                std::vector<VoodooChunk> chunks_write;
                std::vector<VoodooChunk> chunks_read;
 
-               if (input.end < input.max) {
-                    chunk_read = &chunks[0];
-
-                    chunk_read->ptr    = input.buffer + input.end;
-                    chunk_read->length = input.max - input.end;
-                    chunk_read->done   = 0;
-
-                    chunks_read.push_back( chunks[0] );
-
-                    chunk_read = chunks_read.data();
-               }
-
                if (!output.sending) {
                     direct_mutex_lock( &output.lock );
 
@@ -199,16 +137,15 @@ VoodooConnectionPacket::io_loop()
                          if (voodoo_config->compression_min && packet->size() >= voodoo_config->compression_min) {
                               output.sending = VoodooPacket::Compressed( packet );
 
-                              output.sending->sending = true;
-
                               if (output.sending->flags() & VPHF_COMPRESSED) {
+                                   D_DEBUG_AT( Voodoo_Output, "  -> Compressed "_ZD" to "_ZD" bytes... (packet %p)\n",
+                                               output.sending->uncompressed(), output.sending->size(), packet );
+
+                                   output.sending->sending = true;
+
                                    packet->sending = false;
 
-                                   direct_mutex_lock( &output.lock );
-
                                    direct_list_remove( &output.packets, &packet->link );
-
-                                   direct_mutex_unlock( &output.lock );
 
                                    direct_waitqueue_broadcast( &output.wait );
                               }
@@ -219,7 +156,6 @@ VoodooConnectionPacket::io_loop()
 
                     direct_mutex_unlock( &output.lock );
                }
-
 
                if (output.sending) {
                     packet = output.sending;
@@ -240,16 +176,20 @@ VoodooConnectionPacket::io_loop()
                     chunk_write = chunks_write.data();
                }
 
-#if 0
-               if (chunk_write) {
-                    char buf[chunk_write->length*4/3];
+               if ((!output.sending || !output_only) && input.end < input.max) {
+                    chunk_read = &chunks[0];
 
-                    size_t comp = direct_fastlz_compress( chunk_write->ptr, chunk_write->length, buf );
+                    chunk_read->ptr    = input.buffer + input.end;
+                    chunk_read->length = input.max - input.end;
+                    chunk_read->done   = 0;
 
-                    printf( "  -> Compressed "_ZU"%% ("_ZU" -> "_ZU")\n",
-                                comp * 100 / chunk_write->length, chunk_write->length, comp );
+                    chunks_read.push_back( chunks[0] );
+
+                    chunk_read = chunks_read.data();
                }
-#endif
+
+               output_only = (output_only + 1) % FORCE_INPUT_EVERY;
+
 
                ret = link->SendReceive( link,
                                         chunks_write.data(), chunks_write.size(),
@@ -257,20 +197,22 @@ VoodooConnectionPacket::io_loop()
                switch (ret) {
                     case DR_OK:
                          if (chunk_write && chunk_write->done) {
-                              D_DEBUG_AT( Voodoo_Output, "  -> Sent "_ZD"/"_ZD" bytes...\n", chunk_write->done, chunk_write->length );
+                              D_DEBUG_AT( Voodoo_Output, "  -> Sent "_ZD"/"_ZD" bytes... (packet %p)\n", chunk_write->done, chunk_write->length, packet );
 
                               // FIXME
                               D_ASSERT( chunk_write->done == chunk_write->length );
 
                               output.sending = NULL;
 
-                              packet->sending = false;
-
                               if (packet->flags() & VPHF_COMPRESSED) {
+                                   packet->sending = false;
+
                                    delete packet;
                               }
                               else {
                                    direct_mutex_lock( &output.lock );
+
+                                   packet->sending = false;
 
                                    direct_list_remove( &output.packets, &packet->link );
 
@@ -280,8 +222,6 @@ VoodooConnectionPacket::io_loop()
                               }
 
                               packet = NULL;
-
-                              // TODO: fetch output.packet already, in case of slow dispatch below
                          }
                          break;
 
@@ -298,9 +238,6 @@ VoodooConnectionPacket::io_loop()
                          manager->handle_disconnect();
                          break;
                }
-
-               // FIXME
-               D_ASSERT( packet == output.sending );
 
 
                if (chunk_read && chunk_read->done) {
@@ -329,7 +266,7 @@ VoodooConnectionPacket::io_loop()
 
                               /* Extend the buffer if the message doesn't fit into the default boundary. */
                               if (sizeof(VoodooPacketHeader) + aligned > input.max - last) {
-                                   D_ASSERT( input.max == IN_BUF_MAX );
+//                                   D_ASSERT( input.max == IN_BUF_MAX );
 
 
                                    input.max = last + sizeof(VoodooPacketHeader) + aligned;
@@ -353,7 +290,7 @@ VoodooConnectionPacket::io_loop()
                               VoodooPacketHeader *header = (VoodooPacketHeader *)(input.buffer + input.start);
 
                               if (header->flags & VPHF_COMPRESSED) {
-                                   size_t uncompressed = direct_fastlz_decompress( header + 1, header->size, input.tmp, header->uncompressed );
+                                   size_t uncompressed = direct_fastlz_decompress( header + 1, header->size, tmp, header->uncompressed );
 
                                    D_DEBUG_AT( Voodoo_Input, "  -> Uncompressed "_ZU" bytes (%u compressed)\n", uncompressed, header->size );
 
@@ -361,7 +298,7 @@ VoodooConnectionPacket::io_loop()
 
                                    D_ASSERT( uncompressed == header->uncompressed );
      
-                                   ProcessMessages( (VoodooMessageHeader *) input.tmp, header->uncompressed );
+                                   ProcessMessages( (VoodooMessageHeader *) tmp, header->uncompressed );
                               }
                               else
                                    ProcessMessages( (VoodooMessageHeader *)(header + 1), header->uncompressed );
@@ -378,163 +315,13 @@ VoodooConnectionPacket::io_loop()
 
 /**********************************************************************************************************************/
 
-DirectResult
-VoodooConnectionPacket::lock_output( int    length,
-                                     void **ret_ptr )
+void *
+VoodooConnectionPacket::io_loop_main( DirectThread *thread, void *arg )
 {
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p, length %d )\n", __func__, this, length );
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p, thread %p )\n", __func__, arg, thread );
 
-     D_MAGIC_ASSERT( this, VoodooConnection );
-     D_ASSERT( length >= (int) sizeof(VoodooMessageHeader) );
-     D_ASSUME( length <= MAX_MSG_SIZE );
-     D_ASSERT( ret_ptr != NULL );
+     VoodooConnectionPacket *connection = (VoodooConnectionPacket*) arg;
 
-     if (length > MAX_MSG_SIZE) {
-          D_WARN( "%d exceeds maximum message size of %d", length, MAX_MSG_SIZE );
-          return DR_LIMITEXCEEDED;
-     }
-
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
-}
-
-DirectResult
-VoodooConnectionPacket::unlock_output( bool flush )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p, %sflush )\n", __func__, this, flush ? "" : "NO " );
-
-     D_MAGIC_ASSERT( this, VoodooConnection );
-
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
-}
-
-VoodooPacket *
-VoodooConnectionPacket::GetPacket( size_t length )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p, length "_ZU" )\n", __func__, this, length );
-
-     D_MAGIC_ASSERT( this, VoodooConnection );
-     D_ASSERT( length >= (int) sizeof(VoodooMessageHeader) );
-     D_ASSUME( length <= MAX_MSG_SIZE );
-
-     if (length > MAX_MSG_SIZE) {
-          D_WARN( _ZU" exceeds maximum message size of %d", length, MAX_MSG_SIZE );
-          return NULL;
-     }
-
-     size_t aligned = VOODOO_MSG_ALIGN( length );
-
-
-     Packets *packets = (Packets*) direct_tls_get( output.tls );
-
-     if (!packets) {
-          packets = new Packets();
-
-          direct_tls_set( output.tls, packets );
-     }
-
-     VoodooPacket *packet = packets->active;
-
-     if (packet) {
-          if (packet->append( aligned ))
-               return packet;
-
-          Flush( packet );
-     }
-
-     packet = packets->Get();
-     if (packet) {
-          if (packet->sending) {
-               direct_mutex_lock( &output.lock );
-
-               while (packet->sending)
-                    direct_waitqueue_wait( &output.wait, &output.lock );
-
-               direct_mutex_unlock( &output.lock );
-          }
-          packet->reset( aligned );
-     }
-
-     return packet;
-}
-
-void
-VoodooConnectionPacket::PutPacket( VoodooPacket *packet, bool flush )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p, %sflush )\n", __func__, this, flush ? "" : "NO " );
-
-     D_MAGIC_ASSERT( this, VoodooConnection );
-
-     Packets *packets = (Packets*) direct_tls_get( output.tls );
-
-     D_ASSERT( packets != NULL );
-     D_ASSERT( packet == packets->active );
-
-     if (flush) {
-          Flush( packet );
-
-          packets->active = NULL;
-     }
-}
-
-void
-VoodooConnectionPacket::Flush( VoodooPacket *packet )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p, packet %p )\n", __func__, this, packet );
-
-     D_MAGIC_ASSERT( this, VoodooConnection );
-
-     direct_mutex_lock( &output.lock );
-
-     D_ASSERT( !direct_list_contains_element_EXPENSIVE( output.packets, &packet->link ) );
-
-     D_ASSERT( !packet->sending );
-
-     packet->sending = true;
-
-     direct_list_append( &output.packets, &packet->link );
-
-     direct_mutex_unlock( &output.lock );
-
-     link->WakeUp( link );
-}
-
-VoodooPacket *
-VoodooConnectionPacket::Packets::Get()
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::Packets::%s( %p )\n", __func__, this );
-
-     VoodooPacket *packet;
-
-     if (packets[2]) {
-          packet = packets[next];
-
-          D_DEBUG_AT( Voodoo_Connection, "  -> reusing %p\n", packet );
-     }
-     else if (packets[1]) {
-          packet = packets[2] = VoodooPacket::New( 0 );
-
-          D_DEBUG_AT( Voodoo_Connection, "  -> new [2] %p\n", packet );
-     }
-     else if (packets[0]) {
-          packet = packets[1] = VoodooPacket::New( 0 );
-
-          D_DEBUG_AT( Voodoo_Connection, "  -> new [1] %p\n", packet );
-     }
-     else {
-          packet = packets[0] = VoodooPacket::New( 0 );
-
-          D_DEBUG_AT( Voodoo_Connection, "  -> new [0] %p\n", packet );
-     }
-
-     if (packet)
-          next = (next+1) % 3;
-
-     active = packet;
-
-     return packet;
+     return connection->io_loop();
 }
 

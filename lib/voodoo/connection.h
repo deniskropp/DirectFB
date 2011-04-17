@@ -48,13 +48,6 @@ public:
      virtual ~VoodooConnection();
 
 
-     virtual DirectResult lock_output  ( int            length,
-                                         void         **ret_ptr ) = 0;
-
-     virtual DirectResult unlock_output( bool           flush ) = 0;
-
-
-
      virtual VoodooPacket *GetPacket( size_t        length ) = 0;
      virtual void          PutPacket( VoodooPacket *packet,
                                       bool          flush ) = 0;

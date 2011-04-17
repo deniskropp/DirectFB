@@ -60,6 +60,9 @@ extern "C" {
 #include <voodoo/packet.h>
 
 
+#define VOODOO_MANAGER_MESSAGE_BLOCKS_MAX 20
+
+
 //namespace Voodoo {
 
 D_DEBUG_DOMAIN( Voodoo_Dispatch, "Voodoo/Dispatch", "Voodoo Dispatch" );
@@ -109,10 +112,16 @@ VoodooManager::VoodooManager( VoodooLink     *link,
      D_MAGIC_SET( this, VoodooManager );
 
      /* Add connection */
-     if ((link->code & 0x8000ffff) == 0x80008676)
+     if ((link->code & 0x8000ffff) == 0x80008676) {
+          D_INFO( "Voodoo/Manager: Connection mode is PACKET\n" );
+
           connection = new VoodooConnectionPacket( this, link );
-     else
+     }
+     else {
+          D_INFO( "Voodoo/Manager: Connection mode is RAW\n" );
+
           connection = new VoodooConnectionRaw( this, link );
+     }
 }
 
 VoodooManager::~VoodooManager()
@@ -512,134 +521,144 @@ VoodooManager::do_super( const char       *name,
 }
 
 int
-VoodooManager::calc_blocks( VoodooMessageBlockType type, va_list args )
+VoodooManager::calc_blocks( va_list args,
+                            VoodooMessageBlock *ret_blocks, size_t *ret_num )
 {
-     int size = 4;  /* for the terminating VMBT_NONE */
+     int                    size = 4;  /* for the terminating VMBT_NONE */
+     size_t                 num  = 0;
+     VoodooMessageBlockType type;
+
+     /* Fetch first block type. */
+     type = (VoodooMessageBlockType) va_arg( args, int );
 
      while (type != VMBT_NONE) {
-          u32 arg;
-          s32 in;
-          void *ptr;
-          int   len = 0;
+          if (num == VOODOO_MANAGER_MESSAGE_BLOCKS_MAX) {
+               // FIXME: support more blocks?
+               D_UNIMPLEMENTED();
+               break;
+          }
+
+          /* Set message block type. */
+          ret_blocks[num].type = type;
 
           switch (type) {
                case VMBT_ID:
-                    len = 4;
-                    arg = va_arg( args, u32 );
+                    ret_blocks[num].len = 4;
+                    ret_blocks[num].ptr = NULL;
+                    ret_blocks[num].val = va_arg( args, u32 );
 
-                    D_DEBUG( "Voodoo/Message: + ID %u\n", arg );
+                    D_DEBUG( "Voodoo/Message: + ID %u\n", ret_blocks[num].val );
                     break;
 
                case VMBT_INT:
-                    len = 4;
-                    in  = va_arg( args, s32 );
+                    ret_blocks[num].len = 4;
+                    ret_blocks[num].ptr = NULL;
+                    ret_blocks[num].val = va_arg( args, s32 );
 
-                    D_DEBUG( "Voodoo/Message: + INT %d\n", in );
+                    D_DEBUG( "Voodoo/Message: + INT %d\n", ret_blocks[num].val );
                     break;
 
                case VMBT_UINT:
-                    len = 4;
-                    arg = va_arg( args, u32 );
+                    ret_blocks[num].len = 4;
+                    ret_blocks[num].ptr = NULL;
+                    ret_blocks[num].val = va_arg( args, u32 );
 
-                    D_DEBUG( "Voodoo/Message: + UINT %u\n", arg );
+                    D_DEBUG( "Voodoo/Message: + UINT %u\n", ret_blocks[num].val );
                     break;
 
                case VMBT_DATA:
-                    len = va_arg( args, int );
-                    ptr = va_arg( args, void * );
+                    ret_blocks[num].len = va_arg( args, int );
+                    ret_blocks[num].ptr = va_arg( args, void * );
 
-//                    D_ASSERT( len > 0 );
-                    D_ASSERT( ptr != NULL );
+//                    D_ASSERT( ret_blocks[num].len > 0 );
+                    D_ASSERT( ret_blocks[num].ptr != NULL );
 
-                    D_DEBUG( "Voodoo/Message: + DATA at %p with length %d\n", ptr, len );
+                    D_DEBUG( "Voodoo/Message: + DATA at %p with length %d\n", ret_blocks[num].ptr, ret_blocks[num].len );
                     break;
 
                case VMBT_ODATA:
-                    len = va_arg( args, int );
-                    ptr = va_arg( args, void * );
+                    ret_blocks[num].len = va_arg( args, int );
+                    ret_blocks[num].ptr = va_arg( args, void * );
 
-                    D_ASSERT( len > 0 );
+                    D_ASSERT( ret_blocks[num].len > 0 );
 
-                    D_DEBUG( "Voodoo/Message: + ODATA at %p with length %d\n", ptr, len );
+                    D_DEBUG( "Voodoo/Message: + ODATA at %p with length %d\n", ret_blocks[num].ptr, ret_blocks[num].len );
 
-                    if (!ptr)
-                         len = 0;
+                    if (!ret_blocks[num].ptr)
+                         ret_blocks[num].len = 0;
                     break;
 
                case VMBT_STRING:
-                    ptr = va_arg( args, char * );
-                    len = strlen( (const char*) ptr ) + 1;
+                    ret_blocks[num].ptr = va_arg( args, char * );
+                    ret_blocks[num].len = strlen( (const char*) ret_blocks[num].ptr ) + 1;
 
-                    D_ASSERT( ptr != NULL );
+                    D_ASSERT( ret_blocks[num].ptr != NULL );
 
-                    D_DEBUG( "Voodoo/Message: + STRING '%s' at %p with length %d\n", (char*) ptr, ptr, len );
+                    D_DEBUG( "Voodoo/Message: + STRING '%s' at %p with length %d\n", (char*) ret_blocks[num].ptr, ret_blocks[num].ptr, ret_blocks[num].len );
                     break;
 
                default:
                     D_BREAK( "unknown message block type" );
           }
 
-          size += 8 + VOODOO_MSG_ALIGN(len);
-
+          /* Fetch next block type. */
           type = (VoodooMessageBlockType) va_arg( args, int );
+
+          size += 8 + VOODOO_MSG_ALIGN(ret_blocks[num].len);
+
+          num++;
      }
+
+     *ret_num = num;
 
      return size;
 }
 
 void
-VoodooManager::write_blocks( void *dst, VoodooMessageBlockType type, va_list args )
+VoodooManager::write_blocks( void                     *dst,
+                             const VoodooMessageBlock *blocks,
+                             size_t                    num )
 {
-     u32 *d32 = (u32*) dst;
+     size_t  i;
+     u32    *d32 = (u32*) dst;
 
-     while (type != VMBT_NONE) {
-          u32   arg = 0;
-          u32   len = 0;
-          void *ptr = NULL;
-
-          switch (type) {
-               case VMBT_ID:
-               case VMBT_INT:
-               case VMBT_UINT:
-                    len = 4;
-                    arg = va_arg( args, u32 );
-                    break;
-               case VMBT_DATA:
-                    len = va_arg( args, int );
-                    ptr = va_arg( args, void * );
-                    break;
-               case VMBT_ODATA:
-                    len = va_arg( args, int );
-                    ptr = va_arg( args, void * );
-                    if (!ptr)
-                         len = 0;
-                    break;
-               case VMBT_STRING:
-                    ptr = va_arg( args, char * );
-                    len = strlen( (const char*) ptr ) + 1;
-                    break;
-               default:
-                    D_BREAK( "unknown message block type" );
-          }
-
+     for (i=0; i<num; i++) {
           /* Write block type and length. */
-          d32[0] = type;
-          d32[1] = len;
+          d32[0] = blocks[i].type;
+          d32[1] = blocks[i].len;
 
           /* Write block content. */
-          if (ptr)
-               direct_memcpy( &d32[2], ptr, len );
-          else if (len) {
-               D_ASSERT( len == 4 );
+          if (blocks[i].ptr) {
+               u32 *d = (u32*) &d32[2];
+               u32 *s = (u32*) blocks[i].ptr;
 
-               d32[2] = arg;
+               switch (blocks[i].len) {
+     //               case 24:
+     //                    d[5] = s[5];
+     //               case 20:
+     //                    d[4] = s[4];
+                    case 16:
+                         d[3] = s[3];
+                    case 12:
+                         d[2] = s[2];
+                    case 8:
+                         d[1] = s[1];
+                    case 4:
+                         d[0] = s[0];
+                         break;
+     
+                    default:
+                         direct_memcpy( &d32[2], blocks[i].ptr, blocks[i].len );
+               }
+          }
+          else if (blocks[i].len) {
+               D_ASSERT( blocks[i].len == 4 );
+
+               d32[2] = blocks[i].val;
           }
 
           /* Advance message data pointer. */
-          d32 += 2 + (VOODOO_MSG_ALIGN(len) >> 2);
-
-          /* Fetch next message block type. */
-          type = (VoodooMessageBlockType) va_arg( args, int );
+          d32 += 2 + (VOODOO_MSG_ALIGN(blocks[i].len) >> 2);
      }
 
      /* Write terminator. */
@@ -651,7 +670,6 @@ VoodooManager::do_request( VoodooInstanceID         instance,
                            VoodooMethodID           method,
                            VoodooRequestFlags       flags,
                            VoodooResponseMessage  **ret_response,
-                           VoodooMessageBlockType   block_type,
                            va_list                  args )
 {
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
@@ -661,6 +679,8 @@ VoodooManager::do_request( VoodooInstanceID         instance,
      VoodooPacket         *packet;
      VoodooMessageSerial   serial;
      VoodooRequestMessage *msg;
+     VoodooMessageBlock    blocks[VOODOO_MANAGER_MESSAGE_BLOCKS_MAX];
+     size_t                num_blocks;
 
      D_MAGIC_ASSERT( this, VoodooManager );
      D_ASSERT( instance != VOODOO_INSTANCE_NONE );
@@ -670,15 +690,7 @@ VoodooManager::do_request( VoodooInstanceID         instance,
      D_DEBUG_AT( Voodoo_Manager, "  -> Instance %u, method %u, flags 0x%08x...\n", instance, method, flags );
 
      /* Calculate the total message size. */
-#ifdef __GNUC__
-     va_list args2;
-
-     va_copy( args2, args );
-     size = sizeof(VoodooRequestMessage) + calc_blocks( block_type, args2 );
-     va_end( args2 );
-#else
-     size = sizeof(VoodooRequestMessage) + calc_blocks( block_type, args );
-#endif
+     size = sizeof(VoodooRequestMessage) + calc_blocks( args, blocks, &num_blocks );
 
      D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: %d\n", size );
 
@@ -702,7 +714,7 @@ VoodooManager::do_request( VoodooInstanceID         instance,
      msg->flags    = flags;
 
      /* Append custom data. */
-     write_blocks( msg + 1, block_type, args );
+     write_blocks( msg + 1, blocks, num_blocks );
 
 
      D_DEBUG_AT( Voodoo_Manager, "  -> Sending REQUEST message %llu to %u::%u %s(%d bytes).\n",
@@ -782,7 +794,6 @@ VoodooManager::do_respond( bool                   flush,
                            VoodooMessageSerial    request,
                            DirectResult           result,
                            VoodooInstanceID       instance,
-                           VoodooMessageBlockType block_type,
                            va_list                args )
 {
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
@@ -791,21 +802,15 @@ VoodooManager::do_respond( bool                   flush,
      VoodooPacket          *packet;
      VoodooMessageSerial    serial;
      VoodooResponseMessage *msg;
+     VoodooMessageBlock     blocks[VOODOO_MANAGER_MESSAGE_BLOCKS_MAX];
+     size_t                 num_blocks;
 
      D_MAGIC_ASSERT( this, VoodooManager );
 
      D_DEBUG_AT( Voodoo_Manager, "  -> Request %llu, result %d, instance %u...\n", (unsigned long long)request, result, instance );
 
      /* Calculate the total message size. */
-#ifdef __GNUC__
-     va_list args2;
-
-     va_copy( args2, args );
-     size = sizeof(VoodooResponseMessage) + calc_blocks( block_type, args2 );
-     va_end( args2 );
-#else
-     size = sizeof(VoodooResponseMessage) + calc_blocks( block_type, args );
-#endif
+     size = sizeof(VoodooResponseMessage) + calc_blocks( args, blocks, &num_blocks );
 
      D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: %d\n", size );
 
@@ -830,7 +835,7 @@ VoodooManager::do_respond( bool                   flush,
      msg->instance = instance;
 
      /* Append custom data. */
-     write_blocks( msg + 1, block_type, args );
+     write_blocks( msg + 1, blocks, num_blocks );
 
 
      D_DEBUG_AT( Voodoo_Manager, "  -> Sending RESPONSE message %llu (%s) with instance %u for request %llu (%d bytes).\n",
@@ -1130,16 +1135,15 @@ voodoo_manager_request( VoodooManager           *manager,
                         VoodooInstanceID         instance,
                         VoodooMethodID           method,
                         VoodooRequestFlags       flags,
-                        VoodooResponseMessage  **ret_response,
-                        VoodooMessageBlockType   block_type, ... )
+                        VoodooResponseMessage  **ret_response, ... )
 {
      D_MAGIC_ASSERT( manager, VoodooManager );
 
      va_list ap;
 
-     va_start( ap, block_type );
+     va_start( ap, ret_response );
 
-     DirectResult ret = manager->do_request( instance, method, flags, ret_response, block_type, ap );
+     DirectResult ret = manager->do_request( instance, method, flags, ret_response, ap );
 
      va_end( ap );
 
@@ -1170,16 +1174,15 @@ voodoo_manager_respond( VoodooManager          *manager,
                         bool                    flush,
                         VoodooMessageSerial     request,
                         DirectResult            result,
-                        VoodooInstanceID        instance,
-                        VoodooMessageBlockType  block_type, ... )
+                        VoodooInstanceID        instance, ... )
 {
      D_MAGIC_ASSERT( manager, VoodooManager );
 
      va_list ap;
 
-     va_start( ap, block_type );
+     va_start( ap, instance );
 
-     DirectResult ret = manager->do_respond( flush, request, result, instance, block_type, ap );
+     DirectResult ret = manager->do_respond( flush, request, result, instance, ap );
 
      va_end( ap );
 

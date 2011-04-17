@@ -67,10 +67,6 @@ extern "C" {
 #include <vector>
 
 
-#define IN_BUF_MAX   (256 * 1024)
-#define OUT_BUF_MAX  (256 * 1024)
-
-
 //namespace Voodoo {
 
 D_DEBUG_DOMAIN( Voodoo_Connection, "Voodoo/Connection", "Voodoo Connection" );
@@ -82,35 +78,15 @@ D_DEBUG_DOMAIN( Voodoo_Output,     "Voodoo/Output",     "Voodoo Output" );
 VoodooConnectionRaw::VoodooConnectionRaw( VoodooManager *manager,
                                           VoodooLink    *link )
      :
-     VoodooConnection( manager, link )
+     VoodooConnectionLink( manager, link )
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p )\n", __func__, this );
 
-     input.start  = 0;
-     input.last   = 0;
-     input.end    = link->code ? 4 : 0;
-     input.max    = 0;
+     if (link->code) {
+          input.end = 4;
 
-     output.packets = NULL;
-     output.sending = NULL;
-
-     /* Initialize all locks. */
-     direct_recursive_mutex_init( &output.lock );
-
-     /* Initialize all wait conditions. */
-     direct_waitqueue_init( &output.wait );
-
-     /* Set default buffer limit. */
-     input.max = IN_BUF_MAX;
-
-     /* Allocate buffers. */
-     input.buffer  = (u8*) D_MALLOC( IN_BUF_MAX + MAX_MSG_SIZE );
-
-     D_INFO( "VoodooConnection/Raw: Allocated "_ZU" kB input buffer at %p\n", (IN_BUF_MAX + MAX_MSG_SIZE)/1024, input.buffer );
-
-     direct_tls_register( &output.tls, NULL );
-
-     memcpy( input.buffer, &link->code, sizeof(u32) );
+          memcpy( input.buffer, &link->code, sizeof(u32) );
+     }
 
      io = direct_thread_create( DTT_DEFAULT, io_loop_main, this, "Voodoo IO" );
 }
@@ -123,36 +99,15 @@ VoodooConnectionRaw::~VoodooConnectionRaw()
 
      link->WakeUp( link );
 
-     /* Acquire locks and wake up waiters. */
-     direct_mutex_lock( &output.lock );
-     direct_waitqueue_broadcast( &output.wait );
-     direct_mutex_unlock( &output.lock );
-
      /* Wait for manager threads exiting. */
      direct_thread_join( io );
      direct_thread_destroy( io );
-
-     /* Destroy conditions. */
-     direct_waitqueue_deinit( &output.wait );
-
-     /* Destroy locks. */
-     direct_mutex_deinit( &output.lock );
-
-     /* Deallocate buffers. */
-     D_FREE( input.buffer );
 }
 
 /**********************************************************************************************************************/
 
-void *
-VoodooConnectionRaw::io_loop_main( DirectThread *thread, void *arg )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p, thread %p )\n", __func__, arg, thread );
-
-     VoodooConnectionRaw *connection = (VoodooConnectionRaw*) arg;
-
-     return connection->io_loop();
-}
+// FIXME: temporary hotfix, refactor this code
+#define FORCE_INPUT_EVERY 5
 
 void *
 VoodooConnectionRaw::io_loop()
@@ -163,6 +118,7 @@ VoodooConnectionRaw::io_loop()
      int dump_fd = open("voodoo_write.raw", O_TRUNC|O_CREAT|O_WRONLY, 0660 );
      int dump_read_fd = open("voodoo_read.raw", O_TRUNC|O_CREAT|O_WRONLY, 0660 );
 #endif
+     int output_only = 0;
 
      while (!manager->is_quit) {
           D_MAGIC_ASSERT( this, VoodooConnection );
@@ -171,7 +127,7 @@ VoodooConnectionRaw::io_loop()
                input.start = 0;
                input.end   = 0;
                input.last  = 0;
-               input.max   = IN_BUF_MAX;
+               input.max   = VOODOO_CONNECTION_LINK_INPUT_BUF_MAX;
           }
 
           if (!manager->is_quit) {
@@ -184,18 +140,6 @@ VoodooConnectionRaw::io_loop()
 
                std::vector<VoodooChunk> chunks_write;
                std::vector<VoodooChunk> chunks_read;
-
-               if (input.end < input.max) {
-                    chunk_read = &chunks[0];
-
-                    chunk_read->ptr    = input.buffer + input.end;
-                    chunk_read->length = input.max - input.end;
-                    chunk_read->done   = 0;
-
-                    chunks_read.push_back( chunks[0] );
-
-                    chunk_read = chunks_read.data();
-               }
 
                if (!output.sending) {
                     direct_mutex_lock( &output.lock );
@@ -210,7 +154,6 @@ VoodooConnectionRaw::io_loop()
 
                     direct_mutex_unlock( &output.lock );
                }
-
 
                if (output.sending) {
                     packet = output.sending;
@@ -230,6 +173,21 @@ VoodooConnectionRaw::io_loop()
 
                     chunk_write = chunks_write.data();
                }
+
+               if ((!output.sending || !output_only) && input.end < input.max) {
+                    chunk_read = &chunks[0];
+
+                    chunk_read->ptr    = input.buffer + input.end;
+                    chunk_read->length = input.max - input.end;
+                    chunk_read->done   = 0;
+
+                    chunks_read.push_back( chunks[0] );
+
+                    chunk_read = chunks_read.data();
+               }
+
+               output_only = (output_only + 1) % FORCE_INPUT_EVERY;
+                    
 
                //D_DEBUG_AT( Voodoo_Input, "  { START "_ZD", LAST "_ZD", END "_ZD", MAX "_ZD" }\n",
                //            input.start, input.last, input.end, input.max );
@@ -251,24 +209,17 @@ VoodooConnectionRaw::io_loop()
 
                               output.sending = NULL;
 
+                              direct_mutex_lock( &output.lock );
+
                               packet->sending = false;
 
-                              if (packet->flags() & VPHF_COMPRESSED) {
-                                   delete packet;
-                              }
-                              else {
-                                   direct_mutex_lock( &output.lock );
+                              direct_list_remove( &output.packets, &packet->link );
 
-                                   direct_list_remove( &output.packets, &packet->link );
+                              direct_mutex_unlock( &output.lock );
 
-                                   direct_mutex_unlock( &output.lock );
-
-                                   direct_waitqueue_broadcast( &output.wait );
-                              }
+                              direct_waitqueue_broadcast( &output.wait );
 
                               packet = NULL;
-
-                              // TODO: fetch output.packet already, in case of slow dispatch below
                          }
                          break;
 
@@ -285,10 +236,6 @@ VoodooConnectionRaw::io_loop()
                          manager->handle_disconnect();
                          break;
                }
-
-               // FIXME
-               D_ASSERT( packet == output.sending );
-
 
 
                if (chunk_read && chunk_read->done) {
@@ -326,7 +273,7 @@ VoodooConnectionRaw::io_loop()
 
                               /* Extend the buffer if the message doesn't fit into the default boundary. */
                               if (aligned > input.max - last) {
-                                   D_ASSERT( input.max == IN_BUF_MAX );
+//                                   D_ASSERT( input.max == IN_BUF_MAX );
 
 
                                    input.max = last + aligned;
@@ -357,163 +304,13 @@ VoodooConnectionRaw::io_loop()
 
 /**********************************************************************************************************************/
 
-DirectResult
-VoodooConnectionRaw::lock_output( int    length,
-                                  void **ret_ptr )
+void *
+VoodooConnectionRaw::io_loop_main( DirectThread *thread, void *arg )
 {
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p, length %d )\n", __func__, this, length );
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p, thread %p )\n", __func__, arg, thread );
 
-     D_MAGIC_ASSERT( this, VoodooConnection );
-     D_ASSERT( length >= (int) sizeof(VoodooMessageHeader) );
-     D_ASSUME( length <= MAX_MSG_SIZE );
-     D_ASSERT( ret_ptr != NULL );
+     VoodooConnectionRaw *connection = (VoodooConnectionRaw*) arg;
 
-     if (length > MAX_MSG_SIZE) {
-          D_WARN( "%d exceeds maximum message size of %d", length, MAX_MSG_SIZE );
-          return DR_LIMITEXCEEDED;
-     }
-
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
-}
-
-DirectResult
-VoodooConnectionRaw::unlock_output( bool flush )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p, %sflush )\n", __func__, this, flush ? "" : "NO " );
-
-     D_MAGIC_ASSERT( this, VoodooConnection );
-
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
-}
-
-VoodooPacket *
-VoodooConnectionRaw::GetPacket( size_t length )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p, length "_ZU" )\n", __func__, this, length );
-
-     D_MAGIC_ASSERT( this, VoodooConnection );
-     D_ASSERT( length >= (int) sizeof(VoodooMessageHeader) );
-     D_ASSUME( length <= MAX_MSG_SIZE );
-
-     if (length > MAX_MSG_SIZE) {
-          D_WARN( _ZU" exceeds maximum message size of %d", length, MAX_MSG_SIZE );
-          return NULL;
-     }
-
-     size_t aligned = VOODOO_MSG_ALIGN( length );
-
-
-     Packets *packets = (Packets*) direct_tls_get( output.tls );
-
-     if (!packets) {
-          packets = new Packets();
-
-          direct_tls_set( output.tls, packets );
-     }
-
-     VoodooPacket *packet = packets->active;
-
-     if (packet) {
-          if (packet->append( aligned ))
-               return packet;
-
-          Flush( packet );
-     }
-
-     packet = packets->Get();
-     if (packet) {
-          if (packet->sending) {
-               direct_mutex_lock( &output.lock );
-
-               while (packet->sending)
-                    direct_waitqueue_wait( &output.wait, &output.lock );
-
-               direct_mutex_unlock( &output.lock );
-          }
-          packet->reset( aligned );
-     }
-
-     return packet;
-}
-
-void
-VoodooConnectionRaw::PutPacket( VoodooPacket *packet, bool flush )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p, %sflush )\n", __func__, this, flush ? "" : "NO " );
-
-     D_MAGIC_ASSERT( this, VoodooConnection );
-
-     Packets *packets = (Packets*) direct_tls_get( output.tls );
-
-     D_ASSERT( packets != NULL );
-     D_ASSERT( packet == packets->active );
-
-     if (flush) {
-          Flush( packet );
-
-          packets->active = NULL;
-     }
-}
-
-void
-VoodooConnectionRaw::Flush( VoodooPacket *packet )
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p, packet %p )\n", __func__, this, packet );
-
-     D_MAGIC_ASSERT( this, VoodooConnection );
-
-     direct_mutex_lock( &output.lock );
-
-     D_ASSERT( !direct_list_contains_element_EXPENSIVE( output.packets, &packet->link ) );
-
-     D_ASSERT( !packet->sending );
-
-     packet->sending = true;
-
-     direct_list_append( &output.packets, &packet->link );
-
-     direct_mutex_unlock( &output.lock );
-
-     link->WakeUp( link );
-}
-
-VoodooPacket *
-VoodooConnectionRaw::Packets::Get()
-{
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::Packets::%s( %p )\n", __func__, this );
-
-     VoodooPacket *packet;
-
-     if (packets[2]) {
-          packet = packets[next];
-
-          D_DEBUG_AT( Voodoo_Connection, "  -> reusing %p\n", packet );
-     }
-     else if (packets[1]) {
-          packet = packets[2] = VoodooPacket::New( 0 );
-
-          D_DEBUG_AT( Voodoo_Connection, "  -> new [2] %p\n", packet );
-     }
-     else if (packets[0]) {
-          packet = packets[1] = VoodooPacket::New( 0 );
-
-          D_DEBUG_AT( Voodoo_Connection, "  -> new [1] %p\n", packet );
-     }
-     else {
-          packet = packets[0] = VoodooPacket::New( 0 );
-
-          D_DEBUG_AT( Voodoo_Connection, "  -> new [0] %p\n", packet );
-     }
-
-     if (packet)
-          next = (next+1) % 3;
-
-     active = packet;
-
-     return packet;
+     return connection->io_loop();
 }
 

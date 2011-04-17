@@ -42,6 +42,16 @@ extern "C" {
 
 
 typedef struct {
+     VoodooMessageBlockType  type;
+     unsigned int            len;
+     //union {
+          void                   *ptr;
+          u32                     val;
+     //};
+} VoodooMessageBlock;
+
+
+typedef struct {
      bool                        super;
      IAny                       *proxy;
      IAny                       *real;
@@ -117,7 +127,6 @@ public:
                                          VoodooMethodID           method,
                                          VoodooRequestFlags       flags,
                                          VoodooResponseMessage  **ret_response,
-                                         VoodooMessageBlockType   block_type,
                                          va_list                  args );
 
      DirectResult next_response        ( VoodooResponseMessage   *response,
@@ -129,16 +138,16 @@ public:
                                          VoodooMessageSerial      request,
                                          DirectResult             result,
                                          VoodooInstanceID         instance,
-                                         VoodooMessageBlockType   block_type,
                                          va_list                  args );
 
 private:
-     inline int   calc_blocks          ( VoodooMessageBlockType   type,
-                                         va_list                  args );
+     inline int   calc_blocks          ( va_list                   args,
+                                         VoodooMessageBlock       *ret_blocks,
+                                         size_t                   *ret_num );
 
-     inline void  write_blocks         ( void                    *dst,
-                                         VoodooMessageBlockType   type,
-                                         va_list                  args );
+     inline void  write_blocks         ( void                     *dst,
+                                         const VoodooMessageBlock *blocks,
+                                         size_t                    num_blocks );
 
      DirectResult lock_response        ( VoodooMessageSerial      request,
                                          VoodooResponseMessage  **ret_response );
@@ -199,8 +208,7 @@ DirectResult VOODOO_API voodoo_manager_request        ( VoodooManager           
                                                         VoodooInstanceID         instance,
                                                         VoodooMethodID           method,
                                                         VoodooRequestFlags       flags,
-                                                        VoodooResponseMessage  **ret_response,
-                                                        VoodooMessageBlockType   block_type, ... );
+                                                        VoodooResponseMessage  **ret_response, ... );
 
 DirectResult VOODOO_API voodoo_manager_next_response  ( VoodooManager           *manager,
                                                         VoodooResponseMessage   *response,
@@ -216,8 +224,7 @@ DirectResult VOODOO_API voodoo_manager_respond        ( VoodooManager           
                                                         bool                     flush,
                                                         VoodooMessageSerial      request,
                                                         DirectResult             result,
-                                                        VoodooInstanceID         instance,
-                                                        VoodooMessageBlockType   block_type, ... );
+                                                        VoodooInstanceID         instance, ... );
 
 
 /* Instances */

@@ -125,6 +125,8 @@ Write( VoodooLink *link,
      return send( l->fd[1], buffer, count, 0 );
 }
 
+
+// FIXME: refactor, optionally using lio_listio
 static DirectResult
 SendReceive( VoodooLink  *link,
              VoodooChunk *sends,
@@ -139,30 +141,6 @@ SendReceive( VoodooLink  *link,
 
      D_DEBUG_AT( Voodoo_Link, "%s( link %p, sends %p, num_send %zu, recvs %p, num_recv %zu )\n",
                  __func__, link, sends, num_send, recvs, num_recv );
-/*
-     for (i=0; i<num_send; i++) {
-          //printf("writing %d\n",sends[i].length);
-          ret = send( l->fd, sends[i].ptr, sends[i].length, 0 );
-          printf("wrote %d/%d\n",ret,sends[i].length);
-          if (ret < 0) {
-               if (errno == EAGAIN) {
-                    break;
-               }
-               D_PERROR( "Voodoo/Link: Failed to send() data!\n" );
-          }
-          else {
-               sends[i].done = ret;
-
-               if (sends[i].done != sends[i].length) {
-                    D_UNIMPLEMENTED();
-               //               direct_mutex_unlock( &l->lock );
-                    return DR_UNIMPLEMENTED;
-               }
-
-               return DR_OK;
-          }
-     }
-*/
 
      while (true) {
           fd_set         fds_read;
@@ -172,15 +150,11 @@ SendReceive( VoodooLink  *link,
           FD_ZERO( &fds_read );
           FD_ZERO( &fds_write );
 
-          if (num_recv) {
-               //printf("wait for recv\n");
+          if (num_recv)
                FD_SET( l->fd[0], &fds_read );
-          }
 
-          if (num_send) {
-               //printf("wait for send\n");
+          if (num_send)
                FD_SET( l->fd[1], &fds_write );
-          }
 
           FD_SET( l->wakeup_fds[0], &fds_read );
 
@@ -189,37 +163,14 @@ SendReceive( VoodooLink  *link,
 
           D_DEBUG_AT( Voodoo_Link, "  -> select( %s%s )...\n", num_recv ? "R" : " ", num_send ? "W" : " " );
           select_result = select( MAX(MAX(l->wakeup_fds[0],l->fd[0]),l->fd[1])+1, &fds_read, &fds_write, NULL, &tv );
-          D_DEBUG_AT( Voodoo_Link, "  -> select result: %d\n", select_result );
           switch (select_result) {
                default:
                     if (FD_ISSET( l->fd[1], &fds_write )) {
                          D_DEBUG_AT( Voodoo_Link, "  => WRITE\n" );
-/*
-                         //printf("<-- event write\n");
-                         if (num_send)
-                              D_INFO( "send: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
-                                      ((const u8*)sends[0].ptr)[0],
-                                      ((const u8*)sends[0].ptr)[1],
-                                      ((const u8*)sends[0].ptr)[2],
-                                      ((const u8*)sends[0].ptr)[3],
-                                      ((const u8*)sends[0].ptr)[4],
-                                      ((const u8*)sends[0].ptr)[5],
-                                      ((const u8*)sends[0].ptr)[6],
-                                      ((const u8*)sends[0].ptr)[7],
-                                      ((const u8*)sends[0].ptr)[8],
-                                      ((const u8*)sends[0].ptr)[9],
-                                      ((const u8*)sends[0].ptr)[10],
-                                      ((const u8*)sends[0].ptr)[11],
-                                      ((const u8*)sends[0].ptr)[12],
-                                      ((const u8*)sends[0].ptr)[13],
-                                      ((const u8*)sends[0].ptr)[14],
-                                      ((const u8*)sends[0].ptr)[15] );
-*/
+
                          for (i=0; i<num_send; i++) {
                               while (sends[i].done != sends[i].length) {
-                                   //printf("writing %d\n",sends[i].length);
                                    ret = send( l->fd[1], sends[i].ptr, sends[i].length, 0 );
-                                   //printf("wrote %d/%d\n",ret,sends[i].length);
                                    if (ret < 0) {
                                         //if (errno == EAGAIN) {
                                         //     break;
@@ -238,15 +189,11 @@ SendReceive( VoodooLink  *link,
                                         //return DR_OK;
                                    }
                               }
-
-                              return DR_OK;
                          }
                     }
-     
+
                     if (FD_ISSET( l->fd[0], &fds_read )) {
                          D_DEBUG_AT( Voodoo_Link, "  => READ\n" );
-
-                         //printf("<-- event read\n");
 
                          for (i=0; i<num_recv; i++) {
                               ret = recv( l->fd[0], recvs[i].ptr, recvs[i].length, 0 );
@@ -261,32 +208,11 @@ SendReceive( VoodooLink  *link,
                               if (!ret)
                                    return DR_IO;
 
-/*
-                              D_INFO( "recv: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
-                                      ((const u8*)recvs[i].ptr)[0],
-                                      ((const u8*)recvs[i].ptr)[1],
-                                      ((const u8*)recvs[i].ptr)[2],
-                                      ((const u8*)recvs[i].ptr)[3],
-                                      ((const u8*)recvs[i].ptr)[4],
-                                      ((const u8*)recvs[i].ptr)[5],
-                                      ((const u8*)recvs[i].ptr)[6],
-                                      ((const u8*)recvs[i].ptr)[7],
-                                      ((const u8*)recvs[i].ptr)[8],
-                                      ((const u8*)recvs[i].ptr)[9],
-                                      ((const u8*)recvs[i].ptr)[10],
-                                      ((const u8*)recvs[i].ptr)[11],
-                                      ((const u8*)recvs[i].ptr)[12],
-                                      ((const u8*)recvs[i].ptr)[13],
-                                      ((const u8*)recvs[i].ptr)[14],
-                                      ((const u8*)recvs[i].ptr)[15] );
-*/
-          
+
                               recvs[i].done = ret;
-          
+
                               if (recvs[i].done < recvs[i].length)
                                    return DR_OK;
-
-                              return DR_OK;
                          }
                     }
 
@@ -295,17 +221,16 @@ SendReceive( VoodooLink  *link,
 
                          static char buf[1000];
                          read( l->wakeup_fds[0], buf, sizeof(buf) );
-                         return DR_INTERRUPTED;
+                         if (!FD_ISSET( l->fd[0], &fds_read ) && !FD_ISSET( l->fd[0], &fds_write ))
+                              return DR_INTERRUPTED;
                     }
-                    break;
-     
+
+                    return DR_OK;
+
                case 0:
                     D_DEBUG_AT( Voodoo_Link, "  => TIMEOUT\n" );
-
-                    //printf("<-- timeout\n");
                     return DR_TIMEOUT;
-                    break;
-     
+
                case -1:
                     D_ERROR( "Voodoo/Link: select() failed!\n" );
                     return DR_FAILURE;
@@ -410,6 +335,14 @@ voodoo_link_init_connect( VoodooLink *link,
      }
      l->fd[1] = l->fd[0];
 
+#if !VOODOO_BUILD_NO_SETSOCKOPT
+     if (setsockopt( l->fd[0], SOL_IP, IP_TOS, &tos, sizeof(tos) ) < 0)
+          D_PERROR( "Voodoo/Manager: Could not set IP_TOS!\n" );
+
+     if (setsockopt( l->fd[0], SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
+          D_PERROR( "Voodoo/Manager: Could not set TCP_NODELAY!\n" );
+#endif
+
      D_INFO( "Voodoo/Link: Connecting to '%s:%d'...\n", addr->ai_canonname, port );
 
      /* Connect to the server. */
@@ -424,14 +357,7 @@ voodoo_link_init_connect( VoodooLink *link,
           return ret;
      }
 
-
-#if !VOODOO_BUILD_NO_SETSOCKOPT
-     if (setsockopt( l->fd[0], SOL_IP, IP_TOS, &tos, sizeof(tos) ) < 0)
-          D_PERROR( "Voodoo/Manager: Could not set IP_TOS!\n" );
-
-     if (setsockopt( l->fd[0], SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
-          D_PERROR( "Voodoo/Manager: Could not set TCP_NODELAY!\n" );
-#endif
+     D_INFO( "Voodoo/Link: Connected.\n" );
 
      DUMP_SOCKET_OPTION( l->fd[0], SO_SNDLOWAT );
      DUMP_SOCKET_OPTION( l->fd[0], SO_RCVLOWAT );
@@ -448,6 +374,7 @@ voodoo_link_init_connect( VoodooLink *link,
                return DR_IO;
           }
      }
+     D_INFO( "Voodoo/Link: Sent link code (%s).\n", raw ? "raw" : "packet" );
 
      pipe( l->wakeup_fds );
 

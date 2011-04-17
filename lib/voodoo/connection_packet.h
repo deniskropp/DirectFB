@@ -29,34 +29,13 @@
 #ifndef __VOODOO__CONNECTION_PACKET_H__
 #define __VOODOO__CONNECTION_PACKET_H__
 
-#include <voodoo/connection.h>
-
-extern "C" {
-#include <direct/thread.h>
-}
+#include <voodoo/connection_link.h>
 
 
-class VoodooConnectionPacket : public VoodooConnection {
+class VoodooConnectionPacket : public VoodooConnectionLink {
 private:
-     DirectThread               *io;
-
-     struct {
-          u8                    *buffer;
-          size_t                 start;
-          size_t                 last;
-          size_t                 end;
-          size_t                 max;
-
-          char                   tmp[VOODOO_PACKET_MAX];
-     } input;
-
-     struct {
-          DirectMutex            lock;
-          DirectWaitQueue        wait;
-          DirectTLS              tls;
-          DirectLink            *packets;
-          VoodooPacket          *sending;
-     } output;
+     char          tmp[VOODOO_PACKET_MAX];
+     DirectThread *io;
 
 public:
      VoodooConnectionPacket( VoodooManager *manager,
@@ -65,47 +44,12 @@ public:
      virtual ~VoodooConnectionPacket();
 
 
-     virtual DirectResult lock_output  ( int            length,
-                                         void         **ret_ptr );
-
-     virtual DirectResult unlock_output( bool           flush );
-
-
-     virtual VoodooPacket *GetPacket( size_t        length );
-     virtual void          PutPacket( VoodooPacket *packet,
-                                      bool          flush );
-
-
 private:
-     static void *io_loop_main ( DirectThread  *thread,
-                                 void          *arg );
-
-     void        *io_loop      ();
-
-     void         Flush        ( VoodooPacket *packet );
+     void *io_loop();
 
 
-
-private:
-     class Packets {
-     private:
-          VoodooPacket *packets[3];
-          size_t        next;
-
-     public:
-          VoodooPacket *active;
-
-     public:
-          Packets()
-               :
-               next(0),
-               active(NULL)
-          {
-               packets[0] = packets[1] = packets[2] = NULL;
-          }
-
-          VoodooPacket *Get();
-     };
+     static void  *io_loop_main( DirectThread *thread,
+                                 void         *arg );
 };
 
 

@@ -29,6 +29,7 @@ include_HEADERS = \
 	client.h		\
 	conf.h			\
 	connection.h		\
+	connection_link.h	\
 	connection_packet.h	\
 	connection_raw.h	\
 	init.h			\
@@ -46,6 +47,7 @@ libvoodoo_la_SOURCES = \
 	client.c		\
 	conf.c			\
 	connection.cpp		\
+	connection_link.cpp	\
 	connection_packet.cpp	\
 	connection_raw.cpp	\
 	init.c			\
