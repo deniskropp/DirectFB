@@ -7,9 +7,12 @@ usr/bin/dfbinspector
 usr/bin/dfblayer
 usr/bin/dfbmaster
 usr/bin/dfbpenmount
+usr/bin/dfbproxy
 usr/bin/dfbscreen
 usr/bin/mkdfiff
 usr/bin/mkdgiff
+usr/bin/mkdgifft
 usr/bin/uwmdump
+usr/bin/voodooplay
 usr/share/man/man1/dfbg.1
 usr/share/man/man5/directfbrc.5
