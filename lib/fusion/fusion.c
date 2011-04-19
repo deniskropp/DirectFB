@@ -735,6 +735,9 @@ fusion_enter( int               world_index,
           goto error4;
      }
 
+     pthread_cond_init( &world->deferred.queue, NULL );
+     pthread_mutex_init( &world->deferred.lock, NULL );
+
      /* Start the deferred thread. */
      world->deferred.thread = direct_thread_create( DTT_MESSAGING,
                                                     fusion_deferred_loop,
@@ -743,9 +746,6 @@ fusion_enter( int               world_index,
           ret = DR_FAILURE;
           goto error4;
      }
-
-     pthread_cond_init( &world->deferred.queue, NULL );
-     pthread_mutex_init( &world->deferred.lock, NULL );
 
      /* Let others enter the world. */
      if (enter.fusion_id == FUSION_ID_MASTER) {
