@@ -170,7 +170,7 @@ IDirectFBDisplayLayer_Requestor_GetScreen( IDirectFBDisplayLayer  *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBScreen",
-                                            response->instance, NULL, &interface_ptr );
+                                            response->instance, data->idirectfb, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -426,7 +426,7 @@ IDirectFBDisplayLayer_Requestor_CreateWindow( IDirectFBDisplayLayer       *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBWindow",
-                                            response->instance, NULL, &interface_ptr );
+                                            response->instance, data->idirectfb, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -459,7 +459,7 @@ IDirectFBDisplayLayer_Requestor_GetWindow( IDirectFBDisplayLayer  *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBWindow",
-                                            response->instance, NULL, &interface_ptr );
+                                            response->instance, data->idirectfb, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -592,7 +592,7 @@ IDirectFBDisplayLayer_Requestor_GetWindowByResourceID( IDirectFBDisplayLayer  *t
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBWindow",
-                                            response->instance, NULL, &interface_ptr );
+                                            response->instance, data->idirectfb, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -650,9 +650,10 @@ Construct( IDirectFBDisplayLayer *thiz,
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDisplayLayer_Requestor)
 
-     data->ref      = 1;
-     data->manager  = manager;
-     data->instance = instance;
+     data->ref       = 1;
+     data->manager   = manager;
+     data->instance  = instance;
+     data->idirectfb = arg;
 
      thiz->AddRef                = IDirectFBDisplayLayer_Requestor_AddRef;
      thiz->Release               = IDirectFBDisplayLayer_Requestor_Release;

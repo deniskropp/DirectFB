@@ -257,6 +257,7 @@ IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
+     VoodooInstanceID       instance_id;
      void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
@@ -274,12 +275,15 @@ IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
      if (ret)
           return ret;
 
+     /* Copy and finish as we do our next request in surface constructor already! */
+     instance_id = response->instance;
+
+     voodoo_manager_finish_request( data->manager, response );
+
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
-                                            response->instance, NULL, &interface_ptr );
-
-     voodoo_manager_finish_request( data->manager, response );
+                                            instance_id, thiz, &interface_ptr );
 
      *ret_interface = interface_ptr;
 
@@ -377,7 +381,7 @@ IDirectFB_Requestor_GetScreen( IDirectFB        *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBScreen",
-                                            response->instance, NULL, &interface_ptr );
+                                            response->instance, thiz, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -425,7 +429,7 @@ IDirectFB_Requestor_GetDisplayLayer( IDirectFB              *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBDisplayLayer",
-                                            response->instance, NULL, &interface_ptr );
+                                            response->instance, thiz, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -510,7 +514,7 @@ IDirectFB_Requestor_GetInputDevice( IDirectFB             *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBInputDevice",
-                                            response->instance, NULL, &interface_ptr );
+                                            response->instance, thiz, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 

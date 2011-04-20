@@ -47,6 +47,8 @@
 #include <voodoo/manager.h>
 #include <voodoo/message.h>
 
+#include <idirectfbsurface_requestor.h>
+
 #include "idirectfbsurface_dispatcher.h"
 
 static DFBResult Probe( void );
@@ -75,6 +77,8 @@ typedef struct {
      VoodooInstanceID       self;
 
      VoodooManager         *manager;
+
+     VoodooInstanceID       remote;
 } IDirectFBSurface_Dispatcher_data;
 
 /**************************************************************************************************/
@@ -883,6 +887,11 @@ Dispatch_Flip( IDirectFBSurface *thiz, IDirectFBSurface *real,
      VOODOO_PARSER_END( parser );
 
      ret = real->Flip( real, region, flags );
+
+     if (data->remote)
+          voodoo_manager_request( manager, data->remote,
+                                  IDIRECTFBSURFACE_REQUESTOR_METHOD_ID_FlipNotify, VREQ_NONE, NULL,
+                                  VMBT_NONE );
 
      if (flags & DSFLIP_WAIT)
           return voodoo_manager_respond( manager, true, msg->header.serial,
@@ -1706,6 +1715,21 @@ Dispatch_SetMatrix( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_SetRemoteInstance( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                            VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, data->remote );
+     VOODOO_PARSER_END( parser );
+
+     return voodoo_manager_respond( manager, true, msg->header.serial, DR_OK, VOODOO_INSTANCE_NONE, VMBT_NONE );
+}
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBSurface/Dispatcher: "
@@ -1831,6 +1855,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBSURFACE_METHOD_ID_SetMatrix:
                return Dispatch_SetMatrix( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_SetRemoteInstance:
+               return Dispatch_SetRemoteInstance( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;

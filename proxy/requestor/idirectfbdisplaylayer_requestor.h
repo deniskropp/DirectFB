@@ -37,6 +37,8 @@
 typedef struct {
      int                  ref;      /* reference counter */
 
+     IDirectFB           *idirectfb;
+
      VoodooManager       *manager;
      VoodooInstanceID     instance;
 } IDirectFBDisplayLayer_Requestor_data;

@@ -81,6 +81,16 @@ IDirectFBSurface_Requestor_Destruct( IDirectFBSurface *thiz )
                              IDIRECTFBSURFACE_METHOD_ID_Release, VREQ_NONE, NULL,
                              VMBT_NONE );
 
+     direct_mutex_deinit( &data->flip.lock );
+     direct_waitqueue_deinit( &data->flip.queue );
+
+     if (data->flip.window)
+          data->flip.window->Release( data->flip.window );
+          
+     if (data->flip.buffer)
+          data->flip.buffer->Release( data->flip.buffer );
+
+
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -343,7 +353,7 @@ IDirectFBSurface_Requestor_GetPalette( IDirectFBSurface  *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBPalette",
-                                            response->instance, NULL, &interface_ptr );
+                                            response->instance, data->idirectfb, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -435,12 +445,67 @@ IDirectFBSurface_Requestor_Unlock( IDirectFBSurface *thiz )
      return DFB_UNIMPLEMENTED;
 }
 
+static DirectResult
+Handle_FlipReturned( IDirectFBSurface *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     long long now = direct_clock_get_micros();
+
+     data->flip.returned++;
+
+     long long    diff   = now - data->flip.fps_stamp;
+     unsigned int frames = data->flip.returned - data->flip.fps_count;
+
+     if (diff > 10000000) {
+          long long kfps = frames * 1000000000ULL / diff;
+
+          D_INFO( "IDirectFBSurface_Requestor_FlipNotify: FPS %lld.%03lld\n", kfps / 1000, kfps % 1000 );
+
+          data->flip.fps_stamp = now;
+          data->flip.fps_count = data->flip.returned;
+     }
+
+     return DR_OK;
+}
+
 static DFBResult
 IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
                                  const DFBRegion     *region,
                                  DFBSurfaceFlipFlags  flags )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     if (/*!region &&*/ data->flip.use_notify) {
+          direct_mutex_lock( &data->flip.lock );
+
+          /* Have at most two flips on the way... */
+          while (data->flip.requested - data->flip.returned > 1)
+               direct_waitqueue_wait( &data->flip.queue, &data->flip.lock );
+
+          data->flip.requested++;
+
+          direct_mutex_unlock( &data->flip.lock );
+     }
+     else
+     if (/*!region &&*/ data->flip.use_buffer) {
+          /* Have at most two flips on the way... */
+          while (data->flip.requested - data->flip.returned > 1) {
+               DFBEvent event;
+
+               data->flip.buffer->WaitForEvent( data->flip.buffer );
+
+               if (data->flip.buffer->GetEvent( data->flip.buffer, &event ) == DFB_OK) {
+                    if (event.clazz == DFEC_WINDOW && event.window.type == DWET_SIZE)
+                         Handle_FlipReturned( thiz );
+               }
+          }
+
+          data->flip.requested++;
+
+          data->flip.window->Resize( data->flip.window, 100 + (data->flip.requested & 15), 100 );
+     }
+
 
      /* HACK for performance */
 //     flags &= ~DSFLIP_WAITFORSYNC;
@@ -1032,7 +1097,7 @@ IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
-                                            response->instance, NULL, &interface_ptr );
+                                            response->instance, data->idirectfb, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -1515,6 +1580,44 @@ IDirectFBSurface_Requestor_Read( IDirectFBSurface   *thiz,
 
 /**************************************************************************************************/
 
+static DirectResult
+Dispatch_FlipNotify( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                     VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     direct_mutex_lock( &data->flip.lock );
+
+
+     Handle_FlipReturned( thiz );
+
+
+     direct_mutex_unlock( &data->flip.lock );
+
+     direct_waitqueue_signal( &data->flip.queue );
+
+     return DR_OK;
+}
+
+static DirectResult
+LocalDispatch( void                 *dispatcher,
+               void                 *real,
+               VoodooManager        *manager,
+               VoodooRequestMessage *msg )
+{
+     D_DEBUG( "IDirectFBSurface_Requestor/LocalDispatch: "
+              "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
+
+     switch (msg->method) {
+          case IDIRECTFBSURFACE_REQUESTOR_METHOD_ID_FlipNotify:
+               return Dispatch_FlipNotify( dispatcher, real, manager, msg );
+     }
+
+     return DFB_NOSUCHMETHOD;
+}
+
+/**************************************************************************************************/
+
 static DFBResult
 Probe()
 {
@@ -1528,11 +1631,90 @@ Construct( IDirectFBSurface *thiz,
            VoodooInstanceID  instance,
            void             *arg )
 {
+     DFBResult              ret;
+     VoodooResponseMessage *response;
+
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Requestor)
 
-     data->ref      = 1;
-     data->manager  = manager;
-     data->instance = instance;
+     data->ref       = 1;
+     data->manager   = manager;
+     data->instance  = instance;
+     data->idirectfb = arg;
+
+
+     direct_mutex_init( &data->flip.lock );
+     direct_waitqueue_init( &data->flip.queue );
+#if 1
+     ret = voodoo_manager_register_local( manager, false, thiz, thiz, LocalDispatch, &data->local );
+     if (ret) {
+          D_DERROR( ret, "IDirectFBSurface_Requestor: Could not register local dispatch!\n" );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return ret;
+     }
+
+     ret = voodoo_manager_request( manager, instance,
+                                   IDIRECTFBSURFACE_METHOD_ID_SetRemoteInstance, VREQ_RESPOND, &response,
+                                   VMBT_ID, data->local,
+                                   VMBT_NONE );
+     if (ret)
+          D_DERROR( ret, "IDirectFBSurface_Requestor: Could not set remote instance, FlipNotify not used!\n" );
+     else if (response->result)
+          D_DERROR( response->result, "IDirectFBSurface_Requestor: Could not set remote instance, FlipNotify not used!\n" );
+     else {
+          D_INFO( "IDirectFBSurface_Requestor: Using FlipNotify\n" );
+
+          data->flip.use_notify = true;
+     }
+
+     voodoo_manager_finish_request( manager, response );
+
+
+     /*
+      * Implement fallback for missing FlipNotify support via event buffer and hidden window
+      */
+     if (!data->flip.use_notify) {
+          DFBWindowDescription   desc;
+          IDirectFBDisplayLayer *layer;
+
+          ret = data->idirectfb->CreateEventBuffer( data->idirectfb, &data->flip.buffer );
+          if (ret) {
+               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not create event buffer for FlipNotify fallback!\n" );
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
+               return ret;
+          }
+
+          ret = data->idirectfb->GetDisplayLayer( data->idirectfb, DLID_PRIMARY, &layer );
+          if (ret) {
+               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not get display layer for FlipNotify fallback!\n" );
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
+               return ret;
+          }
+
+          desc.flags = DWDESC_CAPS;
+          desc.caps  = DWCAPS_INPUTONLY | DWCAPS_NODECORATION;
+
+          ret = layer->CreateWindow( layer, &desc, &data->flip.window );
+          if (ret) {
+               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not create window for FlipNotify fallback!\n" );
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
+               return ret;
+          }
+
+          ret = data->flip.window->AttachEventBuffer( data->flip.window, data->flip.buffer );
+          if (ret) {
+               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not attach event buffer for FlipNotify fallback!\n" );
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
+               return ret;
+          }
+
+          layer->Release( layer );
+
+
+          D_INFO( "IDirectFBSurface_Requestor: Using FlipNotify fallback via event buffer/window!\n" );
+
+          data->flip.use_buffer = true;
+     }
+#endif
 
      thiz->AddRef = IDirectFBSurface_Requestor_AddRef;
      thiz->Release = IDirectFBSurface_Requestor_Release;
