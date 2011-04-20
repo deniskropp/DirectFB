@@ -96,7 +96,7 @@ VoodooConnectionPacket::~VoodooConnectionPacket()
 /**********************************************************************************************************************/
 
 // FIXME: temporary hotfix, refactor this code
-#define FORCE_INPUT_EVERY 5
+#define FORCE_INPUT_EVERY 3
 
 void *
 VoodooConnectionPacket::io_loop()
@@ -152,6 +152,8 @@ VoodooConnectionPacket::io_loop()
                          }
                          else
                               output.sending = packet;
+
+                         output.sent = 0;
                     }
 
                     direct_mutex_unlock( &output.lock );
@@ -165,11 +167,8 @@ VoodooConnectionPacket::io_loop()
                     chunk_write = &chunks[1];
 
                     chunk_write->ptr    = (void*) packet->data_header();
-                    chunk_write->length = VOODOO_MSG_ALIGN(packet->size()) + sizeof(VoodooPacketHeader);
+                    chunk_write->length = VOODOO_MSG_ALIGN(packet->size() + sizeof(VoodooPacketHeader)) - output.sent;
                     chunk_write->done   = 0;
-
-                    //if (chunk_write->length > 65536)
-                         //chunk_write->length = 65536;
 
                     chunks_write.push_back( chunks[1] );
 
@@ -199,29 +198,32 @@ VoodooConnectionPacket::io_loop()
                          if (chunk_write && chunk_write->done) {
                               D_DEBUG_AT( Voodoo_Output, "  -> Sent "_ZD"/"_ZD" bytes... (packet %p)\n", chunk_write->done, chunk_write->length, packet );
 
-                              // FIXME
-                              D_ASSERT( chunk_write->done == chunk_write->length );
+#ifdef VOODOO_CONNECTION_RAW_DUMP
+                              write( dump_fd, chunk_write->ptr, chunk_write->done );
+#endif
 
-                              output.sending = NULL;
+                              output.sent += chunk_write->done;
 
-                              if (packet->flags() & VPHF_COMPRESSED) {
-                                   packet->sending = false;
+                              if (output.sent == VOODOO_MSG_ALIGN(packet->size() + sizeof(VoodooPacketHeader))) {
+                                   output.sending = NULL;
 
-                                   delete packet;
+                                   if (packet->flags() & VPHF_COMPRESSED) {
+                                        packet->sending = false;
+
+                                        delete packet;
+                                   }
+                                   else {
+                                        direct_mutex_lock( &output.lock );
+
+                                        packet->sending = false;
+
+                                        direct_list_remove( &output.packets, &packet->link );
+
+                                        direct_mutex_unlock( &output.lock );
+
+                                        direct_waitqueue_broadcast( &output.wait );
+                                   }
                               }
-                              else {
-                                   direct_mutex_lock( &output.lock );
-
-                                   packet->sending = false;
-
-                                   direct_list_remove( &output.packets, &packet->link );
-
-                                   direct_mutex_unlock( &output.lock );
-
-                                   direct_waitqueue_broadcast( &output.wait );
-                              }
-
-                              packet = NULL;
                          }
                          break;
 

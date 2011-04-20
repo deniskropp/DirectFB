@@ -143,8 +143,8 @@ SendReceive( VoodooLink  *link,
                  __func__, link, sends, num_send, recvs, num_recv );
 
      while (true) {
-          fd_set         fds_read;
-          fd_set         fds_write;
+          fd_set fds_read;
+          fd_set fds_write;
           struct timeval tv;
 
           FD_ZERO( &fds_read );
@@ -159,7 +159,7 @@ SendReceive( VoodooLink  *link,
           FD_SET( l->wakeup_fds[0], &fds_read );
 
           tv.tv_sec  = 0;
-          tv.tv_usec = 100000;
+          tv.tv_usec = 1000000;
 
           D_DEBUG_AT( Voodoo_Link, "  -> select( %s%s )...\n", num_recv ? "R" : " ", num_send ? "W" : " " );
           select_result = select( MAX(MAX(l->wakeup_fds[0],l->fd[0]),l->fd[1])+1, &fds_read, &fds_write, NULL, &tv );
@@ -170,7 +170,7 @@ SendReceive( VoodooLink  *link,
 
                          for (i=0; i<num_send; i++) {
                               while (sends[i].done != sends[i].length) {
-                                   ret = send( l->fd[1], sends[i].ptr, sends[i].length, 0 );
+                                   ret = send( l->fd[1], sends[i].ptr, sends[i].length, MSG_DONTWAIT );
                                    if (ret < 0) {
                                         //if (errno == EAGAIN) {
                                         //     break;
@@ -180,13 +180,13 @@ SendReceive( VoodooLink  *link,
                                    }
                                    else {
                                         sends[i].done += ret;
-
-                                        //if (sends[i].done != sends[i].length) {
-                                        //     D_UNIMPLEMENTED();
-                                        //     return DR_UNIMPLEMENTED;
-                                        //}
-                                        //
-                                        //return DR_OK;
+/*
+                                        if (sends[i].done != sends[i].length)
+                                             D_WARN( "partial send of %d/%d bytes", ret, sends[i].length );
+                                        else
+                                             D_WARN( "full send of %d bytes", ret, sends[i].length );
+*/
+                                        return DR_OK;
                                    }
                               }
                          }
@@ -196,7 +196,7 @@ SendReceive( VoodooLink  *link,
                          D_DEBUG_AT( Voodoo_Link, "  => READ\n" );
 
                          for (i=0; i<num_recv; i++) {
-                              ret = recv( l->fd[0], recvs[i].ptr, recvs[i].length, 0 );
+                              ret = recv( l->fd[0], recvs[i].ptr, recvs[i].length, MSG_DONTWAIT );
                               if (ret < 0) {
                                    if (errno == EAGAIN) {
                                         break;
@@ -212,7 +212,7 @@ SendReceive( VoodooLink  *link,
                               recvs[i].done = ret;
 
                               if (recvs[i].done < recvs[i].length)
-                                   return DR_OK;
+                                   break;
                          }
                     }
 

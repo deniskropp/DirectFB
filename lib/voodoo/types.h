@@ -91,7 +91,7 @@ typedef DirectResult (*VoodooDispatch)      ( void                 *dispatcher,
 
 
 #define MAX_MSG_SIZE          (17 * 1024)
-#define VOODOO_PACKET_MAX     (MAX_MSG_SIZE*4)
+#define VOODOO_PACKET_MAX     (MAX_MSG_SIZE)
 
 #endif
 

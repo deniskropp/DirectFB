@@ -107,7 +107,7 @@ VoodooConnectionRaw::~VoodooConnectionRaw()
 /**********************************************************************************************************************/
 
 // FIXME: temporary hotfix, refactor this code
-#define FORCE_INPUT_EVERY 5
+#define FORCE_INPUT_EVERY 3
 
 void *
 VoodooConnectionRaw::io_loop()
@@ -150,6 +150,7 @@ VoodooConnectionRaw::io_loop()
                          D_ASSERT( packet->sending );
 
                          output.sending = packet;
+                         output.sent    = 0;
                     }
 
                     direct_mutex_unlock( &output.lock );
@@ -162,12 +163,9 @@ VoodooConnectionRaw::io_loop()
 
                     chunk_write = &chunks[1];
 
-                    chunk_write->ptr    = (void*) packet->data_start();
-                    chunk_write->length = VOODOO_MSG_ALIGN(packet->size());
+                    chunk_write->ptr    = (void*) packet->data_start() + output.sent;
+                    chunk_write->length = VOODOO_MSG_ALIGN(packet->size()) - output.sent;
                     chunk_write->done   = 0;
-
-                    //if (chunk_write->length > 65536)
-                         //chunk_write->length = 65536;
 
                     chunks_write.push_back( chunks[1] );
 
@@ -200,26 +198,25 @@ VoodooConnectionRaw::io_loop()
                          if (chunk_write && chunk_write->done) {
                               D_DEBUG_AT( Voodoo_Output, "  -> Sent "_ZD"/"_ZD" bytes...\n", chunk_write->done, chunk_write->length );
 
-                              // FIXME
-                              D_ASSERT( chunk_write->done == chunk_write->length );
-
 #ifdef VOODOO_CONNECTION_RAW_DUMP
                               write( dump_fd, chunk_write->ptr, chunk_write->done );
 #endif
 
-                              output.sending = NULL;
+                              output.sent += chunk_write->done;
 
-                              direct_mutex_lock( &output.lock );
+                              if (output.sent == VOODOO_MSG_ALIGN(packet->size())) {
+                                   output.sending = NULL;
 
-                              packet->sending = false;
+                                   direct_mutex_lock( &output.lock );
 
-                              direct_list_remove( &output.packets, &packet->link );
+                                   packet->sending = false;
 
-                              direct_mutex_unlock( &output.lock );
+                                   direct_list_remove( &output.packets, &packet->link );
 
-                              direct_waitqueue_broadcast( &output.wait );
+                                   direct_mutex_unlock( &output.lock );
 
-                              packet = NULL;
+                                   direct_waitqueue_broadcast( &output.wait );
+                              }
                          }
                          break;
 
