@@ -1014,6 +1014,7 @@ IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
+     VoodooInstanceID       instance_id;
      void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
@@ -1028,12 +1029,14 @@ IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
      if (ret)
           return ret;
 
+     instance_id = response->instance;
+
+     voodoo_manager_finish_request( data->manager, response );
+
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
-                                            response->instance, NULL, &interface_ptr );
-
-     voodoo_manager_finish_request( data->manager, response );
+                                            instance_id, data->idirectfb, &interface_ptr );
 
      *ret_interface = interface_ptr;
 
