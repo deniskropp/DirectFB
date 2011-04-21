@@ -126,6 +126,9 @@ VoodooManager::VoodooManager( VoodooLink     *link,
           D_INFO( "Voodoo/Manager: Connection mode is RAW\n" );
 
           connection = new VoodooConnectionRaw( this, link );
+
+          // FIXME: query manager dynamically for compression instead
+          voodoo_config->compression_min = 0;
      }
 }
 
