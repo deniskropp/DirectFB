@@ -149,7 +149,8 @@ voodoo_client_create( const char     *host,
 
 
      /* Initialize client structure. */
-     ret = voodoo_link_init_connect( &client->vl, hostname, port, voodoo_config->link_raw || raw );
+     ret = voodoo_link_init_connect( &client->vl, hostname, port,
+                                     !voodoo_config->link_packet && (voodoo_config->link_raw || raw) );
      if (ret) {
           D_DERROR( ret, "Voodoo/Client: Failed to initialize Voodoo Link!\n" );
           D_FREE( client );

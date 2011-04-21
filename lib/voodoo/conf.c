@@ -53,6 +53,7 @@ const char   *voodoo_config_usage =
      "  server-single=<interface>      Enable single client mode for super interface, e.g. IDirectFB\n"
      "  compression-min=<bytes>        Enable compression (if != 0) for packets with at least num bytes\n"
      "  [no-]link-raw                  Set link mode to 'raw'\n"
+     "  [no-]link-packet               Set link mode to 'packet'\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -244,6 +245,12 @@ voodoo_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-link-raw" ) == 0) {
           voodoo_config->link_raw = false;
+     } else
+     if (strcmp (name, "link-packet" ) == 0) {
+          voodoo_config->link_packet = true;
+     } else
+     if (strcmp (name, "no-link-packet" ) == 0) {
+          voodoo_config->link_packet = false;
      } else
      if (direct_config_set( name, value ))
           return DR_UNSUPPORTED;

@@ -45,6 +45,7 @@ struct __V_VoodooConfig {
      char           *play_broadcast;
      unsigned int    compression_min;
      bool            link_raw;
+     bool            link_packet;
 };
 
 extern VoodooConfig VOODOO_API *voodoo_config;
