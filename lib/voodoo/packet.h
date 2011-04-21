@@ -76,6 +76,7 @@ private:
      }
 
      VoodooPacket( u32   size,
+                   u32   flags,
                    u32   uncompressed,
                    void *data )
           :
@@ -165,11 +166,44 @@ public:
           int compressed = direct_fastlz_compress( packet->data, packet->header.uncompressed, p + 1 );
 
           if ((size_t) compressed < packet->header.uncompressed)
-               return new (p) VoodooPacket( compressed, packet->header.uncompressed, p + 1 );
+               return new (p) VoodooPacket( compressed, VPHF_COMPRESSED, packet->header.uncompressed, p + 1 );
 
           free( p );
 
           return packet;
+     }
+
+     static VoodooPacket *
+     Copy( VoodooPacket *packet )
+     {
+          VoodooPacket *p = (VoodooPacket*) malloc( sizeof(VoodooPacket) + packet->header.size );
+
+          if (!p) {
+               D_OOM();
+               return NULL;
+          }
+
+          direct_memcpy( p + 1, packet->data_start(), packet->header.size );
+
+          return new (p) VoodooPacket( packet->header.size, packet->header.flags, packet->header.uncompressed, p + 1 );
+     }
+
+     static VoodooPacket *
+     Copy( u32   size,
+           u32   flags,
+           u32   uncompressed,
+           void *data )
+     {
+          VoodooPacket *p = (VoodooPacket*) malloc( sizeof(VoodooPacket) + size );
+
+          if (!p) {
+               D_OOM();
+               return NULL;
+          }
+
+          direct_memcpy( p + 1, data, size );
+
+          return new (p) VoodooPacket( size, flags, uncompressed, p + 1 );
      }
 
      inline u32

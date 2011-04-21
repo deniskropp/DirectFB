@@ -61,6 +61,9 @@ typedef struct {
 typedef std::map<VoodooInstanceID,VoodooInstance*> InstanceMap;
 
 
+class VoodooDispatcher;
+
+
 class VoodooManager {
 public:
      int                         magic;
@@ -68,6 +71,8 @@ public:
      bool                        is_quit;
 
 private:
+     friend class VoodooDispatcher;
+
      VoodooLink                 *link;
      VoodooConnection           *connection;
 
@@ -94,6 +99,9 @@ private:
      } response;
 
 
+     VoodooDispatcher *dispatcher;
+
+
 
 public:
      VoodooManager( VoodooLink   *link,
@@ -101,6 +109,15 @@ public:
                     VoodooServer *server );
      ~VoodooManager();
 
+
+     /** New API **/
+
+     void         DispatchPacket       ( VoodooPacket            *packet );
+     bool         DispatchReady        ();   // FIXME: will be obsolete with GetPacket() method, called by connection code to read directly into packet
+
+
+
+     /** Old API **/
 
      void         quit                 ();
 

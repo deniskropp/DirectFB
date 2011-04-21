@@ -163,7 +163,7 @@ VoodooConnectionRaw::io_loop()
 
                     chunk_write = &chunks[1];
 
-                    chunk_write->ptr    = (void*) packet->data_start() + output.sent;
+                    chunk_write->ptr    = (char*) packet->data_start() + output.sent;
                     chunk_write->length = VOODOO_MSG_ALIGN(packet->size()) - output.sent;
                     chunk_write->done   = 0;
 
@@ -172,7 +172,7 @@ VoodooConnectionRaw::io_loop()
                     chunk_write = chunks_write.data();
                }
 
-               if ((!output.sending || !output_only) && input.end < input.max) {
+               if ((!output.sending || !output_only) && input.end < input.max && manager->DispatchReady()) {
                     chunk_read = &chunks[0];
 
                     chunk_read->ptr    = input.buffer + input.end;
@@ -251,7 +251,7 @@ VoodooConnectionRaw::io_loop()
                          D_DEBUG_AT( Voodoo_Input, "  { LAST "_ZD", INPUT LAST "_ZD" }\n", last, input.last );
 
                          if (input.end - last < 4) {
-                              D_DEBUG_AT( Voodoo_Input, "  -> ...only %d bytes left\n", input.end - last );
+                              D_DEBUG_AT( Voodoo_Input, "  -> ...only "_ZU" bytes left\n", input.end - last );
                               break;
                          }
 
@@ -288,7 +288,11 @@ VoodooConnectionRaw::io_loop()
                          D_DEBUG_AT( Voodoo_Input, "  { START "_ZD", LAST "_ZD", END "_ZD", MAX "_ZD" }\n",
                                      input.start, input.last, input.end, input.max );
 
-                         ProcessMessages( (VoodooMessageHeader *)(input.buffer + input.start), input.last - input.start );
+                         // FIXME: don't copy, but read into packet directly, maybe call manager->GetPacket() at the top of this loop
+                         VoodooPacket *p = VoodooPacket::Copy( input.last - input.start, VPHF_NONE,
+                                                               input.last - input.start, input.buffer + input.start );
+
+                         manager->DispatchPacket( p );
 
                          input.start = input.last;
                     }

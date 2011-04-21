@@ -232,7 +232,7 @@ VoodooConnectionLink::Packets::Get()
      if (num < VOODOO_CONNECTION_PACKET_NUM_OUTPUT) {
           packet = packets[num] = VoodooPacket::New( 0 );
 
-          D_DEBUG_AT( Voodoo_Connection, "  -> new [%d] %p\n", num, packet );
+          D_DEBUG_AT( Voodoo_Connection, "  -> new ["_ZU"] %p\n", num, packet );
 
           num++;
      }

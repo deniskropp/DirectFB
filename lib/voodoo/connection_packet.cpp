@@ -138,7 +138,7 @@ VoodooConnectionPacket::io_loop()
                               output.sending = VoodooPacket::Compressed( packet );
 
                               if (output.sending->flags() & VPHF_COMPRESSED) {
-                                   D_DEBUG_AT( Voodoo_Output, "  -> Compressed "_ZD" to "_ZD" bytes... (packet %p)\n",
+                                   D_DEBUG_AT( Voodoo_Output, "  -> Compressed %u to %u bytes... (packet %p)\n",
                                                output.sending->uncompressed(), output.sending->size(), packet );
 
                                    output.sending->sending = true;
@@ -175,7 +175,7 @@ VoodooConnectionPacket::io_loop()
                     chunk_write = chunks_write.data();
                }
 
-               if ((!output.sending || !output_only) && input.end < input.max) {
+               if ((!output.sending || !output_only) && input.end < input.max && manager->DispatchReady()) {
                     chunk_read = &chunks[0];
 
                     chunk_read->ptr    = input.buffer + input.end;
@@ -291,6 +291,8 @@ VoodooConnectionPacket::io_loop()
                               /* Get the packet header. */
                               VoodooPacketHeader *header = (VoodooPacketHeader *)(input.buffer + input.start);
 
+                              VoodooPacket *p;
+
                               if (header->flags & VPHF_COMPRESSED) {
                                    size_t uncompressed = direct_fastlz_decompress( header + 1, header->size, tmp, header->uncompressed );
 
@@ -299,11 +301,18 @@ VoodooConnectionPacket::io_loop()
                                    (void) uncompressed;
 
                                    D_ASSERT( uncompressed == header->uncompressed );
-     
-                                   ProcessMessages( (VoodooMessageHeader *) tmp, header->uncompressed );
+
+                                   // FIXME: don't copy, but read into packet directly, maybe call manager->GetPacket() at the top of this loop
+                                   p = VoodooPacket::Copy( header->uncompressed, VPHF_NONE,
+                                                           header->uncompressed, tmp );
                               }
-                              else
-                                   ProcessMessages( (VoodooMessageHeader *)(header + 1), header->uncompressed );
+                              else {
+                                   // FIXME: don't copy, but read into packet directly, maybe call manager->GetPacket() at the top of this loop
+                                   p = VoodooPacket::Copy( header->uncompressed, VPHF_NONE,
+                                                           header->uncompressed, header + 1 );
+                              }
+
+                              manager->DispatchPacket( p );
 
                               input.start += VOODOO_MSG_ALIGN(header->size) + sizeof(VoodooPacketHeader);
                          }

@@ -56,6 +56,7 @@ extern "C" {
 
 #include <voodoo/connection_packet.h>
 #include <voodoo/connection_raw.h>
+#include <voodoo/dispatcher.h>
 #include <voodoo/manager.h>
 #include <voodoo/packet.h>
 
@@ -111,6 +112,10 @@ VoodooManager::VoodooManager( VoodooLink     *link,
 
      D_MAGIC_SET( this, VoodooManager );
 
+
+     dispatcher = new VoodooDispatcher( this );
+
+
      /* Add connection */
      if ((link->code & 0x8000ffff) == 0x80008676) {
           D_INFO( "Voodoo/Manager: Connection mode is PACKET\n" );
@@ -133,6 +138,9 @@ VoodooManager::~VoodooManager()
      if (!is_quit)
           quit();
 
+     /* Destroy dispatcher */
+     delete dispatcher;
+
      /* Remove connection */
      delete connection;
 
@@ -153,7 +161,37 @@ VoodooManager::~VoodooManager()
      D_MAGIC_CLEAR( this );
 }
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
+
+void
+VoodooManager::DispatchPacket( VoodooPacket *packet )
+{
+     D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p, packet %p )\n", __func__, this, packet );
+
+     D_MAGIC_ASSERT( this, VoodooManager );
+     D_ASSUME( !is_quit );
+
+     if (is_quit)
+          return;
+
+     dispatcher->PutPacket( packet );
+}
+
+bool
+VoodooManager::DispatchReady()
+{
+     D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
+
+     D_MAGIC_ASSERT( this, VoodooManager );
+     D_ASSUME( !is_quit );
+
+     if (is_quit)
+          return false;
+
+     return dispatcher->Ready();
+}
+
+/**********************************************************************************************************************/
 
 void
 VoodooManager::quit()
