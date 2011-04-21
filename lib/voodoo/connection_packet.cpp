@@ -161,7 +161,7 @@ VoodooConnectionPacket::io_loop()
 
                     chunk_write = &chunks[1];
 
-                    chunk_write->ptr    = (void*) packet->data_header();
+                    chunk_write->ptr    = (char*) packet->data_header() + output.sent;
                     chunk_write->length = VOODOO_MSG_ALIGN(packet->size() + sizeof(VoodooPacketHeader)) - output.sent;
                     chunk_write->done   = 0;
 
@@ -190,10 +190,6 @@ VoodooConnectionPacket::io_loop()
                     case DR_OK:
                          if (chunk_write && chunk_write->done) {
                               D_DEBUG_AT( Voodoo_Output, "  -> Sent "_ZD"/"_ZD" bytes... (packet %p)\n", chunk_write->done, chunk_write->length, packet );
-
-#ifdef VOODOO_CONNECTION_RAW_DUMP
-                              write( dump_fd, chunk_write->ptr, chunk_write->done );
-#endif
 
                               output.sent += chunk_write->done;
 
