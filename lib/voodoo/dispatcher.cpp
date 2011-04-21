@@ -67,7 +67,8 @@ D_DEBUG_DOMAIN( Voodoo_Dispatcher, "Voodoo/Dispatcher", "Voodoo Dispatcher" );
 VoodooDispatcher::VoodooDispatcher( VoodooManager *manager )
      :
      magic(0),
-     manager(manager)
+     manager(manager),
+     packets(NULL)
 {
      D_DEBUG_AT( Voodoo_Dispatcher, "VoodooDispatcher::%s( %p )\n", __func__, this );
 
