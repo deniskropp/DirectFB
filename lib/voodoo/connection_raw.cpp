@@ -106,9 +106,6 @@ VoodooConnectionRaw::~VoodooConnectionRaw()
 
 /**********************************************************************************************************************/
 
-// FIXME: temporary hotfix, refactor this code
-#define FORCE_INPUT_EVERY 3
-
 void *
 VoodooConnectionRaw::io_loop()
 {
@@ -118,7 +115,6 @@ VoodooConnectionRaw::io_loop()
      int dump_fd = open("voodoo_write.raw", O_TRUNC|O_CREAT|O_WRONLY, 0660 );
      int dump_read_fd = open("voodoo_read.raw", O_TRUNC|O_CREAT|O_WRONLY, 0660 );
 #endif
-     int output_only = 0;
 
      while (!manager->is_quit) {
           D_MAGIC_ASSERT( this, VoodooConnection );
@@ -172,7 +168,7 @@ VoodooConnectionRaw::io_loop()
                     chunk_write = chunks_write.data();
                }
 
-               if ((!output.sending || !output_only) && input.end < input.max && manager->DispatchReady()) {
+               if (input.end < input.max && manager->DispatchReady()) {
                     chunk_read = &chunks[0];
 
                     chunk_read->ptr    = input.buffer + input.end;
@@ -183,12 +179,7 @@ VoodooConnectionRaw::io_loop()
 
                     chunk_read = chunks_read.data();
                }
-
-               output_only = (output_only + 1) % FORCE_INPUT_EVERY;
                     
-
-               //D_DEBUG_AT( Voodoo_Input, "  { START "_ZD", LAST "_ZD", END "_ZD", MAX "_ZD" }\n",
-               //            input.start, input.last, input.end, input.max );
 
                ret = link->SendReceive( link,
                                         chunks_write.data(), chunks_write.size(),

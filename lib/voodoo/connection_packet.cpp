@@ -95,15 +95,10 @@ VoodooConnectionPacket::~VoodooConnectionPacket()
 
 /**********************************************************************************************************************/
 
-// FIXME: temporary hotfix, refactor this code
-#define FORCE_INPUT_EVERY 3
-
 void *
 VoodooConnectionPacket::io_loop()
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p )\n", __func__, this );
-
-     int output_only = 0;
 
      while (!manager->is_quit) {
           D_MAGIC_ASSERT( this, VoodooConnection );
@@ -175,7 +170,7 @@ VoodooConnectionPacket::io_loop()
                     chunk_write = chunks_write.data();
                }
 
-               if ((!output.sending || !output_only) && input.end < input.max && manager->DispatchReady()) {
+               if (input.end < input.max && manager->DispatchReady()) {
                     chunk_read = &chunks[0];
 
                     chunk_read->ptr    = input.buffer + input.end;
@@ -186,8 +181,6 @@ VoodooConnectionPacket::io_loop()
 
                     chunk_read = chunks_read.data();
                }
-
-               output_only = (output_only + 1) % FORCE_INPUT_EVERY;
 
 
                ret = link->SendReceive( link,
