@@ -113,7 +113,7 @@ IDirectFBDisplayLayer_Dispatcher_GetDescription( IDirectFBDisplayLayer      *thi
 
 static DFBResult
 IDirectFBDisplayLayer_Dispatcher_GetSurface( IDirectFBDisplayLayer  *thiz,
-                                             IDirectFBSurface      **interface )
+                                             IDirectFBSurface      **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
 
@@ -124,7 +124,7 @@ IDirectFBDisplayLayer_Dispatcher_GetSurface( IDirectFBDisplayLayer  *thiz,
 
 static DFBResult
 IDirectFBDisplayLayer_Dispatcher_GetScreen( IDirectFBDisplayLayer  *thiz,
-                                            IDirectFBScreen       **interface )
+                                            IDirectFBScreen       **interface_ptr )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
 
@@ -488,7 +488,7 @@ Dispatch_GetConfiguration( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *r
      if (ret)
           return ret;
 
-     return voodoo_manager_respond( manager, msg->header.serial,
+     return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_DATA, sizeof(DFBDisplayLayerConfig), &config,
                                     VMBT_NONE );
@@ -558,7 +558,7 @@ Dispatch_CreateWindow( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
      VOODOO_PARSER_END( parser );
 
      if (1) {
-          int w = 256, h = 256, b = 2, size;
+          unsigned int w = 256, h = 256, b = 2, size;
 
           if (desc->flags & DWDESC_WIDTH)
                w = desc->width;
@@ -567,7 +567,7 @@ Dispatch_CreateWindow( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
                h = desc->height;
 
           if (desc->flags & DWDESC_PIXELFORMAT)
-               b = DFB_BYTES_PER_PIXEL( desc->pixelformat ) ?: 2;
+               b = DFB_BYTES_PER_PIXEL( desc->pixelformat ) ? DFB_BYTES_PER_PIXEL( desc->pixelformat ) : 2;
 
           size = w * h * b;
 

@@ -40,6 +40,8 @@
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 
+#include <idirectfb_dispatcher.h>
+
 #include "idirectfbimageprovider_dispatcher.h"
 
 
@@ -163,7 +165,7 @@ Dispatch_GetSurfaceDescription( IDirectFBImageProvider *thiz, IDirectFBImageProv
 
      return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
-                                    VMBT_DATA, sizeof(DFBSurfaceDescription), &desc,
+                                    VMBT_DFBSurfaceDescription( desc ),
                                     VMBT_NONE );
 }
 
