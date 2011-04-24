@@ -88,5 +88,6 @@
 #define IDIRECTFBSURFACE_METHOD_ID_SetColors                 57
 #define IDIRECTFBSURFACE_METHOD_ID_BatchBlit2                58
 #define IDIRECTFBSURFACE_METHOD_ID_SetRemoteInstance         59
+#define IDIRECTFBSURFACE_METHOD_ID_FillTrapezoids            60
 
 #endif

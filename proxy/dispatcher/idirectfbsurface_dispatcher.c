@@ -460,6 +460,16 @@ IDirectFBSurface_Dispatcher_FillRectangles( IDirectFBSurface   *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Dispatcher_FillTrapezoids( IDirectFBSurface   *thiz,
+                                            const DFBTrapezoid *traps,
+                                            unsigned int        num_traps )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
 IDirectFBSurface_Dispatcher_FillSpans( IDirectFBSurface *thiz,
                                        int               y,
                                        const DFBSpan    *spans,
@@ -1248,6 +1258,26 @@ Dispatch_FillRectangles( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_FillTrapezoids( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                         VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser  parser;
+     unsigned int         num_traps;
+     const DFBTrapezoid  *traps;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, num_traps );
+     VOODOO_PARSER_GET_DATA( parser, traps );
+     VOODOO_PARSER_END( parser );
+
+     real->FillTrapezoids( real, traps, num_traps );
+
+     return DFB_OK;
+}
+
+static DirectResult
 Dispatch_FillSpans( IDirectFBSurface *thiz, IDirectFBSurface *real,
                     VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -1838,6 +1868,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
           case IDIRECTFBSURFACE_METHOD_ID_FillRectangles:
                return Dispatch_FillRectangles( dispatcher, real, manager, msg );
 
+          case IDIRECTFBSURFACE_METHOD_ID_FillTrapezoids:
+               return Dispatch_FillTrapezoids( dispatcher, real, manager, msg );
+
           case IDIRECTFBSURFACE_METHOD_ID_FillSpans:
                return Dispatch_FillSpans( dispatcher, real, manager, msg );
 
@@ -1940,6 +1973,7 @@ Construct( IDirectFBSurface *thiz,
      thiz->SetDrawingFlags = IDirectFBSurface_Dispatcher_SetDrawingFlags;
      thiz->FillRectangle = IDirectFBSurface_Dispatcher_FillRectangle;
      thiz->FillRectangles = IDirectFBSurface_Dispatcher_FillRectangles;
+     thiz->FillTrapezoids = IDirectFBSurface_Dispatcher_FillTrapezoids;
      thiz->FillSpans = IDirectFBSurface_Dispatcher_FillSpans;
      thiz->DrawLine = IDirectFBSurface_Dispatcher_DrawLine;
      thiz->DrawLines = IDirectFBSurface_Dispatcher_DrawLines;
