@@ -709,6 +709,23 @@ IDirectFBSurface_Requestor_FillRectangles( IDirectFBSurface   *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Requestor_FillTrapezoids( IDirectFBSurface   *thiz,
+                                           const DFBTrapezoid *traps,
+                                           unsigned int        num_traps )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     if (!traps || !num_traps)
+          return DFB_INVARG;
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_FillTrapezoids, VREQ_QUEUE, NULL,
+                                    VMBT_UINT, num_traps,
+                                    VMBT_DATA, num_traps * sizeof(DFBTrapezoid), traps,
+                                    VMBT_NONE );
+}
+
+static DFBResult
 IDirectFBSurface_Requestor_FillSpans( IDirectFBSurface *thiz,
                                       int               y,
                                       const DFBSpan    *spans,
@@ -1577,6 +1594,7 @@ Construct( IDirectFBSurface *thiz,
      thiz->SetDrawingFlags = IDirectFBSurface_Requestor_SetDrawingFlags;
      thiz->FillRectangle = IDirectFBSurface_Requestor_FillRectangle;
      thiz->FillRectangles = IDirectFBSurface_Requestor_FillRectangles;
+     thiz->FillTrapezoids = IDirectFBSurface_Requestor_FillTrapezoids;
      thiz->FillSpans = IDirectFBSurface_Requestor_FillSpans;
      thiz->DrawLine = IDirectFBSurface_Requestor_DrawLine;
      thiz->DrawLines = IDirectFBSurface_Requestor_DrawLines;
