@@ -794,6 +794,12 @@ Dispatch_CreateSurface( IDirectFB *thiz, IDirectFB *real,
 
           ret = real->CreateSurface( real, &sd, &surface );
      }
+     else if (desc.flags & (DSDESC_PALETTE | DSDESC_PREALLOCATED)) {
+          DFBSurfaceDescription sd = desc;
+          sd.flags &= ~(DSDESC_PALETTE | DSDESC_PREALLOCATED);
+
+          ret = real->CreateSurface( real, &sd, &surface );
+     }
      else {
           ret = real->CreateSurface( real, &desc, &surface );
      }
