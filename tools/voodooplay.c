@@ -65,8 +65,9 @@ player_callback( void                    *ctx,
                  const char              *address,
                  unsigned int             ms_since_last_seen )
 {
-     D_INFO( "Voodoo/Play: <%4ums> [ %-30s ]   %s%s\n",
-             ms_since_last_seen, info->name, address, (info->flags & VPIF_LEVEL2) ? " *" : "" );
+     D_INFO( "Voodoo/Play: <%4ums> [ %-30s ]   %s%s   (vendor: %s, model: %s)\n",
+             ms_since_last_seen, info->name, address, (info->flags & VPIF_LEVEL2) ? " *" : "",
+             info->vendor, info->model );
 
      return DENUM_OK;
 }
