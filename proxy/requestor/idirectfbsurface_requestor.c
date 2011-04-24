@@ -1053,7 +1053,7 @@ IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
      ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
-                                            instance_id, data->idirectfb, &interface_ptr );
+                                            instance_id, NULL, &interface_ptr );
 
      *ret_interface = interface_ptr;
 
