@@ -1708,6 +1708,193 @@ Dispatch_Write( IDirectFBSurface *thiz, IDirectFBSurface *real,
      return DFB_OK;
 }
 
+#define RLE16_KEY   0xf001
+
+static bool
+rle16_encode( const u16    *src,
+              u16          *dst,
+              unsigned int  num,
+              unsigned int *ret_num )
+{
+     unsigned int n, last, count = 0, out = 0;
+
+     for (n=0; n<num; n++) {
+          if (out + 3 > num) {
+               *ret_num = num;
+               return false;
+          }
+
+          if (count > 0) {
+               D_ASSERT( src[n] == last );
+
+               count++;
+          }
+          else {
+               count = 1;
+               last  = src[n];
+          }
+
+          if (n == num-1 || src[n+1] != last) {
+               if (count > 2 || (count > 1 && last == RLE16_KEY)) {
+                    dst[out++] = RLE16_KEY;
+                    dst[out++] = count;
+                    dst[out++] = last;
+               }
+               else {
+                    if (count > 1 || last == RLE16_KEY)
+                         dst[out++] = last;
+
+                    dst[out++] = last;
+               }
+
+               count = 0;
+          }
+     }
+
+     *ret_num = out;
+
+     return true;
+}
+
+#define RLE32_KEY   0xf0012345
+
+static bool
+rle32_encode( const u32    *src,
+              u32          *dst,
+              unsigned int  num,
+              unsigned int *ret_num )
+{
+     unsigned int n, last, count = 0, out = 0;
+
+     for (n=0; n<num; n++) {
+          if (out + 3 > num) {
+               *ret_num = num;
+               return false;
+          }
+
+          if (count > 0) {
+               D_ASSERT( src[n] == last );
+
+               count++;
+          }
+          else {
+               count = 1;
+               last  = src[n];
+          }
+
+          if (n == num-1 || src[n+1] != last) {
+               if (count > 2 || (count > 1 && last == RLE32_KEY)) {
+                    dst[out++] = RLE32_KEY;
+                    dst[out++] = count;
+                    dst[out++] = last;
+               }
+               else {
+                    if (count > 1 || last == RLE32_KEY)
+                         dst[out++] = last;
+
+                    dst[out++] = last;
+               }
+
+               count = 0;
+          }
+     }
+
+     *ret_num = out;
+
+     return true;
+}
+
+static DirectResult
+Dispatch_Read( IDirectFBSurface *thiz, IDirectFBSurface *real,
+               VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult           ret;
+     VoodooMessageParser    parser;
+     const DFBRectangle    *rect;
+     int                    len;
+     int                    y;
+     void                  *buf;
+     DFBSurfacePixelFormat  format;
+     unsigned int           encoded;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, rect );
+     VOODOO_PARSER_END( parser );
+
+     real->GetPixelFormat( real, &format );
+
+     len = DFB_BYTES_PER_LINE( format, rect->w );
+     buf = alloca( len );
+
+
+     switch (format) {
+          case DSPF_RGB16: {
+               u16 tmp[rect->w];
+
+               for (y=0; y<rect->h; y++) {
+                    unsigned int num;
+                    DFBRectangle r = { rect->x, rect->y + y, rect->w, 1 };
+
+                    real->Read( real, &r, buf, len );
+
+                    encoded = rle16_encode( buf, tmp, rect->w, &num );
+
+                    ret = voodoo_manager_respond( manager, y == rect->h - 1, msg->header.serial,
+                                                  DFB_OK, VOODOO_INSTANCE_NONE,
+                                                  VMBT_UINT, encoded ? 2 : 0,
+                                                  VMBT_DATA, DFB_BYTES_PER_LINE( format, num ),
+                                                             encoded ? tmp : buf,
+                                                  VMBT_NONE );
+                    if (ret)
+                         break;
+               }
+               break;
+          }
+
+          case DSPF_RGB32:
+          case DSPF_ARGB: {
+               u32 tmp[rect->w];
+
+               for (y=0; y<rect->h; y++) {
+                    unsigned int num;
+                    DFBRectangle r = { rect->x, rect->y + y, rect->w, 1 };
+
+                    real->Read( real, &r, buf, len );
+
+                    encoded = rle32_encode( buf, tmp, rect->w, &num );
+
+                    ret = voodoo_manager_respond( manager, y == rect->h - 1, msg->header.serial,
+                                                  DFB_OK, VOODOO_INSTANCE_NONE,
+                                                  VMBT_UINT, encoded ? 4 : 0,
+                                                  VMBT_DATA, DFB_BYTES_PER_LINE( format, num ),
+                                                             encoded ? tmp : buf,
+                                                  VMBT_NONE );
+                    if (ret)
+                         break;
+               }
+               break;
+          }
+
+          default:
+               for (y=0; y<rect->h; y++) {
+                    DFBRectangle r = { rect->x, rect->y + y, rect->w, 1 };
+
+                    real->Read( real, &r, buf, len );
+
+                    voodoo_manager_respond( manager, y == rect->h - 1, msg->header.serial,
+                                            DFB_OK, VOODOO_INSTANCE_NONE,
+                                            VMBT_UINT, 0,
+                                            VMBT_DATA, len, buf,
+                                            VMBT_NONE );
+               }
+               break;
+     }
+
+     return DFB_OK;
+}
+
 static DirectResult
 Dispatch_SetRenderOptions( IDirectFBSurface *thiz, IDirectFBSurface *real,
                            VoodooManager *manager, VoodooRequestMessage *msg )
@@ -1882,6 +2069,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBSURFACE_METHOD_ID_Write:
                return Dispatch_Write( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_Read:
+               return Dispatch_Read( dispatcher, real, manager, msg );
 
           case IDIRECTFBSURFACE_METHOD_ID_SetRenderOptions:
                return Dispatch_SetRenderOptions( dispatcher, real, manager, msg );
