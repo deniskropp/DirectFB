@@ -52,7 +52,9 @@ typedef enum {
      CWF_ENTERED     = 0x00000004,
      CWF_DESTROYED   = 0x00000008,
 
-     CWF_ALL         = 0x0000000F
+     CWF_INSERTED    = 0x00000010,
+
+     CWF_ALL         = 0x0000001F
 } CoreWindowFlags;
 
 #define DFB_WINDOW_INITIALIZED(w)  ((w)->flags & CWF_INITIALIZED)

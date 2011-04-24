@@ -150,7 +150,8 @@ typedef struct {
 /**************************************************************************************************/
 
 static DFBResult
-restack_window( CoreWindow             *window,
+restack_window( WMData                 *wmdata,
+                CoreWindow             *window,
                 WindowData             *window_data,
                 CoreWindow             *relative,
                 WindowData             *relative_data,
@@ -653,7 +654,8 @@ window_at_pointer( CoreWindowStack *stack,
 }
 
 static void
-switch_focus( CoreWindowStack *stack,
+switch_focus( WMData          *wmdata,
+              CoreWindowStack *stack,
               StackData       *data,
               CoreWindow      *to )
 {
@@ -697,6 +699,9 @@ switch_focus( CoreWindowStack *stack,
      }
 
      data->focused_window = to;
+
+     /* Send notification to windows watchers */
+     dfb_wm_dispatch_WindowFocus( wmdata->core, to );
 }
 
 static bool
@@ -728,7 +733,7 @@ update_focus( CoreWindowStack *stack,
                }
 
                /* switch focus and send enter event */
-               switch_focus( stack, data, after );
+               switch_focus( wmdata, stack, data, after );
 
                if (after) {
                     we.type = DWET_ENTER;
@@ -751,7 +756,8 @@ update_focus( CoreWindowStack *stack,
 }
 
 static void
-ensure_focus( CoreWindowStack *stack,
+ensure_focus( WMData          *wmdata,
+              CoreWindowStack *stack,
               StackData       *data )
 {
      int         i;
@@ -762,7 +768,7 @@ ensure_focus( CoreWindowStack *stack,
 
      fusion_vector_foreach_reverse (window, i, data->windows) {
           if (window->config.opacity && !(window->config.options & DWOP_GHOST)) {
-               switch_focus( stack, data, window );
+               switch_focus( wmdata, stack, data, window );
                break;
           }
      }
@@ -1727,7 +1733,8 @@ update_window( CoreWindow          *window,
 /**************************************************************************************************/
 
 static void
-insert_window( CoreWindowStack *stack,
+insert_window( WMData          *wmdata,
+               CoreWindowStack *stack,
                StackData       *data,
                CoreWindow      *window,
                WindowData      *window_data )
@@ -1753,8 +1760,14 @@ insert_window( CoreWindowStack *stack,
                break;
      }
 
+     dfb_wm_dispatch_WindowRestack( wmdata->core, window, index );
+
      /* Insert the window at the acquired position. */
      fusion_vector_insert( &data->windows, window, index );
+
+     window->flags |= CWF_INSERTED;
+
+     dfb_wm_dispatch_WindowState( wmdata->core, window );
 }
 
 static void
@@ -1815,7 +1828,8 @@ withdraw_window( CoreWindowStack *stack,
 }
 
 static void
-remove_window( CoreWindowStack *stack,
+remove_window( WMData          *wmdata,
+               CoreWindowStack *stack,
                StackData       *data,
                CoreWindow      *window,
                WindowData      *window_data )
@@ -1846,6 +1860,10 @@ remove_window( CoreWindowStack *stack,
      }
 
      fusion_vector_remove( &data->windows, fusion_vector_index_of( &data->windows, window ) );
+
+     window->flags &= ~CWF_INSERTED;
+
+     dfb_wm_dispatch_WindowState( wmdata->core, window );
 }
 
 /**************************************************************************************************/
@@ -2085,7 +2103,8 @@ set_window_bounds( CoreWindow *window,
 }
 
 static DFBResult
-restack_window( CoreWindow             *window,
+restack_window( WMData                 *wmdata,
+                CoreWindow             *window,
                 WindowData             *window_data,
                 CoreWindow             *relative,
                 WindowData             *relative_data,
@@ -2180,6 +2199,8 @@ restack_window( CoreWindow             *window,
      /* Actually change the stacking order now. */
      fusion_vector_move( &data->windows, old, index );
 
+     dfb_wm_dispatch_WindowRestack( wmdata->core, window, index );
+
      update_window( window, window_data, NULL, DSFLIP_NONE, (index < old), false, false );
 
      return DFB_OK;
@@ -2232,7 +2253,7 @@ set_opacity( CoreWindow *window,
                withdraw_window( stack, data, window, window_data );
 
                /* Always try to have a focused window */
-               ensure_focus( stack, data );
+               ensure_focus( wmdata, stack, data );
           }
      }
 }
@@ -2395,7 +2416,8 @@ ungrab_key( CoreWindow                 *window,
 }
 
 static DFBResult
-request_focus( CoreWindow *window,
+request_focus( WMData     *wmdata,
+               CoreWindow *window,
                WindowData *window_data )
 {
      StackData       *data;
@@ -2410,7 +2432,7 @@ request_focus( CoreWindow *window,
      data  = window_data->stack_data;
      stack = data->stack;
 
-     switch_focus( stack, data, window );
+     switch_focus( wmdata, stack, data, window );
 
      entered = data->entered_window;
 
@@ -2480,9 +2502,9 @@ handle_wm_key( CoreWindowStack     *stack,
                               continue;
                          }
 
-                         restack_window( window, window->window_data,
+                         restack_window( wmdata, window, window->window_data,
                                          NULL, NULL, 1, window->config.stacking );
-                         request_focus( window, window->window_data );
+                         request_focus( wmdata, window, window->window_data );
 
                          break;
                     }
@@ -2496,9 +2518,9 @@ handle_wm_key( CoreWindowStack     *stack,
                     if (VISIBLE_WINDOW(window) && window->config.stacking == DWSC_MIDDLE &&
                        ! (window->config.options & (DWOP_GHOST | DWOP_KEEP_STACKING)))
                     {
-                         restack_window( window, window->window_data,
+                         restack_window( wmdata, window, window->window_data,
                                          NULL, NULL, 1, window->config.stacking );
-                         request_focus( window, window->window_data );
+                         request_focus( wmdata, window, window->window_data );
 
                          break;
                     }
@@ -2521,7 +2543,7 @@ handle_wm_key( CoreWindowStack     *stack,
 
           case DIKS_SMALL_A:
                if (focused && !(focused->config.options & DWOP_KEEP_STACKING)) {
-                    restack_window( focused, focused->window_data,
+                    restack_window( wmdata, focused, focused->window_data,
                                     NULL, NULL, 0, focused->config.stacking );
                     update_focus( stack, data, wmdata );
                }
@@ -2529,7 +2551,7 @@ handle_wm_key( CoreWindowStack     *stack,
 
           case DIKS_SMALL_W:
                if (focused && !(focused->config.options & DWOP_KEEP_STACKING))
-                    restack_window( focused, focused->window_data,
+                    restack_window( wmdata, focused, focused->window_data,
                                     NULL, NULL, 1, focused->config.stacking );
                break;
 
@@ -3516,8 +3538,9 @@ wm_add_window( CoreWindowStack *stack,
                CoreWindow      *window,
                void            *window_data )
 {
-     WindowData *data  = window_data;
-     StackData  *sdata = stack_data;
+     WindowData *data   = window_data;
+     StackData  *sdata  = stack_data;
+     WMData     *wmdata = wm_data;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -3537,8 +3560,11 @@ wm_add_window( CoreWindowStack *stack,
 
      D_MAGIC_SET( data, WindowData );
 
+     /* Send notification to windows watchers */
+     dfb_wm_dispatch_WindowAdd( wmdata->core, window );
+
      /* Actually add the window to the stack. */
-     insert_window( stack, sdata, window, data );
+     insert_window( wmdata, stack, sdata, window, data );
 
      /* Possibly switch focus to the new window. */
      update_focus( stack, sdata, wm_data );
@@ -3555,8 +3581,9 @@ wm_remove_window( CoreWindowStack *stack,
                   CoreWindow      *window,
                   void            *window_data )
 {
-     WindowData *data  = window_data;
-     StackData  *sdata = stack_data;
+     WindowData *data   = window_data;
+     StackData  *sdata  = stack_data;
+     WMData     *wmdata = wm_data;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -3567,7 +3594,10 @@ wm_remove_window( CoreWindowStack *stack,
      D_MAGIC_ASSERT( data, WindowData );
      D_MAGIC_ASSERT( sdata, StackData );
 
-     remove_window( stack, sdata, window, data );
+     /* Send notification to windows watchers */
+     dfb_wm_dispatch_WindowRemove( wmdata->core, window );
+
+     remove_window( wmdata, stack, sdata, window, data );
 
      /* Free key list. */
      if (window->config.keys) {
@@ -3591,6 +3621,7 @@ wm_set_window_config( CoreWindow             *window,
 {
      DFBResult        ret;
      CoreWindowStack *stack;
+     WMData          *wmdata = wm_data;
 
      D_ASSERT( window != NULL );
      D_ASSERT( window->stack != NULL );
@@ -3672,7 +3703,7 @@ wm_set_window_config( CoreWindow             *window,
      }
 
      if (flags & CWCF_STACKING)
-          restack_window( window, window_data, window, window_data, 0, config->stacking );
+          restack_window( wmdata, window, window_data, window, window_data, 0, config->stacking );
 
      if (flags & CWCF_OPACITY && config->opacity)
           set_opacity( window, window_data, wm_data, config->opacity );
@@ -3712,6 +3743,9 @@ wm_set_window_config( CoreWindow             *window,
           window->config.key_selection = config->key_selection;
      }
 
+     /* Send notification to windows watchers */
+     dfb_wm_dispatch_WindowConfig( wmdata->core, window, flags );
+
      process_updates( stack->stack_data, wm_data, stack, window->primary_region, DSFLIP_NONE );
 
      return DFB_OK;
@@ -3743,7 +3777,7 @@ wm_restack_window( CoreWindow             *window,
      D_ASSERT( sdata != NULL );
      D_ASSERT( sdata->stack != NULL );
 
-     ret = restack_window( window, window_data, relative,
+     ret = restack_window( wm_data, window, window_data, relative,
                            relative_data, relation, window->config.stacking );
      if (ret)
           return ret;
@@ -3848,7 +3882,7 @@ wm_request_focus( CoreWindow *window,
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
 
-     return request_focus( window, window_data );
+     return request_focus( wm_data, window, window_data );
 }
 
 static DFBResult

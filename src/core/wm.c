@@ -47,6 +47,7 @@
 #include <core/core_parts.h>
 #include <core/layer_context.h>
 #include <core/layers_internal.h>
+#include <core/windowstack.h>
 #include <core/windows_internal.h>
 #include <core/wm.h>
 
@@ -73,6 +74,8 @@ typedef struct {
      void                *data;
 
      FusionSHMPoolShared *shmpool;
+
+     FusionReactor       *reactor;
 } DFBWMCoreShared;
 
 struct __DFB_DFBWMCore {
@@ -169,6 +172,8 @@ dfb_wm_core_initialize( CoreDFB         *core,
                goto error;
           }
      }
+
+     wm_shared->reactor = fusion_reactor_new( 0, "WM", dfb_core_world(core) );
 
      /* Initialize window manager. */
      ret = wm_local->funcs->Initialize( core, wm_local->data, wm_shared->data );
@@ -291,11 +296,12 @@ dfb_wm_core_shutdown( DFBWMCore *data,
 
      shared = data->shared;
 
-
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->Shutdown != NULL );
      D_ASSERT( wm_shared != NULL );
+
+     fusion_reactor_destroy( wm_shared->reactor );
 
      /* Shutdown window manager. */
      ret = wm_local->funcs->Shutdown( emergency, wm_local->data, wm_shared->data );
@@ -494,6 +500,210 @@ load_module( const char *name )
      }
 
      return DFB_OK;
+}
+
+/**************************************************************************************************/
+
+static void
+convert_config( DFBWindowConfig        *config,
+                const CoreWindowConfig *from )
+{
+     config->bounds            = from->bounds;
+     config->opacity           = from->opacity;
+     config->stacking          = from->stacking;
+     config->options           = from->options;
+     config->events            = from->events;
+     config->association       = from->association;
+     config->color_key         = from->color_key;
+     config->opaque            = from->opaque;
+     config->color             = from->color;
+     config->stereo_depth      = from->z;
+//     config->key_selection     = DWKS_ALL;    // FIXME: implement
+//     config->keys              = NULL;        // FIXME: implement
+//     config->num_keys          = 0;           // FIXME: implement
+     config->cursor_flags      = from->cursor_flags;
+     config->cursor_resolution = from->cursor_resolution;
+     config->src_geometry      = from->src_geometry;
+     config->dst_geometry      = from->dst_geometry;
+     config->rotation          = from->rotation;
+     config->application_id    = from->application_id;
+}
+
+static void
+convert_state( DFBWindowState        *state,
+               const CoreWindowFlags  flags )
+{
+     state->flags = DWSTATE_NONE;
+
+     if (flags & CWF_INSERTED)
+          state->flags |= DWSTATE_INSERTED;
+
+     if (flags & CWF_FOCUSED)
+          state->flags |= DWSTATE_FOCUSED;
+
+     if (flags & CWF_ENTERED)
+          state->flags |= DWSTATE_ENTERED;
+}
+
+/**************************************************************************************************/
+
+typedef struct {
+     ReactionFunc        func;
+     void               *ctx;
+} AttachContext;
+
+static DFBEnumerationResult
+wm_window_attach_callback( CoreWindow *window,
+                           void       *ctx )
+{
+     AttachContext *context = ctx;
+
+     CoreWM_WindowAdd add;
+
+     add.info.window_id   = window->id;
+     add.info.caps        = window->caps;
+     add.info.resource_id = window->resource_id;
+
+     convert_config( &add.info.config, &window->config );
+
+     convert_state( &add.info.state, window->flags );
+
+     context->func( &add, context->ctx );
+
+     return DFENUM_OK;
+}
+
+DFBResult
+dfb_wm_attach( CoreDFB            *core,
+               int                 channel,
+               ReactionFunc        func,
+               void               *ctx,
+               Reaction           *reaction )
+{
+     D_ASSERT( wm_shared != NULL );
+
+     if (channel == CORE_WM_WINDOW_ADD) {
+          CoreWindowStack *stack = (CoreWindowStack *) wm_shared->stacks;
+
+          if (stack) {
+               DFBResult     ret;
+               AttachContext context = { func, ctx };
+
+               dfb_windowstack_lock( stack );
+
+               ret = dfb_wm_enum_windows( stack, wm_window_attach_callback, &context );
+               if (ret)
+                    D_WARN( "could not enumerate windows" );
+
+               ret = fusion_reactor_attach_channel( wm_shared->reactor, channel, func, ctx, reaction );
+
+               dfb_windowstack_unlock( stack );
+
+               return ret;
+          }
+     }
+
+     return fusion_reactor_attach_channel( wm_shared->reactor, channel, func, ctx, reaction );
+}
+
+DFBResult
+dfb_wm_detach( CoreDFB            *core,
+               Reaction           *reaction )
+{
+     D_ASSERT( wm_shared != NULL );
+
+     return fusion_reactor_detach( wm_shared->reactor, reaction );
+}
+
+DFBResult
+dfb_wm_dispatch( CoreDFB            *core,
+                 int                 channel,
+                 const void         *data,
+                 int                 size )
+{
+     D_ASSERT( wm_shared != NULL );
+
+     return fusion_reactor_dispatch_channel( wm_shared->reactor, channel, data, size, true, NULL );
+}
+
+DFBResult
+dfb_wm_dispatch_WindowAdd( CoreDFB    *core,
+                           CoreWindow *window )
+{
+     CoreWM_WindowAdd add;
+
+     add.info.window_id   = window->id;
+     add.info.caps        = window->caps;
+     add.info.resource_id = window->resource_id;
+
+     convert_config( &add.info.config, &window->config );
+
+     convert_state( &add.info.state, window->flags );
+
+     return dfb_wm_dispatch( core, CORE_WM_WINDOW_ADD, &add, sizeof(add) );
+}
+
+DFBResult
+dfb_wm_dispatch_WindowRemove( CoreDFB    *core,
+                              CoreWindow *window )
+{
+     CoreWM_WindowRemove remove;
+
+     remove.window_id = window->id;
+
+     return dfb_wm_dispatch( core, CORE_WM_WINDOW_REMOVE, &remove, sizeof(remove) );
+}
+
+DFBResult
+dfb_wm_dispatch_WindowConfig( CoreDFB              *core,
+                              CoreWindow           *window,
+                              DFBWindowConfigFlags  flags )
+{
+     CoreWM_WindowConfig config;
+
+     config.window_id = window->id;
+     config.flags     = flags;
+
+     convert_config( &config.config, &window->config );
+
+     return dfb_wm_dispatch( core, CORE_WM_WINDOW_CONFIG, &config, sizeof(config) );
+}
+
+DFBResult
+dfb_wm_dispatch_WindowState( CoreDFB    *core,
+                             CoreWindow *window )
+{
+     CoreWM_WindowState state;
+
+     state.window_id = window->id;
+
+     convert_state( &state.state, window->flags );
+
+     return dfb_wm_dispatch( core, CORE_WM_WINDOW_STATE, &state, sizeof(state) );
+}
+
+DFBResult
+dfb_wm_dispatch_WindowRestack( CoreDFB      *core,
+                               CoreWindow   *window,
+                               unsigned int  index )
+{
+     CoreWM_WindowRestack restack;
+
+     restack.window_id = window->id;
+     restack.index     = index;
+
+     return dfb_wm_dispatch( core, CORE_WM_WINDOW_RESTACK, &restack, sizeof(restack) );
+}
+
+DFBResult
+dfb_wm_dispatch_WindowFocus( CoreDFB    *core,
+                             CoreWindow *window )
+{
+     CoreWM_WindowFocus focus;
+
+     focus.window_id = window->id;
+
+     return dfb_wm_dispatch( core, CORE_WM_WINDOW_FOCUS, &focus, sizeof(focus) );
 }
 
 /**************************************************************************************************/

@@ -1124,6 +1124,37 @@ Dispatch_WaitIdle( IDirectFB *thiz, IDirectFB *real,
 }
 
 static DirectResult
+Dispatch_GetInterface( IDirectFB *thiz, IDirectFB *real,
+                       VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     VoodooMessageParser  parser;
+     const char          *type;
+     IAny                *interface_ptr;
+     VoodooInstanceID     instance;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_STRING( parser, type );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->GetInterface( real, type, NULL, NULL, (void**) &interface_ptr );
+     if (ret)
+          return ret;
+
+     ret = voodoo_construct_dispatcher( manager, type, interface_ptr, data->self, NULL, &instance, NULL );
+     if (ret) {
+          interface_ptr->Release( interface_ptr );
+          return ret;
+     }
+
+     return voodoo_manager_respond( manager, true, msg->header.serial,
+                                    ret, instance,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFB/Dispatcher: "
@@ -1177,6 +1208,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFB_METHOD_ID_WaitIdle:
                return Dispatch_WaitIdle( dispatcher, real, manager, msg );
+
+          case IDIRECTFB_METHOD_ID_GetInterface:
+               return Dispatch_GetInterface( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;

@@ -30,6 +30,7 @@
 #define __DFB__CORE__WM_H__
 
 #include <directfb.h>
+#include <directfb_windows.h>
 
 #include <direct/modules.h>
 
@@ -287,6 +288,84 @@ typedef struct {
                                       void                   *stack_data,
                                       CoreCursorUpdateFlags   flags );
 } CoreWMFuncs;
+
+
+
+typedef enum {
+     CORE_WM_WINDOW_ADD     = 1,
+     CORE_WM_WINDOW_REMOVE  = 2,
+     CORE_WM_WINDOW_CONFIG  = 3,
+     CORE_WM_WINDOW_STATE   = 4,
+     CORE_WM_WINDOW_RESTACK = 5,
+     CORE_WM_WINDOW_FOCUS   = 6,
+
+     _CORE_WM_NUM_CHANNELS
+} CoreWMChannels;
+
+typedef struct {
+     DFBWindowInfo        info;
+} CoreWM_WindowAdd;
+
+typedef struct {
+     DFBWindowID          window_id;
+} CoreWM_WindowRemove;
+
+typedef struct {
+     DFBWindowID          window_id;
+     DFBWindowConfig      config;
+     DFBWindowConfigFlags flags;
+} CoreWM_WindowConfig;
+
+typedef struct {
+     DFBWindowID          window_id;
+     DFBWindowState       state;
+} CoreWM_WindowState;
+
+typedef struct {
+     DFBWindowID          window_id;
+     unsigned int         index;
+} CoreWM_WindowRestack;
+
+typedef struct {
+     DFBWindowID          window_id;
+} CoreWM_WindowFocus;
+
+
+DFBResult dfb_wm_attach  ( CoreDFB            *core,
+                           int                 channel,
+                           ReactionFunc        func,
+                           void               *ctx,
+                           Reaction           *reaction );
+
+DFBResult dfb_wm_detach  ( CoreDFB            *core,
+                           Reaction           *reaction );
+
+DFBResult dfb_wm_dispatch( CoreDFB            *core,
+                           int                 channel,
+                           const void         *data,
+                           int                 size );
+
+
+DFBResult dfb_wm_dispatch_WindowAdd    ( CoreDFB              *core,
+                                         CoreWindow           *window );
+
+DFBResult dfb_wm_dispatch_WindowRemove ( CoreDFB              *core,
+                                         CoreWindow           *window );
+
+DFBResult dfb_wm_dispatch_WindowConfig ( CoreDFB              *core,
+                                         CoreWindow           *window,
+                                         DFBWindowConfigFlags  flags );
+
+DFBResult dfb_wm_dispatch_WindowState  ( CoreDFB              *core,
+                                         CoreWindow           *window );
+
+DFBResult dfb_wm_dispatch_WindowRestack( CoreDFB              *core,
+                                         CoreWindow           *window,
+                                         unsigned int          index );
+
+DFBResult dfb_wm_dispatch_WindowFocus  ( CoreDFB              *core,
+                                         CoreWindow           *window );
+
 
 
 void dfb_wm_get_info( CoreWMInfo *info );

@@ -30,6 +30,7 @@
 #define __WINDOWS_H__
 
 #include <directfb.h>
+#include <directfb_windows.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -43,36 +44,28 @@ typedef enum {
      CWMGT_UNSELECTED_KEYS,
 } CoreWMGrabTarget;
 
-typedef enum {
-     CWCF_NONE          = 0x00000000,
+#define CoreWindowConfigFlags DFBWindowConfigFlags
 
-     CWCF_POSITION      = 0x00000001,
-     CWCF_SIZE          = 0x00000002,
-     CWCF_OPACITY       = 0x00000004,
-     CWCF_STACKING      = 0x00000008,
-
-     CWCF_OPTIONS       = 0x00000010,
-     CWCF_EVENTS        = 0x00000020,
-     CWCF_ASSOCIATION   = 0x00000040,
-
-     CWCF_COLOR_KEY     = 0x00000100,
-     CWCF_OPAQUE        = 0x00000200,
-     CWCF_COLOR         = 0x00000400,
-     CWCF_STEREO_DEPTH  = 0x00000800,
-
-     CWCF_KEY_SELECTION = 0x00001000,
-     CWCF_CURSOR_FLAGS  = 0x00002000,
-     CWCF_CURSOR_RESOLUTION = 0x00004000,
-
-     CWCF_SRC_GEOMETRY  = 0x00010000,
-     CWCF_DST_GEOMETRY  = 0x00020000,
-
-     CWCF_ROTATION      = 0x00040000,
-
-     CWCF_APPLICATION_ID= 0x00080000,
-
-     CWCF_ALL           = 0x000F7F7F
-} CoreWindowConfigFlags;
+#define CWCF_NONE                  DWCONF_NONE
+#define CWCF_POSITION              DWCONF_POSITION
+#define CWCF_SIZE                  DWCONF_SIZE
+#define CWCF_OPACITY               DWCONF_OPACITY
+#define CWCF_STACKING              DWCONF_STACKING
+#define CWCF_OPTIONS               DWCONF_OPTIONS
+#define CWCF_EVENTS                DWCONF_EVENTS
+#define CWCF_ASSOCIATION           DWCONF_ASSOCIATION
+#define CWCF_COLOR_KEY             DWCONF_COLOR_KEY
+#define CWCF_OPAQUE                DWCONF_OPAQUE
+#define CWCF_COLOR                 DWCONF_COLOR
+#define CWCF_STEREO_DEPTH          DWCONF_STEREO_DEPTH
+#define CWCF_KEY_SELECTION         DWCONF_KEY_SELECTION
+#define CWCF_CURSOR_FLAGS          DWCONF_CURSOR_FLAGS
+#define CWCF_CURSOR_RESOLUTION     DWCONF_CURSOR_RESOLUTION
+#define CWCF_SRC_GEOMETRY          DWCONF_SRC_GEOMETRY
+#define CWCF_DST_GEOMETRY          DWCONF_DST_GEOMETRY
+#define CWCF_ROTATION              DWCONF_ROTATION
+#define CWCF_APPLICATION_ID        DWCONF_APPLICATION_ID
+#define CWCF_ALL                   DWCONF_ALL
 
 struct __DFB_CoreWindowConfig {
      DFBRectangle             bounds;         /* position and size */
