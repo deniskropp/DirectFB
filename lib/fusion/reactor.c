@@ -1613,6 +1613,8 @@ struct __Fusion_FusionReactor {
      pthread_mutex_t   globals_lock;
 
      bool              destroyed;
+
+     int               msg_size;
 };
 
 static void
@@ -1634,6 +1636,8 @@ fusion_reactor_new( int                msg_size,
      reactor = D_CALLOC( 1, sizeof(FusionReactor) );
      if (!reactor)
           return NULL;
+
+     reactor->msg_size = msg_size;
 
      direct_util_recursive_pthread_mutex_init( &reactor->reactions_lock );
      direct_util_recursive_pthread_mutex_init( &reactor->globals_lock );
@@ -1669,20 +1673,7 @@ fusion_reactor_attach (FusionReactor *reactor,
                        void          *ctx,
                        Reaction      *reaction)
 {
-     D_ASSERT( reactor != NULL );
-     D_ASSERT( func != NULL );
-     D_ASSERT( reaction != NULL );
-
-     reaction->func = func;
-     reaction->ctx  = ctx;
-
-     pthread_mutex_lock( &reactor->reactions_lock );
-
-     direct_list_prepend( &reactor->reactions, &reaction->link );
-
-     pthread_mutex_unlock( &reactor->reactions_lock );
-
-     return DR_OK;
+     return fusion_reactor_attach_channel( reactor, -1, func, ctx, reaction );
 }
 
 DirectResult
@@ -1756,9 +1747,21 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
                                void          *ctx,
                                Reaction      *reaction )
 {
-     D_UNIMPLEMENTED();
+     D_ASSERT( reactor != NULL );
+     D_ASSERT( func != NULL );
+     D_ASSERT( reaction != NULL );
 
-     return DR_UNIMPLEMENTED;
+     reaction->func      = func;
+     reaction->ctx       = ctx;
+     reaction->node_link = (void*)(long) channel;
+
+     pthread_mutex_lock( &reactor->reactions_lock );
+
+     direct_list_prepend( &reactor->reactions, &reaction->link );
+
+     pthread_mutex_unlock( &reactor->reactions_lock );
+
+     return DR_OK;
 }
 
 DirectResult
@@ -1768,44 +1771,6 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                                  int                 msg_size,
                                  bool                self,
                                  const ReactionFunc *globals )
-{
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
-}
-
-DirectResult
-fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
-                                      FusionCall     *call,
-                                      void           *call_ptr )
-{
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
-}
-
-DirectResult
-fusion_reactor_set_name( FusionReactor *reactor,
-                         const char    *name )
-{
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
-}
-
-DirectResult
-fusion_reactor_add_permissions( FusionReactor            *reactor,
-                                FusionID                  fusion_id,
-                                FusionReactorPermissions  permissions )
-{
-     return DR_OK;
-}
-
-DirectResult
-fusion_reactor_dispatch (FusionReactor      *reactor,
-                         const void         *msg_data,
-                         bool                self,
-                         const ReactionFunc *globals)
 {
      DirectLink *l;
 
@@ -1830,17 +1795,19 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
           DirectLink *next     = l->next;
           Reaction   *reaction = (Reaction*) l;
 
-          switch (reaction->func( msg_data, reaction->ctx )) {
-               case RS_REMOVE:
-                    direct_list_remove( &reactor->reactions, l );
-                    break;
+          if ((long) reaction->node_link == channel) {
+               switch (reaction->func( msg_data, reaction->ctx )) {
+                    case RS_REMOVE:
+                         direct_list_remove( &reactor->reactions, l );
+                         break;
 
-               case RS_DROP:
-                    pthread_mutex_unlock( &reactor->reactions_lock );
-                    return DR_OK;
+                    case RS_DROP:
+                         pthread_mutex_unlock( &reactor->reactions_lock );
+                         return DR_OK;
 
-               default:
-                    break;
+                    default:
+                         break;
+               }
           }
 
           l = next;
@@ -1849,6 +1816,34 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
      pthread_mutex_unlock( &reactor->reactions_lock );
 
      return DR_OK;
+}
+
+DirectResult
+fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
+                                      FusionCall     *call,
+                                      void           *call_ptr )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_reactor_set_name( FusionReactor *reactor,
+                         const char    *name )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_reactor_dispatch (FusionReactor      *reactor,
+                         const void         *msg_data,
+                         bool                self,
+                         const ReactionFunc *globals)
+{
+     return fusion_reactor_dispatch_channel( reactor, 0, msg_data, reactor->msg_size, self, globals );
 }
 
 DirectResult
@@ -1929,6 +1924,14 @@ process_globals( FusionReactor      *reactor,
      }
 
      pthread_mutex_unlock( &reactor->globals_lock );
+}
+
+DirectResult
+fusion_reactor_add_permissions( FusionReactor            *reactor,
+                                FusionID                  fusion_id,
+                                FusionReactorPermissions  permissions )
+{
+     return DR_OK;
 }
 
 #endif
