@@ -890,13 +890,36 @@ IDirectFB_Requestor_GetInterface( IDirectFB   *thiz,
                                   const char  *type,
                                   const char  *implementation,
                                   void        *arg,
-                                  void       **interface_ptr )
+                                  void       **ret_interface )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     void                  *interface_ptr = NULL;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!type || !ret_interface)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     if (implementation || arg)
+          return DFB_UNSUPPORTED;
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFB_METHOD_ID_GetInterface, VREQ_RESPOND, &response,
+                                   VMBT_STRING, type,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret == DFB_OK)
+          ret = voodoo_construct_requestor( data->manager, type, response->instance, thiz, &interface_ptr );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_interface = interface_ptr;
+
+     return ret;
 }
 
 /**************************************************************************************************/

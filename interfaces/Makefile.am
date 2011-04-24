@@ -4,4 +4,5 @@ SUBDIRS = \
 	IDirectFBFont		\
 	IDirectFBImageProvider	\
 	IDirectFBVideoProvider	\
+	IDirectFBWindows	\
 	IWater
