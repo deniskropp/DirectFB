@@ -696,12 +696,12 @@ switch_focus( WMData          *wmdata,
           evt.type = DWET_GOTFOCUS;
 
           post_event( to, data, &evt );
+
+          /* Send notification to windows watchers */
+          dfb_wm_dispatch_WindowFocus( wmdata->core, to );
      }
 
      data->focused_window = to;
-
-     /* Send notification to windows watchers */
-     dfb_wm_dispatch_WindowFocus( wmdata->core, to );
 }
 
 static bool
