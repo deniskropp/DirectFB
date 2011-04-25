@@ -275,12 +275,6 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                }
 
                /*
-                * Keep filename and module handle.
-                */
-               impl->filename      = D_STRDUP( buf );
-               impl->module_handle = handle;
-
-               /*
                 * Almost the same stuff like above, TODO: make function.
                 */
                if (strcmp( type, impl->type ))
@@ -294,6 +288,13 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                     continue;
                }
                else {
+                    /*
+                     * Keep filename and module handle.
+                     */
+                    impl->filename      = D_STRDUP( buf );
+                    impl->module_handle = handle;
+
+
                     D_INFO( "Direct/Interface: Loaded '%s' implementation of '%s'.\n",
                             impl->implementation, impl->type );
 
