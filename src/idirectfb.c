@@ -799,6 +799,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if (!ret)
                               *interface = iface;
 
+                         dfb_window_unref( window );
+
                          return ret;
                     }
                case DFSCL_FULLSCREEN:
