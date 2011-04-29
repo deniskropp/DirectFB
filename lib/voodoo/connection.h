@@ -51,10 +51,6 @@ public:
      virtual VoodooPacket *GetPacket( size_t        length ) = 0;
      virtual void          PutPacket( VoodooPacket *packet,
                                       bool          flush ) = 0;
-
-protected:
-     void ProcessMessages( VoodooMessageHeader *first,
-                           size_t               total_length );
 };
 
 
