@@ -64,6 +64,7 @@ typedef struct {
 
           long long              fps_stamp;
           unsigned int           fps_count;
+          unsigned int           fps_old;
 
 
 

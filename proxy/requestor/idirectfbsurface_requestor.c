@@ -56,7 +56,8 @@
 #include "idirectfbsurface_requestor.h"
 
 
-D_DEBUG_DOMAIN( IDirectFBSurface_Requestor_, "IDirectFBSurface/Requestor", "IDirectFBSurface Requestor" );
+D_DEBUG_DOMAIN( IDirectFBSurface_Requestor_,    "IDirectFBSurface/Requestor",      "IDirectFBSurface Requestor" );
+D_DEBUG_DOMAIN( IDirectFBSurface_RequestorFlip, "IDirectFBSurface/Requestor/Flip", "IDirectFBSurface Requestor Flip" );
 
 static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBSurface *thiz,
@@ -446,16 +447,22 @@ IDirectFBSurface_Requestor_Unlock( IDirectFBSurface *thiz )
 }
 
 static DirectResult
-Handle_FlipReturned( IDirectFBSurface *thiz )
+Handle_FlipReturned( IDirectFBSurface *thiz,
+                     unsigned int      millis )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
+     D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "%s( %p, millis %u )\n", __FUNCTION__, thiz, millis );
+
      long long now = direct_clock_get_micros();
 
-     data->flip.returned++;
+     data->flip.returned = millis;
+
+     data->flip.fps_count++;
+
 
      long long    diff   = now - data->flip.fps_stamp;
-     unsigned int frames = data->flip.returned - data->flip.fps_count;
+     unsigned int frames = data->flip.fps_count - data->flip.fps_old;
 
      if (diff > 10000000) {
           long long kfps = frames * 1000000000ULL / diff;
@@ -463,7 +470,7 @@ Handle_FlipReturned( IDirectFBSurface *thiz )
           D_INFO( "IDirectFBSurface_Requestor_FlipNotify: FPS %lld.%03lld\n", kfps / 1000, kfps % 1000 );
 
           data->flip.fps_stamp = now;
-          data->flip.fps_count = data->flip.returned;
+          data->flip.fps_old   = data->flip.fps_count;
      }
 
      return DR_OK;
@@ -474,51 +481,36 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
                                  const DFBRegion     *region,
                                  DFBSurfaceFlipFlags  flags )
 {
+     DirectResult ret;
+     unsigned int millis;
+     bool         use_notify_or_buffer = false;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
-     if (/*!region &&*/ data->flip.use_notify) {
-          direct_mutex_lock( &data->flip.lock );
+     D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "%s( %p, region %p, flags 0x%08x )\n", __FUNCTION__, thiz, region, flags );
 
-          /* Have at most two flips on the way... */
-          while (data->flip.requested - data->flip.returned > 1)
-               direct_waitqueue_wait( &data->flip.queue, &data->flip.lock );
+     // FIXME: find better heuristic for flip control, or use flag
+     if (!region || (region->x1 == 0 && region->y1 == 0))
+          use_notify_or_buffer = true;
 
-          data->flip.requested++;
-
-          direct_mutex_unlock( &data->flip.lock );
-     }
-     else
-     if (/*!region &&*/ data->flip.use_buffer) {
-          /* Have at most two flips on the way... */
-          while (data->flip.requested - data->flip.returned > 1) {
-               DFBEvent event;
-
-               data->flip.buffer->WaitForEvent( data->flip.buffer );
-
-               if (data->flip.buffer->GetEvent( data->flip.buffer, &event ) == DFB_OK) {
-                    if (event.clazz == DFEC_WINDOW && event.window.type == DWET_SIZE)
-                         Handle_FlipReturned( thiz );
-               }
-          }
-
-          data->flip.requested++;
-
-          data->flip.window->Resize( data->flip.window, 100 + (data->flip.requested & 15), 100 );
-     }
-
-
-     /* HACK for performance */
-//     flags &= ~DSFLIP_WAITFORSYNC;
+     millis = direct_clock_get_abs_millis();
 
      if (flags & DSFLIP_WAIT) {
-          DirectResult           ret;
           VoodooResponseMessage *response;
 
-          ret = voodoo_manager_request( data->manager, data->instance,
-                                        IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_RESPOND, &response,
-                                        VMBT_ODATA, sizeof(DFBRegion), region,
-                                        VMBT_INT, flags,
-                                        VMBT_NONE );
+          if (data->flip.use_notify)
+               ret = voodoo_manager_request( data->manager, data->instance,
+                                             IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_RESPOND, &response,
+                                             VMBT_ODATA, sizeof(DFBRegion), region,
+                                             VMBT_INT, flags,
+                                             VMBT_UINT, millis,
+                                             VMBT_NONE );
+          else
+               ret = voodoo_manager_request( data->manager, data->instance,
+                                             IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_RESPOND, &response,
+                                             VMBT_ODATA, sizeof(DFBRegion), region,
+                                             VMBT_INT, flags,
+                                             VMBT_NONE );
           if (ret)
                return ret;
 
@@ -529,11 +521,80 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
           return ret;
      }
 
-     return voodoo_manager_request( data->manager, data->instance,
-                                    IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_NONE, NULL,
-                                    VMBT_ODATA, sizeof(DFBRegion), region,
-                                    VMBT_INT, flags,
-                                    VMBT_NONE );
+     if (data->flip.use_notify) {
+          D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "  -> millis %u, using FlipNotify\n", millis );
+
+          ret = voodoo_manager_request( data->manager, data->instance,
+                                         IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_NONE, NULL,
+                                         VMBT_ODATA, sizeof(DFBRegion), region,
+                                         VMBT_INT, flags,
+                                         VMBT_UINT, millis,
+                                         VMBT_NONE );
+     }
+     else {
+          D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "  -> millis %u, not using FlipNotify\n", millis );
+
+          ret = voodoo_manager_request( data->manager, data->instance,
+                                         IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_NONE, NULL,
+                                         VMBT_ODATA, sizeof(DFBRegion), region,
+                                         VMBT_INT, flags,
+                                         VMBT_NONE );
+     }
+
+     if (use_notify_or_buffer && data->flip.use_notify) {
+          if (data->flip.requested && millis - data->flip.requested < 20) {
+               D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "  -> delaying next frame by %d ms\n", 20 - (millis - data->flip.requested) );
+
+               direct_thread_sleep( (20 - (millis - data->flip.requested)) * 1000 );
+          }
+
+          data->flip.requested = millis;
+
+          direct_mutex_lock( &data->flip.lock );
+
+          while (data->flip.requested - data->flip.returned > 200)
+               direct_waitqueue_wait( &data->flip.queue, &data->flip.lock );
+
+          direct_mutex_unlock( &data->flip.lock );
+     }
+     else if (use_notify_or_buffer && data->flip.use_buffer) {
+          {
+               DFBWindowEvent event;
+
+               event.type       = DWET_KEYDOWN;
+               event.flags      = DIEF_KEYSYMBOL;
+               event.key_symbol = millis;
+
+               data->flip.window->SendEvent( data->flip.window, &event );
+          }
+
+          if (data->flip.requested && millis - data->flip.requested < 20) {
+               D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "  -> delaying next frame by %d ms\n", 20 - (millis - data->flip.requested) );
+
+               direct_thread_sleep( (20 - (millis - data->flip.requested)) * 1000 );
+          }
+
+          data->flip.requested = millis;
+
+
+          DFBEvent event;
+
+          while (data->flip.buffer->GetEvent( data->flip.buffer, &event ) == DFB_OK) {
+               if (event.clazz == DFEC_WINDOW && event.window.type == DWET_KEYDOWN)
+                    Handle_FlipReturned( thiz, event.window.key_symbol );
+          }
+
+          while (data->flip.requested - data->flip.returned > 200) {
+               data->flip.buffer->WaitForEvent( data->flip.buffer );
+
+               while (data->flip.buffer->GetEvent( data->flip.buffer, &event ) == DFB_OK) {
+                    if (event.clazz == DFEC_WINDOW && event.window.type == DWET_KEYDOWN)
+                         Handle_FlipReturned( thiz, event.window.key_symbol );
+               }
+          }
+     }
+
+     return ret;
 }
 
 static DFBResult
@@ -1604,12 +1665,20 @@ static DirectResult
 Dispatch_FlipNotify( IDirectFBSurface *thiz, IDirectFBSurface *real,
                      VoodooManager *manager, VoodooRequestMessage *msg )
 {
+     VoodooMessageParser parser;
+     unsigned int        millis;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      direct_mutex_lock( &data->flip.lock );
 
 
-     Handle_FlipReturned( thiz );
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, millis );
+     VOODOO_PARSER_END( parser );
+
+
+     Handle_FlipReturned( thiz, millis );
 
 
      direct_mutex_unlock( &data->flip.lock );
@@ -1671,7 +1740,7 @@ Construct( IDirectFBSurface *thiz,
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
      }
-
+#if 1
      ret = voodoo_manager_request( manager, instance,
                                    IDIRECTFBSURFACE_METHOD_ID_SetRemoteInstance, VREQ_RESPOND, &response,
                                    VMBT_ID, data->local,
@@ -1684,10 +1753,10 @@ Construct( IDirectFBSurface *thiz,
           D_INFO( "IDirectFBSurface_Requestor: Using FlipNotify\n" );
 
           data->flip.use_notify = true;
+
+          voodoo_manager_finish_request( manager, response );
      }
-
-     voodoo_manager_finish_request( manager, response );
-
+#endif
 
      /*
       * Implement fallback for missing FlipNotify support via event buffer and hidden window

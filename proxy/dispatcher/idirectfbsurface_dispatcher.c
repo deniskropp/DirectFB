@@ -888,12 +888,15 @@ Dispatch_Flip( IDirectFBSurface *thiz, IDirectFBSurface *real,
      VoodooMessageParser  parser;
      const DFBRegion     *region;
      DFBSurfaceFlipFlags  flags;
+     unsigned int         millis;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
      VOODOO_PARSER_BEGIN( parser, msg );
      VOODOO_PARSER_GET_ODATA( parser, region );
      VOODOO_PARSER_GET_INT( parser, flags );
+     if (data->remote)
+          VOODOO_PARSER_GET_UINT( parser, millis );
      VOODOO_PARSER_END( parser );
 
      ret = real->Flip( real, region, flags );
@@ -901,6 +904,7 @@ Dispatch_Flip( IDirectFBSurface *thiz, IDirectFBSurface *real,
      if (data->remote)
           voodoo_manager_request( manager, data->remote,
                                   IDIRECTFBSURFACE_REQUESTOR_METHOD_ID_FlipNotify, VREQ_NONE, NULL,
+                                  VMBT_UINT, millis,
                                   VMBT_NONE );
 
      if (flags & DSFLIP_WAIT)
