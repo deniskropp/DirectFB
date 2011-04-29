@@ -6,6 +6,7 @@ dfbtest_font
 dfbtest_gl1
 dfbtest_gl2
 dfbtest_gl3
+dfbtest_init
 dfbtest_mirror
 dfbtest_reinit
 dfbtest_scale

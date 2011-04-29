@@ -49,6 +49,7 @@ bin_PROGRAMS = \
 	dfbtest_blit2	\
 	dfbtest_fillrect	\
 	dfbtest_font	\
+	dfbtest_init	\
 	dfbtest_mirror	\
 	dfbtest_reinit	\
 	dfbtest_scale	\
@@ -86,6 +87,9 @@ dfbtest_fillrect_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_font_SOURCES = dfbtest_font.c
 dfbtest_font_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_init_SOURCES = dfbtest_init.c
+dfbtest_init_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_gl1_SOURCES = dfbtest_gl1.c
 dfbtest_gl1_CFLAGS  = $(GLES2_CFLAGS)
