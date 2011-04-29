@@ -35,8 +35,8 @@ extern "C" {
 #include <direct/thread.h>
 }
 
-#define VOODOO_CONNECTION_PACKET_NUM_OUTPUT  20
-#define VOODOO_CONNECTION_LINK_INPUT_BUF_MAX ((VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader)) * VOODOO_CONNECTION_PACKET_NUM_OUTPUT)
+#define VOODOO_CONNECTION_PACKET_NUM_OUTPUT  2
+#define VOODOO_CONNECTION_LINK_INPUT_BUF_MAX ((VOODOO_PACKET_MAX + sizeof(VoodooPacketHeader)) * 1)
 
 
 class VoodooConnectionLink : public VoodooConnection {
