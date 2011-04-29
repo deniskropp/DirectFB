@@ -448,9 +448,10 @@ if test "$enable_debug_support" = "yes" || test "$enable_debug" = "yes"; then
     if test "$enable_debug" = "no"; then
         CFLAGS="-g2 $CFLAGS"
     fi
+    CFLAGS="-O2 $CFLAGS"
     DIRECT_BUILD_DEBUGS=1
 else
-    CFLAGS="-O3 -g0 $CFLAGS"
+    CFLAGS="-O2 -g0 $CFLAGS"
     DIRECT_BUILD_DEBUGS=0
 fi
 AM_CONDITIONAL(ENABLE_DEBUGS, test "$enable_debug_support" = "yes")
