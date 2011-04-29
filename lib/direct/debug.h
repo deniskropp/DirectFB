@@ -51,8 +51,8 @@
 D_DEBUG_DOMAIN( _direct_debug_deprecated, "-", "deprecated" );
 
 // @deprecated
-#define D_DEBUG( x... )                                                                             \
-     D_DEBUG_AT( _direct_debug_deprecated, x )
+#define D_DEBUG( ... )                                                                              \
+     D_DEBUG_AT( _direct_debug_deprecated, __VA_ARGS__ )
 
 #endif
 

@@ -73,7 +73,7 @@ D_DECLARE_INTERFACE( IAny )
 /*
  * Define base interface
  */
-D_DEFINE_INTERFACE( IAny )
+D_DEFINE_INTERFACE( IAny, )
 
 /*
  * Function type for probing of interface implementations
