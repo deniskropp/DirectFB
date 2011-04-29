@@ -188,6 +188,8 @@ void DIRECT_API direct_dbg_interface_remove( const char *func,
 
 
 #define DIRECT_DEALLOCATE_INTERFACE(p)                                               \
+     D_MAGIC_ASSERT( (IAny*)(p), DirectInterface );                                  \
+                                                                                     \
      DIRECT_DBG_INTERFACE_REMOVE( __FUNCTION__, __FILE__, __LINE__, #p, p );         \
                                                                                      \
      if ((p)->priv) {                                                                \
