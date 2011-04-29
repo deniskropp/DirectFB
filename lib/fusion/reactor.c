@@ -1633,7 +1633,7 @@ fusion_reactor_attach (FusionReactor *reactor,
                        void          *ctx,
                        Reaction      *reaction)
 {
-     return fusion_reactor_attach_channel( reactor, -1, func, ctx, reaction );
+     return fusion_reactor_attach_channel( reactor, 0, func, ctx, reaction );
 }
 
 DirectResult
