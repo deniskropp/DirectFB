@@ -74,10 +74,13 @@ public:
 private:
      void                  Flush    ( VoodooPacket *packet );
 
+     static void           OutputTLS_Destructor( void *ptr );
+
 
 private:
      class Packets {
      private:
+          int           magic;
           VoodooPacket *packets[VOODOO_CONNECTION_PACKET_NUM_OUTPUT];
           size_t        next;
           size_t        num;
@@ -86,14 +89,9 @@ private:
           VoodooPacket *active;
 
      public:
-          Packets()
-               :
-               next(0),
-               num(0),
-               active(NULL)
-          {
-               memset( packets, 0, sizeof(packets) );
-          }
+          Packets();
+
+          ~Packets();
 
           VoodooPacket *Get();
      };

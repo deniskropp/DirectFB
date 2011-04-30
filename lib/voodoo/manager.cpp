@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -30,11 +30,7 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <time.h>
+#include <algorithm>
 
 extern "C" {
 #include <direct/clock.h>
@@ -130,6 +126,16 @@ VoodooManager::VoodooManager( VoodooLink     *link,
           // FIXME: query manager dynamically for compression instead
           voodoo_config->compression_min = 0;
      }
+
+     connection->Start();
+}
+
+static void
+instance_iterator( std::pair<VoodooInstanceID,VoodooInstance*> pair )
+{
+     D_DEBUG_AT( Voodoo_Manager, "%s( id %u, instance %p )\n", __func__, pair.first, pair.second );
+
+     pair.second->Release();
 }
 
 VoodooManager::~VoodooManager()
@@ -140,6 +146,8 @@ VoodooManager::~VoodooManager()
 
      if (!is_quit)
           quit();
+
+     connection->Stop();
 
      /* Destroy dispatcher */
      delete dispatcher;
@@ -156,10 +164,8 @@ VoodooManager::~VoodooManager()
      direct_mutex_deinit( &response.lock );
 
      /* Release all remaining interfaces. */
-     //std::for_each<>
-     //direct_hash_iterate( instances.local, instance_iterator, (void*) false );
-     //direct_hash_iterate( instances.local, instance_iterator, (void*) true );
-     //direct_hash_destroy( instances.local );
+     std::for_each( instances.local.begin(), instances.local.end(), instance_iterator );
+     std::for_each( instances.remote.begin(), instances.remote.end(), instance_iterator );
 
      D_MAGIC_CLEAR( this );
 }
@@ -186,7 +192,7 @@ VoodooManager::DispatchReady()
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
      D_MAGIC_ASSERT( this, VoodooManager );
-     D_ASSUME( !is_quit );
+//     D_ASSUME( !is_quit );
 
      if (is_quit)
           return false;
@@ -298,7 +304,7 @@ VoodooManager::dispatch_async_thread( DirectThread *thread,
      VoodooInstance       *instance = context->instance;
      VoodooRequestMessage *request  = context->request;
 
-     ret = instance->dispatch( instance->proxy, instance->real, manager, request );
+     ret = instance->Dispatch( manager, request );
 
      if (ret && (request->flags & VREQ_RESPOND))
           voodoo_manager_respond( manager, true, request->header.serial,
@@ -371,7 +377,7 @@ VoodooManager::handle_request( VoodooRequestMessage *request )
           // FIXME: free thread?
      }
      else {
-          ret = instance->dispatch( instance->proxy, instance->real, this, request );
+          ret = instance->Dispatch( this, request );
 
           if (ret && (request->flags & VREQ_RESPOND))
                voodoo_manager_respond( this, true, request->header.serial,
@@ -501,6 +507,11 @@ VoodooManager::do_super( const char       *name,
      D_MAGIC_ASSERT( this, VoodooManager );
      D_ASSERT( name != NULL );
      D_ASSERT( ret_instance != NULL );
+
+     if (is_quit) {
+          D_DEBUG_AT( Voodoo_Manager, "  -> QUIT!\n" );
+          return DR_IO;
+     }
 
      /* Calculate the total message size. */
      len  = strlen( name ) + 1;
@@ -670,24 +681,19 @@ VoodooManager::write_blocks( void                     *dst,
 
           /* Write block content. */
           if (blocks[i].ptr) {
-               u32 *d = (u32*) &d32[2];
-               u32 *s = (u32*) blocks[i].ptr;
+               u32 *s32 = (u32*) blocks[i].ptr;
 
                switch (blocks[i].len) {
-     //               case 24:
-     //                    d[5] = s[5];
-     //               case 20:
-     //                    d[4] = s[4];
                     case 16:
-                         d[3] = s[3];
+                         d32[5] = s32[3];
                     case 12:
-                         d[2] = s[2];
+                         d32[4] = s32[2];
                     case 8:
-                         d[1] = s[1];
+                         d32[3] = s32[1];
                     case 4:
-                         d[0] = s[0];
+                         d32[2] = s32[0];
                          break;
-     
+
                     default:
                          direct_memcpy( &d32[2], blocks[i].ptr, blocks[i].len );
                }
@@ -729,6 +735,11 @@ VoodooManager::do_request( VoodooInstanceID         instance,
      D_ASSUME( (flags & (VREQ_RESPOND | VREQ_QUEUE)) != (VREQ_RESPOND | VREQ_QUEUE) );
 
      D_DEBUG_AT( Voodoo_Manager, "  -> Instance %u, method %u, flags 0x%08x...\n", instance, method, flags );
+
+     if (is_quit) {
+          D_DEBUG_AT( Voodoo_Manager, "  -> QUIT!\n" );
+          return DR_IO;
+     }
 
      /* Calculate the total message size. */
      size = sizeof(VoodooRequestMessage) + calc_blocks( args, blocks, &num_blocks );
@@ -850,6 +861,11 @@ VoodooManager::do_respond( bool                   flush,
 
      D_DEBUG_AT( Voodoo_Manager, "  -> Request %llu, result %d, instance %u...\n", (unsigned long long)request, result, instance );
 
+     if (is_quit) {
+          D_DEBUG_AT( Voodoo_Manager, "  -> QUIT!\n" );
+          return DR_IO;
+     }
+
      /* Calculate the total message size. */
      size = sizeof(VoodooResponseMessage) + calc_blocks( args, blocks, &num_blocks );
 
@@ -888,82 +904,19 @@ VoodooManager::do_respond( bool                   flush,
      return DR_OK;
 }
 
-
-
-/*
-static bool
-instance_iterator( DirectHash    *hash,
-                   unsigned long  key,
-                   void          *value,
-                   void          *ctx )
-{
-     bool            super    = (unsigned long) ctx;
-     VoodooInstance *instance = (VoodooInstance*) value;
-
-     D_ASSERT( instance != NULL );
-
-     if (instance->super != super) {
-          if (super)
-               D_FREE( instance );
-
-          return true;
-     }
-
-
-     D_DEBUG_AT( Voodoo_Manager, "  -> Releasing dispatcher interface %p %s(instance %lu)...\n",
-                 instance->proxy, instance->super ? "[super] " : "", key );
-
-     D_ASSERT( instance->proxy != NULL );
-     D_ASSERT( instance->proxy->Release != NULL );
-
-     instance->proxy->Release( instance->proxy );
-
-
-     D_DEBUG_AT( Voodoo_Manager, "  -> Releasing real interface %p %s(instance %lu)...\n",
-                 instance->real, instance->super ? "[super] " : "", key );
-
-     D_ASSERT( instance->real != NULL );
-     D_ASSERT( instance->real->Release != NULL );
-
-     instance->real->Release( instance->real );
-
-     if (super)
-          D_FREE( instance );
-
-     return true;
-}
-*/
-
-
-
 DirectResult
-VoodooManager::register_local( bool              super,
-                               void             *dispatcher,
-                               void             *real,
-                               VoodooDispatch    dispatch,
+VoodooManager::register_local( VoodooInstance   *instance,
                                VoodooInstanceID *ret_instance )
 {
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
-     VoodooInstance   *instance;
-     VoodooInstanceID  instance_id;
+     VoodooInstanceID instance_id;
 
      D_MAGIC_ASSERT( this, VoodooManager );
-//     D_ASSERT( dispatcher != NULL );
-//     D_ASSERT( real != NULL );
-     D_ASSERT( dispatch != NULL );
+     D_ASSERT( instance != NULL );
      D_ASSERT( ret_instance != NULL );
 
-     instance = (VoodooInstance*) D_CALLOC( 1, sizeof(VoodooInstance) );
-     if (!instance) {
-          D_WARN( "out of memory" );
-          return DR_NOLOCALMEMORY;
-     }
-
-     instance->super    = super;
-     instance->proxy    = (IAny*) dispatcher;
-     instance->real     = (IAny*) real;
-     instance->dispatch = dispatch;
+     instance->AddRef();
 
      direct_mutex_lock( &instances.lock );
 
@@ -973,7 +926,7 @@ VoodooManager::register_local( bool              super,
 
      direct_mutex_unlock( &instances.lock );
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> Added instance %u, dispatcher %p, real %p.\n", instance_id, dispatcher, real );
+     D_DEBUG_AT( Voodoo_Manager, "  -> Added local instance %u (%p)\n", instance_id, instance );
 
      *ret_instance = instance_id;
 
@@ -1004,15 +957,14 @@ VoodooManager::unregister_local( VoodooInstanceID instance_id )
 
      direct_mutex_unlock( &instances.lock );
 
-     D_FREE( instance );
+     instance->Release();
 
      return DR_OK;
 }
 
 DirectResult
 VoodooManager::lookup_local( VoodooInstanceID   instance_id,
-                             void             **ret_dispatcher,
-                             void             **ret_real )
+                             VoodooInstance   **ret_instance )
 {
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
@@ -1020,7 +972,7 @@ VoodooManager::lookup_local( VoodooInstanceID   instance_id,
 
      D_MAGIC_ASSERT( this, VoodooManager );
      D_ASSERT( instance_id != VOODOO_INSTANCE_NONE );
-     D_ASSERT( ret_dispatcher != NULL || ret_real != NULL );
+     D_ASSERT( ret_instance != NULL );
 
      direct_mutex_lock( &instances.lock );
 
@@ -1033,36 +985,24 @@ VoodooManager::lookup_local( VoodooInstanceID   instance_id,
 
      instance = (*itr).second;
 
-     if (ret_dispatcher)
-          *ret_dispatcher = instance->proxy;
+     // FIXME: addref?
 
-     if (ret_real)
-          *ret_real = instance->real;
+     *ret_instance = instance;
 
      return DR_OK;
 }
 
 DirectResult
-VoodooManager::register_remote( bool              super,
-                                void             *requestor,
+VoodooManager::register_remote( VoodooInstance   *instance,
                                 VoodooInstanceID  instance_id )
 {
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
-     VoodooInstance *instance;
-
      D_MAGIC_ASSERT( this, VoodooManager );
-     D_ASSERT( requestor != NULL );
+     D_ASSERT( instance != NULL );
      D_ASSERT( instance_id != VOODOO_INSTANCE_NONE );
 
-     instance = (VoodooInstance*) D_CALLOC( 1, sizeof(VoodooInstance) );
-     if (!instance) {
-          D_WARN( "out of memory" );
-          return DR_NOLOCALMEMORY;
-     }
-
-     instance->super = super;
-     instance->proxy = (IAny*) requestor;
+     instance->AddRef();
 
      direct_mutex_lock( &instances.lock );
 
@@ -1070,15 +1010,43 @@ VoodooManager::register_remote( bool              super,
 
      direct_mutex_unlock( &instances.lock );
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> Added remote instance %u, requestor %p.\n", instance_id, requestor );
+     D_DEBUG_AT( Voodoo_Manager, "  -> Added remote instance %u (%p)\n", instance_id, instance );
 
      return DR_OK;
 }
 
+DirectResult
+VoodooManager::unregister_remote( VoodooInstanceID instance_id )
+{
+     D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
+
+     VoodooInstance *instance;
+
+     D_MAGIC_ASSERT( this, VoodooManager );
+
+     direct_mutex_lock( &instances.lock );
+
+     InstanceMap::iterator itr = instances.remote.find( instance_id );
+
+     if (itr == instances.remote.end()) {
+          direct_mutex_unlock( &instances.lock );
+          return DR_NOSUCHINSTANCE;
+     }
+
+     instance = (*itr).second;
+
+     instances.remote.erase( itr );
+
+     direct_mutex_unlock( &instances.lock );
+
+     instance->Release();
+
+     return DR_OK;
+}
 
 DirectResult
 VoodooManager::lookup_remote( VoodooInstanceID   instance_id,
-                              void             **ret_requestor )
+                              VoodooInstance   **ret_instance )
 {
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
@@ -1086,7 +1054,7 @@ VoodooManager::lookup_remote( VoodooInstanceID   instance_id,
 
      D_MAGIC_ASSERT( this, VoodooManager );
      D_ASSERT( instance_id != VOODOO_INSTANCE_NONE );
-     D_ASSERT( ret_requestor != NULL );
+     D_ASSERT( ret_instance != NULL );
 
      direct_mutex_lock( &instances.lock );
 
@@ -1099,7 +1067,9 @@ VoodooManager::lookup_remote( VoodooInstanceID   instance_id,
 
      instance = (*itr).second;
 
-     *ret_requestor = instance->proxy;
+     // FIXME: addref?
+
+     *ret_instance = instance;
 
      return DR_OK;
 }
@@ -1116,7 +1086,81 @@ VoodooManager::lookup_remote( VoodooInstanceID   instance_id,
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
+/* C Wrapper
+ */
 
+/*
+
+
+register add refs proxy
+unregister releases proxy
+
+proxy destruct releases real
+
+*/
+
+class VoodooInstanceInterface : public VoodooInstance {
+public:
+     VoodooInstance *super;
+     IAny           *proxy;
+     IAny           *real;
+     VoodooDispatch  dispatch;
+
+public:
+     VoodooInstanceInterface( VoodooInstance *super,
+                              IAny           *proxy,
+                              IAny           *real,
+                              VoodooDispatch  dispatch )
+          :
+          super( super ),
+          proxy( proxy ),
+          real( real ),
+          dispatch( dispatch )
+     {
+          D_DEBUG_AT( Voodoo_Manager, "VoodooInstanceInterface::%s( %p, super %p, proxy %p, real %p, dispatch %p )\n",
+                      __func__, this, super, proxy, real, dispatch );
+
+          if (super)
+               super->AddRef();
+     }
+
+protected:
+     virtual ~VoodooInstanceInterface()
+     {
+          D_DEBUG_AT( Voodoo_Manager, "VoodooInstanceInterface::%s( %p )\n", __func__, this );
+
+          D_MAGIC_ASSERT( this, VoodooInstance );
+
+          if (proxy) {
+               D_DEBUG_AT( Voodoo_Manager, "  -> releasing proxy interface\n" );
+
+               proxy->Release( proxy );
+          }
+
+
+          if (super) {
+               D_DEBUG_AT( Voodoo_Manager, "  -> releasing super instance\n" );
+
+               super->Release();
+          }
+     }
+
+public:
+     virtual DirectResult
+     Dispatch( VoodooManager        *manager,
+               VoodooRequestMessage *msg )
+     {
+          D_DEBUG_AT( Voodoo_Manager, "VoodooInstanceInterface::%s( %p, manager %p, msg %p )\n", __func__, this, manager, msg );
+
+          D_MAGIC_ASSERT( this, VoodooInstance );
+
+          D_ASSERT( dispatch != NULL );
+
+          return dispatch( proxy, real, manager, msg );
+     }
+};
+
+/**********************************************************************************************************************/
 
 DirectResult
 voodoo_manager_create( VoodooLink     *link,
@@ -1232,15 +1276,33 @@ voodoo_manager_respond( VoodooManager          *manager,
 
 DirectResult
 voodoo_manager_register_local( VoodooManager    *manager,
-                               bool              super,
+                               VoodooInstanceID  super,
                                void             *dispatcher,
                                void             *real,
                                VoodooDispatch    dispatch,
                                VoodooInstanceID *ret_instance )
 {
+     DirectResult    ret;
+     VoodooInstance *super_instance = NULL;
+
      D_MAGIC_ASSERT( manager, VoodooManager );
 
-     return manager->register_local( super, dispatcher, real, dispatch, ret_instance );
+     if (super != VOODOO_INSTANCE_NONE) {
+          ret = manager->lookup_local( super, &super_instance );
+          if (ret) {
+               D_DERROR( ret, "Voodoo/Manager: Could not lookup super instance %u!\n", super );
+               return ret;
+          }
+     }
+
+
+     VoodooInstanceInterface *instance = new VoodooInstanceInterface( super_instance, (IAny*) dispatcher, (IAny*) real, dispatch );
+
+     ret = manager->register_local( instance, ret_instance );
+
+     instance->Release();
+
+     return ret;
 }
 
 DirectResult
@@ -1258,9 +1320,22 @@ voodoo_manager_lookup_local( VoodooManager     *manager,
                              void             **ret_dispatcher,
                              void             **ret_real )
 {
+     DirectResult    ret;
+     VoodooInstance *instance;
+
      D_MAGIC_ASSERT( manager, VoodooManager );
 
-     return manager->lookup_local( instance_id, ret_dispatcher, ret_real );
+     ret = manager->lookup_local( instance_id, &instance );
+     if (ret)
+          return ret;
+
+     if (ret_dispatcher)
+          *ret_dispatcher = ((VoodooInstanceInterface*) instance)->proxy;
+
+     if (ret_real)
+          *ret_real = ((VoodooInstanceInterface*) instance)->real;
+
+     return DR_OK;
 }
 
 DirectResult
@@ -1269,9 +1344,17 @@ voodoo_manager_register_remote( VoodooManager    *manager,
                                 void             *requestor,
                                 VoodooInstanceID  instance_id )
 {
+     DirectResult ret;
+
      D_MAGIC_ASSERT( manager, VoodooManager );
 
-     return manager->register_remote( super, requestor, instance_id );
+     VoodooInstanceInterface *instance = new VoodooInstanceInterface( NULL, (IAny*) requestor, NULL, NULL);
+
+     ret = manager->register_remote( instance, instance_id );
+
+     instance->Release();
+
+     return ret;
 }
 
 
@@ -1280,9 +1363,19 @@ voodoo_manager_lookup_remote( VoodooManager     *manager,
                               VoodooInstanceID   instance_id,
                               void             **ret_requestor )
 {
+     DirectResult    ret;
+     VoodooInstance *instance;
+
      D_MAGIC_ASSERT( manager, VoodooManager );
 
-     return manager->lookup_remote( instance_id, ret_requestor );
+     ret = manager->lookup_remote( instance_id, &instance );
+     if (ret)
+          return ret;
+
+     if (ret_requestor)
+          *ret_requestor = ((VoodooInstanceInterface*) instance)->proxy;
+
+     return DR_OK;
 }
 
 DirectResult
@@ -1321,11 +1414,11 @@ voodoo_manager_check_allocation( VoodooManager *manager,
                D_ERROR( "Could not find memory information!\n" );
                return DR_FAILURE;
           }
-     
+
           sscanf( p + 6, " %u", &size );
-     
+
           D_INFO( "SIZE: %u kB (+%u kB)\n", size, amount / 1024 );
-     
+
           if (size * 1024 + amount > voodoo_config->memory_max)
                return DR_LIMITEXCEEDED;
      }

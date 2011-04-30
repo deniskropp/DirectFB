@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -30,26 +30,21 @@
 
 #include <config.h>
 
+#ifdef VOODOO_CONNECTION_RAW_DUMP
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 #include <time.h>
 
-#ifdef VOODOO_CONNECTION_RAW_DUMP
 #include <unistd.h>
 #include <fcntl.h>
 #endif
 
 extern "C" {
-#include <direct/clock.h>
 #include <direct/debug.h>
-#include <direct/fastlz.h>
-#include <direct/hash.h>
-#include <direct/interface.h>
 #include <direct/list.h>
 #include <direct/mem.h>
-#include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
 #include <direct/util.h>
@@ -78,7 +73,9 @@ D_DEBUG_DOMAIN( Voodoo_Output,     "Voodoo/Output",     "Voodoo Output" );
 VoodooConnectionRaw::VoodooConnectionRaw( VoodooManager *manager,
                                           VoodooLink    *link )
      :
-     VoodooConnectionLink( manager, link )
+     VoodooConnectionLink( manager, link ),
+     stop( false ),
+     closed( false )
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p )\n", __func__, this );
 
@@ -87,8 +84,6 @@ VoodooConnectionRaw::VoodooConnectionRaw( VoodooManager *manager,
 
           memcpy( input.buffer, &link->code, sizeof(u32) );
      }
-
-     io = direct_thread_create( DTT_DEFAULT, io_loop_main, this, "Voodoo IO" );
 }
 
 VoodooConnectionRaw::~VoodooConnectionRaw()
@@ -96,6 +91,36 @@ VoodooConnectionRaw::~VoodooConnectionRaw()
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p )\n", __func__, this );
 
      D_MAGIC_ASSERT( this, VoodooConnection );
+}
+
+void
+VoodooConnectionRaw::Start()
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p )\n", __func__, this );
+
+     D_MAGIC_ASSERT( this, VoodooConnection );
+
+     io = direct_thread_create( DTT_DEFAULT, io_loop_main, this, "Voodoo IO" );
+}
+
+void
+VoodooConnectionRaw::Stop()
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionRaw::%s( %p )\n", __func__, this );
+
+     D_MAGIC_ASSERT( this, VoodooConnection );
+
+     direct_mutex_lock( &output.lock );
+
+     while (!closed && output.packets) {
+          D_DEBUG_AT( Voodoo_Connection, "  -> waiting for output packets to be sent...\n" );
+
+          direct_waitqueue_wait( &output.wait, &output.lock );
+     }
+
+     direct_mutex_unlock( &output.lock );
+
+     stop = true;
 
      link->WakeUp( link );
 
@@ -116,7 +141,7 @@ VoodooConnectionRaw::io_loop()
      int dump_read_fd = open("voodoo_read.raw", O_TRUNC|O_CREAT|O_WRONLY, 0660 );
 #endif
 
-     while (!manager->is_quit) {
+     while (!stop) {
           D_MAGIC_ASSERT( this, VoodooConnection );
 
           if (input.start == input.max) {
@@ -126,7 +151,7 @@ VoodooConnectionRaw::io_loop()
                input.max   = VOODOO_CONNECTION_LINK_INPUT_BUF_MAX;
           }
 
-          if (!manager->is_quit) {
+          if (!stop) {
                DirectResult  ret;
                VoodooChunk   chunks[2];
                VoodooChunk  *chunk_read  = NULL;
@@ -212,17 +237,24 @@ VoodooConnectionRaw::io_loop()
                          break;
 
                     case DR_TIMEOUT:
-                         //D_WARN("timeout");
+                         D_DEBUG_AT( Voodoo_Connection, "  -> timeout\n" );
                          break;
 
                     case DR_INTERRUPTED:
-                         //D_WARN("interrupted");
+                         D_DEBUG_AT( Voodoo_Connection, "  -> interrupted\n" );
                          break;
 
                     default:
-                         D_DERROR( ret, "Voodoo/Manager: Could not receive data!\n" );
+                         if (ret == DR_IO)
+                              D_DEBUG_AT( Voodoo_Connection, "  -> Connection closed!\n" );
+                         else
+                              D_DERROR( ret, "Voodoo/ConnectionRaw: Could not receive data!\n" );
+
+                         closed = true;
+
                          manager->handle_disconnect();
-                         break;
+
+                         return NULL;
                }
 
 
@@ -260,12 +292,8 @@ VoodooConnectionRaw::io_loop()
                               D_DEBUG_AT( Voodoo_Input, "  -> ...fetching tail of message.\n" );
 
                               /* Extend the buffer if the message doesn't fit into the default boundary. */
-                              if (aligned > input.max - last) {
-//                                   D_ASSERT( input.max == IN_BUF_MAX );
-
-
+                              if (aligned > input.max - last)
                                    input.max = last + aligned;
-                              }
 
                               break;
                          }

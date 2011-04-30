@@ -65,7 +65,6 @@ typedef struct __V_VoodooResponseMessage VoodooResponseMessage;
 typedef struct __V_VoodooClient          VoodooClient;
 typedef struct __V_VoodooConfig          VoodooConfig;
 typedef struct __V_VoodooLink            VoodooLink;
-//typedef struct __V_VoodooManager         VoodooManager;
 typedef struct __V_VoodooPlayer          VoodooPlayer;
 typedef struct __V_VoodooServer          VoodooServer;
 

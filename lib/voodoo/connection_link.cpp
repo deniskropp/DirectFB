@@ -101,7 +101,7 @@ VoodooConnectionLink::VoodooConnectionLink( VoodooManager *manager,
 
      D_INFO( "VoodooConnection/Link: Allocated "_ZU" kB input buffer at %p\n", input_buffer_size/1024, input.buffer );
 
-     direct_tls_register( &output.tls, NULL );
+     direct_tls_register( &output.tls, OutputTLS_Destructor );
 }
 
 VoodooConnectionLink::~VoodooConnectionLink()
@@ -124,7 +124,7 @@ VoodooConnectionLink::~VoodooConnectionLink()
      /* Deallocate buffers. */
      D_FREE( input.buffer );
 
-     // FIXME: delete pending output.packet? tls?
+     direct_tls_unregister( &output.tls );
 }
 
 /**********************************************************************************************************************/
@@ -167,8 +167,6 @@ VoodooConnectionLink::GetPacket( size_t length )
      if (packet) {
           if (packet->sending) {
                direct_mutex_lock( &output.lock );
-
-//               D_ASSERT( direct_thread_self() != io );
 
                while (packet->sending)
                     direct_waitqueue_wait( &output.wait, &output.lock );
@@ -222,10 +220,52 @@ VoodooConnectionLink::Flush( VoodooPacket *packet )
      link->WakeUp( link );
 }
 
+void
+VoodooConnectionLink::OutputTLS_Destructor( void *ptr )
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::%s( ptr %p )\n", __func__, ptr );
+
+     Packets *packets = (Packets*) ptr;
+
+     delete packets;
+}
+
+VoodooConnectionLink::Packets::Packets()
+     :
+     magic(0),
+     next(0),
+     num(0),
+     active(NULL)
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::Packets::%s( %p )\n", __func__, this );
+
+     memset( packets, 0, sizeof(packets) );
+
+     D_MAGIC_SET( this, Packets );
+}
+
+VoodooConnectionLink::Packets::~Packets()
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::Packets::%s( %p )\n", __func__, this );
+
+     D_MAGIC_ASSERT( this, Packets );
+
+     for (size_t i=0; i<num; i++) {
+          if (packets[i]) {
+               D_ASSUME( !packets[i]->sending );
+
+               if (!packets[i]->sending)
+                    D_FREE( packets[i] );
+          }
+     }
+}
+
 VoodooPacket *
 VoodooConnectionLink::Packets::Get()
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::Packets::%s( %p )\n", __func__, this );
+
+     D_MAGIC_ASSERT( this, Packets );
 
      VoodooPacket *packet;
 

@@ -30,6 +30,11 @@
 #define __VOODOO__PACKET_H__
 
 extern "C" {
+#include <direct/fastlz.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+
+
 #include <voodoo/types.h>
 }
 
@@ -91,6 +96,8 @@ private:
           header.uncompressed = uncompressed;
      }
 
+     ~VoodooPacket() {};
+
 public:
 /*
      static VoodooPacket *
@@ -143,7 +150,7 @@ public:
      static VoodooPacket *
      New( u32 size )
      {
-          VoodooPacket *p = (VoodooPacket*) malloc( sizeof(VoodooPacket) + VOODOO_PACKET_MAX );
+          VoodooPacket *p = (VoodooPacket*) D_MALLOC( sizeof(VoodooPacket) + VOODOO_PACKET_MAX );
 
           if (!p) {
                D_OOM();
@@ -156,7 +163,7 @@ public:
      static VoodooPacket *
      Compressed( VoodooPacket *packet )
      {
-          VoodooPacket *p = (VoodooPacket*) malloc( sizeof(VoodooPacket) + packet->header.size * 4 / 3 );
+          VoodooPacket *p = (VoodooPacket*) D_MALLOC( sizeof(VoodooPacket) + packet->header.size * 4 / 3 );
 
           if (!p) {
                D_OOM();
@@ -168,7 +175,7 @@ public:
           if ((size_t) compressed < packet->header.uncompressed)
                return new (p) VoodooPacket( compressed, VPHF_COMPRESSED, packet->header.uncompressed, p + 1 );
 
-          free( p );
+          D_FREE( p );
 
           return packet;
      }
@@ -176,7 +183,7 @@ public:
      static VoodooPacket *
      Copy( VoodooPacket *packet )
      {
-          VoodooPacket *p = (VoodooPacket*) malloc( sizeof(VoodooPacket) + packet->header.size );
+          VoodooPacket *p = (VoodooPacket*) D_MALLOC( sizeof(VoodooPacket) + packet->header.size );
 
           if (!p) {
                D_OOM();
@@ -194,7 +201,7 @@ public:
            u32   uncompressed,
            void *data )
      {
-          VoodooPacket *p = (VoodooPacket*) malloc( sizeof(VoodooPacket) + size );
+          VoodooPacket *p = (VoodooPacket*) D_MALLOC( sizeof(VoodooPacket) + size );
 
           if (!p) {
                D_OOM();

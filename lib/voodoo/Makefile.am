@@ -34,6 +34,7 @@ include_HEADERS = \
 	connection_raw.h	\
 	dispatcher.h		\
 	init.h			\
+	instance.h		\
 	interface.h		\
 	manager.h		\
 	message.h		\
@@ -53,6 +54,7 @@ libvoodoo_la_SOURCES = \
 	connection_raw.cpp	\
 	dispatcher.c		\
 	init.c			\
+	instance.cpp		\
 	interface.c		\
 	internal.h		\
 	manager.cpp		\

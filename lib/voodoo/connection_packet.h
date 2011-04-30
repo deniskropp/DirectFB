@@ -36,12 +36,17 @@ class VoodooConnectionPacket : public VoodooConnectionLink {
 private:
      char          tmp[VOODOO_PACKET_MAX];
      DirectThread *io;
+     bool          stop;
+     bool          closed;
 
 public:
      VoodooConnectionPacket( VoodooManager *manager,
                              VoodooLink    *link );
 
      virtual ~VoodooConnectionPacket();
+
+     virtual void Start();
+     virtual void Stop();
 
 
 private:

@@ -101,6 +101,9 @@ Close( VoodooLink *link )
      if (l->fd[1] != l->fd[0])
           close( l->fd[1] );
 
+     close( l->wakeup_fds[0] );
+     close( l->wakeup_fds[1] );
+
      D_FREE( link->priv );
      link->priv = NULL;
 }
@@ -172,11 +175,8 @@ SendReceive( VoodooLink  *link,
                               while (sends[i].done != sends[i].length) {
                                    ret = send( l->fd[1], sends[i].ptr, sends[i].length, MSG_DONTWAIT );
                                    if (ret < 0) {
-                                        //if (errno == EAGAIN) {
-                                        //     break;
-                                        //}
                                         D_PERROR( "Voodoo/Link: Failed to send() data!\n" );
-                                        return DR_FAILURE;
+                                        return DR_IO;
                                    }
                                    else {
                                         sends[i].done += ret;

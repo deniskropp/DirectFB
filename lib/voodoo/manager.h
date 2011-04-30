@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -35,28 +35,22 @@
 
 #ifdef __cplusplus
 extern "C" {
+#include <direct/interface.h>
 #include <direct/thread.h>
 }
 
 #include <map>
 
+#include <voodoo/instance.h>
+
 
 typedef struct {
      VoodooMessageBlockType  type;
      unsigned int            len;
-     //union {
-          void                   *ptr;
-          u32                     val;
-     //};
+     void                   *ptr;
+     u32                     val;
 } VoodooMessageBlock;
 
-
-typedef struct {
-     bool                        super;
-     IAny                       *proxy;
-     IAny                       *real;
-     VoodooDispatch              dispatch;
-} VoodooInstance;
 
 typedef std::map<VoodooInstanceID,VoodooInstance*> InstanceMap;
 
@@ -173,24 +167,21 @@ private:
 
 
 public:
-     DirectResult register_local       ( bool                     super,
-                                         void                    *dispatcher,
-                                         void                    *real,
-                                         VoodooDispatch           dispatch,
+     DirectResult register_local       ( VoodooInstance          *instance,
                                          VoodooInstanceID        *ret_instance );
 
      DirectResult unregister_local     ( VoodooInstanceID         instance_id );
 
      DirectResult lookup_local         ( VoodooInstanceID         instance_id,
-                                         void                   **ret_dispatcher,
-                                         void                   **ret_real );
+                                         VoodooInstance         **ret_instance );
 
-     DirectResult register_remote      ( bool                     super,
-                                         void                    *requestor,
+     DirectResult register_remote      ( VoodooInstance          *instance,
                                          VoodooInstanceID         instance_id );
 
+     DirectResult unregister_remote    ( VoodooInstanceID         instance_id );
+
      DirectResult lookup_remote        ( VoodooInstanceID         instance_id,
-                                         void                   **ret_requestor );
+                                         VoodooInstance         **ret_instance );
 };
 #endif
 
@@ -247,7 +238,7 @@ DirectResult VOODOO_API voodoo_manager_respond        ( VoodooManager           
 /* Instances */
 
 DirectResult VOODOO_API voodoo_manager_register_local ( VoodooManager           *manager,
-                                                        bool                     super,
+                                                        VoodooInstanceID         super,
                                                         void                    *dispatcher,
                                                         void                    *real,
                                                         VoodooDispatch           dispatch,

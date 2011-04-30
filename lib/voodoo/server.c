@@ -350,8 +350,8 @@ voodoo_server_run( VoodooServer *server )
 
                     D_FREE( connection );
 
-                    if (!server->connections)
-                         return DR_OK;
+                    //if (!server->connections)
+                    //     return DR_OK;
                }
           }
 
@@ -364,7 +364,7 @@ voodoo_server_run( VoodooServer *server )
                pf.fd     = server->fd;
                pf.events = POLLIN;
 
-               switch (poll( &pf, 1, 20000 )) {
+               switch (poll( &pf, 1, 100 )) {
                     default:
                          fd = accept( server->fd, &addr, &addrlen );
                          if (fd < 0) {
@@ -415,7 +415,7 @@ voodoo_server_run( VoodooServer *server )
                     case 0:
                          waitpid( -1, NULL, WNOHANG );
 
-                         D_DEBUG_AT( Voodoo_Server, "  -> Timeout during poll()\n" );
+                         //D_DEBUG_AT( Voodoo_Server, "  -> Timeout during poll()\n" );
                          break;
 
                     case -1:

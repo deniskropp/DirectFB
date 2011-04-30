@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -30,33 +30,15 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <time.h>
-
 extern "C" {
-#include <direct/clock.h>
 #include <direct/debug.h>
-#include <direct/fastlz.h>
-#include <direct/hash.h>
-#include <direct/interface.h>
-#include <direct/list.h>
-#include <direct/mem.h>
-#include <direct/memcpy.h>
 #include <direct/messages.h>
-#include <direct/thread.h>
 #include <direct/util.h>
 
-#include <voodoo/conf.h>
-#include <voodoo/internal.h>
 #include <voodoo/link.h>
-#include <voodoo/message.h>
 }
 
 #include <voodoo/connection.h>
-#include <voodoo/manager.h>
 
 
 D_DEBUG_DOMAIN( Voodoo_Connection, "Voodoo/Connection", "Voodoo Connection" );

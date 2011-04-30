@@ -87,7 +87,6 @@ voodoo_construct_dispatcher( VoodooManager     *manager,
      D_ASSERT( manager != NULL );
      D_ASSERT( name != NULL );
      D_ASSERT( interface_ptr != NULL );
-     D_ASSERT( super != VOODOO_INSTANCE_NONE );
      D_ASSERT( ret_instance != NULL );
 
      ret = DirectGetInterface( &funcs, name, "Dispatcher", NULL, NULL );

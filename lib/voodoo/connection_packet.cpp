@@ -30,27 +30,16 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#include <time.h>
-
 extern "C" {
-#include <direct/clock.h>
 #include <direct/debug.h>
 #include <direct/fastlz.h>
-#include <direct/hash.h>
-#include <direct/interface.h>
 #include <direct/list.h>
 #include <direct/mem.h>
-#include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
 #include <direct/util.h>
 
 #include <voodoo/conf.h>
-#include <voodoo/internal.h>
 #include <voodoo/link.h>
 }
 
@@ -73,11 +62,11 @@ D_DEBUG_DOMAIN( Voodoo_Output,     "Voodoo/Output",     "Voodoo Output" );
 VoodooConnectionPacket::VoodooConnectionPacket( VoodooManager *manager,
                                                 VoodooLink    *link )
      :
-     VoodooConnectionLink( manager, link )
+     VoodooConnectionLink( manager, link ),
+     stop( false ),
+     closed( false )
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p )\n", __func__, this );
-
-     io = direct_thread_create( DTT_DEFAULT, io_loop_main, this, "Voodoo IO" );
 }
 
 VoodooConnectionPacket::~VoodooConnectionPacket()
@@ -85,6 +74,36 @@ VoodooConnectionPacket::~VoodooConnectionPacket()
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p )\n", __func__, this );
 
      D_MAGIC_ASSERT( this, VoodooConnection );
+}
+
+void
+VoodooConnectionPacket::Start()
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p )\n", __func__, this );
+
+     D_MAGIC_ASSERT( this, VoodooConnection );
+
+     io = direct_thread_create( DTT_DEFAULT, io_loop_main, this, "Voodoo IO" );
+}
+
+void
+VoodooConnectionPacket::Stop()
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p )\n", __func__, this );
+
+     D_MAGIC_ASSERT( this, VoodooConnection );
+
+     direct_mutex_lock( &output.lock );
+
+     while (!closed && output.packets) {
+          D_DEBUG_AT( Voodoo_Connection, "  -> waiting for output packets to be sent...\n" );
+
+          direct_waitqueue_wait( &output.wait, &output.lock );
+     }
+
+     direct_mutex_unlock( &output.lock );
+
+     stop = true;
 
      link->WakeUp( link );
 
@@ -100,7 +119,7 @@ VoodooConnectionPacket::io_loop()
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p )\n", __func__, this );
 
-     while (!manager->is_quit) {
+     while (!stop) {
           D_MAGIC_ASSERT( this, VoodooConnection );
 
           if (input.start == input.max) {
@@ -110,7 +129,7 @@ VoodooConnectionPacket::io_loop()
                input.max   = VOODOO_CONNECTION_LINK_INPUT_BUF_MAX;
           }
 
-          if (!manager->is_quit) {
+          if (!stop) {
                DirectResult  ret;
                VoodooChunk   chunks[2];
                VoodooChunk  *chunk_read  = NULL;
@@ -199,7 +218,7 @@ VoodooConnectionPacket::io_loop()
                                    if (packet->flags() & VPHF_COMPRESSED) {
                                         packet->sending = false;
 
-                                        delete packet;
+                                        D_FREE( packet );
                                    }
                                    else {
                                         direct_mutex_lock( &output.lock );
@@ -217,17 +236,24 @@ VoodooConnectionPacket::io_loop()
                          break;
 
                     case DR_TIMEOUT:
-                         //D_WARN("timeout");
+                         D_DEBUG_AT( Voodoo_Connection, "  -> timeout\n" );
                          break;
 
                     case DR_INTERRUPTED:
-                         //D_WARN("interrupted");
+                         D_DEBUG_AT( Voodoo_Connection, "  -> interrupted\n" );
                          break;
 
                     default:
-                         D_DERROR( ret, "Voodoo/Manager: Could not receive data!\n" );
+                         if (ret == DR_IO)
+                              D_DEBUG_AT( Voodoo_Connection, "  -> Connection closed!\n" );
+                         else
+                              D_DERROR( ret, "Voodoo/ConnectionPacket: Could not receive data!\n" );
+
+                         closed = true;
+
                          manager->handle_disconnect();
-                         break;
+
+                         return NULL;
                }
 
 
@@ -256,12 +282,8 @@ VoodooConnectionPacket::io_loop()
                               D_DEBUG_AT( Voodoo_Input, "  -> ...fetching tail of message.\n" );
 
                               /* Extend the buffer if the message doesn't fit into the default boundary. */
-                              if (sizeof(VoodooPacketHeader) + aligned > input.max - last) {
-//                                   D_ASSERT( input.max == IN_BUF_MAX );
-
-
+                              if (sizeof(VoodooPacketHeader) + aligned > input.max - last)
                                    input.max = last + sizeof(VoodooPacketHeader) + aligned;
-                              }
 
                               break;
                          }

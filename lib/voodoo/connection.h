@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -46,6 +46,9 @@ public:
                        VoodooLink    *link );
 
      virtual ~VoodooConnection();
+
+     virtual void Start() = 0;
+     virtual void Stop() = 0;
 
 
      virtual VoodooPacket *GetPacket( size_t        length ) = 0;
