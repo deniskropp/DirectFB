@@ -190,11 +190,14 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      }
 
      direct_list_foreach_safe (window, n, data->windows) {
-          if (window->window) {
+          if (window->window)
                dfb_window_detach( window->window, &window->reaction );
+     }
+
+     direct_list_foreach_safe (window, n, data->windows) {
+          if (window->window)
                dfb_window_unref( window->window );
-          }
-               
+
           D_FREE( window );
      }
 #endif
