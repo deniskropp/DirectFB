@@ -61,7 +61,13 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBFoo, Requestor )
 static void
 IDirectFBFoo_Requestor_Destruct( IDirectFBFoo *thiz )
 {
+     IDirectFBFoo_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBFOO_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }

@@ -72,7 +72,13 @@ typedef struct {
 static void
 IDirectFBScreen_Requestor_Destruct( IDirectFBScreen *thiz )
 {
+     IDirectFBScreen_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBSCREEN_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }

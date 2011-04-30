@@ -39,6 +39,8 @@ typedef struct {
 
      VoodooManager       *manager;
      VoodooInstanceID     instance;
+
+     IDirectFBDataBuffer *buffer;
 } IDirectFBFont_Requestor_data;
 
 #endif

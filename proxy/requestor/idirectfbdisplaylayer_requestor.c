@@ -43,6 +43,7 @@
 #include <idirectfbdisplaylayer_dispatcher.h>
 
 #include "idirectfbdisplaylayer_requestor.h"
+#include "idirectfbsurface_requestor.h"
 
 
 static DFBResult Probe( void );
@@ -61,7 +62,13 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBDisplayLayer, Requestor )
 static void
 IDirectFBDisplayLayer_Requestor_Destruct( IDirectFBDisplayLayer *thiz )
 {
+     IDirectFBDisplayLayer_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBDISPLAYLAYER_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -375,20 +382,29 @@ IDirectFBDisplayLayer_Requestor_SetBackgroundMode( IDirectFBDisplayLayer        
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
-     D_UNIMPLEMENTED();
-
-     return DFB_UNIMPLEMENTED;
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBDISPLAYLAYER_METHOD_ID_SetBackgroundMode, VREQ_NONE, NULL,
+                                    VMBT_INT, background_mode,
+                                    VMBT_NONE );
 }
 
 static DFBResult
 IDirectFBDisplayLayer_Requestor_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
                                                     IDirectFBSurface      *surface )
 {
+     IDirectFBSurface_Requestor_data *surface_data;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!surface)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     DIRECT_INTERFACE_GET_DATA_FROM( surface, surface_data, IDirectFBSurface_Requestor );
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBDISPLAYLAYER_METHOD_ID_SetBackgroundImage, VREQ_NONE, NULL,
+                                    VMBT_ID, surface_data->instance,
+                                    VMBT_NONE );
 }
 
 static DFBResult

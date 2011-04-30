@@ -62,7 +62,11 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBInputDevice, Dispatcher )
 static void
 IDirectFBInputDevice_Dispatcher_Destruct( IDirectFBInputDevice *thiz )
 {
+     IDirectFBInputDevice_Dispatcher_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data->real->Release( data->real );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -269,6 +273,15 @@ IDirectFBInputDevice_Dispatcher_GetXY( IDirectFBInputDevice *thiz,
 }
 
 /**************************************************************************************************/
+
+static DirectResult
+Dispatch_Release( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Dispatcher)
+
+     return voodoo_manager_unregister_local( manager, data->self );
+}
 
 static DirectResult
 Dispatch_GetID( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
@@ -511,6 +524,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIRECTFBINPUTDEVICE_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case IDIRECTFBINPUTDEVICE_METHOD_ID_GetID:
                return Dispatch_GetID( dispatcher, real, manager, msg );
 
@@ -582,7 +598,7 @@ Construct( IDirectFBInputDevice *thiz,     /* Dispatcher interface */
      D_ASSERT( ret_instance != NULL );
 
      /* Register the dispatcher, getting a new instance ID that refers to it. */
-     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, super, thiz, real, Dispatch, &instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;

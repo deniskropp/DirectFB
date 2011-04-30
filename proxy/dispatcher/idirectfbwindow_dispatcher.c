@@ -69,8 +69,6 @@ IDirectFBWindow_Dispatcher_Destruct( IDirectFBWindow *thiz )
 
      data = thiz->priv;
 
-     voodoo_manager_unregister_local( data->manager, data->self );
-
      data->real->Release( data->real );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -563,7 +561,7 @@ Dispatch_Release( IDirectFBWindow *thiz, IDirectFBWindow *real,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 
-     return thiz->Release( thiz );
+     return voodoo_manager_unregister_local( data->manager, data->self );
 }
 
 static DirectResult
@@ -748,7 +746,7 @@ Dispatch_GetSurface( IDirectFBWindow *thiz, IDirectFBWindow *real,
           return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IDirectFBSurface",
-                                        surface, data->self, NULL, &instance, NULL );
+                                        surface, data->super, NULL, &instance, NULL );
      if (ret) {
           surface->Release( surface );
           return ret;
@@ -1327,7 +1325,7 @@ Construct( IDirectFBWindow  *thiz,     /* Dispatcher interface */
      D_ASSERT( ret_instance != NULL );
 
      /* Register the dispatcher, getting a new instance ID that refers to it. */
-     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, super, thiz, real, Dispatch, &instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;

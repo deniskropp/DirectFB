@@ -80,6 +80,10 @@ IDirectFB_Requestor_Destruct( IDirectFB *thiz )
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
 
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFB_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
+
      voodoo_client_destroy( data->client );
 
      idirectfb_singleton = NULL;
@@ -912,7 +916,7 @@ IDirectFB_Requestor_GetInterface( IDirectFB   *thiz,
           return ret;
 
      ret = response->result;
-     if (ret == DFB_OK)
+     if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, type, response->instance, thiz, &interface_ptr );
 
      voodoo_manager_finish_request( data->manager, response );

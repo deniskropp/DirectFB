@@ -67,6 +67,8 @@ typedef struct {
 
      VoodooManager         *manager;
      VoodooInstanceID       instance;
+
+     IDirectFBDataBuffer   *buffer;
 } IDirectFBImageProvider_Requestor_data;
 
 /**************************************************************************************************/
@@ -74,7 +76,15 @@ typedef struct {
 static void
 IDirectFBImageProvider_Requestor_Destruct( IDirectFBImageProvider *thiz )
 {
+     IDirectFBImageProvider_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data->buffer->Release( data->buffer );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBIMAGEPROVIDER_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -231,11 +241,16 @@ Construct( IDirectFBImageProvider *thiz,
            VoodooInstanceID        instance,
            void                   *arg )
 {
+     IDirectFBDataBuffer *buffer = arg;
+
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_Requestor)
+
+     buffer->AddRef( buffer );
 
      data->ref      = 1;
      data->manager  = manager;
      data->instance = instance;
+     data->buffer   = buffer;
 
      thiz->AddRef                = IDirectFBImageProvider_Requestor_AddRef;
      thiz->Release               = IDirectFBImageProvider_Requestor_Release;

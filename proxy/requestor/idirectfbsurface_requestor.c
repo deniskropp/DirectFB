@@ -78,10 +78,6 @@ IDirectFBSurface_Requestor_Destruct( IDirectFBSurface *thiz )
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
 
-     voodoo_manager_request( data->manager, data->instance,
-                             IDIRECTFBSURFACE_METHOD_ID_Release, VREQ_NONE, NULL,
-                             VMBT_NONE );
-
      direct_mutex_deinit( &data->flip.lock );
      direct_waitqueue_deinit( &data->flip.queue );
 
@@ -91,6 +87,12 @@ IDirectFBSurface_Requestor_Destruct( IDirectFBSurface *thiz )
      if (data->flip.buffer)
           data->flip.buffer->Release( data->flip.buffer );
 
+     if (data->local != VOODOO_INSTANCE_NONE)
+          voodoo_manager_unregister_local( data->manager, data->local );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBSURFACE_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -1699,7 +1701,7 @@ LocalDispatch( void                 *dispatcher,
 
      switch (msg->method) {
           case IDIRECTFBSURFACE_REQUESTOR_METHOD_ID_FlipNotify:
-               return Dispatch_FlipNotify( dispatcher, real, manager, msg );
+               return Dispatch_FlipNotify( real, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;
@@ -1734,7 +1736,7 @@ Construct( IDirectFBSurface *thiz,
      direct_mutex_init( &data->flip.lock );
      direct_waitqueue_init( &data->flip.queue );
 #if 1
-     ret = voodoo_manager_register_local( manager, false, thiz, thiz, LocalDispatch, &data->local );
+     ret = voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, NULL, thiz, LocalDispatch, &data->local );
      if (ret) {
           D_DERROR( ret, "IDirectFBSurface_Requestor: Could not register local dispatch!\n" );
           DIRECT_DEALLOCATE_INTERFACE( thiz );

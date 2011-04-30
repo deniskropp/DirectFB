@@ -65,6 +65,8 @@ typedef struct {
      int                  ref;      /* reference counter */
 
      IDirectFBFont       *real;
+
+     VoodooInstanceID     self;
 } IDirectFBFont_Dispatcher_data;
 
 /**************************************************************************************************/
@@ -72,7 +74,11 @@ typedef struct {
 static void
 IDirectFBFont_Dispatcher_Destruct( IDirectFBFont *thiz )
 {
+     IDirectFBFont_Dispatcher_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data->real->Release( data->real );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -239,6 +245,15 @@ IDirectFBFont_Dispatcher_FindEncoding( IDirectFBFont     *thiz,
 }
 
 /**************************************************************************************************/
+
+static DirectResult
+Dispatch_Release( IDirectFBFont *thiz, IDirectFBFont *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+
+     return voodoo_manager_unregister_local( manager, data->self );
+}
 
 static DirectResult
 Dispatch_GetAscender( IDirectFBFont *thiz, IDirectFBFont *real,
@@ -435,6 +450,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIRECTFBFONT_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case IDIRECTFBFONT_METHOD_ID_GetAscender:
                return Dispatch_GetAscender( dispatcher, real, manager, msg );
 
@@ -484,7 +502,7 @@ Construct( IDirectFBFont    *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBFont_Dispatcher)
 
-     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, ret_instance );
+     ret = voodoo_manager_register_local( manager, super, thiz, real, Dispatch, ret_instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
@@ -492,6 +510,7 @@ Construct( IDirectFBFont    *thiz,
 
      data->ref  = 1;
      data->real = real;
+     data->self = *ret_instance;
 
      thiz->AddRef           = IDirectFBFont_Dispatcher_AddRef;
      thiz->Release          = IDirectFBFont_Dispatcher_Release;

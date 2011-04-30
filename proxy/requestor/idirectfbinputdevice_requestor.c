@@ -64,7 +64,13 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBInputDevice, Requestor )
 static void
 IDirectFBInputDevice_Requestor_Destruct( IDirectFBInputDevice *thiz )
 {
+     IDirectFBInputDevice_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBINPUTDEVICE_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }

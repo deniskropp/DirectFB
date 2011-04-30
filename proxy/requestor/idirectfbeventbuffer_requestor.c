@@ -81,6 +81,10 @@ IDirectFBEventBuffer_Requestor_Destruct( IDirectFBEventBuffer *thiz )
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );
 
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBEVENTBUFFER_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
+
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 

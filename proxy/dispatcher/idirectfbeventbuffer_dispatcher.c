@@ -177,6 +177,15 @@ IDirectFBEventBuffer_Dispatcher_CreateFileDescriptor( IDirectFBEventBuffer *thiz
 /**************************************************************************************************/
 
 static DirectResult
+Dispatch_Release( IDirectFBEventBuffer *thiz, IDirectFBEventBuffer *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
+
+     return voodoo_manager_unregister_local( manager, data->self );
+}
+
+static DirectResult
 Dispatch_PostEvent( IDirectFBEventBuffer *thiz, IDirectFBEventBuffer *real,
                     VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -201,6 +210,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIRECTFBEVENTBUFFER_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case IDIRECTFBEVENTBUFFER_METHOD_ID_PostEvent:
                return Dispatch_PostEvent( dispatcher, real, manager, msg );
      }
@@ -230,7 +242,7 @@ Construct( IDirectFBEventBuffer *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBEventBuffer_Dispatcher)
 
-     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, thiz, real, Dispatch, &instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;

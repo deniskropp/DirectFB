@@ -103,6 +103,8 @@ IDirectFB_Dispatcher_Destruct( IDirectFB *thiz )
           D_FREE( entry );
      }
 
+     data->real->Release( data->real );
+
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -496,6 +498,15 @@ IDirectFB_Dispatcher_GetInterface( IDirectFB   *thiz,
 }
 
 /**************************************************************************************************/
+
+static DirectResult
+Dispatch_Release( IDirectFB *thiz, IDirectFB *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
+
+     return voodoo_manager_unregister_local( manager, data->self );
+}
 
 static DirectResult
 Dispatch_SetCooperativeLevel( IDirectFB *thiz, IDirectFB *real,
@@ -1103,6 +1114,8 @@ Dispatch_CreateDataBuffer( IDirectFB *thiz, IDirectFB *real,
      entry->instance  = instance;
      entry->requestor = requestor;
 
+     entry->requestor->AddRef( entry->requestor );
+
      direct_list_prepend( &data->data_buffers, &entry->link );
 
      return DFB_OK;
@@ -1161,6 +1174,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIRECTFB_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case IDIRECTFB_METHOD_ID_SetCooperativeLevel:
                return Dispatch_SetCooperativeLevel( dispatcher, real, manager, msg );
 
@@ -1245,7 +1261,7 @@ Construct( IDirectFB *thiz, VoodooManager *manager, VoodooInstanceID *ret_instan
           return ret;
      }
 
-     ret = voodoo_manager_register_local( manager, true, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, thiz, real, Dispatch, &instance );
      if (ret) {
           real->Release( real );
           DIRECT_DEALLOCATE_INTERFACE( thiz );

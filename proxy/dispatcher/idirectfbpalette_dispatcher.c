@@ -66,6 +66,7 @@ typedef struct {
 
      IDirectFBPalette    *real;
 
+     VoodooInstanceID     self;
      VoodooInstanceID     super;
 } IDirectFBPalette_Dispatcher_data;
 
@@ -74,7 +75,11 @@ typedef struct {
 static void
 IDirectFBPalette_Dispatcher_Destruct( IDirectFBPalette *thiz )
 {
+     IDirectFBPalette_Dispatcher_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data->real->Release( data->real );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -177,6 +182,15 @@ IDirectFBPalette_Dispatcher_CreateCopy( IDirectFBPalette  *thiz,
 }
 
 /**************************************************************************************************/
+
+static DirectResult
+Dispatch_Release( IDirectFBPalette *thiz, IDirectFBPalette *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBPalette_Dispatcher)
+
+     return voodoo_manager_unregister_local( manager, data->self );
+}
 
 static DirectResult
 Dispatch_GetCapabilities( IDirectFBPalette *thiz, IDirectFBPalette *real,
@@ -323,6 +337,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIRECTFBPALETTE_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case IDIRECTFBPALETTE_METHOD_ID_GetCapabilities:
                return Dispatch_GetCapabilities( dispatcher, real, manager, msg );
 
@@ -366,7 +383,7 @@ Construct( IDirectFBPalette *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBPalette_Dispatcher)
 
-     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, ret_instance );
+     ret = voodoo_manager_register_local( manager, super, thiz, real, Dispatch, ret_instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
@@ -374,6 +391,7 @@ Construct( IDirectFBPalette *thiz,
 
      data->ref   = 1;
      data->real  = real;
+     data->self  = *ret_instance;
      data->super = super;
 
      thiz->AddRef          = IDirectFBPalette_Dispatcher_AddRef;

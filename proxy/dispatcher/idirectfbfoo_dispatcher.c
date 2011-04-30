@@ -60,7 +60,11 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBFoo, Dispatcher )
 static void
 IDirectFBFoo_Dispatcher_Destruct( IDirectFBFoo *thiz )
 {
+     IDirectFBFoo_Dispatcher_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data->real->Release( data->real );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -101,6 +105,15 @@ IDirectFBFoo_Dispatcher_Bar( IDirectFBFoo *thiz )
 /**************************************************************************************************/
 
 static DirectResult
+Dispatch_Release( IDirectFBFoo *thiz, IDirectFBFoo *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFoo_Dispatcher)
+
+     return voodoo_manager_unregister_local( manager, data->self );
+}
+
+static DirectResult
 Dispatch_Bar( IDirectFBFoo *thiz, IDirectFBFoo *real,
               VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -118,6 +131,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIRECTFBFOO_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case IDIRECTFBFOO_METHOD_ID_Bar:
                return Dispatch_Bar( dispatcher, real, manager, msg );
      }
@@ -153,7 +169,7 @@ Construct( IDirectFBFoo     *thiz,     /* Dispatcher interface */
      D_ASSERT( ret_instance != NULL );
 
      /* Register the dispatcher, getting a new instance ID that refers to it. */
-     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, super, thiz, real, Dispatch, &instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;

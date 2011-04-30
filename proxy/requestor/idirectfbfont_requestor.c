@@ -61,7 +61,15 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBFont, Requestor )
 static void
 IDirectFBFont_Requestor_Destruct( IDirectFBFont *thiz )
 {
+     IDirectFBFont_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data->buffer->Release( data->buffer );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBFONT_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -491,11 +499,16 @@ Construct( IDirectFBFont    *thiz,
            VoodooInstanceID  instance,
            void             *arg )
 {
+     IDirectFBDataBuffer *buffer = arg;
+
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBFont_Requestor)
+
+     buffer->AddRef( buffer );
 
      data->ref      = 1;
      data->manager  = manager;
      data->instance = instance;
+     data->buffer   = buffer;
 
      thiz->AddRef           = IDirectFBFont_Requestor_AddRef;
      thiz->Release          = IDirectFBFont_Requestor_Release;

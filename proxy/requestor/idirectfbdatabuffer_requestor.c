@@ -73,7 +73,13 @@ typedef struct {
 static void
 IDirectFBDataBuffer_Requestor_Destruct( IDirectFBDataBuffer *thiz )
 {
+     IDirectFBDataBuffer_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIRECTFBDATABUFFER_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
 
      IDirectFBDataBuffer_Destruct( thiz );
 }
@@ -83,25 +89,11 @@ IDirectFBDataBuffer_Requestor_Destruct( IDirectFBDataBuffer *thiz )
 static DirectResult
 IDirectFBDataBuffer_Requestor_AddRef( IDirectFBDataBuffer *thiz )
 {
-     DFBResult              ret;
-     VoodooResponseMessage *response;
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Requestor)
 
-     ret = voodoo_manager_request( data->manager, data->instance,
-                                   IDIRECTFBDATABUFFER_METHOD_ID_AddRef, VREQ_RESPOND, &response,
-                                   VMBT_NONE );
-     if (ret)
-          return ret;
+     data->base.ref++;
 
-     ret = response->result;
-
-     voodoo_manager_finish_request( data->manager, response );
-
-     if (ret == DFB_OK)
-          data->base.ref++;
-
-     return ret;
+     return DR_OK;
 }
 
 static DirectResult
@@ -112,7 +104,7 @@ IDirectFBDataBuffer_Requestor_Release( IDirectFBDataBuffer *thiz )
      if (--data->base.ref == 0)
           IDirectFBDataBuffer_Requestor_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult
