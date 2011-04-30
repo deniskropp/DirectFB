@@ -146,7 +146,7 @@ main( int argc, char *argv[] )
 
      voodoo_manager_create( fds_server, NULL, NULL, &manager_server );
 
-     voodoo_manager_register_local( manager_server, true, NULL, NULL, Dispatch, &instance );
+     voodoo_manager_register_local( manager_server, VOODOO_INSTANCE_NONE, NULL, NULL, Dispatch, &instance );
 
 
      voodoo_manager_create( fds_client, NULL, NULL, &manager_client );

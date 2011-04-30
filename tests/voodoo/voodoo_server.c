@@ -92,7 +92,7 @@ VoodooTestConstruct( VoodooServer         *_server,
      connection->dummy.Release = DummyRelease;
 
      /* Create a new instance with our callback */
-     voodoo_manager_register_local( manager, true,
+     voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE,
                                     connection /* context 1 */, connection /* context 2 */,
                                     VoodooTestDispatch, &instance_id );
 

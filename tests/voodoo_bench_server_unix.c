@@ -202,7 +202,7 @@ main( int argc, char *argv[] )
 
      voodoo_manager_create( fds, NULL, NULL, &manager );
 
-     voodoo_manager_register_local( manager, true, NULL, NULL, Dispatch, &instance );
+     voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, NULL, NULL, Dispatch, &instance );
 
 
      pause();
