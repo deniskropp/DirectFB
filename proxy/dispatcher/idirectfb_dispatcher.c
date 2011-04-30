@@ -645,12 +645,10 @@ Dispatch_CreateEventBuffer( IDirectFB *thiz, IDirectFB *real,
 
      ret = voodoo_construct_requestor( manager, "IDirectFBEventBuffer",
                                        instance, buffer, &requestor );
-     if (ret) {
-          buffer->Release( buffer );
-          return ret;
-     }
 
-     return DFB_OK;
+     buffer->Release( buffer );
+
+     return ret;
 }
 
 static DirectResult
@@ -679,12 +677,10 @@ Dispatch_CreateInputEventBuffer( IDirectFB *thiz, IDirectFB *real,
 
      ret = voodoo_construct_requestor( manager, "IDirectFBEventBuffer",
                                        instance, buffer, &requestor );
-     if (ret) {
-          buffer->Release( buffer );
-          return ret;
-     }
 
-     return DFB_OK;
+     buffer->Release( buffer );
+
+     return ret;
 }
 
 static DirectResult

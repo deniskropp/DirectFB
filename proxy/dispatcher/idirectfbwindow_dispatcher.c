@@ -586,8 +586,8 @@ Dispatch_CreateEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = voodoo_construct_requestor( manager, "IDirectFBEventBuffer",
                                        instance, buffer, &requestor );
-     if (ret)
-          buffer->Release( buffer );
+
+     buffer->Release( buffer );
 
      return voodoo_manager_respond( manager, true, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
