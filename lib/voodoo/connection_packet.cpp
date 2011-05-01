@@ -110,6 +110,8 @@ VoodooConnectionPacket::Stop()
      /* Wait for manager threads exiting. */
      direct_thread_join( io );
      direct_thread_destroy( io );
+
+     VoodooConnectionLink::Stop();
 }
 
 /**********************************************************************************************************************/
@@ -236,7 +238,7 @@ VoodooConnectionPacket::io_loop()
                          break;
 
                     case DR_TIMEOUT:
-                         D_DEBUG_AT( Voodoo_Connection, "  -> timeout\n" );
+                         //D_DEBUG_AT( Voodoo_Connection, "  -> timeout\n" );
                          break;
 
                     case DR_INTERRUPTED:

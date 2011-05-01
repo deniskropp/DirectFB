@@ -149,7 +149,7 @@ VoodooConnectionLink::GetPacket( size_t length )
      Packets *packets = (Packets*) direct_tls_get( output.tls );
 
      if (!packets) {
-          packets = new Packets();
+          packets = new Packets( this );
 
           direct_tls_set( output.tls, packets );
      }
@@ -199,6 +199,32 @@ VoodooConnectionLink::PutPacket( VoodooPacket *packet, bool flush )
 }
 
 void
+VoodooConnectionLink::Stop()
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::%s( %p )\n", __func__, this );
+
+     D_MAGIC_ASSERT( this, VoodooConnection );
+
+     direct_mutex_lock( &output.lock );
+
+     while (output.packets) {
+          VoodooPacket *packet = (VoodooPacket*) output.packets;
+
+          D_DEBUG_AT( Voodoo_Connection, "  -> discarding output packet %p\n", packet );
+
+          D_ASSUME( packet->sending );
+
+          packet->sending = false;
+
+          direct_list_remove( &output.packets, &packet->link );
+     }
+
+     direct_mutex_unlock( &output.lock );
+
+     direct_waitqueue_broadcast( &output.wait );
+}
+
+void
 VoodooConnectionLink::Flush( VoodooPacket *packet )
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::%s( %p, packet %p )\n", __func__, this, packet );
@@ -228,11 +254,14 @@ VoodooConnectionLink::OutputTLS_Destructor( void *ptr )
      Packets *packets = (Packets*) ptr;
 
      delete packets;
+
+     D_DEBUG_AT( Voodoo_Connection, "  -> OutputTLS_Destructor done\n" );
 }
 
-VoodooConnectionLink::Packets::Packets()
+VoodooConnectionLink::Packets::Packets( VoodooConnectionLink* connection )
      :
      magic(0),
+     connection(connection),
      next(0),
      num(0),
      active(NULL)
@@ -252,10 +281,21 @@ VoodooConnectionLink::Packets::~Packets()
 
      for (size_t i=0; i<num; i++) {
           if (packets[i]) {
-               D_ASSUME( !packets[i]->sending );
+               D_DEBUG_AT( Voodoo_Connection, "  -> destroying output packet "_ZU" (%p)\n", i, packets[i] );
 
-               if (!packets[i]->sending)
-                    D_FREE( packets[i] );
+               if (packets[i]->sending) {
+                    direct_mutex_lock( &connection->output.lock );
+
+                    while (packets[i]->sending) {
+                         D_DEBUG_AT( Voodoo_Connection, "  -> packet sending, waiting...\n" );
+
+                         direct_waitqueue_wait( &connection->output.wait, &connection->output.lock );
+                    }
+
+                    direct_mutex_unlock( &connection->output.lock );
+               }
+
+               D_FREE( packets[i] );
           }
      }
 }

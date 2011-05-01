@@ -70,6 +70,8 @@ public:
      virtual void          PutPacket( VoodooPacket *packet,
                                       bool          flush );
 
+     virtual void          Stop     ();
+
 
 private:
      void                  Flush    ( VoodooPacket *packet );
@@ -78,18 +80,21 @@ private:
 
 
 private:
+     friend class Packets;
+
      class Packets {
      private:
-          int           magic;
-          VoodooPacket *packets[VOODOO_CONNECTION_PACKET_NUM_OUTPUT];
-          size_t        next;
-          size_t        num;
+          int                   magic;
+          VoodooConnectionLink *connection;
+          VoodooPacket         *packets[VOODOO_CONNECTION_PACKET_NUM_OUTPUT];
+          size_t                next;
+          size_t                num;
 
      public:
-          VoodooPacket *active;
+          VoodooPacket         *active;
 
      public:
-          Packets();
+          Packets( VoodooConnectionLink *connection );
 
           ~Packets();
 
