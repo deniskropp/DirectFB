@@ -1,0 +1,13 @@
+Player
+- Merge Server into Player, having one Player per process
+- Merge Client into Player, adding Player::Connect( player_uuid )
+
+Manager
+- Queue responses for async processing rather than the single response slot in place
+
+Dispatch
+- Use async communication, no direct response, but async requests in return
+- Add context management for association of requests and async return requests
+
+Link/Linux
+- Use lio_listio, aio_suspend...
