@@ -544,13 +544,14 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
      }
 
      if (use_notify_or_buffer && data->flip.use_notify) {
-          if (data->flip.requested && millis - data->flip.requested < 20) {
-               D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "  -> delaying next frame by %d ms\n", 20 - (millis - data->flip.requested) );
+          if (data->flip.end && millis - data->flip.end < 16) {
+               D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "  -> delaying next frame by %d ms\n", 16 - (millis - data->flip.end) );
 
-               direct_thread_sleep( (20 - (millis - data->flip.requested)) * 1000 );
+               direct_thread_sleep( (16 - (millis - data->flip.end)) * 1000 );
           }
 
           data->flip.requested = millis;
+          data->flip.end       = direct_clock_get_abs_millis();;
 
           direct_mutex_lock( &data->flip.lock );
 
@@ -570,13 +571,14 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
                data->flip.window->SendEvent( data->flip.window, &event );
           }
 
-          if (data->flip.requested && millis - data->flip.requested < 20) {
-               D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "  -> delaying next frame by %d ms\n", 20 - (millis - data->flip.requested) );
+          if (data->flip.end && millis - data->flip.end < 16) {
+               D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "  -> delaying next frame by %d ms\n", 16 - (millis - data->flip.end) );
 
-               direct_thread_sleep( (20 - (millis - data->flip.requested)) * 1000 );
+               direct_thread_sleep( (16 - (millis - data->flip.end)) * 1000 );
           }
 
           data->flip.requested = millis;
+          data->flip.end       = direct_clock_get_abs_millis();;
 
 
           DFBEvent event;

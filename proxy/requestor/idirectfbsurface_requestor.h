@@ -61,6 +61,7 @@ typedef struct {
 
           unsigned int           requested;
           unsigned int           returned;
+          unsigned int           end;
 
           long long              fps_stamp;
           unsigned int           fps_count;
