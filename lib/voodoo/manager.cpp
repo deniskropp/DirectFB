@@ -165,8 +165,8 @@ VoodooManager::~VoodooManager()
      direct_mutex_deinit( &response.lock );
 
      /* Release all remaining interfaces. */
-     std::for_each( instances.local.begin(), instances.local.end(), instance_iterator );
      std::for_each( instances.remote.begin(), instances.remote.end(), instance_iterator );
+     std::for_each( instances.local.begin(), instances.local.end(), instance_iterator );
 
      D_MAGIC_CLEAR( this );
 }
