@@ -1094,7 +1094,7 @@ Dispatch_CreateDataBuffer( IDirectFB *thiz, IDirectFB *real,
      VOODOO_PARSER_END( parser );
 
      ret = voodoo_construct_requestor( manager, "IDirectFBDataBuffer",
-                                       instance, data->core, &ptr );
+                                       instance, data->real, &ptr );
      if (ret)
           return ret;
 

@@ -37,7 +37,8 @@
  */
 DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                            CoreLayer             *layer,
-                                           CoreDFB               *core );
+                                           CoreDFB               *core,
+                                           IDirectFB             *idirectfb );
 
 
 #endif

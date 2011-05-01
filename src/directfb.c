@@ -48,6 +48,8 @@
 #if !DIRECTFB_BUILD_PURE_VOODOO
 #include <unistd.h>
 
+#include <direct/thread.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -75,8 +77,6 @@
 #define DIRECTFB_VERSION_VENDOR
 #endif
 
-
-IDirectFB *idirectfb_singleton = NULL;
 
 static DFBResult CreateRemote( const char *host, int session, IDirectFB **ret_interface );
 
@@ -139,12 +139,6 @@ DirectFBSetOption( const char *name, const char *value )
           return DFB_INIT;
      }
 
-     if (idirectfb_singleton) {
-          D_ERROR( "DirectFBSetOption: DirectFBSetOption has to be "
-                   "called before DirectFBCreate!\n" );
-          return DFB_INIT;
-     }
-
      if (!name)
           return DFB_INVARG;
 
@@ -178,12 +172,6 @@ DirectFBCreate( IDirectFB **interface_ptr )
      if (!interface_ptr)
           return DFB_INVARG;
 
-     if (idirectfb_singleton) {
-          idirectfb_singleton->AddRef( idirectfb_singleton );
-          *interface_ptr = idirectfb_singleton;
-          return DFB_OK;
-     }
-
      direct_initialize();
 
      if ( !(direct_config->quiet & DMT_BANNER) && dfb_config->banner) {
@@ -200,28 +188,47 @@ DirectFBCreate( IDirectFB **interface_ptr )
      if (dfb_config->remote.host)
           return CreateRemote( dfb_config->remote.host, dfb_config->remote.port, interface_ptr );
 
+     static DirectMutex lock = DIRECT_MUTEX_INITIALIZER(lock);
+
+     direct_mutex_lock( &lock );
+
+
      ret = dfb_core_create( &core_dfb );
-     if (ret)
+     if (ret) {
+          direct_mutex_unlock( &lock );
           return ret;
+     }
 
      DIRECT_ALLOCATE_INTERFACE( dfb, IDirectFB );
 
      ret = IDirectFB_Construct( dfb, core_dfb );
      if (ret) {
           dfb_core_destroy( core_dfb, false );
+          direct_mutex_unlock( &lock );
           return ret;
      }
 
      if (dfb_core_is_master( core_dfb )) {
-          /* not fatal */
-          ret = dfb_wm_post_init( core_dfb );
-          if (ret)
-               D_DERROR( ret, "DirectFBCreate: Post initialization of WM failed!\n" );
+          if (!dfb_core_active( core_dfb )) {
+               ret = IDirectFB_InitLayers( dfb );
+               if (ret) {
+                    dfb->Release( dfb );
+                    direct_mutex_unlock( &lock );
+                    return ret;
+               }
 
-          dfb_core_activate( core_dfb );
+               /* not fatal */
+               ret = dfb_wm_post_init( core_dfb );
+               if (ret)
+                    D_DERROR( ret, "DirectFBCreate: Post initialization of WM failed!\n" );
+
+               dfb_core_activate( core_dfb );
+          }
      }
 
-     *interface_ptr = idirectfb_singleton = dfb;
+     direct_mutex_unlock( &lock );
+
+     *interface_ptr = dfb;
 
      return DFB_OK;
 #else
@@ -283,7 +290,7 @@ CreateRemote( const char *host, int port, IDirectFB **ret_interface )
      if (ret)
           return ret;
 
-     *ret_interface = idirectfb_singleton = interface_ptr;
+     *ret_interface = interface_ptr;
 
      return DFB_OK;
 }

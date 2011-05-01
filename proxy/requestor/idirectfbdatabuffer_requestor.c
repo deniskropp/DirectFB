@@ -43,6 +43,8 @@
 
 #include <media/idirectfbdatabuffer.h>
 
+#include <idirectfb.h>
+
 #include <idirectfbdatabuffer_dispatcher.h>
 
 
@@ -446,11 +448,15 @@ Construct( IDirectFBDataBuffer *thiz,
            VoodooInstanceID     instance,
            void                *arg )
 {
-     DFBResult ret;
+     DFBResult       ret;
+     IDirectFB      *idirectfb = arg;
+     IDirectFB_data *idirectfb_data;
 
-     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Requestor)
+     DIRECT_INTERFACE_GET_DATA_FROM( idirectfb, idirectfb_data, IDirectFB );
 
-     ret = IDirectFBDataBuffer_Construct( thiz, NULL, arg );
+     DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBDataBuffer_Requestor );
+
+     ret = IDirectFBDataBuffer_Construct( thiz, NULL, idirectfb_data->core, idirectfb );
      if (ret)
           return ret;
 

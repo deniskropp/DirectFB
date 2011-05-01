@@ -39,6 +39,7 @@ typedef struct {
      char        *filename;   /* Only set if databuffer is created from file. */
 
      CoreDFB     *core;
+     IDirectFB   *idirectfb;
 
      bool         is_memory;
 } IDirectFBDataBuffer_data;
@@ -73,7 +74,8 @@ typedef struct {
  */
 DFBResult IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz,
                                          const char          *filename,
-                                         CoreDFB             *core );
+                                         CoreDFB             *core,
+                                         IDirectFB           *idirectfb );
 
 /*
  * base destructor
@@ -84,14 +86,16 @@ void IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz );
  * generic streamed data buffer
  */
 DFBResult IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz,
-                                                  CoreDFB             *core );
+                                                  CoreDFB             *core,
+                                                  IDirectFB           *idirectfb );
 
 /*
  * file based static data buffer
  */
 DFBResult IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
                                               const char          *filename,
-                                              CoreDFB             *core );
+                                              CoreDFB             *core,
+                                              IDirectFB           *idirectfb );
 
 /*
  * memory based static data buffer
@@ -99,6 +103,7 @@ DFBResult IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
 DFBResult IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
                                                 const void          *data,
                                                 unsigned int         length,
-                                                CoreDFB             *core );
+                                                CoreDFB             *core,
+                                                IDirectFB           *idirectfb );
 
 #endif

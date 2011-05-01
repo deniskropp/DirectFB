@@ -103,6 +103,7 @@ typedef struct {
      bool               destroyed;
 
      CoreDFB           *core;
+     IDirectFB         *idirectfb;
 } IDirectFBWindow_data;
 
 
@@ -1450,17 +1451,19 @@ DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
                            CoreLayer       *layer,
-                           CoreDFB         *core )
+                           CoreDFB         *core,
+                           IDirectFB       *idirectfb )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_Construct() <- %d, %d - %dx%d\n",
                  DFB_RECTANGLE_VALS( &window->config.bounds ) );
 
-     data->ref    = 1;
-     data->window = window;
-     data->layer  = layer;
-     data->core   = core;
+     data->ref       = 1;
+     data->window    = window;
+     data->layer     = layer;
+     data->core      = core;
+     data->idirectfb = idirectfb;
 
      dfb_window_attach( window, IDirectFBWindow_React, data, &data->reaction );
 
@@ -1580,7 +1583,7 @@ IDirectFBWindow_React( const void *msg_data,
 
           case DWET_GOTFOCUS:
           case DWET_LOSTFOCUS:
-               IDirectFB_SetAppFocus( idirectfb_singleton,
+               IDirectFB_SetAppFocus( data->idirectfb,
                                       evt->type == DWET_GOTFOCUS );
 
           default:

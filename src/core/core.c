@@ -659,6 +659,19 @@ dfb_core_activate( CoreDFB *core )
      fusion_skirmish_dismiss( &shared->lock );
 }
 
+bool
+dfb_core_active( CoreDFB *core )
+{
+     CoreDFBShared *shared;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     return shared->active;
+}
+
 FusionWorld *
 dfb_core_world( CoreDFB *core )
 {

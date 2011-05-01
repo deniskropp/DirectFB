@@ -113,6 +113,8 @@ bool         dfb_core_is_master( CoreDFB *core );
  */
 void         dfb_core_activate( CoreDFB *core );
 
+bool         dfb_core_active  ( CoreDFB *core );
+
 /*
  * Returns the core's fusion world.
  */

@@ -73,6 +73,8 @@ typedef struct {
      VoodooInstanceID          super;        /* The instance of the super interface. */
 
      VoodooManager            *manager;
+
+     IDirectFB                *idirectfb;
 } IDirectFBDataBuffer_Dispatcher_data;
 
 /**************************************************************************************************/
@@ -631,7 +633,7 @@ Construct( IDirectFBDataBuffer *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Dispatcher)
 
-     ret = IDirectFBDataBuffer_Construct( thiz, NULL, NULL );
+     ret = IDirectFBDataBuffer_Construct( thiz, NULL, NULL, arg );
      if (ret)
           return ret;
 
@@ -643,10 +645,11 @@ Construct( IDirectFBDataBuffer *thiz,
 
      *ret_instance = instance;
 
-     data->real    = real;
-     data->self    = instance;
-     data->super   = super;
-     data->manager = manager;
+     data->real      = real;
+     data->self      = instance;
+     data->super     = super;
+     data->manager   = manager;
+     data->idirectfb = arg;
 
      thiz->AddRef                 = IDirectFBDataBuffer_Dispatcher_AddRef;
      thiz->Release                = IDirectFBDataBuffer_Dispatcher_Release;

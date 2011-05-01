@@ -40,6 +40,8 @@
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 
+#include <misc/conf.h>
+
 #include <input/idirectfbinputbuffer.h>
 #include <media/idirectfbdatabuffer.h>
 
@@ -86,8 +88,6 @@ IDirectFB_Requestor_Destruct( IDirectFB *thiz )
 
      voodoo_client_destroy( data->client );
 
-     idirectfb_singleton = NULL;
-
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -125,6 +125,21 @@ IDirectFB_Requestor_SetCooperativeLevel( IDirectFB           *thiz,
 
      if (level == data->level)
           return DFB_OK;
+
+     switch (level) {
+          case DFSCL_NORMAL:
+               break;
+
+          case DFSCL_FULLSCREEN:
+          case DFSCL_EXCLUSIVE:
+               if (dfb_config->force_windowed || dfb_config->force_desktop)
+                    return DFB_ACCESSDENIED;
+
+               break;
+
+          default:
+               return DFB_INVARG;
+     }
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IDIRECTFB_METHOD_ID_SetCooperativeLevel, VREQ_RESPOND, &response,
@@ -256,25 +271,49 @@ IDirectFB_Requestor_SetVideoMode( IDirectFB    *thiz,
 
 static DFBResult
 IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
-                                   const DFBSurfaceDescription  *desc,
+                                   const DFBSurfaceDescription  *real_desc,
                                    IDirectFBSurface            **ret_interface )
 {
-     DirectResult           ret;
-     VoodooResponseMessage *response;
-     VoodooInstanceID       instance_id;
-     void                  *interface_ptr = NULL;
+     DirectResult            ret;
+     VoodooResponseMessage  *response;
+     VoodooInstanceID        instance_id;
+     DFBSurfaceDescription   desc;
+     DFBSurfaceCapabilities  caps          = DSCAPS_NONE;
+     void                   *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
-     if (!desc || !ret_interface)
+     if (!real_desc || !ret_interface)
           return DFB_INVARG;
 
-     if (desc->flags & (DSDESC_PALETTE | DSDESC_PREALLOCATED))
+     direct_memcpy( &desc, real_desc, sizeof(DFBSurfaceDescription) );
+
+     if (desc.flags & (DSDESC_PALETTE | DSDESC_PREALLOCATED))
           D_ONCE( "DSDESC_PALETTE and DSDESC_PREALLOCATED not supported yet" );
+
+     if (desc.flags & DSDESC_CAPS)
+          caps = desc.caps;
+
+     if (caps & DSCAPS_PRIMARY) {
+          if (!(desc.flags & DSDESC_WIDTH) && dfb_config->mode.width) {
+               desc.flags |= DSDESC_WIDTH;
+               desc.width  = dfb_config->mode.width;
+          }
+
+          if (!(desc.flags & DSDESC_HEIGHT) && dfb_config->mode.height) {
+               desc.flags  |= DSDESC_HEIGHT;
+               desc.height  = dfb_config->mode.height;
+          }
+     }
+
+     if (!(desc.flags & DSDESC_PIXELFORMAT) && dfb_config->mode.format != DSPF_UNKNOWN) {
+          desc.flags       |= DSDESC_PIXELFORMAT;
+          desc.pixelformat  = dfb_config->mode.format;
+     }
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IDIRECTFB_METHOD_ID_CreateSurface, VREQ_RESPOND, &response,
-                                   VMBT_DFBSurfaceDescription( *desc ),
+                                   VMBT_DFBSurfaceDescription( desc ),
                                    VMBT_NONE );
      if (ret)
           return ret;
@@ -740,7 +779,7 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                       *thiz,
      if (!desc) {
           DIRECT_ALLOCATE_INTERFACE( buffer, IDirectFBDataBuffer );
 
-          ret = IDirectFBDataBuffer_Streamed_Construct( buffer, NULL );
+          ret = IDirectFBDataBuffer_Streamed_Construct( buffer, NULL, thiz );
      }
      else if (desc->flags & DBDESC_FILE) {
           if (!desc->file)
@@ -748,7 +787,7 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                       *thiz,
 
           DIRECT_ALLOCATE_INTERFACE( buffer, IDirectFBDataBuffer );
 
-          ret = IDirectFBDataBuffer_File_Construct( buffer, desc->file, NULL );
+          ret = IDirectFBDataBuffer_File_Construct( buffer, desc->file, NULL, thiz );
      }
      else if (desc->flags & DBDESC_MEMORY) {
           if (!desc->memory.data || !desc->memory.length)
@@ -759,7 +798,7 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                       *thiz,
           ret = IDirectFBDataBuffer_Memory_Construct( buffer,
                                                       desc->memory.data,
                                                       desc->memory.length,
-                                                      NULL );
+                                                      NULL, thiz );
      }
      else
           return DFB_INVARG;
@@ -769,7 +808,7 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                       *thiz,
 
      /* Create the dispatcher. */
      ret = voodoo_construct_dispatcher( data->manager, "IDirectFBDataBuffer",
-                                        buffer, data->instance, NULL, &instance, &ptr );
+                                        buffer, data->instance, thiz, &instance, &ptr );
      if (ret) {
           buffer->Release( buffer );
           return ret;

@@ -174,7 +174,7 @@ IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
           return DFB_INVARG;
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
-     return IDirectFBImageProvider_CreateFromBuffer( thiz, data->core, interface_ptr );
+     return IDirectFBImageProvider_CreateFromBuffer( thiz, data->core, data->idirectfb, interface_ptr );
 #else
      D_BUG( "%s in pure Voodoo build", __FUNCTION__ );
      return DFB_BUG;
@@ -221,12 +221,14 @@ IDirectFBDataBuffer_CreateFont( IDirectFBDataBuffer       *thiz,
 DFBResult
 IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz,
                                const char          *filename,
-                               CoreDFB             *core )
+                               CoreDFB             *core,
+                               IDirectFB           *idirectfb )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer)
 
-     data->ref  = 1;
-     data->core = core;
+     data->ref       = 1;
+     data->core      = core;
+     data->idirectfb = idirectfb;
 
      if (filename)
           data->filename = D_STRDUP( filename );

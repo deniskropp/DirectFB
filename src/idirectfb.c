@@ -115,6 +115,7 @@ typedef struct {
      DFBDisplayLayerID       id;
      DFBResult               ret;
      CoreDFB                *core;
+     IDirectFB              *idirectfb;
 } GetDisplayLayer_Context;
 
 typedef struct {
@@ -288,8 +289,6 @@ IDirectFB_Destruct( IDirectFB *thiz )
      }
 
      dfb_core_destroy( data->core, false );
-
-     idirectfb_singleton = NULL;
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 
@@ -799,8 +798,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if (!ret)
                               *interface = iface;
 
-                         dfb_window_unref( window );
-
                          return ret;
                     }
                case DFSCL_FULLSCREEN:
@@ -1135,6 +1132,7 @@ IDirectFB_GetDisplayLayer( IDirectFB              *thiz,
      context.id        = id;
      context.ret       = DFB_IDNOTFOUND;
      context.core      = data->core;
+     context.idirectfb = thiz;
 
      dfb_layers_enumerate( GetDisplayLayer_Callback, &context );
 
@@ -1281,7 +1279,7 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
           return ret;
 
      /* Create (probing) the image provider. */
-     ret = IDirectFBImageProvider_CreateFromBuffer( databuffer, data->core, &iface );
+     ret = IDirectFBImageProvider_CreateFromBuffer( databuffer, data->core, thiz, &iface );
 
      /* We don't need it anymore, image provider has its own reference. */
      databuffer->Release( databuffer );
@@ -1403,7 +1401,7 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
      if (!desc) {
           DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBDataBuffer );
 
-          ret = IDirectFBDataBuffer_Streamed_Construct( iface, data->core );
+          ret = IDirectFBDataBuffer_Streamed_Construct( iface, data->core, thiz );
      }
      else if (desc->flags & DBDESC_FILE) {
           if (!desc->file)
@@ -1411,7 +1409,7 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
 
           DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBDataBuffer );
 
-          ret = IDirectFBDataBuffer_File_Construct( iface, desc->file, data->core );
+          ret = IDirectFBDataBuffer_File_Construct( iface, desc->file, data->core, thiz );
      }
      else if (desc->flags & DBDESC_MEMORY) {
           if (!desc->memory.data || !desc->memory.length)
@@ -1422,7 +1420,7 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
           ret = IDirectFBDataBuffer_Memory_Construct( iface,
                                                       desc->memory.data,
                                                       desc->memory.length,
-                                                      data->core );
+                                                      data->core, thiz );
      }
      else
           return DFB_INVARG;
@@ -1659,13 +1657,14 @@ InitLayerPalette( IDirectFB_data    *data,
      return DFB_OK;
 }
 
-static DFBResult
-InitLayers( IDirectFB      *dfb,
-            IDirectFB_data *data )
+DFBResult
+IDirectFB_InitLayers( IDirectFB *thiz )
 {
      DFBResult ret;
      int       i;
      int       num = dfb_layer_num();
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      for (i=0; i<num; i++) {
           CoreLayer      *layer = dfb_layer_at_translated( i );
@@ -1779,7 +1778,7 @@ InitLayers( IDirectFB      *dfb,
 
                     case DLBM_IMAGE:
                     case DLBM_TILE:
-                         LoadBackgroundImage( dfb, stack, conf );
+                         LoadBackgroundImage( thiz, stack, conf );
                          break;
 
                     default:
@@ -1881,15 +1880,6 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      thiz->WaitForSync = IDirectFB_WaitForSync;
      thiz->GetInterface = IDirectFB_GetInterface;
 
-     if (dfb_core_is_master( core )) {
-          ret = InitLayers( thiz, data );
-          if (ret) {
-               dfb_layer_context_unref( data->context );
-               DIRECT_DEALLOCATE_INTERFACE(thiz);
-               return ret;
-          }
-     }
-
      return DFB_OK;
 }
 
@@ -1968,8 +1958,7 @@ GetDisplayLayer_Callback( CoreLayer *layer, void *ctx )
 
      DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBDisplayLayer );
 
-     context->ret = IDirectFBDisplayLayer_Construct( *context->interface,
-                                                     layer, context->core );
+     context->ret = IDirectFBDisplayLayer_Construct( *context->interface, layer, context->core, context->idirectfb );
 
      return DFENUM_CANCEL;
 }

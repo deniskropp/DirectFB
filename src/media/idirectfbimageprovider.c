@@ -140,6 +140,7 @@ IDirectFBImageProvider_Construct( IDirectFBImageProvider *thiz )
 DFBResult
 IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
                                          CoreDFB                 *core,
+                                         IDirectFB               *idirectfb,
                                          IDirectFBImageProvider **interface )
 {
      DFBResult                            ret;
@@ -147,6 +148,7 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      IDirectFBDataBuffer_data            *buffer_data;
      IDirectFBImageProvider              *imageprovider;
      IDirectFBImageProvider_ProbeContext  ctx;
+     IDirectFBImageProvider_data         *data;
 
      /* Get the private information of the data buffer. */
      buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
@@ -181,6 +183,10 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      ret = funcs->Construct( imageprovider, buffer, core );
      if (ret)
           return ret;
+
+     data = imageprovider->priv;
+
+     data->idirectfb = idirectfb;
 
      *interface = imageprovider;
 

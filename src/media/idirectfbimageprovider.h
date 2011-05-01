@@ -43,6 +43,7 @@ typedef struct {
 DFBResult
 IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
                                          CoreDFB                 *core,
+                                         IDirectFB               *idirectfb,
                                          IDirectFBImageProvider **interface_ptr );
 
 /**********************************************************************************************************************/
@@ -57,6 +58,7 @@ typedef struct {
      IDirectFBDataBuffer *buffer;
 
      CoreDFB             *core;
+     IDirectFB           *idirectfb;
 
      DIRenderCallback     render_callback;
      void                *render_callback_context;

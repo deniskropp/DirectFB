@@ -160,7 +160,7 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
           desc.preallocated[0].data  = data->ptr + sizeof(DFIFFHeader);
           desc.preallocated[0].pitch = header->pitch;
 
-          ret = idirectfb_singleton->CreateSurface( idirectfb_singleton, &desc, &source );
+          ret = data->base.idirectfb->CreateSurface( data->base.idirectfb, &desc, &source );
           if (ret)
                return ret;
 

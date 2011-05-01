@@ -91,7 +91,6 @@ DFBResult IDirectFB_SetAppFocus( IDirectFB  *thiz,
  */
 void      containers_remove_input_eventbuffer( IDirectFBEventBuffer *thiz );
 
-
-extern IDirectFB *idirectfb_singleton;
+DFBResult IDirectFB_InitLayers( IDirectFB *thiz );
 
 #endif

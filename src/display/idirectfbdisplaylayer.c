@@ -84,6 +84,7 @@ typedef struct {
      CoreWindowStack                 *stack;            /* stack of shared context */
      DFBBoolean                       switch_exclusive; /* switch to exclusive context after creation? */
      CoreDFB                         *core;
+     IDirectFB                       *idirectfb;
 } IDirectFBDisplayLayer_data;
 
 
@@ -695,7 +696,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
-     return IDirectFBWindow_Construct( *window, w, data->layer, data->core );
+     return IDirectFBWindow_Construct( *window, w, data->layer, data->core, data->idirectfb );
 }
 
 static DFBResult
@@ -720,7 +721,7 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
-     return IDirectFBWindow_Construct( *window, w, data->layer, data->core );
+     return IDirectFBWindow_Construct( *window, w, data->layer, data->core, data->idirectfb );
 }
 
 static DFBResult
@@ -1036,7 +1037,7 @@ IDirectFBDisplayLayer_GetWindowByResourceID( IDirectFBDisplayLayer  *thiz,
                if (ret == DFB_OK) {
                     DIRECT_ALLOCATE_INTERFACE( window, IDirectFBWindow );
 
-                    ret = IDirectFBWindow_Construct( window, ctx.window, data->layer, data->core );
+                    ret = IDirectFBWindow_Construct( window, ctx.window, data->layer, data->core, data->idirectfb );
                     if (ret == DFB_OK)
                          *ret_window = window;
                }
@@ -1053,7 +1054,8 @@ IDirectFBDisplayLayer_GetWindowByResourceID( IDirectFBDisplayLayer  *thiz,
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer,
-                                 CoreDFB               *core )
+                                 CoreDFB               *core,
+                                 IDirectFB             *idirectfb )
 {
      DFBResult         ret;
      CoreLayerContext *context;
@@ -1076,6 +1078,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
 
      data->ref              = 1;
      data->core             = core;
+     data->idirectfb        = idirectfb;
      data->screen           = dfb_layer_screen( layer );
      data->layer            = layer;
      data->context          = context;
