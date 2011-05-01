@@ -31,6 +31,7 @@
 #include <config.h>
 
 #include <algorithm>
+#include <list>
 
 extern "C" {
 #include <direct/clock.h>
@@ -1101,27 +1102,36 @@ proxy destruct releases real
 
 class VoodooInstanceInterface : public VoodooInstance {
 public:
+     VoodooManager  *manager;
      VoodooInstance *super;
      IAny           *proxy;
      IAny           *real;
      VoodooDispatch  dispatch;
 
+
+     static std::list<VoodooInstanceInterface*> interfaces;
+
+
 public:
-     VoodooInstanceInterface( VoodooInstance *super,
+     VoodooInstanceInterface( VoodooManager  *manager,
+                              VoodooInstance *super,
                               IAny           *proxy,
                               IAny           *real,
                               VoodooDispatch  dispatch )
           :
+          manager( manager ),
           super( super ),
           proxy( proxy ),
           real( real ),
           dispatch( dispatch )
      {
-          D_DEBUG_AT( Voodoo_Manager, "VoodooInstanceInterface::%s( %p, super %p, proxy %p, real %p, dispatch %p )\n",
-                      __func__, this, super, proxy, real, dispatch );
+          D_DEBUG_AT( Voodoo_Manager, "VoodooInstanceInterface::%s( %p, manager %p, super %p, proxy %p, real %p, dispatch %p )\n",
+                      __func__, this, manager, super, proxy, real, dispatch );
 
           if (super)
                super->AddRef();
+
+          interfaces.push_back( this );
      }
 
 protected:
@@ -1143,6 +1153,8 @@ protected:
 
                super->Release();
           }
+
+          interfaces.remove( this );
      }
 
 public:
@@ -1159,6 +1171,8 @@ public:
           return dispatch( proxy, real, manager, msg );
      }
 };
+
+std::list<VoodooInstanceInterface*> VoodooInstanceInterface::interfaces;
 
 /**********************************************************************************************************************/
 
@@ -1191,6 +1205,15 @@ voodoo_manager_destroy( VoodooManager *manager )
      D_MAGIC_ASSERT( manager, VoodooManager );
 
      delete manager;
+
+     for (std::list<VoodooInstanceInterface*>::const_iterator iter = VoodooInstanceInterface::interfaces.begin();
+          iter != VoodooInstanceInterface::interfaces.end(); iter++)
+     {
+          VoodooInstanceInterface *instance = *iter;
+
+          if (instance->manager == manager)
+               D_INFO( "Zombie: Instance %p, proxy %p, real %p, super %p\n", instance, instance->proxy, instance->real, instance->super );
+     }
 
      return DR_OK;
 }
@@ -1296,7 +1319,7 @@ voodoo_manager_register_local( VoodooManager    *manager,
      }
 
 
-     VoodooInstanceInterface *instance = new VoodooInstanceInterface( super_instance, (IAny*) dispatcher, (IAny*) real, dispatch );
+     VoodooInstanceInterface *instance = new VoodooInstanceInterface( manager, super_instance, (IAny*) dispatcher, (IAny*) real, dispatch );
 
      ret = manager->register_local( instance, ret_instance );
 
@@ -1348,7 +1371,7 @@ voodoo_manager_register_remote( VoodooManager    *manager,
 
      D_MAGIC_ASSERT( manager, VoodooManager );
 
-     VoodooInstanceInterface *instance = new VoodooInstanceInterface( NULL, (IAny*) requestor, NULL, NULL);
+     VoodooInstanceInterface *instance = new VoodooInstanceInterface( manager, NULL, (IAny*) requestor, NULL, NULL);
 
      ret = manager->register_remote( instance, instance_id );
 
