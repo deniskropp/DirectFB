@@ -256,6 +256,7 @@ typedef struct
 
      bool          linux_input_force;              /* use linux-input with all system modules */
 
+     u64           resource_id;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

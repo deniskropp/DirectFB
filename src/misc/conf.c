@@ -80,6 +80,7 @@ static const char *config_usage =
      "  remote=<host>[:<port>]         Set remote host and port to connect to\n"
      "  primary-layer=<id>             Select an alternative primary layer\n"
      "  primary-only                   Tell application only about the primary layer\n"
+     "  resource-id=<id>               Use resource id for surfaces if not specified by application\n"
      "  [no-]banner                    Show DirectFB Banner on startup\n"
      "  [no-]surface-sentinel          Enable surface sentinels at the end of chunks in video memory\n"
      "  force-windowed                 Primary surface always is a window\n"
@@ -548,6 +549,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "primary-only" ) == 0) {
           dfb_config->primary_only = true;
+     } else
+     if (strcmp (name, "resource-id" ) == 0) {
+          if (value) {
+               unsigned long long resource_id;
+
+               if (direct_sscanf( value, "%llu", &resource_id ) < 1) {
+                    D_ERROR("DirectFB/Config '%s': Could not parse id!\n", name);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->resource_id = resource_id;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No id specified!\n", name);
+               return DFB_INVARG;
+          }
      } else
      if (strcmp (name, "font-format" ) == 0) {
           if (value) {

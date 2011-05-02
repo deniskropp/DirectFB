@@ -311,6 +311,13 @@ IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
           desc.pixelformat  = dfb_config->mode.format;
      }
 
+     if (!(desc.flags & DSDESC_RESOURCE_ID)) {
+          desc.flags       |= DSDESC_RESOURCE_ID;
+          desc.resource_id  = dfb_config->resource_id;
+     }
+
+     D_INFO( "IDirectFB_Requestor_CreateSurface: Using resource ID %lu\n", desc.resource_id );
+
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IDIRECTFB_METHOD_ID_CreateSurface, VREQ_RESPOND, &response,
                                    VMBT_DFBSurfaceDescription( desc ),

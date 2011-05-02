@@ -36,6 +36,8 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <misc/conf.h>
+
 #include <voodoo/client.h>
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
@@ -420,11 +422,12 @@ IDirectFBDisplayLayer_Requestor_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
 
 static DFBResult
 IDirectFBDisplayLayer_Requestor_CreateWindow( IDirectFBDisplayLayer       *thiz,
-                                              const DFBWindowDescription  *desc,
+                                              const DFBWindowDescription  *real_desc,
                                               IDirectFBWindow            **ret_interface )
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
+     DFBWindowDescription   desc;
      void                  *interface_ptr = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
@@ -432,9 +435,18 @@ IDirectFBDisplayLayer_Requestor_CreateWindow( IDirectFBDisplayLayer       *thiz,
      if (!ret_interface)
           return DFB_INVARG;
 
+     direct_memcpy( &desc, real_desc, sizeof(DFBWindowDescription) );
+
+     if (!(desc.flags & DWDESC_RESOURCE_ID)) {
+          desc.flags       |= DWDESC_RESOURCE_ID;
+          desc.resource_id  = dfb_config->resource_id;
+     }
+
+     D_INFO( "IDirectFBDisplayLayer_Requestor_CreateWindow: Using resource ID %lu\n", desc.resource_id );
+
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IDIRECTFBDISPLAYLAYER_METHOD_ID_CreateWindow, VREQ_RESPOND, &response,
-                                   VMBT_DATA, sizeof(DFBWindowDescription), desc,
+                                   VMBT_DATA, sizeof(DFBWindowDescription), &desc,
                                    VMBT_NONE );
      if (ret)
           return ret;
