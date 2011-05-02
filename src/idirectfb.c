@@ -732,7 +732,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          memset( &wd, 0, sizeof(wd) );
 
                          wd.flags = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT |
-                                    DWDESC_PIXELFORMAT | DWDESC_COLORSPACE | DWDESC_SURFACE_CAPS | DWDESC_CAPS;
+                                    DWDESC_PIXELFORMAT | DWDESC_COLORSPACE | DWDESC_SURFACE_CAPS | DWDESC_CAPS | DWDESC_RESOURCE_ID;
 
                          if (dfb_config->scaled.width && dfb_config->scaled.height) {
                               wd.posx = (config.width  - dfb_config->scaled.width)  / 2;
@@ -748,6 +748,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          wd.pixelformat  = format;
                          wd.colorspace   = colorspace;
                          wd.surface_caps = caps & ~DSCAPS_FLIPPING;
+                         wd.resource_id  = resource_id;
 
                          switch (format) {
                               case DSPF_ARGB8565:
