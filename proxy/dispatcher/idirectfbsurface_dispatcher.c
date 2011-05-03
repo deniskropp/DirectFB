@@ -43,6 +43,7 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <voodoo/conf.h>
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 #include <voodoo/message.h>
@@ -1831,7 +1832,7 @@ Dispatch_Read( IDirectFBSurface *thiz, IDirectFBSurface *real,
      buf = alloca( len );
 
 
-     switch (format) {
+     switch (voodoo_config->compression_min ? DSPF_UNKNOWN : format) {
           case DSPF_RGB16: {
                u16 tmp[rect->w];
 
