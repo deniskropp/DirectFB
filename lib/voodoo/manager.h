@@ -58,6 +58,14 @@ typedef std::map<VoodooInstanceID,VoodooInstance*> InstanceMap;
 class VoodooDispatcher;
 
 
+class VoodooContext {
+public:
+     virtual DirectResult HandleSuper( VoodooManager    *manager,
+                                       const char       *name,
+                                       VoodooInstanceID *ret_instance ) = 0;
+};
+
+
 class VoodooManager {
 public:
      int                         magic;
@@ -70,10 +78,7 @@ private:
      VoodooLink                 *link;
      VoodooConnection           *connection;
 
-     long long                   millis;
-
-     VoodooClient               *client;     /* Either client ... */
-     VoodooServer               *server;     /* ... or server is valid. */
+     VoodooContext              *context;
 
      size_t                      msg_count;
      VoodooMessageSerial         msg_serial;
@@ -98,9 +103,8 @@ private:
 
 
 public:
-     VoodooManager( VoodooLink   *link,
-                    VoodooClient *client,
-                    VoodooServer *server );
+     VoodooManager( VoodooLink    *link,
+                    VoodooContext *context );
      ~VoodooManager();
 
 
@@ -138,7 +142,9 @@ public:
                                          VoodooMethodID           method,
                                          VoodooRequestFlags       flags,
                                          VoodooResponseMessage  **ret_response,
-                                         va_list                  args );
+                                         VoodooMessageBlock      *blocks = NULL,
+                                         size_t                   num_blocks = 0,
+                                         size_t                   data_size = 0 );
 
      DirectResult next_response        ( VoodooResponseMessage   *response,
                                          VoodooResponseMessage  **ret_response );
@@ -148,14 +154,12 @@ public:
      DirectResult do_respond           ( bool                     flush,
                                          VoodooMessageSerial      request,
                                          DirectResult             result,
-                                         VoodooInstanceID         instance,
-                                         va_list                  args );
+                                         VoodooInstanceID         instance = VOODOO_INSTANCE_NONE,
+                                         VoodooMessageBlock      *blocks = NULL,
+                                         size_t                   num_blocks = 0,
+                                         size_t                   data_size = 0 );
 
 private:
-     inline int   calc_blocks          ( va_list                   args,
-                                         VoodooMessageBlock       *ret_blocks,
-                                         size_t                   *ret_num );
-
      inline void  write_blocks         ( void                     *dst,
                                          const VoodooMessageBlock *blocks,
                                          size_t                    num_blocks );

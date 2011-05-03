@@ -46,4 +46,11 @@ DirectResult VOODOO_API voodoo_server_run     ( VoodooServer          *server );
 
 DirectResult VOODOO_API voodoo_server_destroy ( VoodooServer          *server );
 
+
+
+DirectResult VOODOO_API voodoo_server_construct( VoodooServer         *server,
+                                                 VoodooManager        *manager,
+                                                 const char           *name,
+                                                 VoodooInstanceID     *ret_instance );
+
 #endif

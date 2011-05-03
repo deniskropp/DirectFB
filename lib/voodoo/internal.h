@@ -32,9 +32,5 @@
 #include <voodoo/types.h>
 
 
-DirectResult VOODOO_API voodoo_server_construct( VoodooServer         *server,
-                                                 VoodooManager        *manager,
-                                                 const char           *name,
-                                                 VoodooInstanceID     *ret_instance );
 
 #endif

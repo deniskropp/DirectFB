@@ -1,9 +1,11 @@
 Player
 - Merge Server into Player, having one Player per process
 - Merge Client into Player, adding Player::Connect( player_uuid )
+- Send CONNECT message after connecting, build tunnel if not local
 
 Manager
 - Queue responses for async processing rather than the single response slot in place
+- Add shared memory extension for local connections via fd passing
 
 Dispatch
 - Use async communication, no direct response, but async requests in return
@@ -11,3 +13,6 @@ Dispatch
 
 Link/Linux
 - Use lio_listio, aio_suspend...
+
+Protocol
+- Add version number in front of args for future extension

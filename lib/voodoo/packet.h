@@ -31,6 +31,7 @@
 
 extern "C" {
 #include <direct/fastlz.h>
+#include <direct/list.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 

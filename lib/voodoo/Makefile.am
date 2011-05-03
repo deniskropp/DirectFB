@@ -58,6 +58,7 @@ libvoodoo_la_SOURCES = \
 	interface.c		\
 	internal.h		\
 	manager.cpp		\
+	manager_c.cpp		\
 	play.c			\
 	server.c
 

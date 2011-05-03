@@ -31,15 +31,9 @@
 #include <config.h>
 
 #include <algorithm>
-#include <list>
 
 extern "C" {
-#include <direct/clock.h>
 #include <direct/debug.h>
-#include <direct/fastlz.h>
-#include <direct/hash.h>
-#include <direct/interface.h>
-#include <direct/list.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -58,9 +52,6 @@ extern "C" {
 #include <voodoo/packet.h>
 
 
-#define VOODOO_MANAGER_MESSAGE_BLOCKS_MAX 20
-
-
 //namespace Voodoo {
 
 D_DEBUG_DOMAIN( Voodoo_Dispatch, "Voodoo/Dispatch", "Voodoo Dispatch" );
@@ -68,28 +59,21 @@ D_DEBUG_DOMAIN( Voodoo_Manager,  "Voodoo/Manager",  "Voodoo Manager" );
 
 /**********************************************************************************************************************/
 
-VoodooManager::VoodooManager( VoodooLink     *link,
-                              VoodooClient   *client,
-                              VoodooServer   *server )
+VoodooManager::VoodooManager( VoodooLink    *link,
+                              VoodooContext *context )
      :
      magic(0),
      is_quit(false),
-     millis(0),
      msg_count(0),
      msg_serial(0)
 {
      D_ASSERT( link != NULL );
-     D_ASSERT( link->Read != NULL );
-     D_ASSERT( link->Write != NULL );
 
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
-     /* Store link. */
-     this->link = link;
-
-     /* Store client or server. */
-     this->client = client;
-     this->server = server;
+     /* Store link and context */
+     this->link    = link;
+     this->context = context;
 
 
      instances.last   = 0;
@@ -104,8 +88,6 @@ VoodooManager::VoodooManager( VoodooLink     *link,
      /* Initialize all wait conditions. */
      direct_waitqueue_init( &response.wait_get );
      direct_waitqueue_init( &response.wait_put );
-
-     millis = direct_clock_get_abs_millis();
 
      D_MAGIC_SET( this, VoodooManager );
 
@@ -231,19 +213,9 @@ VoodooManager::handle_disconnect()
 
      D_MAGIC_ASSERT( this, VoodooManager );
 
-     if (0) {
-          long long num;
-          long long millis = direct_clock_get_millis();
-          long long diff   = millis - this->millis;
-
-          num = msg_count * 1000LL / diff;
-
-          D_INFO( "Voodoo/Manager: Average number of messages: %lld.%03lld k/sec\n", num / 1000, num % 1000 );
-     }
-
      D_DEBUG_AT( Voodoo_Manager, "  -> Remote site disconnected from manager at %p!\n", this );
 
-     voodoo_manager_quit( this );
+     quit();
 }
 
 void
@@ -264,27 +236,13 @@ VoodooManager::handle_super( VoodooSuperMessage *super )
      D_DEBUG_AT( Voodoo_Dispatch, "  -> Handling SUPER message %llu for '%s' (%d bytes).\n",
                  (unsigned long long)super->header.serial, name, super->header.size );
 
-     if (server) {
-          VoodooInstanceID instance;
+     VoodooInstanceID instance_id;
 
-          ret = voodoo_server_construct( server, this, name, &instance );
-          if (ret) {
-               voodoo_manager_respond( this, true, super->header.serial,
-                                       ret, VOODOO_INSTANCE_NONE,
-                                       VMBT_NONE );
-               return;
-          }
-
-          voodoo_manager_respond( this, true, super->header.serial,
-                                  DR_OK, instance,
-                                  VMBT_NONE );
-     }
-     else {
-          D_WARN( "can't handle this as a client" );
-          voodoo_manager_respond( this, true, super->header.serial,
-                                  DR_UNSUPPORTED, VOODOO_INSTANCE_NONE,
-                                  VMBT_NONE );
-     }
+     ret = context->HandleSuper( this, name, &instance_id );
+     if (ret)
+          do_respond( true, super->header.serial, ret );
+     else
+          do_respond( true, super->header.serial, DR_OK, instance_id );
 }
 
 typedef struct {
@@ -308,9 +266,7 @@ VoodooManager::dispatch_async_thread( DirectThread *thread,
      ret = instance->Dispatch( manager, request );
 
      if (ret && (request->flags & VREQ_RESPOND))
-          voodoo_manager_respond( manager, true, request->header.serial,
-                                  ret, VOODOO_INSTANCE_NONE,
-                                  VMBT_NONE );
+          manager->do_respond( true, request->header.serial, ret );
 
      D_FREE( context );
 
@@ -347,9 +303,7 @@ VoodooManager::handle_request( VoodooRequestMessage *request )
                    "Requested instance %u doesn't exist (anymore)!\n", request->instance );
 
           if (request->flags & VREQ_RESPOND)
-               voodoo_manager_respond( this, true, request->header.serial,
-                                       DR_NOSUCHINSTANCE, VOODOO_INSTANCE_NONE,
-                                       VMBT_NONE );
+               do_respond( true, request->header.serial, DR_NOSUCHINSTANCE );
 
           return;
      }
@@ -381,9 +335,7 @@ VoodooManager::handle_request( VoodooRequestMessage *request )
           ret = instance->Dispatch( this, request );
 
           if (ret && (request->flags & VREQ_RESPOND))
-               voodoo_manager_respond( this, true, request->header.serial,
-                                       ret, VOODOO_INSTANCE_NONE,
-                                       VMBT_NONE );
+               do_respond( true, request->header.serial, ret );
      }
 
      direct_mutex_unlock( &instances.lock );
@@ -573,100 +525,6 @@ VoodooManager::do_super( const char       *name,
      return DR_OK;
 }
 
-int
-VoodooManager::calc_blocks( va_list args,
-                            VoodooMessageBlock *ret_blocks, size_t *ret_num )
-{
-     int                    size = 4;  /* for the terminating VMBT_NONE */
-     size_t                 num  = 0;
-     VoodooMessageBlockType type;
-
-     /* Fetch first block type. */
-     type = (VoodooMessageBlockType) va_arg( args, int );
-
-     while (type != VMBT_NONE) {
-          if (num == VOODOO_MANAGER_MESSAGE_BLOCKS_MAX) {
-               // FIXME: support more blocks?
-               D_UNIMPLEMENTED();
-               break;
-          }
-
-          /* Set message block type. */
-          ret_blocks[num].type = type;
-
-          switch (type) {
-               case VMBT_ID:
-                    ret_blocks[num].len = 4;
-                    ret_blocks[num].ptr = NULL;
-                    ret_blocks[num].val = va_arg( args, u32 );
-
-                    D_DEBUG( "Voodoo/Message: + ID %u\n", ret_blocks[num].val );
-                    break;
-
-               case VMBT_INT:
-                    ret_blocks[num].len = 4;
-                    ret_blocks[num].ptr = NULL;
-                    ret_blocks[num].val = va_arg( args, s32 );
-
-                    D_DEBUG( "Voodoo/Message: + INT %d\n", ret_blocks[num].val );
-                    break;
-
-               case VMBT_UINT:
-                    ret_blocks[num].len = 4;
-                    ret_blocks[num].ptr = NULL;
-                    ret_blocks[num].val = va_arg( args, u32 );
-
-                    D_DEBUG( "Voodoo/Message: + UINT %u\n", ret_blocks[num].val );
-                    break;
-
-               case VMBT_DATA:
-                    ret_blocks[num].len = va_arg( args, int );
-                    ret_blocks[num].ptr = va_arg( args, void * );
-
-//                    D_ASSERT( ret_blocks[num].len > 0 );
-                    D_ASSERT( ret_blocks[num].ptr != NULL );
-
-                    D_DEBUG( "Voodoo/Message: + DATA at %p with length %d\n", ret_blocks[num].ptr, ret_blocks[num].len );
-                    break;
-
-               case VMBT_ODATA:
-                    ret_blocks[num].len = va_arg( args, int );
-                    ret_blocks[num].ptr = va_arg( args, void * );
-
-                    D_ASSERT( ret_blocks[num].len > 0 );
-
-                    D_DEBUG( "Voodoo/Message: + ODATA at %p with length %d\n", ret_blocks[num].ptr, ret_blocks[num].len );
-
-                    if (!ret_blocks[num].ptr)
-                         ret_blocks[num].len = 0;
-                    break;
-
-               case VMBT_STRING:
-                    ret_blocks[num].ptr = va_arg( args, char * );
-                    ret_blocks[num].len = strlen( (const char*) ret_blocks[num].ptr ) + 1;
-
-                    D_ASSERT( ret_blocks[num].ptr != NULL );
-
-                    D_DEBUG( "Voodoo/Message: + STRING '%s' at %p with length %d\n", (char*) ret_blocks[num].ptr, ret_blocks[num].ptr, ret_blocks[num].len );
-                    break;
-
-               default:
-                    D_BREAK( "unknown message block type" );
-          }
-
-          /* Fetch next block type. */
-          type = (VoodooMessageBlockType) va_arg( args, int );
-
-          size += 8 + VOODOO_MSG_ALIGN(ret_blocks[num].len);
-
-          num++;
-     }
-
-     *ret_num = num;
-
-     return size;
-}
-
 void
 VoodooManager::write_blocks( void                     *dst,
                              const VoodooMessageBlock *blocks,
@@ -718,17 +576,17 @@ VoodooManager::do_request( VoodooInstanceID         instance,
                            VoodooMethodID           method,
                            VoodooRequestFlags       flags,
                            VoodooResponseMessage  **ret_response,
-                           va_list                  args )
+                           VoodooMessageBlock      *blocks,
+                           size_t                   num_blocks,
+                           size_t                   data_size )
 {
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
      DirectResult          ret;
-     int                   size;
+     size_t                size;
      VoodooPacket         *packet;
      VoodooMessageSerial   serial;
      VoodooRequestMessage *msg;
-     VoodooMessageBlock    blocks[VOODOO_MANAGER_MESSAGE_BLOCKS_MAX];
-     size_t                num_blocks;
 
      D_MAGIC_ASSERT( this, VoodooManager );
      D_ASSERT( instance != VOODOO_INSTANCE_NONE );
@@ -743,7 +601,7 @@ VoodooManager::do_request( VoodooInstanceID         instance,
      }
 
      /* Calculate the total message size. */
-     size = sizeof(VoodooRequestMessage) + calc_blocks( args, blocks, &num_blocks );
+     size = sizeof(VoodooRequestMessage) + data_size;
 
      D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: %d\n", size );
 
@@ -843,20 +701,20 @@ VoodooManager::finish_request( VoodooResponseMessage *response )
 }
 
 DirectResult
-VoodooManager::do_respond( bool                   flush,
-                           VoodooMessageSerial    request,
-                           DirectResult           result,
-                           VoodooInstanceID       instance,
-                           va_list                args )
+VoodooManager::do_respond( bool                 flush,
+                           VoodooMessageSerial  request,
+                           DirectResult         result,
+                           VoodooInstanceID     instance,
+                           VoodooMessageBlock  *blocks,
+                           size_t               num_blocks,
+                           size_t               data_size )
 {
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
-     int                    size;
+     size_t                 size;
      VoodooPacket          *packet;
      VoodooMessageSerial    serial;
      VoodooResponseMessage *msg;
-     VoodooMessageBlock     blocks[VOODOO_MANAGER_MESSAGE_BLOCKS_MAX];
-     size_t                 num_blocks;
 
      D_MAGIC_ASSERT( this, VoodooManager );
 
@@ -868,7 +726,7 @@ VoodooManager::do_respond( bool                   flush,
      }
 
      /* Calculate the total message size. */
-     size = sizeof(VoodooResponseMessage) + calc_blocks( args, blocks, &num_blocks );
+     size = sizeof(VoodooResponseMessage) + data_size;
 
      D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: %d\n", size );
 
@@ -1076,376 +934,4 @@ VoodooManager::lookup_remote( VoodooInstanceID   instance_id,
 }
 
 //}
-
-
-
-
-
-
-
-
-/**********************************************************************************************************************/
-/**********************************************************************************************************************/
-/**********************************************************************************************************************/
-/* C Wrapper
- */
-
-/*
-
-
-register add refs proxy
-unregister releases proxy
-
-proxy destruct releases real
-
-*/
-
-class VoodooInstanceInterface : public VoodooInstance {
-public:
-     VoodooManager  *manager;
-     VoodooInstance *super;
-     IAny           *proxy;
-     IAny           *real;
-     VoodooDispatch  dispatch;
-
-
-     static std::list<VoodooInstanceInterface*> interfaces;
-
-
-public:
-     VoodooInstanceInterface( VoodooManager  *manager,
-                              VoodooInstance *super,
-                              IAny           *proxy,
-                              IAny           *real,
-                              VoodooDispatch  dispatch )
-          :
-          manager( manager ),
-          super( super ),
-          proxy( proxy ),
-          real( real ),
-          dispatch( dispatch )
-     {
-          D_DEBUG_AT( Voodoo_Manager, "VoodooInstanceInterface::%s( %p, manager %p, super %p, proxy %p, real %p, dispatch %p )\n",
-                      __func__, this, manager, super, proxy, real, dispatch );
-
-          if (super)
-               super->AddRef();
-
-          interfaces.push_back( this );
-     }
-
-protected:
-     virtual ~VoodooInstanceInterface()
-     {
-          D_DEBUG_AT( Voodoo_Manager, "VoodooInstanceInterface::%s( %p )\n", __func__, this );
-
-          D_MAGIC_ASSERT( this, VoodooInstance );
-
-          if (proxy) {
-               D_DEBUG_AT( Voodoo_Manager, "  -> releasing proxy interface\n" );
-
-               proxy->Release( proxy );
-          }
-
-
-          if (super) {
-               D_DEBUG_AT( Voodoo_Manager, "  -> releasing super instance\n" );
-
-               super->Release();
-          }
-
-          interfaces.remove( this );
-     }
-
-public:
-     virtual DirectResult
-     Dispatch( VoodooManager        *manager,
-               VoodooRequestMessage *msg )
-     {
-          D_DEBUG_AT( Voodoo_Manager, "VoodooInstanceInterface::%s( %p, manager %p, msg %p )\n", __func__, this, manager, msg );
-
-          D_MAGIC_ASSERT( this, VoodooInstance );
-
-          D_ASSERT( dispatch != NULL );
-
-          return dispatch( proxy, real, manager, msg );
-     }
-};
-
-std::list<VoodooInstanceInterface*> VoodooInstanceInterface::interfaces;
-
-/**********************************************************************************************************************/
-
-DirectResult
-voodoo_manager_create( VoodooLink     *link,
-                       VoodooClient   *client,
-                       VoodooServer   *server,
-                       VoodooManager **ret_manager )
-{
-     D_ASSERT( ret_manager != NULL );
-
-     *ret_manager = new VoodooManager( link, client, server );
-
-     return DR_OK;
-}
-
-DirectResult
-voodoo_manager_quit( VoodooManager *manager )
-{
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     manager->quit();
-
-     return DR_OK;
-}
-
-DirectResult
-voodoo_manager_destroy( VoodooManager *manager )
-{
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     delete manager;
-
-     for (std::list<VoodooInstanceInterface*>::const_iterator iter = VoodooInstanceInterface::interfaces.begin();
-          iter != VoodooInstanceInterface::interfaces.end(); iter++)
-     {
-          VoodooInstanceInterface *instance = *iter;
-
-          if (instance->manager == manager)
-               D_INFO( "Zombie: Instance %p, proxy %p, real %p, super %p\n", instance, instance->proxy, instance->real, instance->super );
-     }
-
-     return DR_OK;
-}
-
-bool
-voodoo_manager_is_closed( const VoodooManager *manager )
-{
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     return manager->is_quit;
-}
-
-/**************************************************************************************************/
-
-DirectResult
-voodoo_manager_super( VoodooManager    *manager,
-                      const char       *name,
-                      VoodooInstanceID *ret_instance )
-{
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     return manager->do_super( name, ret_instance );
-}
-
-DirectResult
-voodoo_manager_request( VoodooManager           *manager,
-                        VoodooInstanceID         instance,
-                        VoodooMethodID           method,
-                        VoodooRequestFlags       flags,
-                        VoodooResponseMessage  **ret_response, ... )
-{
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     va_list ap;
-
-     va_start( ap, ret_response );
-
-     DirectResult ret = manager->do_request( instance, method, flags, ret_response, ap );
-
-     va_end( ap );
-
-     return ret;
-}
-
-DirectResult
-voodoo_manager_next_response( VoodooManager          *manager,
-                              VoodooResponseMessage  *response,
-                              VoodooResponseMessage **ret_response )
-{
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     return manager->next_response( response, ret_response );
-}
-
-DirectResult
-voodoo_manager_finish_request( VoodooManager         *manager,
-                               VoodooResponseMessage *response )
-{
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     return manager->finish_request( response );
-}
-
-DirectResult
-voodoo_manager_respond( VoodooManager          *manager,
-                        bool                    flush,
-                        VoodooMessageSerial     request,
-                        DirectResult            result,
-                        VoodooInstanceID        instance, ... )
-{
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     va_list ap;
-
-     va_start( ap, instance );
-
-     DirectResult ret = manager->do_respond( flush, request, result, instance, ap );
-
-     va_end( ap );
-
-     return ret;
-}
-
-DirectResult
-voodoo_manager_register_local( VoodooManager    *manager,
-                               VoodooInstanceID  super,
-                               void             *dispatcher,
-                               void             *real,
-                               VoodooDispatch    dispatch,
-                               VoodooInstanceID *ret_instance )
-{
-     DirectResult    ret;
-     VoodooInstance *super_instance = NULL;
-
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     if (super != VOODOO_INSTANCE_NONE) {
-          ret = manager->lookup_local( super, &super_instance );
-          if (ret) {
-               D_DERROR( ret, "Voodoo/Manager: Could not lookup super instance %u!\n", super );
-               return ret;
-          }
-     }
-
-
-     VoodooInstanceInterface *instance = new VoodooInstanceInterface( manager, super_instance, (IAny*) dispatcher, (IAny*) real, dispatch );
-
-     ret = manager->register_local( instance, ret_instance );
-
-     instance->Release();
-
-     return ret;
-}
-
-DirectResult
-voodoo_manager_unregister_local( VoodooManager    *manager,
-                                 VoodooInstanceID  instance_id )
-{
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     return manager->unregister_local( instance_id );
-}
-
-DirectResult
-voodoo_manager_lookup_local( VoodooManager     *manager,
-                             VoodooInstanceID   instance_id,
-                             void             **ret_dispatcher,
-                             void             **ret_real )
-{
-     DirectResult    ret;
-     VoodooInstance *instance;
-
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     ret = manager->lookup_local( instance_id, &instance );
-     if (ret)
-          return ret;
-
-     if (ret_dispatcher)
-          *ret_dispatcher = ((VoodooInstanceInterface*) instance)->proxy;
-
-     if (ret_real)
-          *ret_real = ((VoodooInstanceInterface*) instance)->real;
-
-     return DR_OK;
-}
-
-DirectResult
-voodoo_manager_register_remote( VoodooManager    *manager,
-                                bool              super,
-                                void             *requestor,
-                                VoodooInstanceID  instance_id )
-{
-     DirectResult ret;
-
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     VoodooInstanceInterface *instance = new VoodooInstanceInterface( manager, NULL, (IAny*) requestor, NULL, NULL);
-
-     ret = manager->register_remote( instance, instance_id );
-
-     instance->Release();
-
-     return ret;
-}
-
-
-DirectResult
-voodoo_manager_lookup_remote( VoodooManager     *manager,
-                              VoodooInstanceID   instance_id,
-                              void             **ret_requestor )
-{
-     DirectResult    ret;
-     VoodooInstance *instance;
-
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     ret = manager->lookup_remote( instance_id, &instance );
-     if (ret)
-          return ret;
-
-     if (ret_requestor)
-          *ret_requestor = ((VoodooInstanceInterface*) instance)->proxy;
-
-     return DR_OK;
-}
-
-DirectResult
-voodoo_manager_check_allocation( VoodooManager *manager,
-                                 unsigned int   amount )
-{
-#ifndef WIN32
-     FILE   *f;
-     char    buf[2000];
-     int     size;
-     char   *p;
-     size_t  bytes;
-
-     D_MAGIC_ASSERT( manager, VoodooManager );
-
-     if (!voodoo_config->memory_max)
-          return DR_OK;
-
-     direct_snprintf( buf, sizeof(buf), "/proc/%d/status", direct_getpid() );
-
-     f = fopen( buf, "r" );
-     if (!f) {
-          D_ERROR( "Could not open '%s'!\n", buf );
-          return DR_FAILURE;
-     }
-
-     bytes = fread( buf, 1, sizeof(buf)-1, f );
-
-     fclose( f );
-
-     if (bytes) {
-          buf[bytes] = 0;
-
-          p = strstr( buf, "VmRSS:" );
-          if (!p) {
-               D_ERROR( "Could not find memory information!\n" );
-               return DR_FAILURE;
-          }
-
-          sscanf( p + 6, " %u", &size );
-
-          D_INFO( "SIZE: %u kB (+%u kB)\n", size, amount / 1024 );
-
-          if (size * 1024 + amount > voodoo_config->memory_max)
-               return DR_LIMITEXCEEDED;
-     }
-#endif
-     return DR_OK;
-}
 
