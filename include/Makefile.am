@@ -13,6 +13,7 @@ include_HEADERS = \
 	directfb_util.h		\
 	directfb_version.h	\
 	directfb_water.h	\
+	directfb_windows.h	\
 	directfbgl.h		\
 	directfbgl2.h		\
 	dfb_types.h		\
