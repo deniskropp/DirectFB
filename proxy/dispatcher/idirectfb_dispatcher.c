@@ -42,6 +42,8 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
+#include <misc/conf.h>
+
 #include <idirectfb.h>
 
 #include <voodoo/conf.h>
@@ -1250,6 +1252,8 @@ Construct( IDirectFB *thiz, VoodooManager *manager, VoodooInstanceID *ret_instan
      VoodooInstanceID  instance;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFB_Dispatcher)
+
+     dfb_config->no_singleton = true;
 
      ret = DirectFBCreate( &real );
      if (ret) {

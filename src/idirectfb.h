@@ -93,4 +93,7 @@ void      containers_remove_input_eventbuffer( IDirectFBEventBuffer *thiz );
 
 DFBResult IDirectFB_InitLayers( IDirectFB *thiz );
 
+
+extern IDirectFB *idirectfb_singleton;
+
 #endif

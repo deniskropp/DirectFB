@@ -172,6 +172,15 @@ DirectFBCreate( IDirectFB **interface_ptr )
      if (!interface_ptr)
           return DFB_INVARG;
 
+
+     if (!dfb_config->no_singleton && idirectfb_singleton) {
+          idirectfb_singleton->AddRef( idirectfb_singleton );
+
+          *interface_ptr = idirectfb_singleton;
+
+          return DFB_OK;
+     }
+
      direct_initialize();
 
      if ( !(direct_config->quiet & DMT_BANNER) && dfb_config->banner) {
@@ -229,6 +238,9 @@ DirectFBCreate( IDirectFB **interface_ptr )
      direct_mutex_unlock( &lock );
 
      *interface_ptr = dfb;
+
+     if (!dfb_config->no_singleton)
+          idirectfb_singleton = dfb;
 
      return DFB_OK;
 #else
