@@ -2720,6 +2720,105 @@ static const GenefxFunc Bop_PFI_SKtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
 };
 
+/********************************* Bop_PFI_TEX_to_Aop_PFI ************************/
+
+#if 0
+
+// TODO: scan from right to left, this one flips every 8 s/t from source
+
+/* change the last value to adjust the size of the device (1-4) */
+#define SET_PIXEL_DUFFS_DEVICE_D( D, w ) \
+     SET_PIXEL_DUFFS_DEVICE_N_D( D, w, 3 )
+
+#define SET_PIXEL( D )                                                     \
+     do {                                                                  \
+          D = S[(s>>16) + (t>>16) * sp4];                                  \
+                                                                           \
+          s += SperD;                                                      \
+          t += TperD;                                                      \
+     } while (0)
+
+static void Bop_32_TEX_to_Aop( GenefxState *gfxs )
+{
+     int  w     = gfxs->length;
+     int  s     = gfxs->s;
+     int  t     = gfxs->t;
+     int  SperD = gfxs->SperD;
+     int  TperD = gfxs->TperD;
+     u32 *S     = gfxs->Bop[0];
+     u32 *D     = gfxs->Aop[0];
+     int  sp4   = gfxs->src_pitch / 4;
+
+     SET_PIXEL_DUFFS_DEVICE_D( D, w );
+}
+
+#undef SET_PIXEL_DUFFS_DEVICE
+#undef SET_PIXEL
+
+#else
+
+static void Bop_32_TEX_to_Aop( GenefxState *gfxs )
+{
+     int  l     = gfxs->length;
+     int  s     = gfxs->s;
+     int  t     = gfxs->t;
+     int  SperD = gfxs->SperD;
+     int  TperD = gfxs->TperD;
+     u32 *S     = gfxs->Bop[0];
+     u32 *D     = gfxs->Aop[0];
+     int  sp4   = gfxs->src_pitch / 4;
+
+     while (l--) {
+          *D++ = S[(s>>16) + (t>>16) * sp4];
+
+          s += SperD;
+          t += TperD;
+     }
+}
+
+#endif
+
+static GenefxFunc Bop_PFI_TEX_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = NULL,//Bop_16_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB16)]    = NULL,//Bop_16_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,//Bop_8_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,//Bop_yuy2_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,//Bop_8_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_UYVY)]     = NULL,//Bop_uyvy_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_I420)]     = NULL,//Bop_i420_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV12)]     = NULL,//Bop_i420_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT8)]     = NULL,//Bop_8_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ALUT44)]   = NULL,//Bop_8_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)]    = Bop_32_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV12)]     = NULL,//Bop_NV_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV16)]     = NULL,//Bop_NV_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB2554)] = NULL,//Bop_16_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] = NULL,//Bop_16_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA4444)] = NULL,//Bop_16_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV21)]     = NULL,//Bop_NV_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AYUV)]     = Bop_32_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A4)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = NULL,//Bop_16_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = NULL,//Bop_16_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_BGR555)]   = NULL,//Bop_16_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,//Bop_16_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,//Bop_yuv444p_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,//Bop_yv16_TEX_to_Aop,
+};
+
 /********************************* Sop_PFI_Sto_Dacc ***************************/
 
 static void Sop_argb6666_Sto_Dacc( GenefxState *gfxs )
@@ -5504,6 +5603,50 @@ static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Sacc_to_Aop_vyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = Sacc_to_Aop_yv16,
+};
+
+/********************************* Sop_PFI_TEX_to_Dacc ****************************/
+
+
+static const GenefxFunc Sop_PFI_TEX_to_Dacc[DFB_NUM_PIXELFORMATS] = {
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = Sop_argb1555_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB16)]    = Sop_rgb16_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,//Sop_rgb24_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Sop_rgb32_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Sop_argb_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Sop_abgr_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,//Sop_a8_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,//Sop_yuy2_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,//Sop_rgb332_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_UYVY)]     = NULL,//Sop_uyvy_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_I420)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT8)]     = NULL,//Sop_lut8_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ALUT44)]   = NULL,//Sop_alut44_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)]    = Sop_airgb_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV16)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB2554)] = Sop_argb2554_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] = Sop_argb4444_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA4444)] = Sop_rgba4444_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV21)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AYUV)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A4)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = NULL,//Sop_argb1666_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = NULL,//Sop_argb6666_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = NULL,//Sop_rgb18_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = Sop_xrgb4444_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = Sop_xrgb1555_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_BGR555)]   = Sop_xbgr1555_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sop_rgba5551_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,//Sop_yuv444p_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,//Sop_argb8565_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,//Sop_avyu_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,//Sop_vyu_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
 };
 
 /********************************* Sacc_Sto_Aop_PFI ***************************/
@@ -9560,6 +9703,9 @@ Bop_rgb32_to_Aop_rgb16_LE( GenefxState *gfxs )
 }
 #endif  /* #ifndef WORDS_BIGENDIAN */
 
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
 bool gAcquire( CardState *state, DFBAccelerationMask accel )
 {
      DFBResult    ret;
@@ -10241,10 +10387,11 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                }
 #endif
                /* fallthru */
+          case DFXL_TEXTRIANGLES:
           case DFXL_STRETCHBLIT: {
                     int  modulation = state->blittingflags & MODULATION_FLAGS;
 
-                    if (modulation) {
+                    if (modulation || (accel == DFXL_TEXTRIANGLES && (src_pfi != dst_pfi || state->blittingflags))) {
                          bool read_destination = false;
                          bool source_needs_destination = false;
                          bool scale_from_accumulator;
@@ -10294,18 +10441,32 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          if (DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format))
                               *funcs++ = Slut_is_Blut;
                          *funcs++ = Dacc_is_Bacc;
-                         if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-                              gfxs->Skey = state->src_colorkey;
-                              if (accel == DFXL_BLIT || scale_from_accumulator)
-                                   *funcs++ = Sop_PFI_Kto_Dacc[src_pfi];
-                              else
-                                   *funcs++ = Sop_PFI_SKto_Dacc[src_pfi];
+                         if (accel == DFXL_TEXTRIANGLES) {
+                              if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                                   gfxs->Skey = state->src_colorkey;
+
+                                   D_UNIMPLEMENTED();
+                                   break;
+                                   //*funcs++ = Sop_PFI_TEX_Kto_Dacc[src_pfi];
+                              }
+                              else {
+                                   *funcs++ = Sop_PFI_TEX_to_Dacc[src_pfi];
+                              }
                          }
                          else {
-                              if (accel == DFXL_BLIT || scale_from_accumulator)
-                                   *funcs++ = Sop_PFI_to_Dacc[src_pfi];
-                              else
-                                   *funcs++ = Sop_PFI_Sto_Dacc[src_pfi];
+                              if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                                   gfxs->Skey = state->src_colorkey;
+                                   if (accel == DFXL_BLIT || scale_from_accumulator)
+                                        *funcs++ = Sop_PFI_Kto_Dacc[src_pfi];
+                                   else
+                                        *funcs++ = Sop_PFI_SKto_Dacc[src_pfi];
+                              }
+                              else {
+                                   if (accel == DFXL_BLIT || scale_from_accumulator)
+                                        *funcs++ = Sop_PFI_to_Dacc[src_pfi];
+                                   else
+                                        *funcs++ = Sop_PFI_Sto_Dacc[src_pfi];
+                              }
                          }
 
                          if (!src_ycbcr && dst_ycbcr) {
@@ -10461,40 +10622,64 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     {
                          gfxs->need_accumulator = false;
 
-                         if (accel == DFXL_BLIT) {
-                              if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
-                                  state->blittingflags & DSBLIT_DST_COLORKEY) {
-                                   gfxs->Skey = state->src_colorkey;
-                                   gfxs->Dkey = state->dst_colorkey;
-                                   *funcs++ = Bop_PFI_KtoK_Aop_PFI[dst_pfi];
-                              } else if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-                                   gfxs->Skey = state->src_colorkey;
-                                   *funcs++ = Bop_PFI_Kto_Aop_PFI[dst_pfi];
-                              } else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
-                                   gfxs->Dkey = state->dst_colorkey;
-                                   *funcs++ = Bop_PFI_toK_Aop_PFI[dst_pfi];
-                              } else if (state->blittingflags & (DSBLIT_ROTATE90  |
-                                                                 DSBLIT_ROTATE180 |
-                                                                 DSBLIT_ROTATE270 |
-                                                                 DSBLIT_FLIP_HORIZONTAL)) {
-                                   *funcs++ = Bop_PFI_toR_Aop_PFI[dst_pfi];
-                              } else
-                                   *funcs++ = Bop_PFI_to_Aop_PFI[dst_pfi];
-                         }
-                         else {
-                              if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
-                                  state->blittingflags & DSBLIT_DST_COLORKEY) {
-                                   gfxs->Skey = state->src_colorkey;
-                                   gfxs->Dkey = state->dst_colorkey;
-                                   *funcs++ = Bop_PFI_SKtoK_Aop_PFI[dst_pfi];
-                              } else if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-                                   gfxs->Skey = state->src_colorkey;
-                                   *funcs++ = Bop_PFI_SKto_Aop_PFI[dst_pfi];
-                              } else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
-                                   gfxs->Dkey = state->dst_colorkey;
-                                   *funcs++ = Bop_PFI_StoK_Aop_PFI[dst_pfi];
-                              } else
-                                   *funcs++ = Bop_PFI_Sto_Aop_PFI[dst_pfi];
+                         switch (accel) {
+                              case DFXL_BLIT:
+                                   if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
+                                       state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                        gfxs->Skey = state->src_colorkey;
+                                        gfxs->Dkey = state->dst_colorkey;
+                                        *funcs++ = Bop_PFI_KtoK_Aop_PFI[dst_pfi];
+                                   } else if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                                        gfxs->Skey = state->src_colorkey;
+                                        *funcs++ = Bop_PFI_Kto_Aop_PFI[dst_pfi];
+                                   } else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                        gfxs->Dkey = state->dst_colorkey;
+                                        *funcs++ = Bop_PFI_toK_Aop_PFI[dst_pfi];
+                                   } else if (state->blittingflags & (DSBLIT_ROTATE90  |
+                                                                      DSBLIT_ROTATE180 |
+                                                                      DSBLIT_ROTATE270 |
+                                                                      DSBLIT_FLIP_HORIZONTAL)) {
+                                        *funcs++ = Bop_PFI_toR_Aop_PFI[dst_pfi];
+                                   } else
+                                        *funcs++ = Bop_PFI_to_Aop_PFI[dst_pfi];
+                                   break;
+
+                              case DFXL_STRETCHBLIT:
+                                   if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
+                                       state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                        gfxs->Skey = state->src_colorkey;
+                                        gfxs->Dkey = state->dst_colorkey;
+                                        *funcs++ = Bop_PFI_SKtoK_Aop_PFI[dst_pfi];
+                                   } else if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                                        gfxs->Skey = state->src_colorkey;
+                                        *funcs++ = Bop_PFI_SKto_Aop_PFI[dst_pfi];
+                                   } else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                        gfxs->Dkey = state->dst_colorkey;
+                                        *funcs++ = Bop_PFI_StoK_Aop_PFI[dst_pfi];
+                                   } else
+                                        *funcs++ = Bop_PFI_Sto_Aop_PFI[dst_pfi];
+                                   break;
+
+                              case DFXL_TEXTRIANGLES:
+/*
+                                   if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
+                                       state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                        gfxs->Skey = state->src_colorkey;
+                                        gfxs->Dkey = state->dst_colorkey;
+                                        *funcs++ = Bop_PFI_TEX_KtoK_Aop_PFI[dst_pfi];
+                                   } else if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                                        gfxs->Skey = state->src_colorkey;
+                                        *funcs++ = Bop_PFI_TEX_Kto_Aop_PFI[dst_pfi];
+                                   } else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                        gfxs->Dkey = state->dst_colorkey;
+                                        *funcs++ = Bop_PFI_TEX_toK_Aop_PFI[dst_pfi];
+                                   } else
+*/
+                                        *funcs++ = Bop_PFI_TEX_to_Aop_PFI[dst_pfi];
+                                   break;
+
+                              default:
+                                   break;
                          }
                     }
                     else {
@@ -10583,1543 +10768,8 @@ void gRelease( CardState *state )
      }
 }
 
-#define CHECK_PIPELINE()                                                             \
-     {                                                                               \
-          if (!gfxs->funcs[0])                                                       \
-               return;                                                               \
-                                                                                     \
-          if (dfb_config->software_trace) {                                          \
-               int         i;                                                        \
-               GenefxFunc *funcs = gfxs->funcs;                                      \
-                                                                                     \
-               direct_log_lock( NULL );                                              \
-               direct_log_printf( NULL, "  Software Fallback Pipeline:\n" );         \
-                                                                                     \
-               for (i=0; funcs[i]; ++i)                                              \
-                    direct_log_printf( NULL, "    [%2d] %s\n", i,                    \
-                                       direct_trace_lookup_symbol_at( funcs[i] ) );  \
-                                                                                     \
-               direct_log_printf( NULL, "\n" );                                      \
-               direct_log_unlock( NULL );                                            \
-          }                                                                          \
-     }
-
-#define RUN_PIPELINE()                     \
-     {                                     \
-          int         i;                   \
-          GenefxFunc *funcs = gfxs->funcs; \
-                                           \
-          for (i=0; funcs[i]; ++i)         \
-               funcs[i]( gfxs );           \
-     }
-
-/**********************************************************************************************************************/
-
-typedef void (*XopAdvanceFunc)( GenefxState *gfxs );
-
-static inline void Aop_xy( GenefxState *gfxs, int x, int y )
-{
-     int pitch = gfxs->dst_pitch;
-
-     gfxs->Aop[0] = gfxs->dst_org[0];
-     gfxs->AopY   = y;
-
-     if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-          gfxs->Aop_field = y & 1;
-          if (gfxs->Aop_field)
-               gfxs->Aop[0] += gfxs->dst_field_offset;
-
-          y /= 2;
-     }
-
-     D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->dst_format)) );
-
-     gfxs->Aop[0] += y * pitch + DFB_BYTES_PER_LINE( gfxs->dst_format, x );
-
-     if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format)) {
-          int dst_field_offset = gfxs->dst_field_offset;
-
-          switch (gfxs->dst_format) {
-               case DSPF_YV12:
-               case DSPF_I420:
-                    dst_field_offset /= 4;
-                    pitch /= 2;
-                    y /= 2;
-                    x /= 2;
-                    break;
-               case DSPF_YV16:
-                    dst_field_offset /= 2;
-                    pitch /= 2;
-                    x /= 2;
-                    break;
-               case DSPF_NV12:
-               case DSPF_NV21:
-                    dst_field_offset /= 2;
-                    y /= 2;
-               case DSPF_NV16:
-                    x &= ~1;
-                    break;
-               case DSPF_YUV444P: /* nothing to adjust */
-               default:
-                    break;
-          }
-
-          gfxs->Aop[1] = gfxs->dst_org[1];
-          gfxs->Aop[2] = gfxs->dst_org[2];
-
-          if (gfxs->dst_caps & DSCAPS_SEPARATED && gfxs->Aop_field) {
-               gfxs->Aop[1] += dst_field_offset;
-               gfxs->Aop[2] += dst_field_offset;
-          }
-
-          gfxs->Aop[1] += y * pitch + x;
-          gfxs->Aop[2] += y * pitch + x;
-     }
-}
-
-static void Aop_crab( GenefxState *gfxs )
-{
-     gfxs->Aop[0] += gfxs->dst_bpp;
-     gfxs->AopY++;
-}
-
-static void Aop_next( GenefxState *gfxs )
-{
-     int pitch = gfxs->dst_pitch;
-
-     if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-          gfxs->Aop_field++;
-
-          if (gfxs->Aop_field & 1)
-               gfxs->Aop[0] += gfxs->dst_field_offset;
-          else
-               gfxs->Aop[0] += pitch - gfxs->dst_field_offset;
-     }
-     else
-          gfxs->Aop[0] += pitch;
-
-     if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format)) {
-          if (gfxs->dst_format == DSPF_YV12 || gfxs->dst_format == DSPF_I420) {
-               if (gfxs->AopY & 1) {
-                    if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                         if (gfxs->Aop_field & 2) {
-                              gfxs->Aop[1] += gfxs->dst_field_offset/4;
-                              gfxs->Aop[2] += gfxs->dst_field_offset/4;
-                         }
-                         else {
-                              gfxs->Aop[1] += pitch/2 - gfxs->dst_field_offset/4;
-                              gfxs->Aop[2] += pitch/2 - gfxs->dst_field_offset/4;
-                         }
-                    }
-                    else {
-                         gfxs->Aop[1] += pitch/2;
-                         gfxs->Aop[2] += pitch/2;
-                    }
-               }
-          }
-          else if (gfxs->dst_format == DSPF_YV16) {
-               if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Aop_field & 2) {
-                         gfxs->Aop[1] += gfxs->dst_field_offset/2;
-                         gfxs->Aop[2] += gfxs->dst_field_offset/2;
-                    }
-                    else {
-                         gfxs->Aop[1] += pitch/2 - gfxs->dst_field_offset/2;
-                         gfxs->Aop[2] += pitch/2 - gfxs->dst_field_offset/2;
-                    }
-               }
-               else {
-                    gfxs->Aop[1] += pitch/2;
-                    gfxs->Aop[2] += pitch/2;
-               }
-          }
-          else if (gfxs->dst_format == DSPF_NV12 || gfxs->dst_format == DSPF_NV21) {
-               if (gfxs->AopY & 1) {
-                    if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                         if (gfxs->Aop_field & 2)
-                              gfxs->Aop[1] += gfxs->dst_field_offset/2;
-                         else
-                              gfxs->Aop[1] += pitch - gfxs->dst_field_offset/2;
-                    }
-                    else {
-                         gfxs->Aop[1] += pitch;
-                    }
-               }
-          }
-          else if (gfxs->dst_format == DSPF_YUV444P) {
-               if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Aop_field & 1) {
-                         gfxs->Aop[1] += gfxs->dst_field_offset;
-                         gfxs->Aop[2] += gfxs->dst_field_offset;
-                    }
-                    else {
-                         gfxs->Aop[1] += pitch - gfxs->dst_field_offset;
-                         gfxs->Aop[2] += pitch - gfxs->dst_field_offset;
-                    }
-               }
-               else {
-                    gfxs->Aop[1] += pitch;
-                    gfxs->Aop[2] += pitch;
-               }
-          }
-          else { /* NV16 */
-               if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Aop_field & 1)
-                         gfxs->Aop[1] += gfxs->dst_field_offset;
-                    else
-                         gfxs->Aop[1] += pitch - gfxs->dst_field_offset;
-               }
-               else {
-                    gfxs->Aop[1] += pitch;
-               }
-          }
-     }
-
-     gfxs->AopY++;
-}
-
-static void Aop_prev( GenefxState *gfxs )
-{
-     int pitch = gfxs->dst_pitch;
-
-     if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-          gfxs->Aop_field++;
-
-          if (gfxs->Aop_field & 1)
-               gfxs->Aop[0] += gfxs->dst_field_offset - pitch;
-          else
-               gfxs->Aop[0] -= gfxs->dst_field_offset;
-     }
-     else
-          gfxs->Aop[0] -= pitch;
-
-     if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format)) {
-          if (gfxs->dst_format == DSPF_YV12 || gfxs->dst_format == DSPF_I420) {
-               if (gfxs->AopY & 1) {
-                    if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                         if (gfxs->Aop_field & 2) {
-                              gfxs->Aop[1] += gfxs->dst_field_offset/4 - pitch/2;
-                              gfxs->Aop[2] += gfxs->dst_field_offset/4 - pitch/2;
-                         }
-                         else {
-                              gfxs->Aop[1] -= gfxs->dst_field_offset/4;
-                              gfxs->Aop[2] -= gfxs->dst_field_offset/4;
-                         }
-                    }
-                    else {
-                         gfxs->Aop[1] -= pitch/2;
-                         gfxs->Aop[2] -= pitch/2;
-                    }
-               }
-          }
-          else if (gfxs->dst_format == DSPF_YV16) {
-               if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                   if (gfxs->Aop_field & 2) {
-                        gfxs->Aop[1] += gfxs->dst_field_offset/2 - pitch/2;
-                        gfxs->Aop[2] += gfxs->dst_field_offset/2 - pitch/2;
-                   }
-                   else {
-                        gfxs->Aop[1] -= gfxs->dst_field_offset/2;
-                        gfxs->Aop[2] -= gfxs->dst_field_offset/2;
-                   }
-               }
-               else {
-                    gfxs->Aop[1] -= pitch/2;
-                    gfxs->Aop[2] -= pitch/2;
-               }
-          }
-          else if (gfxs->dst_format == DSPF_NV12 || gfxs->dst_format == DSPF_NV21) {
-               if (gfxs->AopY & 1) {
-                    if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                         if (gfxs->Aop_field & 2)
-                              gfxs->Aop[1] += gfxs->dst_field_offset/2 - pitch;
-                         else
-                              gfxs->Aop[1] -= gfxs->dst_field_offset/2;
-                    }
-                    else {
-                         gfxs->Aop[1] -= pitch;
-                    }
-               }
-          }
-          else if (gfxs->dst_format == DSPF_YUV444P) {
-               if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Aop_field & 1) {
-                         gfxs->Aop[1] += gfxs->dst_field_offset - pitch;
-                         gfxs->Aop[2] += gfxs->dst_field_offset - pitch;
-                    }
-                    else {
-                         gfxs->Aop[1] -= gfxs->dst_field_offset;
-                         gfxs->Aop[2] -= gfxs->dst_field_offset;
-                    }
-               }
-               else {
-                    gfxs->Aop[1] -= pitch;
-                    gfxs->Aop[2] -= pitch;
-               }
-          }
-          else { /* NV16 */
-               if (gfxs->dst_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Aop_field & 1)
-                         gfxs->Aop[1] += gfxs->dst_field_offset - pitch;
-                    else
-                         gfxs->Aop[1] -= gfxs->dst_field_offset;
-               }
-               else {
-                    gfxs->Aop[1] -= pitch;
-               }
-          }
-     }
-
-     gfxs->AopY--;
-}
-
-
-static inline void Bop_xy( GenefxState *gfxs, int x, int y )
-{
-     int pitch = gfxs->src_pitch;
-
-     gfxs->Bop[0] = gfxs->src_org[0];
-     gfxs->BopY   = y;
-
-     if (gfxs->src_caps & DSCAPS_SEPARATED) {
-          gfxs->Bop_field = y & 1;
-          if (gfxs->Bop_field)
-               gfxs->Bop[0] += gfxs->src_field_offset;
-
-          y /= 2;
-     }
-
-     D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->src_format)) );
-
-     gfxs->Bop[0] += y * pitch + DFB_BYTES_PER_LINE( gfxs->src_format, x );
-
-     if (DFB_PLANAR_PIXELFORMAT(gfxs->src_format)) {
-          int src_field_offset = gfxs->src_field_offset;
-
-          switch (gfxs->src_format) {
-               case DSPF_YV12:
-               case DSPF_I420:
-                    src_field_offset /= 4;
-                    pitch /= 2;
-                    y /= 2;
-                    x /= 2;
-                    break;
-               case DSPF_YV16:
-                    src_field_offset /= 2;
-                    pitch /= 2;
-                    x /= 2;
-                    break;
-               case DSPF_NV12:
-               case DSPF_NV21:
-                    src_field_offset /= 2;
-                    y /= 2;
-               case DSPF_NV16:
-                    x &= ~1;
-                    break;
-               case DSPF_YUV444P: /* nothing to adjust */
-               default:
-                    break;
-          }
-
-          gfxs->Bop[1] = gfxs->src_org[1];
-          gfxs->Bop[2] = gfxs->src_org[2];
-
-          if (gfxs->src_caps & DSCAPS_SEPARATED && gfxs->Bop_field) {
-               gfxs->Bop[1] += src_field_offset;
-               gfxs->Bop[2] += src_field_offset;
-          }
-
-          gfxs->Bop[1] += y * pitch + x;
-          gfxs->Bop[2] += y * pitch + x;
-     }
-}
-
-static void Bop_next( GenefxState *gfxs )
-{
-     int pitch = gfxs->src_pitch;
-
-     if (gfxs->src_caps & DSCAPS_SEPARATED) {
-          gfxs->Bop_field++;
-
-          if (gfxs->Bop_field & 1)
-               gfxs->Bop[0] += gfxs->src_field_offset;
-          else
-               gfxs->Bop[0] += pitch - gfxs->src_field_offset;
-     }
-     else
-          gfxs->Bop[0] += pitch;
-
-     if (DFB_PLANAR_PIXELFORMAT(gfxs->src_format)) {
-          if (gfxs->src_format == DSPF_YV12 || gfxs->src_format == DSPF_I420) {
-               if (gfxs->BopY & 1) {
-                    if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                         if (gfxs->Bop_field & 2) {
-                              gfxs->Bop[1] += gfxs->src_field_offset/4;
-                              gfxs->Bop[2] += gfxs->src_field_offset/4;
-                         }
-                         else {
-                              gfxs->Bop[1] += pitch/2 - gfxs->src_field_offset/4;
-                              gfxs->Bop[2] += pitch/2 - gfxs->src_field_offset/4;
-                         }
-                    }
-                    else {
-                         gfxs->Bop[1] += pitch/2;
-                         gfxs->Bop[2] += pitch/2;
-                    }
-               }
-          }
-          else if (gfxs->src_format == DSPF_YV16) {
-               if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Bop_field & 2) {
-                         gfxs->Bop[1] += gfxs->src_field_offset/2;
-                         gfxs->Bop[2] += gfxs->src_field_offset/2;
-                    }
-                    else {
-                         gfxs->Bop[1] += pitch/2 - gfxs->src_field_offset/2;
-                         gfxs->Bop[2] += pitch/2 - gfxs->src_field_offset/2;
-                    }
-               }
-               else {
-                    gfxs->Bop[1] += pitch/2;
-                    gfxs->Bop[2] += pitch/2;
-               }
-          }
-          else if (gfxs->src_format == DSPF_NV12 || gfxs->src_format == DSPF_NV21) {
-               if (gfxs->BopY & 1) {
-                    if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                         if (gfxs->Bop_field & 2)
-                              gfxs->Bop[1] += gfxs->src_field_offset/2;
-                         else
-                              gfxs->Bop[1] += pitch - gfxs->src_field_offset/2;
-                    }
-                    else {
-                         gfxs->Bop[1] += pitch;
-                    }
-               }
-          }
-          else if (gfxs->src_format == DSPF_YUV444P) {
-               if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Bop_field & 1) {
-                         gfxs->Bop[1] += gfxs->src_field_offset;
-                         gfxs->Bop[2] += gfxs->src_field_offset;
-                    }
-                    else {
-                         gfxs->Bop[1] += pitch - gfxs->src_field_offset;
-                         gfxs->Bop[2] += pitch - gfxs->src_field_offset;
-                    }
-               }
-               else {
-                    gfxs->Bop[1] += pitch;
-                    gfxs->Bop[2] += pitch;
-               }
-          }
-          else { /* NV16 */
-               if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Bop_field & 1)
-                         gfxs->Bop[1] += gfxs->src_field_offset;
-                    else
-                         gfxs->Bop[1] += pitch - gfxs->src_field_offset;
-               }
-               else {
-                    gfxs->Bop[1] += pitch;
-               }
-          }
-     }
-
-     gfxs->BopY++;
-}
-
-static void Bop_prev( GenefxState *gfxs )
-{
-     int pitch = gfxs->src_pitch;
-
-     if (gfxs->src_caps & DSCAPS_SEPARATED) {
-          gfxs->Bop_field++;
-
-          if (gfxs->Bop_field & 1)
-               gfxs->Bop[0] += gfxs->src_field_offset - pitch;
-          else
-               gfxs->Bop[0] -= gfxs->src_field_offset;
-     }
-     else
-          gfxs->Bop[0] -= pitch;
-
-     if (DFB_PLANAR_PIXELFORMAT(gfxs->src_format)) {
-          if (gfxs->src_format == DSPF_YV12 || gfxs->src_format == DSPF_I420) {
-               if (gfxs->BopY & 1) {
-                    if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                         if (gfxs->Bop_field & 2) {
-                              gfxs->Bop[1] += gfxs->src_field_offset/4 - pitch/2;
-                              gfxs->Bop[2] += gfxs->src_field_offset/4 - pitch/2;
-                         }
-                         else {
-                              gfxs->Bop[1] -= gfxs->src_field_offset/4;
-                              gfxs->Bop[2] -= gfxs->src_field_offset/4;
-                         }
-                    }
-                    else {
-                         gfxs->Bop[1] -= pitch/2;
-                         gfxs->Bop[2] -= pitch/2;
-                    }
-               }
-          }
-          else if (gfxs->src_format == DSPF_YV16) {
-               if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Bop_field & 2) {
-                         gfxs->Bop[1] += gfxs->src_field_offset/2 - pitch/2;
-                         gfxs->Bop[2] += gfxs->src_field_offset/2 - pitch/2;
-                    }
-                    else {
-                         gfxs->Bop[1] -= gfxs->src_field_offset/2;
-                         gfxs->Bop[2] -= gfxs->src_field_offset/2;
-                    }
-               }
-               else {
-                    gfxs->Bop[1] -= pitch/2;
-                    gfxs->Bop[2] -= pitch/2;
-               }
-          }
-          else if (gfxs->src_format == DSPF_NV12 || gfxs->src_format == DSPF_NV21) {
-               if (gfxs->BopY & 1) {
-                    if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                         if (gfxs->Bop_field & 2)
-                              gfxs->Bop[1] += gfxs->src_field_offset/2 - pitch;
-                         else
-                              gfxs->Bop[1] -= gfxs->src_field_offset/2;
-                    }
-                    else {
-                         gfxs->Bop[1] -= pitch;
-                    }
-               }
-          }
-          else if (gfxs->src_format == DSPF_YUV444P) {
-               if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Bop_field & 1) {
-                         gfxs->Bop[1] += gfxs->src_field_offset - pitch;
-                         gfxs->Bop[2] += gfxs->src_field_offset - pitch;
-                    }
-                    else {
-                         gfxs->Bop[1] -= gfxs->src_field_offset;
-                         gfxs->Bop[2] -= gfxs->src_field_offset;
-                    }
-               }
-               else {
-                    gfxs->Bop[1] -= pitch;
-                    gfxs->Bop[2] -= pitch;
-               }
-          }
-          else { /* NV16 */
-               if (gfxs->src_caps & DSCAPS_SEPARATED) {
-                    if (gfxs->Bop_field & 1)
-                         gfxs->Bop[1] += gfxs->src_field_offset - pitch;
-                    else
-                         gfxs->Bop[1] -= gfxs->src_field_offset;
-               }
-               else {
-                    gfxs->Bop[1] -= pitch;
-               }
-          }
-     }
-
-     gfxs->BopY--;
-}
-
-/**********************************************************************************************************************/
-
-static bool
-ABacc_prepare( GenefxState *gfxs, int width )
-{
-     int size;
-
-     if (!gfxs->need_accumulator)
-          return true;
-
-     size = (width + 31) & ~31;
-
-     if (gfxs->ABsize < size) {
-          void *ABstart = D_MALLOC( size * sizeof(GenefxAccumulator) * 3 + 31 );
-
-          if (!ABstart) {
-               D_WARN( "out of memory" );
-               return false;
-          }
-
-          if (gfxs->ABstart)
-               D_FREE( gfxs->ABstart );
-
-          gfxs->ABstart = ABstart;
-          gfxs->ABsize  = size;
-          gfxs->Aacc    = (GenefxAccumulator*) (((unsigned long)ABstart+31) & ~31);
-          gfxs->Bacc    = gfxs->Aacc + size;
-          gfxs->Tacc    = gfxs->Aacc + size + size;
-     }
-
-     gfxs->Sacc = gfxs->Dacc = gfxs->Aacc;
-
-     return true;
-}
-
-static void
-ABacc_flush( GenefxState *gfxs )
-{
-     if (dfb_config->keep_accumulators >= 0 && gfxs->ABsize > dfb_config->keep_accumulators) {
-          D_FREE( gfxs->ABstart );
-
-          gfxs->ABsize  = 0;
-          gfxs->ABstart = NULL;
-          gfxs->Aacc    = NULL;
-          gfxs->Bacc    = NULL;
-          gfxs->Sacc    = NULL;
-          gfxs->Dacc    = NULL;
-     }
-}
-
-/**********************************************************************************************************************/
-
-void gFillRectangle( CardState *state, DFBRectangle *rect )
-{
-     int          h;
-     GenefxState *gfxs = state->gfxs;
-
-     D_ASSERT( gfxs != NULL );
-
-     if (dfb_config->software_warn) {
-          D_WARN( "FillRectangle (%4d,%4d-%4dx%4d) %6s, flags 0x%08x, color 0x%02x%02x%02x%02x",
-                  DFB_RECTANGLE_VALS(rect), dfb_pixelformat_name(gfxs->dst_format), state->drawingflags,
-                  state->color.a, state->color.r, state->color.g, state->color.b );
-     }
-
-     D_ASSERT( state->clip.x1 <= rect->x );
-     D_ASSERT( state->clip.y1 <= rect->y );
-     D_ASSERT( state->clip.x2 >= (rect->x + rect->w - 1) );
-     D_ASSERT( state->clip.y2 >= (rect->y + rect->h - 1) );
-
-     CHECK_PIPELINE();
-
-     if (!ABacc_prepare( gfxs, rect->w ))
-          return;
-
-     gfxs->length = rect->w;
-
-     Aop_xy( gfxs, rect->x, rect->y );
-
-     h = rect->h;
-     while (h--) {
-          RUN_PIPELINE();
-
-          Aop_next( gfxs );
-     }
-
-     ABacc_flush( gfxs );
-}
-
-void gDrawLine( CardState *state, DFBRegion *line )
-{
-     GenefxState *gfxs = state->gfxs;
-
-     int i,dx,dy,sdy,dxabs,dyabs,x,y,px,py;
-
-     D_ASSERT( gfxs != NULL );
-
-     CHECK_PIPELINE();
-
-     /* the horizontal distance of the line */
-     dx = line->x2 - line->x1;
-     dxabs = abs(dx);
-
-     if (!ABacc_prepare( gfxs, dxabs ))
-          return;
-
-     /* the vertical distance of the line */
-     dy = line->y2 - line->y1;
-     dyabs = abs(dy);
-
-     if (!dx || !dy) {              /* draw horizontal/vertical line */
-          DFBRectangle rect = {
-               MIN (line->x1, line->x2),
-               MIN (line->y1, line->y2),
-               dxabs + 1, dyabs + 1};
-
-          gFillRectangle( state, &rect );
-          return;
-     }
-
-     if (dfb_config->software_warn) {
-          D_WARN( "DrawLine      (%4d,%4d-%4d,%4d) %6s, flags 0x%08x, color 0x%02x%02x%02x%02x",
-                  DFB_RECTANGLE_VALS_FROM_REGION(line), dfb_pixelformat_name(gfxs->dst_format), state->drawingflags,
-                  state->color.a, state->color.r, state->color.g, state->color.b );
-     }
-
-     sdy = SIGN(dy) * SIGN(dx);
-     x = dyabs >> 1;
-     y = dxabs >> 1;
-
-     if (dx > 0) {
-          px  = line->x1;
-          py  = line->y1;
-     }
-     else {
-          px  = line->x2;
-          py  = line->y2;
-     }
-
-     if (dxabs >= dyabs) { /* the line is more horizontal than vertical */
-
-          for (i=0, gfxs->length=1; i<dxabs; i++, gfxs->length++) {
-               y += dyabs;
-               if (y >= dxabs) {
-                    Aop_xy( gfxs, px, py );
-                    RUN_PIPELINE();
-                    px += gfxs->length;
-                    gfxs->length = 0;
-                    y -= dxabs;
-                    py += sdy;
-               }
-          }
-          Aop_xy( gfxs, px, py );
-          RUN_PIPELINE();
-     }
-     else { /* the line is more vertical than horizontal */
-
-          gfxs->length = 1;
-          Aop_xy( gfxs, px, py );
-          RUN_PIPELINE();
-
-          for (i=0; i<dyabs; i++) {
-               x += dxabs;
-               if (x >= dyabs) {
-                    x -= dyabs;
-                    px++;
-               }
-               py += sdy;
-
-               Aop_xy( gfxs, px, py );
-               RUN_PIPELINE();
-          }
-     }
-
-     ABacc_flush( gfxs );
-}
-
-void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
-{
-     GenefxState    *gfxs = state->gfxs;
-     int             h;
-     XopAdvanceFunc  Aop_advance;
-     XopAdvanceFunc  Bop_advance;
-     int             Aop_X;
-     int             Aop_Y;
-     int             Bop_X;
-     int             Bop_Y;
-
-     D_ASSERT( gfxs != NULL );
-
-     if (dfb_config->software_warn) {
-          D_WARN( "Blit          (%4d,%4d-%4dx%4d) %6s, flags 0x%08x, funcs %d/%d, color 0x%02x%02x%02x%02x, source (%4d,%4d) %6s",
-                  dx, dy, rect->w, rect->h, dfb_pixelformat_name(gfxs->dst_format), state->blittingflags,
-                  state->src_blend, state->dst_blend,
-                  state->color.a, state->color.r, state->color.g, state->color.b, rect->x, rect->y,
-                  dfb_pixelformat_name(gfxs->src_format) );
-     }
-
-     D_ASSERT( state->clip.x1 <= dx );
-     D_ASSERT( state->clip.y1 <= dy );
-     D_ASSERT( (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) || state->clip.x2 >= (dx + rect->w - 1) );
-     D_ASSERT( (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) || state->clip.y2 >= (dy + rect->h - 1) );
-     D_ASSERT( !(state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) || state->clip.x2 >= (dx + rect->h - 1) );
-     D_ASSERT( !(state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) || state->clip.y2 >= (dy + rect->w - 1) );
-
-     CHECK_PIPELINE();
-
-     if (!ABacc_prepare( gfxs, rect->w ))
-          return;
-
-
-     switch (gfxs->src_format) {
-          case DSPF_A4:
-          case DSPF_YUY2:
-          case DSPF_UYVY:
-               rect->x &= ~1;
-               break;
-          default:
-               break;
-     }
-
-     switch (gfxs->dst_format) {
-          case DSPF_A4:
-          case DSPF_YUY2:
-          case DSPF_UYVY:
-               dx &= ~1;
-               break;
-          default:
-               break;
-     }
-
-     gfxs->length = rect->w;
-
-
-     if (gfxs->src_org[0] == gfxs->dst_org[0] && dy == rect->y && dx > rect->x)
-          /* we must blit from right to left */
-          gfxs->Astep = gfxs->Bstep = -1;
-     else
-          /* we must blit from left to right*/
-          gfxs->Astep = gfxs->Bstep = 1;
-
-
-
-     if ((state->blittingflags & DSBLIT_ROTATE180)
-         || D_FLAGS_ARE_SET (state->blittingflags, (DSBLIT_FLIP_HORIZONTAL
-                                                    | DSBLIT_FLIP_VERTICAL))) {
-          gfxs->Astep *= -1;
-
-          Aop_X = dx + rect->w - 1;
-          Aop_Y = dy;
-
-          Bop_X = rect->x;
-          Bop_Y = rect->y + rect->h - 1;
-
-          Aop_advance = Aop_next;
-          Bop_advance = Bop_prev;
-     }
-     else if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
-          gfxs->Astep *= -1;
-
-          Aop_X = dx + rect->w - 1;
-          Aop_Y = dy;
-
-          Bop_X = rect->x;
-          Bop_Y = rect->y;
-
-          Aop_advance = Aop_next;
-          Bop_advance = Bop_next;
-     }
-     else if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
-          Aop_X = dx;
-          Aop_Y = dy + rect->h - 1;
-
-          Bop_X = rect->x;
-          Bop_Y = rect->y;
-
-          Aop_advance = Aop_prev;
-          Bop_advance = Bop_next;
-     }
-     else if (state->blittingflags & DSBLIT_ROTATE270) {
-          gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
-
-          Aop_X = dx;
-          Aop_Y = dy;
-
-          Bop_X = rect->x;
-          Bop_Y = rect->y + rect->h - 1;
-
-          Aop_advance = Aop_crab;
-          Bop_advance = Bop_prev;
-     }
-     else if (state->blittingflags & DSBLIT_ROTATE90) {
-          gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
-
-          Aop_X = dx;
-          Aop_Y = dy + rect->w - 1;
-
-          Bop_X = rect->x;
-          Bop_Y = rect->y;
-
-          Aop_advance = Aop_crab;
-          Bop_advance = Bop_next;
-     }
-     else if (gfxs->src_org[0] == gfxs->dst_org[0] && dy > rect->y && !(state->blittingflags & DSBLIT_DEINTERLACE)) {
-          /* we must blit from bottom to top */
-          Aop_X = dx;
-          Aop_Y = dy + rect->h - 1;
-
-          Bop_X = rect->x;
-          Bop_Y = rect->y + rect->h - 1;
-
-          Aop_advance = Aop_prev;
-          Bop_advance = Bop_prev;
-     }
-     else {
-          /* we must blit from top to bottom */
-          Aop_X = dx;
-          Aop_Y = dy;
-
-          Bop_X = rect->x;
-          Bop_Y = rect->y;
-
-          Aop_advance = Aop_next;
-          Bop_advance = Bop_next;
-     }
-
-
-
-     Aop_xy( gfxs, Aop_X, Aop_Y );
-     Bop_xy( gfxs, Bop_X, Bop_Y );
-
-     if (state->blittingflags & DSBLIT_DEINTERLACE) {
-          if (state->source->field) {
-               Aop_advance( gfxs );
-               Bop_advance( gfxs );
-               rect->h--;
-          }
-
-          for (h = rect->h/2; h; h--) {
-               RUN_PIPELINE();
-
-               Aop_advance( gfxs );
-
-               RUN_PIPELINE();
-
-               Aop_advance( gfxs );
-
-               Bop_advance( gfxs );
-               Bop_advance( gfxs );
-          }
-     } /* ! DSBLIT_DEINTERLACE */
-     else {
-          for (h = rect->h; h; h--) {
-               RUN_PIPELINE();
-
-               Aop_advance( gfxs );
-               Bop_advance( gfxs );
-          }
-     }
-
-     ABacc_flush( gfxs );
-}
-
-/**********************************************************************************************************************/
-/*********           **************************************************************************************************/
-/*** Smooth scaling routines ******************************************************************************************/
-/*********           **************************************************************************************************/
-/**********************************************************************************************************************/
-
-#if DFB_SMOOTH_SCALING
-
-typedef struct {
-     DFBRegion   clip;
-     const void *colors;
-     ulong       protect;
-     ulong       key;
-} StretchCtx;
-
-typedef void (*StretchHVx)( void             *dst,
-                            int               dpitch,
-                            const void       *src,
-                            int               spitch,
-                            int               width,
-                            int               height,
-                            int               dst_width,
-                            int               dst_height,
-                            const StretchCtx *ctx );
-
-#define STRETCH_NONE           0
-#define STRETCH_SRCKEY         1
-#define STRETCH_PROTECT        2
-#define STRETCH_SRCKEY_PROTECT 3
-#define STRETCH_NUM            4
-
-typedef struct {
-     struct {
-          StretchHVx     up[STRETCH_NUM];
-          StretchHVx     down[STRETCH_NUM];
-     } f[DFB_NUM_PIXELFORMATS];
-} StretchFunctionTable;
-
-/**********************************************************************************************************************/
-/*** 16 bit RGB 565 scalers *******************************************************************************************/
-/**********************************************************************************************************************/
-
-#define DST_FORMAT              DSPF_RGB16
-#define TABLE_NAME              stretch_hvx_RGB16
-#define FUNC_NAME(UPDOWN,K,P,F) stretch_hvx_RGB16_ ## UPDOWN ## _ ## K ## P ## _ ## F
-#define SHIFT_R5                5
-#define SHIFT_R6                6
-#define X_F81F                  0xf81f
-#define X_07E0                  0x07e0
-#define MASK_RGB                0xffff
-
-#define FORMAT_RGB16
-#include "stretch_up_down_16.h"
-#undef FORMAT_RGB16
-
-#undef DST_FORMAT
-#undef TABLE_NAME
-#undef FUNC_NAME
-#undef SHIFT_R5
-#undef SHIFT_R6
-#undef X_F81F
-#undef X_07E0
-#undef MASK_RGB
-
-/**********************************************************************************************************************/
-/*** 16 bit ARGB 4444 scalers *****************************************************************************************/
-/**********************************************************************************************************************/
-
-#define DST_FORMAT              DSPF_ARGB4444
-#define TABLE_NAME              stretch_hvx_ARGB4444
-#define FUNC_NAME(UPDOWN,K,P,F) stretch_hvx_ARGB4444_ ## UPDOWN ## _ ## K ## P ## _ ## F
-#define SHIFT_R5          4
-#define SHIFT_R6          4
-#define X_F81F            0x0f0f
-#define X_07E0            0xf0f0
-#define MASK_RGB          0x0fff
-#define HAS_ALPHA
-
-#define FORMAT_ARGB4444
-#include "stretch_up_down_16.h"
-#undef FORMAT_ARGB4444
-
-#undef DST_FORMAT
-#undef TABLE_NAME
-#undef FUNC_NAME
-#undef SHIFT_R5
-#undef SHIFT_R6
-#undef X_F81F
-#undef X_07E0
-#undef MASK_RGB
-#undef HAS_ALPHA
-
-/**********************************************************************************************************************/
-/*** 16 bit RGBA 4444 scalers *****************************************************************************************/
-/**********************************************************************************************************************/
-
-#define DST_FORMAT              DSPF_RGBA4444
-#define TABLE_NAME              stretch_hvx_RGBA4444
-#define FUNC_NAME(UPDOWN,K,P,F) stretch_hvx_RGBA4444_ ## UPDOWN ## _ ## K ## P ## _ ## F
-#define SHIFT_R5          4
-#define SHIFT_R6          4
-#define X_F81F            0x0f0f
-#define X_07E0            0xf0f0
-#define MASK_RGB          0xfff0
-#define HAS_ALPHA
-
-#define FORMAT_RGBA4444
-#include "stretch_up_down_16.h"
-#undef FORMAT_RGBA4444
-
-#undef DST_FORMAT
-#undef TABLE_NAME
-#undef FUNC_NAME
-#undef SHIFT_R5
-#undef SHIFT_R6
-#undef X_F81F
-#undef X_07E0
-#undef MASK_RGB
-#undef HAS_ALPHA
-
-/**********************************************************************************************************************/
-/*** 32 bit ARGB 8888 scalers *****************************************************************************************/
-/**********************************************************************************************************************/
-
-#define DST_FORMAT              DSPF_ARGB
-#define TABLE_NAME              stretch_hvx_ARGB
-#define FUNC_NAME(UPDOWN,K,P,F) stretch_hvx_ARGB_ ## UPDOWN ## _ ## K ## P ## _ ## F
-#define SHIFT_R8                8
-#define SHIFT_L8                8
-#define X_00FF00FF              0x00ff00ff
-#define X_FF00FF00              0xff00ff00
-#define MASK_RGB                0x00ffffff
-#define HAS_ALPHA
-
-#include "stretch_up_down_32.h"
-
-#undef DST_FORMAT
-#undef TABLE_NAME
-#undef FUNC_NAME
-#undef SHIFT_R8
-#undef SHIFT_L8
-#undef X_00FF00FF
-#undef X_FF00FF00
-#undef MASK_RGB
-#undef HAS_ALPHA
-
-/**********************************************************************************************************************/
-/*** 32 bit RGB 888 scalers *******************************************************************************************/
-/**********************************************************************************************************************/
-
-#define DST_FORMAT              DSPF_RGB32
-#define TABLE_NAME              stretch_hvx_RGB32
-#define FUNC_NAME(UPDOWN,K,P,F) stretch_hvx_RGB32_ ## UPDOWN ## _ ## K ## P ## _ ## F
-#define SHIFT_R8                8
-#define SHIFT_L8                8
-#define X_00FF00FF              0x00ff00ff
-#define X_FF00FF00              0x0000ff00
-#define MASK_RGB                0x00ffffff
-
-#include "stretch_up_down_32.h"
-
-#undef DST_FORMAT
-#undef TABLE_NAME
-#undef FUNC_NAME
-#undef SHIFT_R8
-#undef SHIFT_L8
-#undef X_00FF00FF
-#undef X_FF00FF00
-#undef MASK_RGB
-
-#if 0
-/**********************************************************************************************************************/
-/*** 16 bit YUV 422 scalers *******************************************************************************************/
-/**********************************************************************************************************************/
-
-#define FUNC_NAME(UPDOWN) stretch_hvx_nv16_ ## UPDOWN
-
-#include "stretch_up_down_8.h"
-
-#undef FUNC_NAME
-
-/**********************************************************************************************************************/
-
-#define FUNC_NAME(UPDOWN) stretch_hvx_nv16_uv_ ## UPDOWN
-
-#include "stretch_up_down_88.h"
-
-#undef FUNC_NAME
-
-#endif
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
-
-static const StretchFunctionTable *stretch_tables[DFB_NUM_PIXELFORMATS] = {
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGB16)]    = &stretch_hvx_RGB16,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = &stretch_hvx_RGB32,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = &stretch_hvx_ARGB,
-     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_UYVY)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_I420)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_YV12)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_LUT8)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ALUT44)]   = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)]    = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_A1)]       = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_NV12)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_NV16)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB2554)] = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] = &stretch_hvx_ARGB4444,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA4444)] = &stretch_hvx_RGBA4444,
-     [DFB_PIXELFORMAT_INDEX(DSPF_NV21)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_AYUV)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_A4)]       = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_BGR555)]   = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
-};
-
-/**********************************************************************************************************************/
-
-__attribute__((noinline))
-static bool
-stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
-{
-     GenefxState                *gfxs;
-     const StretchFunctionTable *table;
-     StretchHVx                  stretch;
-     bool                        down = false;
-     void                       *dst;
-     void                       *src;
-     StretchCtx                  ctx;
-     int                         idx = STRETCH_NONE;
-     u32                         colors[256];
-
-     D_ASSERT( state != NULL );
-     DFB_RECTANGLE_ASSERT( srect );
-     DFB_RECTANGLE_ASSERT( drect );
-
-     gfxs = state->gfxs;
-
-     if (state->blittingflags & ~(DSBLIT_COLORKEY_PROTECT | DSBLIT_SRC_COLORKEY | DSBLIT_SRC_PREMULTIPLY))
-          return false;
-
-     if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY && !DFB_PIXELFORMAT_IS_INDEXED( gfxs->src_format ))
-          return false;
-
-     if (DFB_PIXELFORMAT_INDEX(gfxs->dst_format) >= D_ARRAY_SIZE(stretch_tables))
-          return false;
-
-     if (DFB_PIXELFORMAT_INDEX(gfxs->src_format) >= D_ARRAY_SIZE((stretch_tables[0])->f))
-          return false;
-
-     table = stretch_tables[DFB_PIXELFORMAT_INDEX(gfxs->dst_format)];
-     if (!table)
-          return false;
-
-     if (srect->w > drect->w && srect->h > drect->h)
-          down = true;
-
-     if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-          idx |= STRETCH_SRCKEY;
-
-     if (state->blittingflags & DSBLIT_COLORKEY_PROTECT)
-          idx |= STRETCH_PROTECT;
-
-     if (down) {
-          if (!(state->render_options & DSRO_SMOOTH_DOWNSCALE))
-               return false;
-
-          stretch = table->f[DFB_PIXELFORMAT_INDEX(gfxs->src_format)].down[idx];
-     }
-     else {
-          if (!(state->render_options & DSRO_SMOOTH_UPSCALE))
-               return false;
-
-          stretch = table->f[DFB_PIXELFORMAT_INDEX(gfxs->src_format)].up[idx];
-     }
-
-     if (!stretch)
-          return false;
-
-     ctx.clip = state->clip;
-
-     if (!dfb_region_rectangle_intersect( &ctx.clip, drect ))
-          return false;
-
-     dfb_region_translate( &ctx.clip, - drect->x, - drect->y );
-
-     if (DFB_PIXELFORMAT_IS_INDEXED( gfxs->src_format )) {
-          int             i;
-          const DFBColor *entries;
-          u16            *colors16 = (void*) colors;
-
-          D_ASSERT( gfxs->Blut != NULL );
-
-          entries = gfxs->Blut->entries;
-
-          switch (gfxs->dst_format) {
-               case DSPF_ARGB:
-                    if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
-                         for (i=0; i<gfxs->Blut->num_entries; i++) {
-                              int alpha = entries[i].a + 1;
-
-                              switch (alpha) {
-                                   case 0:
-                                        colors[i] = 0;
-                                        break;
-
-                                   case 255:
-                                        colors[i] = PIXEL_ARGB( entries[i].a,
-                                                                entries[i].r,
-                                                                entries[i].g,
-                                                                entries[i].b );
-                                        break;
-
-                                   default:
-                                        colors[i] = PIXEL_ARGB( entries[i].a,
-                                                                (alpha * entries[i].r) >> 8,
-                                                                (alpha * entries[i].g) >> 8,
-                                                                (alpha * entries[i].b) >> 8 );
-                              }
-                         }
-                    }
-                    else {
-                         for (i=0; i<gfxs->Blut->num_entries; i++)
-                              colors[i] = PIXEL_ARGB( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
-                    }
-                    break;
-
-               case DSPF_RGB32:
-                    for (i=0; i<gfxs->Blut->num_entries; i++)
-                         colors[i] = PIXEL_RGB32( entries[i].r, entries[i].g, entries[i].b );
-                    break;
-
-               case DSPF_RGB16:
-                    for (i=0; i<gfxs->Blut->num_entries; i++)
-                         colors16[i] = PIXEL_RGB16( entries[i].r, entries[i].g, entries[i].b );
-                    break;
-
-               case DSPF_ARGB4444:
-                    if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
-                         for (i=0; i<gfxs->Blut->num_entries; i++) {
-                              int alpha = entries[i].a + 1;
-
-                              switch (alpha) {
-                                   case 0:
-                                        colors16[i] = 0;
-                                        break;
-
-                                   case 255:
-                                        colors16[i] = PIXEL_ARGB4444( entries[i].a,
-                                                                      entries[i].r,
-                                                                      entries[i].g,
-                                                                      entries[i].b );
-                                        break;
-
-                                   default:
-                                        colors16[i] = PIXEL_ARGB4444( entries[i].a,
-                                                                      (alpha * entries[i].r) >> 8,
-                                                                      (alpha * entries[i].g) >> 8,
-                                                                      (alpha * entries[i].b) >> 8 );
-                              }
-                         }
-                    }
-                    else {
-                         for (i=0; i<gfxs->Blut->num_entries; i++)
-                              colors16[i] = PIXEL_ARGB4444( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
-                    }
-                    break;
-
-               case DSPF_RGBA4444:
-                    if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
-                         for (i=0; i<gfxs->Blut->num_entries; i++) {
-                              int alpha = entries[i].a + 1;
-
-                              switch (alpha) {
-                                   case 0:
-                                        colors16[i] = 0;
-                                        break;
-
-                                   case 255:
-                                        colors16[i] = PIXEL_RGBA4444( entries[i].a,
-                                                                      entries[i].r,
-                                                                      entries[i].g,
-                                                                      entries[i].b );
-                                        break;
-
-                                   default:
-                                        colors16[i] = PIXEL_RGBA4444( entries[i].a,
-                                                                      (alpha * entries[i].r) >> 8,
-                                                                      (alpha * entries[i].g) >> 8,
-                                                                      (alpha * entries[i].b) >> 8 );
-                              }
-                         }
-                    }
-                    else {
-                         for (i=0; i<gfxs->Blut->num_entries; i++)
-                              colors16[i] = PIXEL_RGBA4444( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
-                    }
-                    break;
-
-               case DSPF_RGB444:
-                    for (i=0; i<gfxs->Blut->num_entries; i++)
-                         colors16[i] = PIXEL_RGB444( entries[i].r, entries[i].g, entries[i].b );
-                    break;
-
-               default:
-                    D_UNIMPLEMENTED();
-          }
-
-          ctx.colors = colors;
-
-          if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-               if (DFB_PIXELFORMAT_IS_INDEXED( gfxs->dst_format ))
-                    ctx.key = state->src_colorkey;
-               else {
-                    const DFBColor *color = &entries[state->src_colorkey % gfxs->Blut->num_entries];
-
-                    ctx.key = dfb_color_to_pixel( gfxs->dst_format, color->r, color->g, color->b );
-               }
-          }
-     }
-     else {
-          ctx.colors = NULL;
-
-          if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-               DFBColor color;
-
-               dfb_pixel_to_color( gfxs->src_format, state->src_colorkey, &color );
-
-               ctx.key = dfb_color_to_pixel( gfxs->dst_format, color.r, color.g, color.b );
-          }
-     }
-
-     if (state->blittingflags & DSBLIT_COLORKEY_PROTECT) {
-          if (DFB_PIXELFORMAT_IS_INDEXED( gfxs->dst_format ))
-               ctx.protect = state->colorkey.index;
-          else
-               ctx.protect = dfb_color_to_pixel( gfxs->dst_format,
-                                                 state->colorkey.r,
-                                                 state->colorkey.g,
-                                                 state->colorkey.b );
-     }
-
-     dst = gfxs->dst_org[0] + drect->y * gfxs->dst_pitch + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x );
-     src = gfxs->src_org[0] + srect->y * gfxs->src_pitch + DFB_BYTES_PER_LINE( gfxs->src_format, srect->x );
-
-     stretch( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
-              srect->w, srect->h, drect->w, drect->h, &ctx );
-
-#if 0     /* FIXME: repair */
-     switch (gfxs->dst_format) {
-          case DSPF_NV16:
-               ctx.clip.x1 /= 2;
-               ctx.clip.x2 /= 2;
-               if (srect->w < drect->w || srect->h < drect->h) {
-                    stretch_hvx_nv16_uv_up( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
-                                            srect->w/2, srect->h, drect->w/2, drect->h, &ctx );
-               }
-               else {
-                    stretch_hvx_nv16_uv_down( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
-                                              srect->w/2, srect->h, drect->w/2, drect->h, &ctx );
-               }
-               break;
-
-          default:
-               break;
-     }
-#endif
-
-     return true;
-}
-#endif /* DFB_SMOOTH_SCALING */
-
-void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
-{
-     GenefxState    *gfxs  = state->gfxs;
-     DFBRectangle    orect = *drect;
-     XopAdvanceFunc  Aop_advance;
-     XopAdvanceFunc  Bop_advance;
-     int             Aop_X;
-     int             Aop_Y;
-     int             Bop_X;
-     int             Bop_Y;
-
-     int fx, fy;
-     int ix, iy;
-     int h;
-
-     D_ASSERT( gfxs != NULL );
-
-     if (dfb_config->software_warn) {
-          D_WARN( "StretchBlit   (%4d,%4d-%4dx%4d) %6s, flags 0x%08x, color 0x%02x%02x%02x%02x, source (%4d,%4d-%4dx%4d) %6s",
-                  drect->x, drect->y, drect->w, drect->h, dfb_pixelformat_name(gfxs->dst_format), state->blittingflags,
-                  state->color.a, state->color.r, state->color.g, state->color.b, srect->x, srect->y, srect->w, srect->h,
-                  dfb_pixelformat_name(gfxs->src_format) );
-     }
-
-     CHECK_PIPELINE();
-
-#if DFB_SMOOTH_SCALING
-     if (state->render_options & (DSRO_SMOOTH_UPSCALE | DSRO_SMOOTH_DOWNSCALE) &&
-         stretch_hvx( state, srect, drect ))
-          return;
-#endif
-
-     /* Clip destination rectangle. */
-     if (!dfb_rectangle_intersect_by_region( drect, &state->clip ))
-          return;
-
-     /* Calculate fractions. */
-     fx = (srect->w << 16) / orect.w;
-     fy = (srect->h << 16) / orect.h;
-
-     /* Calculate horizontal phase and offset. */
-     ix = fx * (drect->x - orect.x);
-     srect->x += ix >> 16;
-     ix &= 0xFFFF;
-
-     /* Calculate vertical phase and offset. */
-     iy = fy * (drect->y - orect.y);
-     srect->y += iy >> 16;
-     iy &= 0xFFFF;
-
-     /* Adjust source size. */
-     srect->w = ((drect->w * fx + ix) + 0xFFFF) >> 16;
-     srect->h = ((drect->h * fy + iy) + 0xFFFF) >> 16;
-
-     D_ASSERT( srect->x + srect->w <= state->source->config.size.w );
-     D_ASSERT( srect->y + srect->h <= state->source->config.size.h );
-     D_ASSERT( drect->x + drect->w <= state->clip.x2 + 1 );
-     D_ASSERT( drect->y + drect->h <= state->clip.y2 + 1 );
-
-
-     if (!ABacc_prepare( gfxs, MAX( srect->w, drect->w ) ))
-          return;
-
-
-     switch (gfxs->src_format) {
-          case DSPF_A4:
-          case DSPF_YUY2:
-          case DSPF_UYVY:
-               srect->x &= ~1;
-               break;
-          default:
-               break;
-     }
-
-     switch (gfxs->dst_format) {
-          case DSPF_A4:
-          case DSPF_YUY2:
-          case DSPF_UYVY:
-               drect->x &= ~1;
-               break;
-          default:
-               break;
-     }
-
-     gfxs->Slen   = srect->w;
-     gfxs->Dlen   = drect->w;
-     gfxs->length = gfxs->Dlen;
-     gfxs->SperD  = fx;
-     gfxs->Xphase = ix;
-
-     h = drect->h;
-
-     if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
-          gfxs->Astep *= -1;
-
-          Aop_X = drect->x + drect->w - 1;
-          Aop_Y = drect->y;
-
-          Bop_X = srect->x;
-          Bop_Y = srect->y;
-
-          Aop_advance = Aop_next;
-          Bop_advance = Bop_next;
-     }
-     else if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
-          Aop_X = drect->x;
-          Aop_Y = drect->y + drect->h - 1;
-
-          Bop_X = srect->x;
-          Bop_Y = srect->y;
-
-          Aop_advance = Aop_prev;
-          Bop_advance = Bop_next;
-     }
-     else {
-          Aop_X = drect->x;
-          Aop_Y = drect->y;
-
-          Bop_X = srect->x;
-          Bop_Y = srect->y;
-
-          Aop_advance = Aop_next;
-          Bop_advance = Bop_next;
-     }
-
-     Aop_xy( gfxs, Aop_X, Aop_Y );
-     Bop_xy( gfxs, Bop_X, Bop_Y );
-
-     while (h--) {
-          RUN_PIPELINE();
-
-          Aop_advance( gfxs );
-
-          iy += fy;
-
-          while (iy > 0xFFFF) {
-               iy -= 0x10000;
-               Bop_advance( gfxs );
-          }
-     }
-
-     ABacc_flush( gfxs );
-}
-
 
 #ifdef USE_MMX
 
