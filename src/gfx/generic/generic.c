@@ -9245,7 +9245,8 @@ static const GenefxFunc Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[DFB_NUM_P
                     u32 Sxg = ((S & 0xff00ff00) >> 8) * src;               \
                                                                            \
                     D = (Srb & 0x00ff00ff) + (Sxg & 0x0000ff00) +          \
-                        (Drb & 0x00ff00ff) + (Dag & 0xff00ff00);           \
+                        (Drb & 0x00ff00ff) + (Dag & 0xff00ff00) +          \
+                        (S   & 0xff000000);                                \
                }                                                           \
      } while (0)
 
