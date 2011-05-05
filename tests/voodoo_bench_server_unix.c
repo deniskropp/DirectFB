@@ -56,8 +56,11 @@
 #include <direct/util.h>
 
 #include <voodoo/internal.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/server.h>
+
+#include <misc/conf.h>
 
 
 #define UNIX_PATH_MAX	108
@@ -114,6 +117,8 @@ main( int argc, char *argv[] )
 {
      static const int one = 1;
 
+     dfb_config_init( &argc, &argv );
+
      /* Initialize libdirect. */
      direct_initialize();
 
@@ -126,7 +131,7 @@ main( int argc, char *argv[] )
 
 
      int                 lfd;
-     int                 fds[2];
+     VoodooLink          link;
      VoodooManager      *manager;
      VoodooInstanceID    instance;
      struct sockaddr_un  addr;
@@ -149,7 +154,7 @@ main( int argc, char *argv[] )
      /* Bind the socket to the local port. */
      addr.sun_family = AF_UNIX;
 
-     snprintf( addr.sun_path + 1, UNIX_PATH_MAX - 1, "Voodoo/%u", 23239 );
+     snprintf( addr.sun_path + 1, UNIX_PATH_MAX - 1, "VoodooBench" );
 
      if (bind( lfd, (struct sockaddr*) &addr, strlen(addr.sun_path+1)+1 + sizeof(addr.sun_family) )) {
           D_PERROR( "Voodoo/Player: Could not bind() the Unix Domain socket!\n" );
@@ -196,11 +201,12 @@ main( int argc, char *argv[] )
      }
 
 
-     fds[0] = cfd;
-     fds[1] = cfd;
+     int fds[2] = { cfd, cfd };
+
+     voodoo_link_init_fd( &link, fds );
 
 
-     voodoo_manager_create( fds, NULL, NULL, &manager );
+     voodoo_manager_create( &link, NULL, NULL, &manager );
 
      voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, NULL, NULL, Dispatch, &instance );
 

@@ -36,10 +36,6 @@
 
 #include <config.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -56,13 +52,14 @@
 #include <direct/util.h>
 
 #include <voodoo/internal.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/server.h>
 
+#include <misc/conf.h>
 
-#define BENCH_SYNC 1
 
-#define UNIX_PATH_MAX	108
+#define BENCH_SYNC 0
 
 
 #define VOODOOTEST_METHOD_ID_Push 1
@@ -71,7 +68,7 @@
 /**********************************************************************************************************************/
 
 #if BENCH_SYNC
-#define NUM_ITEMS   2000000
+#define NUM_ITEMS   200000
 #else
 #define NUM_ITEMS   20000000
 #endif
@@ -81,6 +78,8 @@ main( int argc, char *argv[] )
 {
      DirectClock clock;
      int         counter = 0;
+
+     dfb_config_init( &argc, &argv );
 
      /* Initialize libdirect. */
      direct_initialize();
@@ -93,44 +92,13 @@ main( int argc, char *argv[] )
      direct_log_domain_config_level( "Voodoo/Manager", DIRECT_LOG_DEBUG_9 );
 
 
-     int            err;
-     int            fd;
-     int            fds[2];
+
+     VoodooLink     link;
      VoodooManager *manager;
-     struct sockaddr_un  addr;
 
+     voodoo_link_init_local( &link, "VoodooBench", false );
 
-     /* Create the client socket. */
-     fd = socket( AF_LOCAL, SOCK_STREAM, 0 );
-     if (fd < 0) {
-          D_PERROR( "Voodoo/Client: Could not create the Unix domain socket via socket()!\n" );
-          return -1;
-     }
-
-
-     memset( &addr, 0, sizeof(addr) );
-
-     /* Bind the socket to the local port. */
-     addr.sun_family = AF_UNIX;
-
-     snprintf( addr.sun_path + 1, UNIX_PATH_MAX - 1, "Voodoo/%u", 23239 );
-
-
-     /* Connect to the server. */
-     err = connect( fd, (struct sockaddr*) &addr, strlen(addr.sun_path+1)+1 + sizeof(addr.sun_family) );
-     if (err) {
-          D_PERROR( "Voodoo/Client: Could not connect() to the server!\n" );
-          close( fd );
-          return -2;
-     }
-
-
-
-     fds[0] = fd;
-     fds[1] = fd;
-
-
-     voodoo_manager_create( fds, NULL, NULL, &manager );
+     voodoo_manager_create( &link, NULL, NULL, &manager );
 
 
 
