@@ -88,9 +88,22 @@ CorePalette      *dfb_core_create_palette      ( CoreDFB *core );
 CoreSurface      *dfb_core_create_surface      ( CoreDFB *core );
 CoreWindow       *dfb_core_create_window       ( CoreDFB *core );
 
+DFBResult         dfb_core_get_surface         ( CoreDFB      *core,
+                                                 u32           object_id,
+                                                 CoreSurface **ret_surface );
+
 DFBResult         dfb_core_get_window          ( CoreDFB     *core,
                                                  u32          object_id,
                                                  CoreWindow **ret_window );
+
+
+DFBResult         dfb_core_create_graphics_state( CoreDFB            *core,
+                                                  CoreGraphicsState **ret_state );
+
+DFBResult         dfb_core_get_graphics_state   ( CoreDFB            *core,
+                                                  u32                 object_id,
+                                                  CoreGraphicsState **ret_state );
+
 
 /*
  * Debug
@@ -165,6 +178,57 @@ void         dfb_core_cleanup_remove( CoreDFB     *core,
                                       CoreCleanup *cleanup );
 
 DFBFontManager *dfb_core_font_manager( CoreDFB *core );
+
+
+
+
+
+
+
+struct __DFB_CoreDFBShared {
+     int                  magic;
+
+     FusionSkirmish       lock;
+     bool                 active;
+
+     FusionObjectPool    *layer_context_pool;
+     FusionObjectPool    *layer_region_pool;
+     FusionObjectPool    *palette_pool;
+     FusionObjectPool    *state_pool;
+     FusionObjectPool    *surface_pool;
+     FusionObjectPool    *window_pool;
+
+     FusionSHMPoolShared *shmpool;
+     FusionSHMPoolShared *shmpool_data; /* for raw data, e.g. surface buffers */
+
+     FusionCall           graphics_call;
+};
+
+struct __DFB_CoreDFB {
+     int                      magic;
+
+     int                      refs;
+
+     int                      fusion_id;
+
+     FusionWorld             *world;
+     FusionArena             *arena;
+
+     CoreDFBShared           *shared;
+
+     bool                     master;
+     bool                     suspended;
+
+     DirectLink              *cleanups;
+
+     DirectThreadInitHandler *init_handler;
+
+     DirectSignalHandler     *signal_handler;
+
+     DirectCleanupHandler    *cleanup_handler;
+
+     DFBFontManager          *font_manager;
+};
 
 #endif
 

@@ -26,7 +26,11 @@ internalinclude_HEADERS = \
 	core.h			\
 	fonts.h			\
 	gfxcard.h		\
+	graphics.h		\
+	graphics_internal.h		\
 	graphics_driver.h	\
+	graphics_state.h	\
+	graphics_state_internal.h	\
 	input.h			\
 	input_driver.h		\
 	layer_context.h		\
@@ -44,6 +48,8 @@ internalinclude_HEADERS = \
 	surface_pool.h		\
 	surface_pool_bridge.h	\
 	system.h		\
+	window.h		\
+	window_internal.h	\
 	windows.h		\
 	windows_internal.h	\
 	windowstack.h		\
@@ -61,6 +67,8 @@ libdirectfb_core_la_SOURCES = \
 	core_parts.c		\
 	fonts.c			\
 	gfxcard.c		\
+	graphics.c		\
+	graphics_state.c	\
 	input.c			\
 	layer_context.c		\
 	layer_control.c		\
@@ -79,6 +87,7 @@ libdirectfb_core_la_SOURCES = \
 	surface_pool.c		\
 	surface_pool_bridge.c	\
 	system.c		\
+	window.c		\
 	windows.c		\
 	windowstack.c		\
 	wm.c

@@ -110,6 +110,8 @@ struct __DFB_CoreWindow {
      CoreWindow             *subfocus;       /* which of the sub windows has the focus? */
 
      unsigned long           resource_id;
+
+     FusionCall              call;
 };
 
 typedef enum {

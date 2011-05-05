@@ -47,6 +47,7 @@
 
 #include <core/core_parts.h>
 #include <core/gfxcard.h>
+#include <core/graphics_internal.h>
 #include <core/fonts.h>
 #include <core/state.h>
 #include <core/palette.h>
@@ -85,50 +86,6 @@ static void dfb_gfxcard_load_driver( void );
 static void fill_tri( DFBTriangle *tri, CardState *state, bool accelerated );
 
 /**********************************************************************************************************************/
-
-typedef struct {
-     int                      magic;
-
-     /* amount of usable memory */
-     unsigned int             videoram_length;
-     unsigned int             auxram_length;
-     unsigned int             auxram_offset;
-
-     char                    *module_name;
-
-     GraphicsDriverInfo       driver_info;
-     GraphicsDeviceInfo       device_info;
-     void                    *device_data;
-
-     FusionProperty           lock;
-     GraphicsDeviceLockFlags  lock_flags;
-
-     /*
-      * Points to the current state of the graphics card.
-      */
-     CardState               *state;
-     FusionID                 holder; /* Fusion ID of state owner. */
-} DFBGraphicsCoreShared;
-
-struct __DFB_DFBGraphicsCore {
-     int                        magic;
-
-     CoreDFB                   *core;
-
-     DFBGraphicsCoreShared     *shared;
-
-     DirectModuleEntry         *module;
-     const GraphicsDriverFuncs *driver_funcs;
-
-     void                      *driver_data;
-     void                      *device_data; /* copy of shared->device_data */
-
-     CardCapabilities           caps;        /* local caps */
-     CardLimitations            limits;      /* local limits */
-
-     GraphicsDeviceFuncs        funcs;
-};
-
 
 DFB_CORE_PART( graphics_core, GraphicsCore );
 
@@ -256,6 +213,8 @@ dfb_graphics_core_initialize( CoreDFB               *core,
 
      fusion_property_init( &shared->lock, dfb_core_world(core) );
 
+     fusion_call_init( &core->shared->graphics_call, CoreGraphics_Dispatch, data, dfb_core_world(core) );
+
      if (__DFB_CoreRegisterHook)
          __DFB_CoreRegisterHook( core, card, __DFB_CoreRegisterHookCtx );
 
@@ -351,8 +310,9 @@ dfb_graphics_core_shutdown( DFBGraphicsCore *data,
 
      shared = data->shared;
 
-
      dfb_gfxcard_lock( GDLF_SYNC );
+
+     fusion_call_destroy( &data->core->shared->graphics_call );
 
      if (data->driver_funcs) {
           const GraphicsDriverFuncs *funcs = data->driver_funcs;
@@ -2061,6 +2021,7 @@ dfb_gfxcard_fillquadrangles( DFBPoint *points, int num, CardState *state )
      dfb_state_unlock( state );
 }
 
+__unused__
 static void
 DFBVertex_Transform( DFBVertex    *v,
                      unsigned int  num,

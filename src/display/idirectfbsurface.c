@@ -44,6 +44,7 @@
 #include <core/coretypes.h>
 
 #include <core/gfxcard.h>
+#include <core/graphics.h>
 #include <core/fonts.h>
 #include <core/state.h>
 #include <core/palette.h>
@@ -1311,7 +1312,16 @@ IDirectFBSurface_FillRectangle( IDirectFBSurface *thiz,
      rect.x += data->area.wanted.x;
      rect.y += data->area.wanted.y;
 
-     dfb_gfxcard_fillrectangles( &rect, 1, &data->state );
+     if (dfb_core_is_master( data->core )) {
+          dfb_gfxcard_fillrectangles( &rect, 1, &data->state );
+     }
+     else {
+          CoreGraphicsStateClient_SetState( &data->state_client, &data->state, data->state.modified & (SMF_DESTINATION | SMF_CLIP | SMF_COLOR) );
+
+          data->state.modified &= ~(SMF_DESTINATION | SMF_CLIP | SMF_COLOR);
+
+          CoreGraphicsStateClient_FillRectangle( &data->state_client, &rect );
+     }
 
      return DFB_OK;
 }
@@ -2809,6 +2819,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
                                       DFBSurfaceCapabilities  caps,
                                       CoreDFB                *core )
 {
+     DFBResult    ret;
      DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface)
@@ -2873,7 +2884,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      data->surface = surface;
 
-     dfb_state_init( &data->state, NULL );
+     dfb_state_init( &data->state, core );
      dfb_state_set_destination( &data->state, surface );
 
      data->state.clip.x1  = data->area.current.x;
@@ -2882,6 +2893,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->state.clip.y2  = data->area.current.y + (data->area.current.h ? : 1) - 1;
 
      data->state.modified = SMF_ALL;
+
+     ret = CoreGraphicsStateClient_Init( &data->state_client, data->core );
+     if (ret)
+          return ret;    // FIXME: deinit
 
      thiz->AddRef = IDirectFBSurface_AddRef;
      thiz->Release = IDirectFBSurface_Release;

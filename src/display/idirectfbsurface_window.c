@@ -45,6 +45,7 @@
 #include <core/layer_region.h>
 #include <core/state.h>
 #include <core/surface.h>
+#include <core/window.h>
 #include <core/windows.h>
 #include <core/windows_internal.h> /* FIXME */
 #include <core/wm.h>
@@ -206,11 +207,18 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                     dfb_back_to_front_copy( data->base.surface, &reg );
           }
 
-          dfb_window_repaint( data->window, &reg, NULL, flags );
+          //dfb_window_repaint( data->window, &reg, NULL, flags );
+
+          CoreWindow_Repaint( data->window, &reg, &reg, flags );
      }
 
-     if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY)
-          dfb_window_set_opacity( data->window, 0xff );
+     if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY) {
+          //dfb_window_set_opacity( data->window, 0xff );
+
+          CoreWindowConfig config = { .opacity = 0xff };
+
+          CoreWindow_SetConfig( data->window, &config, CWCF_OPACITY );
+     }
 
      return DFB_OK;
 }
@@ -227,7 +235,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
-     D_DEBUG_AT( Surface, "%s( %p, %p, &p, 0x%08x )\n", __FUNCTION__, thiz, left_region, right_region, flags );
+     D_DEBUG_AT( Surface, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, thiz, left_region, right_region, flags );
 
      if (!data->base.surface)
           return DFB_DESTROYED;
@@ -402,7 +410,7 @@ IDirectFBSurface_Window_GetStereoEye( IDirectFBSurface    *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
-     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, *ret_eye );
+     D_DEBUG_AT( Surface, "%s( %p, %d )\n", __FUNCTION__, thiz, *ret_eye );
 
      if (!data->base.surface)
           return DFB_DESTROYED;

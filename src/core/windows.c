@@ -51,6 +51,7 @@
 #include <core/palette.h>
 #include <core/state.h>
 #include <core/system.h>
+#include <core/window_internal.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/wm.h>
@@ -112,6 +113,8 @@ window_destructor( FusionObject *object, bool zombie, void *ctx )
           fusion_object_destroy( object );
           return;
      }
+
+     fusion_call_destroy( &window->call );
 
      dfb_windowstack_lock( stack );
 
@@ -610,6 +613,8 @@ dfb_window_create( CoreWindowStack             *stack,
 
      /* Increase number of windows. */
      stack->num++;
+
+     fusion_call_init( &window->call, CoreWindow_Dispatch, window, dfb_core_world(layer->core) );
 
      /* Finally activate the object. */
      fusion_object_activate( &window->object );
