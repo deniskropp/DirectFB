@@ -164,6 +164,15 @@ struct _GenefxState {
 /**********************************************************************************************************************/
 
 
+typedef struct {
+     int x;
+     int y;
+     int s;
+     int t;
+} GenefxVertexAffine;
+
+/**********************************************************************************************************************/
+
 void gGetDriverInfo( GraphicsDriverInfo *info );
 void gGetDeviceInfo( GraphicsDeviceInfo *info );
 
@@ -176,27 +185,24 @@ void gDrawLine      ( CardState *state, DFBRegion    *line );
 void gBlit          ( CardState *state, DFBRectangle *rect, int dx, int dy );
 void gStretchBlit   ( CardState *state, DFBRectangle *srect, DFBRectangle *drect );
 
-void gTextureTriangles( CardState            *state,
-                        DFBVertex            *vertices,
-                        int                   num,
-                        DFBTriangleFormation  formation );
+
+void Genefx_TextureTriangles( CardState            *state,
+                              DFBVertex            *vertices,
+                              int                   num,
+                              DFBTriangleFormation  formation );
+
+void Genefx_TextureTrianglesAffine( CardState            *state,
+                                    GenefxVertexAffine   *vertices,
+                                    int                   num,
+                                    DFBTriangleFormation  formation );
 
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
-typedef struct {
-     int x;
-     int y;
-     int s;
-     int t;
-} GenefxVertex;
-
-/**********************************************************************************************************************/
-
-void Genefx_TextureTriangle( GenefxState  *gfxs,
-                             GenefxVertex *v0,
-                             GenefxVertex *v1,
-                             GenefxVertex *v2 );
+void Genefx_TextureTriangleAffine( GenefxState        *gfxs,
+                                   GenefxVertexAffine *v0,
+                                   GenefxVertexAffine *v1,
+                                   GenefxVertexAffine *v2 );
 
 
 /**********************************************************************************************************************/
