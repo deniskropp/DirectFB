@@ -569,6 +569,38 @@ dfb_core_create_window( CoreDFB *core )
      return (CoreWindow*) fusion_object_create( core->shared->window_pool, core->world );
 }
 
+DFBResult
+dfb_core_get_window( CoreDFB     *core,
+                     u32          object_id,
+                     CoreWindow **ret_window )
+{
+     DFBResult     ret;
+     FusionObject *object;
+
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+     D_ASSERT( ret_window != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->window_pool != NULL );
+
+     ret = fusion_object_get( core->shared->window_pool, object_id, &object );
+     if (ret)
+          return ret;
+
+     *ret_window = (CoreWindow*) object;
+
+     return DFB_OK;
+}
+
 DirectResult
 dfb_core_enum_surfaces( CoreDFB               *core,
                         FusionObjectCallback   callback,
