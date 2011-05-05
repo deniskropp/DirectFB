@@ -225,15 +225,15 @@ CoreLayerContext_Dispatch_CreateWindow( CoreLayerContext            *context,
          return DFB_FUSION;
 
      stack = context->stack;
-/*
+
      if (!stack->cursor.set) {
-          ret = dfb_windowstack_cursor_enable( core, stack, true );
+          ret = dfb_windowstack_cursor_enable( layer->core, stack, true );
           if (ret) {
                dfb_layer_context_unlock( context );
                return ret;
           }
      }
-*/
+
      ret = dfb_window_create( stack, desc, &window );
      if (ret) {
           dfb_layer_context_unlock( context );
@@ -1542,7 +1542,6 @@ dfb_layer_context_create_window( CoreDFB                     *core,
      DFBResult   ret;
      int         val;
      CoreWindow *window;
-     CoreLayer  *layer;
 
      D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p, %p )\n", __FUNCTION__, core, context, desc, ret_window );
 
