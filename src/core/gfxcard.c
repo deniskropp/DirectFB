@@ -2540,12 +2540,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
                          gRelease( state );
                     }
                }
-<<<<<<< HEAD
-
-               if (gAcquire( state, DFXL_STRETCHBLIT )) {
-=======
                else if (gAcquire( state, DFXL_STRETCHBLIT )) {
->>>>>>> 5f99593... Genefx: Implement clipping in TextureTriangle, add TileBlit with matrix, more accuracy, fixes
                     for (; dy1 < dy2; dy1 += rect->h) {
                          for (; dx1 < dx2; dx1 += rect->w) {
                               DFBRectangle drect;
@@ -2653,10 +2648,6 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 
                if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
                    state->matrix[3] != 0 || state->matrix[4] < 0  ||
-<<<<<<< HEAD
-                   state->matrix[6] != 0 || state->matrix[7] != 0) {
-                    D_WARN( "rotation not yet implemented" );
-=======
                    state->matrix[6] != 0 || state->matrix[7] != 0)
                {
                     if (gAcquire( state, DFXL_TEXTRIANGLES )) {
@@ -2689,7 +2680,6 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                          gRelease( state );
                     }
 
->>>>>>> 5f99593... Genefx: Implement clipping in TextureTriangle, add TileBlit with matrix, more accuracy, fixes
                     dfb_state_unlock( state );
                     return;
                }
