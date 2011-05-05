@@ -52,6 +52,10 @@ DirectResult     dfb_windowstack_lock   ( CoreWindowStack  *stack );
 
 DirectResult     dfb_windowstack_unlock ( CoreWindowStack  *stack );
 
+
+
+
+
 /*
  * repaints all window on a window stack
  */
@@ -101,5 +105,10 @@ DFBResult dfb_windowstack_cursor_warp( CoreWindowStack *stack,
 DFBResult dfb_windowstack_get_cursor_position (CoreWindowStack *stack,
                                                int             *x,
                                                int             *y);
+
+
+typedef enum {
+     CORE_WINDOWSTACK_
+} CoreWindowStackCall;
 
 #endif

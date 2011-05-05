@@ -187,6 +187,8 @@ struct __DFB_CoreWindowStack {
      FusionSHMPoolShared *shmpool;
 
      CoreWindowStackFlags flags;
+
+     FusionCall           call;
 };
 
 

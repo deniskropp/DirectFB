@@ -104,6 +104,8 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_MAGIC_ASSERT( context, CoreLayerContext );
 
+     fusion_call_destroy( &context->call );
+
      /* Remove the context from the layer's context stack. */
      dfb_layer_remove_context( layer, context );
 
@@ -195,6 +197,78 @@ update_stack_geometry( CoreLayerContext *context )
           dfb_windowstack_resize( context->stack, size.w, size.h, rotation );
 }
 
+static DFBWindowID
+CoreLayerContext_Dispatch_CreateWindow( CoreLayerContext            *context,
+                                        const DFBWindowDescription  *desc )
+{
+     DFBResult        ret;
+     CoreWindow      *window;
+     CoreWindowStack *stack;
+     CoreLayer       *layer;
+
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, desc );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+     D_ASSERT( desc != NULL );
+
+     layer = dfb_layer_at( context->layer_id );
+
+     if ((layer->shared->description.caps & DLCAPS_SURFACE) == 0)
+          return DFB_UNSUPPORTED;
+
+     D_ASSERT( context->stack != NULL );
+
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->funcs != NULL );
+
+     if (dfb_layer_context_lock( context ))
+         return DFB_FUSION;
+
+     stack = context->stack;
+/*
+     if (!stack->cursor.set) {
+          ret = dfb_windowstack_cursor_enable( core, stack, true );
+          if (ret) {
+               dfb_layer_context_unlock( context );
+               return ret;
+          }
+     }
+*/
+     ret = dfb_window_create( stack, desc, &window );
+     if (ret) {
+          dfb_layer_context_unlock( context );
+          return ret;
+     }
+
+     dfb_layer_context_unlock( context );
+
+     return window->object.id;
+}
+
+static FusionCallHandlerResult
+CoreLayerContext_Dispatch( int           caller,   /* fusion id of the caller */
+                           int           call_arg, /* optional call parameter */
+                           void         *call_ptr, /* optional call parameter */
+                           void         *ctx,      /* optional handler context */
+                           unsigned int  serial,
+                           int          *ret_val )
+{
+     CoreLayerContextCreateWindow *create_window = call_ptr;
+
+     switch (call_arg) {
+          case CORE_LAYERCONTEXT_CREATE_WINDOW:
+               D_INFO( "CORE_LAYERCONTEXT_CREATE_WINDOW\n" );
+               *ret_val = CoreLayerContext_Dispatch_CreateWindow( ctx, &create_window->desc );
+               break;
+
+          default:
+               D_BUG( "invalid call arg %d", call_arg );
+               *ret_val = DFB_INVARG;
+     }
+
+     return FCHR_RETURN;
+}
+
 DFBResult
 dfb_layer_context_init( CoreLayerContext *context,
                         CoreLayer        *layer )
@@ -263,6 +337,8 @@ dfb_layer_context_init( CoreLayerContext *context,
 
      /* Tell the window stack about its size. */
      update_stack_geometry( context );
+
+     fusion_call_init( &context->call, CoreLayerContext_Dispatch, context, dfb_core_world(layer->core) );
 
      dfb_layer_context_unlock( context );
 
@@ -1463,6 +1539,50 @@ dfb_layer_context_create_window( CoreDFB                     *core,
                                  const DFBWindowDescription  *desc,
                                  CoreWindow                 **ret_window )
 {
+     DFBResult   ret;
+     int         val;
+     CoreWindow *window;
+     CoreLayer  *layer;
+
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p, %p )\n", __FUNCTION__, core, context, desc, ret_window );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+     D_ASSERT( desc != NULL );
+     D_ASSERT( ret_window != NULL );
+
+     CoreLayerContextCreateWindow create;
+
+     create.desc = *desc;
+
+     ret = fusion_call_execute2( &context->call, FCEF_NONE, CORE_LAYERCONTEXT_CREATE_WINDOW, &create, sizeof(create), &val );
+     if (ret) {
+          D_DERROR( ret, "Core/LayerContext: fusion_call_execute2( CORE_LAYERCONTEXT_CREATE_WINDOW ) failed!\n" );
+          return ret;
+     }
+
+     if (!val) {
+          D_ERROR( "Core/LayerContext: Did not get a window ID!\n" );
+          return DFB_FAILURE;
+     }
+
+     ret = dfb_core_get_window( core, val, &window );
+     if (ret) {
+          D_DERROR( ret, "Core/LayerContext: Looking up window by ID %u failed!\n", (DFBWindowID) val );
+          return ret;
+     }
+
+     *ret_window = window;
+
+     return DFB_OK;
+}
+
+#if 0
+DFBResult
+dfb_layer_context_create_window( CoreDFB                     *core,
+                                 CoreLayerContext            *context,
+                                 const DFBWindowDescription  *desc,
+                                 CoreWindow                 **ret_window )
+{
      DFBResult        ret;
      CoreWindow      *window;
      CoreWindowStack *stack;
@@ -1509,6 +1629,7 @@ dfb_layer_context_create_window( CoreDFB                     *core,
 
      return DFB_OK;
 }
+#endif
 
 CoreWindow *
 dfb_layer_context_find_window( CoreLayerContext *context, DFBWindowID id )
