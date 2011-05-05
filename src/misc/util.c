@@ -30,20 +30,17 @@
 
 #include <string.h>
 
-#include <directfb_util.h>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include <fcntl.h>
 
+#include <sys/time.h>
 #include <time.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/util.h>
-
-#include <gfx/convert.h>
 
 #include <misc/util.h>
 
@@ -627,12 +624,8 @@ dfb_updates_get_rectangles( DFBUpdates   *updates,
                if (total < bounding * n / d) {
                     *ret_num = updates->num_regions;
 
-                    for (n=0; n<updates->num_regions; n++) {
-                         ret_rects[n].x = updates->regions[n].x1;
-                         ret_rects[n].y = updates->regions[n].y1;
-                         ret_rects[n].w = updates->regions[n].x2 - updates->regions[n].x1;
-                         ret_rects[n].h = updates->regions[n].y2 - updates->regions[n].y1;
-                    }
+                    for (n=0; n<updates->num_regions; n++)
+                         ret_rects[n] = DFB_RECTANGLE_INIT_FROM_REGION( &updates->regions[n] );
 
                     break;
                }
@@ -640,53 +633,8 @@ dfb_updates_get_rectangles( DFBUpdates   *updates,
           /* fall through */
 
           case 1:
-               *ret_num = 1;
-
-               ret_rects[0].x = updates->bounding.x1;
-               ret_rects[0].y = updates->bounding.y1;
-               ret_rects[0].w = updates->bounding.x2 - updates->bounding.x1;
-               ret_rects[0].h = updates->bounding.y2 - updates->bounding.y1;
+               *ret_num   = 1;
+               *ret_rects = DFB_RECTANGLE_INIT_FROM_REGION( &updates->bounding );
                break;
      }
 }
-
-const char *
-dfb_pixelformat_name( DFBSurfacePixelFormat format )
-{
-     int i = 0;
-
-     do {
-          if (format == dfb_pixelformat_names[i].format)
-               return dfb_pixelformat_names[i].name;
-     } while (dfb_pixelformat_names[i++].format != DSPF_UNKNOWN);
-
-     return "<invalid>";
-}
-
-DFBSurfacePixelFormat
-dfb_pixelformat_for_depth( int depth )
-{
-     switch (depth) {
-          case 2:
-               return DSPF_LUT2;
-          case 8:
-               return DSPF_LUT8;
-          case 12:
-               return DSPF_ARGB4444;
-          case 14:
-               return DSPF_ARGB2554;
-          case 15:
-               return DSPF_ARGB1555;
-          case 16:
-               return DSPF_RGB16;
-          case 18:
-               return DSPF_RGB18;
-          case 24:
-               return DSPF_RGB24;
-          case 32:
-               return DSPF_RGB32;
-     }
-
-     return DSPF_UNKNOWN;
-}
-

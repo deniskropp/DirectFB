@@ -426,6 +426,9 @@ do {                                                                  \
 } while (0)
 
 
+DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );
+
+
 void                  dfb_pixel_to_color  ( DFBSurfacePixelFormat  format,
                                             unsigned long          pixel,
                                             DFBColor              *ret_color );
@@ -434,7 +437,7 @@ unsigned long         dfb_pixel_from_color( DFBSurfacePixelFormat  format,
                                             const DFBColor        *color );
 
 
-static __inline__ u32
+static inline u32
 dfb_color_to_pixel( DFBSurfacePixelFormat format,
                     u8 r, u8 g, u8 b )
 {
@@ -443,13 +446,13 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
      return dfb_pixel_from_color( format, &color );
 }
 
-static __inline__ u32
+static inline u32
 dfb_color_to_argb( const DFBColor *color )
 {
      return (color->a << 24) | (color->r << 16) | (color->g << 8) | color->b;
 }
 
-static __inline__ u32
+static inline u32
 dfb_color_to_aycbcr( const DFBColor *color )
 {
      u32 y, cb, cr;
@@ -458,7 +461,7 @@ dfb_color_to_aycbcr( const DFBColor *color )
      return (color->a << 24) | (y << 16) | (cb << 8) | cr;
 }
 
-static __inline__ u32
+static inline u32
 dfb_color_to_acrycb( const DFBColor *color )
 {
      u32 y, cb, cr;
@@ -467,7 +470,7 @@ dfb_color_to_acrycb( const DFBColor *color )
      return (color->a << 24) | (cr << 16) | (y << 8) | cb;
 }
 
-static __inline__ void
+static inline void
 dfb_argb_to_rgb332( const u32 *src, u8 *dst, int len )
 {
      int i;
@@ -479,7 +482,7 @@ dfb_argb_to_rgb332( const u32 *src, u8 *dst, int len )
      }
 }
 
-static __inline__ void
+static inline void
 dfb_argb_to_argb1555( const u32 *src, u16 *dst, int len )
 {
      int i;
@@ -491,7 +494,7 @@ dfb_argb_to_argb1555( const u32 *src, u16 *dst, int len )
      }
 }
 
-static __inline__ void
+static inline void
 dfb_argb_to_rgba5551( const u32 *src, u16 *dst, int len )
 {
      int i;
@@ -503,7 +506,7 @@ dfb_argb_to_rgba5551( const u32 *src, u16 *dst, int len )
      }
 }
 
-static __inline__ void
+static inline void
 dfb_argb_to_argb2554( const u32 *src, u16 *dst, int len )
 {
      int i;
@@ -515,7 +518,7 @@ dfb_argb_to_argb2554( const u32 *src, u16 *dst, int len )
      }
 }
 
-static __inline__ void
+static inline void
 dfb_argb_to_argb4444( const u32 *src, u16 *dst, int len )
 {
      int i;
@@ -527,7 +530,7 @@ dfb_argb_to_argb4444( const u32 *src, u16 *dst, int len )
      }
 }
 
-static __inline__ void
+static inline void
 dfb_argb_to_rgba4444( const u32 *src, u16 *dst, int len )
 {
      int i;
@@ -539,7 +542,7 @@ dfb_argb_to_rgba4444( const u32 *src, u16 *dst, int len )
      }
 }
 
-static __inline__ void
+static inline void
 dfb_argb_to_argb8565( const u32 *src, u8 *dst, int len )
 {
      int i = -1, j = -1;
@@ -560,7 +563,7 @@ dfb_argb_to_argb8565( const u32 *src, u8 *dst, int len )
      }
 }
 
-static __inline__ void
+static inline void
 dfb_argb_to_rgb16( const u32 *src, u16 *dst, int len )
 {
      int i;
@@ -572,7 +575,7 @@ dfb_argb_to_rgb16( const u32 *src, u16 *dst, int len )
      }
 }
 
-static __inline__ void
+static inline void
 dfb_argb_to_a8( const u32 *src, u8 *dst, int len )
 {
      int i;

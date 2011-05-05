@@ -46,6 +46,33 @@ static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff};
 #define EXPAND_7to8(v)   (((v) << 1) | ((v) >> 6))
 
 
+DFBSurfacePixelFormat
+dfb_pixelformat_for_depth( int depth )
+{
+     switch (depth) {
+          case 2:
+               return DSPF_LUT2;
+          case 8:
+               return DSPF_LUT8;
+          case 12:
+               return DSPF_ARGB4444;
+          case 14:
+               return DSPF_ARGB2554;
+          case 15:
+               return DSPF_ARGB1555;
+          case 16:
+               return DSPF_RGB16;
+          case 18:
+               return DSPF_RGB18;
+          case 24:
+               return DSPF_RGB24;
+          case 32:
+               return DSPF_RGB32;
+     }
+
+     return DSPF_UNKNOWN;
+}
+
 void
 dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                     unsigned long          pixel,
@@ -237,6 +264,19 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
      }
 
      return 0x55555555;
+}
+
+const char *
+dfb_pixelformat_name( DFBSurfacePixelFormat format )
+{
+     int i = 0;
+
+     do {
+          if (format == dfb_pixelformat_names[i].format)
+               return dfb_pixelformat_names[i].name;
+     } while (dfb_pixelformat_names[i++].format != DSPF_UNKNOWN);
+
+     return "<invalid>";
 }
 
 void
