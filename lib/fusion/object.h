@@ -44,7 +44,7 @@ typedef bool (*FusionPropIterator)( char *key, void *value, void *ctx);
 
 
 
-typedef unsigned long FusionObjectID;
+typedef u32 FusionObjectID;
 
 
 typedef enum {
