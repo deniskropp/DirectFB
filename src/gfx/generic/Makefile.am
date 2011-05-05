@@ -28,6 +28,12 @@ libdirectfb_generic_la_SOURCES = \
 	generic.h			\
 	generic_mmx.h			\
 	generic_64.h			\
+	generic_fill_rectangle.c	\
+	generic_draw_line.c		\
+	generic_blit.c			\
+	generic_stretch_blit.c		\
+	generic_texture_triangles.c	\
+	generic_util.c			\
 	stretch_hvx_N.h			\
 	stretch_hvx_16.h		\
 	stretch_hvx_32.h		\

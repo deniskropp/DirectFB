@@ -2548,8 +2548,7 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
 
      if (!hw) {
           if (gAcquire( state, DFXL_TEXTRIANGLES )) {
-               //dfb_clip_stretchblit( &state->clip, srect, drect );
-               //gStretchBlit( state, srect, drect );
+               gTextureTriangles( state, vertices, num, formation );
                gRelease( state );
           }
      }
