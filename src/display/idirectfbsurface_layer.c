@@ -212,7 +212,7 @@ IDirectFBSurface_Layer_GetStereoEye( IDirectFBSurface    *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
-     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, *ret_eye );
+     D_DEBUG_AT( Surface, "%s( %p, %d )\n", __FUNCTION__, thiz, *ret_eye );
 
      if (!data->base.surface)
           return DFB_DESTROYED;
