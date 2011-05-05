@@ -189,12 +189,14 @@ void gStretchBlit   ( CardState *state, DFBRectangle *srect, DFBRectangle *drect
 void Genefx_TextureTriangles( CardState            *state,
                               DFBVertex            *vertices,
                               int                   num,
-                              DFBTriangleFormation  formation );
+                              DFBTriangleFormation  formation,
+                              const DFBRegion      *clip );
 
 void Genefx_TextureTrianglesAffine( CardState            *state,
                                     GenefxVertexAffine   *vertices,
                                     int                   num,
-                                    DFBTriangleFormation  formation );
+                                    DFBTriangleFormation  formation,
+                                    const DFBRegion      *clip );
 
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
@@ -202,7 +204,8 @@ void Genefx_TextureTrianglesAffine( CardState            *state,
 void Genefx_TextureTriangleAffine( GenefxState        *gfxs,
                                    GenefxVertexAffine *v0,
                                    GenefxVertexAffine *v1,
-                                   GenefxVertexAffine *v2 );
+                                   GenefxVertexAffine *v2,
+                                   const DFBRegion    *clip );
 
 
 /**********************************************************************************************************************/
