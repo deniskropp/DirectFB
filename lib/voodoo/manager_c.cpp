@@ -51,7 +51,7 @@ D_DEBUG_DOMAIN( Voodoo_Manager,  "Voodoo/Manager",  "Voodoo Manager" );
 
 #define VOODOO_MANAGER_MESSAGE_BLOCKS_MAX 20
 
-static int
+static __inline__ int
 calc_blocks( va_list args,
              VoodooMessageBlock *ret_blocks, size_t *ret_num )
 {
