@@ -1174,8 +1174,6 @@ fusion_deferred_loop( DirectThread *thread, void *arg )
 
      pthread_mutex_unlock( &world->deferred.lock );
 
-     D_PERROR( "Fusion/Receiver: reading from fusion device failed!\n" );
-
      return NULL;
 }
 
