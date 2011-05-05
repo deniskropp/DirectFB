@@ -57,6 +57,10 @@ DirectResult FUSION_API fusion_call_init   ( FusionCall          *call,
                                              void                *ctx,
                                              const FusionWorld   *world );
 
+DirectResult FUSION_API fusion_call_init_from( FusionCall          *call,
+                                               int                  call_id,
+                                               const FusionWorld   *world );
+
 DirectResult FUSION_API fusion_call_execute( FusionCall          *call,
                                              FusionCallExecFlags  flags,
                                              int                  call_arg,
