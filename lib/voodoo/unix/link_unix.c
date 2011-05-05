@@ -30,6 +30,7 @@
 
 #include <config.h>
 
+#include <aio.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +59,9 @@
 #include <voodoo/link.h>
 #include <voodoo/manager.h>
 #include <voodoo/play.h>
+
+
+#define UNIX_PATH_MAX	108
 
 
 D_DEBUG_DOMAIN( Voodoo_Link, "Voodoo/Link", "Voodoo Link" );
@@ -173,6 +177,7 @@ SendReceive( VoodooLink  *link,
 
                          for (i=0; i<num_send; i++) {
                               while (sends[i].done != sends[i].length) {
+#if 1
                                    ret = send( l->fd[1], sends[i].ptr, sends[i].length, MSG_DONTWAIT );
                                    if (ret < 0) {
                                         D_PERROR( "Voodoo/Link: Failed to send() data!\n" );
@@ -188,6 +193,60 @@ SendReceive( VoodooLink  *link,
 */
                                         return DR_OK;
                                    }
+#else
+                                   struct aiocb cb;
+
+                                   memset( &cb, 0, sizeof(struct aiocb) );
+
+                                   cb.aio_fildes = l->fd[1];
+                                   cb.aio_buf    = sends[i].ptr;
+                                   cb.aio_nbytes = sends[i].length;
+                                   cb.aio_offset = (intptr_t)-1;
+                                   cb.aio_sigevent.sigev_notify = SIGEV_NONE;
+
+
+                                   ret = aio_write( &cb );
+                                   if (ret < 0) {
+                                        D_PERROR( "Voodoo/Link: aio_write() failed!\n" );
+                                        return DR_IO;
+                                   }
+                                   else {
+                                        do {
+                                             const struct aiocb *cbs[] = { &cb };
+
+                                             ret = aio_suspend( cbs, 1, NULL );
+                                             if (ret < 0) {
+                                                  D_PERROR( "Voodoo/Link: aio_suspend() failed!\n" );
+                                                  return DR_IO;
+                                             }
+
+                                             ret = aio_error( &cb );
+                                        } while (ret == EINPROGRESS);
+
+                                        switch (ret) {
+                                             case 0:
+                                                  ret = aio_return( &cb );
+                                                  if (ret < 0) {
+                                                       D_ERROR( "Voodoo/Link: aio_return() failed!\n     -> %s\n", strerror(ret) );
+                                                       return DR_IO;
+                                                  }
+                                                  break;
+
+                                             default:
+                                                  D_ERROR( "Voodoo/Link: aio_error() failed!\n     -> %s\n", strerror(ret) );
+                                                  return DR_IO;
+                                        }
+
+                                        sends[i].done += ret;
+/*
+                                        if (sends[i].done != sends[i].length)
+                                             D_WARN( "partial send of %d/%d bytes", ret, sends[i].length );
+                                        else
+                                             D_WARN( "full send of %d bytes", ret, sends[i].length );
+*/
+                                        return DR_OK;
+                                   }
+#endif
                               }
                          }
                     }
@@ -349,6 +408,93 @@ voodoo_link_init_connect( VoodooLink *link,
      err = connect( l->fd[0], addr->ai_addr, addr->ai_addrlen );
      freeaddrinfo( addr );
 
+     if (err) {
+          ret = errno2result( errno );
+          D_PERROR( "Voodoo/Link: Socket connect failed!\n" );
+          close( l->fd[0] );
+          D_FREE( l );
+          return ret;
+     }
+
+     D_INFO( "Voodoo/Link: Connected.\n" );
+
+     DUMP_SOCKET_OPTION( l->fd[0], SO_SNDLOWAT );
+     DUMP_SOCKET_OPTION( l->fd[0], SO_RCVLOWAT );
+     DUMP_SOCKET_OPTION( l->fd[0], SO_SNDBUF );
+     DUMP_SOCKET_OPTION( l->fd[0], SO_RCVBUF );
+
+     if (!raw) {
+          link->code = 0x80008676;
+
+          if (write( l->fd[1], &link->code, sizeof(link->code) ) != 4) {
+               D_ERROR( "Voodoo/Link: Coult not write initial four bytes!\n" );
+               close( l->fd[0] );
+               D_FREE( l );
+               return DR_IO;
+          }
+     }
+     D_INFO( "Voodoo/Link: Sent link code (%s).\n", raw ? "raw" : "packet" );
+
+     pipe( l->wakeup_fds );
+
+
+     link->priv        = l;
+     link->Close       = Close;
+     link->Read        = Read;
+     link->Write       = Write;
+     link->SendReceive = SendReceive;
+     link->WakeUp      = WakeUp;
+
+     return DR_OK;
+}
+
+DirectResult
+voodoo_link_init_local( VoodooLink *link,
+                        const char *path,
+                        bool        raw )
+{
+     DirectResult        ret;
+     int                 err;
+     struct sockaddr_un  addr;
+     Link               *l;
+
+     D_ASSERT( link != NULL );
+     D_ASSERT( path != NULL );
+
+     l = D_CALLOC( 1, sizeof(Link) );
+     if (!l)
+          return D_OOM();
+
+     /* Create the client socket. */
+     l->fd[0] = socket( AF_LOCAL, SOCK_STREAM, 0 );
+     if (l->fd[0] < 0) {
+          ret = errno2result( errno );
+          D_PERROR( "Voodoo/Link: Socket creation failed!\n" );
+          D_FREE( l );
+          return ret;
+     }
+     l->fd[1] = l->fd[0];
+
+#if !VOODOO_BUILD_NO_SETSOCKOPT
+     if (setsockopt( l->fd[0], SOL_IP, IP_TOS, &tos, sizeof(tos) ) < 0)
+          D_PERROR( "Voodoo/Manager: Could not set IP_TOS!\n" );
+
+     if (setsockopt( l->fd[0], SOL_TCP, TCP_NODELAY, &one, sizeof(one) ) < 0)
+          D_PERROR( "Voodoo/Manager: Could not set TCP_NODELAY!\n" );
+#endif
+
+     D_INFO( "Voodoo/Link: Connecting to '%s'...\n", path );
+
+
+     memset( &addr, 0, sizeof(addr) );
+
+     /* Bind the socket to the local port. */
+     addr.sun_family = AF_UNIX;
+
+     snprintf( addr.sun_path + 1, UNIX_PATH_MAX - 1, "%s", path );
+
+     /* Connect to the server. */
+     err = connect( l->fd[0], (struct sockaddr*) &addr, strlen(addr.sun_path+1)+1 + sizeof(addr.sun_family) );
      if (err) {
           ret = errno2result( errno );
           D_PERROR( "Voodoo/Link: Socket connect failed!\n" );

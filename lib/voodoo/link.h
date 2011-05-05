@@ -72,6 +72,10 @@ DirectResult VOODOO_API voodoo_link_init_connect( VoodooLink *link,
                                                   int         port,
                                                   bool        raw );
 
+DirectResult VOODOO_API voodoo_link_init_local  ( VoodooLink *link,
+                                                  const char *path,
+                                                  bool        raw );
+
 DirectResult VOODOO_API voodoo_link_init_fd     ( VoodooLink *link,
                                                   int         fd[2] );
 
