@@ -227,7 +227,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
-     D_DEBUG_AT( Surface, "%s( %p, %p, &p, 0x%08x )\n", __FUNCTION__, thiz, left_region, right_region, flags );
+     D_DEBUG_AT( Surface, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, thiz, left_region, right_region, flags );
 
      if (!data->base.surface)
           return DFB_DESTROYED;
@@ -402,7 +402,7 @@ IDirectFBSurface_Window_GetStereoEye( IDirectFBSurface    *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
-     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, *ret_eye );
+     D_DEBUG_AT( Surface, "%s( %p, %u )\n", __FUNCTION__, thiz, *ret_eye );
 
      if (!data->base.surface)
           return DFB_DESTROYED;

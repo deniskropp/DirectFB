@@ -44,7 +44,7 @@
 #include "idirectfbwindows_dispatcher.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe(void);
 static DFBResult Construct( IDirectFBWindows *thiz,
                             IDirectFBWindows *real,
                             VoodooManager    *manager,
@@ -275,7 +275,7 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 /**************************************************************************************************/
 
 static DFBResult
-Probe()
+Probe(void)
 {
      /* This implementation has to be loaded explicitly. */
      return DFB_UNSUPPORTED;
