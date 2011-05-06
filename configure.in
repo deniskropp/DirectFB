@@ -519,8 +519,9 @@ AC_SUBST(DIRECT_BUILD_STDBOOL)
 
 
 AC_ARG_ENABLE(dynload,
-  [  --enable-dynload          enable dynload support [[default=yes]]],,
-  enable_dynload=yes)
+              AC_HELP_STRING([--enable-dynload],
+                             [enable dynload support @<:@default=yes@:>@]),
+              [], [enable_dynload=yes])
 if test "$enable_dynload" = "no"; then
     DIRECT_BUILD_DYNLOAD=0
 else
@@ -531,8 +532,9 @@ AC_SUBST(DIRECT_BUILD_DYNLOAD)
 
 
 AC_ARG_ENABLE(multicore,
-  [  --enable-multicore          enable multicore support [[default=yes]]],,
-  enable_multicore=yes)
+              AC_HELP_STRING([--enable-multicore],
+                             [enable multicore support @<:@default=yes@:>@]),
+              [],[enable_multicore=yes])
 if test "$enable_multicore" = "no"; then
     DIRECT_BUILD_MULTICORE=0
 else
@@ -1821,8 +1823,9 @@ AS_AC_EXPAND(SYSCONFDIR, $sysconfdir)
 CFLAGS="$CFLAGS -Werror-implicit-function-declaration"
 
 AC_ARG_ENABLE(extra-warnings,
-  [  --enable-extra-warnings   enable extra warnings [[default=no]]],,
-  enable_extra_warnings=no)
+              AC_HELP_STRING([--enable-extra-warnings],
+                             [enable extra warnings @<:@default=no@:>@]),
+              [], [enable_extra_warnings=no])
 if test "$enable_extra_warnings" = "yes"; then
   CFLAGS="-W -Wno-sign-compare -Wno-unused-parameter -Wundef -Wcast-qual -Wcast-align -Waggregate-return -Wmissing-declarations -Winline $CFLAGS"
 fi
