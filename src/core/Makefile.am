@@ -21,6 +21,8 @@ internalinclude_HEADERS = \
 	colorhash.h		\
 	coredefs.h		\
 	coretypes.h		\
+	core_dfb.h		\
+	core_dfb_internal.h	\
 	core_parts.h		\
 	core_system.h		\
 	core.h			\
@@ -64,6 +66,7 @@ libdirectfb_core_la_SOURCES = \
 	clipboard.c		\
 	colorhash.c		\
 	core.c			\
+	core_dfb.c		\
 	core_parts.c		\
 	fonts.c			\
 	gfxcard.c		\

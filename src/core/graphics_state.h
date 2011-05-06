@@ -48,6 +48,7 @@ typedef enum {
      CORE_GRAPHICS_STATE_SET_COLOR           = 3,
 
      CORE_GRAPHICS_STATE_FILL_RECTANGLE      = 4, // TEST
+     CORE_GRAPHICS_STATE_FILL_RECTANGLES     = 5, // TEST
 } CoreGraphicsStateCall;
 
 /*
@@ -78,6 +79,15 @@ typedef struct {
      DFBRectangle        rect;
 } CoreGraphicsStateFillRectangle;
 
+/*
+ * CORE_GRAPHICS_STATE_FILL_RECTANGLES
+ */
+typedef struct {
+     unsigned int        num;
+
+     /* rectangles follow */
+} CoreGraphicsStateFillRectangles;
+
 
 
 
@@ -100,6 +110,11 @@ DFBResult CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
 // TEST
 DFBResult CoreGraphicsStateClient_FillRectangle( CoreGraphicsStateClient *client,
                                                  const DFBRectangle      *rect );
+
+// TEST
+DFBResult CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
+                                                  const DFBRectangle      *rects,
+                                                  unsigned int             num );
 
 #endif
 

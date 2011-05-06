@@ -30,6 +30,7 @@
 
 #include <direct/debug.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 
 #include <core/core.h>
@@ -129,9 +130,41 @@ CoreGraphicsStateClient_FillRectangle( CoreGraphicsStateClient *client,
 
      ret = fusion_call_execute2( &client->call, FCEF_ONEWAY,
                                  CORE_GRAPHICS_STATE_FILL_RECTANGLE,
-                                 rect, sizeof(*rect), NULL );
+                                 (void*) rect, sizeof(*rect), NULL );
      if (ret) {
           D_DERROR( ret, "%s: fusion_call_execute2( CORE_GRAPHICS_STATE_FILL_RECTANGLE ) failed!\n", __FUNCTION__ );
+          return ret;
+     }
+
+     return DFB_OK;
+}
+
+// TEST
+DFBResult
+CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
+                                        const DFBRectangle      *rects,
+                                        unsigned int             num )
+{
+     DFBResult                        ret;
+     unsigned int                     size;
+     CoreGraphicsStateFillRectangles *fill_rects;
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+     D_ASSERT( rects != NULL );
+
+     size = sizeof(CoreGraphicsStateFillRectangles) + num * sizeof(DFBRectangle);
+
+     fill_rects = alloca( size );
+
+     fill_rects->num = num;
+
+     direct_memcpy( fill_rects + 1, rects, num * sizeof(DFBRectangle) );
+
+     ret = fusion_call_execute2( &client->call, FCEF_ONEWAY,
+                                 CORE_GRAPHICS_STATE_FILL_RECTANGLES,
+                                 fill_rects, size, NULL );
+     if (ret) {
+          D_DERROR( ret, "%s: fusion_call_execute2( CORE_GRAPHICS_STATE_FILL_RECTANGLES ) failed!\n", __FUNCTION__ );
           return ret;
      }
 
@@ -202,6 +235,19 @@ CoreGraphicsState_Dispatch_FillRectangle( CoreGraphicsState              *state,
      return DFB_OK;
 }
 
+static DFBResult
+CoreGraphicsState_Dispatch_FillRectangles( CoreGraphicsState               *state,
+                                           CoreGraphicsStateFillRectangles *fill_rectangles )
+{
+     D_DEBUG_AT( Core_GraphicsState, "%s( %p )\n", __FUNCTION__, state );
+
+     D_MAGIC_ASSERT( state, CoreGraphicsState );
+
+     dfb_gfxcard_fillrectangles( fill_rectangles + 1, fill_rectangles->num, &state->state );
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
 
 FusionCallHandlerResult
@@ -239,6 +285,12 @@ CoreGraphicsState_Dispatch( int           caller,   /* fusion id of the caller *
                D_DEBUG_AT( Core_GraphicsState, "=-> CORE_GRAPHICS_STATE_FILL_RECTANGLE\n" );
 
                *ret_val = CoreGraphicsState_Dispatch_FillRectangle( ctx, call_ptr );
+               break;
+
+          case CORE_GRAPHICS_STATE_FILL_RECTANGLES:
+               D_DEBUG_AT( Core_GraphicsState, "=-> CORE_GRAPHICS_STATE_FILL_RECTANGLES\n" );
+
+               *ret_val = CoreGraphicsState_Dispatch_FillRectangles( ctx, call_ptr );
                break;
 
           default:

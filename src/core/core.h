@@ -201,6 +201,7 @@ struct __DFB_CoreDFBShared {
      FusionSHMPoolShared *shmpool;
      FusionSHMPoolShared *shmpool_data; /* for raw data, e.g. surface buffers */
 
+     FusionCall           call;
      FusionCall           graphics_call;
 };
 
@@ -229,6 +230,7 @@ struct __DFB_CoreDFB {
 
      DFBFontManager          *font_manager;
 };
+
 
 #endif
 

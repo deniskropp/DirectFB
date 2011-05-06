@@ -727,7 +727,16 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      dfb_state_set_color( &data->state, &color );
 
      /* fill the visible rectangle */
-     dfb_gfxcard_fillrectangles( &data->area.current, 1, &data->state );
+     if (dfb_core_is_master( data->core )) {
+          dfb_gfxcard_fillrectangles( &data->area.current, 1, &data->state );
+     }
+     else {
+          CoreGraphicsStateClient_SetState( &data->state_client, &data->state, data->state.modified & (SMF_DESTINATION | SMF_CLIP | SMF_COLOR) );
+
+          data->state.modified &= ~(SMF_DESTINATION | SMF_CLIP | SMF_COLOR);
+
+          CoreGraphicsStateClient_FillRectangles( &data->state_client, &data->area.current, 1 );
+     }
 
      /* clear the depth buffer */
      if (data->caps & DSCAPS_DEPTH)

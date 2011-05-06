@@ -197,14 +197,17 @@ update_stack_geometry( CoreLayerContext *context )
           dfb_windowstack_resize( context->stack, size.w, size.h, rotation );
 }
 
+/**********************************************************************************************************************/
+
+/**********************************************************************************************************************/
+
 static DFBWindowID
-CoreLayerContext_Dispatch_CreateWindow( CoreLayerContext            *context,
-                                        const DFBWindowDescription  *desc )
+CoreLayerContext_Dispatch_CreateWindow( CoreLayerContext           *context,
+                                        const DFBWindowDescription *desc )
 {
-     DFBResult        ret;
-     CoreWindow      *window;
-     CoreWindowStack *stack;
-     CoreLayer       *layer;
+     DFBResult   ret;
+     CoreWindow *window;
+     CoreLayer  *layer;
 
      D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, desc );
 
@@ -213,37 +216,14 @@ CoreLayerContext_Dispatch_CreateWindow( CoreLayerContext            *context,
 
      layer = dfb_layer_at( context->layer_id );
 
-     if ((layer->shared->description.caps & DLCAPS_SURFACE) == 0)
-          return DFB_UNSUPPORTED;
-
-     D_ASSERT( context->stack != NULL );
-
-     D_ASSERT( layer != NULL );
-     D_ASSERT( layer->funcs != NULL );
-
-     if (dfb_layer_context_lock( context ))
-         return DFB_FUSION;
-
-     stack = context->stack;
-
-     if (!stack->cursor.set) {
-          ret = dfb_windowstack_cursor_enable( layer->core, stack, true );
-          if (ret) {
-               dfb_layer_context_unlock( context );
-               return ret;
-          }
-     }
-
-     ret = dfb_window_create( stack, desc, &window );
-     if (ret) {
-          dfb_layer_context_unlock( context );
-          return ret;
-     }
-
-     dfb_layer_context_unlock( context );
+     ret = dfb_layer_context_create_window( layer->core, context, desc, &window );
+     if (ret)
+          return 0;
 
      return window->object.id;
 }
+
+/**********************************************************************************************************************/
 
 static FusionCallHandlerResult
 CoreLayerContext_Dispatch( int           caller,   /* fusion id of the caller */
@@ -257,7 +237,8 @@ CoreLayerContext_Dispatch( int           caller,   /* fusion id of the caller */
 
      switch (call_arg) {
           case CORE_LAYERCONTEXT_CREATE_WINDOW:
-               D_INFO( "CORE_LAYERCONTEXT_CREATE_WINDOW\n" );
+               D_DEBUG_AT( Core_LayerContext, "=-> CORE_LAYERCONTEXT_CREATE_WINDOW\n" );
+
                *ret_val = CoreLayerContext_Dispatch_CreateWindow( ctx, &create_window->desc );
                break;
 
@@ -268,6 +249,54 @@ CoreLayerContext_Dispatch( int           caller,   /* fusion id of the caller */
 
      return FCHR_RETURN;
 }
+
+/**********************************************************************************************************************/
+
+DFBResult
+CoreLayerContext_CreateWindow( CoreDFB                     *core,
+                               CoreLayerContext            *context,
+                               const DFBWindowDescription  *desc,
+                               CoreWindow                 **ret_window )
+{
+     DFBResult   ret;
+     int         val;
+     CoreWindow *window;
+
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p, %p )\n", __FUNCTION__, core, context, desc, ret_window );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+     D_ASSERT( desc != NULL );
+     D_ASSERT( ret_window != NULL );
+
+     CoreLayerContextCreateWindow create;
+
+     create.desc = *desc;
+
+     ret = fusion_call_execute2( &context->call, FCEF_NONE, CORE_LAYERCONTEXT_CREATE_WINDOW, &create, sizeof(create), &val );
+     if (ret) {
+          D_DERROR( ret, "Core/LayerContext: fusion_call_execute2( CORE_LAYERCONTEXT_CREATE_WINDOW ) failed!\n" );
+          return ret;
+     }
+
+     if (!val) {
+          D_ERROR( "Core/LayerContext: CORE_LAYERCONTEXT_CREATE_WINDOW failed!\n" );
+          return DFB_FAILURE;
+     }
+
+     ret = dfb_core_get_window( core, val, &window );
+     if (ret) {
+          D_DERROR( ret, "Core/LayerContext: Looking up window by ID %u failed!\n", (DFBWindowID) val );
+          return ret;
+     }
+
+     *ret_window = window;
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
+/**********************************************************************************************************************/
 
 DFBResult
 dfb_layer_context_init( CoreLayerContext *context,
@@ -1539,49 +1568,6 @@ dfb_layer_context_create_window( CoreDFB                     *core,
                                  const DFBWindowDescription  *desc,
                                  CoreWindow                 **ret_window )
 {
-     DFBResult   ret;
-     int         val;
-     CoreWindow *window;
-
-     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p, %p )\n", __FUNCTION__, core, context, desc, ret_window );
-
-     D_MAGIC_ASSERT( context, CoreLayerContext );
-     D_ASSERT( desc != NULL );
-     D_ASSERT( ret_window != NULL );
-
-     CoreLayerContextCreateWindow create;
-
-     create.desc = *desc;
-
-     ret = fusion_call_execute2( &context->call, FCEF_NONE, CORE_LAYERCONTEXT_CREATE_WINDOW, &create, sizeof(create), &val );
-     if (ret) {
-          D_DERROR( ret, "Core/LayerContext: fusion_call_execute2( CORE_LAYERCONTEXT_CREATE_WINDOW ) failed!\n" );
-          return ret;
-     }
-
-     if (!val) {
-          D_ERROR( "Core/LayerContext: Did not get a window ID!\n" );
-          return DFB_FAILURE;
-     }
-
-     ret = dfb_core_get_window( core, val, &window );
-     if (ret) {
-          D_DERROR( ret, "Core/LayerContext: Looking up window by ID %u failed!\n", (DFBWindowID) val );
-          return ret;
-     }
-
-     *ret_window = window;
-
-     return DFB_OK;
-}
-
-#if 0
-DFBResult
-dfb_layer_context_create_window( CoreDFB                     *core,
-                                 CoreLayerContext            *context,
-                                 const DFBWindowDescription  *desc,
-                                 CoreWindow                 **ret_window )
-{
      DFBResult        ret;
      CoreWindow      *window;
      CoreWindowStack *stack;
@@ -1628,7 +1614,6 @@ dfb_layer_context_create_window( CoreDFB                     *core,
 
      return DFB_OK;
 }
-#endif
 
 CoreWindow *
 dfb_layer_context_find_window( CoreLayerContext *context, DFBWindowID id )

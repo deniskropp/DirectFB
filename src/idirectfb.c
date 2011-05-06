@@ -42,7 +42,7 @@
 #include <directfb_version.h>
 
 #include <core/core.h>
-#include <core/coretypes.h>
+#include <core/core_dfb.h>
 
 #include <core/clipboard.h>
 #include <core/state.h>
@@ -777,7 +777,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if ((caps & DSCAPS_FLIPPING) == DSCAPS_DOUBLE)
                               wd.caps |= DWCAPS_DOUBLEBUFFER;
 
-                         ret = dfb_layer_context_create_window( data->core, data->context, &wd, &window );
+                         ret = CoreLayerContext_CreateWindow( data->core, data->context, &wd, &window );
                          if (ret)
                               return ret;
 
@@ -974,7 +974,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           config.colorspace   = colorspace;
           config.caps         = caps;
 
-          ret = dfb_surface_create( data->core, &config, CSTF_NONE, resource_id, NULL, &surface );
+          ret = CoreDFB_CreateSurface( data->core, &config, CSTF_NONE, resource_id, NULL, &surface );
           if (ret)
                return ret;
      }

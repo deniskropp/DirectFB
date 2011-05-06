@@ -173,4 +173,12 @@ typedef struct {
 } CoreLayerContextCreateWindow;
 
 
+
+DFBResult
+CoreLayerContext_CreateWindow( CoreDFB                     *core,
+                               CoreLayerContext            *context,
+                               const DFBWindowDescription  *desc,
+                               CoreWindow                 **ret_window );
+
+
 #endif

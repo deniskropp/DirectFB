@@ -46,6 +46,7 @@
 #include <core/coretypes.h>
 
 #include <core/core.h>
+#include <core/core_dfb_internal.h>
 #include <core/core_parts.h>
 #include <core/fonts.h>
 #include <core/layer_context.h>
@@ -1184,6 +1185,8 @@ dfb_core_arena_initialize( FusionArena *arena,
 
      fusion_skirmish_init( &shared->lock, "DirectFB Core", core->world );
 
+     fusion_call_init( &shared->call, CoreDFB_Dispatch, core, core->world );
+
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
 
@@ -1214,6 +1217,8 @@ dfb_core_arena_shutdown( FusionArena *arena,
           D_WARN( "refusing shutdown in slave" );
           return dfb_core_leave( core, emergency );
      }
+
+     fusion_call_destroy( &shared->call );
 
      /* Shutdown. */
      ret = dfb_core_shutdown( core, emergency );
