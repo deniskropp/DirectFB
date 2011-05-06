@@ -28,4 +28,3 @@ endif
 libdirectfb_input_la_SOURCES = \
 	$(NON_PURE_VOODOO_SOURCESs)	\
 	idirectfbinputbuffer.c
-

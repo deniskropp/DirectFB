@@ -382,5 +382,3 @@ void dfb_sort_trapezoid( DFBTrapezoid *trap )
           trap->w2 = temp;
      }
 }
-
-
