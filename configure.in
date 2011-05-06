@@ -149,7 +149,7 @@ AC_ARG_ENABLE(x11vdpau,
                              [build with X11/VDPAU support @<:@default=auto@:>@]),
               [], [enable_x11vdpau=yes])
 if test "$enable_x11vdpau" = "yes"; then
-  PKG_CHECK_MODULES([X11VDPAU], [xproto x11 xext vdpau], [enable_x11vdpau="yes"], [enable_x11vdpau="no",
+  PKG_CHECK_MODULES([X11VDPAU], [xproto x11 xext vdpau], [enable_x11vdpau="yes"], [enable_x11vdpau="no"
     AC_MSG_WARN([*** no X11/VDPAU found -- building without X11/VDPAU support])])
 fi
 
