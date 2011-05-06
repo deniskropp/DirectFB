@@ -46,6 +46,7 @@ libdirectfb_generic_la_SOURCES = \
 	stretch_up_down_88.h		\
 	stretch_up_down_table.h		\
 	template_acc_16.h		\
+	template_acc_24.h		\
 	template_acc_32.h		\
 	template_colorkey_16.h		\
 	template_colorkey_32.h
