@@ -690,12 +690,18 @@ DirectResult
 __shmalloc_join_heap( FusionSHM  *shm,
                       const char *filename,
                       void       *addr_base,
-                      int         size )
+                      int         size,
+                      bool        write )
 {
      DirectResult     ret;
      FusionSHMShared *shared;
      int              fd   = -1;
      shmalloc_heap   *heap = NULL;
+     int              open_flags = write ? O_RDWR : O_RDONLY;
+     int              prot_flags = PROT_READ;
+
+     if (write)
+          prot_flags |= PROT_WRITE;
 
      D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %d )\n",
                  __FUNCTION__, shm, filename, addr_base, size );
@@ -713,7 +719,7 @@ __shmalloc_join_heap( FusionSHM  *shm,
      D_DEBUG_AT( Fusion_SHMHeap, "  -> opening shared memory file '%s'...\n", filename );
 
      /* open the virtual file */
-     fd = open( filename, O_RDONLY );
+     fd = open( filename, open_flags );
      if (fd < 0) {
           ret = errno2result(errno);
           D_PERROR( "Fusion/SHM: Could not open shared memory file '%s'!\n", filename );
@@ -723,7 +729,7 @@ __shmalloc_join_heap( FusionSHM  *shm,
      D_DEBUG_AT( Fusion_SHMHeap, "  -> mmaping shared memory file... (%d bytes)\n", size );
 
      /* map it shared */
-     heap = mmap( addr_base, size, PROT_READ, MAP_SHARED | MAP_FIXED, fd, 0 );
+     heap = mmap( addr_base, size, prot_flags, MAP_SHARED | MAP_FIXED, fd, 0 );
      if (heap == MAP_FAILED) {
           ret = errno2result(errno);
           D_PERROR( "Fusion/SHM: Could not mmap shared memory file '%s'!\n", filename );

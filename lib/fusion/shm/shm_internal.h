@@ -85,6 +85,8 @@ struct __Fusion_FusionSHMPoolShared {
      char                *name;         /* Name of the pool (allocated in the pool). */
 
      DirectLink          *allocs;       /* Used for debugging. */
+
+     bool                 slave_write;
 };
 
 
@@ -253,7 +255,8 @@ DirectResult __shmalloc_init_heap( FusionSHM     *shm,
 DirectResult __shmalloc_join_heap( FusionSHM     *shm,
                                    const char    *filename,
                                    void          *addr_base,
-                                   int            size );
+                                   int            size,
+                                   bool           write );
 
 void        *__shmalloc_brk      ( shmalloc_heap *heap,
                                    int            increment );
