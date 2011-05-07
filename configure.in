@@ -1666,7 +1666,7 @@ AC_ARG_WITH(message-size,
             AC_HELP_STRING([--with-message-size=SIZE],
                            [allow fusion messages up to SIZE bytes @<:@default=1024@:>@]),
             [], [with_message_size=no])
-test x"$with_message_size" = x"no" && with_message_size=1024
+test x"$with_message_size" = x"no" && with_message_size=16384
 FUSION_MESSAGE_SIZE=$with_message_size
 AC_SUBST(FUSION_MESSAGE_SIZE)
 
