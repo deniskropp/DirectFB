@@ -98,7 +98,7 @@ x11InitPool( CoreDFB                    *core,
      ret_desc->caps              = CSPCAPS_VIRTUAL;
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
-     ret_desc->priority          = CSPP_ULTIMATE;
+     ret_desc->priority          = CSPP_DEFAULT;
 
      /* For showing our X11 window */
      ret_desc->access[CSAID_LAYER0] = CSAF_READ;
