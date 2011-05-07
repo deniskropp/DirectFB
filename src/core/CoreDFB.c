@@ -55,7 +55,12 @@ CoreDFB_Dispatch_CreateSurface( CoreDFB              *core,
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
-     ret = dfb_surface_create( core, &create_surface->config, create_surface->type, create_surface->resource_id, NULL /*FIXME*/, &surface );
+     CoreSurfaceConfig config = create_surface->config;
+
+     config.flags &= ~CSCONF_PREALLOCATED;
+
+     ret = dfb_surface_create( core, &config, create_surface->type & ~CSTF_PREALLOCATED,
+                               create_surface->resource_id, NULL /*FIXME*/, &surface );
      if (ret)
           return 0;
 
