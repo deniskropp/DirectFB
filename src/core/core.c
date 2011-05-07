@@ -46,7 +46,6 @@
 #include <core/coretypes.h>
 
 #include <core/core.h>
-#include <core/core_dfb_internal.h>
 #include <core/core_parts.h>
 #include <core/fonts.h>
 #include <core/layer_context.h>
@@ -56,6 +55,8 @@
 #include <core/system.h>
 #include <core/windows.h>
 #include <core/windows_internal.h>
+
+#include <core/CoreDFB_internal.h>
 
 #include <direct/build.h>
 #include <direct/debug.h>
@@ -524,6 +525,38 @@ dfb_core_create_window( CoreDFB *core )
      D_ASSERT( core->shared->window_pool != NULL );
 
      return (CoreWindow*) fusion_object_create( core->shared->window_pool, core->world );
+}
+
+DFBResult
+dfb_core_get_palette( CoreDFB      *core,
+                      u32           object_id,
+                      CorePalette **ret_palette )
+{
+     DFBResult     ret;
+     FusionObject *object;
+
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+     D_ASSERT( ret_palette != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->palette_pool != NULL );
+
+     ret = fusion_object_get( core->shared->palette_pool, object_id, &object );
+     if (ret)
+          return ret;
+
+     *ret_palette = (CorePalette*) object;
+
+     return DFB_OK;
 }
 
 DFBResult

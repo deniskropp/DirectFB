@@ -51,10 +51,11 @@
 #include <core/palette.h>
 #include <core/state.h>
 #include <core/system.h>
-#include <core/window_internal.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/wm.h>
+
+#include <core/CoreWindow_internal.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>

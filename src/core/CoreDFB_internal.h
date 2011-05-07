@@ -26,52 +26,26 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORE__WINDOW_H__
-#define __CORE__WINDOW_H__
+#ifndef __CORE_DFB_INTERNAL_H__
+#define __CORE_DFB_INTERNAL_H__
 
 
-#include <core/windows.h>
+#include <fusion/call.h>
+
+#include <core/state.h>
 
 
 /**********************************************************************************************************************
- * CoreWindow
+ * CoreDFB internal
  */
 
-/*
- * CoreWindow Calls
- */
-typedef enum {
-     CORE_WINDOW_SET_CONFIG        = 1,
-     CORE_WINDOW_REPAINT           = 2,
-} CoreWindowCall;
+FusionCallHandlerResult CoreDFB_Dispatch( int           caller,   /* fusion id of the caller */
+                                          int           call_arg, /* optional call parameter */
+                                          void         *call_ptr, /* optional call parameter */
+                                          void         *ctx,      /* optional handler context */
+                                          unsigned int  serial,
+                                          int          *ret_val );
 
-/*
- * CORE_WINDOW_SET_CONFIG
- */
-typedef struct {
-     CoreWindowConfig      config;
-     CoreWindowConfigFlags flags;
-} CoreWindowSetConfig;
-
-/*
- * CORE_WINDOW_REPAINT
- */
-typedef struct {
-     DFBRegion             left;
-     DFBRegion             right;
-     DFBSurfaceFlipFlags   flags;
-} CoreWindowRepaint;
-
-
-
-DFBResult CoreWindow_SetConfig( CoreWindow             *window,
-                                const CoreWindowConfig *config,
-                                CoreWindowConfigFlags   flags );
-
-DFBResult CoreWindow_Repaint  ( CoreWindow             *window,
-                                const DFBRegion        *left,
-                                const DFBRegion        *right,
-                                DFBSurfaceFlipFlags     flags );
 
 
 #endif

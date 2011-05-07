@@ -42,7 +42,9 @@
 #include <directfb_version.h>
 
 #include <core/core.h>
-#include <core/core_dfb.h>
+
+#include <core/CoreDFB.h>
+#include <core/CoreGraphics.h>
 
 #include <core/clipboard.h>
 #include <core/state.h>
@@ -960,7 +962,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           config.preallocated[1].addr  = desc->preallocated[1].data;
           config.preallocated[1].pitch = desc->preallocated[1].pitch;
 
-          ret = dfb_surface_create( data->core, &config, CSTF_PREALLOCATED, resource_id, NULL, &surface );
+          ret = CoreDFB_CreateSurface( data->core, &config, CSTF_PREALLOCATED, resource_id, NULL, &surface );
           if (ret)
                return ret;
      }
@@ -979,7 +981,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                return ret;
      }
 
-     init_palette( surface, desc );
+//     init_palette( surface, desc );
 
      DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
@@ -1529,9 +1531,7 @@ IDirectFB_WaitIdle( IDirectFB *thiz )
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
-     dfb_gfxcard_sync();
-
-     return DFB_OK;
+     return CoreGraphics_WaitIdle( data->core );
 }
 
 static DFBResult

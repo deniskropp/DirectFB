@@ -37,8 +37,9 @@
 #include <fusion/lock.h>
 #include <fusion/property.h>
 
-#include <directfb.h>
 #include <core/coretypes.h>
+
+#include <directfb.h>
 
 
 typedef enum {
@@ -395,6 +396,11 @@ void dfb_gfxcard_texture_triangles      ( DFBVertex            *vertices,
                                           DFBTriangleFormation  formation,
                                           CardState            *state );
 
+
+
+
+
+
 void dfb_gfxcard_drawstring             ( const u8             *text,
                                           int                   bytes,
                                           DFBTextEncodingID     encoding,
@@ -402,14 +408,14 @@ void dfb_gfxcard_drawstring             ( const u8             *text,
                                           int                   y,
                                           CoreFont             *font,
                                           unsigned int          layers, 
-                                          CardState            *state );
+                                          CoreGraphicsStateClient *client );
 
 void dfb_gfxcard_drawglyph              ( CoreGlyphData       **glyph,
                                           int                   x,
                                           int                   y,
                                           CoreFont             *font,
                                           unsigned int          layers, 
-                                          CardState            *state );
+                                          CoreGraphicsStateClient *client );
 
 
 

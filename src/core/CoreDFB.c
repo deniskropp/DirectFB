@@ -34,9 +34,10 @@
 #include <direct/messages.h>
 
 #include <core/core.h>
-#include <core/core_dfb.h>
-#include <core/core_dfb_internal.h>
 #include <core/surface.h>
+
+#include <core/CoreDFB.h>
+#include <core/CoreDFB_internal.h>
 
 
 D_DEBUG_DOMAIN( DirectFB_Core, "DirectFB/Core", "DirectFB Core" );

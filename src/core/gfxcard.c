@@ -47,7 +47,6 @@
 
 #include <core/core_parts.h>
 #include <core/gfxcard.h>
-#include <core/graphics_internal.h>
 #include <core/fonts.h>
 #include <core/state.h>
 #include <core/palette.h>
@@ -55,6 +54,9 @@
 #include <core/surface_buffer.h>
 #include <core/surface_pool.h>
 #include <core/system.h>
+
+#include <core/CoreGraphics_internal.h>
+#include <core/CoreGraphicsState.h>
 
 #include <gfx/generic/generic.h>
 #include <gfx/clip.h>
@@ -2848,7 +2850,7 @@ font_state_restore( CardState *state,
 void
 dfb_gfxcard_drawstring( const u8 *text, int bytes,
                         DFBTextEncodingID encoding, int x, int y,
-                        CoreFont *font, unsigned int layers, CardState *state )
+                        CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client )
 {
      DFBResult     ret;
      unsigned int  prev = 0;
@@ -2863,20 +2865,25 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      int           num_blits = 0;
      int           ox = x;
      int           oy = y;
+     CardState    *state;
 
      if (encoding == DTEID_UTF8)
           D_DEBUG_AT( Core_GraphicsOps, "%s( '%s' [%d], %d,%d, %p, %p )\n",
-                      __FUNCTION__, text, bytes, x, y, font, state );
+                      __FUNCTION__, text, bytes, x, y, font, client );
      else
           D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %d, %d,%d, %p, %p )\n",
-                      __FUNCTION__, text, bytes, encoding, x, y, font, state );
+                      __FUNCTION__, text, bytes, encoding, x, y, font, client );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( text != NULL );
      D_ASSERT( bytes > 0 );
      D_ASSERT( font != NULL );
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     state = client->state;
+     D_MAGIC_ASSERT( state, CardState );
 
      surface = state->destination;
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -2925,7 +2932,7 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                if (glyph->width) {
                     if (glyph->surface != state->source || num_blits == D_ARRAY_SIZE(rects)) {
                          if (num_blits) {
-                              dfb_gfxcard_batchblit( rects, points, num_blits, state );
+                              CoreGraphicsStateClient_Blit( client, rects, points, num_blits );
                               num_blits = 0;
                          }
 
@@ -2945,7 +2952,7 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
           }
 
           if (num_blits) {
-               dfb_gfxcard_batchblit( rects, points, num_blits, state );
+               CoreGraphicsStateClient_Blit( client, rects, points, num_blits );
                num_blits = 0;
           }
      }
@@ -2956,19 +2963,24 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
 }
 
 void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
-                            CoreFont *font, unsigned int layers, CardState *state )
+                            CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client )
 {
      int          l;
      CoreSurface *surface;
      CardState    state_backup;
+     CardState   *state;
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d, %u, %p, %p )\n",
-                 __FUNCTION__, x, y, layers, font, state );
+                 __FUNCTION__, x, y, layers, font, client );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( font != NULL );
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     state = client->state;
+     D_MAGIC_ASSERT( state, CardState );
 
      surface = state->destination;
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -2981,11 +2993,12 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
 
           /* blit glyph */
           if (glyph[l]->width) {
-               DFBRectangle rect = { glyph[l]->start, 0, glyph[l]->width, glyph[l]->height };
+               DFBRectangle rect  = { glyph[l]->start, 0, glyph[l]->width, glyph[l]->height };
+               DFBPoint     point = { x + glyph[l]->left, y + glyph[l]->top };
 
                dfb_state_set_source( state, glyph[l]->surface );
 
-               dfb_gfxcard_blit( &rect, x + glyph[l]->left, y + glyph[l]->top, state );
+               CoreGraphicsStateClient_Blit( client, &rect, &point, 1 );
           }
      }
 

@@ -17,22 +17,26 @@ AM_CPPFLAGS = \
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
+	CoreDFB.h		\
+	CoreDFB_internal.h	\
+	CoreGraphics.h		\
+	CoreGraphics_internal.h	\
+	CoreGraphicsState.h	\
+	CoreGraphicsState_internal.h	\
+	CoreSurface.h		\
+	CoreSurface_internal.h	\
+	CoreWindow.h		\
+	CoreWindow_internal.h	\
 	clipboard.h		\
 	colorhash.h		\
 	coredefs.h		\
 	coretypes.h		\
-	core_dfb.h		\
-	core_dfb_internal.h	\
 	core_parts.h		\
 	core_system.h		\
 	core.h			\
 	fonts.h			\
 	gfxcard.h		\
-	graphics.h		\
-	graphics_internal.h		\
 	graphics_driver.h	\
-	graphics_state.h	\
-	graphics_state_internal.h	\
 	input.h			\
 	input_driver.h		\
 	layer_context.h		\
@@ -50,8 +54,6 @@ internalinclude_HEADERS = \
 	surface_pool.h		\
 	surface_pool_bridge.h	\
 	system.h		\
-	window.h		\
-	window_internal.h	\
 	windows.h		\
 	windows_internal.h	\
 	windowstack.h		\
@@ -63,15 +65,17 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 
 
 libdirectfb_core_la_SOURCES = \
+	CoreDFB.c		\
+	CoreGraphics.c		\
+	CoreGraphicsState.c	\
+	CoreSurface.c		\
+	CoreWindow.c		\
 	clipboard.c		\
 	colorhash.c		\
 	core.c			\
-	core_dfb.c		\
 	core_parts.c		\
 	fonts.c			\
 	gfxcard.c		\
-	graphics.c		\
-	graphics_state.c	\
 	input.c			\
 	layer_context.c		\
 	layer_control.c		\
@@ -90,7 +94,6 @@ libdirectfb_core_la_SOURCES = \
 	surface_pool.c		\
 	surface_pool_bridge.c	\
 	system.c		\
-	window.c		\
 	windows.c		\
 	windowstack.c		\
 	wm.c

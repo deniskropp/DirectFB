@@ -35,8 +35,9 @@
 #include <direct/messages.h>
 
 #include <core/core.h>
-#include <core/window.h>
-#include <core/window_internal.h>
+
+#include <core/CoreWindow.h>
+#include <core/CoreWindow_internal.h>
 
 #include <core/windows_internal.h>
 

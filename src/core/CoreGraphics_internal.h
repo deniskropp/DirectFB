@@ -26,32 +26,32 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORE__WINDOW_INTERNAL_H__
-#define __CORE__WINDOW_INTERNAL_H__
+#ifndef __CORE__CORE_GRAPHICS_INTERNAL_H__
+#define __CORE__CORE_GRAPHICS_INTERNAL_H__
 
 
 #include <fusion/call.h>
 
-#include <core/window.h>
+#include <core/CoreGraphics.h>
 
 
 /**********************************************************************************************************************
- * CoreWindow internal
+ * CoreGraphics internal
  */
 
-DirectResult dfb_window_call( CoreWindow           *window,
-                              CoreWindowCall        call,
-                              void                 *arg,
-                              size_t                len,
-                              FusionCallExecFlags   flags,
-                              int                  *ret_val );
+DirectResult dfb_graphics_call( CoreDFB             *core,
+                                CoreGraphicsCall     call,
+                                void                *arg,
+                                size_t               len,
+                                FusionCallExecFlags  flags,
+                                int                 *ret_val );
 
-FusionCallHandlerResult CoreWindow_Dispatch( int           caller,   /* fusion id of the caller */
-                                             int           call_arg, /* optional call parameter */
-                                             void         *call_ptr, /* optional call parameter */
-                                             void         *ctx,      /* optional handler context */
-                                             unsigned int  serial,
-                                             int          *ret_val );
+FusionCallHandlerResult CoreGraphics_Dispatch( int           caller,   /* fusion id of the caller */
+                                               int           call_arg, /* optional call parameter */
+                                               void         *call_ptr, /* optional call parameter */
+                                               void         *ctx,      /* optional handler context */
+                                               unsigned int  serial,
+                                               int          *ret_val );
 
 
 #endif

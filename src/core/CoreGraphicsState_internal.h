@@ -26,25 +26,36 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORE__GRAPHICS_H__
-#define __CORE__GRAPHICS_H__
+#ifndef __CORE__CORE_GRAPHICS_STATE_INTERNAL_H__
+#define __CORE__CORE_GRAPHICS_STATE_INTERNAL_H__
 
 
-#include <core/coretypes.h>
+#include <fusion/call.h>
+
+#include <core/state.h>
 
 
 /**********************************************************************************************************************
- * CoreGraphics
+ * CoreGraphicsState internal
  */
 
-/*
- * CoreGraphics Calls
- */
-typedef enum {
-     CORE_GRAPHICS_CREATE_STATE    = 1,
-} CoreGraphicsCall;
+FusionCallHandlerResult CoreGraphicsState_Dispatch( int           caller,   /* fusion id of the caller */
+                                                    int           call_arg, /* optional call parameter */
+                                                    void         *call_ptr, /* optional call parameter */
+                                                    void         *ctx,      /* optional handler context */
+                                                    unsigned int  serial,
+                                                    int          *ret_val );
 
 
+struct __DFB_CoreGraphicsState {
+     int            magic;
+
+     CoreDFB       *core;
+
+     CardState      state;
+
+     FusionCall     call;
+};
 
 #endif
 

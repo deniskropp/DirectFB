@@ -26,36 +26,33 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORE_DFB_INTERNAL_H__
-#define __CORE_DFB_INTERNAL_H__
+#ifndef __CORE__CORE_WINDOW_INTERNAL_H__
+#define __CORE__CORE_WINDOW_INTERNAL_H__
 
 
 #include <fusion/call.h>
 
-#include <core/state.h>
+#include <core/CoreWindow.h>
 
 
 /**********************************************************************************************************************
- * CoreDFB internal
+ * CoreWindow internal
  */
 
-FusionCallHandlerResult CoreDFB_Dispatch( int           caller,   /* fusion id of the caller */
-                                          int           call_arg, /* optional call parameter */
-                                          void         *call_ptr, /* optional call parameter */
-                                          void         *ctx,      /* optional handler context */
-                                          unsigned int  serial,
-                                          int          *ret_val );
+DirectResult dfb_window_call( CoreWindow           *window,
+                              CoreWindowCall        call,
+                              void                 *arg,
+                              size_t                len,
+                              FusionCallExecFlags   flags,
+                              int                  *ret_val );
 
+FusionCallHandlerResult CoreWindow_Dispatch( int           caller,   /* fusion id of the caller */
+                                             int           call_arg, /* optional call parameter */
+                                             void         *call_ptr, /* optional call parameter */
+                                             void         *ctx,      /* optional handler context */
+                                             unsigned int  serial,
+                                             int          *ret_val );
 
-struct __DFB_CoreGraphicsState {
-     int            magic;
-
-     CoreDFB       *core;
-
-     CardState      state;
-
-     FusionCall     call;
-};
 
 #endif
 

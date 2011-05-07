@@ -35,8 +35,9 @@
 
 #include <fusion/reactor.h>
 
-#include <core/graphics_state.h>
 #include <core/state.h>
+
+#include <core/CoreGraphicsState.h>
 
 
 /*

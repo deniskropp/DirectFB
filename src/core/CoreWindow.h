@@ -26,36 +26,53 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORE__GRAPHICS_STATE_INTERNAL_H__
-#define __CORE__GRAPHICS_STATE_INTERNAL_H__
+#ifndef __CORE__CORE_WINDOW_H__
+#define __CORE__CORE_WINDOW_H__
 
 
-#include <fusion/call.h>
-
-#include <core/state.h>
+#include <core/windows.h>
 
 
 /**********************************************************************************************************************
- * CoreGraphicsState internal
+ * CoreWindow
  */
 
-FusionCallHandlerResult CoreGraphicsState_Dispatch( int           caller,   /* fusion id of the caller */
-                                                    int           call_arg, /* optional call parameter */
-                                                    void         *call_ptr, /* optional call parameter */
-                                                    void         *ctx,      /* optional handler context */
-                                                    unsigned int  serial,
-                                                    int          *ret_val );
+/*
+ * CoreWindow Calls
+ */
+typedef enum {
+     CORE_WINDOW_SET_CONFIG        = 1,
+     CORE_WINDOW_REPAINT           = 2,
+} CoreWindowCall;
+
+/*
+ * CORE_WINDOW_SET_CONFIG
+ */
+typedef struct {
+     CoreWindowConfig      config;
+     CoreWindowConfigFlags flags;
+} CoreWindowSetConfig;
+
+/*
+ * CORE_WINDOW_REPAINT
+ */
+typedef struct {
+     DFBRegion             left;
+     DFBRegion             right;
+     DFBSurfaceFlipFlags   flags;
+} CoreWindowRepaint;
 
 
-struct __DFB_CoreGraphicsState {
-     int            magic;
 
-     CoreDFB       *core;
+DFBResult CoreWindow_SetConfig( CoreWindow             *window,
+                                const CoreWindowConfig *config,
+                                CoreWindowConfigFlags   flags );
 
-     CardState      state;
+DFBResult CoreWindow_Repaint  ( CoreWindow             *window,
+                                const DFBRegion        *left,
+                                const DFBRegion        *right,
+                                DFBSurfaceFlipFlags     flags );
 
-     FusionCall     call;
-};
 
 #endif
 

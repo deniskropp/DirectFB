@@ -33,14 +33,47 @@
 #include <direct/messages.h>
 
 #include <core/core.h>
-#include <core/graphics.h>
-#include <core/graphics_internal.h>
-#include <core/graphics_state.h>
-#include <core/graphics_state_internal.h>
 #include <core/state.h>
+
+#include <core/CoreGraphics.h>
+#include <core/CoreGraphics_internal.h>
+
+#include <core/CoreGraphicsState.h>
+#include <core/CoreGraphicsState_internal.h>
 
 
 D_DEBUG_DOMAIN( Core_Graphics, "Core/Graphics", "DirectFB Core Graphics" );
+
+/*********************************************************************************************************************/
+
+DFBResult
+CoreGraphics_WaitIdle( CoreDFB *core )
+{
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     if (dfb_core_is_master( core )) {
+          dfb_gfxcard_sync();
+     }
+     else {
+          DFBResult ret;
+          int       val;
+
+          ret = fusion_call_execute2( &core->shared->graphics_call, FCEF_NONE,
+                                      CORE_GRAPHICS_WAIT_IDLE,
+                                      NULL, 0, &val );
+          if (ret) {
+               D_DERROR( ret, "%s: fusion_call_execute2( CORE_GRAPHICS_WAIT_IDLE ) failed!\n", __FUNCTION__ );
+               return ret;
+          }
+
+          if (val)
+               D_DERROR( val, "%s: CORE_GRAPHICS_WAIT_IDLE failed!\n", __FUNCTION__ );
+
+          return val;
+     }
+
+     return DFB_OK;
+}
 
 /*********************************************************************************************************************/
 
@@ -55,6 +88,7 @@ dfb_graphics_call( CoreDFB             *core,
      return fusion_call_execute2( &core->shared->graphics_call, flags, call, arg, len, ret_val );
 }
 
+/*********************************************************************************************************************/
 /*********************************************************************************************************************/
 
 static u32
@@ -81,6 +115,16 @@ CoreGraphics_Dispatch_CreateState( DFBGraphicsCore *data )
      return state->call.call_id;
 }
 
+static DFBResult
+CoreGraphics_Dispatch_WaitIdle( DFBGraphicsCore *data )
+{
+     D_DEBUG_AT( Core_Graphics, "%s( %p )\n", __FUNCTION__, data );
+
+     D_MAGIC_ASSERT( data, DFBGraphicsCore );
+
+     return dfb_gfxcard_sync();
+}
+
 FusionCallHandlerResult
 CoreGraphics_Dispatch( int           caller,   /* fusion id of the caller */
                        int           call_arg, /* optional call parameter */
@@ -94,6 +138,12 @@ CoreGraphics_Dispatch( int           caller,   /* fusion id of the caller */
                D_DEBUG_AT( Core_Graphics, "=-> CORE_GRAPHICS_CREATE_STATE\n" );
 
                *ret_val = CoreGraphics_Dispatch_CreateState( ctx );
+               break;
+
+          case CORE_GRAPHICS_WAIT_IDLE:
+               D_DEBUG_AT( Core_Graphics, "=-> CORE_GRAPHICS_WAIT_IDLE\n" );
+
+               *ret_val = CoreGraphics_Dispatch_WaitIdle( ctx );
                break;
 
           default:

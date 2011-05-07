@@ -88,6 +88,10 @@ CorePalette      *dfb_core_create_palette      ( CoreDFB *core );
 CoreSurface      *dfb_core_create_surface      ( CoreDFB *core );
 CoreWindow       *dfb_core_create_window       ( CoreDFB *core );
 
+DFBResult         dfb_core_get_palette         ( CoreDFB      *core,
+                                                 u32           object_id,
+                                                 CorePalette **ret_palette );
+
 DFBResult         dfb_core_get_surface         ( CoreDFB      *core,
                                                  u32           object_id,
                                                  CoreSurface **ret_surface );
