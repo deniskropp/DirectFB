@@ -1615,13 +1615,13 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
                local_rects[i].h = rects[i].h;
           }
 
-          dfb_gfxcard_fillrectangles( local_rects, num_rects, &data->state );
+          CoreGraphicsStateClient_FillRectangles( &data->state_client, local_rects, num_rects );
 
           if (malloced)
                D_FREE( local_rects );
      }
      else
-          dfb_gfxcard_fillrectangles( rects, num_rects, &data->state );
+          CoreGraphicsStateClient_FillRectangles( &data->state_client, rects, num_rects );
 
      return DFB_OK;
 }
