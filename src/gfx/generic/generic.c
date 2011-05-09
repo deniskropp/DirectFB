@@ -2395,12 +2395,34 @@ static void Bop_32_TEX_to_Aop( GenefxState *gfxs )
      }
 }
 
+static void Bop_24_TEX_to_Aop( GenefxState *gfxs )
+{
+     int  w     = gfxs->length + 1;
+     int  s     = gfxs->s;
+     int  t     = gfxs->t;
+     int  SperD = gfxs->SperD;
+     int  TperD = gfxs->TperD;
+     const u8 *S = gfxs->Bop[0];
+     u8  *D     = gfxs->Aop[0];
+     int  sp3   = gfxs->src_pitch / 3;
+
+     while (--w) {
+          int pixelstart = ((s >> 16) + (t >> 16) * sp3) * 3;
+          *D++ = S[pixelstart++];
+          *D++ = S[pixelstart++];
+          *D++ = S[pixelstart];
+
+          s += SperD;
+          t += TperD;
+     }
+}
+
 #endif
 
 static GenefxFunc Bop_PFI_TEX_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = NULL,//Bop_16_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB16)]    = NULL,//Bop_16_TEX_to_Aop,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = Bop_24_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = Bop_32_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Bop_32_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = Bop_32_TEX_to_Aop,
@@ -2422,18 +2444,18 @@ static GenefxFunc Bop_PFI_TEX_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_NV21)]     = NULL,//Bop_NV_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AYUV)]     = Bop_32_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A4)]       = NULL,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = NULL,//Bop_24_TEX_to_Aop,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = NULL,//Bop_24_TEX_to_Aop,
-     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = Bop_24_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = NULL,//Bop_16_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = NULL,//Bop_16_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_BGR555)]   = NULL,//Bop_16_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,//Bop_16_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,//Bop_yuv444p_TEX_to_Aop,
-     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_TEX_to_Aop,
-     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,//Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,//Bop_yv16_TEX_to_Aop,
 };
