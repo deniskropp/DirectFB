@@ -49,6 +49,7 @@ libdirectfb_generic_la_SOURCES = \
 	template_acc_24.h		\
 	template_acc_32.h		\
 	template_colorkey_16.h		\
+	template_colorkey_24.h		\
 	template_colorkey_32.h
 
 
