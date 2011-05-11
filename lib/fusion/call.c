@@ -622,6 +622,31 @@ fusion_call_init (FusionCall        *call,
 }
 
 DirectResult
+fusion_call_init_from( FusionCall        *call,
+                       int                call_id,
+                       const FusionWorld *world )
+{
+     D_DEBUG_AT( Fusion_Call, "%s( %p, %d, %p )\n", __FUNCTION__, call, call_id, world );
+
+     D_ASSERT( call != NULL );
+     D_ASSERT( call_id != 0 );
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     memset( call, 0, sizeof(FusionCall) );
+
+     /* Store call id. */
+     call->call_id = call_id;
+
+     /* Keep back pointer to shared world data. */
+     call->shared = world->shared;
+
+     D_DEBUG_AT( Fusion_Call, "  -> call id %d\n", call->call_id );
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_execute (FusionCall          *call,
                      FusionCallExecFlags  flags,
                      int                  call_arg,
