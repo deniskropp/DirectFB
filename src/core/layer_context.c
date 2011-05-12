@@ -53,6 +53,8 @@
 #include <core/windowstack.h>
 #include <core/wm.h>
 
+#include <core/CoreLayerContext_internal.h>
+
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
 
@@ -196,105 +198,6 @@ update_stack_geometry( CoreLayerContext *context )
      if (context->stack)
           dfb_windowstack_resize( context->stack, size.w, size.h, rotation );
 }
-
-/**********************************************************************************************************************/
-
-/**********************************************************************************************************************/
-
-static DFBWindowID
-CoreLayerContext_Dispatch_CreateWindow( CoreLayerContext           *context,
-                                        const DFBWindowDescription *desc )
-{
-     DFBResult   ret;
-     CoreWindow *window;
-     CoreLayer  *layer;
-
-     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, desc );
-
-     D_MAGIC_ASSERT( context, CoreLayerContext );
-     D_ASSERT( desc != NULL );
-
-     layer = dfb_layer_at( context->layer_id );
-
-     ret = dfb_layer_context_create_window( layer->core, context, desc, &window );
-     if (ret)
-          return 0;
-
-     return window->object.id;
-}
-
-/**********************************************************************************************************************/
-
-static FusionCallHandlerResult
-CoreLayerContext_Dispatch( int           caller,   /* fusion id of the caller */
-                           int           call_arg, /* optional call parameter */
-                           void         *call_ptr, /* optional call parameter */
-                           void         *ctx,      /* optional handler context */
-                           unsigned int  serial,
-                           int          *ret_val )
-{
-     CoreLayerContextCreateWindow *create_window = call_ptr;
-
-     switch (call_arg) {
-          case CORE_LAYERCONTEXT_CREATE_WINDOW:
-               D_DEBUG_AT( Core_LayerContext, "=-> CORE_LAYERCONTEXT_CREATE_WINDOW\n" );
-
-               *ret_val = CoreLayerContext_Dispatch_CreateWindow( ctx, &create_window->desc );
-               break;
-
-          default:
-               D_BUG( "invalid call arg %d", call_arg );
-               *ret_val = DFB_INVARG;
-     }
-
-     return FCHR_RETURN;
-}
-
-/**********************************************************************************************************************/
-
-DFBResult
-CoreLayerContext_CreateWindow( CoreDFB                     *core,
-                               CoreLayerContext            *context,
-                               const DFBWindowDescription  *desc,
-                               CoreWindow                 **ret_window )
-{
-     DFBResult   ret;
-     int         val;
-     CoreWindow *window;
-
-     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p, %p )\n", __FUNCTION__, core, context, desc, ret_window );
-
-     D_MAGIC_ASSERT( context, CoreLayerContext );
-     D_ASSERT( desc != NULL );
-     D_ASSERT( ret_window != NULL );
-
-     CoreLayerContextCreateWindow create;
-
-     create.desc = *desc;
-
-     ret = fusion_call_execute2( &context->call, FCEF_NONE, CORE_LAYERCONTEXT_CREATE_WINDOW, &create, sizeof(create), &val );
-     if (ret) {
-          D_DERROR( ret, "Core/LayerContext: fusion_call_execute2( CORE_LAYERCONTEXT_CREATE_WINDOW ) failed!\n" );
-          return ret;
-     }
-
-     if (!val) {
-          D_ERROR( "Core/LayerContext: CORE_LAYERCONTEXT_CREATE_WINDOW failed!\n" );
-          return DFB_FAILURE;
-     }
-
-     ret = dfb_core_get_window( core, val, &window );
-     if (ret) {
-          D_DERROR( ret, "Core/LayerContext: Looking up window by ID %u failed!\n", (DFBWindowID) val );
-          return ret;
-     }
-
-     *ret_window = window;
-
-     return DFB_OK;
-}
-
-/**********************************************************************************************************************/
 
 /**********************************************************************************************************************/
 

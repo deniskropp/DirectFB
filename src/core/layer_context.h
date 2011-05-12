@@ -163,22 +163,5 @@ CoreWindow      *dfb_layer_context_find_window( CoreLayerContext       *context,
 
 
 
-typedef enum {
-     CORE_LAYERCONTEXT_CREATE_WINDOW    = 1,
-} CoreLayerContextCall;
-
-
-typedef struct {
-     DFBWindowDescription     desc;
-} CoreLayerContextCreateWindow;
-
-
-
-DFBResult
-CoreLayerContext_CreateWindow( CoreDFB                     *core,
-                               CoreLayerContext            *context,
-                               const DFBWindowDescription  *desc,
-                               CoreWindow                 **ret_window );
-
-
 #endif
+

@@ -45,6 +45,7 @@
 
 #include <core/CoreDFB.h>
 #include <core/CoreGraphics.h>
+#include <core/CoreLayerContext.h>
 
 #include <core/clipboard.h>
 #include <core/state.h>
