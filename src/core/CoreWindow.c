@@ -93,7 +93,7 @@ CoreWindow_Repaint( CoreWindow          *window,
 
      ret = dfb_window_call( window, CORE_WINDOW_REPAINT, &repaint, sizeof(repaint), FCEF_NONE, NULL );
      if (ret) {
-          D_DERROR( ret, "%s: dfb_window_call( CORE_WINDOW_SET_CONFIG ) failed!\n", __FUNCTION__ );
+          D_DERROR( ret, "%s: dfb_window_call( CORE_WINDOW_REPAINT ) failed!\n", __FUNCTION__ );
           return ret;
      }
 
