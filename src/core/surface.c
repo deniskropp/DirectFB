@@ -126,7 +126,7 @@ dfb_surface_create( CoreDFB                  *core,
                     CoreSurface             **ret_surface )
 {
      DFBResult    ret = DFB_BUG;
-     int          i;
+     int          i, data_size;
      int          buffers;
      CoreSurface *surface;
      char         buf[64];
@@ -248,7 +248,7 @@ dfb_surface_create( CoreDFB                  *core,
      }
 
      /* Create the system driver specific surface data information */
-     int data_size = dfb_system_surface_data_size();
+     data_size = dfb_system_surface_data_size();
 
      if (data_size) {
           surface->data = SHCALLOC( surface->shmpool, 1, data_size );
