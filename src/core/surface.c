@@ -407,7 +407,6 @@ dfb_surface_notify_display( CoreSurface       *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      direct_serial_increase( &surface->serial );
 
