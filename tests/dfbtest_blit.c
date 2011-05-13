@@ -37,6 +37,23 @@
 #include <directfb_strings.h>
 #include <directfb_util.h>
 
+
+static const s32 identity_matrix[9]  = { 0x10000, 0x00000, 0x00000,
+                                         0x00000, 0x10000, 0x00000,
+                                         0x00000, 0x00000, 0x10000 };
+
+static const s32 rotate_matrix[9]    = { 0x0DDB3, -0x08000, 0x00000,
+                                         0x08000, 0x0DDB3, 0x00000,
+                                         0x00000, 0x00000, 0x10000 };
+
+static const s32 translate_matrix[9] = { 0x10000, 0x00000, 0x80000,
+                                         0x00000, 0x10000, 0xF0000,
+                                         0x00000, 0x00000, 0x10000 };
+
+static const s32 shear_matrix[9]     = { 0x10000, 0x14000, 0x00000,
+                                         0x00000, 0x10000, 0x00000,
+                                         0x00000, 0x00000, 0x10000 };
+
 static const DirectFBPixelFormatNames( format_names );
 
 /**********************************************************************************************************************/
@@ -106,8 +123,13 @@ print_usage( const char *prg )
      fprintf (stderr, "  -s, --source    <pixelformat>     Source pixel format\n");
      fprintf (stderr, "  -d, --dest      <pixelformat>     Destination pixel format\n");
      fprintf (stderr, "  -r, --resize                      Set destination from source size\n");
+     fprintf (stderr, "  -x, --scale                       Scale from source to destination\n");
      fprintf (stderr, "  -b, --benchmark                   Enable benchmarking mode\n");
      fprintf (stderr, "  -R, --rerender                    Rerender before every blit (benchmark)\n");
+     fprintf (stderr, "  -t, --tile                        Perform a tile blit\n");
+     fprintf (stderr, "  -X, --matrix-translate            Enable Matrix translation during blit\n");
+     fprintf (stderr, "  -O, --matrix-rotate               Enable Matrix rotation during blit\n");
+     fprintf (stderr, "  -S, --matrix-shear                Enable Matrix shear during blit\n");
 
      return -1;
 }
@@ -121,15 +143,20 @@ main( int argc, char *argv[] )
      DFBResult               ret;
      DFBSurfaceDescription   desc;
      IDirectFB              *dfb;
-     IDirectFBImageProvider *provider      = NULL;
-     IDirectFBSurface       *source        = NULL;
-     IDirectFBSurface       *dest          = NULL;
-     const char             *url           = NULL;
-     DFBSurfacePixelFormat   source_format = DSPF_UNKNOWN;
-     DFBSurfacePixelFormat   dest_format   = DSPF_UNKNOWN;
-     bool                    dest_resize   = false;
-     bool                    benchmark     = false;
-     bool                    rerender      = false;
+     IDirectFBImageProvider *provider         = NULL;
+     IDirectFBSurface       *source           = NULL;
+     IDirectFBSurface       *dest             = NULL;
+     const char             *url              = NULL;
+     DFBSurfacePixelFormat   source_format    = DSPF_UNKNOWN;
+     DFBSurfacePixelFormat   dest_format      = DSPF_UNKNOWN;
+     bool                    dest_resize      = false;
+     bool                    benchmark        = false;
+     bool                    rerender         = false;
+     bool                    scale_enable     = false;
+     bool                    tile             = false;
+     bool                    matrix_translate = false;
+     bool                    matrix_rotate    = false;
+     bool                    matrix_shear     = false;
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
@@ -172,6 +199,16 @@ main( int argc, char *argv[] )
                benchmark = true;
           else if (strcmp (arg, "-R") == 0 || strcmp (arg, "--rerender") == 0)
                rerender = true;
+          else if (strcmp (arg, "-x") == 0 || strcmp (arg, "--scale") == 0)
+              scale_enable = true;
+          else if (strcmp (arg, "-t") == 0 || strcmp (arg, "--tile") == 0)
+              tile = true;
+          else if (strcmp (arg, "-X") == 0 || strcmp (arg, "--matrix-translate") == 0)
+              matrix_translate = true;
+          else if (strcmp (arg, "-O") == 0 || strcmp (arg, "--matrix-rotate") == 0)
+              matrix_rotate = true;
+          else if (strcmp (arg, "-S") == 0 || strcmp (arg, "--matrix-shear") == 0)
+              matrix_shear = true;
           else if (!url)
                url = arg;
           else
@@ -249,7 +286,25 @@ main( int argc, char *argv[] )
      D_INFO( "DFBTest/Blit: Destination is %dx%d using %s\n",
              desc.width, desc.height, dfb_pixelformat_name(desc.pixelformat) );
 
-     dest->StretchBlit( dest, source, NULL, NULL );
+     dest->SetRenderOptions( dest, DSRO_MATRIX );
+
+     if (matrix_rotate) {
+          dest->SetMatrix( dest, rotate_matrix );
+     } else if (matrix_translate) {
+          dest->SetMatrix( dest, translate_matrix );
+     } else if (matrix_shear) {
+          dest->SetMatrix( dest, shear_matrix );
+     } else {
+          dest->SetMatrix( dest, identity_matrix );
+     }
+
+     if (tile)
+         dest->TileBlit( dest, source, NULL, 0, 0 );
+     else if (scale_enable)
+         dest->StretchBlit( dest, source, NULL, NULL );
+     else
+         dest->Blit( dest, source, NULL, 0, 0 );
+
      dest->Flip( dest, NULL, DSFLIP_NONE );
 
      if (benchmark) {
@@ -297,6 +352,8 @@ main( int argc, char *argv[] )
      else
           sleep( 2 );
 
+
+     sleep(10);
 
 out:
      if (dest)
