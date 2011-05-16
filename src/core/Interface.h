@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -26,26 +26,30 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORE_DFB_INTERNAL_H__
-#define __CORE_DFB_INTERNAL_H__
+#ifndef __CORE_INTERFACE_H__
+#define __CORE_INTERFACE_H__
+
+extern "C" {
+#include <core/core.h>
+}
+
+namespace DirectFB {
 
 
-#include <fusion/call.h>
+class Interface {
+protected:
+     CoreDFB *core;
 
-#include <core/state.h>
+     Interface( CoreDFB *core )
+          :
+          core( core )
+     {
+     }
+};
 
 
-/**********************************************************************************************************************
- * CoreDFB internal
- */
 
-FusionCallHandlerResult CoreDFB_Dispatch( int           caller,   /* fusion id of the caller */
-                                          int           call_arg, /* optional call parameter */
-                                          void         *call_ptr, /* optional call parameter */
-                                          void         *ctx,      /* optional handler context */
-                                          unsigned int  serial,
-                                          int          *ret_val );
-
+}
 
 
 #endif

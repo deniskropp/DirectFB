@@ -39,7 +39,7 @@
 #include "coredefs.h"
 
 
-#define DIRECTFB_CORE_ABI     45
+#define DIRECTFB_CORE_ABI     46
 
 
 typedef enum {
@@ -235,6 +235,8 @@ struct __DFB_CoreDFB {
      DFBFontManager          *font_manager;
 };
 
+
+extern CoreDFB *core_dfb;     // FIXME
 
 #endif
 

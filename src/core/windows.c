@@ -55,7 +55,7 @@
 #include <core/windowstack.h>
 #include <core/wm.h>
 
-#include <core/CoreWindow_internal.h>
+#include <core/CoreWindow.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
@@ -615,7 +615,7 @@ dfb_window_create( CoreWindowStack             *stack,
      /* Increase number of windows. */
      stack->num++;
 
-     fusion_call_init( &window->call, CoreWindow_Dispatch, window, dfb_core_world(layer->core) );
+     CoreWindow_Init_Dispatch( layer->core, window, &window->call );
 
      /* Finally activate the object. */
      fusion_object_activate( &window->object );

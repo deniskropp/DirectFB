@@ -56,7 +56,7 @@
 #include <core/windows.h>
 #include <core/windows_internal.h>
 
-#include <core/CoreDFB_internal.h>
+#include <core/CoreDFB.h>
 
 #include <direct/build.h>
 #include <direct/debug.h>
@@ -197,7 +197,7 @@ static void* dfb_lib_handle = NULL;
 
 /******************************************************************************/
 
-static CoreDFB         *core_dfb      = NULL;
+CoreDFB         *core_dfb      = NULL;
 static pthread_mutex_t  core_dfb_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /******************************************************************************/
@@ -1218,7 +1218,11 @@ dfb_core_arena_initialize( FusionArena *arena,
 
      fusion_skirmish_init( &shared->lock, "DirectFB Core", core->world );
 
-     fusion_call_init( &shared->call, CoreDFB_Dispatch, core, core->world );
+//     DirectFB::CoreDFBDispatch *dispatch = new DirectFB::CoreDFBDispatch( core, new DirectFB::ICore_Real(core, core) );
+
+//     fusion_call_init( &shared->call, CoreDFB_Dispatch, dispatch, core->world );
+
+     CoreDFB_Init_Dispatch( core, core, &shared->call );
 
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );

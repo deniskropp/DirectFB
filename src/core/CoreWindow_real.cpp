@@ -1,0 +1,171 @@
+/*
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan@users.sf.net>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#include <config.h>
+
+#include <core/CoreWindow.h>
+
+extern "C" {
+#include <directfb_util.h>
+
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
+
+#include <core/windows.h>
+#include <core/windowstack.h>
+#include <core/wm.h>
+}
+
+D_DEBUG_DOMAIN( Core_Window, "Core/Window", "DirectFB Core Window" );
+
+/*********************************************************************************************************************/
+
+namespace DirectFB {
+
+
+DFBResult
+IWindow_Real::Repaint( const DFBRegion     *left,
+                       const DFBRegion     *right,
+                       DFBSurfaceFlipFlags  flags )
+{
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+     D_ASSERT( left != NULL );
+     D_ASSERT( right != NULL );
+
+     return dfb_window_repaint( obj, left, right, flags );
+}
+
+DFBResult
+IWindow_Real::Restack( CoreWindow *relative,
+                       int         relation )
+{
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     DFBResult        ret;
+     CoreWindowStack *stack;
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+     D_ASSERT( obj->stack != NULL );
+
+     stack = obj->stack;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( obj )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     /* Let the window manager do its work. */
+     ret = dfb_wm_restack_window( obj, relative, relation );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+
+DFBResult
+IWindow_Real::SetConfig( const CoreWindowConfig *config,
+                         CoreWindowConfigFlags   flags )
+{
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+     D_ASSERT( config != NULL );
+
+     return dfb_window_set_config( obj, config, flags );
+}
+
+DFBResult
+IWindow_Real::Bind( CoreWindow *source,
+                    int         x,
+                    int         y )
+{
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+     D_MAGIC_ASSERT( source, CoreWindow );
+
+     return dfb_window_bind( obj, source, x, y );
+}
+
+DFBResult
+IWindow_Real::Unbind( CoreWindow *source )
+{
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+     D_MAGIC_ASSERT( source, CoreWindow );
+
+     return dfb_window_unbind( obj, source );
+}
+
+DFBResult
+IWindow_Real::RequestFocus()
+{
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_request_focus( obj );
+}
+
+DFBResult
+IWindow_Real::GrabKey( DFBInputDeviceKeySymbol     symbol,
+                       DFBInputDeviceModifierMask  modifiers )
+{
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_grab_key( obj, symbol, modifiers );
+}
+
+DFBResult
+IWindow_Real::UngrabKey( DFBInputDeviceKeySymbol     symbol,
+                         DFBInputDeviceModifierMask  modifiers )
+{
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_ungrab_key( obj, symbol, modifiers );
+}
+
+
+}
+

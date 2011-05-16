@@ -18,7 +18,6 @@ internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
 	CoreDFB.h		\
-	CoreDFB_internal.h	\
 	CoreGraphics.h		\
 	CoreGraphics_internal.h	\
 	CoreGraphicsState.h	\
@@ -28,7 +27,6 @@ internalinclude_HEADERS = \
 	CoreSurface.h		\
 	CoreSurface_internal.h	\
 	CoreWindow.h		\
-	CoreWindow_internal.h	\
 	clipboard.h		\
 	colorhash.h		\
 	coredefs.h		\
@@ -67,12 +65,14 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 
 
 libdirectfb_core_la_SOURCES = \
-	CoreDFB.c		\
+	CoreDFB.cpp		\
+	CoreDFB_real.cpp	\
 	CoreGraphics.c		\
 	CoreGraphicsState.c	\
 	CoreLayerContext.c	\
 	CoreSurface.c		\
-	CoreWindow.c		\
+	CoreWindow.cpp		\
+	CoreWindow_real.cpp	\
 	clipboard.c		\
 	colorhash.c		\
 	core.c			\
@@ -100,3 +100,5 @@ libdirectfb_core_la_SOURCES = \
 	windows.c		\
 	windowstack.c		\
 	wm.c
+
+include $(top_srcdir)/rules/flux_comp.make
