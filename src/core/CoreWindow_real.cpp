@@ -54,7 +54,7 @@ IWindow_Real::Repaint( const DFBRegion     *left,
                        const DFBRegion     *right,
                        DFBSurfaceFlipFlags  flags )
 {
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
      D_ASSERT( left != NULL );
@@ -67,7 +67,7 @@ DFBResult
 IWindow_Real::Restack( CoreWindow *relative,
                        int         relation )
 {
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
 
@@ -102,7 +102,7 @@ DFBResult
 IWindow_Real::SetConfig( const CoreWindowConfig *config,
                          CoreWindowConfigFlags   flags )
 {
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
      D_ASSERT( config != NULL );
@@ -115,7 +115,7 @@ IWindow_Real::Bind( CoreWindow *source,
                     int         x,
                     int         y )
 {
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
      D_MAGIC_ASSERT( source, CoreWindow );
@@ -126,7 +126,7 @@ IWindow_Real::Bind( CoreWindow *source,
 DFBResult
 IWindow_Real::Unbind( CoreWindow *source )
 {
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
      D_MAGIC_ASSERT( source, CoreWindow );
@@ -137,7 +137,7 @@ IWindow_Real::Unbind( CoreWindow *source )
 DFBResult
 IWindow_Real::RequestFocus()
 {
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
 
@@ -148,7 +148,7 @@ DFBResult
 IWindow_Real::GrabKey( DFBInputDeviceKeySymbol     symbol,
                        DFBInputDeviceModifierMask  modifiers )
 {
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
 
@@ -159,7 +159,7 @@ DFBResult
 IWindow_Real::UngrabKey( DFBInputDeviceKeySymbol     symbol,
                          DFBInputDeviceModifierMask  modifiers )
 {
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, obj );
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
 

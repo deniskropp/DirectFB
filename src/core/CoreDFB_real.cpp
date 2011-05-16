@@ -53,7 +53,7 @@ ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
                            CorePalette              *palette,
                            CoreSurface             **ret_surface )
 {
-     D_DEBUG_AT( DirectFB_Core, "%s( %p )\n", __FUNCTION__, core );
+     D_DEBUG_AT( DirectFB_Core, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
 
      D_MAGIC_ASSERT( obj, CoreDFB );
      D_ASSERT( config != NULL );
@@ -66,7 +66,7 @@ DFBResult
 ICore_Real::CreatePalette( u32           size,
                            CorePalette **ret_palette )
 {
-     D_DEBUG_AT( DirectFB_Core, "%s( %p )\n", __FUNCTION__, core );
+     D_DEBUG_AT( DirectFB_Core, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
 
      D_MAGIC_ASSERT( obj, CoreDFB );
      D_ASSERT( ret_palette != NULL );

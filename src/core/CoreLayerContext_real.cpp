@@ -54,7 +54,7 @@ ILayerContext_Real::CreateWindow(
                     CoreWindow                               **ret_window
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
 
     D_ASSERT( description != NULL );
     D_ASSERT( ret_window != NULL );
