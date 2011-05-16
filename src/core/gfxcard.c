@@ -2023,7 +2023,7 @@ dfb_gfxcard_fillquadrangles( DFBPoint *points, int num, CardState *state )
      dfb_state_unlock( state );
 }
 
-__unused__
+D_UNUSED
 static void
 DFBVertex_Transform( DFBVertex    *v,
                      unsigned int  num,
