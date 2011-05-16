@@ -780,7 +780,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if ((caps & DSCAPS_FLIPPING) == DSCAPS_DOUBLE)
                               wd.caps |= DWCAPS_DOUBLEBUFFER;
 
-                         ret = CoreLayerContext_CreateWindow( data->core, data->context, &wd, &window );
+                         ret = CoreLayerContext_CreateWindow( data->context, &wd, &window );
                          if (ret)
                               return ret;
 

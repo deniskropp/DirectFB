@@ -18,15 +18,17 @@ internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
 	CoreDFB.h		\
+	CoreDFB_includes.h	\
 	CoreGraphics.h		\
 	CoreGraphics_internal.h	\
 	CoreGraphicsState.h	\
 	CoreGraphicsState_internal.h	\
 	CoreLayerContext.h	\
-	CoreLayerContext_internal.h	\
+	CoreLayerContext_includes.h	\
 	CoreSurface.h		\
 	CoreSurface_internal.h	\
 	CoreWindow.h		\
+	CoreWindow_includes.h	\
 	clipboard.h		\
 	colorhash.h		\
 	coredefs.h		\
@@ -69,7 +71,8 @@ libdirectfb_core_la_SOURCES = \
 	CoreDFB_real.cpp	\
 	CoreGraphics.c		\
 	CoreGraphicsState.c	\
-	CoreLayerContext.c	\
+	CoreLayerContext.cpp	\
+	CoreLayerContext_real.cpp	\
 	CoreSurface.c		\
 	CoreWindow.cpp		\
 	CoreWindow_real.cpp	\

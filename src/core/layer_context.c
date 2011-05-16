@@ -53,7 +53,7 @@
 #include <core/windowstack.h>
 #include <core/wm.h>
 
-#include <core/CoreLayerContext_internal.h>
+#include <core/CoreLayerContext.h>
 
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
@@ -270,7 +270,7 @@ dfb_layer_context_init( CoreLayerContext *context,
      /* Tell the window stack about its size. */
      update_stack_geometry( context );
 
-     fusion_call_init( &context->call, CoreLayerContext_Dispatch, context, dfb_core_world(layer->core) );
+     CoreLayerContext_Init_Dispatch( layer->core, context, &context->call );
 
      dfb_layer_context_unlock( context );
 

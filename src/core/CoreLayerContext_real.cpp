@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -26,41 +26,42 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORE__CORE_LAYER_CONTEXT_H__
-#define __CORE__CORE_LAYER_CONTEXT_H__
+#include <config.h>
 
-#include <directfb.h>
+#include "CoreLayerContext.h"
 
-#include <core/coretypes.h>
-#include <fusion/object.h>
+extern "C" {
+#include <directfb_util.h>
 
+#include <direct/debug.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
-/**********************************************************************************************************************
- * CoreLayerContext
- */
+#include <core/core.h>
+}
 
-/*
- * CoreLayerContext Calls
- */
-typedef enum {
-     CORE_LAYERCONTEXT_CREATE_WINDOW    = 1,
-} CoreLayerContextCall;
+D_DEBUG_DOMAIN( DirectFB_CoreLayerContext, "DirectFB/CoreLayerContext", "DirectFB CoreLayerContext" );
 
+/*********************************************************************************************************************/
 
-/*
- * CORE_LAYERCONTEXT_CREATE_WINDOW
- */
-typedef struct {
-     DFBWindowDescription     desc;
-} CoreLayerContextCreateWindow;
+namespace DirectFB {
 
 
 
 DFBResult
-CoreLayerContext_CreateWindow( CoreDFB                     *core,
-                               CoreLayerContext            *context,
-                               const DFBWindowDescription  *desc,
-                               CoreWindow                 **ret_window );
+ILayerContext_Real::CreateWindow(
+                    const DFBWindowDescription                *description,
+                    CoreWindow                               **ret_window
+)
+{
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
+
+    D_ASSERT( description != NULL );
+    D_ASSERT( ret_window != NULL );
+
+    return dfb_layer_context_create_window( core, obj, description, ret_window );
+}
 
 
-#endif
+}
+

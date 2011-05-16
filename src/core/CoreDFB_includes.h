@@ -1,3 +1,6 @@
+#ifndef __CoreDFB_includes_h__
+#define __CoreDFB_includes_h__
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -70,5 +73,8 @@ CoreWindow_Unref( CoreWindow *window )
 
 #ifdef __cplusplus
 }
+#endif
+
+
 #endif
 

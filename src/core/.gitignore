@@ -1,4 +1,6 @@
 CoreDFB.cpp
 CoreDFB.h
+CoreLayerContext.cpp
+CoreLayerContext.h
 CoreWindow.cpp
 CoreWindow.h
