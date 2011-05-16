@@ -103,6 +103,57 @@ fusion_call_init (FusionCall        *call,
 }
 
 DirectResult
+fusion_call_init3 (FusionCall         *call,
+                   FusionCallHandler3  handler3,
+                   void               *ctx,
+                   const FusionWorld  *world)
+{
+     FusionCallNew call_new;
+
+     D_DEBUG_AT( Fusion_Call, "%s( %p, %p <%s>, %p, %p )\n", __FUNCTION__, call, handler3,
+                 direct_trace_lookup_symbol_at( handler3 ), ctx, world );
+
+     D_ASSERT( call != NULL );
+     D_ASSERT( handler3 != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     /* Called from others. */
+     call_new.handler = handler3;
+     call_new.ctx     = ctx;
+
+     while (ioctl( world->fusion_fd, FUSION_CALL_NEW, &call_new )) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_CALL_NEW");
+
+          return DR_FAILURE;
+     }
+
+     memset( call, 0, sizeof(FusionCall) );
+
+     /* Store handler, called directly when called by ourself. */
+     call->handler3 = handler3;
+     call->ctx      = ctx;
+
+     /* Store call and own fusion id. */
+     call->call_id   = call_new.call_id;
+     call->fusion_id = fusion_id( world );
+
+     /* Keep back pointer to shared world data. */
+     call->shared = world->shared;
+
+     D_DEBUG_AT( Fusion_Call, "  -> call id %d\n", call->call_id );
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_init_from( FusionCall        *call,
                        int                call_id,
                        const FusionWorld *world )
@@ -252,6 +303,70 @@ fusion_call_execute2(FusionCall          *call,
 }
 
 DirectResult
+fusion_call_execute3(FusionCall          *call,
+                     FusionCallExecFlags  flags,
+                     int                  call_arg,
+                     void                *ptr,
+                     unsigned int         length,
+                     void                *ret_ptr,
+                     size_t               ret_size)
+{
+     int *ret_val = ret_ptr;
+
+     D_DEBUG_AT( Fusion_Call, "%s( %p, flags 0x%x, arg %d, %p, length %u )\n", __FUNCTION__, call, flags, call_arg, ptr, length );
+
+     D_ASSERT( call != NULL );
+
+//     if (!call->handler)
+//          return DR_DESTROYED;
+
+     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler3 ) );
+
+     if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
+          FusionCallHandlerResult result;
+
+          D_ASSERT( call->handler3 != NULL );
+
+          result = call->handler3( call->fusion_id, call_arg, ptr, length, call->ctx, 0, ret_ptr, ret_size );
+
+          if (result != FCHR_RETURN)
+               D_WARN( "local call handler returned FCHR_RETAIN, need FCEF_NODIRECT" );
+     }
+     else {
+          FusionCallExecute2 execute;
+
+          execute.call_id  = call->call_id;
+          execute.call_arg = call_arg;
+          execute.ptr      = ptr;
+          execute.length   = length;
+          execute.flags    = flags;
+
+          while (ioctl( _fusion_fd( call->shared ), FUSION_CALL_EXECUTE2, &execute )) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+//                         D_ERROR ("Fusion/Call: invalid call\n");
+                         return DR_INVARG;
+                    case EIDRM:
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_CALL_EXECUTE");
+
+               return DR_FAILURE;
+          }
+
+          if (ret_val)
+               *ret_val = execute.ret_val;
+     }
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_return( FusionCall   *call,
                     unsigned int  serial,
                     int           val )
@@ -300,7 +415,7 @@ fusion_call_destroy (FusionCall *call)
      D_DEBUG_AT( Fusion_Call, "%s( %p )\n", __FUNCTION__, call );
 
      D_ASSERT( call != NULL );
-     D_ASSERT( call->handler != NULL );
+     D_ASSERT( call->handler != NULL || call->handler3 != NULL );
 
      D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 
