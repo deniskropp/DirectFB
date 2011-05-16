@@ -1,0 +1,268 @@
+
+
+
+***	10 Interfaces, 89 Methods	***
+
+
+
+
+
+== Core API ==
+
+	CoreDFB
+
+		CreateSurface					-> CoreSurface
+			dfb_surface_create
+			dfb_surface_create_simple
+
+		CreatePalette					-> CorePalette
+			dfb_palette_create
+
+		SetClipboard
+			dfb_clipboard_set
+
+
+		WaitSerial
+			dfb_gfxcard_wait_serial
+
+		WaitIdle
+			dfb_gfxcard_sync
+
+		CreateState
+			dfb_state_init
+
+		CheckState
+			dfb_gfxcard_state_check
+7
+
+
+== Graphics API ==
+
+
+	CoreGraphicsStateClient
+
+		Blit
+			dfb_gfxcard_batchblit
+			dfb_gfxcard_blit
+
+		FillRectangles
+			dfb_gfxcard_fillrectangles
+
+		StretchBlit
+			dfb_gfxcard_stretchblit
+
+		...
+			dfb_gfxcard_drawlines
+
+			dfb_gfxcard_drawrectangle
+
+			dfb_gfxcard_drawstring
+
+			dfb_gfxcard_fillspans
+
+			dfb_gfxcard_filltrapezoids
+
+			dfb_gfxcard_filltriangles
+
+			dfb_gfxcard_texture_triangles
+
+			dfb_gfxcard_tileblit
+
+			dfb_gfxcard_batchblit2
+
+			+ 17 state setters
+29 (36)
+
+
+
+== Static Entities ==
+
+
+	CoreInputDevice
+
+		...
+			dfb_input_device_load_keymap
+
+			dfb_input_device_set_keymap_entry
+2 (38)
+
+	CoreLayer
+
+		...
+			dfb_layer_activate_context
+
+		CreateContext						-> CoreLayerContext
+			dfb_layer_create_context
+
+			dfb_layer_set_level
+
+			dfb_layer_wait_vsync
+4 (42)
+
+	CoreScreen
+
+		...
+			dfb_screen_set_encoder_config
+
+			dfb_screen_set_mixer_config
+
+			dfb_screen_set_output_config
+
+			dfb_screen_test_encoder_config
+
+			dfb_screen_test_mixer_config
+
+			dfb_screen_test_output_config
+
+			dfb_screen_wait_vsync
+7 (49)
+
+
+
+
+== Objects ==
+
+
+	CoreLayerContext
+
+		CreateWindow						-> CoreWindow
+			dfb_layer_context_create_window
+
+		...
+			dfb_layer_context_set_clip_regions
+			dfb_layer_context_set_coloradjustment
+			dfb_layer_context_set_configuration
+			dfb_layer_context_set_dst_colorkey
+			dfb_layer_context_set_opacity
+			dfb_layer_context_set_rotation
+			dfb_layer_context_set_screenlocation
+			dfb_layer_context_set_screenposition
+			dfb_layer_context_set_screenrectangle
+			dfb_layer_context_set_sourcerectangle
+			dfb_layer_context_set_src_colorkey
+			dfb_layer_context_set_stereo_depth
+
+			dfb_layer_context_test_configuration
+
+			dfb_windowstack_cursor_set_acceleration
+
+			dfb_windowstack_cursor_set_opacity
+
+			dfb_windowstack_cursor_set_shape
+
+			dfb_windowstack_cursor_warp
+
+			dfb_windowstack_repaint_all
+
+			dfb_windowstack_set_background_color
+
+			dfb_windowstack_set_background_color_index
+
+			dfb_windowstack_set_background_image
+
+			dfb_windowstack_set_background_mode
+12 (61)
+
+
+	CoreLayerRegion
+
+		...
+			dfb_layer_region_flip_update
+
+			dfb_layer_region_flip_update_stereo
+2 (63)
+
+
+	CoreSurface
+
+		Flip
+			dfb_surface_flip
+
+		SetPalette
+			dfb_surface_set_palette
+
+		LockBuffer
+			dfb_surface_lock_buffer
+
+		UnlockBuffer
+			dfb_surface_unlock_buffer
+
+		...
+			dfb_surface_read_buffer
+
+			dfb_surface_reconfig
+
+			dfb_surface_set_alpha_ramp
+
+			dfb_surface_set_field
+
+			dfb_surface_write_buffer
+9 (72)
+
+
+	CorePalette
+
+		...
+			dfb_palette_generate_rgb332_map
+
+			dfb_palette_update
+2 (74)
+
+
+	CoreWindow
+
+		Repaint
+			dfb_window_repaint
+
+		Restack
+			dfb_window_lower
+			dfb_window_lowertobottom
+			dfb_window_putatop
+			dfb_window_putbelow
+			dfb_window_raise
+
+		SetConfig
+			dfb_window_set_config
+			dfb_window_change_events
+			dfb_window_change_options
+			dfb_window_change_stacking
+			dfb_window_move
+			dfb_window_resize
+			dfb_window_set_bounds
+			dfb_window_set_color
+			dfb_window_set_colorkey
+			dfb_window_set_opacity
+			dfb_window_set_opaque
+			dfb_window_set_rotation
+
+		Bind
+			dfb_window_bind
+
+		Unbind
+			dfb_window_unbind
+
+		RequestFocus
+			dfb_window_request_focus
+
+		GrabKey
+			dfb_window_grab_key
+
+		UngrabKey
+			dfb_window_ungrab_key
+
+		...
+			dfb_window_destroy
+
+			dfb_window_post_event
+
+			dfb_window_send_configuration
+
+			dfb_wm_begin_updates
+
+			dfb_wm_remove_window_property
+
+			dfb_wm_set_cursor_position
+
+			dfb_wm_set_window_property
+15 (89)
+
