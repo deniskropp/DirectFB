@@ -280,6 +280,7 @@ public:
 
      std::string ArgumentsOutputObjectLookup() const;
      std::string ArgumentsOutputObjectReturn() const;
+     std::string ArgumentsInoutReturn() const;
 
      std::string ArgumentsInputObjectLookup() const;
      std::string ArgumentsInputObjectUnref() const;
@@ -926,6 +927,30 @@ Method::ArgumentsOutputObjectReturn() const
 }
 
 std::string
+Method::ArgumentsInoutReturn() const
+{
+     std::string result;
+
+     for (Entity::vector::const_iterator iter = entities.begin(); iter != entities.end(); iter++) {
+          const Arg *arg = dynamic_cast<const Arg*>( *iter );
+
+          D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
+
+          if (arg->direction == "inout") {
+               char buf[1000];
+
+               snprintf( buf, sizeof(buf),
+                         "                return_args->%s = args->%s;\n",
+                         arg->name.c_str(), arg->name.c_str() );
+
+               result += buf;
+          }
+     }
+
+     return result;
+}
+
+std::string
 Method::ArgumentsInputObjectLookup() const
 {
      std::string result;
@@ -1471,6 +1496,7 @@ FluxComp::GenerateSource( const Interface *face )
                          "            return_args->result = real->%s( %s );\n"
                          "            if (return_args->result == DFB_OK) {\n"
                          "%s"
+                         "%s"
                          "            }\n"
                          "\n"
                          "%s"
@@ -1488,6 +1514,7 @@ FluxComp::GenerateSource( const Interface *face )
                    method->ArgumentsInputObjectLookup().c_str(),
                    method->name.c_str(), method->ArgumentsAsMemberParams().c_str(),
                    method->ArgumentsOutputObjectReturn().c_str(),
+                   method->ArgumentsInoutReturn().c_str(),
                    method->ArgumentsInputObjectUnref().c_str() );
      }
 
