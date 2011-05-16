@@ -270,7 +270,8 @@ public:
      std::string ArgumentsOutputAsMemberDecl() const;
      std::string ArgumentsAsMemberParams() const;
 
-     std::string ArgumentsMemberAssignments() const;
+     std::string ArgumentsInputAssignments() const;
+     std::string ArgumentsOutputAssignments() const;
 
      std::string ArgumentsAssertions() const;
 
@@ -717,7 +718,7 @@ Method::ArgumentsOutputAsMemberDecl() const
 
           D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
 
-          if (arg->direction == "output") {
+          if (arg->direction == "output" || arg->direction == "inout") {
                if (arg->type == "struct")
                     result = PrintMember( result, arg->type_name, "", arg->name );
                else if (arg->type == "enum")
@@ -775,7 +776,7 @@ Method::ArgumentsAsMemberParams() const
 }
 
 std::string
-Method::ArgumentsMemberAssignments() const
+Method::ArgumentsInputAssignments() const
 {
      std::string result;
 
@@ -791,6 +792,25 @@ Method::ArgumentsMemberAssignments() const
                     result += std::string("    block.") + arg->name + " = " + arg->name + ";\n";
                else if (arg->type == "object")
                     result += std::string("    block.") + arg->name + "_id = " + arg->name + " ? " + arg->name + "->object.id : 0;\n";
+          }
+     }
+
+     return result;
+}
+
+std::string
+Method::ArgumentsOutputAssignments() const
+{
+     std::string result;
+
+     for (Entity::vector::const_iterator iter = entities.begin(); iter != entities.end(); iter++) {
+          const Arg *arg = dynamic_cast<const Arg*>( *iter );
+
+          D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
+
+          if (arg->direction == "output" || arg->direction == "inout") {
+               if (arg->type == "struct" || arg->type == "enum" || arg->type == "int")
+                    result += std::string("    *") + arg->param_name() + " = return_block." + arg->name + ";\n";
           }
      }
 
@@ -895,7 +915,6 @@ Method::ArgumentsOutputObjectReturn() const
                char buf[1000];
 
                snprintf( buf, sizeof(buf),
-                         "            if (return_args->result == DFB_OK)\n"
                          "                return_args->%s_id = %s->object.id;\n",
                          arg->name.c_str(), arg->name.c_str() );
 
@@ -1380,7 +1399,7 @@ FluxComp::GenerateSource( const Interface *face )
                          "    %s%s       block;\n"
                          "    %s%sReturn return_block;\n"
                          "\n"
-                         "    D_DEBUG_AT( DirectFB_%s, \"%%s()\\n\", __FUNCTION__ );\n"
+                         "    D_DEBUG_AT( DirectFB_%s, \"%s_Requestor::%%s()\\n\", __FUNCTION__ );\n"
                          "\n"
                          "%s"
                          "\n"
@@ -1398,6 +1417,8 @@ FluxComp::GenerateSource( const Interface *face )
                          "    }\n"
                          "\n"
                          "%s"
+                         "\n"
+                         "%s"
                          "    return DFB_OK;\n"
                          "}\n"
                          "\n",
@@ -1406,12 +1427,13 @@ FluxComp::GenerateSource( const Interface *face )
                    method->ArgumentsOutputObjectDecl().c_str(),
                    face->object.c_str(), method->name.c_str(),
                    face->object.c_str(), method->name.c_str(),
-                   face->object.c_str(),
+                   face->object.c_str(), face->name.c_str(),
                    method->ArgumentsAssertions().c_str(),
-                   method->ArgumentsMemberAssignments().c_str(),
+                   method->ArgumentsInputAssignments().c_str(),
                    face->object.c_str(), face->object.c_str(), method->name.c_str(),
                    face->object.c_str(), face->object.c_str(), method->name.c_str(),
                    face->object.c_str(), method->name.c_str(),
+                   method->ArgumentsOutputAssignments().c_str(),
                    method->ArgumentsOutputObjectLookup().c_str() );
      }
 
@@ -1426,8 +1448,10 @@ FluxComp::GenerateSource( const Interface *face )
                     "                                void   *ret_ptr,\n"
                     "                                size_t  ret_length )\n"
                     "{\n"
+                    "    D_DEBUG_AT( DirectFB_%s, \"%sDispatch::%%s()\\n\", __FUNCTION__ );\n"
+                    "\n"
                     "    switch (method) {\n",
-              face->object.c_str() );
+              face->object.c_str(), face->object.c_str(), face->object.c_str() );
 
      /* Dispatch Methods */
 
@@ -1437,6 +1461,7 @@ FluxComp::GenerateSource( const Interface *face )
           fprintf( file, "        case %s_%s: {\n"
                          "%s"
                          "%s"
+                         "            D_UNUSED\n"
                          "            %s%s       *args        = (%s%s *) ptr;\n"
                          "            %s%sReturn *return_args = (%s%sReturn *) ret_ptr;\n"
                          "\n"
@@ -1444,7 +1469,9 @@ FluxComp::GenerateSource( const Interface *face )
                          "\n"
                          "%s"
                          "            return_args->result = real->%s( %s );\n"
+                         "            if (return_args->result == DFB_OK) {\n"
                          "%s"
+                         "            }\n"
                          "\n"
                          "%s"
                          "            return DFB_OK;\n"
