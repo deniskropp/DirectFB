@@ -1,0 +1,5 @@
+
+
+- Generate stub real implementation optionally in a serate file.
+
+- Generate proper cleanup code in case of multiple object lookups etc.
