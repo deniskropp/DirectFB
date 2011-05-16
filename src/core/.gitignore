@@ -2,5 +2,7 @@ CoreDFB.cpp
 CoreDFB.h
 CoreLayerContext.cpp
 CoreLayerContext.h
+CoreSurface.cpp
+CoreSurface.h
 CoreWindow.cpp
 CoreWindow.h

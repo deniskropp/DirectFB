@@ -41,7 +41,7 @@
 #include <core/windows_internal.h>
 
 #include <core/CoreDFB.h>
-#include <core/CoreSurface_internal.h>
+#include <core/CoreSurface.h>
 
 #include <gfx/convert.h>
 
@@ -303,7 +303,7 @@ dfb_surface_create( CoreDFB                  *core,
      }
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
-     fusion_call_init( &surface->call, CoreSurface_Dispatch, surface, dfb_core_world(core) );
+     CoreSurface_Init_Dispatch( core, surface, &surface->call );
 
      fusion_object_activate( &surface->object );
 

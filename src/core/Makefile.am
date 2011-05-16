@@ -26,7 +26,7 @@ internalinclude_HEADERS = \
 	CoreLayerContext.h	\
 	CoreLayerContext_includes.h	\
 	CoreSurface.h		\
-	CoreSurface_internal.h	\
+	CoreSurface_includes.h	\
 	CoreWindow.h		\
 	CoreWindow_includes.h	\
 	clipboard.h		\
@@ -73,7 +73,8 @@ libdirectfb_core_la_SOURCES = \
 	CoreGraphicsState.c	\
 	CoreLayerContext.cpp	\
 	CoreLayerContext_real.cpp	\
-	CoreSurface.c		\
+	CoreSurface.cpp		\
+	CoreSurface_real.cpp	\
 	CoreWindow.cpp		\
 	CoreWindow_real.cpp	\
 	clipboard.c		\
