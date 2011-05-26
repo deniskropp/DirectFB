@@ -1,3 +1,36 @@
+1.4.13
+------
+
+Genefx
+- Implement TextureTriangles() and blitting with matrix (affine only for now).
+  Next to gTextureTriangles() there are two new operations, one for texture mapping a scanline
+  into accumulator (Sop_PFI_TEX_to_Dacc) and one for direct mapping into output buffer with
+  same format and no flags (Bop_PFI_TEX_to_Aop_PFI).
+  These operations simply interpolate s and t along the scanline.
+  For perspective correct TextureTriangles() we need to add Sop_PFI_TEXz_to_Dacc or similar.
+- Optimize fast path ARGB SrcOver and add fast path ARGB SrcOver premultiply.
+- Split code into a few files
+
+Graphics
+- Fix preclipping of fonts in some cases (broken since 1.4.4)
+
+Proxy
+- Add IDirectFBSurface::FillTrapezoids() implementations
+- Add IDirectFBDisplayLayer::GetRotation() implementations
+- Add dispatcher code for IDirectFBSurface::Read() which seemed lost
+- Discard unsupported DSDESC_PALETTE and DSDESC_PREALLOCATED flags
+
+libdirect
+- Fix small memory leak in DirectGetInterface()
+
+dfbtest_blit
+- Add a few options regarding scaling, transform...
+
+build
+- Fix out of tree builds...
+- libidirectfbfont_ft2 must be linked against libm as it uses sin() and cos() now
+
+
 1.4.12
 ------
 

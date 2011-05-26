@@ -1,3 +1,290 @@
+commit 593d5efa7774968ebaba65551c314634af78c01e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri May 13 14:21:03 2011 +0200
+
+    dfbtest_blit: Add a few options regarding scaling, transform...
+    
+      -x, --scale                       Scale from source to destination
+      -t, --tile                        Perform a tile blit
+      -X, --matrix-translate            Enable Matrix translation during blit
+      -O, --matrix-rotate               Enable Matrix rotation during blit
+      -S, --matrix-shear                Enable Matrix shear during blit
+
+commit 70e45c81718a41e324a33e7052ebe42ccd00f79f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri May 13 14:14:29 2011 +0200
+
+    Core: Remove FUSION_SKIRMISH_ASSERT from dfb_surface_notify_display.
+
+commit 28d84a283379bc056848afe5f96b969cbd31066b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri May 13 14:11:15 2011 +0200
+
+    Core: Move declaration of data_size to the top in dfb_surface_create.
+
+commit 9658a158bc1ec7aeadad5f52b399252afbb37a49
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Feb 19 22:10:54 2011 +0100
+
+    cosmetic: Correct order of DSETV_NTSC_443 and DSETV_DIGITAL.
+
+commit 3d8e3b51603010547d8ef450229be53312f24202
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed May 11 19:00:33 2011 +0200
+
+    Generic: Fix build by removing ABGR code.
+
+commit a7cabcd08d0a971ed4490f2dea9c832658fb5ed4
+Author: André Draszik <andre.draszik@st.com>
+Date:   Fri May 6 12:18:55 2011 +0100
+
+    build: further fix out of tree builds
+    
+    This was missed in commit 811a8c01a12994c9f8074c2d6a643759fc413e3d
+    (build: fix out of tree builds)
+
+commit b98744007d099cb653adc720016d522d22b23c1f
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Apr 11 11:36:19 2011 +0100
+
+    build: libidirectfbfont_ft2 must be linked against libm
+    
+    as it uses sin() and cos() now
+    
+    STLinux bugzilla #11884
+
+commit 89f437268ec8b931c63e3b7598eeef8e9b55f3aa
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Apr 11 12:30:02 2011 +0100
+
+    build: rename MEDIALIB to LIBM
+    
+    makes more sense
+
+commit 350d867876115abd6d97f5b72fbfe2ac5bee2859
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri May 6 12:19:54 2011 +0200
+
+    Revert "gfxcard: white space fixes"
+    
+    This reverts commit 6eec6ee6a097fa9e7f1fa0004f47ed34478dc5d7.
+    
+    (the "fix" actually broke it, sorry)
+
+commit 6eec6ee6a097fa9e7f1fa0004f47ed34478dc5d7
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:54:29 2011 +0200
+
+    gfxcard: white space fixes
+
+commit 93ddcbfdfe1cab04d20c1c734033cceb27e649f6
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:43:43 2011 +0200
+
+    cleanup merge conflicts
+
+commit 116c9fe38e272a7d662569fdc089f2f62cd8e89d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:42:02 2011 +0200
+
+    Revert "gfx: Moved dfb_pixelformat_name() and dfb_pixelformat_for_depth() to util, MSVC fixes."
+    
+    This reverts commit 634147bb8e65777571a9210a5b13a97f82f8d019.
+
+commit 486f7113da0ede6eb3d2e737f63245aaf8744b2d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Apr 12 22:45:21 2011 +0200
+
+    Genefx: Fix horizontal clipping of left side of lines in TextureTriangle.
+
+commit 2095c2fcd575368c1e2be55ec08f108589dd52da
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Apr 11 22:12:36 2011 +0200
+
+    Genefx: Replace fixed point for xl/xr by DDAs to fix overdraw.
+    
+    The mesh of texture triangles can be blended without artifacts now.
+
+commit 2638098f3fb5d02705e1336391913fe89efa2855
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Apr 11 18:11:35 2011 +0200
+
+    Genefx: Add Sop_a8_TEX_to_Dacc to support DrawString with matrix.
+
+commit a0e647ab48c36170aaa9a50572f2d127bd368092
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Apr 11 18:02:48 2011 +0200
+
+    Genefx: Finish clipping implementation by adding horizontal pre-clipping as well.
+
+commit 16ba1a54f09f2a3adf8968b5a8d11f1b153487a0
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:31:42 2011 +0200
+
+    Genefx: merge 1.5 changes
+
+commit cd9cdd9fcf42a85aa515cded2881d92ae68cdbd5
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:30:44 2011 +0200
+
+    Genefx: Implement clipping in TextureTriangle, add TileBlit with matrix, more accuracy, fixes
+    
+    Conflicts:
+    
+    	src/core/gfxcard.c
+
+commit 1244186037139fcf9ccf1f87e22efa0a8aff8d74
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Apr 11 12:26:12 2011 +0200
+
+    Genefx: Implement colorkeyed texture mapping, adding Sop_PFI_TEX_Kto_Dacc.
+
+commit c9fc3da96b861f32faffe471deaa44f2670768d1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Apr 11 01:07:37 2011 +0200
+
+    Genefx: Implement Sop_RGB16_TEX_to_Dacc correctly.
+    
+    With this blit-convert test of df_dok also works.
+
+commit 08bde043766aa7f10e09d30431ad8a7df82029f2
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:27:12 2011 +0200
+
+    generic: merge of TexturedTriangles from DirectFB-1.5
+
+commit 00fb9af49e5632ce22d63b033cbc27eda78f8ef6
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:26:45 2011 +0200
+
+    Genefx: Cleanup naming, have affine/non-affine function, call non-float affine code directly.
+    
+    Conflicts:
+    
+    	src/core/gfxcard.c
+
+commit eaf8da6e2213a366115637d8e72d554e08b9ab06
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Apr 10 22:49:11 2011 +0200
+
+    Genefx: Protect against zero height in TextureTriangle.
+
+commit f66846349f4c15987704d9b70bbc19a9aab19268
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:21:06 2011 +0200
+
+    merge c9ba26227ab2643c80468bf4b858426de50a3611
+
+commit 6130a355fbc283024c7fb33bc22ebca362df0c63
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:19:10 2011 +0200
+
+    Genefx: Implement TextureTriangles() and split code into a few files.
+    
+    TextureTriangles() is supported via affine texture mapping routine only.
+    
+    Genefx_TextureTriangle() is meant for affine transformation of Blit/StretchBlit originally.
+    
+    Next to gTextureTriangles() there are two new operations, one for texture mapping a scanline
+    into accumulator (Sop_PFI_TEX_to_Dacc) and one for direct mapping into output buffer with
+    same format and no flags (Bop_PFI_TEX_to_Aop_PFI).
+    
+    These operations simply interpolate s and t along the scanline.
+    
+    For perspective correct TextureTriangles() we need to add Sop_PFI_TEXz_to_Dacc or similar.
+    
+    Conflicts:
+    
+    	src/gfx/generic/generic.c
+
+commit 6525dc87d3062d68ace51d4e0a2bc8cb09c810e5
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu May 5 15:09:01 2011 +0200
+
+    merge 8162c80b9702eb03b06c786ab2f08e3fbb75d6aa
+
+commit ee421f90289267e7b5d261b58926ec7c3b703d59
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Feb 8 03:17:45 2011 +0100
+
+    generic: Optimize fast path ARGB SrcOver and add fast path ARGB SrcOver premultiply.
+    
+    df_dok's SrcOver benchmarks:
+    
+                       before  after
+    non-premultiply    420     601
+    premultiply         88     560
+    
+                        MPixel/sec (i7 K 875 2.93)
+
+commit f41a1622688f347ff39784d65cac3b5ebb48d671
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jan 30 22:17:26 2011 +0100
+
+    gfx: Moved dfb_pixelformat_name() and dfb_pixelformat_for_depth() to util, MSVC fixes.
+
+commit ac1b2fd395d8ee5843bd900a884ae67c777cffc6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed May 4 15:56:09 2011 +0200
+
+    gfxcard: fix preclipping of fonts in some cases (broken since 1.4.4)
+
+commit fcc04e80e5b0b97e5a32e1aa563b48ce8a1985f4
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Apr 25 15:26:09 2011 +0200
+
+    libdirect: fix small memory leak in DirectGetInterface()
+
+commit 78fb8328026c9ab82f43c31470929da9abb12cbc
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Apr 25 00:05:19 2011 +0200
+
+    proxy: compile fix
+
+commit 1edf99eea4b49f087d992e03b26c0b3ea154dbb5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Apr 24 21:57:41 2011 +0200
+
+    Proxy: Add dispatcher code for IDirectFBSurface::Read() which seemed lost.
+
+commit b6e6a13b3318c0388148daf9de3f174ce55a57fc
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Sun Apr 24 21:45:27 2011 +0200
+
+    Voodoo: discard unsupported DSDESC_PALETTE and DSDESC_PREALLOCATED flags
+
+commit 39dc45c1e31527eed4ac34c5eb8851f262c5055c
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Sun Apr 24 20:00:09 2011 +0200
+
+    Voodoo: Dispatcher and Requestor for IDirectFBSurface::FillTrapezoids()
+
+commit 58ba16ef4f670b2bad58bf497b0eb1881a4b9c6f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Apr 20 21:41:34 2011 +0200
+
+    Proxy: Fix IDirectFBSurface_Requestor::GetSubSurface() to finish the request before constructing IDirectFBSurface Requestor
+
+commit 40eee037f1e76936c0f0090afefb9c2d933b8253
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Mar 16 20:48:16 2011 +0100
+
+    proxy: Add IDirectFBDisplayLayer::GetRotation() implementations.
+
+commit 4128e04c0f5c926e75e000899742691074b01883
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Sun Apr 24 23:37:43 2011 +0200
+
+    proxy: Fixes for MSVC.
+    
+    + Fix in IDirectFBDisplayLayer::GetConfiguration()
+
+commit dbe3807c183416fb30086bd42512ac10cb87572a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Apr 5 23:20:59 2011 +0100
+
+    Release 1.4.12, updated NEWS and ChangeLog
+
 commit afda5eb53d5394bef8ddd7c3829de9a87b97f41f
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Tue Apr 5 23:06:49 2011 +0100
