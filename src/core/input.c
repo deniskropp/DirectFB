@@ -2183,7 +2183,7 @@ lookup_from_table( CoreInputDevice    *device,
           DFBInputDeviceKeymapSymbolIndex index =
                (event->modifiers & DIMM_ALTGR) ? DIKSI_ALT : DIKSI_BASE;
 
-          if ((event->modifiers & DIMM_SHIFT) || (entry->locks & event->locks))
+          if (!(event->modifiers & DIMM_SHIFT) ^ !(entry->locks & event->locks))
                index++;
 
           /* don't modify modifiers */
@@ -2687,7 +2687,7 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
               DFBInputDeviceModifierMask  modifiers,
               DFBInputDeviceLockState     locks )
 {
-     bool shift = (modifiers & DIMM_SHIFT) || (locks & DILS_CAPS);
+     bool shift = !(modifiers & DIMM_SHIFT) ^ !(locks & DILS_CAPS);
 
      if (id >= DIKI_A && id <= DIKI_Z)
           return (shift ? DIKS_CAPITAL_A : DIKS_SMALL_A) + id - DIKI_A;
