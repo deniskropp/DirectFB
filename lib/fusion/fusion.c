@@ -1090,6 +1090,13 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );
                                    _fusion_shmpool_process( world, header->msg_id, data );
                                    break;
+                              case FMT_CALL3:
+                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL3...\n" );
+
+                                   _fusion_call_process3( world, header->msg_id, data,
+                                                          (header->msg_size != sizeof(FusionCallMessage3))
+                                                          ?data + sizeof(FusionCallMessage3) : NULL );
+                                   break;
                               default:
                                    D_DEBUG( "Fusion/Receiver: discarding message of unknown type '%d'\n",
                                             header->msg_type );

@@ -45,20 +45,21 @@ typedef FusionCallHandlerResult (*FusionCallHandler) (int           caller,   /*
 
 typedef FusionCallHandlerResult (*FusionCallHandler3)(int           caller,   /* fusion id of the caller */
                                                       int           call_arg, /* optional call parameter */
-                                                      void         *ptr, /* optional call parameter */
-                                                      size_t        length,
+                                                      void         *ptr,      /* optional call parameter */
+                                                      unsigned int  length,
                                                       void         *ctx,      /* optional handler context */
                                                       unsigned int  serial,
                                                       void         *ret_ptr,
-                                                      size_t        ret_size );
+                                                      unsigned int  ret_size,
+                                                      unsigned int *ret_length );
 
 typedef struct {
-     FusionWorldShared *shared;
-     int                call_id;
-     FusionID           fusion_id;
-     FusionCallHandler  handler;
-     FusionCallHandler3 handler3;
-     void              *ctx;
+     FusionWorldShared  *shared;
+     int                 call_id;
+     FusionID            fusion_id;
+     FusionCallHandler   handler;
+     FusionCallHandler3  handler3;
+     void               *ctx;
 } FusionCall;
 
 
@@ -95,7 +96,8 @@ DirectResult FUSION_API fusion_call_execute3( FusionCall          *call,
                                               void                *ptr,
                                               unsigned int         length,
                                               void                *ret_ptr,
-                                              size_t               ret_size );
+                                              unsigned int         ret_size,
+                                              unsigned int        *ret_length );
 
 DirectResult FUSION_API fusion_call_return ( FusionCall          *call,
                                              unsigned int         serial,
@@ -104,7 +106,7 @@ DirectResult FUSION_API fusion_call_return ( FusionCall          *call,
 DirectResult FUSION_API fusion_call_return3( FusionCall          *call,
                                              unsigned int         serial,
                                              void                *ptr,
-                                             size_t               size );
+                                             unsigned int         length );
 
 DirectResult FUSION_API fusion_call_destroy( FusionCall          *call );
 
