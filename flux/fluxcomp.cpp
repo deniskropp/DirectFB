@@ -286,6 +286,7 @@ public:
      std::string ArgumentsInputObjectUnref() const;
 
      std::string ArgumentsNames() const;
+     std::string ArgumentsSize( const Interface *face ) const;
 };
 
 class Arg : public Entity
@@ -293,7 +294,9 @@ class Arg : public Entity
 public:
      Arg()
           :
-          Entity()
+          Entity(),
+          optional( false ),
+          array( false )
      {
      }
 
@@ -312,6 +315,9 @@ public:
      std::string              type_name;
      bool                     optional;
 
+     bool                     array;
+     std::string              count;
+
 
 public:
      std::string param_name() const
@@ -320,6 +326,42 @@ public:
                return std::string("ret_") + name;
 
           return name;
+     }
+
+     std::string size( bool use_args ) const
+     {
+          if (array) {
+               if (use_args)
+                    return std::string("sizeof(") + type_name + ") * args->" + count;
+               else
+                    return std::string("sizeof(") + type_name + ") * " + count;
+          }
+
+          return std::string("sizeof(") + type_name + ")";
+     }
+
+     std::string offset( const Method *method, bool use_args ) const
+     {
+          D_ASSERT( array == true );
+
+          std::string result;
+
+          for (Entity::vector::const_iterator iter = method->entities.begin(); iter != method->entities.end(); iter++) {
+               const Arg *arg = dynamic_cast<const Arg*>( *iter );
+
+               if (!arg->array)
+                    continue;
+
+               D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
+
+               if (arg == this)
+                    break;
+
+               if (arg->direction == "input" || arg->direction == "inout")
+                    result += std::string(" + ") + arg->size( use_args );
+          }
+
+          return result;
      }
 };
 
@@ -426,6 +468,12 @@ Arg::SetProperty( const std::string &name,
 
      if (name == "optional") {
           optional = value == "yes";
+          return;
+     }
+
+     if (name == "count") {
+          array = true;
+          count = value;
           return;
      }
 }
@@ -690,6 +738,9 @@ Method::ArgumentsAsMemberDecl() const
      for (Entity::vector::const_iterator iter = entities.begin(); iter != entities.end(); iter++) {
           const Arg *arg = dynamic_cast<const Arg*>( *iter );
 
+          if (arg->array)
+               continue;
+
           D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
 
           if (arg->direction == "input" || arg->direction == "inout") {
@@ -701,6 +752,22 @@ Method::ArgumentsAsMemberDecl() const
                     result = PrintMember( result, arg->type_name, "", arg->name );
                else if (arg->type == "object")
                     result = PrintMember( result, "u32", "", arg->name + "_id" );
+          }
+     }
+
+     for (Entity::vector::const_iterator iter = entities.begin(); iter != entities.end(); iter++) {
+          char       buf[300];
+          const Arg *arg = dynamic_cast<const Arg*>( *iter );
+
+          if (!arg->array)
+               continue;
+
+          D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
+
+          if (arg->direction == "input" || arg->direction == "inout") {
+               snprintf( buf, sizeof(buf), "    /* '%s' %s follow (%s) */\n", arg->count.c_str(), arg->type_name.c_str(), arg->name.c_str() );
+
+               result += buf;
           }
      }
 
@@ -751,14 +818,22 @@ Method::ArgumentsAsMemberParams() const
                result += ", ";
 
           if (arg->direction == "input" || arg->direction == "inout") {
-               if (arg->type == "struct")
-                    result += std::string("&args->") + arg->name;
-               else if (arg->type == "enum")
-                    result += std::string("args->") + arg->name;
-               else if (arg->type == "int")
-                    result += std::string("args->") + arg->name;
-               else if (arg->type == "object")
-                    result += arg->name;
+               if (arg->array) {
+                    if (arg->type == "struct" || arg->type == "enum" || arg->type == "int")
+                         result += std::string("(") + arg->type_name + "*) ((char*)(args + 1)" + arg->offset( this, true ) + ")";
+                    else if (arg->type == "object")
+                         D_UNIMPLEMENTED();
+               }
+               else {
+                    if (arg->type == "struct")
+                         result += std::string("&args->") + arg->name;
+                    else if (arg->type == "enum")
+                         result += std::string("args->") + arg->name;
+                    else if (arg->type == "int")
+                         result += std::string("args->") + arg->name;
+                    else if (arg->type == "object")
+                         result += arg->name;
+               }
           }
 
           if (arg->direction == "output") {
@@ -784,15 +859,34 @@ Method::ArgumentsInputAssignments() const
      for (Entity::vector::const_iterator iter = entities.begin(); iter != entities.end(); iter++) {
           const Arg *arg = dynamic_cast<const Arg*>( *iter );
 
+          if (arg->array)
+               continue;
+
           D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
 
           if (arg->direction == "input" || arg->direction == "inout") {
                if (arg->type == "struct")
-                    result += std::string("    block.") + arg->name + " = *" + arg->name + ";\n";
+                    result += std::string("    block->") + arg->name + " = *" + arg->name + ";\n";
                else if (arg->type == "enum" || arg->type == "int")
-                    result += std::string("    block.") + arg->name + " = " + arg->name + ";\n";
+                    result += std::string("    block->") + arg->name + " = " + arg->name + ";\n";
                else if (arg->type == "object")
-                    result += std::string("    block.") + arg->name + "_id = " + arg->name + " ? " + arg->name + "->object.id : 0;\n";
+                    result += std::string("    block->") + arg->name + "_id = " + arg->name + " ? " + arg->name + "->object.id : 0;\n";
+          }
+     }
+
+     for (Entity::vector::const_iterator iter = entities.begin(); iter != entities.end(); iter++) {
+          const Arg *arg = dynamic_cast<const Arg*>( *iter );
+
+          if (!arg->array)
+               continue;
+
+          D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
+
+          if (arg->direction == "input" || arg->direction == "inout") {
+               if (arg->type == "struct" || arg->type == "enum" || arg->type == "int")
+                    result += std::string("    direct_memcpy( (char*) (block + 1)") + arg->offset( this, false ) + ", " + arg->name + ", " + arg->size( false ) + " );\n";
+               else if (arg->type == "object")
+                    D_UNIMPLEMENTED();
           }
      }
 
@@ -1042,6 +1136,28 @@ Method::ArgumentsNames() const
      return result;
 }
 
+std::string
+Method::ArgumentsSize( const Interface *face ) const
+{
+     std::string result = "sizeof(";
+
+     result += face->object + name + ")";
+
+     for (Entity::vector::const_iterator iter = entities.begin(); iter != entities.end(); iter++) {
+          const Arg *arg = dynamic_cast<const Arg*>( *iter );
+
+          if (!arg->array)
+               continue;
+
+          D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
+
+          if (arg->direction == "input" || arg->direction == "inout")
+               result += " + " + arg->size( false );
+     }
+
+     return result;
+}
+
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
@@ -1273,11 +1389,12 @@ FluxComp::GenerateHeader( const Interface *face )
                     "    }\n"
                     "\n"
                     "\n"
-                    "    virtual DFBResult Dispatch( int     method,\n"
-                    "                                void   *ptr,\n"
-                    "                                size_t  length,\n"
-                    "                                void   *ret_ptr,\n"
-                    "                                size_t  ret_length );\n"
+                    "    virtual DFBResult Dispatch( int           method,\n"
+                    "                                void         *ptr,\n"
+                    "                                unsigned int  length,\n"
+                    "                                void         *ret_ptr,\n"
+                    "                                unsigned int  ret_size,\n"
+                    "                                unsigned int *ret_length );\n"
                     "\n"
                     "private:\n"
                     "    CoreDFB              *core;\n"
@@ -1319,6 +1436,7 @@ FluxComp::GenerateSource( const Interface *face )
                     "\n"
                     "#include <direct/debug.h>\n"
                     "#include <direct/mem.h>\n"
+                    "#include <direct/memcpy.h>\n"
                     "#include <direct/messages.h>\n"
                     "\n"
                     "#include <core/core.h>\n"
@@ -1360,15 +1478,16 @@ FluxComp::GenerateSource( const Interface *face )
                     "%s_Dispatch( int           caller,   /* fusion id of the caller */\n"
                     "                     int           call_arg, /* optional call parameter */\n"
                     "                     void         *ptr, /* optional call parameter */\n"
-                    "                     size_t        length,\n"
+                    "                     unsigned int  length,\n"
                     "                     void         *ctx,      /* optional handler context */\n"
                     "                     unsigned int  serial,\n"
                     "                     void         *ret_ptr,\n"
-                    "                     size_t        ret_size )\n"
+                    "                     unsigned int  ret_size,\n"
+                    "                     unsigned int *ret_length )\n"
                     "{\n"
                     "    DirectFB::%sDispatch *dispatch = (DirectFB::%sDispatch*) ctx;\n"
                     "\n"
-                    "    dispatch->Dispatch( call_arg, ptr, length, ret_ptr, ret_size );\n"
+                    "    dispatch->Dispatch( call_arg, ptr, length, ret_ptr, ret_size, ret_length );\n"
                     "\n"
                     "    return FCHR_RETURN;\n"
                     "}\n"
@@ -1421,8 +1540,8 @@ FluxComp::GenerateSource( const Interface *face )
                          "{\n"
                          "    DFBResult           ret;\n"
                          "%s"
-                         "    %s%s       block;\n"
-                         "    %s%sReturn return_block;\n"
+                         "    %s%s       *block = (%s%s*) alloca( %s );\n"
+                         "    %s%sReturn  return_block;\n"
                          "\n"
                          "    D_DEBUG_AT( DirectFB_%s, \"%s_Requestor::%%s()\\n\", __FUNCTION__ );\n"
                          "\n"
@@ -1430,7 +1549,7 @@ FluxComp::GenerateSource( const Interface *face )
                          "\n"
                          "%s"
                          "\n"
-                         "    ret = (DFBResult) %s_Call( obj, FCEF_NONE, %s_%s, &block, sizeof(block), &return_block, sizeof(return_block) );\n"
+                         "    ret = (DFBResult) %s_Call( obj, FCEF_NONE, %s_%s, block, %s, &return_block, sizeof(return_block), NULL );\n"
                          "    if (ret) {\n"
                          "        D_DERROR( ret, \"%%s: %s_Call( %s_%s ) failed!\\n\", __FUNCTION__ );\n"
                          "        return ret;\n"
@@ -1450,12 +1569,12 @@ FluxComp::GenerateSource( const Interface *face )
                    face->name.c_str(), method->name.c_str(),
                    method->ArgumentsAsParamDecl().c_str(),
                    method->ArgumentsOutputObjectDecl().c_str(),
-                   face->object.c_str(), method->name.c_str(),
+                   face->object.c_str(), method->name.c_str(), face->object.c_str(), method->name.c_str(), method->ArgumentsSize( face ).c_str(),
                    face->object.c_str(), method->name.c_str(),
                    face->object.c_str(), face->name.c_str(),
                    method->ArgumentsAssertions().c_str(),
                    method->ArgumentsInputAssignments().c_str(),
-                   face->object.c_str(), face->object.c_str(), method->name.c_str(),
+                   face->object.c_str(), face->object.c_str(), method->name.c_str(), method->ArgumentsSize( face ).c_str(),
                    face->object.c_str(), face->object.c_str(), method->name.c_str(),
                    face->object.c_str(), method->name.c_str(),
                    method->ArgumentsOutputAssignments().c_str(),
@@ -1468,10 +1587,11 @@ FluxComp::GenerateSource( const Interface *face )
                     "\n"
                     "DFBResult\n"
                     "%sDispatch::Dispatch( int     method,\n"
-                    "                                void   *ptr,\n"
-                    "                                size_t  length,\n"
-                    "                                void   *ret_ptr,\n"
-                    "                                size_t  ret_length )\n"
+                    "                                void         *ptr,\n"
+                    "                                unsigned int  length,\n"
+                    "                                void         *ret_ptr,\n"
+                    "                                unsigned int  ret_size,\n"
+                    "                                unsigned int *ret_length )\n"
                     "{\n"
                     "    D_DEBUG_AT( DirectFB_%s, \"%sDispatch::%%s()\\n\", __FUNCTION__ );\n"
                     "\n"
@@ -1499,6 +1619,8 @@ FluxComp::GenerateSource( const Interface *face )
                          "%s"
                          "            }\n"
                          "\n"
+                         "            *ret_length = sizeof(%s%sReturn);\n"
+                         "\n"
                          "%s"
                          "            return DFB_OK;\n"
                          "        }\n"
@@ -1515,6 +1637,7 @@ FluxComp::GenerateSource( const Interface *face )
                    method->name.c_str(), method->ArgumentsAsMemberParams().c_str(),
                    method->ArgumentsOutputObjectReturn().c_str(),
                    method->ArgumentsInoutReturn().c_str(),
+                   face->object.c_str(), method->name.c_str(),
                    method->ArgumentsInputObjectUnref().c_str() );
      }
 
