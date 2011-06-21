@@ -882,7 +882,7 @@ Method::ArgumentsInputAssignments() const
                else if (arg->type == "enum" || arg->type == "int")
                     result += std::string("    block->") + arg->name + " = " + arg->name + ";\n";
                else if (arg->type == "object")
-                    result += std::string("    block->") + arg->name + "_id = " + arg->name + " ? " + arg->name + "->object.id : 0;\n";
+                    result += std::string("    block->") + arg->name + "_id = " + arg->name + "->object.id;\n";
 
                if (arg->optional) {
                     result += std::string("    block->") + arg->name + "_set = true;\n";
@@ -1079,33 +1079,33 @@ Method::ArgumentsInputObjectLookup() const
           if (arg->type == "object" && arg->direction == "input") {
                char buf[1000];
 
-               snprintf( buf, sizeof(buf),
-                         "            if (args->%s_id) {\n"
-                         "                return_args->result = (DFBResult) %s_Lookup( core, args->%s_id, &%s );\n"
-                         "                if (return_args->result) {\n"
-                         "                     D_DERROR( return_args->result, \"%%s: Looking up %s by ID %%u failed!\\n\", __FUNCTION__, args->%s_id );\n"
-                         "                     return DFB_OK;\n"
-                         "                }\n"
-                         "            }\n",
-                         arg->name.c_str(),
-                         arg->type_name.c_str(), arg->name.c_str(), arg->name.c_str(),
-                         arg->name.c_str(), arg->name.c_str() );
-
-               result += buf;
-
-               if (!arg->optional) {
+               if (arg->optional) {
                     snprintf( buf, sizeof(buf),
-                              "            else {\n"
-                              "                return_args->result = DFB_INVARG;\n"
-                              "                D_DERROR( return_args->result, \"%%s: No ID passed for non-optional %s argument!\\n\", __FUNCTION__ );\n"
-                              "                return DFB_OK;\n"
-                              "            }\n",
-                              arg->name.c_str() );
-
-                    result += buf;
+                              "            if (args->%s_set) {\n"
+                              "                return_args->result = (DFBResult) %s_Lookup( core, args->%s_id, &%s );\n"
+                              "                if (return_args->result) {\n"
+                              "                     D_DERROR( return_args->result, \"%%s: Looking up %s by ID %%u failed!\\n\", __FUNCTION__, args->%s_id );\n"
+                              "                     return DFB_OK;\n"
+                              "                }\n"
+                              "            }\n"
+                              "\n",
+                              arg->name.c_str(),
+                              arg->type_name.c_str(), arg->name.c_str(), arg->name.c_str(),
+                              arg->name.c_str(), arg->name.c_str() );
+               }
+               else {
+                    snprintf( buf, sizeof(buf),
+                              "            return_args->result = (DFBResult) %s_Lookup( core, args->%s_id, &%s );\n"
+                              "            if (return_args->result) {\n"
+                              "                 D_DERROR( return_args->result, \"%%s: Looking up %s by ID %%u failed!\\n\", __FUNCTION__, args->%s_id );\n"
+                              "                 return DFB_OK;\n"
+                              "            }\n"
+                              "\n",
+                              arg->type_name.c_str(), arg->name.c_str(), arg->name.c_str(),
+                              arg->name.c_str(), arg->name.c_str() );
                }
 
-               result += "\n";
+               result += buf;
           }
      }
 
