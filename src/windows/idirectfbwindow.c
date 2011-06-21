@@ -44,6 +44,8 @@
 
 #include <idirectfb.h>
 
+#include <core/CoreWindow.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -585,6 +587,8 @@ static DFBResult
 IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
                             u8               opacity )
 {
+     CoreWindowConfig config;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -592,7 +596,9 @@ IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_set_opacity( data->window, opacity );
+     config.opacity = opacity;
+
+     return CoreWindow_SetConfig( data->window, &config, CWCF_OPACITY );
 }
 
 static DFBResult
