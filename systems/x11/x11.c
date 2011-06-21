@@ -220,7 +220,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_X11;   
-     info->caps = CSCAPS_ACCELERATION;
+     info->caps = CSCAPS_ACCELERATION | CSCAPS_PREFER_SHM;
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
