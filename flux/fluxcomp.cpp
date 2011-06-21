@@ -246,9 +246,9 @@ public:
                  bool        first )
      {
           char buf[1000];
-     
+
           snprintf( buf, sizeof(buf), "%s                    %-40s %2s%s", first ? "" : ",\n", type.c_str(), ptr.c_str(), name.c_str() );
-     
+
           return string_buffer + buf;
      }
 
@@ -744,6 +744,9 @@ Method::ArgumentsAsMemberDecl() const
           D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
 
           if (arg->direction == "input" || arg->direction == "inout") {
+               if (arg->optional)
+                    result = PrintMember( result, "bool", "", arg->name + "_set" );
+
                if (arg->type == "struct")
                     result = PrintMember( result, arg->type_name, "", arg->name );
                else if (arg->type == "enum")
@@ -818,6 +821,9 @@ Method::ArgumentsAsMemberParams() const
                result += ", ";
 
           if (arg->direction == "input" || arg->direction == "inout") {
+               if (arg->optional)
+                    result += std::string("args->") + arg->name + "_set ? ";
+
                if (arg->array) {
                     if (arg->type == "struct" || arg->type == "enum" || arg->type == "int")
                          result += std::string("(") + arg->type_name + "*) ((char*)(args + 1)" + arg->offset( this, true ) + ")";
@@ -834,6 +840,9 @@ Method::ArgumentsAsMemberParams() const
                     else if (arg->type == "object")
                          result += arg->name;
                }
+
+               if (arg->optional)
+                    result += std::string(" : NULL");
           }
 
           if (arg->direction == "output") {
@@ -865,12 +874,22 @@ Method::ArgumentsInputAssignments() const
           D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
 
           if (arg->direction == "input" || arg->direction == "inout") {
+               if (arg->optional)
+                    result += std::string("  if (") + arg->name + ") {\n";
+
                if (arg->type == "struct")
                     result += std::string("    block->") + arg->name + " = *" + arg->name + ";\n";
                else if (arg->type == "enum" || arg->type == "int")
                     result += std::string("    block->") + arg->name + " = " + arg->name + ";\n";
                else if (arg->type == "object")
                     result += std::string("    block->") + arg->name + "_id = " + arg->name + " ? " + arg->name + "->object.id : 0;\n";
+
+               if (arg->optional) {
+                    result += std::string("    block->") + arg->name + "_set = true;\n";
+                    result += std::string("  }\n");
+                    result += std::string("  else\n");
+                    result += std::string("    block->") + arg->name + "_set = false;\n";
+               }
           }
      }
 
@@ -883,6 +902,9 @@ Method::ArgumentsInputAssignments() const
           D_DEBUG_AT( fluxcomp, "%s( %p )\n", __FUNCTION__, arg );
 
           if (arg->direction == "input" || arg->direction == "inout") {
+               if (arg->optional)
+                    D_UNIMPLEMENTED();
+
                if (arg->type == "struct" || arg->type == "enum" || arg->type == "int")
                     result += std::string("    direct_memcpy( (char*) (block + 1)") + arg->offset( this, false ) + ", " + arg->name + ", " + arg->size( false ) + " );\n";
                else if (arg->type == "object")
