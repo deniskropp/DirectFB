@@ -695,7 +695,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
      if (wd.width < 1 || wd.width > 4096 || wd.height < 1 || wd.height > 4096)
           return DFB_INVARG;
 
-     ret = dfb_layer_context_create_window( data->core, data->context, &wd, &w );
+     ret = CoreLayerContext_CreateWindow( data->context, &wd, &w );
      if (ret)
           return ret;
 
