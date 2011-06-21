@@ -56,6 +56,7 @@
 #include <core/CoreDFB.h>
 #include <core/CoreLayer.h>
 #include <core/CoreLayerContext.h>
+#include <core/CoreLayerRegion.h>
 
 #include <windows/idirectfbwindow.h>
 
@@ -181,7 +182,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
                    "call pass until cooperative level handling is finished" );
      }
 
-     ret = dfb_layer_context_get_primary_region( data->context, true, &region );
+     ret = CoreLayerContext_GetPrimaryRegion( data->context, true, &region );
      if (ret)
           return ret;
 
@@ -206,7 +207,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
                dfb_windowstack_repaint_all( region->context->stack );
           }
           else {
-               dfb_layer_region_flip_update( region, NULL, DSFLIP_NONE );
+               CoreLayerRegion_FlipUpdate( region, NULL, DSFLIP_NONE );
           }
      }
 
@@ -259,7 +260,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
                     if (ret)
                          return ret;
 
-                    ret = dfb_layer_context_get_primary_region( context, true, &region );
+                    ret = CoreLayerContext_GetPrimaryRegion( context, true, &region );
                     if (ret) {
                          dfb_layer_context_unref( context );
                          return ret;
@@ -288,7 +289,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
                     }
                }
 
-               ret = dfb_layer_context_get_primary_region( context, true, &region );
+               ret = CoreLayerContext_GetPrimaryRegion( context, true, &region );
                if (ret) {
                     dfb_layer_context_unref( context );
                     return ret;
@@ -1073,7 +1074,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
           return ret;
      }
 
-     ret = dfb_layer_context_get_primary_region( context, true, &region );
+     ret = CoreLayerContext_GetPrimaryRegion( context, true, &region );
      if (ret) {
           dfb_layer_context_unref( context );
           DIRECT_DEALLOCATE_INTERFACE( thiz )

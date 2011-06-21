@@ -69,6 +69,20 @@ CoreLayerContext_Unref( CoreLayerContext *context )
 }
 
 static __inline__ DirectResult
+CoreLayerRegion_Lookup( CoreDFB          *core,
+                        u32               object_id,
+                        CoreLayerRegion **ret_region )
+{
+     return (DirectResult) dfb_core_get_layer_region( core, object_id, ret_region );
+}
+
+static __inline__ DirectResult
+CoreLayerRegion_Unref( CoreLayerRegion *region )
+{
+     return (DirectResult) dfb_layer_region_unref( region );
+}
+
+static __inline__ DirectResult
 CorePalette_Lookup( CoreDFB      *core,
                     u32           object_id,
                     CorePalette **ret_palette )

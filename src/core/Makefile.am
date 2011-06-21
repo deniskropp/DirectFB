@@ -26,6 +26,8 @@ internalinclude_HEADERS = \
 	CoreLayer_includes.h	\
 	CoreLayerContext.h	\
 	CoreLayerContext_includes.h	\
+	CoreLayerRegion.h	\
+	CoreLayerRegion_includes.h	\
 	CoreSurface.h		\
 	CoreSurface_includes.h	\
 	CoreWindow.h		\
@@ -77,6 +79,8 @@ libdirectfb_core_la_SOURCES = \
 	CoreLayer_real.cpp	\
 	CoreLayerContext.cpp	\
 	CoreLayerContext_real.cpp	\
+	CoreLayerRegion.cpp	\
+	CoreLayerRegion_real.cpp	\
 	CoreSurface.cpp		\
 	CoreSurface_real.cpp	\
 	CoreWindow.cpp		\

@@ -179,6 +179,8 @@ struct __DFB_CoreLayerRegion {
      void                       *region_data;
 
      CoreSurfaceAccessorID       surface_accessor;
+
+     FusionCall                  call;
 };
 
 

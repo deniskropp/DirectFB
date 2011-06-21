@@ -31,5 +31,23 @@ interface {
 			typename  DFBDisplayLayerConfig
 		}
 	}
+
+	method {
+		name GetPrimaryRegion
+
+		arg {
+			name      create
+			direction input
+			type      enum
+			typename  bool
+		}
+
+		arg {
+			name      region
+			direction output
+			type      object
+			typename  CoreLayerRegion
+		}
+	}
 }
 

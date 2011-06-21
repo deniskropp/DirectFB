@@ -92,6 +92,10 @@ DFBResult         dfb_core_get_layer_context   ( CoreDFB           *core,
                                                  u32                object_id,
                                                  CoreLayerContext **ret_context );
 
+DFBResult         dfb_core_get_layer_region    ( CoreDFB           *core,
+                                                 u32                object_id,
+                                                 CoreLayerRegion  **ret_region );
+
 DFBResult         dfb_core_get_palette         ( CoreDFB      *core,
                                                  u32           object_id,
                                                  CorePalette **ret_palette );

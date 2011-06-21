@@ -49,6 +49,7 @@
 #include <core/windows_internal.h> /* FIXME */
 #include <core/wm.h>
 
+#include <core/CoreLayerRegion.h>
 #include <core/CoreSurface.h>
 #include <core/CoreWindow.h>
 
@@ -188,7 +189,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
 
      if (data->window->region) {
-          dfb_layer_region_flip_update( data->window->region, &reg, flags );
+          CoreLayerRegion_FlipUpdate( data->window->region, &reg, flags );
      }
      else {
           if (data->base.surface->config.caps & DSCAPS_FLIPPING) {

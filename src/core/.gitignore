@@ -6,6 +6,8 @@ CoreLayer.cpp
 CoreLayer.h
 CoreLayerContext.cpp
 CoreLayerContext.h
+CoreLayerRegion.cpp
+CoreLayerRegion.h
 CoreSurface.cpp
 CoreSurface.h
 CoreWindow.cpp

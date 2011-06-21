@@ -560,6 +560,38 @@ dfb_core_get_layer_context( CoreDFB           *core,
 }
 
 DFBResult
+dfb_core_get_layer_region( CoreDFB          *core,
+                           u32               object_id,
+                           CoreLayerRegion **ret_region )
+{
+     DFBResult     ret;
+     FusionObject *object;
+
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+     D_ASSERT( ret_region != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->layer_region_pool != NULL );
+
+     ret = fusion_object_get( core->shared->layer_region_pool, object_id, &object );
+     if (ret)
+          return ret;
+
+     *ret_region = (CoreLayerRegion*) object;
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_core_get_palette( CoreDFB      *core,
                       u32           object_id,
                       CorePalette **ret_palette )

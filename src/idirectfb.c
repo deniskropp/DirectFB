@@ -46,6 +46,7 @@
 #include <core/CoreDFB.h>
 #include <core/CoreLayer.h>
 #include <core/CoreLayerContext.h>
+#include <core/CoreLayerRegion.h>
 
 #include <core/clipboard.h>
 #include <core/state.h>
@@ -858,8 +859,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               return ret;
                     }
 
-                    ret = dfb_layer_context_get_primary_region( context, true,
-                                                                &region );
+                    ret = CoreLayerContext_GetPrimaryRegion( context, true, &region );
                     if (ret)
                          return ret;
 
@@ -901,7 +901,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               dfb_windowstack_repaint_all( region->context->stack );
                          }
                          else {
-                              dfb_layer_region_flip_update( region, NULL, DSFLIP_NONE );
+                              CoreLayerRegion_FlipUpdate( region, NULL, DSFLIP_NONE );
                          }
                     }
 
@@ -1749,7 +1749,7 @@ IDirectFB_InitLayers( IDirectFB *thiz )
                ret = dfb_layer_context_get_configuration( context, &conf->config );
                D_ASSERT( ret == DFB_OK );
 
-               ret = dfb_layer_context_get_primary_region( context, true, &data->layers[i].region );
+               ret = CoreLayerContext_GetPrimaryRegion( context, true, &data->layers[i].region );
                if (ret) {
                     D_DERROR( ret, "InitLayers: Could not get primary region of layer %d!\n", i );
                     dfb_layer_context_unref( context );

@@ -28,19 +28,20 @@
 
 #include <config.h>
 
-#include "CoreLayerContext.h"
+#include "CoreLayerRegion.h"
 
 extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 
 #include <core/core.h>
 }
 
-D_DEBUG_DOMAIN( DirectFB_CoreLayerContext, "DirectFB/CoreLayerContext", "DirectFB CoreLayerContext" );
+D_DEBUG_DOMAIN( DirectFB_CoreLayerRegion, "DirectFB/CoreLayerRegion", "DirectFB CoreLayerRegion" );
 
 /*********************************************************************************************************************/
 
@@ -49,44 +50,18 @@ namespace DirectFB {
 
 
 DFBResult
-ILayerContext_Real::CreateWindow(
-                    const DFBWindowDescription                *description,
-                    CoreWindow                               **ret_window
+ILayerRegion_Real::FlipUpdate(
+                    const DFBRegion                           *update,
+                    DFBSurfaceFlipFlags                        flags
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
 
-    D_ASSERT( description != NULL );
-    D_ASSERT( ret_window != NULL );
+    D_ASSERT( update != NULL );
 
-    return dfb_layer_context_create_window( core, obj, description, ret_window );
-}
-
-DFBResult
-ILayerContext_Real::SetConfiguration(
-                    const DFBDisplayLayerConfig               *config
-)
-{
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Requestor::%s()\n", __FUNCTION__ );
-
-    D_ASSERT( config != NULL );
-
-    return dfb_layer_context_set_configuration( obj, config );
-}
-
-DFBResult
-ILayerContext_Real::GetPrimaryRegion(
-                    bool                                       create,
-                    CoreLayerRegion                          **ret_region
-)
-{
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Requestor::%s()\n", __FUNCTION__ );
-
-    D_ASSERT( ret_region != NULL );
-
-    return dfb_layer_context_get_primary_region( obj, create, ret_region );
+    return dfb_layer_region_flip_update( obj, update, flags );
 }
 
 
-}
 
+}
