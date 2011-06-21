@@ -11,6 +11,7 @@ interface {
 			direction input
 			type      struct
 			typename  DFBRegion
+			optional  yes
 		}
 
 		arg {
