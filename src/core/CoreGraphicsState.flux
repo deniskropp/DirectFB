@@ -210,6 +210,25 @@ interface {
 
 
 	method {
+		name      DrawRectangles
+
+		arg {
+			name      rects
+			direction input
+			type      struct
+			typename  DFBRectangle
+			count     num
+		}
+
+		arg {
+			name      num
+			direction input
+			type      int
+			typename  u32
+		}
+	}
+
+	method {
 		name      FillRectangles
 
 		arg {

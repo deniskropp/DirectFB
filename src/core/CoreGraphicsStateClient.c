@@ -193,23 +193,26 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
      return DFB_OK;
 }
 
-// TEST
 DFBResult
-CoreGraphicsStateClient_FillRectangle( CoreGraphicsStateClient *client,
-                                       const DFBRectangle      *rect )
+CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
+                                        const DFBRectangle      *rects,
+                                        unsigned int             num )
 {
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
-     DFB_RECTANGLE_ASSERT( rect );
+     D_ASSERT( rects != NULL );
 
      if (dfb_core_is_master( client->core )) {
-          dfb_gfxcard_fillrectangles( rect, 1, client->state );
+          unsigned int i;
+
+          for (i=0; i<num; i++)
+               dfb_gfxcard_drawrectangle( &rects[i], client->state );
      }
      else {
           DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_FILLRECTANGLE, client->state );
+          CoreGraphicsStateClient_Update( client, DFXL_DRAWRECTANGLE, client->state );
 
-          ret = CoreGraphicsState_FillRectangles( client->gfx_state, rect, 1 );
+          ret = CoreGraphicsState_DrawRectangles( client->gfx_state, rects, num );
           if (ret)
                return ret;
      }
@@ -217,7 +220,6 @@ CoreGraphicsStateClient_FillRectangle( CoreGraphicsStateClient *client,
      return DFB_OK;
 }
 
-// TEST
 DFBResult
 CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
                                         const DFBRectangle      *rects,
@@ -226,7 +228,7 @@ CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
 
-     if (0&&dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core )) {
           dfb_gfxcard_fillrectangles( rects, num, client->state );
      }
      else {
@@ -242,7 +244,6 @@ CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
      return DFB_OK;
 }
 
-// TEST
 DFBResult
 CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
                               const DFBRectangle      *rects,
@@ -269,7 +270,6 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
      return DFB_OK;
 }
 
-// TEST
 DFBResult
 CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
                                      const DFBRectangle      *srects,

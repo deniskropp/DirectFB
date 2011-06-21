@@ -36,137 +36,8 @@
 
 
 /**********************************************************************************************************************
- * CoreGraphicsState
+ * CoreGraphicsStateClient
  */
-
-/*
- * CoreGraphicsState Calls
- */
-typedef enum {
-     CORE_GRAPHICS_STATE_SET_DESTINATION     = 1,
-     CORE_GRAPHICS_STATE_SET_SOURCE          = 2,
-     CORE_GRAPHICS_STATE_SET_CLIP            = 3,
-     CORE_GRAPHICS_STATE_SET_COLOR           = 4,
-     CORE_GRAPHICS_STATE_SET_DRAWINGFLAGS    = 5,
-     CORE_GRAPHICS_STATE_SET_BLITTINGFLAGS   = 6,
-     CORE_GRAPHICS_STATE_SET_SRC_BLEND       = 7,
-     CORE_GRAPHICS_STATE_SET_DST_BLEND       = 8,
-     CORE_GRAPHICS_STATE_SET_SRC_COLORKEY    = 9,
-     CORE_GRAPHICS_STATE_SET_DST_COLORKEY    = 10,
-
-     CORE_GRAPHICS_STATE_FILL_RECTANGLE      = 11, // TEST
-     CORE_GRAPHICS_STATE_FILL_RECTANGLES     = 12, // TEST
-     CORE_GRAPHICS_STATE_BLIT                = 13, // TEST
-     CORE_GRAPHICS_STATE_STRETCH_BLIT        = 14, // TEST
-} CoreGraphicsStateCall;
-
-/*
- * CORE_GRAPHICS_STATE_SET_DESTINATION
- */
-typedef struct {
-     u32                      object_id;
-} CoreGraphicsStateSetDestination;
-
-/*
- * CORE_GRAPHICS_STATE_SET_SOURCE
- */
-typedef struct {
-     u32                      object_id;
-} CoreGraphicsStateSetSource;
-
-/*
- * CORE_GRAPHICS_STATE_SET_CLIP
- */
-typedef struct {
-     DFBRegion                clip;
-} CoreGraphicsStateSetClip;
-
-/*
- * CORE_GRAPHICS_STATE_SET_COLOR
- */
-typedef struct {
-     DFBColor                 color;
-} CoreGraphicsStateSetColor;
-
-/*
- * CORE_GRAPHICS_STATE_SET_DRAWINGFLAGS
- */
-typedef struct {
-     DFBSurfaceDrawingFlags   flags;
-} CoreGraphicsStateSetDrawingFlags;
-
-/*
- * CORE_GRAPHICS_STATE_SET_BLITTINGFLAGS
- */
-typedef struct {
-     DFBSurfaceBlittingFlags  flags;
-} CoreGraphicsStateSetBlittingFlags;
-
-/*
- * CORE_GRAPHICS_STATE_SET_SRC_BLEND
- */
-typedef struct {
-     DFBSurfaceBlendFunction  function;
-} CoreGraphicsStateSetSrcBlend;
-
-/*
- * CORE_GRAPHICS_STATE_SET_DST_BLEND
- */
-typedef struct {
-     DFBSurfaceBlendFunction  function;
-} CoreGraphicsStateSetDstBlend;
-
-/*
- * CORE_GRAPHICS_STATE_SET_SRC_COLORKEY
- */
-typedef struct {
-     u32                      key;
-} CoreGraphicsStateSetSrcColorkey;
-
-/*
- * CORE_GRAPHICS_STATE_SET_DST_COLORKEY
- */
-typedef struct {
-     u32                      key;
-} CoreGraphicsStateSetDstColorkey;
-
-
-/*
- * CORE_GRAPHICS_STATE_FILL_RECTANGLE
- */
-typedef struct {
-     DFBRectangle             rect;
-} CoreGraphicsStateFillRectangle;
-
-/*
- * CORE_GRAPHICS_STATE_FILL_RECTANGLES
- */
-typedef struct {
-     unsigned int             num;
-
-     /* rectangles follow */
-} CoreGraphicsStateFillRectangles;
-
-/*
- * CORE_GRAPHICS_STATE_BLIT
- */
-typedef struct {
-     unsigned int             num;
-
-     /* rectangles, points follow */
-} CoreGraphicsStateBlit;
-
-/*
- * CORE_GRAPHICS_STATE_STRETCH_BLIT
- */
-typedef struct {
-     unsigned int             num;
-
-     /* rectangles for source, destination follow */
-} CoreGraphicsStateStretchBlit;
-
-
-
 
 struct __DFB_CoreGraphicsStateClient {
      int            magic;
@@ -188,22 +59,19 @@ DFBResult CoreGraphicsStateClient_Update        ( CoreGraphicsStateClient *clien
                                                   DFBAccelerationMask      accel,
                                                   CardState               *state );
 
-// TEST
-DFBResult CoreGraphicsStateClient_FillRectangle ( CoreGraphicsStateClient *client,
-                                                  const DFBRectangle      *rect );
+DFBResult CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
+                                                  const DFBRectangle      *rects,
+                                                  unsigned int             num );
 
-// TEST
 DFBResult CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
                                                   const DFBRectangle      *rects,
                                                   unsigned int             num );
 
-// TEST
 DFBResult CoreGraphicsStateClient_Blit          ( CoreGraphicsStateClient *client,
                                                   const DFBRectangle      *rects,
                                                   const DFBPoint          *points,
                                                   unsigned int             num );
 
-// TEST
 DFBResult CoreGraphicsStateClient_StretchBlit   ( CoreGraphicsStateClient *client,
                                                   const DFBRectangle      *srects,
                                                   const DFBRectangle      *drects,

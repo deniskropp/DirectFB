@@ -1313,7 +1313,7 @@ IDirectFBSurface_FillRectangle( IDirectFBSurface *thiz,
      rect.x += data->area.wanted.x;
      rect.y += data->area.wanted.y;
 
-     CoreGraphicsStateClient_FillRectangle( &data->state_client, &rect );
+     CoreGraphicsStateClient_FillRectangles( &data->state_client, &rect, 1 );
 
      return DFB_OK;
 }
@@ -1480,7 +1480,7 @@ IDirectFBSurface_DrawRectangle( IDirectFBSurface *thiz,
      rect.x += data->area.wanted.x;
      rect.y += data->area.wanted.y;
 
-     dfb_gfxcard_drawrectangle( &rect, &data->state );
+     CoreGraphicsStateClient_DrawRectangles( &data->state_client, &rect, 1 );
 
      return DFB_OK;
 }

@@ -288,6 +288,21 @@ IGraphicsState_Real::SetSource2(
 
 
 DFBResult
+IGraphicsState_Real::DrawRectangles(
+                    const DFBRectangle                        *rects,
+                    u32                                        num
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    for (u32 i=0; i<num; i++)
+         dfb_gfxcard_drawrectangle( (DFBRectangle*) &rects[i], &obj->state );
+
+    return DFB_OK;
+}
+
+
+DFBResult
 IGraphicsState_Real::FillRectangles(
                     const DFBRectangle                        *rects,
                     u32                                        num
