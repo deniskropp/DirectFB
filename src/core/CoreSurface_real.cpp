@@ -50,67 +50,75 @@ namespace DirectFB {
 
 DFBResult
 ISurface_Real::SetConfig(
-                    const CoreSurfaceConfig                   *config
-)
+                        const CoreSurfaceConfig                   *config
+                        )
 {
-    D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
 
-    D_ASSERT( config != NULL );
+     D_ASSERT( config != NULL );
 
-    return dfb_surface_reconfig( obj, config );
+     return dfb_surface_reconfig( obj, config );
 }
 
 
 DFBResult
 ISurface_Real::LockBuffer(
-                    CoreSurfaceBufferRole                      role,
-                    CoreSurfaceAccessorID                      accessor,
-                    CoreSurfaceAccessFlags                     access,
-                    CoreSurfaceBufferLock                     *ret_lock
-)
+                         CoreSurfaceBufferRole                      role,
+                         CoreSurfaceAccessorID                      accessor,
+                         CoreSurfaceAccessFlags                     access,
+                         CoreSurfaceBufferLock                     *ret_lock
+                         )
 {
-    D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
 
-    D_ASSERT( ret_lock != NULL );
+     D_ASSERT( ret_lock != NULL );
 
-    return dfb_surface_lock_buffer( obj, role, accessor, access, ret_lock );
+     return dfb_surface_lock_buffer( obj, role, accessor, access, ret_lock );
 }
 
 
 DFBResult
 ISurface_Real::UnlockBuffer(
-                    CoreSurfaceBufferLock                     *lock
-)
+                           CoreSurfaceBufferLock                     *lock
+                           )
 {
-    D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
 
-    D_ASSERT( lock != NULL );
+     D_ASSERT( lock != NULL );
 
-    return dfb_surface_unlock_buffer( obj, lock );
+     return dfb_surface_unlock_buffer( obj, lock );
 }
 
 
 DFBResult
 ISurface_Real::Flip(
-                    bool                                       swap
-)
+                   bool                                       swap
+                   )
 {
-    D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     DFBResult ret;
 
-    return dfb_surface_flip( obj, swap );
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+
+     dfb_surface_lock( obj );
+
+     ret = dfb_surface_flip( obj, swap );
+
+     dfb_surface_unlock( obj );
+
+     return ret;
 }
 
 
 DFBResult
 ISurface_Real::SetPalette(
-                    CorePalette                               *palette
-)
+                         CorePalette                               *palette
+                         )
 {
-    D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
 
-    D_ASSERT( palette != NULL );
+     D_ASSERT( palette != NULL );
 
-    return dfb_surface_set_palette( obj, palette );
+     return dfb_surface_set_palette( obj, palette );
 }
 
 

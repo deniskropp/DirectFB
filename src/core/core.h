@@ -88,6 +88,10 @@ CorePalette      *dfb_core_create_palette      ( CoreDFB *core );
 CoreSurface      *dfb_core_create_surface      ( CoreDFB *core );
 CoreWindow       *dfb_core_create_window       ( CoreDFB *core );
 
+DFBResult         dfb_core_get_layer_context   ( CoreDFB           *core,
+                                                 u32                object_id,
+                                                 CoreLayerContext **ret_context );
+
 DFBResult         dfb_core_get_palette         ( CoreDFB      *core,
                                                  u32           object_id,
                                                  CorePalette **ret_palette );
@@ -206,7 +210,6 @@ struct __DFB_CoreDFBShared {
      FusionSHMPoolShared *shmpool_data; /* for raw data, e.g. surface buffers */
 
      FusionCall           call;
-     FusionCall           graphics_call;
 };
 
 struct __DFB_CoreDFB {

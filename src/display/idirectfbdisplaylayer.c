@@ -53,6 +53,8 @@
 #include <core/windowstack.h>
 #include <core/wm.h>
 
+#include <core/CoreDFB.h>
+
 #include <windows/idirectfbwindow.h>
 
 #include <gfx/convert.h>
@@ -272,7 +274,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
                break;
 
           case DLSCL_EXCLUSIVE:
-               ret = dfb_layer_create_context( data->layer, &context );
+               ret = CoreDFB_CreateLayerContext( data->core, dfb_layer_id_translated( data->layer ), &context );
                if (ret)
                     return ret;
 

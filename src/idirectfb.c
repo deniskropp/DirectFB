@@ -44,7 +44,6 @@
 #include <core/core.h>
 
 #include <core/CoreDFB.h>
-#include <core/CoreGraphics.h>
 #include <core/CoreLayerContext.h>
 
 #include <core/clipboard.h>
@@ -358,7 +357,7 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                     return DFB_ACCESSDENIED;
 
                if (data->level == DFSCL_NORMAL) {
-                    ret = dfb_layer_create_context( data->layer, &context );
+                    ret = CoreDFB_CreateLayerContext( data->core, dfb_layer_id_translate( DLID_PRIMARY ), &context );
                     if (ret)
                          return ret;
 
@@ -1532,7 +1531,7 @@ IDirectFB_WaitIdle( IDirectFB *thiz )
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
-     return CoreGraphics_WaitIdle( data->core );
+     return CoreDFB_WaitIdle( data->core );
 }
 
 static DFBResult

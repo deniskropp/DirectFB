@@ -1,64 +1,97 @@
 interface {
-	name		ICore
-	version     "1.0"
-	object      CoreDFB
+        name        ICore
+        version     "1.0"
+        object      CoreDFB
 
-    method {
-		name	CreateSurface
-		
-		arg {
-			name	    config
-			direction   input
-			type        struct
-			typename    CoreSurfaceConfig
-		}
+        method {
+                name    CreateSurface
 
-		arg {
-			name	    type
-			direction   input
-			type        enum
-			typename    CoreSurfaceTypeFlags
-		}
+                arg {
+                        name        config
+                        direction   input
+                        type        struct
+                        typename    CoreSurfaceConfig
+                }
 
-		arg {
-			name	    resource_id
-			direction   input
-			type        int
-			typename    u64
-		}
+                arg {
+                        name        type
+                        direction   input
+                        type        enum
+                        typename    CoreSurfaceTypeFlags
+                }
 
-		arg {
-			name	    palette
-			direction   input
-			type        object
-			typename    CorePalette
-			optional    yes
-		}
+                arg {
+                        name        resource_id
+                        direction   input
+                        type        int
+                        typename    u64
+                }
 
-		arg {
-			name	    surface
-			direction   output
-			type        object
-			typename    CoreSurface
-		}
-	}
+                arg {
+                        name        palette
+                        direction   input
+                        type        object
+                        typename    CorePalette
+                        optional    yes
+                }
 
-	method {
-		name	CreatePalette
+                arg {
+                        name        surface
+                        direction   output
+                        type        object
+                        typename    CoreSurface
+                }
+        }
 
-		arg {
-			name	    size
-			direction   input
-			type        int
-			typename    u32
-		}
+        method {
+                name    CreatePalette
 
-		arg {
-			name	    palette
-			direction   output
-			type        object
-			typename    CorePalette
-		}
-	}
+                arg {
+                        name        size
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        palette
+                        direction   output
+                        type        object
+                        typename    CorePalette
+                }
+        }
+
+        method {
+                name    CreateState
+
+                arg {
+                        name        state
+                        direction   output
+                        type        object
+                        typename    CoreGraphicsState
+                }
+        }
+
+        method {
+                name    CreateLayerContext
+
+                arg {
+                        name        layer_id
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        context
+                        direction   output
+                        type        object
+                        typename    CoreLayerContext
+                }
+        }
+
+        method {
+                name    WaitIdle
+        }
 }
 

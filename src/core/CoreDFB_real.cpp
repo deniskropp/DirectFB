@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <core/CoreDFB.h>
+#include <core/CoreGraphicsState.h>
 
 extern "C" {
 #include <directfb.h>
@@ -39,7 +40,7 @@ extern "C" {
 #include <core/core.h>
 }
 
-D_DEBUG_DOMAIN( DirectFB_Core, "DirectFB/Core", "DirectFB Core" );
+D_DEBUG_DOMAIN( DirectFB_CoreDFB, "DirectFB/Core", "DirectFB Core" );
 
 /*********************************************************************************************************************/
 
@@ -53,7 +54,7 @@ ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
                            CorePalette              *palette,
                            CoreSurface             **ret_surface )
 {
-     D_DEBUG_AT( DirectFB_Core, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
+     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
 
      D_MAGIC_ASSERT( obj, CoreDFB );
      D_ASSERT( config != NULL );
@@ -66,12 +67,72 @@ DFBResult
 ICore_Real::CreatePalette( u32           size,
                            CorePalette **ret_palette )
 {
-     D_DEBUG_AT( DirectFB_Core, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
+     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
 
      D_MAGIC_ASSERT( obj, CoreDFB );
      D_ASSERT( ret_palette != NULL );
 
      return dfb_palette_create( obj, size, ret_palette );
+}
+
+DFBResult
+ICore_Real::CreateState(
+                    CoreGraphicsState                        **ret_state
+)
+{
+    CoreGraphicsState *state;
+
+    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Requestor::%s()\n", __FUNCTION__ );
+
+    D_ASSERT( ret_state != NULL );
+
+    state = (CoreGraphicsState*) D_CALLOC( 1, sizeof(CoreGraphicsState) );
+    if (!state)
+         return (DFBResult) D_OOM();
+
+    state->core = core;
+
+    dfb_state_init( &state->state, core );
+
+
+    CoreGraphicsState_Init_Dispatch( core, state, &state->call );
+
+    D_MAGIC_SET( state, CoreGraphicsState );
+
+
+    state->object.id = state->call.call_id;
+
+    *ret_state = state;
+
+    return DFB_OK;
+}
+
+DFBResult
+ICore_Real::CreateLayerContext(
+                    u32                                        layer_id,
+                    CoreLayerContext                         **ret_context
+)
+{
+     CoreLayer *layer;
+
+     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
+
+     D_MAGIC_ASSERT( obj, CoreDFB );
+     D_ASSERT( ret_context != NULL );
+
+     layer = dfb_layer_at( layer_id );
+
+     return dfb_layer_create_context( layer, ret_context );
+}
+
+DFBResult
+ICore_Real::WaitIdle(
+
+)
+{
+    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Requestor::%s()\n", __FUNCTION__ );
+
+    return dfb_gfxcard_sync();
 }
 
 

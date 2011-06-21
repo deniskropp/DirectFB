@@ -1,5 +1,7 @@
 CoreDFB.cpp
 CoreDFB.h
+CoreGraphicsState.cpp
+CoreGraphicsState.h
 CoreLayerContext.cpp
 CoreLayerContext.h
 CoreSurface.cpp

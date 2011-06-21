@@ -622,6 +622,24 @@ dfb_layer_id_translated( const CoreLayer *layer )
      return shared->layer_id;
 }
 
+DFBDisplayLayerID
+dfb_layer_id_translate( DFBDisplayLayerID layer_id )
+{
+     D_ASSERT( dfb_config != NULL );
+
+     if (dfb_config->primary_layer > 0 &&
+         dfb_config->primary_layer < dfb_num_layers)
+     {
+          if (layer_id == DLID_PRIMARY)
+               return dfb_config->primary_layer;
+
+          if (layer_id == dfb_config->primary_layer)
+               return DLID_PRIMARY;
+     }
+
+     return layer_id;
+}
+
 DFBSurfacePixelFormat
 dfb_primary_layer_pixelformat( void )
 {

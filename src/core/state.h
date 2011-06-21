@@ -270,7 +270,7 @@ do {                                                        \
                                                             \
      if ((value) != (state)->member) {                      \
           (state)->member    = (value);                     \
-          (state)->modified |= SMF_##flag;                  \
+          (state)->modified = (StateModificationFlags)((state)->modified | SMF_##flag);                  \
      }                                                      \
 } while (0)
 

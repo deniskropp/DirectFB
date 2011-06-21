@@ -37,7 +37,7 @@
 
 #include <core/state.h>
 
-#include <core/CoreGraphicsState.h>
+#include <core/CoreGraphicsStateClient.h>
 
 
 /*

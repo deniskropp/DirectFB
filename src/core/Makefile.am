@@ -19,10 +19,9 @@ internalincludedir = $(INTERNALINCLUDEDIR)/core
 internalinclude_HEADERS = \
 	CoreDFB.h		\
 	CoreDFB_includes.h	\
-	CoreGraphics.h		\
-	CoreGraphics_internal.h	\
 	CoreGraphicsState.h	\
-	CoreGraphicsState_internal.h	\
+	CoreGraphicsState_includes.h	\
+	CoreGraphicsStateClient.h	\
 	CoreLayerContext.h	\
 	CoreLayerContext_includes.h	\
 	CoreSurface.h		\
@@ -69,8 +68,9 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 libdirectfb_core_la_SOURCES = \
 	CoreDFB.cpp		\
 	CoreDFB_real.cpp	\
-	CoreGraphics.c		\
-	CoreGraphicsState.c	\
+	CoreGraphicsState.cpp	\
+	CoreGraphicsState_real.cpp	\
+	CoreGraphicsStateClient.c		\
 	CoreLayerContext.cpp	\
 	CoreLayerContext_real.cpp	\
 	CoreSurface.cpp		\

@@ -528,6 +528,38 @@ dfb_core_create_window( CoreDFB *core )
 }
 
 DFBResult
+dfb_core_get_layer_context( CoreDFB           *core,
+                            u32                object_id,
+                            CoreLayerContext **ret_context )
+{
+     DFBResult     ret;
+     FusionObject *object;
+
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+     D_ASSERT( ret_context != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->layer_context_pool != NULL );
+
+     ret = fusion_object_get( core->shared->layer_context_pool, object_id, &object );
+     if (ret)
+          return ret;
+
+     *ret_context = (CoreLayerContext*) object;
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_core_get_palette( CoreDFB      *core,
                       u32           object_id,
                       CorePalette **ret_palette )

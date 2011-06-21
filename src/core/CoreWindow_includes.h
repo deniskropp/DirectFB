@@ -16,9 +16,10 @@ CoreWindow_Call( CoreWindow          *window,
                  void                *ptr,
                  unsigned int         length,
                  void                *ret_ptr,
-                 size_t               ret_size )
+                 unsigned int         ret_size,
+                 unsigned int        *ret_length )
 {
-     return fusion_call_execute3( &window->call, flags, call_arg, ptr, length, ret_ptr, ret_size );
+     return fusion_call_execute3( &window->call, flags, call_arg, ptr, length, ret_ptr, ret_size, ret_length );
 }
 
 #ifdef __cplusplus

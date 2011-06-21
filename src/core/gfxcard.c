@@ -55,8 +55,7 @@
 #include <core/surface_pool.h>
 #include <core/system.h>
 
-#include <core/CoreGraphics_internal.h>
-#include <core/CoreGraphicsState.h>
+#include <core/CoreGraphicsStateClient.h>
 
 #include <gfx/generic/generic.h>
 #include <gfx/clip.h>
@@ -215,8 +214,6 @@ dfb_graphics_core_initialize( CoreDFB               *core,
 
      fusion_property_init( &shared->lock, dfb_core_world(core) );
 
-     fusion_call_init( &core->shared->graphics_call, CoreGraphics_Dispatch, data, dfb_core_world(core) );
-
      if (__DFB_CoreRegisterHook)
          __DFB_CoreRegisterHook( core, card, __DFB_CoreRegisterHookCtx );
 
@@ -313,8 +310,6 @@ dfb_graphics_core_shutdown( DFBGraphicsCore *data,
      shared = data->shared;
 
      dfb_gfxcard_lock( GDLF_SYNC );
-
-     fusion_call_destroy( &data->core->shared->graphics_call );
 
      if (data->driver_funcs) {
           const GraphicsDriverFuncs *funcs = data->driver_funcs;
@@ -798,7 +793,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * This will timeout if the hardware is locked by another party with
       * the first argument being true (e.g. DRI).
       */
-     if (dfb_gfxcard_lock( GDLF_NONE )) {
+     ret = dfb_gfxcard_lock( GDLF_NONE );
+     if (ret) {
           D_DERROR( ret, "Core/Graphics: Could not lock GPU!\n" );
 
           dfb_surface_unlock_buffer( dst, &state->dst );

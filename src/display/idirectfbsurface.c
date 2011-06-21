@@ -50,7 +50,6 @@
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 
-#include <core/CoreGraphics.h>
 #include <core/CoreSurface.h>
 
 #include <media/idirectfbfont.h>

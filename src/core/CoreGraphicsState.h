@@ -26,188 +26,742 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORE__CORE_GRAPHICS_STATE_H__
-#define __CORE__CORE_GRAPHICS_STATE_H__
+#ifndef ___CoreGraphicsState__H___
+#define ___CoreGraphicsState__H___
 
-
-#include <directfb.h>
-
-#include <core/state.h>
-
+#include "CoreGraphicsState_includes.h"
 
 /**********************************************************************************************************************
  * CoreGraphicsState
  */
 
+#ifdef __cplusplus
+#include <core/Interface.h>
+
+extern "C" {
+#endif
+
+
+DFBResult CoreGraphicsState_SetDrawingFlags(
+                    CoreGraphicsState                         *obj,
+                    DFBSurfaceDrawingFlags                     flags);
+
+DFBResult CoreGraphicsState_SetBlittingFlags(
+                    CoreGraphicsState                         *obj,
+                    DFBSurfaceBlittingFlags                    flags);
+
+DFBResult CoreGraphicsState_SetClip(
+                    CoreGraphicsState                         *obj,
+                    const DFBRegion                           *region);
+
+DFBResult CoreGraphicsState_SetColor(
+                    CoreGraphicsState                         *obj,
+                    const DFBColor                            *color);
+
+DFBResult CoreGraphicsState_SetSrcBlend(
+                    CoreGraphicsState                         *obj,
+                    DFBSurfaceBlendFunction                    function);
+
+DFBResult CoreGraphicsState_SetDstBlend(
+                    CoreGraphicsState                         *obj,
+                    DFBSurfaceBlendFunction                    function);
+
+DFBResult CoreGraphicsState_SetSrcColorKey(
+                    CoreGraphicsState                         *obj,
+                    u32                                        key);
+
+DFBResult CoreGraphicsState_SetDstColorKey(
+                    CoreGraphicsState                         *obj,
+                    u32                                        key);
+
+DFBResult CoreGraphicsState_SetDestination(
+                    CoreGraphicsState                         *obj,
+                    CoreSurface                               *surface);
+
+DFBResult CoreGraphicsState_SetSource(
+                    CoreGraphicsState                         *obj,
+                    CoreSurface                               *surface);
+
+DFBResult CoreGraphicsState_SetSourceMask(
+                    CoreGraphicsState                         *obj,
+                    CoreSurface                               *surface);
+
+DFBResult CoreGraphicsState_SetSourceMaskVals(
+                    CoreGraphicsState                         *obj,
+                    const DFBPoint                            *offset,
+                    DFBSurfaceMaskFlags                        flags);
+
+DFBResult CoreGraphicsState_SetIndexTranslation(
+                    CoreGraphicsState                         *obj,
+                    const u32                                 *indices,
+                    u32                                        num);
+
+DFBResult CoreGraphicsState_SetColorKey(
+                    CoreGraphicsState                         *obj,
+                    const DFBColorKey                         *key);
+
+DFBResult CoreGraphicsState_SetRenderOptions(
+                    CoreGraphicsState                         *obj,
+                    DFBSurfaceRenderOptions                    options);
+
+DFBResult CoreGraphicsState_SetMatrix(
+                    CoreGraphicsState                         *obj,
+                    const u32                                 *values);
+
+DFBResult CoreGraphicsState_SetSource2(
+                    CoreGraphicsState                         *obj,
+                    CoreSurface                               *surface);
+
+DFBResult CoreGraphicsState_FillRectangles(
+                    CoreGraphicsState                         *obj,
+                    const DFBRectangle                        *rects,
+                    u32                                        num);
+
+DFBResult CoreGraphicsState_Blit(
+                    CoreGraphicsState                         *obj,
+                    const DFBRectangle                        *rects,
+                    const DFBPoint                            *points,
+                    u32                                        num);
+
+DFBResult CoreGraphicsState_StretchBlit(
+                    CoreGraphicsState                         *obj,
+                    const DFBRectangle                        *srects,
+                    const DFBRectangle                        *drects,
+                    u32                                        num);
+
+
+void *CoreGraphicsState_Init_Dispatch(
+                    CoreDFB              *core,
+                    CoreGraphicsState    *obj,
+                    FusionCall           *call
+);
+
+void  CoreGraphicsState_Deinit_Dispatch(
+                    void                 *dispatch
+);
+
+
+#ifdef __cplusplus
+}
+
+
+namespace DirectFB {
+
+
 /*
  * CoreGraphicsState Calls
  */
 typedef enum {
-     CORE_GRAPHICS_STATE_SET_DESTINATION     = 1,
-     CORE_GRAPHICS_STATE_SET_SOURCE          = 2,
-     CORE_GRAPHICS_STATE_SET_CLIP            = 3,
-     CORE_GRAPHICS_STATE_SET_COLOR           = 4,
-     CORE_GRAPHICS_STATE_SET_DRAWINGFLAGS    = 5,
-     CORE_GRAPHICS_STATE_SET_BLITTINGFLAGS   = 6,
-     CORE_GRAPHICS_STATE_SET_SRC_BLEND       = 7,
-     CORE_GRAPHICS_STATE_SET_DST_BLEND       = 8,
-     CORE_GRAPHICS_STATE_SET_SRC_COLORKEY    = 9,
-     CORE_GRAPHICS_STATE_SET_DST_COLORKEY    = 10,
-
-     CORE_GRAPHICS_STATE_FILL_RECTANGLE      = 11, // TEST
-     CORE_GRAPHICS_STATE_FILL_RECTANGLES     = 12, // TEST
-     CORE_GRAPHICS_STATE_BLIT                = 13, // TEST
-     CORE_GRAPHICS_STATE_STRETCH_BLIT        = 14, // TEST
+    CoreGraphicsState_SetDrawingFlags = 1,
+    CoreGraphicsState_SetBlittingFlags = 2,
+    CoreGraphicsState_SetClip = 3,
+    CoreGraphicsState_SetColor = 4,
+    CoreGraphicsState_SetSrcBlend = 5,
+    CoreGraphicsState_SetDstBlend = 6,
+    CoreGraphicsState_SetSrcColorKey = 7,
+    CoreGraphicsState_SetDstColorKey = 8,
+    CoreGraphicsState_SetDestination = 9,
+    CoreGraphicsState_SetSource = 10,
+    CoreGraphicsState_SetSourceMask = 11,
+    CoreGraphicsState_SetSourceMaskVals = 12,
+    CoreGraphicsState_SetIndexTranslation = 13,
+    CoreGraphicsState_SetColorKey = 14,
+    CoreGraphicsState_SetRenderOptions = 15,
+    CoreGraphicsState_SetMatrix = 16,
+    CoreGraphicsState_SetSource2 = 17,
+    CoreGraphicsState_FillRectangles = 18,
+    CoreGraphicsState_Blit = 19,
+    CoreGraphicsState_StretchBlit = 20,
 } CoreGraphicsStateCall;
 
 /*
- * CORE_GRAPHICS_STATE_SET_DESTINATION
+ * CoreGraphicsState_SetDrawingFlags
  */
 typedef struct {
-     u32                      object_id;
-} CoreGraphicsStateSetDestination;
-
-/*
- * CORE_GRAPHICS_STATE_SET_SOURCE
- */
-typedef struct {
-     u32                      object_id;
-} CoreGraphicsStateSetSource;
-
-/*
- * CORE_GRAPHICS_STATE_SET_CLIP
- */
-typedef struct {
-     DFBRegion                clip;
-} CoreGraphicsStateSetClip;
-
-/*
- * CORE_GRAPHICS_STATE_SET_COLOR
- */
-typedef struct {
-     DFBColor                 color;
-} CoreGraphicsStateSetColor;
-
-/*
- * CORE_GRAPHICS_STATE_SET_DRAWINGFLAGS
- */
-typedef struct {
-     DFBSurfaceDrawingFlags   flags;
+    DFBSurfaceDrawingFlags                     flags;
 } CoreGraphicsStateSetDrawingFlags;
 
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetDrawingFlagsReturn;
+
+
 /*
- * CORE_GRAPHICS_STATE_SET_BLITTINGFLAGS
+ * CoreGraphicsState_SetBlittingFlags
  */
 typedef struct {
-     DFBSurfaceBlittingFlags  flags;
+    DFBSurfaceBlittingFlags                    flags;
 } CoreGraphicsStateSetBlittingFlags;
 
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetBlittingFlagsReturn;
+
+
 /*
- * CORE_GRAPHICS_STATE_SET_SRC_BLEND
+ * CoreGraphicsState_SetClip
  */
 typedef struct {
-     DFBSurfaceBlendFunction  function;
+    DFBRegion                                  region;
+} CoreGraphicsStateSetClip;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetClipReturn;
+
+
+/*
+ * CoreGraphicsState_SetColor
+ */
+typedef struct {
+    DFBColor                                   color;
+} CoreGraphicsStateSetColor;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetColorReturn;
+
+
+/*
+ * CoreGraphicsState_SetSrcBlend
+ */
+typedef struct {
+    DFBSurfaceBlendFunction                    function;
 } CoreGraphicsStateSetSrcBlend;
 
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetSrcBlendReturn;
+
+
 /*
- * CORE_GRAPHICS_STATE_SET_DST_BLEND
+ * CoreGraphicsState_SetDstBlend
  */
 typedef struct {
-     DFBSurfaceBlendFunction  function;
+    DFBSurfaceBlendFunction                    function;
 } CoreGraphicsStateSetDstBlend;
 
-/*
- * CORE_GRAPHICS_STATE_SET_SRC_COLORKEY
- */
 typedef struct {
-     u32                      key;
-} CoreGraphicsStateSetSrcColorkey;
-
-/*
- * CORE_GRAPHICS_STATE_SET_DST_COLORKEY
- */
-typedef struct {
-     u32                      key;
-} CoreGraphicsStateSetDstColorkey;
+    DFBResult                                  result;
+} CoreGraphicsStateSetDstBlendReturn;
 
 
 /*
- * CORE_GRAPHICS_STATE_FILL_RECTANGLE
+ * CoreGraphicsState_SetSrcColorKey
  */
 typedef struct {
-     DFBRectangle             rect;
-} CoreGraphicsStateFillRectangle;
+    u32                                        key;
+} CoreGraphicsStateSetSrcColorKey;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetSrcColorKeyReturn;
+
 
 /*
- * CORE_GRAPHICS_STATE_FILL_RECTANGLES
+ * CoreGraphicsState_SetDstColorKey
  */
 typedef struct {
-     unsigned int             num;
+    u32                                        key;
+} CoreGraphicsStateSetDstColorKey;
 
-     /* rectangles follow */
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetDstColorKeyReturn;
+
+
+/*
+ * CoreGraphicsState_SetDestination
+ */
+typedef struct {
+    u32                                        surface_id;
+} CoreGraphicsStateSetDestination;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetDestinationReturn;
+
+
+/*
+ * CoreGraphicsState_SetSource
+ */
+typedef struct {
+    u32                                        surface_id;
+} CoreGraphicsStateSetSource;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetSourceReturn;
+
+
+/*
+ * CoreGraphicsState_SetSourceMask
+ */
+typedef struct {
+    u32                                        surface_id;
+} CoreGraphicsStateSetSourceMask;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetSourceMaskReturn;
+
+
+/*
+ * CoreGraphicsState_SetSourceMaskVals
+ */
+typedef struct {
+    DFBPoint                                   offset;
+    DFBSurfaceMaskFlags                        flags;
+} CoreGraphicsStateSetSourceMaskVals;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetSourceMaskValsReturn;
+
+
+/*
+ * CoreGraphicsState_SetIndexTranslation
+ */
+typedef struct {
+    u32                                        num;
+    /* 'num' u32 follow (indices) */
+} CoreGraphicsStateSetIndexTranslation;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetIndexTranslationReturn;
+
+
+/*
+ * CoreGraphicsState_SetColorKey
+ */
+typedef struct {
+    DFBColorKey                                key;
+} CoreGraphicsStateSetColorKey;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetColorKeyReturn;
+
+
+/*
+ * CoreGraphicsState_SetRenderOptions
+ */
+typedef struct {
+    DFBSurfaceRenderOptions                    options;
+} CoreGraphicsStateSetRenderOptions;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetRenderOptionsReturn;
+
+
+/*
+ * CoreGraphicsState_SetMatrix
+ */
+typedef struct {
+    /* '9' u32 follow (values) */
+} CoreGraphicsStateSetMatrix;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetMatrixReturn;
+
+
+/*
+ * CoreGraphicsState_SetSource2
+ */
+typedef struct {
+    u32                                        surface_id;
+} CoreGraphicsStateSetSource2;
+
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateSetSource2Return;
+
+
+/*
+ * CoreGraphicsState_FillRectangles
+ */
+typedef struct {
+    u32                                        num;
+    /* 'num' DFBRectangle follow (rects) */
 } CoreGraphicsStateFillRectangles;
 
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateFillRectanglesReturn;
+
+
 /*
- * CORE_GRAPHICS_STATE_BLIT
+ * CoreGraphicsState_Blit
  */
 typedef struct {
-     unsigned int             num;
-
-     /* rectangles, points follow */
+    u32                                        num;
+    /* 'num' DFBRectangle follow (rects) */
+    /* 'num' DFBPoint follow (points) */
 } CoreGraphicsStateBlit;
 
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateBlitReturn;
+
+
 /*
- * CORE_GRAPHICS_STATE_STRETCH_BLIT
+ * CoreGraphicsState_StretchBlit
  */
 typedef struct {
-     unsigned int             num;
-
-     /* rectangles for source, destination follow */
+    u32                                        num;
+    /* 'num' DFBRectangle follow (srects) */
+    /* 'num' DFBRectangle follow (drects) */
 } CoreGraphicsStateStretchBlit;
 
+typedef struct {
+    DFBResult                                  result;
+} CoreGraphicsStateStretchBlitReturn;
 
 
 
-struct __DFB_CoreGraphicsStateClient {
-     int            magic;
 
-     CoreDFB       *core;
-     CardState     *state;
 
-     FusionCall     call;
+class IGraphicsState : public Interface
+{
+public:
+    IGraphicsState( CoreDFB *core )
+        :
+        Interface( core )
+    {
+    }
+
+public:
+    virtual DFBResult SetDrawingFlags(
+                    DFBSurfaceDrawingFlags                     flags
+    ) = 0;
+
+    virtual DFBResult SetBlittingFlags(
+                    DFBSurfaceBlittingFlags                    flags
+    ) = 0;
+
+    virtual DFBResult SetClip(
+                    const DFBRegion                           *region
+    ) = 0;
+
+    virtual DFBResult SetColor(
+                    const DFBColor                            *color
+    ) = 0;
+
+    virtual DFBResult SetSrcBlend(
+                    DFBSurfaceBlendFunction                    function
+    ) = 0;
+
+    virtual DFBResult SetDstBlend(
+                    DFBSurfaceBlendFunction                    function
+    ) = 0;
+
+    virtual DFBResult SetSrcColorKey(
+                    u32                                        key
+    ) = 0;
+
+    virtual DFBResult SetDstColorKey(
+                    u32                                        key
+    ) = 0;
+
+    virtual DFBResult SetDestination(
+                    CoreSurface                               *surface
+    ) = 0;
+
+    virtual DFBResult SetSource(
+                    CoreSurface                               *surface
+    ) = 0;
+
+    virtual DFBResult SetSourceMask(
+                    CoreSurface                               *surface
+    ) = 0;
+
+    virtual DFBResult SetSourceMaskVals(
+                    const DFBPoint                            *offset,
+                    DFBSurfaceMaskFlags                        flags
+    ) = 0;
+
+    virtual DFBResult SetIndexTranslation(
+                    const u32                                 *indices,
+                    u32                                        num
+    ) = 0;
+
+    virtual DFBResult SetColorKey(
+                    const DFBColorKey                         *key
+    ) = 0;
+
+    virtual DFBResult SetRenderOptions(
+                    DFBSurfaceRenderOptions                    options
+    ) = 0;
+
+    virtual DFBResult SetMatrix(
+                    const u32                                 *values
+    ) = 0;
+
+    virtual DFBResult SetSource2(
+                    CoreSurface                               *surface
+    ) = 0;
+
+    virtual DFBResult FillRectangles(
+                    const DFBRectangle                        *rects,
+                    u32                                        num
+    ) = 0;
+
+    virtual DFBResult Blit(
+                    const DFBRectangle                        *rects,
+                    const DFBPoint                            *points,
+                    u32                                        num
+    ) = 0;
+
+    virtual DFBResult StretchBlit(
+                    const DFBRectangle                        *srects,
+                    const DFBRectangle                        *drects,
+                    u32                                        num
+    ) = 0;
+
 };
 
 
-DFBResult CoreGraphicsStateClient_Init          ( CoreGraphicsStateClient *client,
-                                                  CardState               *state );
 
-DFBResult CoreGraphicsStateClient_SetState      ( CoreGraphicsStateClient *client,
-                                                  CardState               *state,
-                                                  StateModificationFlags   flags );
-DFBResult CoreGraphicsStateClient_Update        ( CoreGraphicsStateClient *client,
-                                                  DFBAccelerationMask      accel,
-                                                  CardState               *state );
+class IGraphicsState_Real : public IGraphicsState
+{
+private:
+    CoreGraphicsState *obj;
 
-// TEST
-DFBResult CoreGraphicsStateClient_FillRectangle ( CoreGraphicsStateClient *client,
-                                                  const DFBRectangle      *rect );
+public:
+    IGraphicsState_Real( CoreDFB *core, CoreGraphicsState *obj )
+        :
+        IGraphicsState( core ),
+        obj( obj )
+    {
+    }
 
-// TEST
-DFBResult CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
-                                                  const DFBRectangle      *rects,
-                                                  unsigned int             num );
+public:
+    virtual DFBResult SetDrawingFlags(
+                    DFBSurfaceDrawingFlags                     flags
+    );
 
-// TEST
-DFBResult CoreGraphicsStateClient_Blit          ( CoreGraphicsStateClient *client,
-                                                  const DFBRectangle      *rects,
-                                                  const DFBPoint          *points,
-                                                  unsigned int             num );
+    virtual DFBResult SetBlittingFlags(
+                    DFBSurfaceBlittingFlags                    flags
+    );
 
-// TEST
-DFBResult CoreGraphicsStateClient_StretchBlit   ( CoreGraphicsStateClient *client,
-                                                  const DFBRectangle      *srects,
-                                                  const DFBRectangle      *drects,
-                                                  unsigned int             num );
+    virtual DFBResult SetClip(
+                    const DFBRegion                           *region
+    );
+
+    virtual DFBResult SetColor(
+                    const DFBColor                            *color
+    );
+
+    virtual DFBResult SetSrcBlend(
+                    DFBSurfaceBlendFunction                    function
+    );
+
+    virtual DFBResult SetDstBlend(
+                    DFBSurfaceBlendFunction                    function
+    );
+
+    virtual DFBResult SetSrcColorKey(
+                    u32                                        key
+    );
+
+    virtual DFBResult SetDstColorKey(
+                    u32                                        key
+    );
+
+    virtual DFBResult SetDestination(
+                    CoreSurface                               *surface
+    );
+
+    virtual DFBResult SetSource(
+                    CoreSurface                               *surface
+    );
+
+    virtual DFBResult SetSourceMask(
+                    CoreSurface                               *surface
+    );
+
+    virtual DFBResult SetSourceMaskVals(
+                    const DFBPoint                            *offset,
+                    DFBSurfaceMaskFlags                        flags
+    );
+
+    virtual DFBResult SetIndexTranslation(
+                    const u32                                 *indices,
+                    u32                                        num
+    );
+
+    virtual DFBResult SetColorKey(
+                    const DFBColorKey                         *key
+    );
+
+    virtual DFBResult SetRenderOptions(
+                    DFBSurfaceRenderOptions                    options
+    );
+
+    virtual DFBResult SetMatrix(
+                    const u32                                 *values
+    );
+
+    virtual DFBResult SetSource2(
+                    CoreSurface                               *surface
+    );
+
+    virtual DFBResult FillRectangles(
+                    const DFBRectangle                        *rects,
+                    u32                                        num
+    );
+
+    virtual DFBResult Blit(
+                    const DFBRectangle                        *rects,
+                    const DFBPoint                            *points,
+                    u32                                        num
+    );
+
+    virtual DFBResult StretchBlit(
+                    const DFBRectangle                        *srects,
+                    const DFBRectangle                        *drects,
+                    u32                                        num
+    );
+
+};
+
+
+
+class IGraphicsState_Requestor : public IGraphicsState
+{
+private:
+    CoreGraphicsState *obj;
+
+public:
+    IGraphicsState_Requestor( CoreDFB *core, CoreGraphicsState *obj )
+        :
+        IGraphicsState( core ),
+        obj( obj )
+    {
+    }
+
+public:
+    virtual DFBResult SetDrawingFlags(
+                    DFBSurfaceDrawingFlags                     flags
+    );
+
+    virtual DFBResult SetBlittingFlags(
+                    DFBSurfaceBlittingFlags                    flags
+    );
+
+    virtual DFBResult SetClip(
+                    const DFBRegion                           *region
+    );
+
+    virtual DFBResult SetColor(
+                    const DFBColor                            *color
+    );
+
+    virtual DFBResult SetSrcBlend(
+                    DFBSurfaceBlendFunction                    function
+    );
+
+    virtual DFBResult SetDstBlend(
+                    DFBSurfaceBlendFunction                    function
+    );
+
+    virtual DFBResult SetSrcColorKey(
+                    u32                                        key
+    );
+
+    virtual DFBResult SetDstColorKey(
+                    u32                                        key
+    );
+
+    virtual DFBResult SetDestination(
+                    CoreSurface                               *surface
+    );
+
+    virtual DFBResult SetSource(
+                    CoreSurface                               *surface
+    );
+
+    virtual DFBResult SetSourceMask(
+                    CoreSurface                               *surface
+    );
+
+    virtual DFBResult SetSourceMaskVals(
+                    const DFBPoint                            *offset,
+                    DFBSurfaceMaskFlags                        flags
+    );
+
+    virtual DFBResult SetIndexTranslation(
+                    const u32                                 *indices,
+                    u32                                        num
+    );
+
+    virtual DFBResult SetColorKey(
+                    const DFBColorKey                         *key
+    );
+
+    virtual DFBResult SetRenderOptions(
+                    DFBSurfaceRenderOptions                    options
+    );
+
+    virtual DFBResult SetMatrix(
+                    const u32                                 *values
+    );
+
+    virtual DFBResult SetSource2(
+                    CoreSurface                               *surface
+    );
+
+    virtual DFBResult FillRectangles(
+                    const DFBRectangle                        *rects,
+                    u32                                        num
+    );
+
+    virtual DFBResult Blit(
+                    const DFBRectangle                        *rects,
+                    const DFBPoint                            *points,
+                    u32                                        num
+    );
+
+    virtual DFBResult StretchBlit(
+                    const DFBRectangle                        *srects,
+                    const DFBRectangle                        *drects,
+                    u32                                        num
+    );
+
+};
+
+
+
+class CoreGraphicsStateDispatch
+{
+
+public:
+    CoreGraphicsStateDispatch( CoreDFB *core, IGraphicsState *real )
+        :
+        core( core ),
+        real( real )
+    {
+    }
+
+
+    virtual DFBResult Dispatch( int           method,
+                                void         *ptr,
+                                unsigned int  length,
+                                void         *ret_ptr,
+                                unsigned int  ret_size,
+                                unsigned int *ret_length );
+
+private:
+    CoreDFB              *core;
+    IGraphicsState       *real;
+};
+
+
+}
 
 #endif
 
+#endif
