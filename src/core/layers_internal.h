@@ -74,6 +74,8 @@ typedef struct {
      FusionVector                       added_regions;
 
      FusionSHMPoolShared               *shmpool;
+
+     FusionCall                         call;
 } CoreLayerShared;
 
 struct __DFB_CoreLayer {

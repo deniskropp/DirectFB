@@ -73,24 +73,6 @@ interface {
         }
 
         method {
-                name    CreateLayerContext
-
-                arg {
-                        name        layer_id
-                        direction   input
-                        type        int
-                        typename    u32
-                }
-
-                arg {
-                        name        context
-                        direction   output
-                        type        object
-                        typename    CoreLayerContext
-                }
-        }
-
-        method {
                 name    WaitIdle
         }
 }

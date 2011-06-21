@@ -108,24 +108,6 @@ ICore_Real::CreateState(
 }
 
 DFBResult
-ICore_Real::CreateLayerContext(
-                    u32                                        layer_id,
-                    CoreLayerContext                         **ret_context
-)
-{
-     CoreLayer *layer;
-
-     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
-
-     D_MAGIC_ASSERT( obj, CoreDFB );
-     D_ASSERT( ret_context != NULL );
-
-     layer = dfb_layer_at( layer_id );
-
-     return dfb_layer_create_context( layer, ret_context );
-}
-
-DFBResult
 ICore_Real::WaitIdle(
 
 )

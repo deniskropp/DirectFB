@@ -44,6 +44,7 @@
 #include <core/core.h>
 
 #include <core/CoreDFB.h>
+#include <core/CoreLayer.h>
 #include <core/CoreLayerContext.h>
 
 #include <core/clipboard.h>
@@ -357,11 +358,11 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                     return DFB_ACCESSDENIED;
 
                if (data->level == DFSCL_NORMAL) {
-                    ret = CoreDFB_CreateLayerContext( data->core, dfb_layer_id_translate( DLID_PRIMARY ), &context );
+                    ret = CoreLayer_CreateContext( data->layer, &context );
                     if (ret)
                          return ret;
 
-                    ret = dfb_layer_activate_context( data->layer, context );
+                    ret = CoreLayer_ActivateContext( data->layer, context );
                     if (ret) {
                          dfb_layer_context_unref( context );
                          return ret;
@@ -487,7 +488,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                config.pixelformat = format;
                config.colorspace  = colorspace;
 
-               ret = dfb_layer_context_set_configuration( data->primary.context,
+               ret = CoreLayerContext_SetConfiguration( data->primary.context,
                                                           &config );
                if (ret)
                     return ret;
@@ -843,13 +844,13 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     config.width       = width;
                     config.height      = height;
 
-                    ret = dfb_layer_context_set_configuration( context, &config );
+                    ret = CoreLayerContext_SetConfiguration( context, &config );
                     if (ret) {
                          if (!(caps & (DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY)) &&
                              config.buffermode == DLBM_BACKVIDEO) {
                               config.buffermode = DLBM_BACKSYSTEM;
 
-                              ret = dfb_layer_context_set_configuration( context, &config );
+                              ret = CoreLayerContext_SetConfiguration( context, &config );
                               if (ret)
                                    return ret;
                          }

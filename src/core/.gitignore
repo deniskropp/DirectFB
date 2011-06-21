@@ -2,6 +2,8 @@ CoreDFB.cpp
 CoreDFB.h
 CoreGraphicsState.cpp
 CoreGraphicsState.h
+CoreLayer.cpp
+CoreLayer.h
 CoreLayerContext.cpp
 CoreLayerContext.h
 CoreSurface.cpp

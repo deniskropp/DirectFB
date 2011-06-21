@@ -22,6 +22,8 @@ internalinclude_HEADERS = \
 	CoreGraphicsState.h	\
 	CoreGraphicsState_includes.h	\
 	CoreGraphicsStateClient.h	\
+	CoreLayer.h		\
+	CoreLayer_includes.h	\
 	CoreLayerContext.h	\
 	CoreLayerContext_includes.h	\
 	CoreSurface.h		\
@@ -71,6 +73,8 @@ libdirectfb_core_la_SOURCES = \
 	CoreGraphicsState.cpp	\
 	CoreGraphicsState_real.cpp	\
 	CoreGraphicsStateClient.c		\
+	CoreLayer.cpp		\
+	CoreLayer_real.cpp	\
 	CoreLayerContext.cpp	\
 	CoreLayerContext_real.cpp	\
 	CoreSurface.cpp		\

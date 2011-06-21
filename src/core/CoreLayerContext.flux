@@ -20,5 +20,16 @@ interface {
 			typename  CoreWindow
 		}
 	}
+
+	method {
+		name SetConfiguration
+
+		arg {
+			name      config
+			direction input
+			type      struct
+			typename  DFBDisplayLayerConfig
+		}
+	}
 }
 

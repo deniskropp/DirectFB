@@ -44,6 +44,8 @@
 #include <fusion/arena.h>
 #include <fusion/property.h>
 
+#include <core/CoreLayer.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -210,6 +212,8 @@ dfb_layer_core_initialize( CoreDFB            *core,
           /* Store pointer to shared data and core. */
           layer->shared = lshared;
           layer->core   = core;
+
+          CoreLayer_Init_Dispatch( core, layer, &lshared->call );
 
           /* Add the layer to the shared list. */
           shared->layers[ shared->num++ ] = lshared;

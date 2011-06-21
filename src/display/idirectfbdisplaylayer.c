@@ -54,6 +54,8 @@
 #include <core/wm.h>
 
 #include <core/CoreDFB.h>
+#include <core/CoreLayer.h>
+#include <core/CoreLayerContext.h>
 
 #include <windows/idirectfbwindow.h>
 
@@ -274,7 +276,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
                break;
 
           case DLSCL_EXCLUSIVE:
-               ret = CoreDFB_CreateLayerContext( data->core, dfb_layer_id_translated( data->layer ), &context );
+               ret = CoreLayer_CreateContext( data->layer, &context );
                if (ret)
                     return ret;
 
@@ -552,7 +554,7 @@ IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer       *thiz,
      switch (data->level) {
           case DLSCL_EXCLUSIVE:
           case DLSCL_ADMINISTRATIVE:
-               return dfb_layer_context_set_configuration( data->context, config );
+               return CoreLayerContext_SetConfiguration( data->context, config );
 
           default:
                break;

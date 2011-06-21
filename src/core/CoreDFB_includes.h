@@ -36,6 +36,25 @@ CoreDFB_Call( CoreDFB             *core,
 }
 
 static __inline__ DirectResult
+CoreLayer_Lookup( CoreDFB    *core,
+                  u32         object_id,
+                  CoreLayer **ret_layer )
+{
+     if (object_id >= (u32) dfb_layer_num())
+          return DR_IDNOTFOUND;
+
+     *ret_layer = dfb_layer_at( object_id );
+
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreLayer_Unref( CoreLayerContext *context )
+{
+     return DR_OK;
+}
+
+static __inline__ DirectResult
 CoreLayerContext_Lookup( CoreDFB           *core,
                          u32                object_id,
                          CoreLayerContext **ret_context )

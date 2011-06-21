@@ -28,19 +28,20 @@
 
 #include <config.h>
 
-#include "CoreLayerContext.h"
+#include "CoreLayer.h"
 
 extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 
 #include <core/core.h>
 }
 
-D_DEBUG_DOMAIN( DirectFB_CoreLayerContext, "DirectFB/CoreLayerContext", "DirectFB CoreLayerContext" );
+D_DEBUG_DOMAIN( DirectFB_CoreLayer, "DirectFB/CoreLayer", "DirectFB CoreLayer" );
 
 /*********************************************************************************************************************/
 
@@ -49,31 +50,29 @@ namespace DirectFB {
 
 
 DFBResult
-ILayerContext_Real::CreateWindow(
-                    const DFBWindowDescription                *description,
-                    CoreWindow                               **ret_window
+ILayer_Real::CreateContext(
+                    CoreLayerContext                         **ret_context
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Requestor::%s()\n", __FUNCTION__ );
 
-    D_ASSERT( description != NULL );
-    D_ASSERT( ret_window != NULL );
+    D_ASSERT( ret_context != NULL );
 
-    return dfb_layer_context_create_window( core, obj, description, ret_window );
+    return dfb_layer_create_context( obj, ret_context );
 }
 
 DFBResult
-ILayerContext_Real::SetConfiguration(
-                    const DFBDisplayLayerConfig               *config
+ILayer_Real::ActivateContext(
+                    CoreLayerContext                          *context
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Requestor::%s()\n", __FUNCTION__ );
 
-    D_ASSERT( config != NULL );
+    D_ASSERT( context != NULL );
 
-    return dfb_layer_context_set_configuration( obj, config );
+    return dfb_layer_activate_context( obj, context );
 }
 
 
-}
 
+}
