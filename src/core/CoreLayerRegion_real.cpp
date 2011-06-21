@@ -57,8 +57,6 @@ ILayerRegion_Real::FlipUpdate(
 {
     D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
 
-    D_ASSERT( update != NULL );
-
     return dfb_layer_region_flip_update( obj, update, flags );
 }
 
