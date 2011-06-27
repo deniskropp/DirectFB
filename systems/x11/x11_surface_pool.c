@@ -246,6 +246,7 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
      x11PoolLocalData  *local  = pool_local;
      DFBX11            *x11    = local->x11;
      DFBX11Shared      *shared = x11->shared;
+     void              *addr;
 
      D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
 
@@ -253,6 +254,14 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     // FIXME: also detach in other processes! (e.g. via reactor)
+     addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
+     if (addr) {
+          x11ImageDetach( &alloc->image, addr );
+
+          direct_hash_remove( local->hash, alloc->image.seginfo.shmid );
+     }
 
      if (alloc->real)
           return x11ImageDestroy( x11, &alloc->image );
@@ -316,6 +325,8 @@ x11Lock( CoreSurfacePool       *pool,
      }
      else {
           if (!alloc->ptr) {
+               D_DEBUG_AT( X11_Surfaces, "  -> allocating memory in data_shmpool (%d bytes)\n", allocation->size );
+
                alloc->ptr = SHCALLOC( shared->data_shmpool, 1, allocation->size );
                if (!alloc->ptr)
                     return D_OOSHM();
