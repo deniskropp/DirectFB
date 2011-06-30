@@ -12,10 +12,15 @@ INCLUDES = \
 
 AM_CPPFLAGS = -DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
 
-idirectfbwindows_LTLIBRARIES = \
-	libidirectfbwindows_default.la		\
+if ENABLE_VOODOO
+idirectfbwindows_VOODOOLIBRARIES = \
 	libidirectfbwindows_dispatcher.la	\
 	libidirectfbwindows_requestor.la
+endif
+
+idirectfbwindows_LTLIBRARIES = \
+	libidirectfbwindows_default.la		\
+	$(idirectfbwindows_VOODOOLIBRARIES)
 
 if BUILD_STATIC
 idirectfbwindows_DATA = $(idirectfbwindows_LTLIBRARIES:.la=.o)
