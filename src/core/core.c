@@ -39,6 +39,7 @@
 #include <fusion/arena.h>
 #include <direct/list.h>
 #include <fusion/shmalloc.h>
+#include <fusion/shm/shm_internal.h>
 
 #include <directfb.h>
 
@@ -1185,6 +1186,8 @@ dfb_core_initialize( CoreDFB *core )
                                    fusion_config->debugshm, &shared->shmpool_data );
      if (ret)
           return ret;
+
+     shared->shmpool_data->slave_write = true;
 
      shared->layer_context_pool = dfb_layer_context_pool_create( core->world );
      shared->layer_region_pool  = dfb_layer_region_pool_create( core->world );
