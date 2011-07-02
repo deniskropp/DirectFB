@@ -78,14 +78,14 @@ CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_MAGIC_ASSERT( state, CardState );
 
-     if (flags & SMF_DESTINATION) {
-          ret = CoreGraphicsState_SetDestination( client->gfx_state, state->destination );
+     if (flags & SMF_DRAWING_FLAGS) {
+          ret = CoreGraphicsState_SetDrawingFlags( client->gfx_state, state->drawingflags );
           if (ret)
                return ret;
      }
 
-     if (flags & SMF_SOURCE) {
-          ret = CoreGraphicsState_SetSource( client->gfx_state, state->source );
+     if (flags & SMF_BLITTING_FLAGS) {
+          ret = CoreGraphicsState_SetBlittingFlags( client->gfx_state, state->blittingflags );
           if (ret)
                return ret;
      }
@@ -98,18 +98,6 @@ CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
 
      if (flags & SMF_COLOR) {
           ret = CoreGraphicsState_SetColor( client->gfx_state, &state->color );
-          if (ret)
-               return ret;
-     }
-
-     if (flags & SMF_DRAWING_FLAGS) {
-          ret = CoreGraphicsState_SetDrawingFlags( client->gfx_state, state->drawingflags );
-          if (ret)
-               return ret;
-     }
-
-     if (flags & SMF_BLITTING_FLAGS) {
-          ret = CoreGraphicsState_SetBlittingFlags( client->gfx_state, state->blittingflags );
           if (ret)
                return ret;
      }
@@ -138,6 +126,60 @@ CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
                return ret;
      }
 
+     if (flags & SMF_DESTINATION) {
+          ret = CoreGraphicsState_SetDestination( client->gfx_state, state->destination );
+          if (ret)
+               return ret;
+     }
+
+     if (flags & SMF_SOURCE) {
+          ret = CoreGraphicsState_SetSource( client->gfx_state, state->source );
+          if (ret)
+               return ret;
+     }
+
+     if (flags & SMF_SOURCE_MASK) {
+          ret = CoreGraphicsState_SetSourceMask( client->gfx_state, state->source_mask );
+          if (ret)
+               return ret;
+     }
+
+     if (flags & SMF_SOURCE_MASK_VALS) {
+          ret = CoreGraphicsState_SetSourceMaskVals( client->gfx_state, &state->src_mask_offset, state->src_mask_flags );
+          if (ret)
+               return ret;
+     }
+
+     if (flags & SMF_INDEX_TRANSLATION) {
+          ret = CoreGraphicsState_SetIndexTranslation( client->gfx_state, state->index_translation, state->num_translation );
+          if (ret)
+               return ret;
+     }
+
+     if (flags & SMF_COLORKEY) {
+          ret = CoreGraphicsState_SetColorKey( client->gfx_state, &state->colorkey );
+          if (ret)
+               return ret;
+     }
+
+     if (flags & SMF_RENDER_OPTIONS) {
+          ret = CoreGraphicsState_SetRenderOptions( client->gfx_state, state->render_options );
+          if (ret)
+               return ret;
+     }
+
+     if (flags & SMF_MATRIX) {
+          ret = CoreGraphicsState_SetMatrix( client->gfx_state, state->matrix );
+          if (ret)
+               return ret;
+     }
+
+     if (flags & SMF_SOURCE2) {
+          ret = CoreGraphicsState_SetSource2( client->gfx_state, state->source2 );
+          if (ret)
+               return ret;
+     }
+
      return DFB_OK;
 }
 
@@ -147,10 +189,13 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
                                 CardState               *state )
 {
      DFBResult              ret;
-     StateModificationFlags flags = SMF_DESTINATION | SMF_CLIP;
+     StateModificationFlags flags = SMF_DESTINATION | SMF_CLIP | SMF_RENDER_OPTIONS;
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_MAGIC_ASSERT( state, CardState );
+
+     if (state->render_options & DSRO_MATRIX)
+          flags |= SMF_MATRIX;
 
      if (DFB_DRAWING_FUNCTION( accel )) {
           flags |= SMF_DRAWING_FLAGS | SMF_COLOR;
@@ -160,11 +205,12 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
 
           if (state->drawingflags & DSDRAW_DST_COLORKEY)
                flags |= SMF_DST_COLORKEY;
-
-          // FIXME: incomplete
      }
      else {
           flags |= SMF_BLITTING_FLAGS | SMF_SOURCE;
+
+          if (accel == DFXL_BLIT2)
+               flags |= SMF_SOURCE2;
 
           if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                       DSBLIT_COLORIZE |
@@ -181,7 +227,14 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
           if (state->blittingflags & DSBLIT_DST_COLORKEY)
                flags |= SMF_DST_COLORKEY;
 
-          // FIXME: incomplete
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR))
+               flags |= SMF_SOURCE_MASK | SMF_SOURCE_MASK_VALS;
+
+          if (state->blittingflags & DSBLIT_INDEX_TRANSLATION)
+               flags |= SMF_INDEX_TRANSLATION;
+
+          if (state->blittingflags & DSBLIT_COLORKEY_PROTECT)
+               flags |= SMF_COLORKEY;
      }
 
      ret = CoreGraphicsStateClient_SetState( client, state, state->modified & flags );
@@ -205,7 +258,8 @@ CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
           unsigned int i;
 
           for (i=0; i<num; i++)
-               dfb_gfxcard_drawrectangle( &rects[i], client->state );
+               // FIXME: will overwrite rects
+               dfb_gfxcard_drawrectangle( (DFBRectangle*) &rects[i], client->state );
      }
      else {
           DFBResult ret;
@@ -213,6 +267,31 @@ CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
           CoreGraphicsStateClient_Update( client, DFXL_DRAWRECTANGLE, client->state );
 
           ret = CoreGraphicsState_DrawRectangles( client->gfx_state, rects, num );
+          if (ret)
+               return ret;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+CoreGraphicsStateClient_DrawLines( CoreGraphicsStateClient *client,
+                                   const DFBRegion         *lines,
+                                   unsigned int             num )
+{
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+     D_ASSERT( lines != NULL );
+
+     if (dfb_core_is_master( client->core )) {
+          // FIXME: will overwrite lines
+          dfb_gfxcard_drawlines( (DFBRegion*) lines, num, client->state );
+     }
+     else {
+          DFBResult ret;
+
+          CoreGraphicsStateClient_Update( client, DFXL_DRAWLINE, client->state );
+
+          ret = CoreGraphicsState_DrawLines( client->gfx_state, lines, num );
           if (ret)
                return ret;
      }
@@ -245,6 +324,80 @@ CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
 }
 
 DFBResult
+CoreGraphicsStateClient_FillTriangles( CoreGraphicsStateClient *client,
+                                       const DFBTriangle       *triangles,
+                                       unsigned int             num )
+{
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+     D_ASSERT( triangles != NULL );
+
+     if (dfb_core_is_master( client->core )) {
+          dfb_gfxcard_filltriangles( triangles, num, client->state );
+     }
+     else {
+          DFBResult ret;
+
+          CoreGraphicsStateClient_Update( client, DFXL_FILLTRIANGLE, client->state );
+
+          ret = CoreGraphicsState_FillTriangles( client->gfx_state, triangles, num );
+          if (ret)
+               return ret;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+CoreGraphicsStateClient_FillTrapezoids( CoreGraphicsStateClient *client,
+                                        const DFBTrapezoid      *trapezoids,
+                                        unsigned int             num )
+{
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+     D_ASSERT( trapezoids != NULL );
+
+     if (dfb_core_is_master( client->core )) {
+          dfb_gfxcard_filltrapezoids( trapezoids, num, client->state );
+     }
+     else {
+          DFBResult ret;
+
+          CoreGraphicsStateClient_Update( client, DFXL_FILLTRAPEZOID, client->state );
+
+          ret = CoreGraphicsState_FillTrapezoids( client->gfx_state, trapezoids, num );
+          if (ret)
+               return ret;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+CoreGraphicsStateClient_FillSpans( CoreGraphicsStateClient *client,
+                                   int                      y,
+                                   const DFBSpan           *spans,
+                                   unsigned int             num )
+{
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+     D_ASSERT( spans != NULL );
+
+     if (dfb_core_is_master( client->core )) {
+          // FIXME: may overwrite spans
+          dfb_gfxcard_fillspans( y, (DFBSpan*) spans, num, client->state );
+     }
+     else {
+          DFBResult ret;
+
+          CoreGraphicsStateClient_Update( client, DFXL_FILLRECTANGLE, client->state );
+
+          ret = CoreGraphicsState_FillSpans( client->gfx_state, y, spans, num );
+          if (ret)
+               return ret;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
 CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
                               const DFBRectangle      *rects,
                               const DFBPoint          *points,
@@ -255,7 +408,8 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
      D_ASSERT( points != NULL );
 
      if (dfb_core_is_master( client->core )) {
-          dfb_gfxcard_batchblit( rects, points, num, client->state );
+          // FIXME: will overwrite rects, points
+          dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, client->state );
      }
      else {
           DFBResult ret;
@@ -263,6 +417,35 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
           CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
 
           ret = CoreGraphicsState_Blit( client->gfx_state, rects, points, num );
+          if (ret)
+               return ret;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+CoreGraphicsStateClient_Blit2( CoreGraphicsStateClient *client,
+                               const DFBRectangle      *rects,
+                               const DFBPoint          *points1,
+                               const DFBPoint          *points2,
+                               unsigned int             num )
+{
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+     D_ASSERT( rects != NULL );
+     D_ASSERT( points1 != NULL );
+     D_ASSERT( points2 != NULL );
+
+     if (dfb_core_is_master( client->core )) {
+          // FIXME: will overwrite rects, points
+          dfb_gfxcard_batchblit2( (DFBRectangle*) rects, (DFBPoint*) points1, (DFBPoint*) points2, num, client->state );
+     }
+     else {
+          DFBResult ret;
+
+          CoreGraphicsStateClient_Update( client, DFXL_BLIT2, client->state );
+
+          ret = CoreGraphicsState_Blit2( client->gfx_state, rects, points1, points2, num );
           if (ret)
                return ret;
      }
@@ -287,14 +470,71 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
           D_UNIMPLEMENTED();
 
      if (dfb_core_is_master( client->core )) {
-          dfb_gfxcard_stretchblit( srects, drects, client->state );
+          // FIXME: will overwrite rects
+          dfb_gfxcard_stretchblit( (DFBRectangle*) srects, (DFBRectangle*) drects, client->state );
      }
      else {
           DFBResult ret;
 
           CoreGraphicsStateClient_Update( client, DFXL_STRETCHBLIT, client->state );
 
-          ret = CoreGraphicsState_Blit( client->gfx_state, srects, drects, num );
+          ret = CoreGraphicsState_StretchBlit( client->gfx_state, srects, drects, num );
+          if (ret)
+               return ret;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+CoreGraphicsStateClient_TileBlit( CoreGraphicsStateClient *client,
+                                  const DFBRectangle      *rects,
+                                  const DFBPoint          *points1,
+                                  const DFBPoint          *points2,
+                                  unsigned int             num )
+{
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+     D_ASSERT( rects != NULL );
+     D_ASSERT( points1 != NULL );
+     D_ASSERT( points2 != NULL );
+
+     if (dfb_core_is_master( client->core )) {
+          // FIXME: will overwrite rects, points
+          for (u32 i=0; i<num; i++)
+               dfb_gfxcard_tileblit( (DFBRectangle*) &rects[i], points1[i].x, points1[i].y, points2[i].x, points2[i].y, client->state );
+     }
+     else {
+          DFBResult ret;
+
+          CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
+
+          ret = CoreGraphicsState_TileBlit( client->gfx_state, rects, points1, points2, num );
+          if (ret)
+               return ret;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
+                                          const DFBVertex         *vertices,
+                                          int                      num,
+                                          DFBTriangleFormation     formation )
+{
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+     D_ASSERT( vertices != NULL );
+
+     if (dfb_core_is_master( client->core )) {
+          // FIXME: may overwrite vertices
+          dfb_gfxcard_texture_triangles( (DFBVertex*) vertices, num, formation, client->state );
+     }
+     else {
+          DFBResult ret;
+
+          CoreGraphicsStateClient_Update( client, DFXL_TEXTRIANGLES, client->state );
+
+          ret = CoreGraphicsState_TextureTriangles( client->gfx_state, vertices, num, formation );
           if (ret)
                return ret;
      }

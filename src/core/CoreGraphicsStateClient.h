@@ -49,33 +49,67 @@ struct __DFB_CoreGraphicsStateClient {
 };
 
 
-DFBResult CoreGraphicsStateClient_Init          ( CoreGraphicsStateClient *client,
-                                                  CardState               *state );
+DFBResult CoreGraphicsStateClient_Init            ( CoreGraphicsStateClient *client,
+                                                    CardState               *state );
 
-DFBResult CoreGraphicsStateClient_SetState      ( CoreGraphicsStateClient *client,
-                                                  CardState               *state,
-                                                  StateModificationFlags   flags );
-DFBResult CoreGraphicsStateClient_Update        ( CoreGraphicsStateClient *client,
-                                                  DFBAccelerationMask      accel,
-                                                  CardState               *state );
+DFBResult CoreGraphicsStateClient_SetState        ( CoreGraphicsStateClient *client,
+                                                    CardState               *state,
+                                                    StateModificationFlags   flags );
+DFBResult CoreGraphicsStateClient_Update          ( CoreGraphicsStateClient *client,
+                                                    DFBAccelerationMask      accel,
+                                                    CardState               *state );
 
-DFBResult CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
-                                                  const DFBRectangle      *rects,
-                                                  unsigned int             num );
+DFBResult CoreGraphicsStateClient_DrawRectangles  ( CoreGraphicsStateClient *client,
+                                                    const DFBRectangle      *rects,
+                                                    unsigned int             num );
 
-DFBResult CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
-                                                  const DFBRectangle      *rects,
-                                                  unsigned int             num );
+DFBResult CoreGraphicsStateClient_DrawLines       ( CoreGraphicsStateClient *client,
+                                                    const DFBRegion         *lines,
+                                                    unsigned int             num );
 
-DFBResult CoreGraphicsStateClient_Blit          ( CoreGraphicsStateClient *client,
-                                                  const DFBRectangle      *rects,
-                                                  const DFBPoint          *points,
-                                                  unsigned int             num );
+DFBResult CoreGraphicsStateClient_FillRectangles  ( CoreGraphicsStateClient *client,
+                                                    const DFBRectangle      *rects,
+                                                    unsigned int             num );
 
-DFBResult CoreGraphicsStateClient_StretchBlit   ( CoreGraphicsStateClient *client,
-                                                  const DFBRectangle      *srects,
-                                                  const DFBRectangle      *drects,
-                                                  unsigned int             num );
+DFBResult CoreGraphicsStateClient_FillTriangles   ( CoreGraphicsStateClient *client,
+                                                    const DFBTriangle       *triangles,
+                                                    unsigned int             num );
+
+DFBResult CoreGraphicsStateClient_FillTrapezoids  ( CoreGraphicsStateClient *client,
+                                                    const DFBTrapezoid      *trapezoids,
+                                                    unsigned int             num );
+
+DFBResult CoreGraphicsStateClient_FillSpans       ( CoreGraphicsStateClient *client,
+                                                    int                      y,
+                                                    const DFBSpan           *spans,
+                                                    unsigned int             num );
+
+DFBResult CoreGraphicsStateClient_Blit            ( CoreGraphicsStateClient *client,
+                                                    const DFBRectangle      *rects,
+                                                    const DFBPoint          *points,
+                                                    unsigned int             num );
+
+DFBResult CoreGraphicsStateClient_Blit2           ( CoreGraphicsStateClient *client,
+                                                    const DFBRectangle      *rects,
+                                                    const DFBPoint          *points1,
+                                                    const DFBPoint          *points2,
+                                                    unsigned int             num );
+
+DFBResult CoreGraphicsStateClient_StretchBlit     ( CoreGraphicsStateClient *client,
+                                                    const DFBRectangle      *srects,
+                                                    const DFBRectangle      *drects,
+                                                    unsigned int             num );
+
+DFBResult CoreGraphicsStateClient_TileBlit        ( CoreGraphicsStateClient *client,
+                                                    const DFBRectangle      *rects,
+                                                    const DFBPoint          *points1,
+                                                    const DFBPoint          *points2,
+                                                    unsigned int             num );
+
+DFBResult CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
+                                                    const DFBVertex         *vertices,
+                                                    int                      num,
+                                                    DFBTriangleFormation     formation );
 
 #endif
 
