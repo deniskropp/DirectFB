@@ -1,4 +1,5 @@
 
+- Only allow certain typenames for "int" type, e.g. u32, s32, u16...
 
 - Generate stub real implementation optionally in a separate file.
 
