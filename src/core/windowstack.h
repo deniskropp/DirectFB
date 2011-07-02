@@ -107,8 +107,4 @@ DFBResult dfb_windowstack_get_cursor_position (CoreWindowStack *stack,
                                                int             *y);
 
 
-typedef enum {
-     CORE_WINDOWSTACK_
-} CoreWindowStackCall;
-
 #endif

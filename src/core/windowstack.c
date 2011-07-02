@@ -40,6 +40,8 @@
 #include <fusion/reactor.h>
 #include <fusion/shmalloc.h>
 
+#include <core/CoreWindowStack.h>
+
 #include <core/core.h>
 #include <core/input.h>
 #include <core/layer_context.h>
@@ -178,27 +180,6 @@ stack_containers_detach_device(CoreInputDevice *device)
      pthread_mutex_unlock( &stack_containers_lock );
 }
 
-static FusionCallHandlerResult
-windowstack_call_handler( int           caller,   /* fusion id of the caller */
-                          int           call_arg, /* optional call parameter */
-                          void         *call_ptr, /* optional call parameter */
-                          void         *ctx,      /* optional handler context */
-                          unsigned int  serial,
-                          int          *ret_val )
-{
-     switch (call_arg) {
-          case CORE_WINDOWSTACK_:
-               *ret_val = 0;
-               break;
-
-          default:
-               D_BUG( "invalid call arg %d", call_arg );
-               *ret_val = DFB_INVARG;
-     }
-
-     return FCHR_RETURN;
-}
-
 /*
  * Allocates and initializes a window stack.
  */
@@ -207,11 +188,14 @@ dfb_windowstack_create( CoreLayerContext *context )
 {
      DFBResult          ret;
      CoreWindowStack   *stack;
+     CoreLayer         *layer;
      CoreSurfacePolicy  policy = CSP_SYSTEMONLY;
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, context );
 
      D_ASSERT( context != NULL );
+
+     layer = dfb_layer_at( context->layer_id );
 
      /* Allocate window stack data (completely shared) */
      stack = (CoreWindowStack*) SHCALLOC( context->shmpool, 1, sizeof(CoreWindowStack) );
@@ -267,7 +251,7 @@ dfb_windowstack_create( CoreLayerContext *context )
 
      stack_containers_add(stack);
 
-     fusion_call_init( &stack->call, windowstack_call_handler, stack, dfb_core_world(NULL) );
+     CoreWindowStack_Init_Dispatch( layer->core, stack, &stack->call );
 
      D_DEBUG_AT( Core_WindowStack, "  -> %p\n", stack );
 
@@ -306,8 +290,6 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
-
-     fusion_call_destroy( &stack->call );
 
      /* Unlink cursor surface. */
      if (stack->cursor.surface)
