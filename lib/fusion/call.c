@@ -602,7 +602,7 @@ _fusion_call_process3( FusionWorld *world, int call_id, FusionCallMessage3 *msg,
                               case EINTR:
                                    continue;
                               case EIDRM:
-                                   D_WARN( "caller withdrawn (signal?)" );
+                                   D_DEBUG_AT( Fusion_Call, "  -> caller withdrawn (signal?)\n" );
                                    goto out;
                               case EINVAL:
                                    D_ERROR( "Fusion/Call: invalid call\n" );
