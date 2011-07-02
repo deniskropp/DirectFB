@@ -31,6 +31,19 @@ interface {
 
 
 	method {
+		name	BeginUpdates
+
+		arg {
+			name	    update
+			direction   input
+			type        struct
+			typename    DFBRegion
+			optional    yes
+		}
+	}
+
+
+	method {
 		name	Restack
 
 		arg {
@@ -113,6 +126,25 @@ interface {
 
 
 	method {
+		name	ChangeGrab
+
+		arg {
+			name	    target
+			direction   input
+			type        enum
+			typename    CoreWMGrabTarget
+		}
+
+		arg {
+			name	    grab
+			direction   input
+			type        enum
+			typename    bool
+		}
+	}
+
+
+	method {
 		name	GrabKey
 
 		arg {
@@ -146,6 +178,227 @@ interface {
 			direction   input
 			type        enum
 			typename    DFBInputDeviceModifierMask
+		}
+	}
+
+
+	method {
+		name	Move
+
+		arg {
+			name	    dx
+			direction   input
+			type        int
+			typename    int
+		}
+
+		arg {
+			name	    dy
+			direction   input
+			type        int
+			typename    int
+		}
+	}
+
+
+	method {
+		name	MoveTo
+
+		arg {
+			name	    x
+			direction   input
+			type        int
+			typename    int
+		}
+
+		arg {
+			name	    y
+			direction   input
+			type        int
+			typename    int
+		}
+	}
+
+
+	method {
+		name	Resize
+
+		arg {
+			name	    width
+			direction   input
+			type        int
+			typename    int
+		}
+
+		arg {
+			name	    height
+			direction   input
+			type        int
+			typename    int
+		}
+	}
+
+
+	method {
+		name	Destroy
+	}
+
+
+	method {
+		name	SetCursorPosition
+
+		arg {
+			name	    x
+			direction   input
+			type        int
+			typename    int
+		}
+
+		arg {
+			name	    y
+			direction   input
+			type        int
+			typename    int
+		}
+	}
+
+	method {
+		name	ChangeEvents
+
+		arg {
+			name	    disable
+			direction   input
+			type        enum
+			typename    DFBWindowEventType
+		}
+
+		arg {
+			name	    enable
+			direction   input
+			type        enum
+			typename    DFBWindowEventType
+		}
+	}
+
+	method {
+		name	ChangeOptions
+
+		arg {
+			name	    disable
+			direction   input
+			type        enum
+			typename    DFBWindowOptions
+		}
+
+		arg {
+			name	    enable
+			direction   input
+			type        enum
+			typename    DFBWindowOptions
+		}
+	}
+
+	method {
+		name	SetColor
+
+		arg {
+			name	    color
+			direction   input
+			type        struct
+			typename    DFBColor
+		}
+	}
+
+	method {
+		name	SetColorKey
+
+		arg {
+			name	    key
+			direction   input
+			type        int
+			typename    u32
+		}
+	}
+
+	method {
+		name	SetOpaque
+
+		arg {
+			name	    opaque
+			direction   input
+			type        struct
+			typename    DFBRegion
+		}
+	}
+
+	method {
+		name	SetOpacity
+
+		arg {
+			name	    opacity
+			direction   input
+			type        int
+			typename    u8
+		}
+	}
+
+	method {
+		name	SetStacking
+
+		arg {
+			name	    stacking
+			direction   input
+			type        enum
+			typename    DFBWindowStackingClass
+		}
+	}
+
+	method {
+		name	SetBounds
+
+		arg {
+			name	    bounds
+			direction   input
+			type        struct
+			typename    DFBRectangle
+		}
+	}
+
+	method {
+		name	SetKeySelection
+
+		arg {
+			name	    selection
+			direction   input
+			type        enum
+			typename    DFBWindowKeySelection
+		}
+
+		arg {
+			name	    keys
+			direction   input
+			type        enum
+			typename    DFBInputDeviceKeySymbol
+			count       num_keys
+			optional    yes
+		}
+
+		arg {
+			name	    num_keys
+			direction   input
+			type        int
+			typename    u32
+		}
+	}
+
+	method {
+		name	SetRotation
+
+		arg {
+			name	    rotation
+			direction   input
+			type        int
+			typename    int
 		}
 	}
 }

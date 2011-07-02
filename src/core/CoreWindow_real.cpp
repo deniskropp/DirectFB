@@ -145,6 +145,17 @@ IWindow_Real::RequestFocus()
 }
 
 DFBResult
+IWindow_Real::ChangeGrab( CoreWMGrabTarget     target,
+                          bool                 grab )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_change_grab( obj, target, grab );
+}
+
+DFBResult
 IWindow_Real::GrabKey( DFBInputDeviceKeySymbol     symbol,
                        DFBInputDeviceModifierMask  modifiers )
 {
@@ -164,6 +175,214 @@ IWindow_Real::UngrabKey( DFBInputDeviceKeySymbol     symbol,
      D_MAGIC_ASSERT( obj, CoreWindow );
 
      return dfb_window_ungrab_key( obj, symbol, modifiers );
+}
+
+DFBResult
+IWindow_Real::Move( int dx,
+                    int dy )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_move( obj, dx, dy, true );
+}
+
+DFBResult
+IWindow_Real::MoveTo( int x,
+                      int y )
+{
+     DFBResult ret;
+     DFBInsets insets;
+
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     dfb_windowstack_lock( obj->stack );
+
+     dfb_wm_get_insets( obj->stack, obj, &insets );
+
+     ret = dfb_window_move( obj, x + insets.l, y + insets.t, false );
+
+     dfb_windowstack_unlock( obj->stack );
+
+     return ret;
+}
+
+DFBResult
+IWindow_Real::Resize( int width,
+                      int height )
+{
+     DFBResult ret;
+     DFBInsets insets;
+
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     dfb_windowstack_lock( obj->stack );
+
+     dfb_wm_get_insets( obj->stack, obj, &insets );
+
+     ret = dfb_window_resize( obj, width + insets.l+insets.r, height + insets.t+insets.b );
+
+     dfb_windowstack_unlock( obj->stack );
+
+     return ret;
+}
+
+DFBResult
+IWindow_Real::Destroy()
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     dfb_window_destroy( obj );
+
+     return DFB_OK;
+}
+
+DFBResult
+IWindow_Real::BeginUpdates( const DFBRegion *update )
+{
+     DFBResult ret;
+
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     dfb_windowstack_lock( obj->stack );
+
+     ret = dfb_wm_begin_updates( obj, update );
+
+     dfb_windowstack_unlock( obj->stack );
+
+     return ret;
+}
+
+DFBResult
+IWindow_Real::SetCursorPosition( int x,
+                                 int y )
+{
+     DFBResult ret;
+
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     dfb_windowstack_lock( obj->stack );
+
+     ret = dfb_wm_set_cursor_position( obj, x, y );
+
+     dfb_windowstack_unlock( obj->stack );
+
+     return ret;
+}
+
+DFBResult
+IWindow_Real::ChangeEvents( DFBWindowEventType disable,
+                            DFBWindowEventType enable )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_change_events( obj, disable, enable );
+}
+
+DFBResult
+IWindow_Real::ChangeOptions( DFBWindowOptions disable,
+                             DFBWindowOptions enable )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_change_options( obj, disable, enable );
+}
+
+DFBResult
+IWindow_Real::SetColor( const DFBColor *color )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_set_color( obj, *color );
+}
+
+DFBResult
+IWindow_Real::SetColorKey( u32 key )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_set_colorkey( obj, key );
+}
+
+DFBResult
+IWindow_Real::SetOpaque( const DFBRegion *opaque )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_set_opaque( obj, opaque );
+}
+
+DFBResult
+IWindow_Real::SetOpacity( u8 opacity )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_set_opacity( obj, opacity );
+}
+
+DFBResult
+IWindow_Real::SetStacking( DFBWindowStackingClass stacking )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_change_stacking( obj, stacking );
+}
+
+DFBResult
+IWindow_Real::SetBounds( const DFBRectangle *bounds )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_set_bounds( obj, DFB_RECTANGLE_VALS( bounds ) );
+}
+
+DFBResult
+IWindow_Real::SetKeySelection( DFBWindowKeySelection          selection,
+                               const DFBInputDeviceKeySymbol *keys,
+                               u32                            num_keys )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_set_key_selection( obj, selection, keys, num_keys );
+}
+
+DFBResult
+IWindow_Real::SetRotation( int rotation )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_set_rotation( obj, rotation );
 }
 
 
