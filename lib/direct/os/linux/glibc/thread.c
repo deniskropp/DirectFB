@@ -184,11 +184,10 @@ direct_thread_deinit( DirectThread *thread )
                else
                     D_ERROR( "Direct/Thread: Canceling %d!\n", thread->tid );
 
-               thread->detached = true;
-
-               pthread_detach( thread->handle.thread );
                pthread_cancel( thread->handle.thread );
           }
+
+          pthread_join( thread->handle.thread, NULL );
      }
 }
 
@@ -203,7 +202,7 @@ direct_thread_self( void )
 
 
      thread = pthread_getspecific( thread_key );
-     D_MAGIC_ASSERT_IF( thread, DirectThread );
+//     D_MAGIC_ASSERT_IF( thread, DirectThread );
 
      return thread;
 }
