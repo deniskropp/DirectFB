@@ -5,6 +5,7 @@ interface {
 
 	method {
 		name      SetDrawingFlags
+		async  	  yes
 
 		arg {
 			name      flags
@@ -16,6 +17,7 @@ interface {
 
 	method {
 		name      SetBlittingFlags
+		async  	  yes
 
 		arg {
 			name      flags
@@ -27,6 +29,7 @@ interface {
 
 	method {
 		name      SetClip
+		async  	  yes
 
 		arg {
 			name      region
@@ -38,6 +41,7 @@ interface {
 
 	method {
 		name      SetColor
+		async  	  yes
 
 		arg {
 			name      color
@@ -49,6 +53,7 @@ interface {
 
 	method {
 		name      SetSrcBlend
+		async  	  yes
 
 		arg {
 			name      function
@@ -60,6 +65,7 @@ interface {
 
 	method {
 		name      SetDstBlend
+		async  	  yes
 
 		arg {
 			name      function
@@ -71,6 +77,7 @@ interface {
 
 	method {
 		name      SetSrcColorKey
+		async  	  yes
 
 		arg {
 			name      key
@@ -82,6 +89,7 @@ interface {
 
 	method {
 		name      SetDstColorKey
+		async  	  yes
 
 		arg {
 			name      key
@@ -93,6 +101,7 @@ interface {
 
 	method {
 		name      SetDestination
+		async  	  yes
 
 		arg {
 			name      surface
@@ -104,6 +113,7 @@ interface {
 
 	method {
 		name      SetSource
+		async  	  yes
 
 		arg {
 			name      surface
@@ -115,6 +125,7 @@ interface {
 
 	method {
 		name      SetSourceMask
+		async  	  yes
 
 		arg {
 			name      surface
@@ -126,6 +137,7 @@ interface {
 
 	method {
 		name      SetSourceMaskVals
+		async  	  yes
 
 		arg {
 			name      offset
@@ -144,12 +156,13 @@ interface {
 
 	method {
 		name      SetIndexTranslation
+		async  	  yes
 
 		arg {
 			name      indices
 			direction input
 			type      struct
-			typename  u32
+			typename  s32
 			count     num
 		}
 
@@ -163,6 +176,7 @@ interface {
 
 	method {
 		name      SetColorKey
+		async  	  yes
 
 		arg {
 			name      key
@@ -174,6 +188,7 @@ interface {
 
 	method {
 		name      SetRenderOptions
+		async  	  yes
 
 		arg {
 			name      options
@@ -185,18 +200,20 @@ interface {
 
 	method {
 		name      SetMatrix
+		async  	  yes
 
 		arg {
 			name      values
 			direction input
 			type      struct
-			typename  u32
+			typename  s32
 			count     9
 		}
 	}
 
 	method {
 		name      SetSource2
+		async  	  yes
 
 		arg {
 			name      surface
@@ -211,12 +228,33 @@ interface {
 
 	method {
 		name      DrawRectangles
+		async  	  yes
 
 		arg {
 			name      rects
 			direction input
 			type      struct
 			typename  DFBRectangle
+			count     num
+		}
+
+		arg {
+			name      num
+			direction input
+			type      int
+			typename  u32
+		}
+	}
+
+	method {
+		name      DrawLines
+		async  	  yes
+
+		arg {
+			name      lines
+			direction input
+			type      struct
+			typename  DFBRegion
 			count     num
 		}
 
@@ -230,6 +268,7 @@ interface {
 
 	method {
 		name      FillRectangles
+		async  	  yes
 
 		arg {
 			name      rects
@@ -248,7 +287,75 @@ interface {
 	}
 
 	method {
+		name      FillTriangles
+		async  	  yes
+
+		arg {
+			name      triangles
+			direction input
+			type      struct
+			typename  DFBTriangle
+			count     num
+		}
+
+		arg {
+			name      num
+			direction input
+			type      int
+			typename  u32
+		}
+	}
+
+	method {
+		name      FillTrapezoids
+		async  	  yes
+
+		arg {
+			name      trapezoids
+			direction input
+			type      struct
+			typename  DFBTrapezoid
+			count     num
+		}
+
+		arg {
+			name      num
+			direction input
+			type      int
+			typename  u32
+		}
+	}
+
+	method {
+		name      FillSpans
+		async  	  yes
+
+		arg {
+			name      y
+			direction input
+			type      int
+			typename  s32
+		}
+
+		arg {
+			name      spans
+			direction input
+			type      struct
+			typename  DFBSpan
+			count     num
+		}
+
+		arg {
+			name      num
+			direction input
+			type      int
+			typename  u32
+		}
+	}
+
+	method {
 		name      Blit
+		async  	  yes
 
 		arg {
 			name      rects
@@ -275,7 +382,44 @@ interface {
 	}
 
 	method {
+		name      Blit2
+		async  	  yes
+
+		arg {
+			name      rects
+			direction input
+			type      struct
+			typename  DFBRectangle
+			count     num
+		}
+
+		arg {
+			name      points1
+			direction input
+			type      struct
+			typename  DFBPoint
+			count     num
+		}
+
+		arg {
+			name      points2
+			direction input
+			type      struct
+			typename  DFBPoint
+			count     num
+		}
+
+		arg {
+			name      num
+			direction input
+			type      int
+			typename  u32
+		}
+	}
+
+	method {
 		name      StretchBlit
+		async  	  yes
 
 		arg {
 			name      srects
@@ -298,6 +442,69 @@ interface {
 			direction input
 			type      int
 			typename  u32
+		}
+	}
+
+	method {
+		name      TileBlit
+		async  	  yes
+
+		arg {
+			name      rects
+			direction input
+			type      struct
+			typename  DFBRectangle
+			count     num
+		}
+
+		arg {
+			name      points1
+			direction input
+			type      struct
+			typename  DFBPoint
+			count     num
+		}
+
+		arg {
+			name      points2
+			direction input
+			type      struct
+			typename  DFBPoint
+			count     num
+		}
+
+		arg {
+			name      num
+			direction input
+			type      int
+			typename  u32
+		}
+	}
+
+	method {
+		name      TextureTriangles
+		async  	  yes
+
+		arg {
+			name      vertices
+			direction input
+			type      struct
+			typename  DFBVertex
+			count     num
+		}
+
+		arg {
+			name      num
+			direction input
+			type      int
+			typename  u32
+		}
+
+		arg {
+			name      formation
+			direction input
+			type      enum
+			typename  DFBTriangleFormation
 		}
 	}
 }

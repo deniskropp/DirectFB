@@ -219,13 +219,13 @@ IGraphicsState_Real::SetSourceMaskVals(
 
 DFBResult
 IGraphicsState_Real::SetIndexTranslation(
-                    const u32                                 *indices,
+                    const s32                                 *indices,
                     u32                                        num
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
 
-    dfb_state_set_index_translation( &obj->state, (const int*) indices, num );
+    dfb_state_set_index_translation( &obj->state, (const s32*) indices, num );
 
     return DFB_OK;
 }
@@ -261,7 +261,7 @@ IGraphicsState_Real::SetRenderOptions(
 
 DFBResult
 IGraphicsState_Real::SetMatrix(
-                    const u32                                 *values
+                    const s32                                 *values
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
@@ -303,6 +303,20 @@ IGraphicsState_Real::DrawRectangles(
 
 
 DFBResult
+IGraphicsState_Real::DrawLines(
+                    const DFBRegion                           *lines,
+                    u32                                        num
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    dfb_gfxcard_drawlines( (DFBRegion*) lines, num, &obj->state );
+
+    return DFB_OK;
+}
+
+
+DFBResult
 IGraphicsState_Real::FillRectangles(
                     const DFBRectangle                        *rects,
                     u32                                        num
@@ -311,6 +325,49 @@ IGraphicsState_Real::FillRectangles(
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
 
     dfb_gfxcard_fillrectangles( rects, num, &obj->state );
+
+    return DFB_OK;
+}
+
+
+DFBResult
+IGraphicsState_Real::FillTriangles(
+                    const DFBTriangle                         *triangles,
+                    u32                                        num
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    dfb_gfxcard_filltriangles( triangles, num, &obj->state );
+
+    return DFB_OK;
+}
+
+
+DFBResult
+IGraphicsState_Real::FillTrapezoids(
+                    const DFBTrapezoid                        *trapezoids,
+                    u32                                        num
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    dfb_gfxcard_filltrapezoids( trapezoids, num, &obj->state );
+
+    return DFB_OK;
+}
+
+
+DFBResult
+IGraphicsState_Real::FillSpans(
+                    s32                                        y,
+                    const DFBSpan                             *spans,
+                    u32                                        num
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    dfb_gfxcard_fillspans( y, (DFBSpan*) spans, num, &obj->state );
 
     return DFB_OK;
 }
@@ -336,6 +393,27 @@ IGraphicsState_Real::Blit(
 
 
 DFBResult
+IGraphicsState_Real::Blit2(
+                    const DFBRectangle                        *rects,
+                    const DFBPoint                            *points1,
+                    const DFBPoint                            *points2,
+                    u32                                        num
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    D_ASSERT( rects != NULL );
+    D_ASSERT( points1 != NULL );
+    D_ASSERT( points2 != NULL );
+
+    // FIXME: remove casts
+    dfb_gfxcard_batchblit2( (DFBRectangle*) rects, (DFBPoint*) points1, (DFBPoint*) points2, num, &obj->state );
+
+    return DFB_OK;
+}
+
+
+DFBResult
 IGraphicsState_Real::StretchBlit(
                     const DFBRectangle                        *srects,
                     const DFBRectangle                        *drects,
@@ -347,9 +425,48 @@ IGraphicsState_Real::StretchBlit(
     D_ASSERT( srects != NULL );
     D_ASSERT( drects != NULL );
 
-    //dfb_gfxcard_batchblit( rects, num, &obj->state );
+    for (u32 i=0; i<num; i++)
+         dfb_gfxcard_stretchblit( (DFBRectangle*) &srects[i], (DFBRectangle*) &drects[i], &obj->state );
 
-    D_UNIMPLEMENTED();
+    return DFB_OK;
+}
+
+
+DFBResult
+IGraphicsState_Real::TileBlit(
+                    const DFBRectangle                        *rects,
+                    const DFBPoint                            *points1,
+                    const DFBPoint                            *points2,
+                    u32                                        num
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    D_ASSERT( rects != NULL );
+    D_ASSERT( points1 != NULL );
+    D_ASSERT( points2 != NULL );
+
+    // FIXME: remove casts
+    for (u32 i=0; i<num; i++)
+         dfb_gfxcard_tileblit( (DFBRectangle*) &rects[i], points1[i].x, points1[i].y, points2[i].x, points2[i].y, &obj->state );
+
+    return DFB_OK;
+}
+
+
+DFBResult
+IGraphicsState_Real::TextureTriangles(
+                    const DFBVertex                           *vertices,
+                    u32                                        num,
+                    DFBTriangleFormation                       formation
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    D_ASSERT( vertices != NULL );
+
+    // FIXME: remove casts
+    dfb_gfxcard_texture_triangles( (DFBVertex*) vertices, num, formation, &obj->state );
 
     return DFB_OK;
 }
