@@ -8,7 +8,11 @@ CoreLayerContext.cpp
 CoreLayerContext.h
 CoreLayerRegion.cpp
 CoreLayerRegion.h
+CorePalette.cpp
+CorePalette.h
 CoreSurface.cpp
 CoreSurface.h
 CoreWindow.cpp
 CoreWindow.h
+CoreWindowStack.cpp
+CoreWindowStack.h
