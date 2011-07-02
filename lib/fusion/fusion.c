@@ -926,8 +926,22 @@ fusion_exit( FusionWorld *world,
 
 
      /* Unmap shared area. */
-     if (fusion_master( world ) && shared->refs == 0)
+     if (fusion_master( world ) && shared->refs == 0) {
+          char         tmpfs[FUSION_SHM_TMPFS_PATH_NAME_LEN];
+          char         root_file[FUSION_SHM_TMPFS_PATH_NAME_LEN+32];
+
+          if (fusion_config->tmpfs)
+               direct_snputs( tmpfs, fusion_config->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN );
+          else if (!fusion_find_tmpfs( tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN ))
+               direct_snputs( tmpfs, "/dev/shm", FUSION_SHM_TMPFS_PATH_NAME_LEN );
+
+          snprintf( root_file, sizeof(root_file), "%s/fusion.%d", tmpfs, shared->world_index );
+
+          if (unlink( root_file ) < 0)
+               D_PERROR( "Fusion/Main: could not unlink shared memory file (%s)!\n", root_file );
+
           D_MAGIC_CLEAR( shared );
+     }
 
      munmap( shared, sizeof(FusionWorldShared) );
 
@@ -938,6 +952,7 @@ fusion_exit( FusionWorld *world,
 
      /* Free local world data. */
      D_MAGIC_CLEAR( world );
+
      D_FREE( world );
 
 
@@ -1025,8 +1040,12 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
           if (FD_ISSET( world->fusion_fd, &set )) {
                len = read( world->fusion_fd, buf, FUSION_MESSAGE_SIZE );
-               if (len < 0)
+               if (len < 0) {
+                    if (errno == EINTR)
+                         continue;
+
                     break;
+               }
 
                D_DEBUG_AT( Fusion_Main_Dispatch, "  -> got %d bytes...\n", len );
 
@@ -1260,15 +1279,12 @@ _fusion_add_local( FusionWorld *world, FusionRef *ref, int add )
      //D_DEBUG_AT( Fusion_Main, "%s( %p, %p, %d )\n", __FUNCTION__, world, ref, add );
 
      D_ASSERT( ref != NULL );
-
      D_MAGIC_ASSERT( world, FusionWorld );
 
      shared = world->shared;
-
      D_MAGIC_ASSERT( shared, FusionWorldShared );
 
      fusionee = world->fusionee;
-
      D_ASSERT( fusionee != NULL );
 
      direct_list_foreach (fusionee_ref, fusionee->refs) {
@@ -1283,6 +1299,7 @@ _fusion_add_local( FusionWorld *world, FusionRef *ref, int add )
           
           if (fusionee_ref->count == 0) {
                direct_list_remove( &fusionee->refs, &fusionee_ref->link );
+
                SHFREE( shared->main_pool, fusionee_ref );
           }
      }
@@ -2448,53 +2465,28 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
 DirectResult
 fusion_sync( const FusionWorld *world )
 {
-     int            result;
-     fd_set         set;
-     struct timeval tv;
-     int            loops = 200;
-
      D_MAGIC_ASSERT( world, FusionWorld );
 
      D_DEBUG_AT( Fusion_Main, "%s( %p )\n", __FUNCTION__, world );
 
-     D_DEBUG_AT( Fusion_Main, "syncing with fusion device...\n" );
+     D_DEBUG_AT( Fusion_Main, "  -> syncing with fusion device...\n" );
 
-     while (loops--) {
-          FD_ZERO( &set );
-          FD_SET( world->fusion_fd, &set );
-
-          tv.tv_sec  = 0;
-          tv.tv_usec = 20000;
-
-          result = select( world->fusion_fd + 1, &set, NULL, NULL, &tv );
-          D_DEBUG_AT( Fusion_Main, "  -> select() returned %d...\n", result );
-          switch (result) {
-               case -1:
-                    if (errno == EINTR)
-                         return DR_OK;
-
-                    D_PERROR( "Fusion/Sync: select() failed!\n");
-                    return DR_FAILURE;
-
+     while (ioctl( world->fusion_fd, FUSION_SYNC )) {
+          switch (errno) {
+               case EINTR:
+                    continue;
                default:
-                    D_DEBUG_AT( Fusion_Main, "  -> FD_ISSET %d...\n", FD_ISSET( world->fusion_fd, &set ) );
-                    
-                    if (FD_ISSET( world->fusion_fd, &set )) {
-                         usleep( 20000 );
-                         break;
-                    }
-
-               case 0:
-                    D_DEBUG_AT( Fusion_Main, "  -> synced.\n");
-                    return DR_OK;
+                    break;
           }
+
+          D_PERROR( "Fusion/Main: FUSION_SYNC failed!\n" );
+
+          return DR_FAILURE;
      }
 
-     D_DEBUG_AT( Fusion_Main, "  -> timeout!\n");
+     D_DEBUG_AT( Fusion_Main, "  -> synced\n");
 
-     D_ERROR( "Fusion/Main: Timeout waiting for empty message queue!\n" );
-
-     return DR_TIMEOUT;
+     return DR_OK;
 }
 
 /*
