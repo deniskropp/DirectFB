@@ -50,7 +50,7 @@ namespace DirectFB {
 DFBResult
 ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
                            CoreSurfaceTypeFlags      type,
-                           unsigned long             resource_id,
+                           u64                       resource_id,
                            CorePalette              *palette,
                            CoreSurface             **ret_surface )
 {
@@ -60,7 +60,12 @@ ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
      D_ASSERT( config != NULL );
      D_ASSERT( ret_surface != NULL );
 
-     return dfb_surface_create( obj, config, type, resource_id, palette, ret_surface );
+     CoreSurfaceConfig config_copy = *config;
+
+     // FIXME: handle local / preallocated surfaces
+     config_copy.flags = (CoreSurfaceConfigFlags)(config_copy.flags & ~CSCONF_PREALLOCATED);
+
+     return dfb_surface_create( obj, &config_copy, type, resource_id, palette, ret_surface );
 }
 
 DFBResult
@@ -99,8 +104,6 @@ ICore_Real::CreateState(
 
     D_MAGIC_SET( state, CoreGraphicsState );
 
-
-    state->object.id = state->call.call_id;
 
     *ret_state = state;
 
