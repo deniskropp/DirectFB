@@ -47,6 +47,9 @@
 #include <core/CoreLayer.h>
 #include <core/CoreLayerContext.h>
 #include <core/CoreLayerRegion.h>
+#include <core/CorePalette.h>
+#include <core/CoreWindow.h>
+#include <core/CoreWindowStack.h>
 
 #include <core/clipboard.h>
 #include <core/state.h>
@@ -509,17 +512,12 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
 static void
 init_palette( CoreSurface *surface, const DFBSurfaceDescription *desc )
 {
-     int          num;
      CorePalette *palette = surface->palette;
 
      if (!palette || !(desc->flags & DSDESC_PALETTE))
           return;
 
-     num = MIN( desc->palette.size, palette->num_entries );
-
-     direct_memcpy( palette->entries, desc->palette.entries, num * sizeof(DFBColor));
-
-     dfb_palette_update( palette, 0, num - 1 );
+     CorePalette_SetEntries( palette, desc->palette.entries, MIN( desc->palette.size, palette->num_entries ), 0 );
 }
 
 static DFBResult
@@ -720,8 +718,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          ret = IDirectFBSurface_Construct( iface, NULL,
                                                            NULL, NULL, NULL, surface, caps, data->core );
                          if (ret == DFB_OK) {
-                              dfb_windowstack_set_background_image( data->stack, surface );
-                              dfb_windowstack_set_background_mode( data->stack, DLBM_IMAGE );
+                              CoreWindowStack_BackgroundSetImage( data->stack, surface );
+                              CoreWindowStack_BackgroundSetMode( data->stack, DLBM_IMAGE );
                          }
 
                          dfb_surface_unref( surface );
@@ -792,9 +790,10 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          dfb_window_attach( window, focus_listener,
                                             data, &data->primary.reaction );
 
-                         //dfb_window_change_options( window, DWOP_NONE, DWOP_SCALE );
+                         CoreWindow_ChangeOptions( window, DWOP_NONE, DWOP_SCALE );
+
                          if (dfb_config->scaled.width && dfb_config->scaled.height)
-                              dfb_window_resize( window, dfb_config->scaled.width,
+                              CoreWindow_Resize( window, dfb_config->scaled.width,
                                                          dfb_config->scaled.height );
 
                          init_palette( window->surface, desc );
@@ -898,7 +897,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                           */
                          D_ASSERT( region->context );
                          if (region->context->stack) {
-                              dfb_windowstack_repaint_all( region->context->stack );
+                              CoreWindowStack_RepaintAll( region->context->stack );
                          }
                          else {
                               CoreLayerRegion_FlipUpdate( region, NULL, DSFLIP_NONE );
@@ -982,7 +981,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                return ret;
      }
 
-//     init_palette( surface, desc );
+     init_palette( surface, desc );
 
      DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
@@ -1035,7 +1034,7 @@ IDirectFB_CreatePalette( IDirectFB                    *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBPalette );
 
-     ret = IDirectFBPalette_Construct( iface, palette );
+     ret = IDirectFBPalette_Construct( iface, palette, data->core );
 
      dfb_palette_unref( palette );
 
@@ -1630,7 +1629,7 @@ LoadBackgroundImage( IDirectFB       *dfb,
 
      image_data = (IDirectFBSurface_data*) image->priv;
 
-     dfb_windowstack_set_background_image( stack, image_data->surface );
+     CoreWindowStack_BackgroundSetImage( stack, image_data->surface );
 
      image->Release( image );
 }
@@ -1749,7 +1748,7 @@ IDirectFB_InitLayers( IDirectFB *thiz )
                ret = dfb_layer_context_get_configuration( context, &conf->config );
                D_ASSERT( ret == DFB_OK );
 
-               ret = CoreLayerContext_GetPrimaryRegion( context, true, &data->layers[i].region );
+               ret = dfb_layer_context_get_primary_region( context, true, &data->layers[i].region );
                if (ret) {
                     D_DERROR( ret, "InitLayers: Could not get primary region of layer %d!\n", i );
                     dfb_layer_context_unref( context );
@@ -1779,8 +1778,8 @@ IDirectFB_InitLayers( IDirectFB *thiz )
 
                switch (conf->background.mode) {
                     case DLBM_COLOR:
-                         dfb_windowstack_set_background_color( stack, &conf->background.color );
-                         dfb_windowstack_set_background_color_index( stack, conf->background.color_index );
+                         CoreWindowStack_BackgroundSetColor( stack, &conf->background.color );
+                         CoreWindowStack_BackgroundSetColorIndex( stack, conf->background.color_index );
                          break;
 
                     case DLBM_IMAGE:
@@ -1792,7 +1791,7 @@ IDirectFB_InitLayers( IDirectFB *thiz )
                          break;
                }
 
-               dfb_windowstack_set_background_mode( stack, conf->background.mode );
+               CoreWindowStack_BackgroundSetMode( stack, conf->background.mode );
 
                data->layers[i].context = context;
           }
@@ -2055,11 +2054,11 @@ input_filter_local( DFBEvent *evt,
                switch (event->type) {
                     case DIET_BUTTONPRESS:
                          if (data->primary.window)
-                              dfb_windowstack_cursor_enable( data->core, data->stack, false );
+                              CoreWindowStack_CursorEnable( data->stack, false );
                          break;
                     case DIET_KEYPRESS:
                          if (data->primary.window)
-                              dfb_windowstack_cursor_enable( data->core, data->stack,
+                              CoreWindowStack_CursorEnable( data->stack,
                                                              (event->key_symbol ==
                                                               DIKS_ESCAPE) ||
                                                              (event->modifiers &
@@ -2103,6 +2102,6 @@ drop_window( IDirectFB_data *data, bool enable_cursor )
      data->primary.focused = false;
 
      if (dfb_config->cursor_automation)
-          dfb_windowstack_cursor_enable( data->core, data->stack, enable_cursor );
+          CoreWindowStack_CursorEnable( data->stack, enable_cursor );
 }
 

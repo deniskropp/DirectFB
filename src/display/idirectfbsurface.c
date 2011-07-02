@@ -359,7 +359,7 @@ IDirectFBSurface_GetPalette( IDirectFBSurface  *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( palette, IDirectFBPalette );
 
-     ret = IDirectFBPalette_Construct( palette, surface->palette );
+     ret = IDirectFBPalette_Construct( palette, surface->palette, data->core );
      if (ret)
           return ret;
 
