@@ -202,6 +202,59 @@ fusion_ref_down (FusionRef *ref, bool global)
 }
 
 DirectResult
+fusion_ref_catch (FusionRef *ref)
+{
+     D_ASSERT( ref != NULL );
+
+     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_CATCH, &ref->multi.id)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    D_ERROR ("Fusion/Reference: invalid reference\n");
+                    return DR_DESTROYED;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_REF_CATCH");
+
+          return DR_FAILURE;
+     }
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_ref_throw (FusionRef *ref, FusionID catcher)
+{
+     FusionRefThrow throw_;
+
+     D_ASSERT( ref != NULL );
+
+     throw_.id      = ref->multi.id;
+     throw_.catcher = catcher;
+
+     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_THROW, &throw_)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    D_ERROR ("Fusion/Reference: invalid reference\n");
+                    return DR_DESTROYED;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_REF_THROW");
+
+          return DR_FAILURE;
+     }
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_ref_stat (FusionRef *ref, int *refs)
 {
      int val;
