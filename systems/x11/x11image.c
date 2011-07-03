@@ -111,8 +111,6 @@ x11ImageAttach( x11Image  *image,
      D_MAGIC_ASSERT( image, x11Image );
      D_ASSERT( ret_addr != NULL );
 
-     /* FIXME: We also need to DETACH! */
-
      addr = shmat( image->seginfo.shmid, NULL, 0 );
      if (!addr) {
           int erno = errno;
@@ -123,6 +121,18 @@ x11ImageAttach( x11Image  *image,
      }
 
      *ret_addr = addr;
+
+     return DFB_OK;
+}
+
+DFBResult
+x11ImageDetach( x11Image *image,
+                void     *addr )
+{
+     D_MAGIC_ASSERT( image, x11Image );
+     D_ASSERT( addr != NULL );
+
+     shmdt( addr );
 
      return DFB_OK;
 }

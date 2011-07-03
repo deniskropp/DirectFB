@@ -72,5 +72,8 @@ DFBResult x11ImageDestroy( DFBX11                *x11,
 DFBResult x11ImageAttach ( x11Image              *image,
                            void                 **ret_addr );
 
+DFBResult x11ImageDetach ( x11Image              *image,
+                           void                  *addr );
+
 #endif /* __X11SYSTEM__X11IMAGE_H__ */
 

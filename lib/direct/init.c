@@ -42,6 +42,8 @@
 void DirectResult__init( void );
 void DirectResult__deinit( void );
 
+D_DEBUG_DOMAIN( Direct_Init, "Direct/Init", "Direct Init" );
+
 /**********************************************************************************************************************/
 
 typedef void (*Func)( void );
@@ -65,14 +67,14 @@ static Func deinit_funcs[] = {
      __D_interface_dbg_deinit,
      __D_interface_deinit,
      __D_log_domain_deinit,
-     __D_log_deinit,
      __D_thread_deinit,
      __D_conf_deinit,
      __D_mem_deinit,
 	 DirectResult__deinit,
      __D_result_deinit,
      __D_util_deinit,
-     __D_direct_deinit
+     __D_direct_deinit,
+     __D_log_deinit
 };
 
 /**********************************************************************************************************************/
@@ -82,6 +84,8 @@ __D_init_all()
 {
      size_t i;
 
+     D_DEBUG_AT( Direct_Init, "%s()\n", __FUNCTION__ );
+
      for (i=0; i<D_ARRAY_SIZE(init_funcs); i++)
           init_funcs[i]();
 }
@@ -90,6 +94,8 @@ void
 __D_deinit_all()
 {
      size_t i;
+
+     D_DEBUG_AT( Direct_Init, "%s()\n", __FUNCTION__ );
 
      for (i=0; i<D_ARRAY_SIZE(deinit_funcs); i++)
           deinit_funcs[i]();

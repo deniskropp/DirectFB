@@ -83,7 +83,7 @@ typedef struct {
 /**********************************************************************************************************************/
 
 #define D_LOG_DOMAIN( _identifier, _name, _description )                                                           \
-     static DirectLogDomain _identifier __unused__ = {                                                \
+     static DirectLogDomain _identifier D_UNUSED = {                                                               \
             _description, _name, sizeof(_name) - 1, 0, false, {DIRECT_LOG_NONE,0}                                  \
      }
 

@@ -61,7 +61,7 @@ direct_fifo_destroy( DirectFifo *fifo )
 
 /**********************************************************************************************************************/
 
-__unused__
+D_UNUSED
 static int
 d_sync_add_and_fetch( int *p, int v )
 {

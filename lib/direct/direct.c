@@ -66,6 +66,16 @@ __D_direct_init()
 void
 __D_direct_deinit()
 {
+     direct_print_memleaks();
+
+     direct_print_interface_leaks();
+
+     direct_mutex_deinit( &main_lock );
+}
+
+static void
+direct_atexit_handler()
+{
      DirectCleanupHandler *handler, *temp;
 
      direct_list_foreach_safe (handler, temp, handlers) {
@@ -79,12 +89,6 @@ __D_direct_deinit()
 
           D_FREE( handler );
      }
-
-     direct_print_memleaks();
-
-     direct_print_interface_leaks();
-
-     direct_mutex_deinit( &main_lock );
 }
 
 /**************************************************************************************************/
@@ -115,8 +119,8 @@ direct_cleanup_handler_add( DirectCleanupHandlerFunc   func,
 
      direct_mutex_lock( &main_lock );
      
-//     if (handlers == NULL)
-//          atexit( direct_cleanup );
+     if (handlers == NULL)
+          atexit( direct_atexit_handler );
      
      direct_list_append( &handlers, &handler->link );
      
