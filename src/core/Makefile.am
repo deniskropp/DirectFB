@@ -122,4 +122,24 @@ libdirectfb_core_la_SOURCES = \
 	windowstack.c		\
 	wm.c
 
+distclean-local:
+	rm -f CoreDFB.cpp
+	rm -f CoreDFB.h
+	rm -f CoreGraphicsState.cpp
+	rm -f CoreGraphicsState.h
+	rm -f CoreLayerContext.cpp
+	rm -f CoreLayerContext.h
+	rm -f CoreLayer.cpp
+	rm -f CoreLayer.h
+	rm -f CoreLayerRegion.cpp
+	rm -f CoreLayerRegion.h
+	rm -f CorePalette.cpp
+	rm -f CorePalette.h
+	rm -f CoreSurface.cpp
+	rm -f CoreSurface.h
+	rm -f CoreWindow.cpp
+	rm -f CoreWindow.h
+	rm -f CoreWindowStack.cpp
+	rm -f CoreWindowStack.h
+
 include $(top_srcdir)/rules/flux_comp.make
