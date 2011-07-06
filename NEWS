@@ -1,3 +1,191 @@
+1.5.0
+-----
+
+API extensions for stereoscopic viewing
+- Add DLCAPS_LR_MONO and DLCAPS_STEREO.
+- Add DLOP_LR_MONO and DLOP_STEREO.
+- Add DSCAPS_STEREO (both left & right buffers are allocated).
+- Add DWCAPS_LR_MONO and DWCAPS_STEREO.
+- Add DLSO_FIXED_LIMIT and DWSO_FIXED_LIMIT.
+- Add DSECONF_FRAMING.
+- Add DFBScreenEncoderPictureFraming (MONO, STEREO_PACKED/HORIZ/VERT and STEREO_SEQUENTIAL for HDMI 1.4).
+- Add framing to DFBScreenEncoderConfig.
+- Add IDirectFBDisplayLayer::GetStereoDepth() and SetStereoDepth().
+- Add DFBSurfaceStereoEye (LEFT and RIGHT).
+- Add IDirectFBSurface::GetStereoEye() and SetStereoEye().
+- Add IDirectFBSurface::FlipStereo().
+- Add IDirectFBWindow::GetStereoDepth() and SetStereoDepth().
+
+Color Space extension
+- Add DFBSurfaceColorSpace (RGB, BT601, BT601_FULLRANGE and BT709).
+- Add DSDESC_COLORSPACE.
+- Add DFB_COLOR_IS_RGB and DFB_COLOR_IS_YUV.
+- Add DFB_COLORSPACE_IS_COMPATIBLE and DFB_COLORSPACE_DEFAULT.
+- Add colorspace to DFBSurfaceDescription.
+- Add colorspace to DFBWindowDescription.
+- Add DLCONF_COLORSPACE.
+- Add colorspace to DFBDisplayLayerConfig.
+- Add dfb_colorspace_name().
+- Add colorspace argument to dfb_surface_create_simple().
+
+IDirectFBFont
+- Add GetUnderline() to get the position and thickness of the underline.
+- Add DFFA_STYLE_ITALIC to load italic style from same file.
+- Add DFFA_VERTICAL_LAYOUT to load vertical layout.
+
+IDirectFBSurface
+- Add DSRO_WRITE_MASK_BITS and SetWriteMaskBits().
+- Add SetRop() with DFBSurfaceRopCode, DFBSurfacePatternMode, fg/bg color and pattern bits
+- Add DSPF_ABGR
+
+DirectFBGL2
+- Add new interfaces for better OpenGL integration.
+
+API
+- Add DFBBox (x1, y1, x2, y2), a rectangle including the top left but not the bottom right endpoint.
+- Add lots of macros for geometry, types, etc.
+- Add lots of utility functions, make some inline.
+- Add DFXL_FILLQUADRANGLE (only internally used so far).
+- Add DFBSurfaceID.
+- Add DFB_MASK_BYTE0-3 macros, e.g. for SetWriteMaskBits()
+
+Water
+- Initial checkin of Water API and simple test implementation.
+
+IDirectFBWindows
+- Add extension introducing DFBWindowsWatcher registering, also proxy code.
+  DFBWindowsWatcher is a function pointer table that can be filled by a client
+  application to receive all information about the window stack, windows, configs,
+  states, focus changes etc...
+
+libdirect
+- Lots of abstractions added for threads, mutexes, wait queues, files and many more...
+- Add fastlz based compression/decompression.
+
+Fusion
+- Defer calls from kernel (destructors) to a separate thread.
+- Implement fusion_reactor_attach/dispatch_channel() for single app mode.
+- Introduce fusion_call_execute3() with variable return data.
+  A new call handler type gets return pointer and size to return blocks
+  of data to the caller, instead of the single int value.
+- Add reference passing via throw and catch.
+  A Fusionee having a local reference may call fusion_ref_throw() with
+  another Fusionee's ID as catcher argument. That Fusionee may then
+  call fusion_ref_catch() which will remove that local reference of the
+  thrower. The catcher has to get a local reference itself beforehand,
+  otherwise the reference is just being removed.
+
+Secure Fusion
+- New run time option 'secure-fusion' to select new secure fusion mode
+- Mount shared memory pools read only in slaves.
+- Use FusionCall v3 for IPC calls instead of modifying shared memory directly
+- Flux generates code for replacing all direct core calls by interfaces, more details in Secure Fusion documentation
+
+Voodoo
+- Introduce VoodooLink for abstraction of transport, implemented for Win32 and Unix.
+- Add VoodooPlayAddressType, VoodooPlayAddress, VOODOO_PLAY_INET_ADDR and voodoo_play_from_inet_addr().
+- Add "play-broadcast" option to force a certain address to be used for discovery.
+- Single IO thread instead of two, VoodooLink with SendReceive/WakeUp methods.
+- Rework Voodoo code using C++, with old C API as wrapper.
+- Add a lower level packet layer with transparent compression support.
+- New runtime option 'compression-min', when non-zero compress packets with minimum size (default zero, no compression).
+- New runtime option 'link-raw' to initiate a connection with old base layer.
+- Improved performance using thread local output buffer (async bench 4x speed).
+- Compatibility with old and new base protocol, auto compression etc.
+- Improve raw connection code, big speedup.
+- Major cleanup, optimizations, bug fixes...
+- Introduce VoodooDispatcher with thread based implementation
+- Add 'link-packet' option to force packet mode link.
+- Major improvements, fixes for disconnect, resource cleanup, ref counting...
+  With these changes you can run a single process dfbproxy and connect with multiple
+  clients, spawning multiple threads in the server.
+- Add voodoo_link_init_local() for Unix Domain sockets.
+
+Proxy
+- Implement asynchronous flipping control, e.g. to avoid input lags
+- Major improvements, fixes for ref counting, cleanup... IDirectFBDisplayLayer::SetBackgroundMode/Image...
+- Add resource-id to be used for surfaces if not specified by application (client config).
+
+Software Renderer
+- Optimize fast path ARGB SrcOver and add fast path ARGB SrcOver premultiply.
+- Implement TextureTriangles() and split code into a few files.
+- Implement Blit() with matrix via gTextureTriangle() for now.
+- Use Genefx_TextureTrianglesAffine() for BatchBlit() with matrix.
+- DrawString() with matrix is working with ARGB font format now.
+- Add software affine transform for StretchBlit
+- Implement colorkeyed texture mapping, adding Sop_PFI_TEX_Kto_Dacc.
+- Implement clipping in TextureTriangle, add TileBlit with matrix, more accuracy, fixes
+
+Input
+- When Shift is pressed in CapsLock state send small letters.
+
+Mesa
+- Add Mesa/DRM system module and GLES2 graphics acceleration
+- Add IDirectFBGL2 and IDirectFBGL2Context implementation.
+
+GLES2
+- Added experimental fragment shader for source colorkeying.
+- Fix color keying by using Andi's shader from gl driver.
+- other shader fixes
+- fix clipping
+- fix off-by-one error in DrawRectangle()
+- Enable GLES 2.0 acceleration with PVR2D/EGL
+
+VDPAU
+- New X11/VDPAU based system module derived from original X11 module.
+- Add VDPAU accelerated rendering module (graphics driver).
+- Multi application core support (using FusionCall2), major cleanup.
+
+PVR2D
+- Preliminary PVR2D system module, using PVR2DMemAlloc.
+- Add graphics driver using PVR2DBlt API
+
+VNC
+- Almost reimplement VNC system module
+
+PSP
+- Initial PSP support added
+
+X11
+- Lower X11 surface pool priority as it is currently not writable for slaves.
+- Add CSCAPS_PREFER_SHM for testing SecureFusion, otherwise local pool is used, breaking across processes
+- Add missing detach from shm images, only master for now.
+
+JPEG
+- correctly setup iDCT scale factors for libjpeg version >= 7
+
+MNG
+- Add libmng based video provider.
+
+dfbproxy
+- Add few more super interfaces
+
+dfbfx
+- Add DSBF_SRCALPHASAT implementation, clamp sum of blending.
+
+voodooplay
+- Print vendor and model of each received info.
+
+Flux
+- Introduce new language for interfaces, with parser/code generator.
+- Use Flux to generate all code for hiding FusionCalls behind local/proxy interfaces.
+- The Flux compiler generates .cpp and .h containing abstract interface definition
+  and two implementations, one generated 'requestor' implementation making FusionCalls
+  and one 'real' implementation only being declared, implemented manually in _real.cpp file.
+  Next to these there's code generated to dispatch incoming FusionCalls to the real
+  implementation.
+- A C wrapper is also generated for minimizing code changes outside of new files, but the
+  new C++ API will be used in 1.6 branch, when Secure Fusion has stabilized in 1.5 branch.
+
+Debian Packaging
+- first try of 1.5 packages
+
+Win32
+- Add Win32 support building the pure Voodoo version of DirectFB with MSVC!
+- Added DIRECT/FUSION/VOODOO/DIRECTFB_API macro for imports/exports of public library functions.
+- Changed static initializers and constructors/destructors to init/deinit functions called via DllMain.
+
+
 1.4.6
 -----
 
