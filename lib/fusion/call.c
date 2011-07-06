@@ -870,6 +870,23 @@ fusion_call_init (FusionCall        *call,
 }
 
 DirectResult
+fusion_call_init3 (FusionCall         *call,
+                   FusionCallHandler3  handler3,
+                   void               *ctx,
+                   const FusionWorld  *world)
+{
+     D_ASSERT( call != NULL );
+     D_ASSERT( call->handler == NULL );
+     D_ASSERT( handler3 != NULL );
+
+     /* Called locally. */
+     call->handler3 = handler3;
+     call->ctx      = ctx;
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_init_from( FusionCall        *call,
                        int                call_id,
                        const FusionWorld *world )
@@ -928,6 +945,30 @@ fusion_call_execute2(FusionCall          *call,
                      int                 *ret_val)
 {
      return fusion_call_execute( call, flags, call_arg, ptr, ret_val );
+}
+
+DirectResult
+fusion_call_execute3(FusionCall          *call,
+                     FusionCallExecFlags  flags,
+                     int                  call_arg,
+                     void                *ptr,
+                     unsigned int         length,
+                     void                *ret_ptr,
+                     unsigned int         ret_size,
+                     unsigned int        *ret_length)
+{
+     FusionCallHandlerResult ret;
+
+     D_ASSERT( call != NULL );
+
+     if (!call->handler3)
+          return DR_DESTROYED;
+
+     ret = call->handler3( 1, call_arg, ptr, length, call->ctx, 0, ret_ptr, ret_size, ret_length );
+     if (ret != FCHR_RETURN)
+          D_WARN( "only FCHR_RETURN supported in single app core at the moment" );
+
+     return DR_OK;
 }
 
 DirectResult
