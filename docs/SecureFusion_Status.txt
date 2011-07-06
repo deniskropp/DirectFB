@@ -1,0 +1,20 @@
+Status
+- all directfb examples working, except for some issues (see below)
+- core interfaces already contain 81 of presumed total of 89 methods,
+  but this number and the document are quite outdated (docs/Core_Interfaces.txt)
+
+Issues
+- when shared memory surface pool is exhausted,
+  local pool is used and crashes the slave due to local address (df_stress)
+- preallocated surfaces need fixing (df_dok --blit-lut)
+
+Todo
+- implement object (call,ref,...) permissions (ownership)
+- implement shared memory pool file permission setting
+- implement per surface buffer allocation shared memory file/permissions
+- finish core interfaces (.flux + _real.cpp)
+  - CoreInputDevice is missing completely
+  - CoreScreen is missing completely
+
+Optimizations
+- prepare multiple async fusion calls in user space (tls) and ioctl() only once
