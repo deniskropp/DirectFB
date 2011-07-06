@@ -2818,6 +2818,26 @@ IDirectFBSurface_SetWriteMaskBits( IDirectFBSurface *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_SetRop( IDirectFBSurface      *thiz,
+                         DFBSurfaceRopCode      rop_code,
+                         const DFBColor        *fg_color,
+                         const DFBColor        *bg_color,
+                         const u32             *pattern,
+                         DFBSurfacePatternMode  pattern_mode )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, CODE 0x%02x )\n", __FUNCTION__, thiz, rop_code );
+
+     dfb_state_set_rop_code( &data->state, rop_code );
+     dfb_state_set_rop_fg_color( &data->state, fg_color );
+     dfb_state_set_rop_bg_color( &data->state, bg_color );
+     dfb_state_set_rop_pattern( &data->state, pattern, pattern_mode );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -2988,6 +3008,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetColors = IDirectFBSurface_SetColors;
 
      thiz->SetWriteMaskBits = IDirectFBSurface_SetWriteMaskBits;
+     thiz->SetRop = IDirectFBSurface_SetRop;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

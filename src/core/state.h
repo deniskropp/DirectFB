@@ -72,7 +72,12 @@ typedef enum {
 
      SMF_SOURCE2           = 0x00100000,
 
-     SMF_ALL               = 0x00137FFF
+     SMF_ROP_CODE          = 0x01000000,
+     SMF_ROP_FG_COLOR      = 0x02000000,
+     SMF_ROP_BG_COLOR      = 0x04000000,
+     SMF_ROP_PATTERN       = 0x08000000,
+
+     SMF_ALL               = 0x0F137FFF
 } StateModificationFlags;
 
 typedef enum {
@@ -179,6 +184,14 @@ struct _CardState {
      unsigned int             color_indices[DFB_COLOR_IDS_MAX];  /* indices to colors in palette */
 
      u64                      write_mask_bits;    /* write mask bits */
+
+
+
+     DFBSurfaceRopCode        rop_code;
+     DFBColor                 rop_fg_color;
+     DFBColor                 rop_bg_color;
+     u32                      rop_pattern[32];
+     DFBSurfacePatternMode    rop_pattern_mode;
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
@@ -197,6 +210,10 @@ DFBResult dfb_state_set_index_translation( CardState *state,
 
 void dfb_state_set_matrix( CardState *state,
                            const s32 *matrix );
+
+void dfb_state_set_rop_pattern( CardState             *state,
+                                const u32             *pattern,
+                                DFBSurfacePatternMode  pattern_mode );
 
 static inline void
 dfb_state_get_serial( const CardState *state, CoreGraphicsSerial *ret_serial )
@@ -314,6 +331,14 @@ do {                                                        \
                                                                           WRITE_MASK_BITS, \
                                                                           state, bits )
 
+#define dfb_state_set_rop_code(state,code)        _dfb_state_set_checked( rop_code, \
+                                                                          ROP_CODE, \
+                                                                          state, code )
+
+#define dfb_state_set_rop_pattern_mode(state,mode) _dfb_state_set_checked( rop_pattern_mode, \
+                                                                           ROP_PATTERN_MODE, \
+                                                                           state, mode )
+
 static inline void dfb_state_set_clip( CardState *state, const DFBRegion *clip )
 {
      D_MAGIC_ASSERT( state, CardState );
@@ -333,6 +358,28 @@ static inline void dfb_state_set_color( CardState *state, const DFBColor *color 
      if (! DFB_COLOR_EQUAL( state->color, *color )) {
           state->color    = *color;
           state->modified = (StateModificationFlags)( state->modified | SMF_COLOR );
+     }
+}
+
+static inline void dfb_state_set_rop_fg_color( CardState *state, const DFBColor *rop_fg_color )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( rop_fg_color != NULL );
+
+     if (! DFB_COLOR_EQUAL( state->rop_fg_color, *rop_fg_color )) {
+          state->rop_fg_color = *rop_fg_color;
+          state->modified     = (StateModificationFlags)( state->modified | SMF_ROP_FG_COLOR );
+     }
+}
+
+static inline void dfb_state_set_rop_bg_color( CardState *state, const DFBColor *rop_bg_color )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( rop_bg_color != NULL );
+
+     if (! DFB_COLOR_EQUAL( state->rop_bg_color, *rop_bg_color )) {
+          state->rop_bg_color = *rop_bg_color;
+          state->modified     = (StateModificationFlags)( state->modified | SMF_ROP_BG_COLOR );
      }
 }
 

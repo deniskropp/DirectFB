@@ -425,6 +425,41 @@ dfb_state_set_matrix( CardState *state,
 }
 
 void
+dfb_state_set_rop_pattern( CardState             *state,
+                           const u32             *pattern,
+                           DFBSurfacePatternMode  pattern_mode )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     D_ASSERT( pattern != NULL );
+
+     switch (pattern_mode) {
+          case DSPM_8_8_MONO:
+               if (state->rop_pattern_mode != pattern_mode || memcmp( state->rop_pattern, pattern, sizeof(u32) * 8*8/32 )) {
+                    direct_memcpy( state->rop_pattern, pattern, sizeof(u32) * 8*8/32 );
+
+                    state->rop_pattern_mode = pattern_mode;
+
+                    state->modified |= SMF_ROP_PATTERN;
+               }
+               break;
+
+          case DSPM_32_32_MONO:
+               if (state->rop_pattern_mode != pattern_mode || memcmp( state->rop_pattern, pattern, sizeof(u32) * 32*32/32 )) {
+                    direct_memcpy( state->rop_pattern, pattern, sizeof(u32) * 32*32/32 );
+
+                    state->rop_pattern_mode = pattern_mode;
+
+                    state->modified |= SMF_ROP_PATTERN;
+               }
+               break;
+
+          default:
+               D_BUG( "unknown pattern mode %d", pattern_mode );
+     }
+}
+
+void
 dfb_state_set_color_or_index( CardState      *state,
                               const DFBColor *color,
                               int             index )

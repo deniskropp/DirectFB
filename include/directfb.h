@@ -809,6 +809,7 @@ typedef enum {
      DSBLIT_SOURCE2            = 0x00400000, /* use secondary source instead of destination for reading */
      DSBLIT_FLIP_HORIZONTAL    = 0x01000000, /* flip the image horizontally */
      DSBLIT_FLIP_VERTICAL      = 0x02000000, /* flip the image vertically */
+     DSBLIT_ROP                = 0x04000000, /* use rop setting */
 } DFBSurfaceBlittingFlags;
 
 /*
@@ -3586,6 +3587,25 @@ typedef enum {
      DSMF_ALL       = 0x00000001,  /* All of these. */
 } DFBSurfaceMaskFlags;
 
+/*
+ * Available Rop codes.
+ */
+typedef enum {
+     DSROP_CLEAR              =  0x00,
+     DSROP_XOR                =  0x96,
+     DSROP_SRC_COPY           =  0xCC,
+
+     /* TODO: to be extended with all ROP codes, possibly move to separate header file */
+} DFBSurfaceRopCode;
+
+/*
+ * Available pattern mode
+ */
+typedef enum {
+     DSPM_8_8_MONO            =  0,
+     DSPM_32_32_MONO          =  1,
+} DFBSurfacePatternMode;
+
 /********************
  * IDirectFBSurface *
  ********************/
@@ -4508,6 +4528,24 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*SetWriteMaskBits) (
           IDirectFBSurface         *thiz,
           u64                       bits
+     );
+
+     /*
+      * Set Rop operation related parameters.
+      *
+      * rop_code: rop code<br>
+      * fg_color: pattern foreground color<br>
+      * bg_color: pattern background color<br>
+      * pattern: pattern array<br>
+      * pattern_mode: 8*8 mono or 32 * 32 mono
+      */
+     DFBResult (*SetRop) (
+          IDirectFBSurface         *thiz,
+          DFBSurfaceRopCode         rop_code,
+          const DFBColor           *fg_color,
+          const DFBColor           *bg_color,
+          const u32                *pattern,
+          DFBSurfacePatternMode     pattern_mode
      );
 )
 
