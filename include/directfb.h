@@ -1095,10 +1095,11 @@ typedef enum {
      DFFA_OUTLINED       = 0x00000040,
      DFFA_AUTOHINTING    = 0x00000080,  /* prefer auto-hinter over the font's
                                            native hinter */
-     DFFA_SOFTHINTING    = 0x00000100   /* use a lighter hinting algorithm
+     DFFA_SOFTHINTING    = 0x00000100,  /* use a lighter hinting algorithm
                                            that produces glyphs that are more
                                            fuzzy but better resemble the
                                            original shape */
+     DFFA_STYLE_ITALIC   = 0x00000200,  /* load italic style */
 } DFBFontAttributes;
 
 /*
