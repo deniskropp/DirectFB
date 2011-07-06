@@ -41,6 +41,8 @@ struct __Fusion_FusionConfig {
      bool  force_slave;
 
      gid_t shmfile_gid;       /* group that owns shm file */     
+
+     bool  secure_fusion;
 };
 
 extern FusionConfig FUSION_API *fusion_config;

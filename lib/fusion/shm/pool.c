@@ -36,6 +36,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 #include <fusion/fusion_internal.h>
 
@@ -572,7 +573,8 @@ join_pool( FusionSHM           *shm,
                fusion_world_index( shm->world ), shared->pool_id );
 
      /* Join the heap. */
-     ret = __shmalloc_join_heap( shm, buf, pool_attach.addr_base, shared->max_size, shared->slave_write );
+     ret = __shmalloc_join_heap( shm, buf, pool_attach.addr_base, shared->max_size,
+                                 shared->slave_write || !fusion_config->secure_fusion );
      if (ret) {
           while (ioctl( world->fusion_fd, FUSION_SHMPOOL_DETACH, &shared->pool_id )) {
                if (errno != EINTR) {
