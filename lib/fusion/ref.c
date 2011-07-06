@@ -773,6 +773,22 @@ fusion_ref_down (FusionRef *ref, bool global)
 }
 
 DirectResult
+fusion_ref_catch (FusionRef *ref)
+{
+     D_UNIMPLEMENTED();
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_ref_throw (FusionRef *ref, FusionID catcher)
+{
+     D_UNIMPLEMENTED();
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_ref_stat (FusionRef *ref, int *refs)
 {
      D_ASSERT( ref != NULL );
