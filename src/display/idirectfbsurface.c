@@ -2805,6 +2805,19 @@ IDirectFBSurface_SetSourceMask( IDirectFBSurface    *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_SetWriteMaskBits( IDirectFBSurface *thiz,
+                                   u64               bits )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, MASK 0x%08zx )\n", __FUNCTION__, thiz, bits );
+
+     dfb_state_set_write_mask_bits( &data->state, bits );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -2973,6 +2986,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->Read  = IDirectFBSurface_Read;
 
      thiz->SetColors = IDirectFBSurface_SetColors;
+
+     thiz->SetWriteMaskBits = IDirectFBSurface_SetWriteMaskBits;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

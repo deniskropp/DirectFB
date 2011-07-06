@@ -822,7 +822,9 @@ typedef enum {
      DSRO_MATRIX               = 0x00000004, /* Use the transformation matrix set via IDirectFBSurface::SetMatrix(). */
      DSRO_ANTIALIAS            = 0x00000008, /* Enable anti-aliasing for edges (alphablend must be enabled). */
 
-     DSRO_ALL                  = 0x0000000F  /* All of these. */
+     DSRO_WRITE_MASK_BITS      = 0x00000010, /* Enable usage of write mask bits setting. */
+
+     DSRO_ALL                  = 0x0000001F  /* All of these. */
 } DFBSurfaceRenderOptions;
 
 /*
@@ -4487,6 +4489,17 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *thiz,
           const DFBTrapezoid       *traps,
           unsigned int              num
+     );
+
+
+   /** Drawing/blitting control **/
+
+     /*
+      * Sets write mask bits.
+      */
+     DFBResult (*SetWriteMaskBits) (
+          IDirectFBSurface         *thiz,
+          u64                       bits
      );
 )
 

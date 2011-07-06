@@ -65,6 +65,7 @@ typedef enum {
 
      SMF_INDEX_TRANSLATION = 0x00001000,
      SMF_COLORKEY          = 0x00002000,
+     SMF_WRITE_MASK_BITS   = 0x00004000,
 
      SMF_RENDER_OPTIONS    = 0x00010000,
      SMF_MATRIX            = 0x00020000,
@@ -176,6 +177,8 @@ struct _CardState {
 
      DFBColor                 colors[DFB_COLOR_IDS_MAX];         /* colors for drawing or modulation */
      unsigned int             color_indices[DFB_COLOR_IDS_MAX];  /* indices to colors in palette */
+
+     u64                      write_mask_bits;    /* write mask bits */
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
@@ -306,6 +309,10 @@ do {                                                        \
 #define dfb_state_set_render_options(state,opts)  _dfb_state_set_checked( render_options, \
                                                                           RENDER_OPTIONS, \
                                                                           state, opts )
+
+#define dfb_state_set_write_mask_bits(state,bits) _dfb_state_set_checked( write_mask_bits, \
+                                                                          WRITE_MASK_BITS, \
+                                                                          state, bits )
 
 static inline void dfb_state_set_clip( CardState *state, const DFBRegion *clip )
 {
