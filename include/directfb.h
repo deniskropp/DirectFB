@@ -854,6 +854,11 @@ typedef enum {
 } DFBAccelerationMask;
 
 
+#define DFB_MASK_BYTE0 0x000000ff
+#define DFB_MASK_BYTE1 0x0000ff00
+#define DFB_MASK_BYTE2 0x00ff0000
+#define DFB_MASK_BYTE3 0xff000000
+
 /*
  * @internal
  */
