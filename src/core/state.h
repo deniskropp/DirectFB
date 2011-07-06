@@ -72,7 +72,7 @@ typedef enum {
 
      SMF_SOURCE2           = 0x00100000,
 
-     SMF_ALL               = 0x00133FFF
+     SMF_ALL               = 0x00137FFF
 } StateModificationFlags;
 
 typedef enum {
