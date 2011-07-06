@@ -6,3 +6,37 @@
 - Generate proper cleanup code in case of multiple object lookups
 
 - Add async and queue flag a la Voodoo request flags
+
+
+
+
+
+Definition of structs for
+- endianness conversion
+- debugging purposes
+- serialisation
+
+E.g.:
+	type {
+		name	DFBRectangle
+
+		member {
+			name	x
+			type	s32
+		}
+
+		member {
+			name	y
+			type	s32
+		}
+
+		member {
+			name	width
+			type	s32
+		}
+
+		member {
+			name	height
+			type	s32
+		}
+	}
