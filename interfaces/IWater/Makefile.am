@@ -24,6 +24,7 @@ libiwater_default_la_SOURCES = \
 	elements.c		\
 	elements.h		\
 	iwater_default.c	\
+	iwater_default.h	\
 	transform.c		\
 	transform.h		\
 	util.c			\

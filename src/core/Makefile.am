@@ -36,6 +36,7 @@ internalinclude_HEADERS = \
 	CoreWindow_includes.h	\
 	CoreWindowStack.h		\
 	CoreWindowStack_includes.h	\
+	Interface.h		\
 	clipboard.h		\
 	colorhash.h		\
 	coredefs.h		\

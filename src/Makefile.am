@@ -28,7 +28,8 @@ AM_CPPFLAGS = \
 internalincludedir = $(INTERNALINCLUDEDIR)
 
 internalinclude_HEADERS = \
-	idirectfb.h
+	idirectfb.h		\
+	init.h
 
 
 lib_LTLIBRARIES = libdirectfb.la

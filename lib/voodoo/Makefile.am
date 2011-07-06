@@ -52,7 +52,7 @@ libvoodoo_la_SOURCES = \
 	connection_link.cpp	\
 	connection_packet.cpp	\
 	connection_raw.cpp	\
-	dispatcher.c		\
+	dispatcher.cpp		\
 	init.c			\
 	instance.cpp		\
 	interface.c		\
