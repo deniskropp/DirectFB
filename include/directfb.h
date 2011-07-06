@@ -4501,6 +4501,8 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
 
      /*
       * Sets write mask bits.
+      *
+      * Bits being set in the mask will NOT get written to the destination. Default is all zeros, i.e. all bits written.
       */
      DFBResult (*SetWriteMaskBits) (
           IDirectFBSurface         *thiz,
