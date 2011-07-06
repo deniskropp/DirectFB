@@ -484,7 +484,7 @@ fusion_call_destroy (FusionCall *call)
                case EINTR:
                     continue;
                case EINVAL:
-                    D_ERROR ("Fusion/Call: invalid call\n");
+//FIXME: kernel module destroys calls from exiting process already                    D_ERROR ("Fusion/Call: invalid call\n");
                     return DR_DESTROYED;
                default:
                     break;
