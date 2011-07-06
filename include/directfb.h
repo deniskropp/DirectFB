@@ -6269,6 +6269,15 @@ D_DEFINE_INTERFACE(   IDirectFBFont,
           int                      *ret_xadvance,
           int                      *ret_yadvance
      );
+
+     /*
+      * Get the position and thickness of the underline.
+      */
+     DFBResult (*GetUnderline) (
+          IDirectFBFont            *thiz,
+          int                      *ret_underline_position,
+          int                      *ret_underline_thichness
+     );
 )
 
 /*

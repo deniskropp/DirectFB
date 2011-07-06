@@ -206,6 +206,9 @@ struct _CoreFont {
 
 
      int                           magic;
+
+     int                           underline_position;
+     int                           underline_thickness;
 };
 
 #define CORE_FONT_DEBUG_AT(Domain, font)                                             \

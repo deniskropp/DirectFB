@@ -770,6 +770,24 @@ IDirectFBFont_GetGlyphExtentsXY( IDirectFBFont *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBFont_GetUnderline( IDirectFBFont *thiz,
+                            int           *ret_underline_position,
+                            int           *ret_underline_thickness )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (ret_underline_position)
+          *ret_underline_position = data->font->underline_position;
+
+     if (ret_underline_thickness)
+          *ret_underline_thickness = data->font->underline_thickness;
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
 
 DFBResult
@@ -797,6 +815,7 @@ IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      thiz->Dispose = IDirectFBFont_Dispose;
      thiz->GetLineSpacingVector = IDirectFBFont_GetLineSpacingVector;
      thiz->GetGlyphExtentsXY = IDirectFBFont_GetGlyphExtentsXY;
+     thiz->GetUnderline = IDirectFBFont_GetUnderline;
 
      return DFB_OK;
 }
