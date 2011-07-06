@@ -1089,24 +1089,25 @@ typedef enum {
  * same font file.
  */
 typedef enum {
-     DFFA_NONE           = 0x00000000,  /* none of these flags */
-     DFFA_NOKERNING      = 0x00000001,  /* don't use kerning */
-     DFFA_NOHINTING      = 0x00000002,  /* don't use hinting */
-     DFFA_MONOCHROME     = 0x00000004,  /* don't use anti-aliasing */
-     DFFA_NOCHARMAP      = 0x00000008,  /* no char map, glyph indices are
-                                           specified directly */
-     DFFA_FIXEDCLIP      = 0x00000010,  /* width fixed advance, clip to it */
-     DFFA_NOBITMAP       = 0x00000020,  /* ignore bitmap strikes; for
-                                           bitmap-only fonts this flag is
-                                           ignored */
-     DFFA_OUTLINED       = 0x00000040,
-     DFFA_AUTOHINTING    = 0x00000080,  /* prefer auto-hinter over the font's
-                                           native hinter */
-     DFFA_SOFTHINTING    = 0x00000100,  /* use a lighter hinting algorithm
-                                           that produces glyphs that are more
-                                           fuzzy but better resemble the
-                                           original shape */
-     DFFA_STYLE_ITALIC   = 0x00000200,  /* load italic style */
+     DFFA_NONE                = 0x00000000,  /* none of these flags */
+     DFFA_NOKERNING           = 0x00000001,  /* don't use kerning */
+     DFFA_NOHINTING           = 0x00000002,  /* don't use hinting */
+     DFFA_MONOCHROME          = 0x00000004,  /* don't use anti-aliasing */
+     DFFA_NOCHARMAP           = 0x00000008,  /* no char map, glyph indices are
+                                                specified directly */
+     DFFA_FIXEDCLIP           = 0x00000010,  /* width fixed advance, clip to it */
+     DFFA_NOBITMAP            = 0x00000020,  /* ignore bitmap strikes; for
+                                                bitmap-only fonts this flag is
+                                                ignored */
+     DFFA_OUTLINED            = 0x00000040,
+     DFFA_AUTOHINTING         = 0x00000080,  /* prefer auto-hinter over the font's
+                                                native hinter */
+     DFFA_SOFTHINTING         = 0x00000100,  /* use a lighter hinting algorithm
+                                                that produces glyphs that are more
+                                                fuzzy but better resemble the
+                                                original shape */
+     DFFA_STYLE_ITALIC        = 0x00000200,  /* load italic style */
+     DFFA_VERTICAL_LAYOUT     = 0x00000400,  /* load vertical layout */
 } DFBFontAttributes;
 
 /*
