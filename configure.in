@@ -933,6 +933,45 @@ fi
 
 
 
+dnl Test for libmng
+MNG=no
+
+AC_ARG_ENABLE(mngg,
+              AC_HELP_STRING([--enable-mng],
+                             [build MNG image provider @<:@default=yes@:>@]),
+              [], [enable_mng=yes])
+
+if test "$enable_mng" = "yes"; then
+  if test -z "$LIBMNG"; then
+    AC_CHECK_LIB(mng, mng_version_text,
+      mng_ok=yes,
+      mng_ok=no)
+    if test "$mng_ok" = yes; then
+      AC_CHECK_HEADER(libmng.h,
+        mng_ok=yes,
+        mng_ok=no)
+      if test "$mng_ok" = yes; then
+	MNG=yes
+	LIBMNG='-lmng'
+      else
+	MNG=no
+	AC_MSG_WARN([
+*** MNG header files not found. MNG video provider will not be built.])
+      fi
+    else
+      MNG=no
+      AC_MSG_WARN([
+*** MNG library not found. MNG video provider will not be built.])
+    fi
+  else
+    MNG=yes
+  fi
+fi
+
+AM_CONDITIONAL(MNG_PROVIDER, test "$MNG" = "yes")
+
+
+
 dnl Allow to disable GIF support
 AC_ARG_ENABLE(gif,
               AC_HELP_STRING([--enable-gif],
@@ -1810,6 +1849,8 @@ AC_SUBST(ZLIB_LIBS)
 AC_SUBST(GIF_PROVIDER)
 AC_SUBST(JPEG_PROVIDER)
 AC_SUBST(LIBJPEG)
+AC_SUBST(MNG_PROVIDER)
+AC_SUBST(LIBMNG)
 AC_SUBST(PNG_PROVIDER)
 AC_SUBST(LIBPNG_CFLAGS)
 AC_SUBST(LIBPNG_LIBS)
@@ -2047,6 +2088,7 @@ Building Image Provider Modules:
 Building Video Provider Modules:
   GIF                       $enable_gif
   Video4Linux               $V4L (v2: $V4L2)
+  MNG                       $MNG                 $LIBMNG_CFLAGS $LIBMNG_LIBS
 
 Building Font Modules:
   FreeType2                 $FREETYPE                 $FREETYPE_CFLAGS $FREETYPE_LIBS

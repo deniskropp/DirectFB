@@ -16,6 +16,12 @@ else
 GIF_PROVIDER_LTLIB =
 endif
 
+if MNG_PROVIDER
+MNG_PROVIDER_LTLIB = libidirectfbvideoprovider_mng.la
+else
+MNG_PROVIDER_LTLIB =
+endif
+
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib	\
@@ -27,6 +33,7 @@ INCLUDES = \
 
 idirectfbvideoprovider_LTLIBRARIES =	\
 	$(GIF_PROVIDER_LTLIB)	\
+	$(MNG_PROVIDER_LTLIB)	\
 	$(V4L_PROVIDER_LTLIB)	
 
 if BUILD_STATIC
@@ -52,6 +59,17 @@ libidirectfbvideoprovider_gif_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/lib/fusion/libfusion.la \
 	$(top_builddir)/src/libdirectfb.la
+
+
+libidirectfbvideoprovider_mng_la_SOURCES = idirectfbvideoprovider_mng.c
+
+libidirectfbvideoprovider_mng_la_LDFLAGS = -avoid-version -module
+
+libidirectfbvideoprovider_mng_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la \
+	$(LIBMNG)
 
 
 include $(top_srcdir)/rules/libobject.make
