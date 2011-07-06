@@ -50,6 +50,8 @@
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 
+#include <core/CoreSurface.h>
+
 #include <media/idirectfbfont.h>
 
 #include <display/idirectfbsurface.h>
@@ -124,7 +126,7 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      if (data->surface) {
           if (data->locked)
-               dfb_surface_unlock_buffer( data->surface, &data->lock );
+               CoreSurface_UnlockBuffer( data->surface, &data->lock );
 
           dfb_surface_unref( data->surface );
      }
@@ -357,7 +359,7 @@ IDirectFBSurface_GetPalette( IDirectFBSurface  *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( palette, IDirectFBPalette );
 
-     ret = IDirectFBPalette_Construct( palette, surface->palette );
+     ret = IDirectFBPalette_Construct( palette, surface->palette, data->core );
      if (ret)
           return ret;
 
@@ -394,7 +396,7 @@ IDirectFBSurface_SetPalette( IDirectFBSurface *thiz,
      if (!palette_data->palette)
           return DFB_DESTROYED;
 
-     dfb_surface_set_palette( surface, palette_data->palette );
+     CoreSurface_SetPalette( surface, palette_data->palette );
 
      return DFB_OK;
 }
@@ -451,7 +453,7 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
           role = CSBR_BACK;
      }
 
-     ret = dfb_surface_lock_buffer( data->surface, role, CSAID_CPU, access, &data->lock );
+     ret = CoreSurface_LockBuffer( data->surface, role, CSAID_CPU, access, &data->lock );
      if (ret)
           return ret;
 
@@ -513,7 +515,7 @@ IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
           return DFB_DESTROYED;
 
      if (data->locked) {
-          dfb_surface_unlock_buffer( data->surface, &data->lock );
+          CoreSurface_UnlockBuffer( data->surface, &data->lock );
 
           data->locked = false;
      }
@@ -726,7 +728,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      dfb_state_set_color( &data->state, &color );
 
      /* fill the visible rectangle */
-     dfb_gfxcard_fillrectangles( &data->area.current, 1, &data->state );
+     CoreGraphicsStateClient_FillRectangles( &data->state_client, &data->area.current, 1 );
 
      /* clear the depth buffer */
      if (data->caps & DSCAPS_DEPTH)
@@ -1311,7 +1313,7 @@ IDirectFBSurface_FillRectangle( IDirectFBSurface *thiz,
      rect.x += data->area.wanted.x;
      rect.y += data->area.wanted.y;
 
-     dfb_gfxcard_fillrectangles( &rect, 1, &data->state );
+     CoreGraphicsStateClient_FillRectangles( &data->state_client, &rect, 1 );
 
      return DFB_OK;
 }
@@ -1360,7 +1362,7 @@ IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
           rect.x += data->area.wanted.x;
           rect.y += data->area.wanted.y;
 
-          dfb_gfxcard_fillrectangles( &rect, 1, &data->state );
+          CoreGraphicsStateClient_FillRectangles( &data->state_client, &rect, 1 );
      }
      else {
           DFBRegion line = { x1, y1, x2, y2 };
@@ -1370,7 +1372,7 @@ IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
           line.y1 += data->area.wanted.y;
           line.y2 += data->area.wanted.y;
 
-          dfb_gfxcard_drawlines( &line, 1, &data->state );
+          CoreGraphicsStateClient_DrawLines( &data->state_client, &line, 1 );
      }
 
      return DFB_OK;
@@ -1422,7 +1424,7 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
                /* clipping may modify lines, so we copy them */
                direct_memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
 
-          dfb_gfxcard_drawlines( local_lines, num_lines, &data->state );
+          CoreGraphicsStateClient_DrawLines( &data->state_client, local_lines, num_lines );
      }
      /* Optimized rectangle drawing */
      else {
@@ -1445,7 +1447,7 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
                }
           }
 
-          dfb_gfxcard_fillrectangles( local_rects, num_lines, &data->state );
+          CoreGraphicsStateClient_FillRectangles( &data->state_client, local_rects, num_lines );
      }
 
      return DFB_OK;
@@ -1478,7 +1480,7 @@ IDirectFBSurface_DrawRectangle( IDirectFBSurface *thiz,
      rect.x += data->area.wanted.x;
      rect.y += data->area.wanted.y;
 
-     dfb_gfxcard_drawrectangle( &rect, &data->state );
+     CoreGraphicsStateClient_DrawRectangles( &data->state_client, &rect, 1 );
 
      return DFB_OK;
 }
@@ -1513,7 +1515,7 @@ IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
      tri.x3 += data->area.wanted.x;
      tri.y3 += data->area.wanted.y;
 
-     dfb_gfxcard_filltriangles( &tri, 1, &data->state );
+     CoreGraphicsStateClient_FillTriangles( &data->state_client, &tri, 1 );
 
      return DFB_OK;
 }
@@ -1559,13 +1561,13 @@ IDirectFBSurface_FillTrapezoids( IDirectFBSurface   *thiz,
                local_traps[i].w2 = traps[i].w2;
           }
 
-          dfb_gfxcard_filltrapezoids( local_traps, num_traps, &data->state );
+          CoreGraphicsStateClient_FillTrapezoids( &data->state_client, local_traps, num_traps );
 
           if (malloced)
                D_FREE( local_traps );
      }
      else
-          dfb_gfxcard_filltrapezoids( traps, num_traps, &data->state );
+          CoreGraphicsStateClient_FillTrapezoids( &data->state_client, traps, num_traps );
 
      return DFB_OK;
 }
@@ -1612,13 +1614,13 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
                local_rects[i].h = rects[i].h;
           }
 
-          dfb_gfxcard_fillrectangles( local_rects, num_rects, &data->state );
+          CoreGraphicsStateClient_FillRectangles( &data->state_client, local_rects, num_rects );
 
           if (malloced)
                D_FREE( local_rects );
      }
      else
-          dfb_gfxcard_fillrectangles( rects, num_rects, &data->state );
+          CoreGraphicsStateClient_FillRectangles( &data->state_client, rects, num_rects );
 
      return DFB_OK;
 }
@@ -1660,7 +1662,7 @@ IDirectFBSurface_FillSpans( IDirectFBSurface *thiz,
           /* clipping may modify spans, so we copy them */
           direct_memcpy( local_spans, spans, sizeof(DFBSpan) * num_spans );
 
-     dfb_gfxcard_fillspans( y + data->area.wanted.y, local_spans, num_spans, &data->state );
+     CoreGraphicsStateClient_FillSpans( &data->state_client, y + data->area.wanted.y, local_spans, num_spans );
 
      return DFB_OK;
 }
@@ -1706,13 +1708,13 @@ IDirectFBSurface_FillTriangles( IDirectFBSurface  *thiz,
                local_tris[i].y3 = tris[i].y3 + data->area.wanted.y;
           }
 
-          dfb_gfxcard_filltriangles( local_tris, num_tris, &data->state );
+          CoreGraphicsStateClient_FillTriangles( &data->state_client, local_tris, num_tris );
 
           if (malloced)
                D_FREE( local_tris );
      }
      else
-          dfb_gfxcard_filltriangles( tris, num_tris, &data->state );
+          CoreGraphicsStateClient_FillTriangles( &data->state_client, tris, num_tris );
 
      return DFB_OK;
 }
@@ -1792,9 +1794,9 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
-     dfb_gfxcard_blit( &srect,
-                       data->area.wanted.x + dx,
-                       data->area.wanted.y + dy, &data->state );
+     DFBPoint p = { data->area.wanted.x + dx, data->area.wanted.y + dy };
+
+     CoreGraphicsStateClient_Blit( &data->state_client, &srect, &p, 1 );
 
      return DFB_OK;
 }
@@ -1805,7 +1807,8 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
                            const DFBRectangle *sr,
                            int dx, int dy )
 {
-     DFBRectangle srect;
+     DFBRectangle           srect;
+     DFBPoint               p1, p2;
      IDirectFBSurface_data *src_data;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
@@ -1874,9 +1877,13 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
      dx += data->area.wanted.x;
      dy += data->area.wanted.y;
 
-     dfb_gfxcard_tileblit( &srect, dx, dy,
-                           dx + data->area.wanted.w + srect.w - 1,
-                           dy + data->area.wanted.h + srect.h - 1, &data->state );
+     p1.x = dx;
+     p1.y = dy;
+
+     p2.x = dx + data->area.wanted.w + srect.w - 1;
+     p2.y = dy + data->area.wanted.h + srect.h - 1;
+
+     CoreGraphicsStateClient_TileBlit( &data->state_client, &srect, &p1, &p2, 1 );
 
      return DFB_OK;
 }
@@ -1947,7 +1954,7 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
-     dfb_gfxcard_batchblit( rects, points, num, &data->state );
+     CoreGraphicsStateClient_Blit( &data->state_client, rects, points, num );
 
      return DFB_OK;
 }
@@ -2059,7 +2066,7 @@ IDirectFBSurface_BatchBlit2( IDirectFBSurface   *thiz,
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
-     dfb_gfxcard_batchblit2( rects, points, points2, num, &data->state );
+     CoreGraphicsStateClient_Blit2( &data->state_client, rects, points, points2, num );
 
      return DFB_OK;
 }
@@ -2151,7 +2158,7 @@ IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
-     dfb_gfxcard_stretchblit( &srect, &drect, &data->state );
+     CoreGraphicsStateClient_StretchBlit( &data->state_client, &srect, &drect, 1 );
 
      return DFB_OK;
 }
@@ -2269,7 +2276,7 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
-     dfb_gfxcard_texture_triangles( translated, num, formation, &data->state );
+     CoreGraphicsStateClient_TextureTriangles( &data->state_client, translated, num, formation );
 
      return DFB_OK;
 }
@@ -2385,7 +2392,7 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      dfb_gfxcard_drawstring( (const unsigned char*) text, bytes, data->encoding,
                              data->area.wanted.x + x, data->area.wanted.y + y,
-                             core_font, layers, &data->state );
+                             core_font, layers, &data->state_client );
 
      return DFB_OK;
 }
@@ -2476,7 +2483,7 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
 
      dfb_gfxcard_drawglyph( glyph,
                             data->area.wanted.x + x, data->area.wanted.y + y,
-                            core_font, layers, &data->state );
+                            core_font, layers, &data->state_client );
 
      dfb_font_unlock( core_font );
 
@@ -2809,6 +2816,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
                                       DFBSurfaceCapabilities  caps,
                                       CoreDFB                *core )
 {
+     DFBResult    ret;
      DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface)
@@ -2873,7 +2881,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      data->surface = surface;
 
-     dfb_state_init( &data->state, NULL );
+     dfb_state_init( &data->state, core );
      dfb_state_set_destination( &data->state, surface );
 
      data->state.clip.x1  = data->area.current.x;
@@ -2882,6 +2890,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->state.clip.y2  = data->area.current.y + (data->area.current.h ? : 1) - 1;
 
      data->state.modified = SMF_ALL;
+
+     ret = CoreGraphicsStateClient_Init( &data->state_client, &data->state );
+     if (ret)
+          return ret;    // FIXME: deinit
 
      thiz->AddRef = IDirectFBSurface_AddRef;
      thiz->Release = IDirectFBSurface_Release;

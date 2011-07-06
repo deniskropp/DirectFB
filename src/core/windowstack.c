@@ -40,6 +40,9 @@
 #include <fusion/reactor.h>
 #include <fusion/shmalloc.h>
 
+#include <core/CoreWindowStack.h>
+
+#include <core/core.h>
 #include <core/input.h>
 #include <core/layer_context.h>
 #include <core/layers_internal.h>
@@ -185,11 +188,14 @@ dfb_windowstack_create( CoreLayerContext *context )
 {
      DFBResult          ret;
      CoreWindowStack   *stack;
+     CoreLayer         *layer;
      CoreSurfacePolicy  policy = CSP_SYSTEMONLY;
 
      D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, context );
 
      D_ASSERT( context != NULL );
+
+     layer = dfb_layer_at( context->layer_id );
 
      /* Allocate window stack data (completely shared) */
      stack = (CoreWindowStack*) SHCALLOC( context->shmpool, 1, sizeof(CoreWindowStack) );
@@ -244,6 +250,8 @@ dfb_windowstack_create( CoreLayerContext *context )
      dfb_input_enumerate_devices( stack_attach_devices, stack, DICAPS_ALL );
 
      stack_containers_add(stack);
+
+     CoreWindowStack_Init_Dispatch( layer->core, stack, &stack->call );
 
      D_DEBUG_AT( Core_WindowStack, "  -> %p\n", stack );
 

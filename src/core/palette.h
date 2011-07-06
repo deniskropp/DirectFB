@@ -44,11 +44,13 @@ struct _CorePalette {
      struct {
           int      index;
           DFBColor color;
-     } search_cache;
+     } __obsolete__search_cache;
 
-     bool          hash_attached;
+     bool          __obsolete__hash_attached;
 
      FusionSHMPoolShared *shmpool;
+
+     FusionCall           call;
 };
 
 typedef enum {

@@ -47,6 +47,8 @@
 #include <core/layers_internal.h>
 #include <core/surface.h>
 
+#include <core/CoreLayerRegion.h>
+
 #include <gfx/util.h>
 
 
@@ -179,6 +181,8 @@ dfb_layer_region_create( CoreLayerContext  *context,
           region->surface_accessor = shared->description.surface_accessor;
      else
           region->surface_accessor = CSAID_LAYER0 + context->layer_id;
+
+     CoreLayerRegion_Init_Dispatch( layer->core, region, &region->call );
 
      /* Activate the object. */
      fusion_object_activate( &region->object );

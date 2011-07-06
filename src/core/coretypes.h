@@ -47,6 +47,9 @@ typedef struct __DFB_DFBWMCore               DFBWMCore;
 
 typedef struct __DFB_DFBGraphicsCore         CoreGraphicsDevice; /* FIXME */
 
+typedef struct __DFB_CoreGraphicsState       CoreGraphicsState;
+typedef struct __DFB_CoreGraphicsStateClient CoreGraphicsStateClient;
+
 
 typedef struct _CoreCleanup                  CoreCleanup;
 

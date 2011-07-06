@@ -41,11 +41,9 @@
 
 #include <media/idirectfbimageprovider.h>
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
 #include <core/layers.h>
-#include <core/surface.h>
+
+#include <core/CoreSurface.h>
 
 #include <misc/gfx_util.h>
 #include <misc/util.h>
@@ -395,7 +393,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           rect = dst_data->area.wanted;
      }
 
-     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
+     ret = CoreSurface_LockBuffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
      if (ret)
           return ret;
 
@@ -428,7 +426,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                if (data->image) {
                     dfb_scale_linear_32( data->image, data->image_width, data->image_height,
                                          lock.addr, lock.pitch, &rect, dst_surface, &clip );
-                    dfb_surface_unlock_buffer( dst_surface, &lock );
+                    CoreSurface_UnlockBuffer( dst_surface, &lock );
                     if (data->base.render_callback) {
                          DFBRectangle r = { 0, 0, data->image_width, data->image_height };
 
@@ -440,7 +438,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     return DFB_INCOMPLETE;
                }
                else
-                    dfb_surface_unlock_buffer( dst_surface, &lock );
+                    CoreSurface_UnlockBuffer( dst_surface, &lock );
 
                return DFB_FAILURE;
           }
@@ -519,7 +517,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
           data->image = D_CALLOC( data->image_height, data->image_width * 4 );
           if (!data->image) {
-               dfb_surface_unlock_buffer( dst_surface, &lock );
+               CoreSurface_UnlockBuffer( dst_surface, &lock );
                return D_OOM();
           }
           row_ptr = data->image;
@@ -593,7 +591,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           }
      }
      
-     dfb_surface_unlock_buffer( dst_surface, &lock );
+     CoreSurface_UnlockBuffer( dst_surface, &lock );
 
      if (cb_result != DIRCR_OK)
          return DFB_INTERRUPTED;

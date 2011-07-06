@@ -41,11 +41,9 @@
 
 #include <media/idirectfbimageprovider.h>
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
 #include <core/layers.h>
-#include <core/surface.h>
+
+#include <core/CoreSurface.h>
 
 #include <misc/gfx_util.h>
 #include <direct/interface.h>
@@ -263,14 +261,14 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
      if (dfb_rectangle_region_intersects( &rect, &clip )) {
           CoreSurfaceBufferLock lock;
 
-          ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
+          ret = CoreSurface_LockBuffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
           if (ret)
                return ret;
 
           dfb_scale_linear_32( data->image, data->image_width, data->image_height,
                                lock.addr, lock.pitch, &rect, dst_surface, &clip );
 
-          dfb_surface_unlock_buffer( dst_surface, &lock );
+          CoreSurface_UnlockBuffer( dst_surface, &lock );
 
           if (data->base.render_callback) {
                DIRenderCallbackResult r;

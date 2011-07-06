@@ -39,13 +39,16 @@ typedef struct {
      int                     ref;            /* reference counter */
 
      CorePalette            *palette;        /* the palette object */
+
+     CoreDFB                *core;
 } IDirectFBPalette_data;
 
 /*
  * initializes interface struct and private data
  */
 DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
-                                      CorePalette      *palette );
+                                      CorePalette      *palette,
+                                      CoreDFB          *core );
 
 
 #endif

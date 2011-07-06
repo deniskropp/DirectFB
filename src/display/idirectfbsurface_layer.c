@@ -46,6 +46,8 @@
 #include <core/surface.h>
 #include <core/system.h>
 
+#include <core/CoreLayerRegion.h>
+
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_layer.h"
 
@@ -137,7 +139,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     return dfb_layer_region_flip_update( data->region, &reg, flags );
+     return CoreLayerRegion_FlipUpdate( data->region, &reg, flags );
 }
 
 static DFBResult
@@ -212,7 +214,7 @@ IDirectFBSurface_Layer_GetStereoEye( IDirectFBSurface    *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
-     D_DEBUG_AT( Surface, "%s( %p, %u )\n", __FUNCTION__, thiz, *ret_eye );
+     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, ret_eye );
 
      if (!data->base.surface)
           return DFB_DESTROYED;

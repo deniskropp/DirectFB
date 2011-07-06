@@ -43,12 +43,23 @@ typedef FusionCallHandlerResult (*FusionCallHandler) (int           caller,   /*
                                                       unsigned int  serial,
                                                       int          *ret_val );
 
+typedef FusionCallHandlerResult (*FusionCallHandler3)(int           caller,   /* fusion id of the caller */
+                                                      int           call_arg, /* optional call parameter */
+                                                      void         *ptr,      /* optional call parameter */
+                                                      unsigned int  length,
+                                                      void         *ctx,      /* optional handler context */
+                                                      unsigned int  serial,
+                                                      void         *ret_ptr,
+                                                      unsigned int  ret_size,
+                                                      unsigned int *ret_length );
+
 typedef struct {
-     FusionWorldShared *shared;
-     int                call_id;
-     FusionID           fusion_id;
-     FusionCallHandler  handler;
-     void              *ctx;
+     FusionWorldShared  *shared;
+     int                 call_id;
+     FusionID            fusion_id;
+     FusionCallHandler   handler;
+     FusionCallHandler3  handler3;
+     void               *ctx;
 } FusionCall;
 
 
@@ -56,6 +67,15 @@ DirectResult FUSION_API fusion_call_init   ( FusionCall          *call,
                                              FusionCallHandler    handler,
                                              void                *ctx,
                                              const FusionWorld   *world );
+
+DirectResult FUSION_API fusion_call_init3  ( FusionCall          *call,
+                                             FusionCallHandler3   handler3,
+                                             void                *ctx,
+                                             const FusionWorld   *world );
+
+DirectResult FUSION_API fusion_call_init_from( FusionCall          *call,
+                                               int                  call_id,
+                                               const FusionWorld   *world );
 
 DirectResult FUSION_API fusion_call_execute( FusionCall          *call,
                                              FusionCallExecFlags  flags,
@@ -70,9 +90,23 @@ DirectResult FUSION_API fusion_call_execute2( FusionCall          *call,
                                               unsigned int         length,
                                               int                 *ret_val );
 
+DirectResult FUSION_API fusion_call_execute3( FusionCall          *call,
+                                              FusionCallExecFlags  flags,
+                                              int                  call_arg,
+                                              void                *ptr,
+                                              unsigned int         length,
+                                              void                *ret_ptr,
+                                              unsigned int         ret_size,
+                                              unsigned int        *ret_length );
+
 DirectResult FUSION_API fusion_call_return ( FusionCall          *call,
                                              unsigned int         serial,
                                              int                  val );
+
+DirectResult FUSION_API fusion_call_return3( FusionCall          *call,
+                                             unsigned int         serial,
+                                             void                *ptr,
+                                             unsigned int         length );
 
 DirectResult FUSION_API fusion_call_destroy( FusionCall          *call );
 

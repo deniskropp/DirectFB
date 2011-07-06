@@ -17,6 +17,25 @@ AM_CPPFLAGS = \
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
+	CoreDFB.h		\
+	CoreDFB_includes.h	\
+	CoreGraphicsState.h	\
+	CoreGraphicsState_includes.h	\
+	CoreGraphicsStateClient.h	\
+	CoreLayer.h		\
+	CoreLayer_includes.h	\
+	CoreLayerContext.h	\
+	CoreLayerContext_includes.h	\
+	CoreLayerRegion.h	\
+	CoreLayerRegion_includes.h	\
+	CorePalette.h		\
+	CorePalette_includes.h	\
+	CoreSurface.h		\
+	CoreSurface_includes.h	\
+	CoreWindow.h		\
+	CoreWindow_includes.h	\
+	CoreWindowStack.h		\
+	CoreWindowStack_includes.h	\
 	clipboard.h		\
 	colorhash.h		\
 	coredefs.h		\
@@ -55,6 +74,25 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 
 
 libdirectfb_core_la_SOURCES = \
+	CoreDFB.cpp		\
+	CoreDFB_real.cpp	\
+	CoreGraphicsState.cpp	\
+	CoreGraphicsState_real.cpp	\
+	CoreGraphicsStateClient.c		\
+	CoreLayer.cpp		\
+	CoreLayer_real.cpp	\
+	CoreLayerContext.cpp	\
+	CoreLayerContext_real.cpp	\
+	CoreLayerRegion.cpp	\
+	CoreLayerRegion_real.cpp	\
+	CorePalette.cpp		\
+	CorePalette_real.cpp	\
+	CoreSurface.cpp		\
+	CoreSurface_real.cpp	\
+	CoreWindow.cpp		\
+	CoreWindow_real.cpp	\
+	CoreWindowStack.cpp		\
+	CoreWindowStack_real.cpp	\
 	clipboard.c		\
 	colorhash.c		\
 	core.c			\
@@ -82,3 +120,5 @@ libdirectfb_core_la_SOURCES = \
 	windows.c		\
 	windowstack.c		\
 	wm.c
+
+include $(top_srcdir)/rules/flux_comp.make

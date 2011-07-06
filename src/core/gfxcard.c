@@ -55,6 +55,8 @@
 #include <core/surface_pool.h>
 #include <core/system.h>
 
+#include <core/CoreGraphicsStateClient.h>
+
 #include <gfx/generic/generic.h>
 #include <gfx/clip.h>
 #include <gfx/util.h>
@@ -85,50 +87,6 @@ static void dfb_gfxcard_load_driver( void );
 static void fill_tri( DFBTriangle *tri, CardState *state, bool accelerated );
 
 /**********************************************************************************************************************/
-
-typedef struct {
-     int                      magic;
-
-     /* amount of usable memory */
-     unsigned int             videoram_length;
-     unsigned int             auxram_length;
-     unsigned int             auxram_offset;
-
-     char                    *module_name;
-
-     GraphicsDriverInfo       driver_info;
-     GraphicsDeviceInfo       device_info;
-     void                    *device_data;
-
-     FusionProperty           lock;
-     GraphicsDeviceLockFlags  lock_flags;
-
-     /*
-      * Points to the current state of the graphics card.
-      */
-     CardState               *state;
-     FusionID                 holder; /* Fusion ID of state owner. */
-} DFBGraphicsCoreShared;
-
-struct __DFB_DFBGraphicsCore {
-     int                        magic;
-
-     CoreDFB                   *core;
-
-     DFBGraphicsCoreShared     *shared;
-
-     DirectModuleEntry         *module;
-     const GraphicsDriverFuncs *driver_funcs;
-
-     void                      *driver_data;
-     void                      *device_data; /* copy of shared->device_data */
-
-     CardCapabilities           caps;        /* local caps */
-     CardLimitations            limits;      /* local limits */
-
-     GraphicsDeviceFuncs        funcs;
-};
-
 
 DFB_CORE_PART( graphics_core, GraphicsCore );
 
@@ -350,7 +308,6 @@ dfb_graphics_core_shutdown( DFBGraphicsCore *data,
      D_MAGIC_ASSERT( data->shared, DFBGraphicsCoreShared );
 
      shared = data->shared;
-
 
      dfb_gfxcard_lock( GDLF_SYNC );
 
@@ -836,7 +793,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * This will timeout if the hardware is locked by another party with
       * the first argument being true (e.g. DRI).
       */
-     if (dfb_gfxcard_lock( GDLF_NONE )) {
+     ret = dfb_gfxcard_lock( GDLF_NONE );
+     if (ret) {
           D_DERROR( ret, "Core/Graphics: Could not lock GPU!\n" );
 
           dfb_surface_unlock_buffer( dst, &state->dst );
@@ -2061,6 +2019,7 @@ dfb_gfxcard_fillquadrangles( DFBPoint *points, int num, CardState *state )
      dfb_state_unlock( state );
 }
 
+D_UNUSED
 static void
 DFBVertex_Transform( DFBVertex    *v,
                      unsigned int  num,
@@ -2887,7 +2846,7 @@ font_state_restore( CardState *state,
 void
 dfb_gfxcard_drawstring( const u8 *text, int bytes,
                         DFBTextEncodingID encoding, int x, int y,
-                        CoreFont *font, unsigned int layers, CardState *state )
+                        CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client )
 {
      DFBResult     ret;
      unsigned int  prev = 0;
@@ -2902,20 +2861,25 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      int           num_blits = 0;
      int           ox = x;
      int           oy = y;
+     CardState    *state;
 
      if (encoding == DTEID_UTF8)
           D_DEBUG_AT( Core_GraphicsOps, "%s( '%s' [%d], %d,%d, %p, %p )\n",
-                      __FUNCTION__, text, bytes, x, y, font, state );
+                      __FUNCTION__, text, bytes, x, y, font, client );
      else
           D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %d, %d,%d, %p, %p )\n",
-                      __FUNCTION__, text, bytes, encoding, x, y, font, state );
+                      __FUNCTION__, text, bytes, encoding, x, y, font, client );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( text != NULL );
      D_ASSERT( bytes > 0 );
      D_ASSERT( font != NULL );
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     state = client->state;
+     D_MAGIC_ASSERT( state, CardState );
 
      surface = state->destination;
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -2964,7 +2928,7 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                if (glyph->width) {
                     if (glyph->surface != state->source || num_blits == D_ARRAY_SIZE(rects)) {
                          if (num_blits) {
-                              dfb_gfxcard_batchblit( rects, points, num_blits, state );
+                              CoreGraphicsStateClient_Blit( client, rects, points, num_blits );
                               num_blits = 0;
                          }
 
@@ -2984,7 +2948,7 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
           }
 
           if (num_blits) {
-               dfb_gfxcard_batchblit( rects, points, num_blits, state );
+               CoreGraphicsStateClient_Blit( client, rects, points, num_blits );
                num_blits = 0;
           }
      }
@@ -2995,19 +2959,24 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
 }
 
 void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
-                            CoreFont *font, unsigned int layers, CardState *state )
+                            CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client )
 {
      int          l;
      CoreSurface *surface;
      CardState    state_backup;
+     CardState   *state;
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d, %u, %p, %p )\n",
-                 __FUNCTION__, x, y, layers, font, state );
+                 __FUNCTION__, x, y, layers, font, client );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( font != NULL );
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     state = client->state;
+     D_MAGIC_ASSERT( state, CardState );
 
      surface = state->destination;
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -3020,11 +2989,12 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
 
           /* blit glyph */
           if (glyph[l]->width) {
-               DFBRectangle rect = { glyph[l]->start, 0, glyph[l]->width, glyph[l]->height };
+               DFBRectangle rect  = { glyph[l]->start, 0, glyph[l]->width, glyph[l]->height };
+               DFBPoint     point = { x + glyph[l]->left, y + glyph[l]->top };
 
                dfb_state_set_source( state, glyph[l]->surface );
 
-               dfb_gfxcard_blit( &rect, x + glyph[l]->left, y + glyph[l]->top, state );
+               CoreGraphicsStateClient_Blit( client, &rect, &point, 1 );
           }
      }
 

@@ -180,6 +180,8 @@ main( int argc, char *argv[] )
      D_INFO( "DFBTest/FillRectangle: Destination is %dx%d using %s\n",
              desc.width, desc.height, dfb_pixelformat_name(desc.pixelformat) );
 
+     long long ms = direct_clock_get_abs_millis();
+
      while (true) {
           for (i=0; i<100000; i++) {
                dest->SetColor( dest, rand()%256, rand()%256, rand()%256, rand()%256 );
@@ -187,6 +189,12 @@ main( int argc, char *argv[] )
           }
 
           dest->Flip( dest, NULL, DSFLIP_NONE );
+
+          long long now = direct_clock_get_abs_millis();
+
+          D_INFO( "Took %lld ms\n", now - ms );
+
+          ms = now;
      }
 
 out:

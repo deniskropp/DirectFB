@@ -32,6 +32,7 @@
 
 #include <fusion/conf.h>
 #include <fusion/shmalloc.h>
+#include <fusion/shm/shm_internal.h>
 #include <fusion/shm/pool.h>
 
 #include <core/core.h>
@@ -99,6 +100,8 @@ sharedInitPool( CoreDFB                    *core,
                                    fusion_config->debugshm, &data->shmpool );
      if (ret)
           return ret;
+
+     data->shmpool->slave_write = true;
 
      ret_desc->caps              = CSPCAPS_VIRTUAL;
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;

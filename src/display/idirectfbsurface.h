@@ -35,8 +35,9 @@
 
 #include <fusion/reactor.h>
 
-#include <core/coretypes.h>
 #include <core/state.h>
+
+#include <core/CoreGraphicsStateClient.h>
 
 
 /*
@@ -130,6 +131,8 @@ typedef struct {
      IDirectFBSurface      *parent;
      DirectLink            *children_data;
      pthread_mutex_t        children_lock;
+
+     CoreGraphicsStateClient  state_client;
 } IDirectFBSurface_data;
 
 /*

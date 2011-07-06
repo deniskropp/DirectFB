@@ -86,6 +86,16 @@ DirectResult FUSION_API fusion_ref_up           (FusionRef *ref, bool global);
 DirectResult FUSION_API fusion_ref_down         (FusionRef *ref, bool global);
 
 /*
+ * Catch reference
+ */
+DirectResult FUSION_API fusion_ref_catch        (FusionRef *ref);
+
+/*
+ * Throw reference
+ */
+DirectResult FUSION_API fusion_ref_throw        (FusionRef *ref, FusionID catcher);
+
+/*
  * Get the current reference count. Meant for debugging only.
  * This value is not reliable, because no locking will be performed
  * and the value may change after or even while returning it.
