@@ -34,6 +34,7 @@
 #define DIRECT_OS_LINUX_KERNEL     (1)
 #define DIRECT_OS_PSP              (2)
 #define DIRECT_OS_WIN32            (3)
+#define DIRECT_OS_FAMOS            (4)
 
 
 #define DIRECT_BUILD_DEBUG     (@DIRECT_BUILD_DEBUG@)
