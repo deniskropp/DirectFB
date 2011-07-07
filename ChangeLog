@@ -1,3 +1,51 @@
+commit 653ff4ee5d1c4f0f02e427c760a499df59353386
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 7 03:15:34 2011 +0200
+
+    update 1.5.0 release
+
+commit 9be4a5d193da6a82d2b985717b39210c35be9cf9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 7 03:19:16 2011 +0200
+
+    mesa: Add vt.h to sources.
+
+commit b6c8e4487d25a4b68445ad80f88f560255dc3bb3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 7 03:15:08 2011 +0200
+
+    tools: Add mkresult.sh to EXTRA_DIST.
+
+commit b5ba80143c0575055199cc994861ff5f6b44058f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 18:52:10 2011 +0200
+
+    The giant 1.5.0 release is coming!
+
+commit c5e0b0abb7f750fd4e5ab0b6d00f2684f9118dbf
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 18:51:43 2011 +0200
+
+    Core: Remove generated files from flux on make distclean.
+
+commit a2a1abdb38737678debf32adcbc7daafe6725dfe
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 18:37:23 2011 +0200
+
+    Fusion: Add dummy fusion_ref_throw() and fusion_ref_catch() for single app.
+
+commit 38d9addbdb177f34fb0cdfe5dc60dfd4fb396375
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 18:36:46 2011 +0200
+
+    Fusion: Add fusion_call_init3() and fusion_call_execute3() for single app.
+
+commit d756c0a0f7392cd5b353db15f399013705b742c2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 18:35:58 2011 +0200
+
+    Makefiles: Add some missing headers, fix .c/.cpp confusion.
+
 commit d6a7b28399588c75eb253b1b33410c8969a8d7e5
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Wed Jul 6 14:25:29 2011 +0200
