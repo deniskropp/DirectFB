@@ -151,4 +151,5 @@ voodooplay_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 EXTRA_DIST = \
 	README			\
 	gendoc.pl		\
-	mknames.sh
+	mknames.sh		\
+	mkresult.sh
