@@ -1,5 +1,7 @@
 #ifndef __DIRECTFB_STRINGS_H__
 #define __DIRECTFB_STRINGS_H__
+#include <directfb.h>
+#include <directfb_water.h>
 
 
 struct DFBPixelFormatName {
@@ -46,6 +48,7 @@ struct DFBPixelFormatName {
      { DSPF_A1_LSB, "A1_LSB" }, \
      { DSPF_YV16, "YV16" }, \
      { DSPF_ABGR, "ABGR" }, \
+     { DSPF_LUT1, "LUT1" }, \
      { DSPF_UNKNOWN, "UNKNOWN" } \
 };
 
@@ -122,6 +125,7 @@ struct DFBSurfaceBlittingFlagsName {
      { DSBLIT_SOURCE2, "SOURCE2" }, \
      { DSBLIT_FLIP_HORIZONTAL, "FLIP_HORIZONTAL" }, \
      { DSBLIT_FLIP_VERTICAL, "FLIP_VERTICAL" }, \
+     { DSBLIT_ROP, "ROP" }, \
      { DSBLIT_NOFX, "NOFX" } \
 };
 
@@ -540,12 +544,46 @@ struct DFBAccelerationMaskName {
      { DFXL_DRAWLINE, "DRAWLINE" }, \
      { DFXL_FILLTRIANGLE, "FILLTRIANGLE" }, \
      { DFXL_FILLTRAPEZOID, "FILLTRAPEZOID" }, \
+     { DFXL_FILLQUADRANGLE, "FILLQUADRANGLE" }, \
      { DFXL_BLIT, "BLIT" }, \
      { DFXL_STRETCHBLIT, "STRETCHBLIT" }, \
      { DFXL_TEXTRIANGLES, "TEXTRIANGLES" }, \
      { DFXL_BLIT2, "BLIT2" }, \
      { DFXL_DRAWSTRING, "DRAWSTRING" }, \
      { DFXL_NONE, "NONE" } \
+};
+
+
+struct DFBWaterElementTypeName {
+     WaterElementType type;
+     const char *name;
+};
+
+#define DirectFBWaterElementTypeNames(Identifier) struct DFBWaterElementTypeName Identifier[] = { \
+     { WET_POINT, "POINT" }, \
+     { WET_SPAN, "SPAN" }, \
+     { WET_LINE, "LINE" }, \
+     { WET_LINE_STRIP, "LINE_STRIP" }, \
+     { WET_LINE_LOOP, "LINE_LOOP" }, \
+     { WET_TRIANGLE, "TRIANGLE" }, \
+     { WET_TRIANGLE_FAN, "TRIANGLE_FAN" }, \
+     { WET_TRIANGLE_STRIP, "TRIANGLE_STRIP" }, \
+     { WET_RECTANGLE, "RECTANGLE" }, \
+     { WET_RECTANGLE_STRIP, "RECTANGLE_STRIP" }, \
+     { WET_TRAPEZOID, "TRAPEZOID" }, \
+     { WET_TRAPEZOID_STRIP, "TRAPEZOID_STRIP" }, \
+     { WET_QUADRANGLE, "QUADRANGLE" }, \
+     { WET_QUADRANGLE_STRIP, "QUADRANGLE_STRIP" }, \
+     { WET_POLYGON, "POLYGON" }, \
+     { WET_CIRCLE, "CIRCLE" }, \
+     { WET_ELLIPSE, "ELLIPSE" }, \
+     { WET_ARC_CIRCLE, "ARC_CIRCLE" }, \
+     { WET_ARC_ELLIPSE, "ARC_ELLIPSE" }, \
+     { WET_QUAD_CURVE, "QUAD_CURVE" }, \
+     { WET_QUAD_CURVE_STRIP, "QUAD_CURVE_STRIP" }, \
+     { WET_CUBIC_CURVE, "CUBIC_CURVE" }, \
+     { WET_CUBIC_CURVE_STRIP, "CUBIC_CURVE_STRIP" }, \
+     { WET_UNKNOWN, "UNKNOWN" } \
 };
 
 #endif

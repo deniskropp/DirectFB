@@ -278,6 +278,8 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                break;
 
           case DSPF_LUT8:
+          case DSPF_LUT2:
+          case DSPF_LUT1:  // FIXME: optimize
                if (palette) {
                     for (i = 0; i < len; i++) {
                          d[i] = dfb_palette_search( palette,
