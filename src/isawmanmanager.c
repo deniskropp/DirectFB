@@ -333,6 +333,16 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
      return DFB_OK;
 }
 
+static void
+reset_geometry_to_nonfollow( SaWManWindow *window )
+{
+     if (window->window->config.dst_geometry.mode == DWGM_FOLLOW)
+          window->window->config.dst_geometry.mode = DWGM_DEFAULT;
+
+     if (window->window->config.src_geometry.mode == DWGM_FOLLOW)
+          window->window->config.src_geometry.mode = DWGM_DEFAULT;
+}
+
 static DirectResult
 ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
                                  SaWManWindowHandle        handle,
@@ -483,6 +493,7 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
 
                if (!parent) {
                     D_ERROR( "SaWMan/WM: Can't find parent window with ID %d!\n", config->association );
+                    reset_geometry_to_nonfollow( sawwin );
                     return DFB_IDNOTFOUND;
                }
 
@@ -492,6 +503,7 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
 #ifndef OLD_COREWINDOWS_STRUCTURE
                if (parent->window->toplevel != window->toplevel) {
                     D_ERROR( "SaWMan/WM: Can't associate windows with different toplevel!\n" );
+                    reset_geometry_to_nonfollow( sawwin );
                     return DFB_INVARG;
                }
 #endif
@@ -502,12 +514,14 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
                ret = dfb_window_link( &sawwin->parent_window, parent->window );
                if (ret) {
                     D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", config->association );
+                    reset_geometry_to_nonfollow( sawwin );
                     return ret;
                }
 
                ret = fusion_vector_add( &parent->children, sawwin );
                if (ret) {
                     dfb_window_unlink( &sawwin->parent_window );
+                    reset_geometry_to_nonfollow( sawwin );
                     return ret;
                }
 
@@ -517,6 +531,8 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
                /* Write back new association */
                window->config.association = config->association;
           }
+          else
+               reset_geometry_to_nonfollow( sawwin );
      }
 
      if (flags & (SWMCF_POSITION | SWMCF_SIZE | SWMCF_SRC_GEOMETRY | SWMCF_DST_GEOMETRY | SWMCF_ASSOCIATION))
