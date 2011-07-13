@@ -79,7 +79,7 @@ void Genefx_Aop_xy( GenefxState *gfxs, int x, int y )
           y /= 2;
      }
 
-//     D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->dst_format)) );
+     D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->dst_format)) );
 
      gfxs->Aop[0] += y * pitch + DFB_BYTES_PER_LINE( gfxs->dst_format, x );
 
@@ -336,7 +336,7 @@ void Genefx_Bop_xy( GenefxState *gfxs, int x, int y )
           y /= 2;
      }
 
-     //D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->src_format)) );
+     D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->src_format)) );
 
      gfxs->Bop[0] += y * pitch + DFB_BYTES_PER_LINE( gfxs->src_format, x );
 
