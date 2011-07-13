@@ -133,6 +133,13 @@ dfb_pixel_to_color( DFBSurfacePixelFormat  format,
                ret_color->b = EXPAND_5to8( (pixel & 0x003e) >>  1 );
                break;
 
+          case DSPF_RGBAF88871:
+               ret_color->a = EXPAND_7to8( (pixel & 0x000000fe) >> 1);
+               ret_color->r = (pixel & 0xff000000) >> 24;
+               ret_color->g = (pixel & 0x00ff0000) >> 16;
+               ret_color->b = (pixel & 0x0000ff00) >> 8;
+               break;
+
           case DSPF_A8:
                ret_color->a = pixel;
                /* fall through */
@@ -207,6 +214,9 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
 
           case DSPF_AiRGB:
                return PIXEL_AiRGB( color->a, color->r, color->g, color->b );
+
+          case DSPF_RGBAF88871:
+               return PIXEL_RGBAF88871( color->a, color->r, color->g, color->b );
 
           case DSPF_AYUV:
                RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
@@ -397,6 +407,20 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                          dst[x] = PIXEL_RGB16( (src32[x] & 0x0000ff),
                                                (src32[x] & 0x00ff00) >>  8,
                                                (src32[x] & 0xff0000) >> 16 );
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGBAF88871:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB16( (src32[x] & 0xff000000) >> 24,
+                                               (src32[x] & 0x00ff0000) >> 16,
+                                               (src32[x] & 0x0000ff00) >> 8);
 
                     src += spitch;
                     dst += dp2;
@@ -661,6 +685,20 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
                          dst[x] = PIXEL_RGB555( (src32[x] & 0x0000ff),
                                                 (src32[x] & 0x00ff00) >>  8,
                                                 (src32[x] & 0xff0000) >> 16);
+
+                    src += spitch;
+                    dst += dp2;
+               }
+               break;
+
+          case DSPF_RGBAF88871:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_RGB555( (src32[x] & 0xff000000) >> 24,
+                                                (src32[x] & 0x00ff0000) >> 16,
+                                                (src32[x] & 0x0000ff00) >> 8);
 
                     src += spitch;
                     dst += dp2;
@@ -1022,6 +1060,18 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_RGBAF88871:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = (src32[x] & 0xffffff00) >> 8;
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
           case DSPF_AVYU:
                while (height--) {
                     const u32 *src32 = src;
@@ -1357,6 +1407,21 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                }
                break;
 
+          case DSPF_RGBAF88871:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (x=0; x<width; x++)
+                         dst[x] = PIXEL_ARGB( EXPAND_7to8((src32[x] & 0x000000fe) >> 1),
+                                              (src32[x] & 0xff000000) >> 24,
+                                              (src32[x] & 0x00ff0000) >> 16,
+                                              (src32[x] & 0x0000ff00) >> 8);
+
+                    src += spitch;
+                    dst += dp4;
+               }
+               break;
+
           case DSPF_AVYU:
                while (height--) {
                     const u32 *src32 = src;
@@ -1676,6 +1741,20 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                                       | ((src8[n3+0] & 0xe0) >> 3));
                          dst[n3+2] = (src8[n3+0] & 0x1f) << 3;
 #endif
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+          case DSPF_RGBAF88871:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (n=0, n3=0; n<width; n++, n3+=3) {
+                         dst[n3+0] = (src32[n] & 0xFF000000) >> 24;
+                         dst[n3+1] = (src32[n] & 0x00FF0000) >> 16;
+                         dst[n3+2] = (src32[n] & 0x0000FF00) >> 8;
                     }
 
                     src += spitch;
@@ -2028,6 +2107,19 @@ dfb_convert_to_a8( DFBSurfacePixelFormat  format,
                     dst += dpitch;
                }
                break;
+          case DSPF_RGBAF88871:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (n=0; n<width; n++) {
+                         dst[n] = EXPAND_7to8((src32[n] & 0x000000fe) >> 1);
+                    }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
           case DSPF_RGB332:
           case DSPF_RGB444:
           case DSPF_RGB555:
@@ -2154,6 +2246,18 @@ dfb_convert_to_a4( DFBSurfacePixelFormat  format,
                          dst[x] = (src8[n+2] & 0xf0) | (src8[n+5] & 0xf0 >> 4);
 #endif
                     }
+
+                    src += spitch;
+                    dst += dpitch;
+               }
+               break;
+
+          case DSPF_RGBAF88871:
+               while (height--) {
+                    const u32 *src32 = src;
+
+                    for (x=0, n=0; x<w2; x++, n+=2)
+                         dst[x] = (src32[n] & 0x000000f0) | ((src32[n+1] & 0x000000f0) >> 4);
 
                     src += spitch;
                     dst += dpitch;

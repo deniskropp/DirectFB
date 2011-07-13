@@ -585,6 +585,11 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     ((u16*)d)[i] = ARGB_TO_RGBA5551( src[i] );
                break;
 
+          case DSPF_RGBAF88871:
+               for (i = 0; i < len; i++)
+                    ((u32*)d)[i] = ARGB_TO_RGBAF88871( src[i] );
+               break;
+
           case DSPF_YUV444P:
                {
                u8 * __restrict Dy = dst[0];

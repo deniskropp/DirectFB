@@ -129,6 +129,11 @@
                                  ((g) << 8)  | \
                                   (b) )
 
+#define PIXEL_RGBAF88871(a,r,g,b)  ( ((r) << 24) | \
+                                     ((g) << 16) | \
+                                     ((b) << 8)  | \
+                                     ((a) &~1 ) )
+
 #ifdef WORDS_BIGENDIAN
 
 #define PIXEL_YUY2(y,u,v)      ( ((u) << 24) | \
@@ -407,6 +412,11 @@
 #define ARGB_TO_ABGR(pixel)  ( ((pixel) & 0xFF00FF00) | \
                                   (((pixel) & 0x000000FF) << 16) | \
                                   (((pixel) & 0x00FF0000) >> 16) )
+
+#define ARGB_TO_RGBAF88871(pixel) ( (((pixel) & 0x00FFFFFF) << 8 ) | \
+                                    (((pixel) & 0xFE000000) >> 24))
+
+
 
 /* RGB <-> YCbCr conversion */
 

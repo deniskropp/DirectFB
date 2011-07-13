@@ -1809,6 +1809,17 @@ dfb_fbdev_mode_to_var( const VideoMode           *mode,
                var.blue.offset   = 0;
                break;
 
+          case DSPF_ABGR:
+               var.transp.length = 8;
+               var.red.length    = 8;
+               var.green.length  = 8;
+               var.blue.length   = 8;
+               var.transp.offset = 24;
+               var.red.offset    = 0;
+               var.green.offset  = 8;
+               var.blue.offset   = 16;
+               break;
+
           case DSPF_LUT8:
           case DSPF_RGB24:
           case DSPF_RGB332:
@@ -1843,6 +1854,17 @@ dfb_fbdev_mode_to_var( const VideoMode           *mode,
                var.red.offset    = 12;
                var.green.offset  = 6;
                var.blue.offset   = 0;
+               break;
+
+          case DSPF_RGBAF88871:
+               var.transp.length = 7;
+               var.red.length    = 8;
+               var.green.length  = 8;
+               var.blue.length   = 8;
+               var.transp.offset = 1;
+               var.red.offset    = 24;
+               var.green.offset  = 16;
+               var.blue.offset   = 8;
                break;
 
           default:
@@ -2234,6 +2256,8 @@ dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
           case DSPF_RGB24:
           case DSPF_RGB32:
           case DSPF_ARGB:
+          case DSPF_ABGR:
+          case DSPF_RGBAF88871:
                red_size   = 256;
                green_size = 256;
                blue_size  = 256;

@@ -144,6 +144,12 @@ static void gInit_BigEndian();
 #define Bop_PFI_OP_Aop_PFI( op ) Bop_32_##op##_Aop
 #include "template_colorkey_32.h"
 
+/* RGBAF88871 */
+#define RGB_MASK 0xffffff00
+#define Cop_OP_Aop_PFI( op ) Cop_##op##_Aop_32_24
+#define Bop_PFI_OP_Aop_PFI( op ) Bop_32_24_##op##_Aop
+#include "template_colorkey_32.h"
+
 /* RGB16 */
 #define EXPAND_Ato8( a ) 0xFF
 #define EXPAND_Rto8( r ) EXPAND_5to8( r )
@@ -468,6 +474,23 @@ static void gInit_BigEndian();
 #define B_MASK 0x00003f
 #include "template_acc_24.h"
 
+/* RGBAF88871 */
+#define EXPAND_Ato8( a ) EXPAND_7to8(a)
+#define EXPAND_Rto8( r ) (r)
+#define EXPAND_Gto8( g ) (g)
+#define EXPAND_Bto8( b ) (b)
+#define PIXEL_OUT( a, r, g, b ) PIXEL_RGBAF88871( a, r, g, b )
+#define Sop_PFI_OP_Dacc( op ) Sop_rgbaf88871_##op##_Dacc
+#define Sacc_OP_Aop_PFI( op ) Sacc_##op##_Aop_rgbaf88871
+#define A_SHIFT 1
+#define R_SHIFT 24
+#define G_SHIFT 16
+#define B_SHIFT 8
+#define A_MASK 0x000000fe
+#define R_MASK 0xff000000
+#define G_MASK 0x00ff0000
+#define B_MASK 0x0000ff00
+#include "template_acc_32.h"
 
 /* whether pixelformat is YUV or not */
 static const bool is_ycbcr[DFB_NUM_PIXELFORMATS] = {
@@ -506,6 +529,7 @@ static const bool is_ycbcr[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = false,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = true,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = false,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = false,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = true,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = true,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = false,
@@ -753,6 +777,7 @@ static GenefxFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Cop_to_Aop_16,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Cop_to_Aop_yuv444p,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Cop_to_Aop_argb8565,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Cop_to_Aop_32,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Cop_to_Aop_32,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Cop_to_Aop_vyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -903,6 +928,7 @@ static const GenefxFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Cop_toK_Aop_15,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Cop_toK_Aop_yuv444p,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Cop_toK_Aop_24_16,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Cop_toK_Aop_32_24,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Cop_toK_Aop_avyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Cop_toK_Aop_24_24,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -1002,6 +1028,7 @@ static const GenefxFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_16_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_yuv444p_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -1202,6 +1229,7 @@ static const GenefxFunc Bop_PFI_toR_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_16_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_yuv444p_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_toR_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_toR_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -1399,6 +1427,7 @@ static GenefxFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_15_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_yuv444p_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_16_Kto_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_24_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_24_Kto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -1556,6 +1585,7 @@ static GenefxFunc Bop_PFI_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_15_toK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_yuv444p_toK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_16_toK_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_24_toK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_toK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_24_toK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -1639,6 +1669,7 @@ static const GenefxFunc Bop_PFI_KtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_15_KtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_yuv444p_KtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_16_KtoK_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_24_KtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_KtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_24_KtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -1948,6 +1979,7 @@ static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_16_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_yuv444p_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_Sto_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_Sto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -2189,6 +2221,7 @@ static const GenefxFunc Bop_PFI_SKto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_15_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_yuv444p_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_16_SKto_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_24_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_24_SKto_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -2266,6 +2299,7 @@ static const GenefxFunc Bop_PFI_StoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_15_StoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_yuv444p_StoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_16_StoK_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_24_StoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_StoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_24_StoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -2345,6 +2379,7 @@ static const GenefxFunc Bop_PFI_SKtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_15_SKtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_yuv444p_SKtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_16_SKtoK_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_24_SKtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_SKtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_24_SKtoK_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -2467,6 +2502,7 @@ static GenefxFunc Bop_PFI_TEX_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,//Bop_16_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,//Bop_yuv444p_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_24_TEX_to_Aop,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Bop_32_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_32_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_24_TEX_to_Aop,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -2876,6 +2912,7 @@ static GenefxFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sop_rgba5551_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Sop_yuv444p_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sop_argb8565_Sto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sop_rgbaf88871_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Sop_avyu_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Sop_vyu_Sto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -3266,6 +3303,7 @@ static const GenefxFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sop_rgba5551_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Sop_yuv444p_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sop_argb8565_SKto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sop_rgbaf88871_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Sop_avyu_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Sop_vyu_SKto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -3655,6 +3693,7 @@ static GenefxFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sop_rgba5551_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Sop_yuv444p_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sop_argb8565_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sop_rgbaf88871_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Sop_avyu_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Sop_vyu_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -4031,6 +4070,7 @@ static const GenefxFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sop_rgba5551_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Sop_yuv444p_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sop_argb8565_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sop_rgbaf88871_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Sop_avyu_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Sop_vyu_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -4584,6 +4624,7 @@ static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sacc_to_Aop_rgba5551,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Sacc_to_Aop_yuv444p,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sacc_to_Aop_argb8565,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sacc_to_Aop_rgbaf88871,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Sacc_to_Aop_avyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Sacc_to_Aop_vyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -4650,6 +4691,7 @@ static const GenefxFunc Sop_PFI_TEX_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sop_rgba5551_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,//Sop_yuv444p_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sop_argb8565_TEX_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sop_rgbaf88871_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,//Sop_avyu_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,//Sop_vyu_TEX_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -4695,6 +4737,7 @@ static const GenefxFunc Sop_PFI_TEX_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sop_rgba5551_TEX_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,//Sop_yuv444p_TEX_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sop_argb8565_TEX_Kto_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sop_rgbaf88871_TEX_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,//Sop_avyu_TEX_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,//Sop_vyu_TEX_Kto_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -5297,6 +5340,7 @@ static GenefxFunc Sacc_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sacc_Sto_Aop_rgba5551,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Sacc_Sto_Aop_yuv444p,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sacc_Sto_Aop_argb8565,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sacc_Sto_Aop_rgbaf88871,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Sacc_Sto_Aop_avyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Sacc_Sto_Aop_vyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -5639,6 +5683,7 @@ static const GenefxFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sacc_toK_Aop_rgba5551,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Sacc_toK_Aop_yuv444p,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sacc_toK_Aop_argb8565,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sacc_toK_Aop_rgbaf88871,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Sacc_toK_Aop_avyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Sacc_toK_Aop_vyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -5774,6 +5819,7 @@ static const GenefxFunc Sacc_StoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Sacc_StoK_Aop_rgba5551,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Sacc_StoK_Aop_yuv444p,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Sacc_StoK_Aop_argb8565,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = Sacc_StoK_Aop_rgbaf88871,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Sacc_StoK_Aop_avyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Sacc_StoK_Aop_vyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -6495,6 +6541,7 @@ static const GenefxFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_a8_set_alphapixel_Aop_rgba5551,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_a8_set_alphapixel_Aop_yuv444p,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_a8_set_alphapixel_Aop_argb8565,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_a8_set_alphapixel_Aop_argb,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = Bop_a8_set_alphapixel_Aop_vyu,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -6879,6 +6926,7 @@ static const GenefxFunc Bop_a1_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = Bop_a1_set_alphapixel_Aop_rgba5551,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = Bop_a1_set_alphapixel_Aop_yuv444p,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_a1_set_alphapixel_Aop_argb8565,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = Bop_a1_set_alphapixel_Aop_argb,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -7191,6 +7239,7 @@ static const GenefxFunc Bop_a1_lsb_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] 
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -8049,6 +8098,7 @@ static const GenefxFunc Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[DFB_NUM_P
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = Bop_argb_blend_alphachannel_src_invsrc_Aop_argb8565,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -8127,6 +8177,7 @@ static const GenefxFunc Bop_argb_blend_alphachannel_one_invsrc_Aop_PFI[DFB_NUM_P
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -8211,6 +8262,7 @@ static const GenefxFunc Bop_argb_blend_alphachannel_one_invsrc_premultiply_Aop_P
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -8772,6 +8824,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_RGBA5551:
                gfxs->Cop = PIXEL_RGBA5551( color.a, color.r, color.g, color.b );
                break;
+          case DSPF_RGBAF88871:
+               gfxs->Cop = PIXEL_RGBAF88871( color.a, color.r, color.g, color.b );
+               break;
           case DSPF_AVYU:
                RGB_TO_YCBCR( color.r, color.g, color.b,
                              gfxs->YCop, gfxs->CbCop, gfxs->CrCop );
@@ -8818,6 +8873,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_RGB444:
                case DSPF_RGB555:
                case DSPF_BGR555:
+               case DSPF_RGBAF88871:
                     if (dst_ycbcr &&
                         state->blittingflags & (DSBLIT_COLORIZE |
                                                 DSBLIT_SRC_PREMULTCOLOR))

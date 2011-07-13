@@ -1328,12 +1328,16 @@ typedef enum {
      DSPF_ABGR      = DFB_SURFACE_PIXELFORMAT( 37, 24, 8, 1, 0, 4, 0, 0, 0, 0, 0 ),
 
      /*  1 bit  LUT  (1 byte/ 8 pixel, 1 bit color and alpha lookup from palette) */
-     DSPF_LUT1      = DFB_SURFACE_PIXELFORMAT( 38,  1, 0, 1, 1, 0, 7, 0, 0, 1, 0 )
+     DSPF_LUT1      = DFB_SURFACE_PIXELFORMAT( 38,  1, 0, 1, 1, 0, 7, 0, 0, 1, 0 ),
+
+     /* 32 bit RGBAF (4 byte, red 8@24, green 8@16, blue 8@8, alpha 7@1, flash 1@0 */
+     DSPF_RGBAF88871 = DFB_SURFACE_PIXELFORMAT( 39, 24, 7, 1, 0, 4, 0, 0, 0, 0, 0 )
+
 
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            39
+#define DFB_NUM_PIXELFORMATS            40
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )
@@ -1377,7 +1381,8 @@ typedef enum {
       ((fmt) == DSPF_RGB18)        ||   \
       ((fmt) == DSPF_RGB444)       ||   \
       ((fmt) == DSPF_RGB555)       ||   \
-      ((fmt) == DSPF_BGR555))
+      ((fmt) == DSPF_BGR555)       ||   \
+      ((fmt) == DSPF_RGBAF88871))
 
 #define DFB_COLOR_IS_YUV(fmt)           \
      (((fmt) == DSPF_YUY2)         ||   \

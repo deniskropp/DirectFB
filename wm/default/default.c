@@ -545,6 +545,10 @@ window_at_pointer( CoreWindowStack *stack,
                                         alpha = *(u16*)(buf) & 0x0008;
                                         alpha = alpha ? 0xff : 0x00;
                                         break;
+                                   case DSPF_RGBAF88871:
+                                        alpha = *(u32*)(buf) & 0x000000fe;
+                                        alpha |= alpha >> 7;
+                                        break;
                                    case DSPF_ALUT44:
                                         alpha = *(u8*)(buf) & 0xf0;
                                         alpha |= alpha >> 4;
@@ -581,6 +585,10 @@ window_at_pointer( CoreWindowStack *stack,
                                    case DSPF_AiRGB:
                                    case DSPF_RGB32:
                                         pixel = *(u32*)(buf) & 0x00ffffff;
+                                        break;
+
+                                   case DSPF_RGBAF88871:
+                                        pixel = *(u32*)(buf) & 0xffffff00;
                                         break;
 
                                    case DSPF_RGB24:

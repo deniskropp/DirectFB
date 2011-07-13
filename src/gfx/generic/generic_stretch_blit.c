@@ -293,6 +293,7 @@ static const StretchFunctionTable *stretch_tables[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
@@ -438,6 +439,37 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                     else {
                          for (i=0; i<gfxs->Blut->num_entries; i++)
                               colors[i] = PIXEL_ABGR( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
+                    }
+                    break;
+
+               case DSPF_ARGBF88871:
+                    if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
+                         for (i=0; i<gfxs->Blut->num_entries; i++) {
+                              int alpha = entries[i].a + 1;
+
+                              switch (alpha) {
+                                   case 0:
+                                        colors[i] = 0;
+                                        break;
+
+                                   case 255:
+                                        colors[i] = PIXEL_RGBAF88871( entries[i].a,
+                                                                      entries[i].r,
+                                                                      entries[i].g,
+                                                                      entries[i].b );
+                                        break;
+
+                                   default:
+                                        colors[i] = PIXEL_RGBAF88871( entries[i].a,
+                                                                      (alpha * entries[i].r) >> 8,
+                                                                      (alpha * entries[i].g) >> 8,
+                                                                      (alpha * entries[i].b) >> 8 );
+                              }
+                         }
+                    }
+                    else {
+                         for (i=0; i<gfxs->Blut->num_entries; i++)
+                              colors[i] = PIXEL_RGBAF88871( entries[i].a, entries[i].r, entries[i].g, entries[i].b );
                     }
                     break;
 
