@@ -2019,6 +2019,46 @@ dfb_gfxcard_fillquadrangles( DFBPoint *points, int num, CardState *state )
      dfb_state_unlock( state );
 }
 
+void dfb_gfxcard_draw_mono_glyphs( const void                   *glyph[],
+                                   const DFBMonoGlyphAttributes *attributes,
+                                   const DFBPoint               *points,
+                                   unsigned int                  num,
+                                   CardState                    *state )
+{
+     int i;
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p, %p, %p, %p )\n",
+                 __FUNCTION__, glyph, attributes, points, state );
+
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( (glyph != NULL) && (attributes != NULL) && (points != NULL) );
+
+     /* The state is locked during graphics operations. */
+     dfb_state_lock( state );
+
+     /* Signal beginning of sequence of operations if not already done. */
+     dfb_state_start_drawing( state, card );
+
+     if (dfb_gfxcard_state_check( state, DFXL_DRAWMONOGLYPH ) &&
+         dfb_gfxcard_state_acquire( state, DFXL_DRAWMONOGLYPH ))
+     {
+          for( i = 0; i < num; i++ ) {
+               const DFBMonoGlyphAttributes *attri = &attributes[i];
+
+               card->funcs.DrawMonoGlyph( card->driver_data, card->device_data,
+                                          glyph[i], attri->width, attri->height, attri->rowbyte, attri->bitoffset,
+                                          points[i].x, points[i].y,
+                                          attri->fgcolor, attri->bgcolor, attri->hzoom, attri->vzoom );
+          }
+
+          dfb_gfxcard_state_release( state );
+     }
+
+     dfb_state_unlock( state );
+}
+
 D_UNUSED
 static void
 DFBVertex_Transform( DFBVertex    *v,

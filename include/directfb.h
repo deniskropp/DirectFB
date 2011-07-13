@@ -843,6 +843,8 @@ typedef enum {
      DFXL_FILLTRAPEZOID  = 0x00000010,  /* FillTrapezoid() is accelerated. */
      DFXL_FILLQUADRANGLE = 0x00000020,  /* FillQuadrangle() is accelerated. */
 
+     DFXL_DRAWMONOGLYPH  = 0x00001000,  /* DrawMonoGlyphs() is accelerated. */
+
      DFXL_BLIT           = 0x00010000,  /* Blit() and TileBlit() are accelerated. */
      DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit() is accelerated. */
      DFXL_TEXTRIANGLES   = 0x00040000,  /* TextureTriangles() is accelerated. */
@@ -852,7 +854,7 @@ typedef enum {
 
 
      DFXL_ALL            = 0x010F003F,  /* All drawing/blitting functions. */
-     DFXL_ALL_DRAW       = 0x0000003F,  /* All drawing functions. */
+     DFXL_ALL_DRAW       = 0x0000103F,  /* All drawing functions. */
      DFXL_ALL_BLIT       = 0x010F0000,  /* All blitting functions. */
 } DFBAccelerationMask;
 
@@ -3634,6 +3636,20 @@ typedef struct {
      DFBColor            upper;
 } DFBColorKeyExtended;
 
+/*
+ * Attributes for DrawMonoGlyphs
+ */
+typedef struct {
+     int  width;         /* glyph width */
+     int  height;        /* glyph height */
+     int  rowbyte;       /* glyph rowbyte */
+     int  bitoffset;     /* glyph bitoffset */
+     int  fgcolor;       /* foreground color */
+     int  bgcolor;       /* background color */
+     int  hzoom;         /* horizontal zoom factor */
+     int  vzoom;         /* vertical zoom factor */
+} DFBMonoGlyphAttributes;
+
 
 /********************
  * IDirectFBSurface *
@@ -4591,6 +4607,22 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*SetDstColorKeyExtended) (
           IDirectFBSurface          *thiz,
           const DFBColorKeyExtended *colorkey_extended
+     );
+
+
+   /** Drawing functions **/
+
+     /*
+      * Blit monochrome glyph data with attributes.
+      *
+      * This is a very special function with no software implementation yet.
+      */
+     DFBResult (*DrawMonoGlyphs) (
+           IDirectFBSurface             *thiz,
+           const void                   *glyph[],
+           const DFBMonoGlyphAttributes *attributes,
+           const DFBPoint               *dest_points,
+           unsigned int                  num
      );
 )
 

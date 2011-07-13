@@ -2864,6 +2864,47 @@ IDirectFBSurface_SetDstColorKeyExtended( IDirectFBSurface          *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_DrawMonoGlyphs( IDirectFBSurface             *thiz,
+                                 const void                   *glyphs[],
+                                 const DFBMonoGlyphAttributes *attributes,
+                                 const DFBPoint               *dest_points,
+                                 unsigned int                  num )
+{
+     int       i, dx, dy;
+     DFBPoint *points;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!glyphs || !attributes || !dest_points || num < 1)
+          return DFB_INVARG;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     dx = data->area.wanted.x;
+     dy = data->area.wanted.y;
+
+     points = alloca( sizeof(DFBPoint) * num );
+
+     for (i=0; i<num; i++) {
+          points[i].x = dest_points[i].x + dx;
+          points[i].y = dest_points[i].y + dy;
+     }
+
+     dfb_gfxcard_draw_mono_glyphs( glyphs, attributes, points, num, &data->state );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -3038,6 +3079,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->SetSrcColorKeyExtended = IDirectFBSurface_SetSrcColorKeyExtended;
      thiz->SetDstColorKeyExtended = IDirectFBSurface_SetDstColorKeyExtended;
+
+     thiz->DrawMonoGlyphs = IDirectFBSurface_DrawMonoGlyphs;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

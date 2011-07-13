@@ -253,6 +253,10 @@ typedef struct _GraphicsDeviceFuncs {
      bool (*FillQuadrangles)( void *driver_data, void *device_data,
                               DFBPoint *points, int num );
 
+     bool (*DrawMonoGlyph)   ( void *driver_data, void *device_data,
+                               const void *glyph, int glyph_width, int glyph_height, int glyph_rowbyte, int glyph_offset,
+                               int dx, int dy, int fg_color, int bg_color, int hzoom, int vzoom );
+
      /*
       * blitting functions
       */
@@ -363,6 +367,12 @@ void dfb_gfxcard_fillquadrangles        ( DFBPoint             *points,
 void dfb_gfxcard_filltrapezoids         ( const DFBTrapezoid   *traps,
                                           int                   num,
                                           CardState            *state );
+
+void dfb_gfxcard_draw_mono_glyphs       ( const void                   *glyph[],
+                                          const DFBMonoGlyphAttributes *attributes,
+                                          const DFBPoint               *points,
+                                          unsigned int                  num,
+                                          CardState                    *state );
 
 void dfb_gfxcard_blit                   ( DFBRectangle         *rect,
                                           int                   dx,
