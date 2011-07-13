@@ -2838,6 +2838,32 @@ IDirectFBSurface_SetRop( IDirectFBSurface      *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_SetSrcColorKeyExtended( IDirectFBSurface          *thiz,
+                                         const DFBColorKeyExtended *colorkey_extended )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     dfb_state_set_src_colorkey_extended( &data->state, colorkey_extended );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_SetDstColorKeyExtended( IDirectFBSurface          *thiz,
+                                         const DFBColorKeyExtended *colorkey_extended )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     dfb_state_set_dst_colorkey_extended( &data->state, colorkey_extended );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -3009,6 +3035,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->SetWriteMaskBits = IDirectFBSurface_SetWriteMaskBits;
      thiz->SetRop = IDirectFBSurface_SetRop;
+
+     thiz->SetSrcColorKeyExtended = IDirectFBSurface_SetSrcColorKeyExtended;
+     thiz->SetDstColorKeyExtended = IDirectFBSurface_SetDstColorKeyExtended;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

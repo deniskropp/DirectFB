@@ -70,6 +70,9 @@ typedef enum {
      SMF_RENDER_OPTIONS    = 0x00010000,
      SMF_MATRIX            = 0x00020000,
 
+     SMF_SRC_COLORKEY_EXTENDED = 0x00040000,
+     SMF_DST_COLORKEY_EXTENDED = 0x00080000,
+
      SMF_SOURCE2           = 0x00100000,
 
      SMF_ROP_CODE          = 0x01000000,
@@ -77,7 +80,7 @@ typedef enum {
      SMF_ROP_BG_COLOR      = 0x04000000,
      SMF_ROP_PATTERN       = 0x08000000,
 
-     SMF_ALL               = 0x0F137FFF
+     SMF_ALL               = 0x0F1F7FFF
 } StateModificationFlags;
 
 typedef enum {
@@ -192,6 +195,9 @@ struct _CardState {
      DFBColor                 rop_bg_color;
      u32                      rop_pattern[32];
      DFBSurfacePatternMode    rop_pattern_mode;
+
+     DFBColorKeyExtended      src_colorkey_extended;
+     DFBColorKeyExtended      dst_colorkey_extended;
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
@@ -407,6 +413,34 @@ static inline void dfb_state_set_source_mask_vals( CardState           *state,
           state->src_mask_flags  = flags;
 
           state->modified = (StateModificationFlags)( state->modified | SMF_SOURCE_MASK_VALS );
+     }
+}
+
+static inline void dfb_state_set_src_colorkey_extended( CardState *state, const DFBColorKeyExtended *key )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( key != NULL );
+
+     if (state->src_colorkey_extended.polarity != key->polarity ||
+         ! DFB_COLOR_EQUAL( state->src_colorkey_extended.lower, key->lower ) ||
+         ! DFB_COLOR_EQUAL( state->src_colorkey_extended.upper, key->upper ))
+     {
+          state->src_colorkey_extended = *key;
+          state->modified              = (StateModificationFlags)( state->modified | SMF_SRC_COLORKEY_EXTENDED );
+     }
+}
+
+static inline void dfb_state_set_dst_colorkey_extended( CardState *state, const DFBColorKeyExtended *key )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( key != NULL );
+
+     if (state->dst_colorkey_extended.polarity != key->polarity ||
+         ! DFB_COLOR_EQUAL( state->dst_colorkey_extended.lower, key->lower ) ||
+         ! DFB_COLOR_EQUAL( state->dst_colorkey_extended.upper, key->upper ))
+     {
+          state->dst_colorkey_extended = *key;
+          state->modified              = (StateModificationFlags)( state->modified | SMF_DST_COLORKEY_EXTENDED );
      }
 }
 

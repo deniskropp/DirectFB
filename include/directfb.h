@@ -775,41 +775,43 @@ typedef enum {
  * Flags controlling blitting commands.
  */
 typedef enum {
-     DSBLIT_NOFX               = 0x00000000, /* uses none of the effects */
-     DSBLIT_BLEND_ALPHACHANNEL = 0x00000001, /* enables blending and uses
-                                                alphachannel from source */
-     DSBLIT_BLEND_COLORALPHA   = 0x00000002, /* enables blending and uses
-                                                alpha value from color */
-     DSBLIT_COLORIZE           = 0x00000004, /* modulates source color with
-                                                the color's r/g/b values */
-     DSBLIT_SRC_COLORKEY       = 0x00000008, /* don't blit pixels matching the source color key */
-     DSBLIT_DST_COLORKEY       = 0x00000010, /* write to destination only if the destination pixel
-                                                matches the destination color key */
-     DSBLIT_SRC_PREMULTIPLY    = 0x00000020, /* modulates the source color with the (modulated)
-                                                source alpha */
-     DSBLIT_DST_PREMULTIPLY    = 0x00000040, /* modulates the dest. color with the dest. alpha */
-     DSBLIT_DEMULTIPLY         = 0x00000080, /* divides the color by the alpha before writing the
-                                                data to the destination */
-     DSBLIT_DEINTERLACE        = 0x00000100, /* deinterlaces the source during blitting by reading
-                                                only one field (every second line of full
-                                                image) scaling it vertically by factor two */
-     DSBLIT_SRC_PREMULTCOLOR   = 0x00000200, /* modulates the source color with the color alpha */
-     DSBLIT_XOR                = 0x00000400, /* bitwise xor the destination pixels with the
-                                                source pixels after premultiplication */
-     DSBLIT_INDEX_TRANSLATION  = 0x00000800, /* do fast indexed to indexed translation,
-                                                this flag is mutual exclusive with all others */
-     DSBLIT_ROTATE90           = 0x00002000, /* rotate the image by 90 degree */
-     DSBLIT_ROTATE180          = 0x00001000, /* rotate the image by 180 degree */
-     DSBLIT_ROTATE270          = 0x00004000, /* rotate the image by 270 degree */
-     DSBLIT_COLORKEY_PROTECT   = 0x00010000, /* make sure written pixels don't match color key (internal only ATM) */
-     DSBLIT_SRC_MASK_ALPHA     = 0x00100000, /* modulate source alpha channel with alpha channel from source mask,
-                                                see also IDirectFBSurface::SetSourceMask() */
-     DSBLIT_SRC_MASK_COLOR     = 0x00200000, /* modulate source color channels with color channels from source mask,
-                                                see also IDirectFBSurface::SetSourceMask() */
-     DSBLIT_SOURCE2            = 0x00400000, /* use secondary source instead of destination for reading */
-     DSBLIT_FLIP_HORIZONTAL    = 0x01000000, /* flip the image horizontally */
-     DSBLIT_FLIP_VERTICAL      = 0x02000000, /* flip the image vertically */
-     DSBLIT_ROP                = 0x04000000, /* use rop setting */
+     DSBLIT_NOFX                   = 0x00000000, /* uses none of the effects */
+     DSBLIT_BLEND_ALPHACHANNEL     = 0x00000001, /* enables blending and uses
+                                                    alphachannel from source */
+     DSBLIT_BLEND_COLORALPHA       = 0x00000002, /* enables blending and uses
+                                                    alpha value from color */
+     DSBLIT_COLORIZE               = 0x00000004, /* modulates source color with
+                                                    the color's r/g/b values */
+     DSBLIT_SRC_COLORKEY           = 0x00000008, /* don't blit pixels matching the source color key */
+     DSBLIT_DST_COLORKEY           = 0x00000010, /* write to destination only if the destination pixel
+                                                    matches the destination color key */
+     DSBLIT_SRC_PREMULTIPLY        = 0x00000020, /* modulates the source color with the (modulated)
+                                                    source alpha */
+     DSBLIT_DST_PREMULTIPLY        = 0x00000040, /* modulates the dest. color with the dest. alpha */
+     DSBLIT_DEMULTIPLY             = 0x00000080, /* divides the color by the alpha before writing the
+                                                    data to the destination */
+     DSBLIT_DEINTERLACE            = 0x00000100, /* deinterlaces the source during blitting by reading
+                                                    only one field (every second line of full
+                                                    image) scaling it vertically by factor two */
+     DSBLIT_SRC_PREMULTCOLOR       = 0x00000200, /* modulates the source color with the color alpha */
+     DSBLIT_XOR                    = 0x00000400, /* bitwise xor the destination pixels with the
+                                                    source pixels after premultiplication */
+     DSBLIT_INDEX_TRANSLATION      = 0x00000800, /* do fast indexed to indexed translation,
+                                                    this flag is mutual exclusive with all others */
+     DSBLIT_ROTATE90               = 0x00002000, /* rotate the image by 90 degree */
+     DSBLIT_ROTATE180              = 0x00001000, /* rotate the image by 180 degree */
+     DSBLIT_ROTATE270              = 0x00004000, /* rotate the image by 270 degree */
+     DSBLIT_COLORKEY_PROTECT       = 0x00010000, /* make sure written pixels don't match color key (internal only ATM) */
+     DSBLIT_SRC_COLORKEY_EXTENDED  = 0x00020000, /* use extended source color key */
+     DSBLIT_DST_COLORKEY_EXTENDED  = 0x00040000, /* use extended destination color key */
+     DSBLIT_SRC_MASK_ALPHA         = 0x00100000, /* modulate source alpha channel with alpha channel from source mask,
+                                                    see also IDirectFBSurface::SetSourceMask() */
+     DSBLIT_SRC_MASK_COLOR         = 0x00200000, /* modulate source color channels with color channels from source mask,
+                                                    see also IDirectFBSurface::SetSourceMask() */
+     DSBLIT_SOURCE2                = 0x00400000, /* use secondary source instead of destination for reading */
+     DSBLIT_FLIP_HORIZONTAL        = 0x01000000, /* flip the image horizontally */
+     DSBLIT_FLIP_VERTICAL          = 0x02000000, /* flip the image vertically */
+     DSBLIT_ROP                    = 0x04000000, /* use rop setting */
 } DFBSurfaceBlittingFlags;
 
 /*
@@ -3615,6 +3617,24 @@ typedef enum {
      DSPM_32_32_MONO          =  1,
 } DFBSurfacePatternMode;
 
+/*
+ * Color key polarity
+ */
+typedef enum {
+     DCKP_DEFAULT   = 0,
+     DCKP_OTHER     = 1
+} DFBColorKeyPolarity;
+
+/*
+ * Extended color key definition
+ */
+typedef struct {
+     DFBColorKeyPolarity polarity;
+     DFBColor            lower;
+     DFBColor            upper;
+} DFBColorKeyExtended;
+
+
 /********************
  * IDirectFBSurface *
  ********************/
@@ -4555,6 +4575,22 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           const DFBColor           *bg_color,
           const u32                *pattern,
           DFBSurfacePatternMode     pattern_mode
+     );
+
+     /*
+      * Sets extended source color keying.
+      */
+     DFBResult (*SetSrcColorKeyExtended) (
+          IDirectFBSurface          *thiz,
+          const DFBColorKeyExtended *key_extended
+     );
+
+     /*
+      * Sets extended destination color keying.
+      */
+     DFBResult (*SetDstColorKeyExtended) (
+          IDirectFBSurface          *thiz,
+          const DFBColorKeyExtended *colorkey_extended
      );
 )
 
