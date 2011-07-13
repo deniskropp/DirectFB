@@ -983,9 +983,10 @@ DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_ASSERT( call != NULL );
-     D_ASSERT( call->handler != NULL );
+     D_ASSERT( call->handler != NULL || call->handler3 != NULL );
 
-     call->handler = NULL;
+     call->handler  = NULL;
+     call->handler3 = NULL;
 
      return DR_OK;
 }
