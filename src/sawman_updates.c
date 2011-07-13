@@ -464,10 +464,6 @@ repaint_tier( SaWMan              *sawman,
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawman, tier );
 
-     /* Set destination. */
-     state->destination  = surface;
-     state->modified    |= SMF_DESTINATION;
-
      for (i=0; i<num_updates; i++) {
           const DFBRegion *update = &updates[i];
 
@@ -475,6 +471,10 @@ repaint_tier( SaWMan              *sawman,
 
           D_DEBUG_AT( SaWMan_Update, "  -> %d, %d - %dx%d  (%d)\n",
                       DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
+
+          /* Set destination. */
+          state->destination  = surface;
+          state->modified    |= SMF_DESTINATION;
 
           if (!DFB_PLANAR_PIXELFORMAT(region->config.format))
                dfb_state_set_dst_colorkey( state, dfb_color_to_pixel( region->config.format,
