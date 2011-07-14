@@ -2921,6 +2921,22 @@ IDirectFBSurface_SetSrcColorMatrix( IDirectFBSurface *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_SetSrcConvolution( IDirectFBSurface           *thiz,
+                                    const DFBConvolutionFilter *filter )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, filter );
+
+     if (!filter)
+          return DFB_INVARG;
+
+     dfb_state_set_src_convolution( &data->state, filter );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -3099,6 +3115,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->DrawMonoGlyphs = IDirectFBSurface_DrawMonoGlyphs;
 
      thiz->SetSrcColorMatrix = IDirectFBSurface_SetSrcColorMatrix;
+     thiz->SetSrcConvolution = IDirectFBSurface_SetSrcConvolution;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

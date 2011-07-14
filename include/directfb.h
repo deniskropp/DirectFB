@@ -813,6 +813,7 @@ typedef enum {
      DSBLIT_FLIP_VERTICAL          = 0x02000000, /* flip the image vertically */
      DSBLIT_ROP                    = 0x04000000, /* use rop setting */
      DSBLIT_SRC_COLORMATRIX        = 0x08000000, /* use source color matrix setting */
+     DSBLIT_SRC_CONVOLUTION        = 0x10000000, /* use source convolution filter */
 } DFBSurfaceBlittingFlags;
 
 /*
@@ -3646,6 +3647,18 @@ typedef struct {
      int  vzoom;         /* vertical zoom factor */
 } DFBMonoGlyphAttributes;
 
+/*
+ * Convolution filter
+ *
+ * The kernel consists of 3x3 fixed point 16.16 values.
+ * Additionally there are scale and bias, also fixed point 16.16 values.
+ */
+typedef struct {
+     s32  kernel[9];
+     s32  scale;
+     s32  bias;
+} DFBConvolutionFilter;
+
 
 /********************
  * IDirectFBSurface *
@@ -4643,6 +4656,16 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*SetSrcColorMatrix) (
           IDirectFBSurface         *thiz,
           const s32                *matrix
+     );
+
+     /*
+      * Set the source convolution filter.
+      *
+      * Enable usage of this filter by setting DSBLIT_SRC_CONVOLUTION via IDirectFBSurface::SetBlittingFlags().
+      */
+     DFBResult (*SetSrcConvolution) (
+          IDirectFBSurface              *thiz,
+          const DFBConvolutionFilter    *filter
      );
 )
 

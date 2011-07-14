@@ -75,13 +75,14 @@ typedef enum {
      SMF_DST_COLORKEY_EXTENDED = 0x00080000,
 
      SMF_SOURCE2           = 0x00100000,
+     SMF_SRC_CONVOLUTION   = 0x00200000,
 
      SMF_ROP_CODE          = 0x01000000,
      SMF_ROP_FG_COLOR      = 0x02000000,
      SMF_ROP_BG_COLOR      = 0x04000000,
      SMF_ROP_PATTERN       = 0x08000000,
 
-     SMF_ALL               = 0x0F1FFFFF
+     SMF_ALL               = 0x0F3FFFFF
 } StateModificationFlags;
 
 typedef enum {
@@ -201,6 +202,8 @@ struct _CardState {
      DFBColorKeyExtended      dst_colorkey_extended;
 
      s32                      src_colormatrix[12];     /* transformation matrix for DSBLIT_SRC_COLORMATRIX (fixed 16.16) */
+
+     DFBConvolutionFilter     src_convolution;
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
@@ -226,6 +229,9 @@ void dfb_state_set_rop_pattern( CardState             *state,
 
 void dfb_state_set_src_colormatrix( CardState *state,
                                     const s32 *matrix );
+
+void dfb_state_set_src_convolution( CardState                  *state,
+                                    const DFBConvolutionFilter *filter );
 
 static inline void
 dfb_state_get_serial( const CardState *state, CoreGraphicsSerial *ret_serial )

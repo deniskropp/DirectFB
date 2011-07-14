@@ -133,6 +133,9 @@ dfb_state_init( CardState *state, CoreDFB *core )
      state->src_colormatrix[10] = 0x10000;
      state->src_colormatrix[11] = 0x00000;
 
+     state->src_convolution.kernel[4] = 0x10000;
+     state->src_convolution.scale     = 0x10000;
+
      direct_util_recursive_pthread_mutex_init( &state->lock );
 
      direct_serial_init( &state->dst_serial );
@@ -486,6 +489,21 @@ dfb_state_set_src_colormatrix( CardState *state,
           direct_memcpy( state->src_colormatrix, matrix, sizeof(state->src_colormatrix) );
 
           state->modified |= SMF_SRC_COLORMATRIX;
+     }
+}
+
+void
+dfb_state_set_src_convolution( CardState                  *state,
+                               const DFBConvolutionFilter *filter )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     D_ASSERT( filter != NULL );
+
+     if (memcmp( &state->src_convolution, filter, sizeof(state->src_convolution) )) {
+          direct_memcpy( &state->src_convolution, filter, sizeof(state->src_convolution) );
+
+          state->modified |= SMF_SRC_CONVOLUTION;
      }
 }
 
