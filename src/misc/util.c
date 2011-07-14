@@ -462,8 +462,6 @@ DFBSurfacePixelFormat
 dfb_pixelformat_for_depth( int depth )
 {
      switch (depth) {
-          case 1:
-               return DSPF_LUT1;
           case 2:
                return DSPF_LUT2;
           case 8:

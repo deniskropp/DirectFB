@@ -1331,17 +1331,13 @@ typedef enum {
      /* 32 bit  ABGR (4 byte, alpha 8@24, blue 8@16, green 8@8, red 8@0) */
      DSPF_ABGR      = DFB_SURFACE_PIXELFORMAT( 37, 24, 8, 1, 0, 4, 0, 0, 0, 0, 0 ),
 
-     /*  1 bit  LUT  (1 byte/ 8 pixel, 1 bit color and alpha lookup from palette) */
-     DSPF_LUT1      = DFB_SURFACE_PIXELFORMAT( 38,  1, 0, 1, 1, 0, 7, 0, 0, 1, 0 ),
-
      /* 32 bit RGBAF (4 byte, red 8@24, green 8@16, blue 8@8, alpha 7@1, flash 1@0 */
-     DSPF_RGBAF88871 = DFB_SURFACE_PIXELFORMAT( 39, 24, 7, 1, 0, 4, 0, 0, 0, 0, 0 )
-
+     DSPF_RGBAF88871 = DFB_SURFACE_PIXELFORMAT( 38, 24, 7, 1, 0, 4, 0, 0, 0, 0, 0 )
 
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            40
+#define DFB_NUM_PIXELFORMATS            39
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )
@@ -1374,7 +1370,6 @@ typedef enum {
       ((fmt) == DSPF_RGB24)        ||   \
       ((fmt) == DSPF_RGB32)        ||   \
       ((fmt) == DSPF_ARGB)         ||   \
-      ((fmt) == DSPF_ABGR)         ||   \
       ((fmt) == DSPF_RGB332)       ||   \
       ((fmt) == DSPF_AiRGB)        ||   \
       ((fmt) == DSPF_ARGB2554)     ||   \
@@ -1888,8 +1883,8 @@ D_DEFINE_INTERFACE(   IDirectFB,
       * resolution of the window that is created implicitly for
       * the primary surface.
       *
-      * The following values are valid for bpp: 1, 2, 8, 12, 14, 15, 16, 18, 24, 32.
-      * These will result in the following formats, respectively: DSPF_LUT1, DSPF_LUT2,
+      * The following values are valid for bpp: 2, 8, 12, 14, 15, 18, 24, 32.
+      * These will result in the following formats, respectively: DSPF_LUT2,
       *  DSPF_LUT8, DSPF_ARGB4444, DSPF_ARGB2554, DSPF_ARGB1555, DSPF_RGB16,
       *  DSPF_RGB18, DSPF_RGB24, DSPF_RGB32.
       */

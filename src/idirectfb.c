@@ -626,7 +626,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           case DSPF_AVYU:
           case DSPF_AiRGB:
           case DSPF_I420:
-          case DSPF_LUT1:
           case DSPF_LUT2:
           case DSPF_LUT8:
           case DSPF_ALUT44:
