@@ -99,7 +99,6 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
 
      switch (gfxs->src_format) {
-          case DSPF_LUT1:
           case DSPF_A4:
           case DSPF_YUY2:
           case DSPF_UYVY:
@@ -110,7 +109,6 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      }
 
      switch (gfxs->dst_format) {
-          case DSPF_LUT1:
           case DSPF_A4:
           case DSPF_YUY2:
           case DSPF_UYVY:
