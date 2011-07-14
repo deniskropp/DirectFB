@@ -812,6 +812,7 @@ typedef enum {
      DSBLIT_FLIP_HORIZONTAL        = 0x01000000, /* flip the image horizontally */
      DSBLIT_FLIP_VERTICAL          = 0x02000000, /* flip the image vertically */
      DSBLIT_ROP                    = 0x04000000, /* use rop setting */
+     DSBLIT_SRC_COLORMATRIX        = 0x08000000, /* use source color matrix setting */
 } DFBSurfaceBlittingFlags;
 
 /*
@@ -4623,6 +4624,30 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
            const DFBMonoGlyphAttributes *attributes,
            const DFBPoint               *dest_points,
            unsigned int                  num
+     );
+
+
+   /** Blitting control **/
+
+     /*
+      * Set the source color matrix.
+      *
+      * Enable usage of this matrix by setting DSBLIT_SRC_COLORMATRIX via IDirectFBSurface::SetBlittingFlags().
+      *
+      * The matrix consists of 4x3 fixed point 16.16 values.
+      * The order in the array is from left to right and from top to bottom.
+      *
+      * All RGB values will be transformed:
+      *
+      * <pre>
+      *        R' = R * v0 + G * v1 + B * v2  + v3
+      *        G' = R * v4 + G * v5 + B * v6  + v7
+      *        B' = R * v8 + G * v9 + B * v10 + v11
+      * </pre>
+      */
+     DFBResult (*SetSrcColorMatrix) (
+          IDirectFBSurface         *thiz,
+          const s32                *matrix
      );
 )
 

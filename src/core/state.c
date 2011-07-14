@@ -118,6 +118,21 @@ dfb_state_init( CardState *state, CoreDFB *core )
      state->from      = CSBR_FRONT;
      state->to        = CSBR_BACK;
 
+     state->src_colormatrix[0]  = 0x10000;
+     state->src_colormatrix[1]  = 0x00000;
+     state->src_colormatrix[2]  = 0x00000;
+     state->src_colormatrix[3]  = 0x00000;
+
+     state->src_colormatrix[4]  = 0x00000;
+     state->src_colormatrix[5]  = 0x10000;
+     state->src_colormatrix[6]  = 0x00000;
+     state->src_colormatrix[7]  = 0x00000;
+
+     state->src_colormatrix[8]  = 0x00000;
+     state->src_colormatrix[9]  = 0x00000;
+     state->src_colormatrix[10] = 0x10000;
+     state->src_colormatrix[11] = 0x00000;
+
      direct_util_recursive_pthread_mutex_init( &state->lock );
 
      direct_serial_init( &state->dst_serial );
@@ -456,6 +471,21 @@ dfb_state_set_rop_pattern( CardState             *state,
 
           default:
                D_BUG( "unknown pattern mode %d", pattern_mode );
+     }
+}
+
+void
+dfb_state_set_src_colormatrix( CardState *state,
+                               const s32 *matrix )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     D_ASSERT( matrix != NULL );
+
+     if (memcmp( state->src_colormatrix, matrix, sizeof(state->src_colormatrix) )) {
+          direct_memcpy( state->src_colormatrix, matrix, sizeof(state->src_colormatrix) );
+
+          state->modified |= SMF_SRC_COLORMATRIX;
      }
 }
 

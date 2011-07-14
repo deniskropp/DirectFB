@@ -2905,6 +2905,22 @@ IDirectFBSurface_DrawMonoGlyphs( IDirectFBSurface             *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_SetSrcColorMatrix( IDirectFBSurface *thiz,
+                                    const s32        *matrix )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, matrix );
+
+     if (!matrix)
+          return DFB_INVARG;
+
+     dfb_state_set_src_colormatrix( &data->state, matrix );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -3081,6 +3097,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetDstColorKeyExtended = IDirectFBSurface_SetDstColorKeyExtended;
 
      thiz->DrawMonoGlyphs = IDirectFBSurface_DrawMonoGlyphs;
+
+     thiz->SetSrcColorMatrix = IDirectFBSurface_SetSrcColorMatrix;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );
