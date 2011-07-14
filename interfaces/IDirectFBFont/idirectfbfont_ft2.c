@@ -884,7 +884,6 @@ Construct( IDirectFBFont               *thiz,
 
      if (dfb_config->font_format == DSPF_A1 ||
                dfb_config->font_format == DSPF_A1_LSB ||
-               dfb_config->font_format == DSPF_LUT1   ||
                dfb_config->font_format == DSPF_ARGB1555 ||
                dfb_config->font_format == DSPF_RGBA5551)
           load_mono = true;
@@ -1006,7 +1005,6 @@ Construct( IDirectFBFont               *thiz,
                font->pixel_format == DSPF_A8 ||
                font->pixel_format == DSPF_A4 ||
                font->pixel_format == DSPF_A1 ||
-               font->pixel_format == DSPF_LUT1 ||
                font->pixel_format == DSPF_A1_LSB );
 
      font->ascender   = face->size->metrics.ascender >> 6;

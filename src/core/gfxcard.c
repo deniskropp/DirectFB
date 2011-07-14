@@ -2936,7 +2936,6 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      if (ret)
           return;
 
-
      font_state_prepare( state, &state_backup, font, surface );
 
      dfb_font_lock( font );
@@ -2973,20 +2972,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                               num_blits = 0;
                          }
 
-                         if (glyph->surface != state->source) {
+                         if (glyph->surface != state->source)
                               dfb_state_set_source( state, glyph->surface );
-
-                              // FIXME: remove after API Changes for setting bg and fg colors
-                              if (state->source->config.format == DSPF_LUT1) {
-                                   DFBColor color0 = {0x7f,0xff,0x00,0x00};
-                                   DFBColor color1 = {0xff,0x00,0xff,0x00};
-
-                                   D_ONCE("You are trying to display a LUT1 font, this is not yet implemented correctly. Forcing colors.\n");
-
-                                   state->source->palette->entries[0] = color0;
-                                   state->source->palette->entries[1] = color1;
-                              }
-                         }
                     }
 
                     points[num_blits] = (DFBPoint){ x + glyph->left, y + glyph->top };

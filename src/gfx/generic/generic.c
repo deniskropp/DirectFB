@@ -3458,40 +3458,6 @@ static void Sop_lut8_to_Dacc( GenefxState *gfxs )
      }
 }
 
-static void Sop_lut1_to_Dacc( GenefxState *gfxs )
-{
-     int                w = gfxs->length;
-     GenefxAccumulator *D = gfxs->Dacc;
-     u8                *S = gfxs->Sop[0];
-
-     DFBColor color0 = gfxs->Slut->entries[0];
-     DFBColor color1 = gfxs->Slut->entries[1];
-
-     while (w) {
-          int j = 8 - MIN(8,w);
-          int i;
-
-          u8 s = *S++;
-
-          for (i=7; i>=j;i--) {
-               if ((s>>i) & 1) {
-                    D->RGB.a = color1.a;
-                    D->RGB.r = color1.r;
-                    D->RGB.g = color1.g;
-                    D->RGB.b = color1.b;
-               }
-               else {
-                    D->RGB.a = color0.a;
-                    D->RGB.r = color0.r;
-                    D->RGB.g = color0.g;
-                    D->RGB.b = color0.b;
-               }
-               D++;
-          }
-          w-=(8-j);
-     }
-}
-
 static void Sop_alut44_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
@@ -3685,7 +3651,7 @@ static GenefxFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = Sop_argb1666_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = Sop_argb6666_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = Sop_rgb18_to_Dacc,
-     [DFB_PIXELFORMAT_INDEX(DSPF_LUT1)]     = Sop_lut1_to_Dacc,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT1)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = Sop_xrgb4444_to_Dacc,
      [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = Sop_xrgb1555_to_Dacc,
@@ -6932,7 +6898,6 @@ static const GenefxFunc Bop_a1_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
      [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
 };
-
 
 /************** Bop_a1_lsb_set_alphapixel_Aop_PFI *********************************/
 
