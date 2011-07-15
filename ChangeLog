@@ -1,4 +1,107 @@
-commit 653ff4ee5d1c4f0f02e427c760a499df59353386
+commit ba84b928a9d1db8e37fb2b16ee58863f6e6497e7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jul 15 01:24:01 2011 +0200
+
+    IDirectFBSurface: Add DSBLIT_SRC_CONVOLUTION, SetSrcConvolution() and DFBConvolutionFilter with a 3x3 kernel, scale and bias. No SW implementation yet.
+
+commit d692bf9abc10e3907f521741d5d30cd014ed3549
+Merge: 2a03bf9 fdbb520
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jul 15 01:01:21 2011 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 2a03bf9786053bc07bbfae2991d1d4c8289b7595
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jul 15 01:00:27 2011 +0200
+
+    IDirectFBSurface: Add DSBLIT_SRC_COLORMATRIX and SetSrcColorMatrix(). No SW implementation yet.
+
+commit fdbb520b19e33554971f5d779064521031735d26
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jul 14 11:23:51 2011 +0200
+
+    Revert "added LUT1 pixelformat, almost unimplemented yet(same level as LUT2)"
+    
+    This reverts commit 63b67096cd2e9bd96a0cc5a02bc5f82691d988db.
+
+commit 83e520675785f29bec8e536223d5dd6f936640df
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jul 14 11:08:56 2011 +0200
+
+    Revert "lut1: implemented Sop_lut1_to_Dacc for minimal LUT1 font support"
+    
+    This reverts commit 67751d2b3d6e53757b172813dc93cc0646e172af.
+
+commit 9a27640d538c9aa31510ce84c42bfd9e83c8b3a7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 14 00:38:33 2011 +0100
+
+    IDirectFBSurface: Add special monochrome rendering function for characters: DrawMonoGlyphs(). No SW implementation yet.
+
+commit 29136d583486ac7c59010c7728e2b83d3d9a3e3b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 13 23:23:09 2011 +0100
+
+    IDirectFBSurface: Add extended source/destination color keying, no SW implementation so far.
+    
+    Add DSBLIT_SRC_COLORKEY_EXTENDED and DSBLIT_DST_COLORKEY_EXTENDED.
+    Add DFBColorKeyPolarity with DEFAULT and OTHER.
+    Add DFBColorKeyExtended with polarity and lower/upper color.
+    Add IDirectFBSurface::SetSrcColorKeyExtended() and SetDstColorKeyExtended().
+
+commit fcf38a71aaf0851af757a229beae2fc6831442b7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 13 22:13:28 2011 +0100
+
+    Fusion: Fix assertion in single app fusion_call_destroy().
+
+commit 6c6497bc252d70dcf09339759f30f930ec9a545d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jul 13 19:20:17 2011 +0200
+
+    added basic RGBAF88871 pixelformat support
+
+commit 47c81d26fb79012da2f135b68613321b0644ac5f
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jul 13 17:50:25 2011 +0200
+
+    remove test file
+
+commit ee1c18bef58c4f5f7d0307537ed35312d640cb12
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jul 13 17:45:56 2011 +0200
+
+    test: sorry, we are fighting with git
+
+commit 67751d2b3d6e53757b172813dc93cc0646e172af
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jul 13 14:57:00 2011 +0200
+
+    lut1: implemented Sop_lut1_to_Dacc for minimal LUT1 font support
+    
+    NOTE: LUT1 font support is unfinished, background and foreground colors are
+    hardcoded.
+
+commit 63b67096cd2e9bd96a0cc5a02bc5f82691d988db
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Jul 12 15:22:11 2011 +0200
+
+    added LUT1 pixelformat, almost unimplemented yet(same level as LUT2)
+
+commit b0a689fdff012e7c5d04700a6fb53aa9b20e5d95
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 7 18:30:35 2011 +0200
+
+    direct: Add DIRECT_OS_FAMOS
+
+commit 7344fa9a5169e84c86357e8339c9bca9f2529146
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 7 18:30:13 2011 +0200
+
+    version: 1.5.1
+
+commit d9bed4c8daa67892dab6744e80737197fd16cf43
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Thu Jul 7 03:15:34 2011 +0200
 

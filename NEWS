@@ -1,3 +1,29 @@
+1.5.1
+-----
+
+API | IDirectFBSurface
+- Add extended source/destination color keying, no SW implementation so far.
+- Add DSBLIT_SRC_COLORKEY_EXTENDED and DSBLIT_DST_COLORKEY_EXTENDED.
+- Add DFBColorKeyPolarity with DEFAULT and OTHER.
+- Add DFBColorKeyExtended with polarity and lower/upper color.
+- Add IDirectFBSurface::SetSrcColorKeyExtended() and SetDstColorKeyExtended().
+
+API | IDirectFBSurface
+- Add special monochrome rendering function for characters: DrawMonoGlyphs(). No SW implementation yet.
+
+API | IDirectFBSurface
+- Add DSBLIT_SRC_COLORMATRIX and SetSrcColorMatrix(). No SW implementation yet.
+
+API | IDirectFBSurface
+- Add DSBLIT_SRC_CONVOLUTION, SetSrcConvolution() and DFBConvolutionFilter with a 3x3 kernel, scale and bias. No SW implementation yet.
+
+API | IDirectFBSurface
+- Add RGBAF88871 pixel format support (F is flashing bit, e.g. for ARIB CC)
+
+Fusion
+- Fix assertion in single app fusion_call_destroy().
+
+
 1.5.0
 -----
 
