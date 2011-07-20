@@ -245,7 +245,7 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
 
 #if defined(ARCH_MIPS)
 
-static inline int _D__atomic_cmpxchg(volatile int *ptr, int old, int new)
+static inline int _D__atomic_cmpxchg(volatile int *ptr, int old, int _new)
 {
 	unsigned long retval;
 
@@ -266,7 +266,7 @@ static inline int _D__atomic_cmpxchg(volatile int *ptr, int old, int new)
               "2:							\n"
               "	.set	pop					\n"
               : "=&r" (retval), "=R" (*ptr)
-              : "R" (*ptr), "Jr" (old), "Jr" (new)
+              : "R" (*ptr), "Jr" (old), "Jr" (_new)
               : "memory");
 
 	return retval;
