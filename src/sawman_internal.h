@@ -252,6 +252,8 @@ struct __SaWMan_SaWMan {
 
           SaWManWindow        *confined;
      } cursor;
+
+     FusionCall                call;
 };
 
 typedef enum {
@@ -408,6 +410,13 @@ DirectResult sawman_call      ( SaWMan                *sawman,
 DirectResult sawman_post_init ( SaWMan         *sawman,
                                 FusionWorld    *world );
 
+DirectResult sawman_register_process( SaWMan                *sawman,
+                                      SaWManProcessFlags     flags,
+                                      pid_t                  pid,
+                                      FusionID               fusion_id,
+                                      FusionWorld           *world,
+                                      SaWManProcess        **ret_process );
+
 /**********************************************************************************************************************/
                      
 static inline DirectResult
@@ -536,6 +545,9 @@ sawman_tier_by_layer( SaWMan             *sawman,
 
      return false;
 }
+
+
+extern SaWMan *m_sawman;
 
 #ifdef __cplusplus
 }

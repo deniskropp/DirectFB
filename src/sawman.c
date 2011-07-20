@@ -52,6 +52,8 @@
 
 #include <misc/conf.h>
 
+#include <SaWMan.h>
+
 #include <sawman.h>
 #include <sawman_internal.h>
 
@@ -72,7 +74,7 @@ D_DEBUG_DOMAIN( SaWMan_Cursor,   "SaWMan/Cursor",   "SaWMan window manager curso
 
 
 /* FIXME: avoid globals */
-static SaWMan        *m_sawman;
+SaWMan        *m_sawman;
 static SaWManProcess *m_process;
 static FusionWorld   *m_world;
 
@@ -84,10 +86,6 @@ static FusionCallHandlerResult manager_call_handler( int                    call
                                                      void                  *ctx,
                                                      unsigned int           serial,
                                                      int                   *ret_val );
-
-static DirectResult            register_process    ( SaWMan                *sawman,
-                                                     SaWManProcessFlags     flags,
-                                                     FusionWorld           *world );
 
 static DirectResult            unregister_process  ( SaWMan                *sawman,
                                                      SaWManProcess         *process );
@@ -269,8 +267,10 @@ sawman_initialize( SaWMan         *sawman,
      m_sawman = sawman;
      m_world  = world;
 
+     SaWMan_Init_Dispatch( core_dfb, sawman, &sawman->call );
+
      /* Register ourself as a new process. */
-     ret = register_process( sawman, SWMPF_MASTER, world );
+     ret = sawman_register_process( sawman, SWMPF_MASTER, getpid(), fusion_id(world), world, &m_process );
      if (ret) {
           D_MAGIC_CLEAR( sawman );
           goto error;
@@ -358,7 +358,7 @@ sawman_join( SaWMan         *sawman,
           goto error;
 
      /* Register ourself as a new process. */
-     ret = register_process( sawman, SWMPF_NONE, world );
+     ret = SaWMan_RegisterProcess( sawman, SWMPF_NONE, getpid(), fusion_id( world ), &m_process );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -758,17 +758,25 @@ manager_call_handler( int           caller,
 
 /**********************************************************************************************************************/
 
-static DirectResult
-register_process( SaWMan             *sawman,
-                  SaWManProcessFlags  flags,
-                  FusionWorld        *world )
+DirectResult
+sawman_register_process( SaWMan              *sawman,
+                         SaWManProcessFlags   flags,
+                         pid_t                pid,
+                         FusionID             fusion_id,
+                         FusionWorld         *world,
+                         SaWManProcess      **ret_process )
 {
      DirectResult   ret;
      SaWManProcess *process;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
-     if (sawman->lock)
-          FUSION_SKIRMISH_ASSERT( sawman->lock );
+
+     /* Lock SaWMan. */
+     if (sawman->lock) {
+          ret = sawman_lock( sawman );
+          if (ret)
+               return ret;
+     }
 
      /* Allocate process data. */
      process = SHCALLOC( sawman->shmpool, 1, sizeof(SaWManProcess) );
@@ -776,8 +784,8 @@ register_process( SaWMan             *sawman,
           return D_OOSHM();
 
      /* Initialize process data. */
-     process->pid       = getpid();
-     process->fusion_id = fusion_id( world );
+     process->pid       = pid;
+     process->fusion_id = fusion_id;
      process->flags     = flags;
 
      /* Initialize reference counter. */
@@ -806,11 +814,13 @@ register_process( SaWMan             *sawman,
      /* Add process to list. */
      direct_list_append( &sawman->processes, &process->link );
 
+     *ret_process = process;
+
      /* Call application manager executable. */
      sawman_call( sawman, SWMCID_PROCESS_ADDED, process );
 
-     /* Set global singleton. */
-     m_process = process;
+     if (sawman->lock)
+          sawman_unlock( sawman );
 
      return DFB_OK;
 
@@ -820,6 +830,9 @@ error:
 
 error_ref:
      SHFREE( sawman->shmpool, process );
+
+     if (sawman->lock)
+          sawman_unlock( sawman );
 
      return ret;
 }
