@@ -419,7 +419,7 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
      
      tmp_pitch = (jpeg_size.w + 3) & ~3;
      ret = dfb_surface_create_simple( data->core, tmp_pitch, jpeg_size.h,
-                                      DSPF_NV16, DSCAPS_VIDEOONLY,
+                                      DSPF_NV16, DFB_COLORSPACE_DEFAULT(DSPF_NV16), DSCAPS_VIDEOONLY,
                                       CSTF_NONE, 0, 0, &tmp_surface );
      if( ret ) {
           /* too bad, we proceed without */
