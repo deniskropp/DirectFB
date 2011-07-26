@@ -238,40 +238,40 @@ driver_init_device( CoreGraphicsDevice *device,
       */
 #ifdef SH772X_FBDEV_SUPPORT
      { 
-     	  struct fb_fix_screeninfo fsi;
-     	  struct fb_var_screeninfo vsi;
-		  int fbdev;
+            struct fb_fix_screeninfo fsi;
+            struct fb_var_screeninfo vsi;
+            int fbdev;
 
-		  if ((fbdev = open("/dev/fb0", O_RDWR)) < 0) {
-			   D_ERROR( "SH772x/Driver: Can't open fbdev to get LCDC info!\n" );
-			   return DFB_FAILURE;
-		  }
+            if ((fbdev = open("/dev/fb0", O_RDWR)) < 0) {
+                  D_ERROR( "SH772x/Driver: Can't open fbdev to get LCDC info!\n" );
+                  return DFB_FAILURE;
+            }
 
-		  if (ioctl(fbdev, FBIOGET_FSCREENINFO, &fsi) < 0) {
-			   D_ERROR( "SH772x/Driver: FBIOGET_FSCREEINFO failed.\n" );
-			   close(fbdev);
-			   return DFB_FAILURE;
-		  }
+            if (ioctl(fbdev, FBIOGET_FSCREENINFO, &fsi) < 0) {
+                  D_ERROR( "SH772x/Driver: FBIOGET_FSCREEINFO failed.\n" );
+                  close(fbdev);
+                  return DFB_FAILURE;
+            }
 
-		  if (ioctl(fbdev, FBIOGET_VSCREENINFO, &vsi) < 0) {
-			   D_ERROR( "SH772x/Driver: FBIOGET_VSCREEINFO failed.\n" );
-			   close(fbdev);
-			   return DFB_FAILURE;
-		  }
+            if (ioctl(fbdev, FBIOGET_VSCREENINFO, &vsi) < 0) {
+                  D_ERROR( "SH772x/Driver: FBIOGET_VSCREEINFO failed.\n" );
+                  close(fbdev);
+                  return DFB_FAILURE;
+            }
 
-		  sdev->lcd_width  = vsi.xres;
-		  sdev->lcd_height = vsi.yres;
-		  sdev->lcd_pitch  = fsi.line_length;
-		  sdev->lcd_size   = fsi.smem_len;
-		  sdev->lcd_offset = 0;
-		  sdev->lcd_phys   = fsi.smem_start;
-		  sdrv->lcd_virt   = mmap(NULL, fsi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED,
-				  				  fbdev, 0);
-		  if (sdrv->lcd_virt == MAP_FAILED) {
-			   D_PERROR( "SH772x/Driver: mapping fbdev failed.\n" );
-			   close(fbdev);
-			   return DFB_FAILURE;
-		  }
+            sdev->lcd_width  = vsi.xres;
+            sdev->lcd_height = vsi.yres;
+            sdev->lcd_pitch  = fsi.line_length;
+            sdev->lcd_size   = fsi.smem_len;
+            sdev->lcd_offset = 0;
+            sdev->lcd_phys   = fsi.smem_start;
+            sdrv->lcd_virt   = mmap(NULL, fsi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED,
+                                            fbdev, 0);
+            if (sdrv->lcd_virt == MAP_FAILED) {
+                  D_PERROR( "SH772x/Driver: mapping fbdev failed.\n" );
+                  close(fbdev);
+                  return DFB_FAILURE;
+            }
 
 
           /* Clear LCD buffer. */
@@ -293,7 +293,7 @@ driver_init_device( CoreGraphicsDevice *device,
           /* Register the framebuffer with UIOMux */
           uiomux_register (sdrv->lcd_virt, sdev->lcd_phys, sdev->lcd_size);
 
-		  close(fbdev);
+          close(fbdev);
      }     
 #else
      sdev->lcd_width  = SH7722_LCD_WIDTH;

@@ -61,8 +61,8 @@ sh7722InitLayer( CoreLayer                  *layer,
                  DFBDisplayLayerConfig      *config,
                  DFBColorAdjustment         *adjustment )
 {
-	 SH7722DriverData *sdrv = driver_data;
-	 SH7722DeviceData *sdev = sdrv->dev;
+     SH7722DriverData *sdrv = driver_data;
+     SH7722DeviceData *sdev = sdrv->dev;
      D_DEBUG_AT( SH7722_Layer, "%s()\n", __FUNCTION__ );
 
      /* set capabilities and type */
