@@ -38,7 +38,7 @@
 #include "sh7722_lcd.h"
 
 
-D_DEBUG_DOMAIN( SH7722_Layer, "SH7722/Layer", "Renesas SH7722 Layers" );
+D_DEBUG_DOMAIN( SH7722_Layer, "SH772x/Layer", "Renesas SH772x Layers" );
 
 /**********************************************************************************************************************/
 

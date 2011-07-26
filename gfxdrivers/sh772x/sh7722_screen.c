@@ -36,7 +36,7 @@
 #include "sh7722_screen.h"
 
 
-D_DEBUG_DOMAIN( SH7722_Screen, "SH7722/Screen", "Renesas SH7722 Screen" );
+D_DEBUG_DOMAIN( SH7722_Screen, "SH772x/Screen", "Renesas SH772x Screen" );
 
 /**********************************************************************************************************************/
 
@@ -53,7 +53,7 @@ sh7722InitScreen( CoreScreen           *screen,
      description->caps = DSCCAPS_NONE;
 
      /* Set the screen name. */
-     snprintf( description->name, DFB_SCREEN_DESC_NAME_LENGTH, "SH7722 Screen" );
+     snprintf( description->name, DFB_SCREEN_DESC_NAME_LENGTH, "SH772x Screen" );
 
      return DFB_OK;
 }
