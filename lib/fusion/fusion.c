@@ -639,9 +639,9 @@ fusion_enter( int               world_index,
 
      unsigned long shm_base;
 
-     if (ioctl( fd, FUSION_SHMPOOL_GET_BASE, &shm_base )) {
+     if (ioctl( fd, FUSION_SHM_GET_BASE, &shm_base )) {
           ret = errno2result(errno);
-          D_PERROR( "Fusion/Init: FUSION_SHMPOOL_GET_BASE failed!\n" );
+          D_PERROR( "Fusion/Init: FUSION_SHM_GET_BASE failed!\n" );
           goto error;
      }
 
