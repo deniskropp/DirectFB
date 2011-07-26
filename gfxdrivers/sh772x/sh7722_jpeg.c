@@ -41,7 +41,7 @@ D_DEBUG_DOMAIN( SH7722_JPEG, "SH7722/JPEG", "SH7722 JPEG Processing Unit" );
 
 
 /* callbacks for libshjpeg */
-int sops_init_databuffer( void *private )
+static int sops_init_databuffer( void *private )
 {
      IDirectFBDataBuffer *buffer = (IDirectFBDataBuffer*)private;
      buffer->SeekTo(buffer, 0);
@@ -49,11 +49,11 @@ int sops_init_databuffer( void *private )
      return 0;
 }
 
-int sops_read_databuffer( void *private, size_t *nbytes, void *dataptr )
+static int sops_read_databuffer( void *private, size_t *nbytes, void *dataptr )
 {
      IDirectFBDataBuffer *buffer = (IDirectFBDataBuffer*)private;
 
-     int n;
+     unsigned int n;
  
      buffer->GetData(buffer, *nbytes, dataptr, &n);
      if (n < 0) {
@@ -65,11 +65,9 @@ int sops_read_databuffer( void *private, size_t *nbytes, void *dataptr )
      return 0;
 }
 
-int sops_write_databuffer( void *private, size_t *nbytes, void *dataptr )
+static int sops_write_databuffer( void *private, size_t *nbytes, void *dataptr )
 {
      IDirectFBDataBuffer *buffer = (IDirectFBDataBuffer*)private;
-
-     int n;
 
      if (buffer->PutData(buffer, dataptr, *nbytes) != DFB_OK);
           return -1;
@@ -77,13 +75,13 @@ int sops_write_databuffer( void *private, size_t *nbytes, void *dataptr )
      return 0;
 }
 
-void sops_finalize_databuffer( void *private )
+static void sops_finalize_databuffer( void *private )
 {
      IDirectFBDataBuffer *buffer = (IDirectFBDataBuffer*)private;
      buffer->Finish(buffer);
 }
 
-int sops_init_file(void *private)
+static int sops_init_file(void *private)
 {
      int fd = *(int*)private;
 
@@ -92,7 +90,7 @@ int sops_init_file(void *private)
      return 0;
 }
 
-int sops_read_file(void *private, size_t *nbytes, void *dataptr)
+static int sops_read_file(void *private, size_t *nbytes, void *dataptr)
 {
      int fd = *(int*)private;
      int n;
@@ -107,7 +105,7 @@ int sops_read_file(void *private, size_t *nbytes, void *dataptr)
      return 0;
 }
 
-int sops_write_file(void *private, size_t *nbytes, void *dataptr)
+static int sops_write_file(void *private, size_t *nbytes, void *dataptr)
 {
      int fd = *(int*)private;
      int n;
@@ -122,21 +120,21 @@ int sops_write_file(void *private, size_t *nbytes, void *dataptr)
      return 0;
 }
 
-void sops_finalize_file(void *private)
+static void sops_finalize_file(void *private)
 {
      int fd = *(int*)private;
      close(fd);
 }
 
 
-shjpeg_sops sops_databuffer = {
+static shjpeg_sops sops_databuffer = {
     .init     = sops_init_databuffer,
     .read     = sops_read_databuffer,
     .write    = sops_write_databuffer,
     .finalize = sops_finalize_databuffer,
 };
 
-shjpeg_sops sops_file = {
+static shjpeg_sops sops_file = {
     .init     = sops_init_file,
     .read     = sops_read_file,
     .write    = sops_write_file,
@@ -283,9 +281,10 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      
      }
 
-
-     if (shjpeg_decode_run( data->info, pixelfmt, phys, rect.w, rect.h, lock.pitch) < 0)
-          ret = DFB_FAILURE;
+     if (ret != DFB_UNSUPPORTED) {
+          if (shjpeg_decode_run( data->info, pixelfmt, phys, rect.w, rect.h, lock.pitch) < 0)
+               ret = DFB_FAILURE;
+     }
 
      dfb_surface_unlock_buffer( dst_surface, &lock );
 
@@ -480,8 +479,6 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
-     SH7722DeviceData *sdev = dfb_gfxcard_get_device_data();
-
      /* Called with NULL when used for encoding. */
      if (!ctx)
           return DFB_OK;
@@ -513,8 +510,6 @@ Construct( IDirectFBImageProvider *thiz,
      data->core   = core;
 
      if (buffer) {
-          IDirectFBDataBuffer_File_data *file_data;
-
           ret = buffer->AddRef( buffer );
           if (ret) {
                DIRECT_DEALLOCATE_INTERFACE(thiz);
