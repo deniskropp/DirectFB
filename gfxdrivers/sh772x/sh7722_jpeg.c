@@ -98,7 +98,7 @@ static int sops_read_file(void *private, size_t *nbytes, void *dataptr)
      n = read(fd, dataptr, *nbytes);
      if (n < 0) {
          *nbytes = 0;
-	     return -1;
+          return -1;
      }
 
      *nbytes = n;
@@ -113,7 +113,7 @@ static int sops_write_file(void *private, size_t *nbytes, void *dataptr)
      n = write(fd, dataptr, *nbytes);
      if (n < 0) {
          *nbytes = 0;
-	     return -1;
+          return -1;
      }
 
      *nbytes = n;
