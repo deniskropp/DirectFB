@@ -180,9 +180,6 @@ IDirectFBImageProvider_SH7722_JPEG_Destruct( IDirectFBImageProvider *thiz )
 
      shjpeg_decode_shutdown( data->info );
 
-     data->buffer->Release( data->buffer );
-
-
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
