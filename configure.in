@@ -1682,9 +1682,13 @@ fi
 
 if test "$checkfor_sh772x" = "yes" && test "$have_sh4" = "yes"; then
   PKG_CHECK_MODULES([SH772X_DEP],
-    [uiomux >= 1.5.0 shbeu >= 1.0.2 shjpeg >= 1.3.3], [sh772x=yes], [sh772x=no])
+    [uiomux >= 1.5.0 shbeu >= 1.0.2], [sh772x=yes], [sh772x=no])
   if test "$sh772x" = "no"; then
-       AC_MSG_WARN([*** Missing UIOMUX, SHBEU or SHJPEG library -- sh772x driver will not be built.])
+       AC_MSG_WARN([*** Missing UIOMUX or SHBEU library -- sh772x driver will not be built.])
+  fi
+  PKG_CHECK_MODULES([SH772X_SHJPEG_DEP], [shjpeg >= 1.3.3], [sh772x_shjpeg=yes], [sh772x_shjpeg=no])
+  if test "$sh772x_shjpeg" = "no"; then
+       AC_MSG_WARN([*** Missing SHJPEG library -- sh772x driver will be build without shjpeg support.])
   fi
 fi
 if test "$sh772x" = "yes"; then
@@ -2157,6 +2161,8 @@ AM_CONDITIONAL(GFX_TDFX, test "$tdfx" = "yes")
 AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
 AM_CONDITIONAL(GFX_VMWARE, test "$vmware" = "yes")
 AM_CONDITIONAL(GFX_VDPAU, test "$vdpau" = "yes")
+
+AM_CONDITIONAL(SH772X_SHJPEG, test "$sh772x_shjpeg" = "yes")
 
 AM_CONDITIONAL(DBOX2REMOTE, test "$enable_dbox2remote" = "yes")
 AM_CONDITIONAL(DREAMBOXREMOTE, test "$enable_dreamboxremote" = "yes")
