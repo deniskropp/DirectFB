@@ -27,7 +27,7 @@
 
 #include <core/layers.h>
 #include <core/surface.h>
-#include <core/surface_buffer.h>
+#include <core/CoreSurface.h>
 #include <core/system.h>
 
 #include <display/idirectfbsurface.h>
@@ -244,7 +244,7 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (!dfb_rectangle_region_intersects( &rect, &clip ))
           return DFB_OK;
 
-     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_GPU, CSAF_WRITE, &lock );
+     ret = CoreSurface_LockBuffer( dst_surface, CSBR_BACK, CSAID_GPU, CSAF_WRITE, &lock );
      if (ret)
           return ret;
 
@@ -283,7 +283,7 @@ IDirectFBImageProvider_SH7722_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                ret = DFB_FAILURE;
      }
 
-     dfb_surface_unlock_buffer( dst_surface, &lock );
+     CoreSurface_UnlockBuffer( dst_surface, &lock );
 
      return ret;
 }
@@ -426,7 +426,7 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
      }
      else {
           /* lock it to get the address */
-          ret = dfb_surface_lock_buffer( tmp_surface, CSBR_FRONT, CSAID_GPU, CSAF_READ | CSAF_WRITE, &tmp_lock );
+          ret = CoreSurface_LockBuffer( tmp_surface, CSBR_FRONT, CSAID_GPU, CSAF_READ | CSAF_WRITE, &tmp_lock );
           if (ret) {
                D_DEBUG_AT( SH7722_JPEG, "%s - failed to lock intermediate storage: %d\n",
                     __FUNCTION__, ret );
@@ -440,7 +440,7 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
           }
      }
 
-     ret = dfb_surface_lock_buffer( src_surface, CSBR_FRONT, CSAID_GPU, CSAF_READ, &lock );
+     ret = CoreSurface_LockBuffer( src_surface, CSBR_FRONT, CSAID_GPU, CSAF_READ, &lock );
      if ( ret == DFB_OK ) {
 
           /* backup callbacks and private data and setup for file io */
@@ -457,12 +457,12 @@ IDirectFBImageProvider_SH7722_JPEG_WriteBack( IDirectFBImageProvider *thiz,
           data->info->sops = sops_tmp;
           data->info->priv_data = private_tmp;
                                               
-          dfb_surface_unlock_buffer( src_surface, &lock );
+          CoreSurface_UnlockBuffer( src_surface, &lock );
      }
      
      if( tmp_surface ) {
           /* unlock and release the created surface */
-          dfb_surface_unlock_buffer( tmp_surface, &tmp_lock );
+          CoreSurface_UnlockBuffer( tmp_surface, &tmp_lock );
           dfb_surface_unref( tmp_surface );
      }
 
