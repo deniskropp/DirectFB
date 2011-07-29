@@ -42,6 +42,7 @@
 #include <core/CoreGraphicsState.h>
 #include <core/CoreGraphicsStateClient.h>
 
+#include <fusion/conf.h>
 
 D_DEBUG_DOMAIN( Core_GraphicsState, "Core/Graphics/State", "DirectFB Core Graphics State" );
 
@@ -265,7 +266,7 @@ CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           unsigned int i;
 
           for (i=0; i<num; i++)
@@ -293,7 +294,7 @@ CoreGraphicsStateClient_DrawLines( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( lines != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           // FIXME: will overwrite lines
           dfb_gfxcard_drawlines( (DFBRegion*) lines, num, client->state );
      }
@@ -318,7 +319,7 @@ CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           dfb_gfxcard_fillrectangles( rects, num, client->state );
      }
      else {
@@ -342,7 +343,7 @@ CoreGraphicsStateClient_FillTriangles( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( triangles != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           dfb_gfxcard_filltriangles( triangles, num, client->state );
      }
      else {
@@ -366,7 +367,7 @@ CoreGraphicsStateClient_FillTrapezoids( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( trapezoids != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           dfb_gfxcard_filltrapezoids( trapezoids, num, client->state );
      }
      else {
@@ -391,7 +392,7 @@ CoreGraphicsStateClient_FillSpans( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( spans != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           // FIXME: may overwrite spans
           dfb_gfxcard_fillspans( y, (DFBSpan*) spans, num, client->state );
      }
@@ -418,7 +419,7 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
      D_ASSERT( rects != NULL );
      D_ASSERT( points != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           // FIXME: will overwrite rects, points
           dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, client->state );
      }
@@ -447,7 +448,7 @@ CoreGraphicsStateClient_Blit2( CoreGraphicsStateClient *client,
      D_ASSERT( points1 != NULL );
      D_ASSERT( points2 != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           // FIXME: will overwrite rects, points
           dfb_gfxcard_batchblit2( (DFBRectangle*) rects, (DFBPoint*) points1, (DFBPoint*) points2, num, client->state );
      }
@@ -480,7 +481,7 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
      if (num != 1)
           D_UNIMPLEMENTED();
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           // FIXME: will overwrite rects
           dfb_gfxcard_stretchblit( (DFBRectangle*) srects, (DFBRectangle*) drects, client->state );
      }
@@ -509,7 +510,7 @@ CoreGraphicsStateClient_TileBlit( CoreGraphicsStateClient *client,
      D_ASSERT( points1 != NULL );
      D_ASSERT( points2 != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           // FIXME: will overwrite rects, points
           for (u32 i=0; i<num; i++)
                dfb_gfxcard_tileblit( (DFBRectangle*) &rects[i], points1[i].x, points1[i].y, points2[i].x, points2[i].y, client->state );
@@ -536,7 +537,7 @@ CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( vertices != NULL );
 
-     if (dfb_core_is_master( client->core )) {
+     if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           // FIXME: may overwrite vertices
           dfb_gfxcard_texture_triangles( (DFBVertex*) vertices, num, formation, client->state );
      }
