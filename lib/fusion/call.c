@@ -500,6 +500,34 @@ fusion_call_destroy (FusionCall *call)
      return DR_OK;
 }
 
+DirectResult
+fusion_call_add_permissions( FusionCall            *call,
+                             FusionID               fusion_id,
+                             FusionCallPermissions  call_permissions )
+{
+     FusionEntryPermissions permissions;
+
+     permissions.type        = FT_CALL;
+     permissions.id          = call->call_id;
+     permissions.fusion_id   = fusion_id;
+     permissions.permissions = 0;
+
+     if (call_permissions & FUSION_CALL_PERMIT_EXECUTE) {
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_CALL_EXECUTE );
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_CALL_EXECUTE2 );
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_CALL_EXECUTE3 );
+     }
+
+     while (ioctl( _fusion_fd( call->shared ), FUSION_ENTRY_ADD_PERMISSIONS, &permissions ) < 0) {
+          if (errno != EINTR) {
+               D_PERROR( "Fusion/Call: FUSION_ENTRY_ADD_PERMISSIONS( id %d ) failed!\n", call->call_id );
+               return DR_FAILURE;
+          }
+     }
+
+     return DR_OK;
+}
+
 void
 _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg, void *ptr )
 {
@@ -807,6 +835,16 @@ fusion_call_destroy (FusionCall *call)
      return DR_OK;
 }
 
+DirectResult
+fusion_call_add_permissions( FusionCall            *call,
+                             FusionID               fusion_id,
+                             FusionCallPermissions  call_permissions )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+}
+
 void
 _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
 {
@@ -989,6 +1027,16 @@ fusion_call_destroy (FusionCall *call)
      call->handler3 = NULL;
 
      return DR_OK;
+}
+
+DirectResult
+fusion_call_add_permissions( FusionCall            *call,
+                             FusionID               fusion_id,
+                             FusionCallPermissions  call_permissions )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
 }
 
 #endif

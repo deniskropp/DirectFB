@@ -517,6 +517,36 @@ fusion_reactor_set_name( FusionReactor *reactor,
      return DR_OK;
 }
 
+DirectResult
+fusion_reactor_add_permissions( FusionReactor            *reactor,
+                                FusionID                  fusion_id,
+                                FusionReactorPermissions  reactor_permissions )
+{
+     FusionEntryPermissions permissions;
+
+     permissions.type        = FT_REACTOR;
+     permissions.id          = reactor->id;
+     permissions.fusion_id   = fusion_id;
+     permissions.permissions = 0;
+
+     if (reactor_permissions & FUSION_REACTOR_PERMIT_ATTACH_DETACH) {
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REACTOR_ATTACH );
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REACTOR_DETACH );
+     }
+
+     if (reactor_permissions & FUSION_REACTOR_PERMIT_DISPATCH)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REACTOR_DISPATCH );
+
+     while (ioctl( _fusion_fd( reactor->shared ), FUSION_ENTRY_ADD_PERMISSIONS, &permissions ) < 0) {
+          if (errno != EINTR) {
+               D_PERROR( "Fusion/Reactor: FUSION_ENTRY_ADD_PERMISSIONS( id %d ) failed!\n", reactor->id );
+               return DR_FAILURE;
+          }
+     }
+
+     return DR_OK;
+}
+
 void
 _fusion_reactor_process_message( FusionWorld *world,
                                  int          reactor_id,
@@ -1012,6 +1042,16 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
 DirectResult
 fusion_reactor_set_name( FusionReactor *reactor,
                          const char    *name )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_reactor_add_permissions( FusionReactor            *reactor,
+                                FusionID                  fusion_id,
+                                FusionReactorPermissions  permissions )
 {
      D_UNIMPLEMENTED();
 
@@ -1791,6 +1831,16 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
 DirectResult
 fusion_reactor_set_name( FusionReactor *reactor,
                          const char    *name )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_reactor_add_permissions( FusionReactor            *reactor,
+                                FusionID                  fusion_id,
+                                FusionReactorPermissions  permissions )
 {
      D_UNIMPLEMENTED();
 

@@ -637,7 +637,7 @@ __shmalloc_init_heap( FusionSHM  *shm,
                D_WARN( "Fusion/SHM: Changing owner on %s failed... continuing on.", filename );
      }
 
-     fchmod( fd, 0660 );
+     fchmod( fd, fusion_config->secure_fusion ? 0640 : 0660 );
      ftruncate( fd, size );
 
      D_DEBUG_AT( Fusion_SHMHeap, "  -> mmaping shared memory file... (%d bytes)\n", size );

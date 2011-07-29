@@ -68,6 +68,8 @@ struct __Fusion_FusionObject {
 
      FusionWorldShared *shared;
      FusionHash        *properties;
+
+     FusionID           owner;
 };
 
 

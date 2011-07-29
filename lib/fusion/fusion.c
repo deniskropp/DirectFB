@@ -402,7 +402,13 @@ map_shared_root( void               *shm_base,
      void        *map;
      char         tmpfs[FUSION_SHM_TMPFS_PATH_NAME_LEN];
      char         root_file[FUSION_SHM_TMPFS_PATH_NAME_LEN+32];
-     int          flags = O_RDWR;
+     int          flags = O_RDONLY;
+     int          prot  = PROT_READ;
+
+     if (master || !fusion_config->secure_fusion) {
+          prot  |= PROT_WRITE;
+          flags  = O_RDWR;
+     }
 
      if (master)
           flags |= O_CREAT | O_TRUNC;
@@ -432,7 +438,7 @@ map_shared_root( void               *shm_base,
      }
 
      if (master) {
-          fchmod( fd, 0660 );
+          fchmod( fd, fusion_config->secure_fusion ? 0640 : 0660 );
           ftruncate( fd, sizeof(FusionWorldShared) );
      }
 
@@ -442,7 +448,7 @@ map_shared_root( void               *shm_base,
 
      /* Map shared area. */
      map = mmap( shm_base + 0x10000 * world_index, sizeof(FusionWorldShared),
-                 PROT_READ | PROT_WRITE, MAP_FIXED | MAP_SHARED, fd, 0 );
+                 prot, MAP_FIXED | MAP_SHARED, fd, 0 );
      if (map == MAP_FAILED) {
           ret = errno2result(errno);
           D_PERROR( "Fusion/Init: Mapping shared area failed!\n" );
@@ -610,6 +616,7 @@ fusion_enter( int               world_index,
      enter.api.major = FUSION_API_MAJOR_REQUIRED;
      enter.api.minor = FUSION_API_MINOR_REQUIRED;
      enter.fusion_id = 0;     /* Clear for check below. */
+     enter.secure    = fusion_config->secure_fusion;
 
      /* Enter the fusion world. */
      while (ioctl( fd, FUSION_ENTER, &enter )) {
