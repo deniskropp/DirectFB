@@ -37,6 +37,8 @@ extern "C" {
 #include <direct/debug.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
+
 #include <core/core.h>
 }
 
@@ -63,7 +65,8 @@ ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
      CoreSurfaceConfig config_copy = *config;
 
      // FIXME: handle local / preallocated surfaces
-     config_copy.flags = (CoreSurfaceConfigFlags)(config_copy.flags & ~CSCONF_PREALLOCATED);
+     if (fusion_config->secure_fusion && !dfb_core_is_master( core_dfb ))
+          config_copy.flags = (CoreSurfaceConfigFlags)(config_copy.flags & ~CSCONF_PREALLOCATED);
 
      return dfb_surface_create( obj, &config_copy, type, resource_id, palette, ret_surface );
 }
