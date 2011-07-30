@@ -138,5 +138,7 @@ DirectResult FUSION_API fusion_kill( FusionWorld *world,
 bool FUSION_API fusion_is_shared( FusionWorld *world,
                                   const void  *ptr );
 
+const char * FUSION_API fusion_get_tmpfs( FusionWorld *world );
+
 #endif
 

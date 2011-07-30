@@ -1010,7 +1010,42 @@ fusion_kill( FusionWorld *world,
      return DR_OK;
 }
 
+const char *
+fusion_get_tmpfs( FusionWorld *world )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     return world->shared->shm.tmpfs;
+}
+
 /**********************************************************************************************************************/
+
+static DirectResult
+defer_message( FusionWorld       *world,
+               FusionReadMessage *header,
+               void              *data )
+{
+     DeferredCall *deferred;
+
+     deferred = D_CALLOC( 1, sizeof(DeferredCall) + header->msg_size );
+     if (!deferred)
+          return D_OOM();
+
+     deferred->header = *header;
+
+     direct_memcpy( deferred + 1, data, header->msg_size );
+
+     pthread_mutex_lock( &world->deferred.lock );
+
+     direct_list_append( &world->deferred.list, &deferred->link );
+
+     pthread_mutex_unlock( &world->deferred.lock );
+
+     pthread_cond_signal( &world->deferred.queue );
+
+     return DR_OK;
+}
 
 static void *
 fusion_dispatch_loop( DirectThread *thread, void *arg )
@@ -1018,7 +1053,6 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
      int          len = 0;
      int          result;
      char         buf[FUSION_MESSAGE_SIZE];
-     fd_set       set;
      FusionWorld *world = arg;
 
      D_DEBUG_AT( Fusion_Main_Dispatch, "%s() running...\n", __FUNCTION__ );
@@ -1028,117 +1062,82 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
           D_MAGIC_ASSERT( world, FusionWorld );
 
-          FD_ZERO( &set );
-          FD_SET( world->fusion_fd, &set );
+          len = read( world->fusion_fd, buf, FUSION_MESSAGE_SIZE );
+          if (len < 0) {
+               if (errno == EINTR)
+                    continue;
 
-          result = select( world->fusion_fd + 1, &set, NULL, NULL, NULL );
-          if (result < 0) {
-               switch (errno) {
-                    case EINTR:
-                         continue;
+               break;
+          }
 
-                    default:
-                         D_PERROR( "Fusion/Dispatcher: select() failed!\n" );
-                         return NULL;
+          D_DEBUG_AT( Fusion_Main_Dispatch, "  -> got %d bytes...\n", len );
+
+          direct_thread_lock( world->dispatch_loop );
+
+          if (world->dispatch_stop) {
+               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
+          }
+          else {
+               while (buf_p < buf + len) {
+                    FusionReadMessage *header = (FusionReadMessage*) buf_p;
+                    void              *data   = buf_p + sizeof(FusionReadMessage);
+
+                    if (world->dispatch_stop) {
+                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> ABORTING (dispatch_stop!)\n" );
+                         break;
+                    }
+
+                    D_MAGIC_ASSERT( world, FusionWorld );
+                    D_ASSERT( (buf + len - buf_p) >= sizeof(FusionReadMessage) );
+
+                    switch (header->msg_type) {
+                         case FMT_SEND:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SEND!\n" );
+                              break; 
+                         case FMT_CALL:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
+
+                              /* If the call comes from kernel space it is most likely a destructor call, defer it */
+                              if (((FusionCallMessage*) data)->caller == 0) {
+                                   defer_message( world, header, data );
+                              }
+                              else
+                                   _fusion_call_process( world, header->msg_id, data,
+                                                         (header->msg_size != sizeof(FusionCallMessage))
+                                                         ?data + sizeof(FusionCallMessage) : NULL );
+                              break;
+                         case FMT_REACTOR:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
+                              //defer_message( world, header, data );
+                              _fusion_reactor_process_message( world, header->msg_id, header->msg_channel, data );
+                              break;
+                         case FMT_SHMPOOL:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );
+                              //defer_message( world, header, data );
+                              _fusion_shmpool_process( world, header->msg_id, data );
+                              break;
+                         case FMT_CALL3:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL3...\n" );
+                              //defer_message( world, header, data );
+                              _fusion_call_process3( world, header->msg_id, data,
+                                                     (header->msg_size != sizeof(FusionCallMessage3))
+                                                     ?data + sizeof(FusionCallMessage3) : NULL );
+                              break;
+                         default:
+                              D_DEBUG( "Fusion/Receiver: discarding message of unknown type '%d'\n",
+                                       header->msg_type );
+                              break;
+                    }
+
+                    buf_p = data + ((header->msg_size + 3) & ~3);
                }
           }
 
-          D_MAGIC_ASSERT( world, FusionWorld );
+          direct_thread_unlock( world->dispatch_loop );
 
-          if (FD_ISSET( world->fusion_fd, &set )) {
-               len = read( world->fusion_fd, buf, FUSION_MESSAGE_SIZE );
-               if (len < 0) {
-                    if (errno == EINTR)
-                         continue;
-
-                    break;
-               }
-
-               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> got %d bytes...\n", len );
-
-               direct_thread_lock( world->dispatch_loop );
-
-               if (world->dispatch_stop) {
-                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
-               }
-               else {
-                    while (buf_p < buf + len) {
-                         FusionReadMessage *header = (FusionReadMessage*) buf_p;
-                         void              *data   = buf_p + sizeof(FusionReadMessage);
-
-                         if (world->dispatch_stop) {
-                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> ABORTING (dispatch_stop!)\n" );
-                              break;
-                         }
-
-                         D_MAGIC_ASSERT( world, FusionWorld );
-                         D_ASSERT( (buf + len - buf_p) >= sizeof(FusionReadMessage) );
-
-                         switch (header->msg_type) {
-                              case FMT_SEND:
-                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SEND!\n" );
-                                   break; 
-                              case FMT_CALL:
-                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
-
-                                   /* If the call comes from kernel space it is most likely a destructor call, defer it */
-                                   if (((FusionCallMessage*) data)->caller == 0) {
-                                        DeferredCall *deferred;
-
-                                        deferred = D_CALLOC( 1, sizeof(DeferredCall) + header->msg_size );
-                                        if (!deferred) {
-                                             D_OOM();
-                                             break;
-                                        }
-
-                                        deferred->header = *header;
-
-                                        direct_memcpy( deferred + 1, data, header->msg_size );
-
-                                        pthread_mutex_lock( &world->deferred.lock );
-
-                                        direct_list_append( &world->deferred.list, &deferred->link );
-
-                                        pthread_mutex_unlock( &world->deferred.lock );
-
-                                        pthread_cond_signal( &world->deferred.queue );
-                                   }
-                                   else
-                                        _fusion_call_process( world, header->msg_id, data,
-                                                              (header->msg_size != sizeof(FusionCallMessage))
-                                                              ?data + sizeof(FusionCallMessage) : NULL );
-                                   break;
-                              case FMT_REACTOR:
-                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
-                                   _fusion_reactor_process_message( world, header->msg_id, header->msg_channel, data );
-                                   break;
-                              case FMT_SHMPOOL:
-                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );
-                                   _fusion_shmpool_process( world, header->msg_id, data );
-                                   break;
-                              case FMT_CALL3:
-                                   D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL3...\n" );
-
-                                   _fusion_call_process3( world, header->msg_id, data,
-                                                          (header->msg_size != sizeof(FusionCallMessage3))
-                                                          ?data + sizeof(FusionCallMessage3) : NULL );
-                                   break;
-                              default:
-                                   D_DEBUG( "Fusion/Receiver: discarding message of unknown type '%d'\n",
-                                            header->msg_type );
-                                   break;
-                         }
-
-                         buf_p = data + ((header->msg_size + 3) & ~3);
-                    }
-               }
-
-               direct_thread_unlock( world->dispatch_loop );
-
-               if (!world->refs) {
-                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
-                    return NULL;
-               }
+          if (!world->refs) {
+               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
+               return NULL;
           }
      }
 
@@ -1193,6 +1192,13 @@ fusion_deferred_loop( DirectThread *thread, void *arg )
                case FMT_SHMPOOL:
                     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );
                     _fusion_shmpool_process( world, header->msg_id, data );
+                    break;
+               case FMT_CALL3:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL3...\n" );
+
+                    _fusion_call_process3( world, header->msg_id, data,
+                                           (header->msg_size != sizeof(FusionCallMessage3))
+                                           ?data + sizeof(FusionCallMessage3) : NULL );
                     break;
                default:
                     D_DEBUG( "Fusion/Receiver: discarding message of unknown type '%d'\n",
@@ -2855,6 +2861,15 @@ fusion_is_shared( FusionWorld *world,
      D_MAGIC_ASSERT( world, FusionWorld );
 
      return true;
+}
+
+const char *
+fusion_get_tmpfs( FusionWorld *world )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     return "/tmp";
 }
 
 #endif
