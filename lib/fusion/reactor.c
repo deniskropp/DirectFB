@@ -1842,9 +1842,7 @@ fusion_reactor_add_permissions( FusionReactor            *reactor,
                                 FusionID                  fusion_id,
                                 FusionReactorPermissions  permissions )
 {
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
+     return DR_OK;
 }
 
 DirectResult

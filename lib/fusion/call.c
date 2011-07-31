@@ -1034,9 +1034,7 @@ fusion_call_add_permissions( FusionCall            *call,
                              FusionID               fusion_id,
                              FusionCallPermissions  call_permissions )
 {
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
+     return DR_OK;
 }
 
 #endif

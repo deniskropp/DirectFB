@@ -995,9 +995,7 @@ fusion_ref_add_permissions( FusionRef            *ref,
                             FusionID              fusion_id,
                             FusionRefPermissions  ref_permissions )
 {
-     D_UNIMPLEMENTED();
-
-     return DR_UNIMPLEMENTED;
+     return DR_OK;
 }
 
 #endif
