@@ -1,3 +1,21 @@
+commit 59cd1abc9dffda5ea0b5b50f4d4203b0d216ef2e
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jul 29 19:00:33 2011 +0200
+
+    core: call dfb_gfxcard_...() directly for slaves that are not using secure fusion
+
+commit 07690b21397452aca2940326c92ce2db5782acd2
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jul 29 17:40:51 2011 +0200
+
+    core: only reject preallocated surfaces when using secure-fusion and not being master
+
+commit 35fe7e51f3610568089720b647ed4a3a3e6761dc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 31 20:46:22 2011 +0200
+
+    update NEWS/ChangeLog for 1.4.14 release
+
 commit 1c63c8c27e9a9aaeab04d5c0dffbd50ffccf9054
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Sun Jul 31 20:40:30 2011 +0200
