@@ -51,15 +51,24 @@ namespace DirectFB {
 DFBResult
 ILayerContext_Real::CreateWindow(
                     const DFBWindowDescription                *description,
+                    CoreWindow                                *parent,
+                    CoreWindow                                *toplevel,
                     CoreWindow                               **ret_window
 )
 {
+    DFBWindowDescription description_copy;
+
     D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
 
     D_ASSERT( description != NULL );
     D_ASSERT( ret_window != NULL );
 
-    return dfb_layer_context_create_window( core, obj, description, ret_window );
+    description_copy = *description;
+
+    description_copy.parent_id   = parent   ? parent->object.id   : 0;
+    description_copy.toplevel_id = toplevel ? toplevel->object.id : 0;
+
+    return dfb_layer_context_create_window( core, obj, &description_copy, ret_window );
 }
 
 DFBResult

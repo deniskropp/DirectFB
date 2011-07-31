@@ -17,13 +17,49 @@ interface {
 
 
 	method {
-		name	LockBuffer
+		name	Flip
 
 		arg {
-			name	    role
+			name	    swap
 			direction   input
 			type        enum
-			typename    CoreSurfaceBufferRole
+			typename    bool
+		}
+	}
+
+
+	method {
+		name	GetPalette
+
+		arg {
+			name	    palette
+			direction   output
+			type        object
+			typename    CorePalette
+		}
+	}
+
+
+	method {
+		name	SetPalette
+
+		arg {
+			name	    palette
+			direction   input
+			type        object
+			typename    CorePalette
+		}
+	}
+
+
+	method {
+		name	PreLockBuffer
+
+		arg {
+			name	    buffer_index
+			direction   input
+			type        int
+			typename    u32
 		}
 
 		arg {
@@ -41,46 +77,62 @@ interface {
 		}
 
 		arg {
-			name	    lock
+			name	    allocation_index
 			direction   output
-			type        struct
-			typename    CoreSurfaceBufferLock
+			type        int
+			typename    u32
 		}
 	}
 
 
 	method {
-		name	UnlockBuffer
+		name	PreReadBuffer
 
 		arg {
-			name	    lock
-			direction   inout
-			type        struct
-			typename    CoreSurfaceBufferLock
-		}
-	}
-
-
-	method {
-		name	Flip
-
-		arg {
-			name	    swap
+			name	    buffer_index
 			direction   input
-			type        enum
-			typename    bool
+			type        int
+			typename    u32
+		}
+
+		arg {
+			name	    rect
+			direction   input
+			type        struct
+			typename    DFBRectangle
+		}
+
+		arg {
+			name	    allocation_index
+			direction   output
+			type        int
+			typename    u32
 		}
 	}
 
 
 	method {
-		name	SetPalette
+		name	PreWriteBuffer
 
 		arg {
-			name	    palette
+			name	    buffer_index
 			direction   input
-			type        object
-			typename    CorePalette
+			type        int
+			typename    u32
+		}
+
+		arg {
+			name	    rect
+			direction   input
+			type        struct
+			typename    DFBRectangle
+		}
+
+		arg {
+			name	    allocation_index
+			direction   output
+			type        int
+			typename    u32
 		}
 	}
 }

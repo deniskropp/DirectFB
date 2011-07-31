@@ -140,5 +140,28 @@ DirectResult FUSION_API fusion_ref_inherit      (FusionRef *ref,
  */
 DirectResult FUSION_API fusion_ref_destroy      (FusionRef *ref);
 
+
+typedef enum {
+     FUSION_REF_PERMIT_NONE                  = 0x00000000,
+
+     FUSION_REF_PERMIT_REF_UNREF_LOCAL       = 0x00000001,
+     FUSION_REF_PERMIT_REF_UNREF_GLOBAL      = 0x00000002,
+     FUSION_REF_PERMIT_ZERO_LOCK_UNLOCK      = 0x00000004,
+     FUSION_REF_PERMIT_WATCH                 = 0x00000008,
+     FUSION_REF_PERMIT_INHERIT               = 0x00000010,
+     FUSION_REF_PERMIT_DESTROY               = 0x00000020,
+     FUSION_REF_PERMIT_CATCH                 = 0x00000040,
+     FUSION_REF_PERMIT_THROW                 = 0x00000080,
+
+     FUSION_REF_PERMIT_ALL                   = 0x000000FF,
+} FusionRefPermissions;
+
+/*
+ * Give permissions to another fusionee to use the reference.
+ */
+DirectResult  FUSION_API fusion_ref_add_permissions( FusionRef            *ref,
+                                                     FusionID              fusion_id,
+                                                     FusionRefPermissions  permissions );
+
 #endif
 

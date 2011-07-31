@@ -906,7 +906,7 @@ Method::ArgumentsInputAssignments() const
                else if (arg->type == "enum" || arg->type == "int")
                     result += std::string("    block->") + arg->name + " = " + arg->name + ";\n";
                else if (arg->type == "object")
-                    result += std::string("    block->") + arg->name + "_id = " + arg->name + "->object.id;\n";
+                    result += std::string("    block->") + arg->name + "_id = " + arg->type_name + "_GetID( " + arg->name + " );\n";
 
                if (arg->optional) {
                     result += std::string("    block->") + arg->name + "_set = true;\n";
@@ -1115,7 +1115,7 @@ Method::ArgumentsInputObjectLookup() const
                if (arg->optional) {
                     snprintf( buf, sizeof(buf),
                               "            if (args->%s_set) {\n"
-                              "                ret = (DFBResult) %s_Lookup( core, args->%s_id, &%s );\n"
+                              "                ret = (DFBResult) %s_Lookup( core, args->%s_id, caller, &%s );\n"
                               "                if (ret) {\n"
                               "                     D_DERROR( ret, \"%%s: Looking up %s by ID %%u failed!\\n\", __FUNCTION__, args->%s_id );\n"
                               "%s"
@@ -1130,7 +1130,7 @@ Method::ArgumentsInputObjectLookup() const
                }
                else {
                     snprintf( buf, sizeof(buf),
-                              "            ret = (DFBResult) %s_Lookup( core, args->%s_id, &%s );\n"
+                              "            ret = (DFBResult) %s_Lookup( core, args->%s_id, caller, &%s );\n"
                               "            if (ret) {\n"
                               "                 D_DERROR( ret, \"%%s: Looking up %s by ID %%u failed!\\n\", __FUNCTION__, args->%s_id );\n"
                               "%s"

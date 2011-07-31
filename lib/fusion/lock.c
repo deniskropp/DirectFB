@@ -83,6 +83,12 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
 
      ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 
+     fusion_entry_add_permissions( world, FT_SKIRMISH, skirmish->multi.id, 0,
+                                   FUSION_SKIRMISH_PREVAIL,
+                                   FUSION_SKIRMISH_DISMISS,
+                                   FUSION_SKIRMISH_LOCK_COUNT,
+                                   0 );
+
      /* Keep back pointer to shared world data. */
      skirmish->multi.shared = world->shared;
 

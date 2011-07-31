@@ -52,6 +52,8 @@ struct __DFB_CoreGraphicsStateClient {
 DFBResult CoreGraphicsStateClient_Init            ( CoreGraphicsStateClient *client,
                                                     CardState               *state );
 
+void      CoreGraphicsStateClient_Deinit          ( CoreGraphicsStateClient *client );
+
 DFBResult CoreGraphicsStateClient_SetState        ( CoreGraphicsStateClient *client,
                                                     CardState               *state,
                                                     StateModificationFlags   flags );

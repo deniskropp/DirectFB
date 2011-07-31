@@ -85,8 +85,6 @@ struct __Fusion_FusionSHMPoolShared {
      char                *name;         /* Name of the pool (allocated in the pool). */
 
      DirectLink          *allocs;       /* Used for debugging. */
-
-     bool                 slave_write;
 };
 
 

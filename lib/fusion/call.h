@@ -111,5 +111,21 @@ DirectResult FUSION_API fusion_call_return3( FusionCall          *call,
 DirectResult FUSION_API fusion_call_destroy( FusionCall          *call );
 
 
+typedef enum {
+     FUSION_CALL_PERMIT_NONE              = 0x00000000,
+
+     FUSION_CALL_PERMIT_EXECUTE           = 0x00000001,
+
+     FUSION_CALL_PERMIT_ALL               = 0x00000001,
+} FusionCallPermissions;
+
+/*
+ * Give permissions to another fusionee to use the call.
+ */
+DirectResult  FUSION_API fusion_call_add_permissions( FusionCall            *call,
+                                                      FusionID               fusion_id,
+                                                      FusionCallPermissions  permissions );
+
+
 #endif
 

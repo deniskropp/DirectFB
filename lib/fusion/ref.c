@@ -444,6 +444,59 @@ fusion_ref_destroy (FusionRef *ref)
      return DR_OK;
 }
 
+DirectResult
+fusion_ref_add_permissions( FusionRef            *ref,
+                            FusionID              fusion_id,
+                            FusionRefPermissions  ref_permissions )
+{
+     FusionEntryPermissions permissions;
+
+     permissions.type        = FT_REF;
+     permissions.id          = ref->multi.id;
+     permissions.fusion_id   = fusion_id;
+     permissions.permissions = 0;
+
+     if (ref_permissions & FUSION_REF_PERMIT_REF_UNREF_LOCAL) {
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_UP );
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_DOWN );
+     }
+
+     if (ref_permissions & FUSION_REF_PERMIT_REF_UNREF_GLOBAL) {
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_UP_GLOBAL );
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_DOWN_GLOBAL );
+     }
+
+     if (ref_permissions & FUSION_REF_PERMIT_ZERO_LOCK_UNLOCK) {
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_ZERO_LOCK );
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_ZERO_TRYLOCK );
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_UNLOCK );
+     }
+
+     if (ref_permissions & FUSION_REF_PERMIT_WATCH)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_WATCH );
+
+     if (ref_permissions & FUSION_REF_PERMIT_INHERIT)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_INHERIT );
+
+     if (ref_permissions & FUSION_REF_PERMIT_DESTROY)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_DESTROY );
+
+     if (ref_permissions & FUSION_REF_PERMIT_CATCH)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_CATCH );
+
+     if (ref_permissions & FUSION_REF_PERMIT_THROW)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_THROW );
+
+     while (ioctl( _fusion_fd( ref->multi.shared ), FUSION_ENTRY_ADD_PERMISSIONS, &permissions ) < 0) {
+          if (errno != EINTR) {
+               D_PERROR( "Fusion/Reactor: FUSION_ENTRY_ADD_PERMISSIONS( id %d ) failed!\n", ref->multi.id );
+               return DR_FAILURE;
+          }
+     }
+
+     return DR_OK;
+}
+
 #else /* FUSION_BUILD_KERNEL */
 
 DirectResult
@@ -682,6 +735,16 @@ fusion_ref_destroy (FusionRef *ref)
      fusion_skirmish_destroy( skirmish );
 
      return DR_OK;
+}
+
+DirectResult
+fusion_ref_add_permissions( FusionRef            *ref,
+                            FusionID              fusion_id,
+                            FusionRefPermissions  ref_permissions )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
 }
 
 #endif /* FUSION_BUILD_KERNEL */
@@ -924,6 +987,14 @@ fusion_ref_destroy (FusionRef *ref)
      direct_mutex_deinit( &ref->single.lock );
      direct_waitqueue_deinit( &ref->single.cond );
 
+     return DR_OK;
+}
+
+DirectResult
+fusion_ref_add_permissions( FusionRef            *ref,
+                            FusionID              fusion_id,
+                            FusionRefPermissions  ref_permissions )
+{
      return DR_OK;
 }
 

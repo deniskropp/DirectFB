@@ -34,6 +34,7 @@
 #include <direct/messages.h>
 
 #include <core/core.h>
+#include <core/graphics_state.h>
 #include <core/state.h>
 #include <core/surface.h>
 
@@ -67,6 +68,16 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      D_MAGIC_SET( client, CoreGraphicsStateClient );
 
      return DFB_OK;
+}
+
+void
+CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
+{
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     dfb_graphics_state_unref( client->gfx_state );
+
+     D_MAGIC_CLEAR( client );
 }
 
 DFBResult

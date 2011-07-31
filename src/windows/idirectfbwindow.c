@@ -1179,7 +1179,7 @@ IDirectFBWindow_SetSrcGeometry( IDirectFBWindow         *thiz,
 
      config.src_geometry = *geometry;
 
-     return CoreWindow_SetConfig( data->window, &config, CWCF_SRC_GEOMETRY );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_SRC_GEOMETRY );
 }
 
 static DFBResult
@@ -1202,7 +1202,7 @@ IDirectFBWindow_SetDstGeometry( IDirectFBWindow         *thiz,
 
      config.dst_geometry = *geometry;
 
-     return CoreWindow_SetConfig( data->window, &config, CWCF_DST_GEOMETRY );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_DST_GEOMETRY );
 }
 
 static DFBResult
@@ -1218,7 +1218,9 @@ static DFBResult
 IDirectFBWindow_SetAssociation( IDirectFBWindow *thiz,
                                 DFBWindowID      window_id )
 {
-     CoreWindowConfig config;
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindow       *window;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -1229,7 +1231,15 @@ IDirectFBWindow_SetAssociation( IDirectFBWindow *thiz,
 
      config.association = window_id;
 
-     return CoreWindow_SetConfig( data->window, &config, CWCF_ASSOCIATION );
+     ret = dfb_core_get_window( data->core, window_id, &window );
+     if (ret)
+          return ret;
+
+     ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, window, CWCF_ASSOCIATION );
+
+     dfb_window_unref( window );
+
+     return ret;
 }
 
 static DFBResult
@@ -1248,7 +1258,7 @@ IDirectFBWindow_SetApplicationID( IDirectFBWindow *thiz,
 
      config.application_id = application_id;
 
-     return CoreWindow_SetConfig( data->window, &config, CWCF_APPLICATION_ID );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_APPLICATION_ID );
 }
 
 static DFBResult
@@ -1326,7 +1336,7 @@ IDirectFBWindow_SetCursorFlags( IDirectFBWindow      *thiz,
 
      config.cursor_flags = flags;
 
-     return CoreWindow_SetConfig( data->window, &config, CWCF_CURSOR_FLAGS );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_CURSOR_FLAGS );
 }
 
 static DFBResult
@@ -1352,7 +1362,7 @@ IDirectFBWindow_SetCursorResolution( IDirectFBWindow    *thiz,
           config.cursor_resolution.h = 0;
      }
 
-     return CoreWindow_SetConfig( data->window, &config, CWCF_CURSOR_RESOLUTION );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_CURSOR_RESOLUTION );
 }
 
 static DFBResult
@@ -1393,7 +1403,7 @@ IDirectFBWindow_SetStereoDepth( IDirectFBWindow *thiz,
 
      config.z = z;
 
-     return CoreWindow_SetConfig( data->window, &config, CWCF_STEREO_DEPTH );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_STEREO_DEPTH );
 }
 
 static DFBResult

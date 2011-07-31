@@ -43,7 +43,10 @@ typedef enum {
      CSPCAPS_PHYSICAL    = 0x00000001,  /* pool provides physical address to buffer */
      CSPCAPS_VIRTUAL     = 0x00000002,  /* pool provides virtual address to buffer */
 
-     CSPCAPS_ALL         = 0x00000003
+     CSPCAPS_READ        = 0x00000004,  /* pool provides Read() function (set automatically) */
+     CSPCAPS_WRITE       = 0x00000008,  /* pool provides Write() function (set automatically) */
+
+     CSPCAPS_ALL         = 0x0000000F
 } CoreSurfacePoolCapabilities;
 
 typedef enum {

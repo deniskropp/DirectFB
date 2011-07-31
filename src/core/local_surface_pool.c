@@ -31,8 +31,6 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 
-#include <fusion/fusion.h>
-
 #include <core/core.h>
 #include <core/surface_pool.h>
 #include <core/system.h>
@@ -44,7 +42,6 @@ typedef struct {
 } LocalPoolData;
 
 typedef struct {
-     FusionCall  call;
 } LocalPoolLocalData;
 
 typedef struct {
@@ -53,27 +50,7 @@ typedef struct {
      void       *addr;
      int         pitch;
      int         size;
-
-     FusionCall  call;
-     FusionID    fid;
 } LocalAllocationData;
-
-/**********************************************************************************************************************/
-
-static FusionCallHandlerResult
-local_surface_pool_call_handler( int           caller,
-                                 int           call_arg,
-                                 void         *call_ptr,
-                                 void         *ctx,
-                                 unsigned int  serial,
-                                 int          *ret_val )
-{
-     D_FREE( call_ptr );
-
-     *ret_val = 0;
-
-     return FCHR_RETURN;
-}
 
 /**********************************************************************************************************************/
 
@@ -103,20 +80,15 @@ localInitPool( CoreDFB                    *core,
                void                       *system_data,
                CoreSurfacePoolDescription *ret_desc )
 {
-     LocalPoolLocalData *local = pool_local;
-
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_ASSERT( pool_local != NULL );
      D_ASSERT( ret_desc != NULL );
 
      ret_desc->caps              = CSPCAPS_VIRTUAL;
-     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE;
-     ret_desc->types             = CSTF_FONT | CSTF_INTERNAL;
-     ret_desc->priority          = (dfb_system_caps() & CSCAPS_PREFER_SHM) ? CSPP_DEFAULT : CSPP_PREFERED;
+     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_INTERNAL | CSTF_EXTERNAL;
+     ret_desc->priority          = CSPP_DEFAULT;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "System Memory" );
-
-     fusion_call_init( &local->call, local_surface_pool_call_handler, local, dfb_core_world(core) );
 
      return DFB_OK;
 }
@@ -128,12 +100,9 @@ localJoinPool( CoreDFB                    *core,
                void                       *pool_local,
                void                       *system_data )
 {
-     LocalPoolLocalData *local = pool_local;
-
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_ASSERT( pool_local != NULL );
 
-     return fusion_call_init( &local->call, local_surface_pool_call_handler, local, dfb_core_world(core) );
+     return DFB_OK;
 }
 
 static DFBResult
@@ -141,28 +110,9 @@ localDestroyPool( CoreSurfacePool *pool,
                   void            *pool_data,
                   void            *pool_local )
 {
-     CoreSurfaceAllocation *allocation;
-     LocalPoolLocalData    *local = pool_local;
-     LocalAllocationData   *data;
-     FusionID               fid;
-
-     DFBResult res;
-     int       i;
-
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_ASSERT( pool_local != NULL );
 
-     res = fusion_call_destroy( &local->call );
-     fid = fusion_id( dfb_core_world(NULL) );
-
-     /* remove the local allocations */
-     fusion_vector_foreach (allocation, i, pool->allocs) {
-          data = allocation->data;
-          if( data->fid == fid )
-               D_FREE( data->addr );
-     }
-
-     return res;    
+     return DFB_OK;
 }
 
 static DFBResult
@@ -170,28 +120,9 @@ localLeavePool( CoreSurfacePool *pool,
                 void            *pool_data,
                 void            *pool_local )
 {
-     CoreSurfaceAllocation *allocation;
-     LocalPoolLocalData    *local = pool_local;
-     LocalAllocationData   *data;
-     FusionID               fid;
-     
-     DFBResult res;
-     int       i;
-
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_ASSERT( pool_local != NULL );
 
-     res = fusion_call_destroy( &local->call );
-     fid = fusion_id( dfb_core_world(NULL) );
-
-     /* remove the local allocations */
-     fusion_vector_foreach (allocation, i, pool->allocs) {
-          data = allocation->data;
-          if( data->fid == fid )
-               D_FREE( data->addr );
-     }
-
-     return res;    
+     return DFB_OK;
 }
 
 static DFBResult
@@ -203,7 +134,6 @@ localAllocateBuffer( CoreSurfacePool       *pool,
                      void                  *alloc_data )
 {
      CoreSurface         *surface;
-     LocalPoolLocalData  *local = pool_local;
      LocalAllocationData *alloc = alloc_data;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
@@ -218,9 +148,6 @@ localAllocateBuffer( CoreSurfacePool       *pool,
      alloc->addr = D_MALLOC( alloc->size );
      if (!alloc->addr)
           return D_OOM();
-
-     alloc->call = local->call;
-     alloc->fid  = fusion_id( dfb_core_world(NULL) );
 
      D_MAGIC_SET( alloc, LocalAllocationData );
 
@@ -238,16 +165,11 @@ localDeallocateBuffer( CoreSurfacePool       *pool,
                        CoreSurfaceAllocation *allocation,
                        void                  *alloc_data )
 {
-     DFBResult            ret;
      LocalAllocationData *alloc = alloc_data;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( alloc, LocalAllocationData );
-
-     ret = fusion_call_execute( &alloc->call, FCEF_ONEWAY, 0, alloc->addr, NULL );
-//     if (ret)
-//          D_DERROR( ret, "SurfPool/Local: Could not call buffer owner to free it there!\n" );
 
      D_MAGIC_CLEAR( alloc );
 

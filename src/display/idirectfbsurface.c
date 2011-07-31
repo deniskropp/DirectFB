@@ -126,7 +126,7 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      if (data->surface) {
           if (data->locked)
-               CoreSurface_UnlockBuffer( data->surface, &data->lock );
+               dfb_surface_unlock_buffer( data->surface, &data->lock );
 
           dfb_surface_unref( data->surface );
      }
@@ -341,6 +341,7 @@ IDirectFBSurface_GetPalette( IDirectFBSurface  *thiz,
 {
      DFBResult         ret;
      CoreSurface      *surface;
+     CorePalette      *core_palette;
      IDirectFBPalette *palette;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
@@ -357,15 +358,22 @@ IDirectFBSurface_GetPalette( IDirectFBSurface  *thiz,
      if (!interface)
           return DFB_INVARG;
 
-     DIRECT_ALLOCATE_INTERFACE( palette, IDirectFBPalette );
-
-     ret = IDirectFBPalette_Construct( palette, surface->palette, data->core );
+     ret = CoreSurface_GetPalette( surface, &core_palette );
      if (ret)
           return ret;
 
+     DIRECT_ALLOCATE_INTERFACE( palette, IDirectFBPalette );
+
+     ret = IDirectFBPalette_Construct( palette, core_palette, data->core );
+     if (ret)
+          goto out;
+
      *interface = palette;
 
-     return DFB_OK;
+out:
+     dfb_palette_unref( core_palette );
+
+     return ret;
 }
 
 static DFBResult
@@ -453,7 +461,7 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
           role = CSBR_BACK;
      }
 
-     ret = CoreSurface_LockBuffer( data->surface, role, CSAID_CPU, access, &data->lock );
+     ret = dfb_surface_lock_buffer( data->surface, role, CSAID_CPU, access, &data->lock );
      if (ret)
           return ret;
 
@@ -515,7 +523,7 @@ IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
           return DFB_DESTROYED;
 
      if (data->locked) {
-          CoreSurface_UnlockBuffer( data->surface, &data->lock );
+          dfb_surface_unlock_buffer( data->surface, &data->lock );
 
           data->locked = false;
      }

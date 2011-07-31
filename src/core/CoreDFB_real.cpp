@@ -88,29 +88,12 @@ ICore_Real::CreateState(
                     CoreGraphicsState                        **ret_state
 )
 {
-    CoreGraphicsState *state;
-
     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Requestor::%s()\n", __FUNCTION__ );
 
+    D_MAGIC_ASSERT( obj, CoreDFB );
     D_ASSERT( ret_state != NULL );
 
-    state = (CoreGraphicsState*) D_CALLOC( 1, sizeof(CoreGraphicsState) );
-    if (!state)
-         return (DFBResult) D_OOM();
-
-    state->core = core;
-
-    dfb_state_init( &state->state, core );
-
-
-    CoreGraphicsState_Init_Dispatch( core, state, &state->call );
-
-    D_MAGIC_SET( state, CoreGraphicsState );
-
-
-    *ret_state = state;
-
-    return DFB_OK;
+    return dfb_graphics_state_create( core, ret_state );
 }
 
 DFBResult
@@ -119,6 +102,8 @@ ICore_Real::WaitIdle(
 )
 {
     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Requestor::%s()\n", __FUNCTION__ );
+
+    D_MAGIC_ASSERT( obj, CoreDFB );
 
     return dfb_gfxcard_sync();
 }

@@ -215,6 +215,8 @@ dfb_layer_core_initialize( CoreDFB            *core,
 
           CoreLayer_Init_Dispatch( core, layer, &lshared->call );
 
+          fusion_call_add_permissions( &lshared->call, 0, FUSION_CALL_PERMIT_EXECUTE );
+
           /* Add the layer to the shared list. */
           shared->layers[ shared->num++ ] = lshared;
      }

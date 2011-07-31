@@ -458,6 +458,10 @@ init_pool( FusionSHM           *shm,
 
      ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 
+     fusion_entry_add_permissions( world, FT_SHMPOOL, pool_new.pool_id, 0,
+                                   FUSION_SHMPOOL_ATTACH,
+                                   FUSION_SHMPOOL_DETACH,
+                                   0 );
 
      /* Set pool to attach to. */
      pool_attach.pool_id = pool_new.pool_id;
@@ -574,7 +578,7 @@ join_pool( FusionSHM           *shm,
 
      /* Join the heap. */
      ret = __shmalloc_join_heap( shm, buf, pool_attach.addr_base, shared->max_size,
-                                 shared->slave_write || !fusion_config->secure_fusion );
+                                 !fusion_config->secure_fusion );
      if (ret) {
           while (ioctl( world->fusion_fd, FUSION_SHMPOOL_DETACH, &shared->pool_id )) {
                if (errno != EINTR) {
