@@ -53,6 +53,8 @@
 #include <core/windowstack.h>
 #include <core/wm.h>
 
+#include <core/CoreLayerContext.h>
+
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
 
@@ -103,6 +105,8 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
                  zombie ? " - ZOMBIE" : "");
 
      D_MAGIC_ASSERT( context, CoreLayerContext );
+
+     fusion_call_destroy( &context->call );
 
      /* Remove the context from the layer's context stack. */
      dfb_layer_remove_context( layer, context );
@@ -195,6 +199,8 @@ update_stack_geometry( CoreLayerContext *context )
           dfb_windowstack_resize( context->stack, size.w, size.h, rotation );
 }
 
+/**********************************************************************************************************************/
+
 DFBResult
 dfb_layer_context_init( CoreLayerContext *context,
                         CoreLayer        *layer )
@@ -263,6 +269,8 @@ dfb_layer_context_init( CoreLayerContext *context,
 
      /* Tell the window stack about its size. */
      update_stack_geometry( context );
+
+     CoreLayerContext_Init_Dispatch( layer->core, context, &context->call );
 
      dfb_layer_context_unlock( context );
 

@@ -74,6 +74,8 @@ typedef struct {
      FusionVector                       added_regions;
 
      FusionSHMPoolShared               *shmpool;
+
+     FusionCall                         call;
 } CoreLayerShared;
 
 struct __DFB_CoreLayer {
@@ -138,6 +140,8 @@ struct __DFB_CoreLayerContext {
                                                 its own pixel buffer. */
 
      FusionSHMPoolShared        *shmpool;
+
+     FusionCall                  call;
 };
 
 typedef enum {
@@ -171,6 +175,8 @@ struct __DFB_CoreLayerRegion {
      void                       *region_data;
 
      CoreSurfaceAccessorID       surface_accessor;
+
+     FusionCall                  call;
 };
 
 

@@ -41,11 +41,9 @@
 
 #include <media/idirectfbimageprovider.h>
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
 #include <core/layers.h>
-#include <core/surface.h>
+
+#include <core/CoreSurface.h>
 
 #include <misc/gfx_util.h>
 #include <misc/util.h>

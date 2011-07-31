@@ -193,5 +193,22 @@ DirectResult   fusion_reactor_set_name             ( FusionReactor  *reactor,
 DirectResult   fusion_reactor_direct        ( FusionReactor      *reactor,
                                               bool                direct );
 
+
+typedef enum {
+     FUSION_REACTOR_PERMIT_NONE              = 0x00000000,
+
+     FUSION_REACTOR_PERMIT_ATTACH_DETACH     = 0x00000001,
+     FUSION_REACTOR_PERMIT_DISPATCH          = 0x00000002,
+
+     FUSION_REACTOR_PERMIT_ALL               = 0x00000003,
+} FusionReactorPermissions;
+
+/*
+ * Give permissions to another fusionee to use the reactor.
+ */
+DirectResult fusion_reactor_add_permissions( FusionReactor            *reactor,
+                                             FusionID                  fusion_id,
+                                             FusionReactorPermissions  permissions );
+
 #endif
 

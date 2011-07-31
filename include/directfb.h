@@ -428,6 +428,7 @@ DFBResult DirectFBCreate(
 typedef unsigned int DFBScreenID;
 typedef unsigned int DFBDisplayLayerID;
 typedef unsigned int DFBDisplayLayerSourceID;
+typedef unsigned int DFBSurfaceID;
 typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
 typedef unsigned int DFBTextEncodingID;

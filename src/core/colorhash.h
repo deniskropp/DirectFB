@@ -34,12 +34,6 @@
 #include <core/coretypes.h>
 
 
-void          dfb_colorhash_attach    ( DFBColorHashCore *core,
-                                        CorePalette      *palette );
-
-void          dfb_colorhash_detach    ( DFBColorHashCore *core,
-                                        CorePalette      *palette );
-
 unsigned int  dfb_colorhash_lookup    ( DFBColorHashCore *core,
                                         CorePalette      *palette,
                                         u8                r,

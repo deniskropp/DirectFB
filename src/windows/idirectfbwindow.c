@@ -44,6 +44,8 @@
 
 #include <idirectfb.h>
 
+#include <core/CoreWindow.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -233,7 +235,7 @@ IDirectFBWindow_EnableEvents( IDirectFBWindow       *thiz,
      if (mask & ~DWET_ALL)
           return DFB_INVARG;
 
-     return dfb_window_change_events( data->window, DWET_NONE, mask );
+     return CoreWindow_ChangeEvents( data->window, DWET_NONE, mask );
 }
 
 static DFBResult
@@ -250,7 +252,7 @@ IDirectFBWindow_DisableEvents( IDirectFBWindow       *thiz,
      if (mask & ~DWET_ALL)
           return DFB_INVARG;
 
-     return dfb_window_change_events( data->window, mask, DWET_NONE );
+     return CoreWindow_ChangeEvents( data->window, mask, DWET_NONE );
 }
 
 static DFBResult
@@ -465,7 +467,7 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
           options &= ~DWOP_ALPHACHANNEL;
 
      /* Set new options */
-     return dfb_window_change_options( data->window, DWOP_ALL, options );
+     return CoreWindow_ChangeOptions( data->window, DWOP_ALL, options );
 }
 
 static DFBResult
@@ -503,7 +505,7 @@ IDirectFBWindow_SetColor( IDirectFBWindow *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     dfb_window_set_color( data->window, color );
+     CoreWindow_SetColor( data->window, &color );
 
      return DFB_OK;
 }
@@ -534,7 +536,7 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
      else
           key = dfb_color_to_pixel( surface->config.format, r, g, b );
 
-     return dfb_window_set_colorkey( data->window, key );
+     return CoreWindow_SetColorKey( data->window, key );
 }
 
 static DFBResult
@@ -553,7 +555,7 @@ IDirectFBWindow_SetColorKeyIndex( IDirectFBWindow *thiz,
      if (data->window->caps & DWCAPS_INPUTONLY)
           return DFB_UNSUPPORTED;
 
-     return dfb_window_set_colorkey( data->window, key );
+     return CoreWindow_SetColorKey( data->window, key );
 }
 
 static DFBResult
@@ -577,7 +579,7 @@ IDirectFBWindow_SetOpaqueRegion( IDirectFBWindow *thiz,
 
      region = (DFBRegion) { x1, y1, x2, y2 };
 
-     return dfb_window_set_opaque( data->window, &region );
+     return CoreWindow_SetOpaque( data->window, &region );
 }
 
 static DFBResult
@@ -591,7 +593,7 @@ IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_set_opacity( data->window, opacity );
+     return CoreWindow_SetOpacity( data->window, opacity );
 }
 
 static DFBResult
@@ -681,7 +683,7 @@ IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
      if (!window->config.opacity && !(window->caps & DWCAPS_INPUTONLY))
           return DFB_UNSUPPORTED;
 
-     return dfb_window_request_focus( window );
+     return CoreWindow_RequestFocus( window );
 }
 
 static DFBResult
@@ -694,7 +696,7 @@ IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_change_grab( data->window, CWMGT_KEYBOARD, true );
+     return CoreWindow_ChangeGrab( data->window, CWMGT_KEYBOARD, true );
 }
 
 static DFBResult
@@ -707,7 +709,7 @@ IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_change_grab( data->window, CWMGT_KEYBOARD, false );
+     return CoreWindow_ChangeGrab( data->window, CWMGT_KEYBOARD, false );
 }
 
 static DFBResult
@@ -720,7 +722,7 @@ IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_change_grab( data->window, CWMGT_POINTER, true );
+     return CoreWindow_ChangeGrab( data->window, CWMGT_POINTER, true );
 }
 
 static DFBResult
@@ -733,7 +735,7 @@ IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_change_grab( data->window, CWMGT_POINTER, false );
+     return CoreWindow_ChangeGrab( data->window, CWMGT_POINTER, false );
 }
 
 static DFBResult
@@ -748,7 +750,7 @@ IDirectFBWindow_GrabKey( IDirectFBWindow            *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_grab_key( data->window, symbol, modifiers );
+     return CoreWindow_GrabKey( data->window, symbol, modifiers );
 }
 
 static DFBResult
@@ -763,7 +765,7 @@ IDirectFBWindow_UngrabKey( IDirectFBWindow            *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_ungrab_key( data->window, symbol, modifiers );
+     return CoreWindow_UngrabKey( data->window, symbol, modifiers );
 }
 
 static DFBResult
@@ -779,14 +781,12 @@ IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
      if (dx == 0  &&  dy == 0)
           return DFB_OK;
 
-     return dfb_window_move( data->window, dx, dy, true );
+     return CoreWindow_Move( data->window, dx, dy );
 }
 
 static DFBResult
 IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
-     DFBResult ret;
-     DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -794,17 +794,7 @@ IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     dfb_windowstack_lock( data->window->stack );
-
-     dfb_wm_get_insets( data->window->stack, data->window, &insets );
-     x += insets.l;
-     y += insets.t;
-
-     ret = dfb_window_move( data->window, x, y, false );
-
-     dfb_windowstack_unlock( data->window->stack );
-
-     return ret;
+     return CoreWindow_MoveTo( data->window, x, y );
 }
 
 static DFBResult
@@ -812,9 +802,6 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
                         int              width,
                         int              height )
 {
-     DFBResult ret;
-     DFBInsets insets;
-     
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -825,17 +812,7 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
      
-     dfb_windowstack_lock( data->window->stack );
-
-     dfb_wm_get_insets( data->window->stack, data->window, &insets );
-     width  += insets.l+insets.r;
-     height += insets.t+insets.b;
-
-     ret = dfb_window_resize( data->window, width, height );
-
-     dfb_windowstack_unlock( data->window->stack );
-
-     return ret;
+     return CoreWindow_Resize( data->window, width, height );
 }
 
 static DFBResult
@@ -848,13 +825,15 @@ IDirectFBWindow_Raise( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_raise( data->window );
+     return CoreWindow_Restack( data->window, data->window, 1 );
 }
 
 static DFBResult
 IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
                                   DFBWindowStackingClass  stacking_class )
 {
+     CoreWindowConfig config;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -871,7 +850,9 @@ IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
                return DFB_INVARG;
      }
 
-     return dfb_window_change_stacking( data->window, stacking_class );
+     config.stacking = stacking_class;
+
+     return CoreWindow_SetStacking( data->window, stacking_class );
 }
 
 static DFBResult
@@ -884,7 +865,7 @@ IDirectFBWindow_Lower( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_lower( data->window );
+     return CoreWindow_Restack( data->window, data->window, -1 );
 }
 
 static DFBResult
@@ -897,7 +878,7 @@ IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_raisetotop( data->window );
+     return CoreWindow_Restack( data->window, NULL, 1 );
 }
 
 static DFBResult
@@ -910,7 +891,7 @@ IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_lowertobottom( data->window );
+     return CoreWindow_Restack( data->window, NULL, -1 );
 }
 
 static DFBResult
@@ -936,7 +917,7 @@ IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
      if (!lower_data->window)
           return DFB_DESTROYED;
 
-     return dfb_window_putatop( data->window, lower_data->window );
+     return CoreWindow_Restack( data->window, lower_data->window, 1 );
 }
 
 static DFBResult
@@ -962,7 +943,7 @@ IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
      if (!upper_data->window)
           return DFB_DESTROYED;
 
-     return dfb_window_putbelow( data->window, upper_data->window );
+     return CoreWindow_Restack( data->window, upper_data->window, -1 );
 }
 
 static DFBResult
@@ -996,7 +977,7 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 
      D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_Destroy()\n" );
 
-     dfb_window_destroy( data->window );
+     CoreWindow_Destroy( data->window );
 
      return DFB_OK;
 }
@@ -1008,6 +989,10 @@ IDirectFBWindow_SetBounds( IDirectFBWindow *thiz,
                            int              width,
                            int              height )
 {
+     DFBRectangle rect = {
+          x, y, width, height
+     };
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -1017,7 +1002,7 @@ IDirectFBWindow_SetBounds( IDirectFBWindow *thiz,
 
      D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_SetBounds( %d, %d - %dx%d )\n", x, y, width, height );
 
-     return dfb_window_set_bounds( data->window, x, y, width, height );
+     return CoreWindow_SetBounds( data->window, &rect );
 }
 
 static DFBResult
@@ -1062,7 +1047,7 @@ IDirectFBWindow_SetKeySelection( IDirectFBWindow               *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_set_key_selection( data->window, selection, keys, num_keys );
+     return CoreWindow_SetKeySelection( data->window, selection, keys, num_keys );
 }
 
 static DFBResult
@@ -1075,7 +1060,7 @@ IDirectFBWindow_GrabUnselectedKeys( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_change_grab( data->window, CWMGT_UNSELECTED_KEYS, true );
+     return CoreWindow_ChangeGrab( data->window, CWMGT_UNSELECTED_KEYS, true );
 }
 
 static DFBResult
@@ -1088,7 +1073,7 @@ IDirectFBWindow_UngrabUnselectedKeys( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_change_grab( data->window, CWMGT_UNSELECTED_KEYS, false );
+     return CoreWindow_ChangeGrab( data->window, CWMGT_UNSELECTED_KEYS, false );
 }
 
 static DFBResult
@@ -1111,7 +1096,7 @@ IDirectFBWindow_Bind( IDirectFBWindow *thiz,
      if (source_data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_bind( data->window, source_data->window, x, y );
+     return CoreWindow_Bind( data->window, source_data->window, x, y );
 }
 
 static DFBResult
@@ -1132,7 +1117,7 @@ IDirectFBWindow_Unbind( IDirectFBWindow *thiz,
      if (source_data->destroyed)
           return DFB_DESTROYED;
 
-     return dfb_window_unbind( data->window, source_data->window );
+     return CoreWindow_Unbind( data->window, source_data->window );
 }
 
 static DFBResult
@@ -1193,7 +1178,7 @@ IDirectFBWindow_SetSrcGeometry( IDirectFBWindow         *thiz,
 
      config.src_geometry = *geometry;
 
-     return dfb_window_set_config( data->window, &config, CWCF_SRC_GEOMETRY );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_SRC_GEOMETRY );
 }
 
 static DFBResult
@@ -1216,7 +1201,7 @@ IDirectFBWindow_SetDstGeometry( IDirectFBWindow         *thiz,
 
      config.dst_geometry = *geometry;
 
-     return dfb_window_set_config( data->window, &config, CWCF_DST_GEOMETRY );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_DST_GEOMETRY );
 }
 
 static DFBResult
@@ -1225,14 +1210,16 @@ IDirectFBWindow_SetRotation( IDirectFBWindow *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
-     return dfb_window_set_rotation( data->window, rotation % 360 );     
+     return CoreWindow_SetRotation( data->window, rotation % 360 );
 }
 
 static DFBResult
 IDirectFBWindow_SetAssociation( IDirectFBWindow *thiz,
                                 DFBWindowID      window_id )
 {
-     CoreWindowConfig config;
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindow       *window;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -1243,7 +1230,15 @@ IDirectFBWindow_SetAssociation( IDirectFBWindow *thiz,
 
      config.association = window_id;
 
-     return dfb_window_set_config( data->window, &config, CWCF_ASSOCIATION );
+     ret = dfb_core_get_window( data->core, window_id, &window );
+     if (ret)
+          return ret;
+
+     ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, window, CWCF_ASSOCIATION );
+
+     dfb_window_unref( window );
+
+     return ret;
 }
 
 static DFBResult
@@ -1262,7 +1257,7 @@ IDirectFBWindow_SetApplicationID( IDirectFBWindow *thiz,
 
      config.application_id = application_id;
 
-     return dfb_window_set_config( data->window, &config, CWCF_APPLICATION_ID );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_APPLICATION_ID );
 }
 
 static DFBResult
@@ -1296,13 +1291,7 @@ IDirectFBWindow_BeginUpdates( IDirectFBWindow *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     dfb_windowstack_lock( data->window->stack );
-
-     dfb_wm_begin_updates( data->window, update );
-
-     dfb_windowstack_unlock( data->window->stack );
-
-     return DFB_OK;
+     return CoreWindow_BeginUpdates( data->window, update );
 }
 
 static DFBResult
@@ -1346,7 +1335,7 @@ IDirectFBWindow_SetCursorFlags( IDirectFBWindow      *thiz,
 
      config.cursor_flags = flags;
 
-     return dfb_window_set_config( data->window, &config, CWCF_CURSOR_FLAGS );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_CURSOR_FLAGS );
 }
 
 static DFBResult
@@ -1372,7 +1361,7 @@ IDirectFBWindow_SetCursorResolution( IDirectFBWindow    *thiz,
           config.cursor_resolution.h = 0;
      }
 
-     return dfb_window_set_config( data->window, &config, CWCF_CURSOR_RESOLUTION );
+     return CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_CURSOR_RESOLUTION );
 }
 
 static DFBResult
@@ -1387,13 +1376,7 @@ IDirectFBWindow_SetCursorPosition( IDirectFBWindow    *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     dfb_windowstack_lock( data->window->stack );
-
-     dfb_wm_set_cursor_position( data->window, x, y );
-
-     dfb_windowstack_unlock( data->window->stack );
-
-     return DFB_OK;
+     return CoreWindow_SetCursorPosition( data->window, x, y );
 }
 
 DFBResult

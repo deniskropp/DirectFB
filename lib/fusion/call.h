@@ -43,17 +43,33 @@ typedef FusionCallHandlerResult (*FusionCallHandler) (int           caller,   /*
                                                       unsigned int  serial,
                                                       int          *ret_val );
 
+typedef FusionCallHandlerResult (*FusionCallHandler3)(int           caller,   /* fusion id of the caller */
+                                                      int           call_arg, /* optional call parameter */
+                                                      void         *ptr,      /* optional call parameter */
+                                                      unsigned int  length,
+                                                      void         *ctx,      /* optional handler context */
+                                                      unsigned int  serial,
+                                                      void         *ret_ptr,
+                                                      unsigned int  ret_size,
+                                                      unsigned int *ret_length );
+
 typedef struct {
-     FusionWorldShared *shared;
-     int                call_id;
-     FusionID           fusion_id;
-     FusionCallHandler  handler;
-     void              *ctx;
+     FusionWorldShared  *shared;
+     int                 call_id;
+     FusionID            fusion_id;
+     FusionCallHandler   handler;
+     FusionCallHandler3  handler3;
+     void               *ctx;
 } FusionCall;
 
 
 DirectResult fusion_call_init   ( FusionCall          *call,
                                   FusionCallHandler    handler,
+                                  void                *ctx,
+                                  const FusionWorld   *world );
+
+DirectResult fusion_call_init3  ( FusionCall          *call,
+                                  FusionCallHandler3   handler3,
                                   void                *ctx,
                                   const FusionWorld   *world );
 
@@ -63,11 +79,41 @@ DirectResult fusion_call_execute( FusionCall          *call,
                                   void                *call_ptr,
                                   int                 *ret_val );
 
+DirectResult fusion_call_execute3( FusionCall          *call,
+                                   FusionCallExecFlags  flags,
+                                   int                  call_arg,
+                                   void                *ptr,
+                                   unsigned int         length,
+                                   void                *ret_ptr,
+                                   unsigned int         ret_size,
+                                   unsigned int        *ret_length );
+
 DirectResult fusion_call_return ( FusionCall          *call,
                                   unsigned int         serial,
                                   int                  val );
 
+DirectResult fusion_call_return3( FusionCall          *call,
+                                  unsigned int         serial,
+                                  void                *ptr,
+                                  unsigned int         length );
+
 DirectResult fusion_call_destroy( FusionCall          *call );
+
+
+typedef enum {
+     FUSION_CALL_PERMIT_NONE              = 0x00000000,
+
+     FUSION_CALL_PERMIT_EXECUTE           = 0x00000001,
+
+     FUSION_CALL_PERMIT_ALL               = 0x00000001,
+} FusionCallPermissions;
+
+/*
+ * Give permissions to another fusionee to use the call.
+ */
+DirectResult fusion_call_add_permissions( FusionCall            *call,
+                                          FusionID               fusion_id,
+                                          FusionCallPermissions  permissions );
 
 
 #endif

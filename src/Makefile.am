@@ -42,7 +42,8 @@ endif
 
 libdirectfb_la_SOURCES = 		\
 	$(NON_PURE_VOODOO_SOURCES)	\
-	directfb.c
+	directfb.c			\
+	dummy.cpp
 
 libdirectfb_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
@@ -58,7 +59,6 @@ NON_PURE_VOODOO_LIBS = \
 	display/libdirectfb_display.la	\
 	windows/libdirectfb_windows.la
 endif
-
 
 if DIRECTFB_BUILD_VOODOO
 VOODOO_LIB = \

@@ -42,10 +42,11 @@
 #include <core/surface_pool.h>
 
 
-extern SurfacePoolFuncs localSurfacePoolFuncs;
+#if FUSION_BUILD_MULTI
 extern SurfacePoolFuncs sharedSurfacePoolFuncs;
-extern SurfacePoolFuncs preallocSurfacePoolFuncs;
-
+#else
+extern SurfacePoolFuncs localSurfacePoolFuncs;
+#endif
 
 
 D_DEBUG_DOMAIN( Core_Surface, "Core/SurfaceCore", "DirectFB Surface Core" );
@@ -55,9 +56,7 @@ D_DEBUG_DOMAIN( Core_Surface, "Core/SurfaceCore", "DirectFB Surface Core" );
 typedef struct {
      int                   magic;
 
-     CoreSurfacePool      *local_pool;
-     CoreSurfacePool      *shared_pool;
-     CoreSurfacePool      *prealloc_pool;
+     CoreSurfacePool      *surface_pool;
 } DFBSurfaceCoreShared;
 
 typedef struct {
@@ -88,26 +87,19 @@ dfb_surface_core_initialize( CoreDFB              *core,
      data->core   = core;
      data->shared = shared;
 
-     ret = dfb_surface_pool_initialize( core, &sharedSurfacePoolFuncs, &shared->shared_pool );
+#if FUSION_BUILD_MULTI
+     ret = dfb_surface_pool_initialize( core, &sharedSurfacePoolFuncs, &shared->surface_pool );
      if (ret) {
           D_DERROR( ret, "Core/Surface: Could not register 'shared' surface pool!\n" );
           return ret;
      }
-
-     ret = dfb_surface_pool_initialize( core, &localSurfacePoolFuncs, &shared->local_pool );
+#else
+     ret = dfb_surface_pool_initialize( core, &localSurfacePoolFuncs, &shared->surface_pool );
      if (ret) {
           D_DERROR( ret, "Core/Surface: Could not register 'local' surface pool!\n" );
-          dfb_surface_pool_destroy( shared->shared_pool );
           return ret;
      }
-
-     ret = dfb_surface_pool_initialize( core, &preallocSurfacePoolFuncs, &shared->prealloc_pool );
-     if (ret) {
-          D_DERROR( ret, "Core/Surface: Could not register 'prealloc' surface pool!\n" );
-          dfb_surface_pool_destroy( shared->local_pool );
-          dfb_surface_pool_destroy( shared->shared_pool );
-          return ret;
-     }
+#endif
 
      D_MAGIC_SET( data, DFBSurfaceCore );
      D_MAGIC_SET( shared, DFBSurfaceCoreShared );
@@ -128,9 +120,11 @@ dfb_surface_core_join( CoreDFB              *core,
      data->core   = core;
      data->shared = shared;
 
-     dfb_surface_pool_join( core, shared->shared_pool, &sharedSurfacePoolFuncs );
-     dfb_surface_pool_join( core, shared->local_pool, &localSurfacePoolFuncs );
-     dfb_surface_pool_join( core, shared->prealloc_pool, &preallocSurfacePoolFuncs );
+#if FUSION_BUILD_MULTI
+     dfb_surface_pool_join( core, shared->surface_pool, &sharedSurfacePoolFuncs );
+#else
+     dfb_surface_pool_join( core, shared->surface_pool, &localSurfacePoolFuncs );
+#endif
 
      D_MAGIC_SET( data, DFBSurfaceCore );
 
@@ -150,9 +144,11 @@ dfb_surface_core_shutdown( DFBSurfaceCore *data,
 
      shared = data->shared;
 
-     dfb_surface_pool_destroy( shared->prealloc_pool );
-     dfb_surface_pool_destroy( shared->local_pool );
-     dfb_surface_pool_destroy( shared->shared_pool );
+#if FUSION_BUILD_MULTI
+     dfb_surface_pool_destroy( shared->surface_pool );
+#else
+     dfb_surface_pool_destroy( shared->surface_pool );
+#endif
 
      D_MAGIC_CLEAR( data );
      D_MAGIC_CLEAR( shared );
@@ -173,9 +169,11 @@ dfb_surface_core_leave( DFBSurfaceCore *data,
 
      shared = data->shared;
 
-     dfb_surface_pool_leave( shared->shared_pool );
-     dfb_surface_pool_leave( shared->local_pool );
-     dfb_surface_pool_leave( shared->prealloc_pool );
+#if FUSION_BUILD_MULTI
+     dfb_surface_pool_leave( shared->surface_pool );
+#else
+     dfb_surface_pool_leave( shared->surface_pool );
+#endif
 
      D_MAGIC_CLEAR( data );
 

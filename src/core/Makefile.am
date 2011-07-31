@@ -17,6 +17,25 @@ AM_CPPFLAGS = \
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
+	CoreDFB.h		\
+	CoreDFB_includes.h	\
+	CoreGraphicsState.h	\
+	CoreGraphicsState_includes.h	\
+	CoreGraphicsStateClient.h	\
+	CoreLayer.h		\
+	CoreLayer_includes.h	\
+	CoreLayerContext.h	\
+	CoreLayerContext_includes.h	\
+	CoreLayerRegion.h	\
+	CoreLayerRegion_includes.h	\
+	CorePalette.h		\
+	CorePalette_includes.h	\
+	CoreSurface.h		\
+	CoreSurface_includes.h	\
+	CoreWindow.h		\
+	CoreWindow_includes.h	\
+	CoreWindowStack.h		\
+	CoreWindowStack_includes.h	\
 	clipboard.h		\
 	colorhash.h		\
 	coredefs.h		\
@@ -27,6 +46,7 @@ internalinclude_HEADERS = \
 	fonts.h			\
 	gfxcard.h		\
 	graphics_driver.h	\
+	graphics_state.h	\
 	input.h			\
 	input_driver.h		\
 	layer_context.h		\
@@ -55,12 +75,32 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 
 
 libdirectfb_core_la_SOURCES = \
+	CoreDFB.cpp		\
+	CoreDFB_real.cpp	\
+	CoreGraphicsState.cpp	\
+	CoreGraphicsState_real.cpp	\
+	CoreGraphicsStateClient.c		\
+	CoreLayer.cpp		\
+	CoreLayer_real.cpp	\
+	CoreLayerContext.cpp	\
+	CoreLayerContext_real.cpp	\
+	CoreLayerRegion.cpp	\
+	CoreLayerRegion_real.cpp	\
+	CorePalette.cpp		\
+	CorePalette_real.cpp	\
+	CoreSurface.cpp		\
+	CoreSurface_real.cpp	\
+	CoreWindow.cpp		\
+	CoreWindow_real.cpp	\
+	CoreWindowStack.cpp		\
+	CoreWindowStack_real.cpp	\
 	clipboard.c		\
 	colorhash.c		\
 	core.c			\
 	core_parts.c		\
 	fonts.c			\
 	gfxcard.c		\
+	graphics_state.c	\
 	input.c			\
 	layer_context.c		\
 	layer_control.c		\
@@ -82,3 +122,25 @@ libdirectfb_core_la_SOURCES = \
 	windows.c		\
 	windowstack.c		\
 	wm.c
+
+distclean-local:
+	rm -f CoreDFB.cpp
+	rm -f CoreDFB.h
+	rm -f CoreGraphicsState.cpp
+	rm -f CoreGraphicsState.h
+	rm -f CoreLayerContext.cpp
+	rm -f CoreLayerContext.h
+	rm -f CoreLayer.cpp
+	rm -f CoreLayer.h
+	rm -f CoreLayerRegion.cpp
+	rm -f CoreLayerRegion.h
+	rm -f CorePalette.cpp
+	rm -f CorePalette.h
+	rm -f CoreSurface.cpp
+	rm -f CoreSurface.h
+	rm -f CoreWindow.cpp
+	rm -f CoreWindow.h
+	rm -f CoreWindowStack.cpp
+	rm -f CoreWindowStack.h
+
+include $(top_srcdir)/rules/flux_comp.make

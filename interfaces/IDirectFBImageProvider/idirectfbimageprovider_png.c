@@ -49,6 +49,8 @@
 #include <core/palette.h>
 #include <core/surface.h>
 
+#include <core/CoreSurface.h>
+
 #include <misc/gfx_util.h>
 #include <misc/util.h>
 
@@ -314,16 +316,17 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
           return DFB_INVAREA;
 
      /* actual rendering */
-     if (rect.w == data->width && rect.h == data->height &&
+     if (0    &&   // FIXME
+           rect.w == data->width && rect.h == data->height &&
          (data->color_type == PNG_COLOR_TYPE_RGB || data->color_type == PNG_COLOR_TYPE_RGBA) &&
          (dst_surface->config.format == DSPF_RGB32 || dst_surface->config.format == DSPF_ARGB) &&
          !(dst_surface->config.caps & DSCAPS_PREMULTIPLIED))
      {
-          ret = dfb_surface_write_buffer( dst_surface, CSBR_BACK,
-                                          data->image +
-                                             (clipped.x - rect.x) * 4 +
-                                             (clipped.y - rect.y) * data->width * 4,
-                                          data->width * 4, &clipped );
+          //ret = dfb_surface_write_buffer( dst_surface, CSBR_BACK,
+          //                                data->image +
+          //                                   (clipped.x - rect.x) * 4 +
+          //                                   (clipped.y - rect.y) * data->width * 4,
+          //                                data->width * 4, &clipped );
      }
      else {
           CoreSurfaceBufferLock lock;

@@ -33,10 +33,13 @@
 
 #include <direct/modules.h>
 
+#include <fusion/call.h>
 #include <fusion/lock.h>
+#include <fusion/property.h>
+
+#include <core/coretypes.h>
 
 #include <directfb.h>
-#include <core/coretypes.h>
 
 
 typedef enum {
@@ -386,6 +389,11 @@ void dfb_gfxcard_texture_triangles      ( DFBVertex            *vertices,
                                           DFBTriangleFormation  formation,
                                           CardState            *state );
 
+
+
+
+
+
 void dfb_gfxcard_drawstring             ( const u8             *text,
                                           int                   bytes,
                                           DFBTextEncodingID     encoding,
@@ -393,19 +401,25 @@ void dfb_gfxcard_drawstring             ( const u8             *text,
                                           int                   y,
                                           CoreFont             *font,
                                           unsigned int          layers, 
-                                          CardState            *state );
+                                          CoreGraphicsStateClient *client );
 
 void dfb_gfxcard_drawglyph              ( CoreGlyphData       **glyph,
                                           int                   x,
                                           int                   y,
                                           CoreFont             *font,
                                           unsigned int          layers, 
-                                          CardState            *state );
+                                          CoreGraphicsStateClient *client );
+
+
+
+
 
 bool dfb_gfxcard_drawstring_check_state ( CoreFont             *font,
                                           CardState            *state );
 
+
 DFBResult dfb_gfxcard_sync( void );
+
 void dfb_gfxcard_invalidate_state( void );
 DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
 void dfb_gfxcard_flush_texture_cache( void );
@@ -480,6 +494,53 @@ void          *dfb_gfxcard_auxmemory_virtual ( CoreGraphicsDevice *device,
 /* Hook for registering additional screen(s) and layer(s) in app or lib initializing DirectFB. */
 extern void (*__DFB_CoreRegisterHook)( CoreDFB *core, CoreGraphicsDevice *device, void *ctx );
 extern void  *__DFB_CoreRegisterHookCtx;
+
+
+
+
+
+typedef struct {
+     int                      magic;
+
+     /* amount of usable memory */
+     unsigned int             videoram_length;
+     unsigned int             auxram_length;
+     unsigned int             auxram_offset;
+
+     char                    *module_name;
+
+     GraphicsDriverInfo       driver_info;
+     GraphicsDeviceInfo       device_info;
+     void                    *device_data;
+
+     FusionProperty           lock;
+     GraphicsDeviceLockFlags  lock_flags;
+
+     /*
+      * Points to the current state of the graphics card.
+      */
+     CardState               *state;
+     FusionID                 holder; /* Fusion ID of state owner. */
+} DFBGraphicsCoreShared;
+
+struct __DFB_DFBGraphicsCore {
+     int                        magic;
+
+     CoreDFB                   *core;
+
+     DFBGraphicsCoreShared     *shared;
+
+     DirectModuleEntry         *module;
+     const GraphicsDriverFuncs *driver_funcs;
+
+     void                      *driver_data;
+     void                      *device_data; /* copy of shared->device_data */
+
+     CardCapabilities           caps;        /* local caps */
+     CardLimitations            limits;      /* local limits */
+
+     GraphicsDeviceFuncs        funcs;
+};
 
 
 #endif

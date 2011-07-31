@@ -1073,6 +1073,14 @@ init_pool( CoreDFB                *core,
           return ret;
      }
 
+     pool->desc.caps &= ~(CSPCAPS_READ | CSPCAPS_WRITE);
+
+     if (funcs->Read)
+          pool->desc.caps |= CSPCAPS_READ;
+
+     if (funcs->Write)
+          pool->desc.caps |= CSPCAPS_WRITE;
+
      fusion_skirmish_init( &pool->lock, pool->desc.name, dfb_core_world(core) );
 
      return DFB_OK;

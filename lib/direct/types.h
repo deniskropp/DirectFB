@@ -85,6 +85,18 @@ typedef int64_t s64;
 #endif /* __DIRECT__STDTYPES__ */
 
 
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+
+
+#define D_UNUSED __attribute__((unused))
+#define direct_strcmp strcmp
+
+
 typedef enum {
      DR_OK = 0x00000000, /* No error occured. */
      DR_FAILURE,         /* A general or unknown error occured. */
@@ -161,6 +173,7 @@ typedef struct __D_DirectLog                 DirectLog;
 typedef struct __D_DirectMap                 DirectMap;
 typedef struct __D_DirectModuleDir           DirectModuleDir;
 typedef struct __D_DirectModuleEntry         DirectModuleEntry;
+typedef struct __D_DirectMutex               DirectMutex;
 typedef struct __D_DirectSerial              DirectSerial;
 typedef struct __D_DirectSignalHandler       DirectSignalHandler;
 typedef struct __D_DirectStream              DirectStream;

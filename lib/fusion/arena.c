@@ -371,6 +371,8 @@ create_arena( FusionWorld *world,
      if (ret)
           goto error_ref;
 
+     fusion_ref_add_permissions( &arena->ref, 0, FUSION_REF_PERMIT_REF_UNREF_LOCAL | FUSION_REF_PERMIT_ZERO_LOCK_UNLOCK );
+
      /* Give it the requested name. */
      arena->name = SHSTRDUP( shared->main_pool, name );
      if (!arena->name) {

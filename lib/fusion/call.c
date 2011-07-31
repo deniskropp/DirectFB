@@ -35,6 +35,7 @@
 #include <fusion/build.h>
 
 #include <direct/debug.h>
+#include <direct/mem.h>
 #include <direct/messages.h>
 
 #include <fusion/types.h>
@@ -103,6 +104,82 @@ fusion_call_init (FusionCall        *call,
 }
 
 DirectResult
+fusion_call_init3 (FusionCall         *call,
+                   FusionCallHandler3  handler3,
+                   void               *ctx,
+                   const FusionWorld  *world)
+{
+     FusionCallNew call_new;
+
+     D_DEBUG_AT( Fusion_Call, "%s( %p, %p <%s>, %p, %p )\n", __FUNCTION__, call, handler3,
+                 direct_trace_lookup_symbol_at( handler3 ), ctx, world );
+
+     D_ASSERT( call != NULL );
+     D_ASSERT( handler3 != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     /* Called from others. */
+     call_new.handler = handler3;
+     call_new.ctx     = ctx;
+
+     while (ioctl( world->fusion_fd, FUSION_CALL_NEW, &call_new )) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_CALL_NEW");
+
+          return DR_FAILURE;
+     }
+
+     memset( call, 0, sizeof(FusionCall) );
+
+     /* Store handler, called directly when called by ourself. */
+     call->handler3 = handler3;
+     call->ctx      = ctx;
+
+     /* Store call and own fusion id. */
+     call->call_id   = call_new.call_id;
+     call->fusion_id = fusion_id( world );
+
+     /* Keep back pointer to shared world data. */
+     call->shared = world->shared;
+
+     D_DEBUG_AT( Fusion_Call, "  -> call id %d\n", call->call_id );
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_call_init_from( FusionCall        *call,
+                       int                call_id,
+                       const FusionWorld *world )
+{
+     D_DEBUG_AT( Fusion_Call, "%s( %p, %d, %p )\n", __FUNCTION__, call, call_id, world );
+
+     D_ASSERT( call != NULL );
+     D_ASSERT( call_id != 0 );
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     memset( call, 0, sizeof(FusionCall) );
+
+     /* Store call id. */
+     call->call_id = call_id;
+
+     /* Keep back pointer to shared world data. */
+     call->shared = world->shared;
+
+     D_DEBUG_AT( Fusion_Call, "  -> call id %d\n", call->call_id );
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_execute (FusionCall          *call,
                      FusionCallExecFlags  flags,
                      int                  call_arg,
@@ -113,8 +190,8 @@ fusion_call_execute (FusionCall          *call,
 
      D_ASSERT( call != NULL );
 
-     if (!call->handler)
-          return DR_DESTROYED;
+//     if (!call->handler)
+//          return DR_DESTROYED;
 
      D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 
@@ -151,13 +228,91 @@ fusion_call_execute (FusionCall          *call,
                          break;
                }
 
-               D_PERROR ("FUSION_CALL_EXECUTE");
+               D_PERROR ("FUSION_CALL_EXECUTE2");
 
                return DR_FAILURE;
           }
 
           if (ret_val)
                *ret_val = execute.ret_val;
+     }
+
+     return DR_OK;
+}
+
+#define FUSION_CALL_RETURN_DATA_MAX          1024*1024
+#define FUSION_CALL_RETURN_DATA_MAX_ON_STACK 1024
+
+DirectResult
+fusion_call_execute3(FusionCall          *call,
+                     FusionCallExecFlags  flags,
+                     int                  call_arg,
+                     void                *ptr,
+                     unsigned int         length,
+                     void                *ret_ptr,
+                     unsigned int         ret_size,
+                     unsigned int        *ret_length)
+{
+     D_DEBUG_AT( Fusion_Call, "%s( %p, flags 0x%x, arg %d, ptr %p, length %u, ret_ptr %p, ret_size %u )\n",
+                 __FUNCTION__, call, flags, call_arg, ptr, length, ret_ptr, ret_size );
+
+     if (ret_size > FUSION_CALL_RETURN_DATA_MAX)
+          return DR_LIMITEXCEEDED;
+
+     D_ASSERT( call != NULL );
+
+//     if (!call->handler)
+//          return DR_DESTROYED;
+
+     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler3 ) );
+
+     if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
+          FusionCallHandlerResult result;
+          unsigned int            execute_length;
+
+          D_ASSERT( call->handler3 != NULL );
+
+          result = call->handler3( call->fusion_id, call_arg, ptr, length, call->ctx, 0, ret_ptr, ret_size, &execute_length );
+
+          if (result != FCHR_RETURN)
+               D_WARN( "local call handler returned FCHR_RETAIN, need FCEF_NODIRECT" );
+
+          if (ret_length)
+               *ret_length = execute_length;
+     }
+     else {
+          FusionCallExecute3 execute;
+
+          execute.call_id    = call->call_id;
+          execute.call_arg   = call_arg;
+          execute.ptr        = ptr;
+          execute.length     = length;
+          execute.ret_ptr    = ret_ptr;
+          execute.ret_length = ret_size;
+          execute.flags      = flags;
+
+          D_DEBUG_AT( Fusion_Call, "  -> ptr %p, length %u\n", ptr, length );
+
+          while (ioctl( _fusion_fd( call->shared ), FUSION_CALL_EXECUTE3, &execute )) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+//                         D_ERROR ("Fusion/Call: invalid call\n");
+                         return DR_INVARG;
+                    case EIDRM:
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_CALL_EXECUTE3");
+
+               return DR_FAILURE;
+          }
+
+          if (ret_length)
+               *ret_length = execute.ret_length;
      }
 
      return DR_OK;
@@ -207,12 +362,57 @@ fusion_call_return( FusionCall   *call,
 }
 
 DirectResult
+fusion_call_return3( FusionCall   *call,
+                     unsigned int  serial,
+                     void         *ptr,
+                     unsigned int  length )
+{
+     FusionCallReturn3 call_ret;
+
+     D_DEBUG_AT( Fusion_Call, "%s( %p, serial %u, ptr %p, length %u )\n", __FUNCTION__, call, serial, ptr, length );
+
+     D_ASSERT( call != NULL );
+
+     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+
+     D_ASSUME( serial != 0 );
+     if (!serial)
+          return DR_UNSUPPORTED;
+
+     call_ret.call_id = call->call_id;
+     call_ret.serial  = serial;
+     call_ret.ptr     = ptr;
+     call_ret.length  = length;
+
+     while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_RETURN3, &call_ret)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EIDRM:
+                    D_WARN( "caller withdrawn (signal?)" );
+                    return DR_NOCONTEXT;
+               case EINVAL:
+                    D_ERROR( "Fusion/Call: invalid call\n" );
+                    return DR_DESTROYED;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_CALL_RETURN3");
+
+          return DR_FAILURE;
+     }
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_DEBUG_AT( Fusion_Call, "%s( %p )\n", __FUNCTION__, call );
 
      D_ASSERT( call != NULL );
-     D_ASSERT( call->handler != NULL );
+     D_ASSERT( call->handler != NULL || call->handler3 != NULL );
 
      D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 
@@ -221,7 +421,7 @@ fusion_call_destroy (FusionCall *call)
                case EINTR:
                     continue;
                case EINVAL:
-                    D_ERROR ("Fusion/Call: invalid call\n");
+//FIXME: kernel module destroys calls from exiting process already                    D_ERROR ("Fusion/Call: invalid call\n");
                     return DR_DESTROYED;
                default:
                     break;
@@ -237,25 +437,53 @@ fusion_call_destroy (FusionCall *call)
      return DR_OK;
 }
 
+DirectResult
+fusion_call_add_permissions( FusionCall            *call,
+                             FusionID               fusion_id,
+                             FusionCallPermissions  call_permissions )
+{
+     FusionEntryPermissions permissions;
+
+     permissions.type        = FT_CALL;
+     permissions.id          = call->call_id;
+     permissions.fusion_id   = fusion_id;
+     permissions.permissions = 0;
+
+     if (call_permissions & FUSION_CALL_PERMIT_EXECUTE) {
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_CALL_EXECUTE );
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_CALL_EXECUTE2 );
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_CALL_EXECUTE3 );
+     }
+
+     while (ioctl( _fusion_fd( call->shared ), FUSION_ENTRY_ADD_PERMISSIONS, &permissions ) < 0) {
+          if (errno != EINTR) {
+               D_PERROR( "Fusion/Call: FUSION_ENTRY_ADD_PERMISSIONS( id %d ) failed!\n", call->call_id );
+               return DR_FAILURE;
+          }
+     }
+
+     return DR_OK;
+}
+
 void
 _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
 {
+     FusionCallHandlerResult result = FCHR_RETURN;
      FusionCallHandler       call_handler;
-     FusionCallReturn        call_ret;
-     FusionCallHandlerResult result;
+     FusionCallReturn        call_ret = {
+          .val = 0
+     };
+
 
      D_DEBUG_AT( Fusion_Call, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( world, FusionWorld );
      D_ASSERT( msg != NULL );
+     D_ASSERT( msg->handler != NULL );
 
      call_handler = msg->handler;
 
-     D_ASSERT( call_handler != NULL );
-
      D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
-
-     call_ret.val = 0;
 
      result = call_handler( msg->caller, msg->call_arg, msg->call_ptr, msg->ctx, msg->serial, &call_ret.val );
 
@@ -289,6 +517,79 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
           default:
                D_BUG( "unknown result %d from call handler", result );
      }
+}
+
+void
+_fusion_call_process3( FusionWorld *world, int call_id, FusionCallMessage3 *msg, void *ptr )
+{
+     FusionCallHandlerResult  result = FCHR_RETURN;
+     FusionCallHandler3       call_handler;
+     FusionCallReturn3        call_ret;
+     char                    *ret_ptr    = NULL;
+     unsigned int             ret_length = 0;
+
+     D_DEBUG_AT( Fusion_Call, "%s( call_id %d, msg %p, ptr %p)\n", __FUNCTION__, call_id, msg, ptr );
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_ASSERT( msg != NULL );
+     D_ASSERT( msg->handler != NULL );
+
+     call_handler = msg->handler;
+
+     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
+
+     if (msg->ret_length > FUSION_CALL_RETURN_DATA_MAX) {
+          D_ERROR( "Fusion/Call: Maximum return data length (%u) exceeded (%u)!\n", FUSION_CALL_RETURN_DATA_MAX, msg->ret_length );
+     }
+     else {
+          if (msg->ret_length > FUSION_CALL_RETURN_DATA_MAX_ON_STACK) {
+               ret_ptr = D_MALLOC( msg->ret_length );
+               if (!ret_ptr)
+                    D_OOM();
+          }
+          else
+               ret_ptr = alloca( msg->ret_length );
+     }
+
+     if (ret_ptr)
+          result = call_handler( msg->caller, msg->call_arg, ptr ? ptr : msg->call_ptr, msg->call_length, msg->ctx, msg->serial, ret_ptr, msg->ret_length, &ret_length );
+
+     switch (result) {
+          case FCHR_RETURN:
+               if (msg->serial) {
+                    call_ret.call_id = call_id;
+                    call_ret.serial  = msg->serial;
+                    call_ret.ptr     = ret_ptr;
+                    call_ret.length  = ret_length;
+
+                    while (ioctl (world->fusion_fd, FUSION_CALL_RETURN3, &call_ret)) {
+                         switch (errno) {
+                              case EINTR:
+                                   continue;
+                              case EIDRM:
+                                   D_DEBUG_AT( Fusion_Call, "  -> caller withdrawn (signal?)\n" );
+                                   goto out;
+                              case EINVAL:
+                                   D_ERROR( "Fusion/Call: invalid call\n" );
+                                   goto out;
+                              default:
+                                   D_PERROR( "FUSION_CALL_RETURN3" );
+                                   goto out;
+                         }
+                    }
+               }
+               break;
+
+          case FCHR_RETAIN:
+               break;
+
+          default:
+               D_BUG( "unknown result %d from call handler", result );
+     }
+
+out:
+     if (msg->ret_length > FUSION_CALL_RETURN_DATA_MAX_ON_STACK)
+          D_FREE( ret_ptr );
 }
 
 #else /* FUSION_BUILD_KERNEL */
@@ -471,6 +772,16 @@ fusion_call_destroy (FusionCall *call)
      return DR_OK;
 }
 
+DirectResult
+fusion_call_add_permissions( FusionCall            *call,
+                             FusionID               fusion_id,
+                             FusionCallPermissions  call_permissions )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+}
+
 void
 _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
 {
@@ -534,6 +845,48 @@ fusion_call_init (FusionCall        *call,
 }
 
 DirectResult
+fusion_call_init3 (FusionCall         *call,
+                   FusionCallHandler3  handler3,
+                   void               *ctx,
+                   const FusionWorld  *world)
+{
+     D_ASSERT( call != NULL );
+     D_ASSERT( call->handler == NULL );
+     D_ASSERT( handler3 != NULL );
+
+     /* Called locally. */
+     call->handler3 = handler3;
+     call->ctx      = ctx;
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_call_init_from( FusionCall        *call,
+                       int                call_id,
+                       const FusionWorld *world )
+{
+     D_DEBUG_AT( Fusion_Call, "%s( %p, %d, %p )\n", __FUNCTION__, call, call_id, world );
+
+     D_ASSERT( call != NULL );
+     D_ASSERT( call_id != 0 );
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     memset( call, 0, sizeof(FusionCall) );
+
+     /* Store call id. */
+     call->call_id = call_id;
+
+     /* Keep back pointer to shared world data. */
+     call->shared = world->shared;
+
+     D_DEBUG_AT( Fusion_Call, "  -> call id %d\n", call->call_id );
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_execute (FusionCall          *call,
                      FusionCallExecFlags  flags,
                      int                  call_arg,
@@ -559,6 +912,30 @@ fusion_call_execute (FusionCall          *call,
 }
 
 DirectResult
+fusion_call_execute3(FusionCall          *call,
+                     FusionCallExecFlags  flags,
+                     int                  call_arg,
+                     void                *ptr,
+                     unsigned int         length,
+                     void                *ret_ptr,
+                     unsigned int         ret_size,
+                     unsigned int        *ret_length)
+{
+     FusionCallHandlerResult ret;
+
+     D_ASSERT( call != NULL );
+
+     if (!call->handler3)
+          return DR_DESTROYED;
+
+     ret = call->handler3( 1, call_arg, ptr, length, call->ctx, 0, ret_ptr, ret_size, ret_length );
+     if (ret != FCHR_RETURN)
+          D_WARN( "only FCHR_RETURN supported in single app core at the moment" );
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_return( FusionCall   *call,
                     unsigned int  serial,
                     int           val )
@@ -570,10 +947,19 @@ DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_ASSERT( call != NULL );
-     D_ASSERT( call->handler != NULL );
+     D_ASSERT( call->handler != NULL || call->handler3 != NULL );
 
-     call->handler = NULL;
+     call->handler  = NULL;
+     call->handler3 = NULL;
 
+     return DR_OK;
+}
+
+DirectResult
+fusion_call_add_permissions( FusionCall            *call,
+                             FusionID               fusion_id,
+                             FusionCallPermissions  call_permissions )
+{
      return DR_OK;
 }
 

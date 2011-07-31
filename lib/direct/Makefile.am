@@ -61,6 +61,7 @@ include_HEADERS = \
 	memcpy.h			\
 	messages.h			\
 	modules.h			\
+	mutex.h				\
 	serial.h			\
 	signals.h			\
 	stream.h			\
@@ -91,6 +92,7 @@ libdirect_la_SOURCES = \
 	memcpy.c		\
 	messages.c		\
 	modules.c		\
+	mutex.c			\
 	signals.c		\
 	stream.c		\
 	system.c		\

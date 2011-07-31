@@ -219,6 +219,8 @@ struct __DFB_CoreSurface
      FusionSHMPoolShared     *shmpool;
 
      void                    *data;         /* Shared system driver-specific data for this surface. */
+
+     FusionCall               call;
 };
 
 

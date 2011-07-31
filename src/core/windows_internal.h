@@ -108,6 +108,8 @@ struct __DFB_CoreWindow {
      CoreWindow             *subfocus;       /* which of the sub windows has the focus? */
 
      unsigned long           resource_id;
+
+     FusionCall              call;
 };
 
 typedef enum {
@@ -185,6 +187,8 @@ struct __DFB_CoreWindowStack {
      FusionSHMPoolShared *shmpool;
 
      CoreWindowStackFlags flags;
+
+     FusionCall           call;
 };
 
 

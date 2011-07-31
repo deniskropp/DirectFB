@@ -49,6 +49,10 @@
 #include <core/windows_internal.h> /* FIXME */
 #include <core/wm.h>
 
+#include <core/CoreLayerRegion.h>
+#include <core/CoreSurface.h>
+#include <core/CoreWindow.h>
+
 #include <display/idirectfbsurface.h>
 #include <display/idirectfbsurface_window.h>
 
@@ -126,7 +130,6 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                               const DFBRegion     *region,
                               DFBSurfaceFlipFlags  flags )
 {
-     DFBResult ret;
      DFBRegion reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
@@ -183,7 +186,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
 
      if (data->window->region) {
-          dfb_layer_region_flip_update( data->window->region, &reg, flags );
+          CoreLayerRegion_FlipUpdate( data->window->region, &reg, flags );
      }
      else {
           if (data->base.surface->config.caps & DSCAPS_FLIPPING) {
@@ -191,23 +194,20 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                    reg.x2 == data->base.surface->config.size.w  - 1 &&
                    reg.y2 == data->base.surface->config.size.h - 1)
                {
-                    ret = dfb_surface_lock( data->base.surface );
-                    if (ret)
-                         return ret;
-
-                    dfb_surface_flip( data->base.surface, false );
-
-                    dfb_surface_unlock( data->base.surface );
+                    CoreSurface_Flip( data->base.surface, false );
                }
                else
                     dfb_back_to_front_copy( data->base.surface, &reg );
           }
 
-          dfb_window_repaint( data->window, &reg, flags );
+          CoreWindow_Repaint( data->window, &reg, &reg, flags );
      }
 
-     if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY)
-          dfb_window_set_opacity( data->window, 0xff );
+     if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY) {
+          CoreWindowConfig config = { .opacity = 0xff };
+
+          CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_OPACITY );
+     }
 
      return DFB_OK;
 }
@@ -284,6 +284,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      DFBResult        ret;
      DFBInsets        insets;
      CoreWindowStack *stack;
+     CoreSurface     *surface;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
@@ -298,8 +299,14 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      
      dfb_layer_context_unlock( stack->context );
 
-     ret = IDirectFBSurface_Construct( thiz, parent, wanted, granted, &insets,
-                                       window->surface, caps, core );
+     ret = CoreWindow_GetSurface( window, &surface );
+     if (ret)
+          return ret;
+
+     ret = IDirectFBSurface_Construct( thiz, parent, wanted, granted, &insets, surface, caps, core );
+
+     dfb_surface_unref( surface );
+
      if (ret)
           return ret;
 

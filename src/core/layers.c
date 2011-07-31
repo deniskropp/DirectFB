@@ -44,6 +44,8 @@
 #include <fusion/arena.h>
 #include <fusion/property.h>
 
+#include <core/CoreLayer.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -210,6 +212,10 @@ dfb_layer_core_initialize( CoreDFB            *core,
           /* Store pointer to shared data and core. */
           layer->shared = lshared;
           layer->core   = core;
+
+          CoreLayer_Init_Dispatch( core, layer, &lshared->call );
+
+          fusion_call_add_permissions( &lshared->call, 0, FUSION_CALL_PERMIT_EXECUTE );
 
           /* Add the layer to the shared list. */
           shared->layers[ shared->num++ ] = lshared;
@@ -620,6 +626,24 @@ dfb_layer_id_translated( const CoreLayer *layer )
      }
 
      return shared->layer_id;
+}
+
+DFBDisplayLayerID
+dfb_layer_id_translate( DFBDisplayLayerID layer_id )
+{
+     D_ASSERT( dfb_config != NULL );
+
+     if (dfb_config->primary_layer > 0 &&
+         dfb_config->primary_layer < dfb_num_layers)
+     {
+          if (layer_id == DLID_PRIMARY)
+               return dfb_config->primary_layer;
+
+          if (layer_id == dfb_config->primary_layer)
+               return DLID_PRIMARY;
+     }
+
+     return layer_id;
 }
 
 DFBSurfacePixelFormat

@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/param.h>
 
+#include <stdarg.h>
 #include <string.h>
 
 #include <direct/list.h>
@@ -137,12 +138,52 @@ void _fusion_reactor_process_message( FusionWorld   *world,
 
 
 #if FUSION_BUILD_MULTI
+# if FUSION_BUILD_KERNEL
+static __inline__ void
+fusion_entry_add_permissions( const FusionWorld *world,
+                              FusionType         type,
+                              int                entry_id,
+                              FusionID           fusion_id,
+                              ... )
+{
+     FusionEntryPermissions permissions;
+     va_list                args;
+     int                    arg;
+
+     permissions.type        = type;
+     permissions.id          = entry_id;
+     permissions.fusion_id   = fusion_id;
+     permissions.permissions = 0;
+
+     va_start( args, fusion_id );
+
+     while ((arg = va_arg( args, int )) != 0)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, arg );
+
+     va_end( args );
+
+     while (ioctl( world->fusion_fd, FUSION_ENTRY_ADD_PERMISSIONS, &permissions ) < 0) {
+          if (errno != EINTR) {
+               D_PERROR( "Fusion: FUSION_ENTRY_ADD_PERMISSIONS( type %d, id %d ) failed!\n", type, entry_id );
+               break;
+          }
+     }
+}
+# endif
+#endif
+
+
+#if FUSION_BUILD_MULTI
 /*
  * from call.c
  */
 void _fusion_call_process( FusionWorld       *world,
                            int                call_id,
                            FusionCallMessage *call );
+void _fusion_call_process3( FusionWorld        *world,
+                            int                 call_id,
+                            FusionCallMessage3 *msg,
+                            void               *ptr );
 
 #if FUSION_BUILD_KERNEL
 /*

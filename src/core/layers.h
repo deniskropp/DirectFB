@@ -362,6 +362,8 @@ DFBDisplayLayerID dfb_layer_id( const CoreLayer *layer );
 
 DFBDisplayLayerID dfb_layer_id_translated( const CoreLayer *layer );
 
+DFBDisplayLayerID dfb_layer_id_translate( DFBDisplayLayerID layer_id );
+
 DFBSurfacePixelFormat dfb_primary_layer_pixelformat( void );
 
 #endif

@@ -38,8 +38,8 @@
 
 #include <core/fonts.h>
 #include <core/gfxcard.h>
-#include <core/surface.h>
-#include <core/surface_buffer.h>
+
+#include <core/CoreSurface.h>
 
 #include <gfx/convert.h>
 

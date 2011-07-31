@@ -253,7 +253,8 @@ DirectResult __shmalloc_init_heap( FusionSHM     *shm,
 DirectResult __shmalloc_join_heap( FusionSHM     *shm,
                                    const char    *filename,
                                    void          *addr_base,
-                                   int            size );
+                                   int            size,
+                                   bool           write );
 
 void        *__shmalloc_brk      ( shmalloc_heap *heap,
                                    int            increment );

@@ -105,7 +105,7 @@ void direct_messages_warn         ( const char *func,
 
 #define D_DERROR(r,x...) do {                                                                  \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_derror( r, x );                             \
+                                   direct_messages_derror( (DirectResult) r, x );              \
                          } while (0)
 
 #define D_PERROR(x...)   do {                                                                  \

@@ -86,6 +86,16 @@ DirectResult fusion_ref_up           (FusionRef *ref, bool global);
 DirectResult fusion_ref_down         (FusionRef *ref, bool global);
 
 /*
+ * Catch reference
+ */
+DirectResult fusion_ref_catch        (FusionRef *ref);
+
+/*
+ * Throw reference
+ */
+DirectResult fusion_ref_throw        (FusionRef *ref, FusionID catcher);
+
+/*
  * Get the current reference count. Meant for debugging only.
  * This value is not reliable, because no locking will be performed
  * and the value may change after or even while returning it.
@@ -129,6 +139,29 @@ DirectResult fusion_ref_inherit      (FusionRef *ref,
  * so that waiting fusion_ref_up calls return with DR_DESTROYED.
  */
 DirectResult fusion_ref_destroy      (FusionRef *ref);
+
+
+typedef enum {
+     FUSION_REF_PERMIT_NONE                  = 0x00000000,
+
+     FUSION_REF_PERMIT_REF_UNREF_LOCAL       = 0x00000001,
+     FUSION_REF_PERMIT_REF_UNREF_GLOBAL      = 0x00000002,
+     FUSION_REF_PERMIT_ZERO_LOCK_UNLOCK      = 0x00000004,
+     FUSION_REF_PERMIT_WATCH                 = 0x00000008,
+     FUSION_REF_PERMIT_INHERIT               = 0x00000010,
+     FUSION_REF_PERMIT_DESTROY               = 0x00000020,
+     FUSION_REF_PERMIT_CATCH                 = 0x00000040,
+     FUSION_REF_PERMIT_THROW                 = 0x00000080,
+
+     FUSION_REF_PERMIT_ALL                   = 0x000000FF,
+} FusionRefPermissions;
+
+/*
+ * Give permissions to another fusionee to use the reference.
+ */
+DirectResult fusion_ref_add_permissions( FusionRef            *ref,
+                                         FusionID              fusion_id,
+                                         FusionRefPermissions  permissions );
 
 #endif
 

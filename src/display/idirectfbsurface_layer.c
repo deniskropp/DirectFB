@@ -46,6 +46,8 @@
 #include <core/surface.h>
 #include <core/system.h>
 
+#include <core/CoreLayerRegion.h>
+
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_layer.h"
 
@@ -134,7 +136,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     return dfb_layer_region_flip_update( data->region, &reg, flags );
+     return CoreLayerRegion_FlipUpdate( data->region, &reg, flags );
 }
 
 static DFBResult
@@ -216,7 +218,7 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      if (dfb_layer_region_ref( region ))
           return DFB_FUSION;
 
-     ret = dfb_layer_region_get_surface( region, &surface );
+     ret = CoreLayerRegion_GetSurface( region, &surface );
      if (ret) {
           dfb_layer_region_unref( region );
           DIRECT_DEALLOCATE_INTERFACE(thiz);

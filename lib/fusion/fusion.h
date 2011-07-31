@@ -138,5 +138,7 @@ DirectResult fusion_kill( FusionWorld *world,
 bool fusion_is_shared( FusionWorld *world,
                        const void  *ptr );
 
+const char *fusion_get_tmpfs( FusionWorld *world );
+
 #endif
 

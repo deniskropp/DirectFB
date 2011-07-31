@@ -40,6 +40,9 @@
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
 
+#include <core/CoreDFB.h>
+#include <core/CoreSurface.h>
+
 #include <gfx/convert.h>
 
 
@@ -63,6 +66,8 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_DEBUG_AT( Core_Surface, "destroying %p (%dx%d%s)\n", surface,
                  surface->config.size.w, surface->config.size.h, zombie ? " ZOMBIE" : "");
+
+     fusion_call_destroy( &surface->call );
 
      dfb_surface_lock( surface );
 
@@ -282,6 +287,8 @@ dfb_surface_create( CoreDFB                  *core,
           }
      }
 
+     CoreSurface_Init_Dispatch( core, surface, &surface->call );
+
      fusion_object_activate( &surface->object );
 
      *ret_surface = surface;
@@ -337,7 +344,8 @@ dfb_surface_create_simple ( CoreDFB                 *core,
      config.format = format;
      config.caps   = caps;
 
-     return dfb_surface_create( core, &config, type, resource_id, palette, ret_surface );
+     //return dfb_surface_create( core, &config, type, resource_id, palette, ret_surface );
+     return CoreDFB_CreateSurface( core, &config, type, resource_id, palette, ret_surface );
 }
 
 DFBResult

@@ -42,7 +42,15 @@
 #include <directfb_version.h>
 
 #include <core/core.h>
-#include <core/coretypes.h>
+
+#include <core/CoreDFB.h>
+#include <core/CoreLayer.h>
+#include <core/CoreLayerContext.h>
+#include <core/CoreLayerRegion.h>
+#include <core/CorePalette.h>
+#include <core/CoreSurface.h>
+#include <core/CoreWindow.h>
+#include <core/CoreWindowStack.h>
 
 #include <core/clipboard.h>
 #include <core/state.h>
@@ -351,11 +359,11 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                     return DFB_ACCESSDENIED;
 
                if (data->level == DFSCL_NORMAL) {
-                    ret = dfb_layer_create_context( data->layer, &context );
+                    ret = CoreLayer_CreateContext( data->layer, &context );
                     if (ret)
                          return ret;
 
-                    ret = dfb_layer_activate_context( data->layer, context );
+                    ret = CoreLayer_ActivateContext( data->layer, context );
                     if (ret) {
                          dfb_layer_context_unref( context );
                          return ret;
@@ -478,7 +486,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                config.height      = height;
                config.pixelformat = format;
 
-               ret = dfb_layer_context_set_configuration( data->primary.context,
+               ret = CoreLayerContext_SetConfiguration( data->primary.context,
                                                           &config );
                if (ret)
                     return ret;
@@ -494,20 +502,42 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
      return DFB_OK;
 }
 
-static void
+static DFBResult
 init_palette( CoreSurface *surface, const DFBSurfaceDescription *desc )
 {
-     int          num;
-     CorePalette *palette = surface->palette;
+     DFBResult    ret;
+     CorePalette *palette;
 
-     if (!palette || !(desc->flags & DSDESC_PALETTE))
-          return;
+     if (!(desc->flags & DSDESC_PALETTE))
+          return DFB_OK;
 
-     num = MIN( desc->palette.size, palette->num_entries );
+     ret = CoreSurface_GetPalette( surface, &palette );
+     if (ret)
+          return ret;
 
-     direct_memcpy( palette->entries, desc->palette.entries, num * sizeof(DFBColor));
+     ret = CorePalette_SetEntries( palette, desc->palette.entries, MIN( desc->palette.size, palette->num_entries ), 0 );
 
-     dfb_palette_update( palette, 0, num - 1 );
+     dfb_palette_unref( palette );
+
+     return ret;
+}
+
+static DFBResult
+init_preallocated( CoreSurface *surface, const DFBSurfaceDescription *desc )
+{
+     DFBResult ret;
+
+     ret = dfb_surface_write_buffer( surface, CSBR_FRONT, desc->preallocated[0].data, desc->preallocated[0].pitch, NULL );
+     if (ret)
+          return ret;
+
+     if (surface->config.caps & (DSCAPS_DOUBLE | DSCAPS_TRIPLE)) {
+          ret = dfb_surface_write_buffer( surface, CSBR_BACK, desc->preallocated[1].data, desc->preallocated[1].pitch, NULL );
+          if (ret)
+               return ret;
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -687,8 +717,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          ret = IDirectFBSurface_Construct( iface, NULL,
                                                            NULL, NULL, NULL, surface, caps, data->core );
                          if (ret == DFB_OK) {
-                              dfb_windowstack_set_background_image( data->stack, surface );
-                              dfb_windowstack_set_background_mode( data->stack, DLBM_IMAGE );
+                              CoreWindowStack_BackgroundSetImage( data->stack, surface );
+                              CoreWindowStack_BackgroundSetMode( data->stack, DLBM_IMAGE );
                          }
 
                          dfb_surface_unref( surface );
@@ -745,7 +775,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if ((caps & DSCAPS_FLIPPING) == DSCAPS_DOUBLE)
                               wd.caps |= DWCAPS_DOUBLEBUFFER;
 
-                         ret = dfb_layer_context_create_window( data->core, data->context, &wd, &window );
+                         ret = CoreLayerContext_CreateWindow( data->context, &wd, NULL, NULL, &window );
                          if (ret)
                               return ret;
 
@@ -756,9 +786,10 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          dfb_window_attach( window, focus_listener,
                                             data, &data->primary.reaction );
 
-                         dfb_window_change_options( window, DWOP_NONE, DWOP_SCALE );
+                         CoreWindow_ChangeOptions( window, DWOP_NONE, DWOP_SCALE );
+
                          if (dfb_config->scaled.width && dfb_config->scaled.height)
-                              dfb_window_resize( window, dfb_config->scaled.width,
+                              CoreWindow_Resize( window, dfb_config->scaled.width,
                                                          dfb_config->scaled.height );
 
                          init_palette( window->surface, desc );
@@ -808,13 +839,13 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     config.width       = width;
                     config.height      = height;
 
-                    ret = dfb_layer_context_set_configuration( context, &config );
+                    ret = CoreLayerContext_SetConfiguration( context, &config );
                     if (ret) {
                          if (!(caps & (DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY)) &&
                              config.buffermode == DLBM_BACKVIDEO) {
                               config.buffermode = DLBM_BACKSYSTEM;
 
-                              ret = dfb_layer_context_set_configuration( context, &config );
+                              ret = CoreLayerContext_SetConfiguration( context, &config );
                               if (ret)
                                    return ret;
                          }
@@ -822,12 +853,11 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               return ret;
                     }
 
-                    ret = dfb_layer_context_get_primary_region( context, true,
-                                                                &region );
+                    ret = CoreLayerContext_GetPrimaryRegion( context, true, &region );
                     if (ret)
                          return ret;
 
-                    ret = dfb_layer_region_get_surface( region, &surface );
+                    ret = CoreLayerRegion_GetSurface( region, &surface );
                     if (ret) {
                          dfb_layer_region_unref( region );
                          return ret;
@@ -862,10 +892,10 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                           */
                          D_ASSERT( region->context );
                          if (region->context->stack) {
-                              dfb_windowstack_repaint_all( region->context->stack );
+                              CoreWindowStack_RepaintAll( region->context->stack );
                          }
                          else {
-                              dfb_layer_region_flip_update( region, NULL, DSFLIP_NONE );
+                              CoreLayerRegion_FlipUpdate( region, NULL, DSFLIP_NONE );
                          }
                     }
 
@@ -894,7 +924,9 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
      if (desc->flags & DSDESC_PREALLOCATED) {
           int min_pitch;
+#if 0
           CoreSurfaceConfig config;
+#endif
 
           if (caps & DSCAPS_VIDEOONLY)
                return DFB_INVARG;
@@ -914,6 +946,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                return DFB_INVARG;
           }
 
+#if 0
           config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS | CSCONF_PREALLOCATED;
           config.size.w = width;
           config.size.h = height;
@@ -926,11 +959,15 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           config.preallocated[1].addr  = desc->preallocated[1].data;
           config.preallocated[1].pitch = desc->preallocated[1].pitch;
 
-          ret = dfb_surface_create( data->core, &config, CSTF_PREALLOCATED, resource_id, NULL, &surface );
+          ret = CoreDFB_CreateSurface( data->core, &config, CSTF_PREALLOCATED, resource_id, NULL, &surface );
           if (ret)
                return ret;
+#endif
      }
-     else {
+#if 0
+     else
+#endif
+     {
           CoreSurfaceConfig config;
 
           config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
@@ -939,9 +976,17 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           config.format = format;
           config.caps   = caps;
 
-          ret = dfb_surface_create( data->core, &config, CSTF_NONE, resource_id, NULL, &surface );
+          ret = CoreDFB_CreateSurface( data->core, &config, CSTF_NONE, resource_id, NULL, &surface );
           if (ret)
                return ret;
+
+          if (desc->flags & DSDESC_PREALLOCATED) {
+               ret = init_preallocated( surface, desc );
+               if (ret) {
+                    dfb_surface_unref( surface );
+                    return ret;
+               }
+          }
      }
 
      init_palette( surface, desc );
@@ -997,7 +1042,7 @@ IDirectFB_CreatePalette( IDirectFB                    *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBPalette );
 
-     ret = IDirectFBPalette_Construct( iface, palette );
+     ret = IDirectFBPalette_Construct( iface, palette, data->core );
 
      dfb_palette_unref( palette );
 
@@ -1493,9 +1538,7 @@ IDirectFB_WaitIdle( IDirectFB *thiz )
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
-     dfb_gfxcard_sync();
-
-     return DFB_OK;
+     return CoreDFB_WaitIdle( data->core );
 }
 
 static DFBResult
@@ -1599,7 +1642,7 @@ LoadBackgroundImage( IDirectFB       *dfb,
 
      image_data = (IDirectFBSurface_data*) image->priv;
 
-     dfb_windowstack_set_background_image( stack, image_data->surface );
+     CoreWindowStack_BackgroundSetImage( stack, image_data->surface );
 
      image->Release( image );
 }
@@ -1651,7 +1694,7 @@ InitLayers( IDirectFB      *dfb,
                CardCapabilities            caps;
                DFBDisplayLayerConfigFlags  fail;
 
-               ret = dfb_layer_get_primary_context( layer, false, &context );
+               ret = CoreLayer_GetPrimaryContext( layer, false, &context );
                if (ret) {
                     D_DERROR( ret, "InitLayers: Could not get context of layer %d!\n", i );
                     goto error;
@@ -1747,8 +1790,8 @@ InitLayers( IDirectFB      *dfb,
 
                switch (conf->background.mode) {
                     case DLBM_COLOR:
-                         dfb_windowstack_set_background_color( stack, &conf->background.color );
-                         dfb_windowstack_set_background_color_index( stack, conf->background.color_index );
+                         CoreWindowStack_BackgroundSetColor( stack, &conf->background.color );
+                         CoreWindowStack_BackgroundSetColorIndex( stack, conf->background.color_index );
                          break;
 
                     case DLBM_IMAGE:
@@ -1760,7 +1803,7 @@ InitLayers( IDirectFB      *dfb,
                          break;
                }
 
-               dfb_windowstack_set_background_mode( stack, conf->background.mode );
+               CoreWindowStack_BackgroundSetMode( stack, conf->background.mode );
 
                data->layers[i].context = context;
           }
@@ -1817,7 +1860,7 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
 
      data->layer = dfb_layer_at_translated( DLID_PRIMARY );
 
-     ret = dfb_layer_get_primary_context( data->layer, true, &data->context );
+     ret = CoreLayer_GetPrimaryContext( data->layer, true, &data->context );
      if (ret) {
           D_ERROR( "%s: Could not get default context of primary layer!\n", __FUNCTION__ );
           DIRECT_DEALLOCATE_INTERFACE(thiz);
@@ -2033,11 +2076,11 @@ input_filter_local( DFBEvent *evt,
                switch (event->type) {
                     case DIET_BUTTONPRESS:
                          if (data->primary.window)
-                              dfb_windowstack_cursor_enable( data->core, data->stack, false );
+                              CoreWindowStack_CursorEnable( data->stack, false );
                          break;
                     case DIET_KEYPRESS:
                          if (data->primary.window)
-                              dfb_windowstack_cursor_enable( data->core, data->stack,
+                              CoreWindowStack_CursorEnable( data->stack,
                                                              (event->key_symbol ==
                                                               DIKS_ESCAPE) ||
                                                              (event->modifiers &
@@ -2081,6 +2124,6 @@ drop_window( IDirectFB_data *data, bool enable_cursor )
      data->primary.focused = false;
 
      if (dfb_config->cursor_automation)
-          dfb_windowstack_cursor_enable( data->core, data->stack, enable_cursor );
+          CoreWindowStack_CursorEnable( data->stack, enable_cursor );
 }
 

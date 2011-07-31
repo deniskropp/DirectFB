@@ -58,6 +58,23 @@ FUSION_OBJECT_METHODS( CoreLayerContext, dfb_layer_context )
 DFBResult dfb_layer_context_init( CoreLayerContext *context,
                                   CoreLayer        *layer );
 
+/*
+ * Locking
+ */
+DirectResult dfb_layer_context_lock  ( CoreLayerContext *context );
+DirectResult dfb_layer_context_unlock( CoreLayerContext *context );
+
+
+CoreWindowStack *dfb_layer_context_windowstack( const CoreLayerContext *context );
+
+bool             dfb_layer_context_active     ( const CoreLayerContext *context );
+
+
+
+
+
+
+
 DFBResult dfb_layer_context_get_primary_region( CoreLayerContext  *context,
                                                 bool               create,
                                                 CoreLayerRegion  **ret_region );
@@ -136,14 +153,7 @@ DFBResult dfb_layer_context_create_window( CoreDFB                     *core,
 CoreWindow      *dfb_layer_context_find_window( CoreLayerContext       *context,
                                                 DFBWindowID             id );
 
-CoreWindowStack *dfb_layer_context_windowstack( const CoreLayerContext *context );
 
-bool             dfb_layer_context_active     ( const CoreLayerContext *context );
-
-/*
- * Locking
- */
-DirectResult dfb_layer_context_lock  ( CoreLayerContext *context );
-DirectResult dfb_layer_context_unlock( CoreLayerContext *context );
 
 #endif
+

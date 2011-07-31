@@ -1,0 +1,79 @@
+interface {
+        name        ICore
+        version     "1.0"
+        object      CoreDFB
+
+        method {
+                name    CreateSurface
+
+                arg {
+                        name        config
+                        direction   input
+                        type        struct
+                        typename    CoreSurfaceConfig
+                }
+
+                arg {
+                        name        type
+                        direction   input
+                        type        enum
+                        typename    CoreSurfaceTypeFlags
+                }
+
+                arg {
+                        name        resource_id
+                        direction   input
+                        type        int
+                        typename    u64
+                }
+
+                arg {
+                        name        palette
+                        direction   input
+                        type        object
+                        typename    CorePalette
+                        optional    yes
+                }
+
+                arg {
+                        name        surface
+                        direction   output
+                        type        object
+                        typename    CoreSurface
+                }
+        }
+
+        method {
+                name    CreatePalette
+
+                arg {
+                        name        size
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        palette
+                        direction   output
+                        type        object
+                        typename    CorePalette
+                }
+        }
+
+        method {
+                name    CreateState
+
+                arg {
+                        name        state
+                        direction   output
+                        type        object
+                        typename    CoreGraphicsState
+                }
+        }
+
+        method {
+                name    WaitIdle
+        }
+}
+

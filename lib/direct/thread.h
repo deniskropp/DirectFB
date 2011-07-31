@@ -33,6 +33,7 @@
 
 #include <direct/types.h>
 #include <direct/conf.h>
+#include <direct/mutex.h>
 
 typedef enum {
      DTT_DEFAULT    =   0,

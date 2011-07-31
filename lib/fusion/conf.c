@@ -52,6 +52,7 @@ const char   *fusion_config_usage =
      "  shmfile-group=<groupname>      Group that owns shared memory files\n"
      "  [no-]debugshm                  Enable shared memory allocation tracking\n"
      "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
+     "  [no-]secure-fusion             Use secure fusion, e.g. read-only shm (default=no)\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -104,6 +105,12 @@ fusion_config_set( const char *name, const char *value )
      if (strcmp (name, "no-madv-remove" ) == 0) {
           fusion_config->madv_remove       = false;
           fusion_config->madv_remove_force = true;
+     } else
+     if (strcmp (name, "secure-fusion" ) == 0) {
+          fusion_config->secure_fusion = true;
+     } else
+     if (strcmp (name, "no-secure-fusion" ) == 0) {
+          fusion_config->secure_fusion = false;
      } else
      if (direct_config_set( name, value ))
           return DR_UNSUPPORTED;
