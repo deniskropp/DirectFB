@@ -14,6 +14,22 @@ interface {
 		}
 
 		arg {
+			name      parent
+			direction input
+			type      object
+			typename  CoreWindow
+			optional  yes
+		}
+
+		arg {
+			name      toplevel
+			direction input
+			type      object
+			typename  CoreWindow
+			optional  yes
+		}
+
+		arg {
 			name      window
 			direction output
 			type      object

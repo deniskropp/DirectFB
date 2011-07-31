@@ -82,39 +82,36 @@ void      *dfb_core_get_part( CoreDFB        *core,
 /*
  * Object creation
  */
-CoreLayerContext *dfb_core_create_layer_context( CoreDFB *core );
-CoreLayerRegion  *dfb_core_create_layer_region ( CoreDFB *core );
-CorePalette      *dfb_core_create_palette      ( CoreDFB *core );
-CoreSurface      *dfb_core_create_surface      ( CoreDFB *core );
-CoreWindow       *dfb_core_create_window       ( CoreDFB *core );
+CoreGraphicsState *dfb_core_create_graphics_state( CoreDFB *core );
+CoreLayerContext  *dfb_core_create_layer_context ( CoreDFB *core );
+CoreLayerRegion   *dfb_core_create_layer_region  ( CoreDFB *core );
+CorePalette       *dfb_core_create_palette       ( CoreDFB *core );
+CoreSurface       *dfb_core_create_surface       ( CoreDFB *core );
+CoreWindow        *dfb_core_create_window        ( CoreDFB *core );
 
-DFBResult         dfb_core_get_layer_context   ( CoreDFB           *core,
-                                                 u32                object_id,
-                                                 CoreLayerContext **ret_context );
+DFBResult          dfb_core_get_graphics_state   ( CoreDFB            *core,
+                                                   u32                 object_id,
+                                                   CoreGraphicsState **ret_state );
 
-DFBResult         dfb_core_get_layer_region    ( CoreDFB           *core,
-                                                 u32                object_id,
-                                                 CoreLayerRegion  **ret_region );
+DFBResult          dfb_core_get_layer_context    ( CoreDFB            *core,
+                                                   u32                 object_id,
+                                                   CoreLayerContext  **ret_context );
 
-DFBResult         dfb_core_get_palette         ( CoreDFB      *core,
-                                                 u32           object_id,
-                                                 CorePalette **ret_palette );
+DFBResult          dfb_core_get_layer_region     ( CoreDFB            *core,
+                                                   u32                 object_id,
+                                                   CoreLayerRegion   **ret_region );
 
-DFBResult         dfb_core_get_surface         ( CoreDFB      *core,
-                                                 u32           object_id,
-                                                 CoreSurface **ret_surface );
+DFBResult          dfb_core_get_palette          ( CoreDFB            *core,
+                                                   u32                 object_id,
+                                                   CorePalette       **ret_palette );
 
-DFBResult         dfb_core_get_window          ( CoreDFB     *core,
-                                                 u32          object_id,
-                                                 CoreWindow **ret_window );
+DFBResult          dfb_core_get_surface          ( CoreDFB            *core,
+                                                   u32                 object_id,
+                                                   CoreSurface       **ret_surface );
 
-
-DFBResult         dfb_core_create_graphics_state( CoreDFB            *core,
-                                                  CoreGraphicsState **ret_state );
-
-DFBResult         dfb_core_get_graphics_state   ( CoreDFB            *core,
-                                                  u32                 object_id,
-                                                  CoreGraphicsState **ret_state );
+DFBResult          dfb_core_get_window           ( CoreDFB            *core,
+                                                   u32                 object_id,
+                                                   CoreWindow        **ret_window );
 
 
 /*
@@ -203,10 +200,10 @@ struct __DFB_CoreDFBShared {
      FusionSkirmish       lock;
      bool                 active;
 
+     FusionObjectPool    *graphics_state_pool;
      FusionObjectPool    *layer_context_pool;
      FusionObjectPool    *layer_region_pool;
      FusionObjectPool    *palette_pool;
-     FusionObjectPool    *state_pool;
      FusionObjectPool    *surface_pool;
      FusionObjectPool    *window_pool;
 

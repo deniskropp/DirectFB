@@ -73,6 +73,18 @@ ILayer_Real::ActivateContext(
     return dfb_layer_activate_context( obj, context );
 }
 
+DFBResult
+ILayer_Real::GetPrimaryContext(
+                    bool                                       activate,
+                    CoreLayerContext                         **ret_context
+)
+{
+     D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Requestor::%s()\n", __FUNCTION__ );
+
+     D_ASSERT( ret_context != NULL );
+
+     return dfb_layer_get_primary_context( obj, activate, ret_context );
+}
 
 
 }

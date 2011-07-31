@@ -49,6 +49,7 @@
 #include <core/core.h>
 #include <core/core_parts.h>
 #include <core/fonts.h>
+#include <core/graphics_state.h>
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/palette.h>
@@ -428,6 +429,26 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      return DFB_OK;
 }
 
+CoreGraphicsState *
+dfb_core_create_graphics_state( CoreDFB *core )
+{
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->graphics_state_pool != NULL );
+
+     return (CoreGraphicsState*) fusion_object_create( core->shared->graphics_state_pool, core->world );
+}
+
 CoreLayerContext *
 dfb_core_create_layer_context( CoreDFB *core )
 {
@@ -526,6 +547,38 @@ dfb_core_create_window( CoreDFB *core )
      D_ASSERT( core->shared->window_pool != NULL );
 
      return (CoreWindow*) fusion_object_create( core->shared->window_pool, core->world );
+}
+
+DFBResult
+dfb_core_get_graphics_state( CoreDFB            *core,
+                             u32                 object_id,
+                             CoreGraphicsState **ret_state )
+{
+     DFBResult     ret;
+     FusionObject *object;
+
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+     D_ASSERT( ret_state != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->graphics_state_pool != NULL );
+
+     ret = fusion_object_get( core->shared->graphics_state_pool, object_id, &object );
+     if (ret)
+          return ret;
+
+     *ret_state = (CoreGraphicsState*) object;
+
+     return DFB_OK;
 }
 
 DFBResult
@@ -684,66 +737,6 @@ dfb_core_get_window( CoreDFB     *core,
           return ret;
 
      *ret_window = (CoreWindow*) object;
-
-     return DFB_OK;
-}
-
-DFBResult
-dfb_core_create_graphics_state( CoreDFB            *core,
-                                CoreGraphicsState **ret_state )
-{
-     CoreDFBShared *shared;
-     FusionObject  *object;
-
-     D_ASSUME( core != NULL );
-
-     if (!core)
-          core = core_dfb;
-
-     D_MAGIC_ASSERT( core, CoreDFB );
-
-     shared = core->shared;
-
-     D_MAGIC_ASSERT( shared, CoreDFBShared );
-     D_ASSERT( core->shared->state_pool != NULL );
-
-     object = fusion_object_create( core->shared->state_pool, core->world );
-     if (!object)
-          return DFB_FUSION;
-
-     *ret_state = (CoreGraphicsState*) object;
-
-     return DFB_OK;
-}
-
-DFBResult
-dfb_core_get_graphics_state( CoreDFB            *core,
-                             u32                 object_id,
-                             CoreGraphicsState **ret_state )
-{
-     DFBResult     ret;
-     FusionObject *object;
-
-     CoreDFBShared *shared;
-
-     D_ASSUME( core != NULL );
-     D_ASSERT( ret_state != NULL );
-
-     if (!core)
-          core = core_dfb;
-
-     D_MAGIC_ASSERT( core, CoreDFB );
-
-     shared = core->shared;
-
-     D_MAGIC_ASSERT( shared, CoreDFBShared );
-     D_ASSERT( core->shared->state_pool != NULL );
-
-     ret = fusion_object_get( core->shared->state_pool, object_id, &object );
-     if (ret)
-          return ret;
-
-     *ret_state = (CoreGraphicsState*) object;
 
      return DFB_OK;
 }
@@ -1152,6 +1145,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      dfb_core_part_shutdown( core, &dfb_screen_core, emergency );
 
      /* Destroy surface and palette objects. */
+     fusion_object_pool_destroy( shared->graphics_state_pool, core->world );
      fusion_object_pool_destroy( shared->surface_pool, core->world );
      fusion_object_pool_destroy( shared->palette_pool, core->world );
 
@@ -1187,13 +1181,12 @@ dfb_core_initialize( CoreDFB *core )
      if (ret)
           return ret;
 
-     shared->shmpool_data->slave_write = true;
-
-     shared->layer_context_pool = dfb_layer_context_pool_create( core->world );
-     shared->layer_region_pool  = dfb_layer_region_pool_create( core->world );
-     shared->palette_pool       = dfb_palette_pool_create( core->world );
-     shared->surface_pool       = dfb_surface_pool_create( core->world );
-     shared->window_pool        = dfb_window_pool_create( core->world );
+     shared->graphics_state_pool = dfb_graphics_state_pool_create( core->world );
+     shared->layer_context_pool  = dfb_layer_context_pool_create( core->world );
+     shared->layer_region_pool   = dfb_layer_region_pool_create( core->world );
+     shared->palette_pool        = dfb_palette_pool_create( core->world );
+     shared->surface_pool        = dfb_surface_pool_create( core->world );
+     shared->window_pool         = dfb_window_pool_create( core->world );
 
      for (i=0; i<D_ARRAY_SIZE(core_parts); i++) {
           DFBResult ret;
@@ -1285,11 +1278,9 @@ dfb_core_arena_initialize( FusionArena *arena,
 
      fusion_skirmish_init( &shared->lock, "DirectFB Core", core->world );
 
-//     DirectFB::CoreDFBDispatch *dispatch = new DirectFB::CoreDFBDispatch( core, new DirectFB::ICore_Real(core, core) );
-
-//     fusion_call_init( &shared->call, CoreDFB_Dispatch, dispatch, core->world );
-
      CoreDFB_Init_Dispatch( core, core, &shared->call );
+
+     fusion_call_add_permissions( &shared->call, 0, FUSION_CALL_PERMIT_EXECUTE );
 
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );

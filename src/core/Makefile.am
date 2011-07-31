@@ -46,6 +46,7 @@ internalinclude_HEADERS = \
 	fonts.h			\
 	gfxcard.h		\
 	graphics_driver.h	\
+	graphics_state.h	\
 	input.h			\
 	input_driver.h		\
 	layer_context.h		\
@@ -99,6 +100,7 @@ libdirectfb_core_la_SOURCES = \
 	core_parts.c		\
 	fonts.c			\
 	gfxcard.c		\
+	graphics_state.c	\
 	input.c			\
 	layer_context.c		\
 	layer_control.c		\

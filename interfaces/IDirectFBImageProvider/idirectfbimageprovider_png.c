@@ -331,7 +331,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      else {
           CoreSurfaceBufferLock lock;
 
-          ret = CoreSurface_LockBuffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
+          ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
           if (ret)
                return ret;
 
@@ -463,7 +463,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                     break;
           }
 
-          CoreSurface_UnlockBuffer( dst_surface, &lock );
+          dfb_surface_unlock_buffer( dst_surface, &lock );
      }
 
      if (data->stage != STAGE_END)

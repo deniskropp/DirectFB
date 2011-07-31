@@ -21,5 +21,16 @@ interface {
 			typename  DFBSurfaceFlipFlags
 		}
 	}
+
+	method {
+		name GetSurface
+
+		arg {
+			name      surface
+			direction output
+			type      object
+			typename  CoreSurface
+		}
+	}
 }
 

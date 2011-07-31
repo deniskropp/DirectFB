@@ -257,7 +257,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
           case DLSCL_SHARED:
           case DLSCL_ADMINISTRATIVE:
                if (data->level == DLSCL_EXCLUSIVE) {
-                    ret = dfb_layer_get_primary_context( data->layer, false, &context );
+                    ret = CoreLayer_GetPrimaryContext( data->layer, false, &context );
                     if (ret)
                          return ret;
 
@@ -636,6 +636,8 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
      CoreWindow           *w;
      DFBResult             ret;
      DFBWindowDescription  wd;
+     CoreWindow           *parent   = NULL;
+     CoreWindow           *toplevel = NULL;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
@@ -652,8 +654,15 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
 
      D_DEBUG_AT( Layer, "CreateWindow() <- %d,%d - %dx%d )\n", wd.posx, wd.posy, wd.width, wd.height );
 
-     if (desc->flags & DWDESC_CAPS)
+     if (wd.width < 1 || wd.width > 4096 || wd.height < 1 || wd.height > 4096)
+          return DFB_INVARG;
+
+     if (desc->flags & DWDESC_CAPS) {
+          if ((desc->caps & ~DWCAPS_ALL) || !window)
+               return DFB_INVARG;
+
           wd.caps = desc->caps;
+     }
 
      if (desc->flags & DWDESC_PIXELFORMAT)
           wd.pixelformat = desc->pixelformat;
@@ -665,6 +674,10 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
           wd.surface_caps = desc->surface_caps;
 
      if (desc->flags & DWDESC_PARENT) {
+          ret = dfb_core_get_window( data->core, desc->parent_id, &parent );
+          if (ret)
+               goto out;
+
           wd.flags     |= DWDESC_PARENT;
           wd.parent_id  = desc->parent_id;
      }
@@ -685,24 +698,31 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
      }
 
      if (desc->flags & DWDESC_TOPLEVEL_ID) {
+          ret = dfb_core_get_window( data->core, desc->toplevel_id, &toplevel );
+          if (ret)
+               goto out;
+
           wd.flags       |= DWDESC_TOPLEVEL_ID;
           wd.toplevel_id  = desc->toplevel_id;
      }
 
 
-     if ((wd.caps & ~DWCAPS_ALL) || !window)
-          return DFB_INVARG;
-
-     if (wd.width < 1 || wd.width > 4096 || wd.height < 1 || wd.height > 4096)
-          return DFB_INVARG;
-
-     ret = CoreLayerContext_CreateWindow( data->context, &wd, &w );
+     ret = CoreLayerContext_CreateWindow( data->context, &wd, parent, toplevel, &w );
      if (ret)
-          return ret;
+          goto out;
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
-     return IDirectFBWindow_Construct( *window, w, data->layer, data->core, data->idirectfb );
+     ret = IDirectFBWindow_Construct( *window, w, data->layer, data->core, data->idirectfb );
+
+out:
+     if (toplevel)
+          dfb_window_unref( toplevel );
+
+     if (parent)
+          dfb_window_unref( parent );
+
+     return ret;
 }
 
 static DFBResult
@@ -946,7 +966,7 @@ IDirectFBDisplayLayer_SwitchContext( IDirectFBDisplayLayer *thiz,
           DFBResult         ret;
           CoreLayerContext *context;
 
-          ret = dfb_layer_get_primary_context( data->layer, false, &context );
+          ret = CoreLayer_GetPrimaryContext( data->layer, false, &context );
           if (ret)
                return ret;
 
@@ -1085,7 +1105,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDisplayLayer)
 
-     ret = dfb_layer_get_primary_context( layer, true, &context );
+     ret = CoreLayer_GetPrimaryContext( layer, true, &context );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz )
           return ret;

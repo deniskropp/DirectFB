@@ -26,50 +26,48 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <config.h>
+#ifndef __GRAPHICS_STATE_H__
+#define __GRAPHICS_STATE_H__
 
-#include "CoreLayerRegion.h"
+#include <directfb.h>
 
-extern "C" {
-#include <directfb_util.h>
+#include <fusion/object.h>
 
-#include <direct/debug.h>
-#include <direct/mem.h>
-#include <direct/memcpy.h>
-#include <direct/messages.h>
-
-#include <core/core.h>
-}
-
-D_DEBUG_DOMAIN( DirectFB_CoreLayerRegion, "DirectFB/CoreLayerRegion", "DirectFB CoreLayerRegion" );
-
-/*********************************************************************************************************************/
-
-namespace DirectFB {
+#include <core/state.h>
 
 
+struct __DFB_CoreGraphicsState {
+     FusionObject   object;
+     int            magic;
 
-DFBResult
-ILayerRegion_Real::FlipUpdate(
-                    const DFBRegion                           *update,
-                    DFBSurfaceFlipFlags                        flags
-)
-{
-    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
+     FusionCall     call;
 
-    return dfb_layer_region_flip_update( obj, update, flags );
-}
+     CardState      state;
+};
 
+typedef enum {
+     CGSNF_NONE     = 0x00000000
+} CoreGraphicsStateNotificationFlags;
 
-DFBResult
-ILayerRegion_Real::GetSurface(
-                    CoreSurface                              **ret_surface
-)
-{
-     D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
-
-     return dfb_layer_region_get_surface( obj, ret_surface );
-}
+typedef struct {
+     CoreGraphicsStateNotificationFlags  flags;
+} CoreGraphicsStateNotification;
 
 
-}
+DFBResult dfb_graphics_state_create( CoreDFB            *core,
+                                     CoreGraphicsState **ret_state );
+
+
+/*
+ * Creates a pool of graphics state objects.
+ */
+FusionObjectPool *dfb_graphics_state_pool_create( const FusionWorld *world );
+
+/*
+ * Generates dfb_graphics_state_ref(), dfb_graphics_state_attach() etc.
+ */
+FUSION_OBJECT_METHODS( CoreGraphicsState, dfb_graphics_state )
+
+
+#endif
+

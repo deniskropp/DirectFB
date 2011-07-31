@@ -74,6 +74,30 @@ interface {
 		}
 
 		arg {
+			name	    keys
+			direction   input
+			type        enum
+			typename    DFBInputDeviceKeySymbol
+			count       num_keys
+			optional    yes
+		}
+
+		arg {
+			name	    num_keys
+			direction   input
+			type        int
+			typename    u32
+		}
+
+		arg {
+			name        parent
+			direction   input
+			type        object
+			typename    CoreWindow
+			optional    yes
+		}
+
+		arg {
 			name	    flags
 			direction   input
 			type        enum
@@ -399,6 +423,17 @@ interface {
 			direction   input
 			type        int
 			typename    int
+		}
+	}
+
+	method {
+		name GetSurface
+
+		arg {
+			name        surface
+			direction   output
+			type        object
+			typename    CoreSurface
 		}
 	}
 }

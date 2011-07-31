@@ -437,6 +437,8 @@ dfb_input_core_initialize( CoreDFB            *core,
           goto errorExit;
      }
 
+     fusion_reactor_add_permissions( core_input->reactor, 0, FUSION_REACTOR_PERMIT_ATTACH_DETACH );
+
      /* Attach local process function to the input hot-plug reactor. */
      result = fusion_reactor_attach(
                               core_input->reactor,
@@ -514,7 +516,7 @@ dfb_input_core_join( CoreDFB            *core,
 
 #if FUSION_BUILD_MULTI
           /* Increase the reference counter. */
-          fusion_ref_up( &device->shared->ref, true );
+          fusion_ref_up( &device->shared->ref, false );
 #endif
 
           /* add it to the list */
@@ -649,7 +651,7 @@ dfb_input_core_leave( DFBInputCore *data,
 
 #if FUSION_BUILD_MULTI
           /* Decrease the ref between shared device and local device. */
-          fusion_ref_down( &device->shared->ref, true );
+          fusion_ref_down( &device->shared->ref, false );
 #endif
 
           D_FREE( device );
@@ -1465,6 +1467,8 @@ init_devices( CoreDFB *core )
                /* create reactor */
                shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent), buf, dfb_core_world(core) );
 
+               fusion_reactor_add_permissions( shared->reactor, 0, FUSION_REACTOR_PERMIT_ATTACH_DETACH );
+
                fusion_reactor_set_lock( shared->reactor, &shared->lock );
 
                /* init call */
@@ -1491,8 +1495,10 @@ init_devices( CoreDFB *core )
                snprintf( buf, sizeof(buf), "Ref of input device(%d)", shared->id );
                fusion_ref_init( &shared->ref, buf, dfb_core_world(core) );
 
+               fusion_ref_add_permissions( &shared->ref, 0, FUSION_REF_PERMIT_REF_UNREF_LOCAL );
+
                /* Increase reference counter. */
-               fusion_ref_up( &shared->ref, true );
+               fusion_ref_up( &shared->ref, false );
 #endif
 
                if (device_info.desc.min_keycode > device_info.desc.max_keycode) {
@@ -1620,6 +1626,8 @@ dfb_input_create_device(int device_index, CoreDFB *core_in, void *driver_in)
           goto errorExit;
      }
 
+     fusion_reactor_add_permissions( shared->reactor, 0, FUSION_REACTOR_PERMIT_ATTACH_DETACH );
+
      fusion_reactor_set_lock( shared->reactor, &shared->lock );
 
      /* init call */
@@ -1647,7 +1655,8 @@ dfb_input_create_device(int device_index, CoreDFB *core_in, void *driver_in)
 #if FUSION_BUILD_MULTI
      snprintf( buf, sizeof(buf), "Ref of input device(%d)", shared->id);
      fusion_ref_init( &shared->ref, buf, dfb_core_world(core_in));
-     fusion_ref_up( &shared->ref, true );
+     fusion_ref_add_permissions( &shared->ref, 0, FUSION_REF_PERMIT_REF_UNREF_LOCAL );
+     fusion_ref_up( &shared->ref, false );
 #endif
 
      if (device_info.desc.min_keycode > device_info.desc.max_keycode) {
@@ -1847,7 +1856,7 @@ add_device_into_local_list(int dev_id)
 
 #if FUSION_BUILD_MULTI
                /* Increase the reference counter. */
-               fusion_ref_up( &device->shared->ref, true );
+               fusion_ref_up( &device->shared->ref, false );
 #endif
 
                /* add it to the list */
@@ -1906,7 +1915,7 @@ local_processing_hotplug( const void *msg_data, void *ctx )
 
 #if FUSION_BUILD_MULTI
                /* Decrease reference counter. */
-               fusion_ref_down( &device->shared->ref, true );
+               fusion_ref_down( &device->shared->ref, false );
 #endif
                D_MAGIC_CLEAR( device );
                D_FREE(device);

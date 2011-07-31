@@ -99,15 +99,26 @@ IWindow_Real::Restack( CoreWindow *relative,
 }
 
 DFBResult
-IWindow_Real::SetConfig( const CoreWindowConfig *config,
-                         CoreWindowConfigFlags   flags )
+IWindow_Real::SetConfig( const CoreWindowConfig        *config,
+                         const DFBInputDeviceKeySymbol *keys,
+                         u32                            num_keys,
+                         CoreWindow                    *parent,
+                         CoreWindowConfigFlags          flags )
 {
+     CoreWindowConfig config_copy;
+
      D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
      D_ASSERT( config != NULL );
 
-     return dfb_window_set_config( obj, config, flags );
+     config_copy = *config;
+
+     config_copy.keys        = (DFBInputDeviceKeySymbol*) keys;
+     config_copy.num_keys    = num_keys;
+     config_copy.association = parent ? parent->object.id : 0;
+
+     return dfb_window_set_config( obj, &config_copy, flags );
 }
 
 DFBResult
@@ -383,6 +394,29 @@ IWindow_Real::SetRotation( int rotation )
      D_MAGIC_ASSERT( obj, CoreWindow );
 
      return dfb_window_set_rotation( obj, rotation );
+}
+
+DFBResult
+IWindow_Real::GetSurface(
+                    CoreSurface                              **ret_surface
+)
+{
+     DFBResult ret;
+
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_ASSERT( ret_surface != NULL );
+
+     if (!obj->surface)
+          return DFB_UNSUPPORTED;
+
+     ret = (DFBResult) dfb_surface_ref( obj->surface );
+     if (ret)
+          return ret;
+
+     *ret_surface = obj->surface;
+
+     return DFB_OK;
 }
 
 

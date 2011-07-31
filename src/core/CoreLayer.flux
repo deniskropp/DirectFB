@@ -24,5 +24,23 @@ interface {
                         typename    CoreLayerContext
                 }
         }
+
+        method {
+                name    GetPrimaryContext
+
+                arg {
+                        name        activate
+                        direction   input
+                        type        int
+                        typename    bool
+                }
+
+                arg {
+                        name        context
+                        direction   output
+                        type        object
+                        typename    CoreLayerContext
+                }
+        }
 }
 
