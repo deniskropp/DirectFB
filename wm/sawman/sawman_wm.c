@@ -1498,7 +1498,7 @@ wm_resize_stack( CoreWindowStack *stack,
      tier->size.w = width;
      tier->size.h = height;
 
-     sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size );
+     sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size, sizeof(tier->size), false );
 
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
@@ -1576,7 +1576,7 @@ wm_process_input( CoreWindowStack     *stack,
      sawman->manager.event = *event;
 
      /* Call application manager executable. */
-     ret = sawman_call( sawman, SWMCID_INPUT_FILTER, &sawman->manager.event );
+     ret = sawman_call( sawman, SWMCID_INPUT_FILTER, &sawman->manager.event, sizeof(sawman->manager.event), true );
 
      sawman_process_updates( sawman, DSFLIP_NONE );
 
@@ -1919,7 +1919,7 @@ wm_preconfigure_window( CoreWindowStack *stack,
      info = &sawman->callback.info;
      SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
 
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_PRECONFIG, &info->config )) {
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_PRECONFIG, &info->config, sizeof(info->config), true )) {
           case DFB_OK:
                break;
 
@@ -2110,7 +2110,7 @@ wm_add_window( CoreWindowStack *stack,
                    | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
                    | (window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
 
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, info )) {
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, info, sizeof(*info), true )) {
           case DFB_OK:
                break;
 
@@ -2219,7 +2219,7 @@ wm_remove_window( CoreWindowStack *stack,
                    | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
                    | (window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
 
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_REMOVED, info )) {
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_REMOVED, info, sizeof(*info), true )) {
           case DFB_NOIMPL:
                ret = DFB_OK;
 
@@ -2340,7 +2340,7 @@ wm_set_window_config( CoreWindow             *window,
                         | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
                         | (window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
 
-          ret = sawman_call( sawman, SWMCID_APPLICATION_ID_CHANGED, info );
+          ret = sawman_call( sawman, SWMCID_APPLICATION_ID_CHANGED, info, sizeof(*info), true );
           if (ret == DFB_NOIMPL)
                ret = DFB_OK;
 
@@ -2417,7 +2417,7 @@ wm_set_window_config( CoreWindow             *window,
           | (flags & CWCF_DST_GEOMETRY ? SWMCF_DST_GEOMETRY : 0)
           | (flags & CWCF_KEY_SELECTION? SWMCF_KEY_SELECTION: 0);
 
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_RECONFIG, reconfig )) {
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_RECONFIG, reconfig, sizeof(*reconfig), true )) {
           case DFB_OK: {
                SaWManWindowConfigFlags f = reconfig->flags;
                flags =
@@ -2724,13 +2724,12 @@ wm_restack_window( CoreWindow             *window,
                    void                   *relative_data,
                    int                     relation )
 {
-     DFBResult        ret;
-     SaWMan          *sawman;
-     SaWManWindow    *sawwin = window_data;
-     CoreWindowStack *stack;
-     StackData       *data;
-
-     SaWManWindowRelation r;
+     DFBResult          ret;
+     SaWMan            *sawman;
+     SaWManWindow      *sawwin = window_data;
+     CoreWindowStack   *stack;
+     StackData         *data;
+     SaWManRestackArgs  args;
 
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
@@ -2758,11 +2757,11 @@ wm_restack_window( CoreWindow             *window,
      if (ret)
           return ret;
 
-     sawman->callback.handle   = (SaWManWindowHandle)sawwin;
-     sawman->callback.relative = (SaWManWindowHandle)relative_data;
+     args.handle   = (SaWManWindowHandle)sawwin;
+     args.relative = (SaWManWindowHandle)relative_data;
+     args.relation = (relation==1) ? SWMWR_TOP : SWMWR_BOTTOM;
 
-     r = (relation==1) ? SWMWR_TOP : SWMWR_BOTTOM;
-     switch (ret = sawman_call( sawman, SWMCID_WINDOW_RESTACK, (void*)r ) ) {
+     switch (ret = sawman_call( sawman, SWMCID_WINDOW_RESTACK, &args, sizeof(args), false ) ) {
           case DFB_OK:
           case DFB_NOIMPL:
                break;

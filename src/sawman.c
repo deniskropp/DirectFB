@@ -53,6 +53,7 @@
 #include <misc/conf.h>
 
 #include <SaWMan.h>
+#include <SaWManProcess.h>
 
 #include <sawman.h>
 #include <sawman_internal.h>
@@ -80,12 +81,15 @@ static FusionWorld   *m_world;
 
 /**********************************************************************************************************************/
 
-static FusionCallHandlerResult manager_call_handler( int                    caller,
-                                                     int                    call_arg,
-                                                     void                  *call_ptr,
-                                                     void                  *ctx,
+static FusionCallHandlerResult manager_call_handler( int                    caller,   /* fusion id of the caller */
+                                                     int                    call_arg, /* optional call parameter */
+                                                     void                  *ptr,      /* optional call parameter */
+                                                     unsigned int           length,
+                                                     void                  *ctx,      /* optional handler context */
                                                      unsigned int           serial,
-                                                     int                   *ret_val );
+                                                     void                  *ret_ptr,
+                                                     unsigned int           ret_size,
+                                                     unsigned int          *ret_length );
 
 static DirectResult            unregister_process  ( SaWMan                *sawman,
                                                      SaWManProcess         *process );
@@ -268,6 +272,8 @@ sawman_initialize( SaWMan         *sawman,
      m_world  = world;
 
      SaWMan_Init_Dispatch( core_dfb, sawman, &sawman->call );
+
+     fusion_call_add_permissions( &sawman->call, 0, FUSION_CALL_PERMIT_EXECUTE );
 
      /* Register ourself as a new process. */
      ret = sawman_register_process( sawman, SWMPF_MASTER, getpid(), fusion_id(world), world, &m_process );
@@ -467,7 +473,7 @@ sawman_leave( SaWMan      *sawman,
      D_MAGIC_ASSERT( m_process, SaWManProcess );
 
      /* Set 'cleanly exiting' flag. */
-     m_process->flags |= SWMPF_EXITING;
+     SaWManProcess_SetExiting( m_process );
 
      /* Clear global singletons. */
      m_sawman  = NULL;
@@ -480,11 +486,13 @@ sawman_leave( SaWMan      *sawman,
 /**********************************************************************************************************************/
 
 DirectResult
-sawman_register( SaWMan                *sawman,
-                 const SaWManCallbacks *callbacks,
-                 void                  *context )
+sawman_register( SaWMan                 *sawman,
+                 const SaWManCallbacks  *callbacks,
+                 void                   *context,
+                 SaWManManager         **ret_manager )
 {
-     DirectResult ret;
+     DirectResult              ret;
+     SaWManRegisterManagerData data;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( callbacks != NULL );
@@ -499,19 +507,18 @@ sawman_register( SaWMan                *sawman,
           return DFB_BUSY;
 
      /* Initialize the call to the manager executable (ourself). */
-     ret = fusion_call_init( &sawman->manager.call, manager_call_handler, sawman, m_world );
+     ret = fusion_call_init3( &data.call, manager_call_handler, sawman, m_world );
      if (ret)
           return ret;
 
-     /* Initialize manager data. */
-     sawman->manager.callbacks = *callbacks;
-     sawman->manager.context   = context;
+     data.callbacks = *callbacks;
+     data.context   = context;
 
-     /* Set manager flag for our process. */
-     m_process->flags |= SWMPF_MANAGER;
-
-     /* Activate it at last. */
-     sawman->manager.present = true;
+     ret = SaWManProcess_RegisterManager( m_process, &data, ret_manager );
+     if (ret) {
+          fusion_call_destroy( &data.call );
+          return ret;
+     }
 
      return DFB_OK;
 }
@@ -557,9 +564,12 @@ sawman_unregister( SaWMan *sawman )
 DirectResult
 sawman_call( SaWMan       *sawman,
              SaWManCallID  call,
-             void         *ptr )
+             void         *ptr,
+             unsigned int  len,
+             bool          copy_back )
 {
-     int ret = DFB_FUSION;
+     void         *tmp;
+     unsigned int  length;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      if (sawman->lock)
@@ -645,26 +655,44 @@ sawman_call( SaWMan       *sawman,
 
      }
 
+     tmp = alloca( sizeof(int) + len );
+
      /* Execute the call in the manager executable. */
-     if (fusion_call_execute( &sawman->manager.call, FCEF_NONE, call, ptr, &ret ))
+     if (fusion_call_execute3( &sawman->manager.call, FCEF_NONE, call, ptr, len, tmp, sizeof(int) + len, &length ))
           return DFB_NOIMPL;
 
-     return ret;
+     if (length != sizeof(int) + len) {
+          D_BUG( "returned length from manager %u does not match %zu", length, sizeof(int) + len );
+          return DFB_NOIMPL;
+     }
+
+     if (copy_back)
+          direct_memcpy( ptr, (u8*) tmp + sizeof(int), len );
+
+     return *((int*) tmp);
 }
 
 static FusionCallHandlerResult
-manager_call_handler( int           caller,
-                      int           call_arg,
-                      void         *call_ptr,
-                      void         *ctx,
+manager_call_handler( int           caller,   /* fusion id of the caller */
+                      int           call_arg, /* optional call parameter */
+                      void         *ptr,      /* optional call parameter */
+                      unsigned int  length,
+                      void         *ctx,      /* optional handler context */
                       unsigned int  serial,
-                      int          *ret_val )
+                      void         *ret_ptr,
+                      unsigned int  ret_size,
+                      unsigned int *ret_length )
 {
-     DirectResult  ret;
-     SaWMan       *sawman = ctx;
-     SaWManCallID  call   = call_arg;
+     DirectResult       ret;
+     SaWMan            *sawman       = ctx;
+     SaWManCallID       call         = call_arg;
+     int               *ret_val      = ret_ptr;
+     void              *call_ptr     = ret_val + 1;
+     SaWManRestackArgs *restack_args = call_ptr;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
+
+     direct_memcpy( call_ptr, ptr, length );
 
      /* Last mile of dispatch. */
      switch (call) {
@@ -682,7 +710,7 @@ manager_call_handler( int           caller,
 
           case SWMCID_STOP:
                if (sawman->manager.callbacks.Stop)
-                    *ret_val = sawman->manager.callbacks.Stop( sawman->manager.context, (long) call_ptr, caller );
+                    *ret_val = sawman->manager.callbacks.Stop( sawman->manager.context, *((u32*) call_ptr), caller );
                break;
 
           case SWMCID_PROCESS_ADDED:
@@ -723,9 +751,9 @@ manager_call_handler( int           caller,
           case SWMCID_WINDOW_RESTACK:
                if (sawman->manager.callbacks.WindowRestack)
                     *ret_val = sawman->manager.callbacks.WindowRestack( sawman->manager.context,
-                                                                        sawman->callback.handle,
-                                                                        sawman->callback.relative,
-                                                                        (SaWManWindowRelation)call_ptr );
+                                                                        restack_args->handle,
+                                                                        restack_args->relative,
+                                                                        restack_args->relation );
                break;
 
           case SWMCID_STACK_RESIZED:
@@ -736,7 +764,7 @@ manager_call_handler( int           caller,
           case SWMCID_SWITCH_FOCUS:
                if (sawman->manager.callbacks.SwitchFocus)
                     *ret_val = sawman->manager.callbacks.SwitchFocus( sawman->manager.context,
-                                                                      (SaWManWindowHandle)call_ptr );
+                                                                      *((SaWManWindowHandle*)call_ptr) );
                break;
 
           case SWMCID_LAYER_RECONFIG:
@@ -752,6 +780,8 @@ manager_call_handler( int           caller,
           default:
                *ret_val = DFB_NOIMPL;
      }
+
+     *ret_length = ret_size;
 
      return FCHR_RETURN;
 }
@@ -809,6 +839,8 @@ sawman_register_process( SaWMan              *sawman,
           goto error;
      }
 
+     SaWManProcess_Init_Dispatch( core_dfb, process, &process->call );
+
      D_MAGIC_SET( process, SaWManProcess );
 
      /* Add process to list. */
@@ -817,7 +849,7 @@ sawman_register_process( SaWMan              *sawman,
      *ret_process = process;
 
      /* Call application manager executable. */
-     sawman_call( sawman, SWMCID_PROCESS_ADDED, process );
+     sawman_call( sawman, SWMCID_PROCESS_ADDED, process, sizeof(*process), false );
 
      if (sawman->lock)
           sawman_unlock( sawman );
@@ -866,8 +898,10 @@ unregister_process( SaWMan        *sawman,
      }
      else {
           /* Call application manager executable. */
-          sawman_call( sawman, SWMCID_PROCESS_REMOVED, process );
+          sawman_call( sawman, SWMCID_PROCESS_REMOVED, process, sizeof(*process), false );
      }
+
+     fusion_call_destroy( &process->call );
 
      D_MAGIC_CLEAR( process );
 

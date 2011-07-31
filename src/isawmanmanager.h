@@ -35,6 +35,7 @@ typedef struct {
      int                         ref;      /* reference counter */
      SaWMan                     *sawman;
      SaWManProcess              *process;
+     SaWManManager              *manager;
 } ISaWManManager_data;
 
 /*
@@ -42,7 +43,8 @@ typedef struct {
  */
 DirectResult ISaWManManager_Construct( ISaWManManager *thiz,
                                        SaWMan         *sawman,
-                                       SaWManProcess  *process );
+                                       SaWManProcess  *process,
+                                       SaWManManager  *manager );
 
 #endif
 

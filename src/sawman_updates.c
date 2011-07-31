@@ -896,7 +896,8 @@ sawman_process_updates( SaWMan              *sawman,
                     sawman->callback.layer_reconfig.single   = (SaWManWindowHandle) single;
                     sawman->callback.layer_reconfig.config   = config;
 
-                    switch (sawman_call( sawman, SWMCID_LAYER_RECONFIG, &sawman->callback.layer_reconfig )) {
+                    switch (sawman_call( sawman, SWMCID_LAYER_RECONFIG,
+                                         &sawman->callback.layer_reconfig, sizeof(sawman->callback.layer_reconfig), true )) {
                          case DFB_OK:
                               config = sawman->callback.layer_reconfig.config;
                          case DFB_NOIMPL: 
@@ -1021,7 +1022,8 @@ no_single:
                sawman->callback.layer_reconfig.layer_id = tier->layer_id;
                sawman->callback.layer_reconfig.single   = SAWMAN_WINDOW_NONE;
                sawman->callback.layer_reconfig.config   = *config;
-               ret = sawman_call( sawman, SWMCID_LAYER_RECONFIG, &sawman->callback.layer_reconfig );
+               ret = sawman_call( sawman, SWMCID_LAYER_RECONFIG,
+                                  &sawman->callback.layer_reconfig, sizeof(sawman->callback.layer_reconfig), true );
 
                /* on DFB_OK we try to overrule the default configuration */
                if ( !ret && !dfb_layer_context_test_configuration( tier->context, &(sawman->callback.layer_reconfig.config), NULL ) ) {
@@ -1049,7 +1051,7 @@ no_single:
 
                /* Notify application manager about new tier size if previous mode was single. */
                if (tier->single_mode)
-                    sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size );
+                    sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size, sizeof(tier->size), false );
 
                if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
                     DFBRectangle full = { 0, 0, screen_width, screen_height };

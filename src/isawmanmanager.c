@@ -35,6 +35,8 @@
 
 #include <sawman.h>
 
+#include "SaWManManager.h"
+
 #include "sawman_updates.h"
 #include "sawman_window.h"
 
@@ -94,9 +96,7 @@ ISaWManManager_QueueUpdate( ISaWManManager         *thiz,
                             DFBWindowStackingClass  stacking,
                             const DFBRegion        *region )
 {
-     SaWMan     *sawman;
-     SaWManTier *tier;
-     DFBRegion   update;
+     SaWMan *sawman;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
@@ -118,16 +118,7 @@ ISaWManManager_QueueUpdate( ISaWManManager         *thiz,
 
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 
-     tier = sawman_tier_by_class( sawman, stacking );
-
-     update = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
-
-     if (region && !dfb_region_region_intersect( &update, region ))
-          return DFB_OK;
-
-     dfb_updates_add( &tier->updates, &update );
-
-     return DFB_OK;
+     return SaWManManager_QueueUpdate( data->manager, stacking, region );
 }
 
 static DirectResult
@@ -143,7 +134,7 @@ ISaWManManager_ProcessUpdates( ISaWManManager      *thiz,
 
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 
-     return sawman_process_updates( sawman, flags );
+     return SaWManManager_ProcessUpdates( data->manager, flags );
 }
 
 static DirectResult
@@ -151,7 +142,6 @@ ISaWManManager_CloseWindow( ISaWManManager     *thiz,
                             SaWManWindowHandle  handle )
 {
      SaWMan         *sawman;
-     DFBWindowEvent  event;
      SaWManWindow   *window = (SaWManWindow*)handle;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
@@ -164,11 +154,7 @@ ISaWManManager_CloseWindow( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     event.type = DWET_CLOSE;
-
-     dfb_window_post_event( window->window, &event );
-
-     return DFB_OK;
+     return SaWManManager_CloseWindow( data->manager, window );
 }
 
 static DirectResult
@@ -215,7 +201,7 @@ ISaWManManager_SwitchFocus( ISaWManManager     *thiz,
 
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 
-     return sawman_switch_focus( sawman, window );
+     return SaWManManager_SwitchFocus( data->manager, window );
 }
 
 static DirectResult
@@ -276,8 +262,7 @@ ISaWManManager_InsertWindow( ISaWManManager       *thiz,
 
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 
-     return sawman_insert_window( sawman, window, sawrel, 
-                    (relation == SWMWR_TOP) ? DFB_TRUE : DFB_FALSE );
+     return SaWManManager_InsertWindow( data->manager, window, sawrel, relation );
 }
 
 static DirectResult
@@ -299,7 +284,7 @@ ISaWManManager_RemoveWindow( ISaWManManager     *thiz,
 
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 
-     return sawman_remove_window( sawman, window );
+     return SaWManManager_RemoveWindow( data->manager, window );
 }
 
 static DirectResult
@@ -318,29 +303,7 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
 
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 
-     if (sawman->scaling_mode != mode) {
-          SaWManTier *tier;
-
-          sawman->scaling_mode = mode;
-
-          direct_list_foreach (tier, sawman->tiers) {
-               DFBRegion update = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
-
-               dfb_updates_add( &tier->updates, &update );
-          }
-     }
-
-     return DFB_OK;
-}
-
-static void
-reset_geometry_to_nonfollow( SaWManWindow *window )
-{
-     if (window->window->config.dst_geometry.mode == DWGM_FOLLOW)
-          window->window->config.dst_geometry.mode = DWGM_DEFAULT;
-
-     if (window->window->config.src_geometry.mode == DWGM_FOLLOW)
-          window->window->config.src_geometry.mode = DWGM_DEFAULT;
+     return SaWManManager_SetScalingMode( data->manager, mode );
 }
 
 static DirectResult
@@ -349,10 +312,8 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
                                  SaWManWindowConfigFlags   flags,
                                  SaWManWindowConfig       *config )
 {
-     DFBResult       ret;
-     SaWMan         *sawman;
-     SaWManWindow   *sawwin = (SaWManWindow*)handle;
-     CoreWindow     *window;
+     SaWMan       *sawman;
+     SaWManWindow *sawwin = (SaWManWindow*)handle;
 
      /*
        not yet implemented:
@@ -362,7 +323,7 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
      if (flags & ~(SWMCF_ALL - SWMCF_KEY_SELECTION - SWMCF_CURSOR_FLAGS - SWMCF_CURSOR_RESOLUTION))
           return DFB_INVARG;
 
-     if( config == NULL )
+     if (config == NULL)
           return DFB_INVARG;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
@@ -370,178 +331,11 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
-
-     window = sawwin->window;
-     D_ASSERT( window != NULL );
      
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 
-      if (flags & SWMCF_OPTIONS) {
-          if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE) && window->surface) {
-               /* scaling turned off - see if we need to reallocate the surface */
-               if (window->config.bounds.w != window->surface->config.size.w ||
-                   window->config.bounds.h != window->surface->config.size.h)
-               {
-                    ret = dfb_surface_reformat( window->surface,
-                                                window->config.bounds.w,
-                                                window->config.bounds.h,
-                                                window->surface->config.format );
-                    if (ret) {
-                         D_DERROR( ret, "WM/SaWMan: Could not resize surface "
-                                        "(%dx%d -> %dx%d) to remove DWOP_SCALE!\n",
-                                   window->surface->config.size.w,
-                                   window->surface->config.size.h,
-                                   window->config.bounds.w,
-                                   window->config.bounds.h );
-                         return ret;
-                    }
-               }
-          }
-
-          if (config->options & (DWOP_KEEP_ABOVE | DWOP_KEEP_UNDER)) {
-               D_ASSERT( sawwin->parent );
-
-               if (config->options & DWOP_KEEP_ABOVE) {
-                    D_ASSERT( sawman_window_priority(sawwin->parent) <= sawman_window_priority(sawwin) );
-
-                    sawman_insert_window( sawman, sawwin, sawwin->parent, true );
-               }
-               else {
-                    D_ASSERT( sawman_window_priority(sawwin->parent) >= sawman_window_priority(sawwin) );
-
-                    sawman_insert_window( sawman, sawwin, sawwin->parent, false );
-               }
-
-               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_FORCE_COMPLETE );
-          }
-
-          window->config.options = config->options;
-     }
-
-     if (flags & SWMCF_EVENTS)
-          window->config.events = config->events;
-
-     if (flags & SWMCF_COLOR) {
-          window->config.color = config->color;
-          sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
-     }
-
-     if (flags & SWMCF_COLOR_KEY)
-          window->config.color_key = config->color_key;
-
-     if (flags & SWMCF_OPAQUE)
-          window->config.opaque = config->opaque;
-
-     if (flags & CWCF_STACKING)
-          sawman_restack_window( sawman, sawwin, sawwin, 0, config->stacking );
-
-     if (flags & SWMCF_OPACITY)
-          sawman_set_opacity( sawman, sawwin, config->opacity );
-
-     if( flags & (SWMCF_POSITION | SWMCF_SIZE) ) {
-          if( flags == SWMCF_POSITION ) {
-               window->config.bounds.x = config->bounds.x;
-               window->config.bounds.y = config->bounds.y;
-          }
-          else if( flags == SWMCF_SIZE ) {
-               window->config.bounds.w = config->bounds.w;
-               window->config.bounds.h = config->bounds.h;
-          }
-          else
-               window->config.bounds = config->bounds;          
-     }
-
-     if (flags & SWMCF_SRC_GEOMETRY)
-          window->config.src_geometry = config->src_geometry;
-
-     if (flags & SWMCF_DST_GEOMETRY)
-          window->config.dst_geometry = config->dst_geometry;
-
-     if (flags & CWCF_ASSOCIATION && window->config.association != config->association) {
-          SaWManWindow *parent = NULL;
-
-          /* Dissociate first */
-          if (sawwin->parent_window) {
-               int index;
-
-               dfb_window_unlink( &sawwin->parent_window );
-
-               index = fusion_vector_index_of( &parent->children, sawwin );
-               D_ASSERT( index >= 0 );
-               D_ASSERT( index < parent->children.count );
-
-               fusion_vector_remove( &parent->children, index );
-
-               sawwin->parent = NULL;
-
-               window->config.association = 0;
-          }
-
-
-
-          /* Lookup new parent window. */
-          if (config->association) {
-               D_DEBUG_AT( SaWMan_Manager, "  -> new parent win id %u\n", config->association );
-
-               direct_list_foreach (parent, sawman->windows) {
-                    D_MAGIC_ASSERT( parent, SaWManWindow );
-                    D_ASSERT( parent->window != NULL );
-
-                    if (parent->id == config->association)
-                         break;
-               }
-
-               if (!parent) {
-                    D_ERROR( "SaWMan/WM: Can't find parent window with ID %d!\n", config->association );
-                    reset_geometry_to_nonfollow( sawwin );
-                    return DFB_IDNOTFOUND;
-               }
-
-               D_MAGIC_ASSERT( parent, SaWManWindow );
-               D_ASSERT( parent->window != NULL );
-
-#ifndef OLD_COREWINDOWS_STRUCTURE
-               if (parent->window->toplevel != window->toplevel) {
-                    D_ERROR( "SaWMan/WM: Can't associate windows with different toplevel!\n" );
-                    reset_geometry_to_nonfollow( sawwin );
-                    return DFB_INVARG;
-               }
-#endif
-
-               D_DEBUG_AT( SaWMan_Manager, "  -> parent window %p\n", parent );
-
-
-               ret = dfb_window_link( &sawwin->parent_window, parent->window );
-               if (ret) {
-                    D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", config->association );
-                    reset_geometry_to_nonfollow( sawwin );
-                    return ret;
-               }
-
-               ret = fusion_vector_add( &parent->children, sawwin );
-               if (ret) {
-                    dfb_window_unlink( &sawwin->parent_window );
-                    reset_geometry_to_nonfollow( sawwin );
-                    return ret;
-               }
-
-
-               sawwin->parent = parent;
-
-               /* Write back new association */
-               window->config.association = config->association;
-          }
-          else
-               reset_geometry_to_nonfollow( sawwin );
-     }
-
-     if (flags & (SWMCF_POSITION | SWMCF_SIZE | SWMCF_SRC_GEOMETRY | SWMCF_DST_GEOMETRY | SWMCF_ASSOCIATION))
-          sawman_update_geometry( sawwin );
-
-     return DFB_OK;
+     return SaWManManager_SetWindowConfig( data->manager, sawwin, config, flags );
 }
-
-     
 
 static DirectResult
 ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
@@ -701,13 +495,15 @@ ISaWManManager_IsWindowShowing( ISaWManManager     *thiz,
 DirectResult
 ISaWManManager_Construct( ISaWManManager *thiz,
                           SaWMan         *sawman,
-                          SaWManProcess  *process )
+                          SaWManProcess  *process,
+                          SaWManManager  *manager )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, ISaWManManager )
 
      data->ref     = 1;
      data->sawman  = sawman;
      data->process = process;
+     data->manager = manager;
 
      thiz->AddRef          = ISaWManManager_AddRef;
      thiz->Release         = ISaWManManager_Release;

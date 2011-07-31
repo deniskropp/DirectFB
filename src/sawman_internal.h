@@ -169,6 +169,33 @@ typedef enum {
 
 /**********************************************************************************************************************/
 
+// FIXME: temporary solution
+typedef struct {
+     FusionCall                call;
+
+     SaWManCallbacks           callbacks;
+     void                     *context;
+} SaWManRegisterManagerData;
+
+
+typedef struct {
+     bool                      present;
+     FusionCall                call_from;
+
+     FusionCall                call;
+
+     SaWManCallbacks           callbacks;
+     void                     *context;
+
+     DFBInputEvent             event;
+} SaWManManager;
+
+typedef struct {
+     SaWManWindowHandle   handle;
+     SaWManWindowHandle   relative;
+     SaWManWindowRelation relation;
+} SaWManRestackArgs;
+
 struct __SaWMan_SaWMan {
      int                   magic;
 
@@ -211,27 +238,16 @@ struct __SaWMan_SaWMan {
           SaWManWindow                *owner;
      } keys[SAWMAN_MAX_IMPLICIT_KEYGRABS];
 
-     struct {
-          bool                      present;
-
-          FusionCall                call;
-
-          SaWManCallbacks           callbacks;
-          void                     *context;
-
-          DFBInputEvent             event;
-     }                     manager;
+     SaWManManager         manager;
 
      DFBWindowID           window_ids;
-     
-          
+
+
      /* reserved area for callback stuctures */
      struct {
           SaWManWindowInfo     info;
           SaWManWindowReconfig reconfig;
           DFBDimension         size;
-          SaWManWindowHandle   handle;
-          SaWManWindowHandle   relative;
           SaWManLayerReconfig  layer_reconfig;
      } callback;
 
@@ -397,15 +413,18 @@ typedef struct {
      CoreWindowStack              *stack;
 } StackData;
 
-DirectResult sawman_register  ( SaWMan                *sawman,
-                                const SaWManCallbacks *callbacks,
-                                void                  *context );
+DirectResult sawman_register  ( SaWMan                 *sawman,
+                                const SaWManCallbacks  *callbacks,
+                                void                   *context,
+                                SaWManManager         **ret_manager );
 
 DirectResult sawman_unregister( SaWMan                *sawman );
 
 DirectResult sawman_call      ( SaWMan                *sawman,
                                 SaWManCallID           call,
-                                void                  *ptr );
+                                void                  *ptr,
+                                unsigned int           len,
+                                bool                   copy_back );
 
 DirectResult sawman_post_init ( SaWMan         *sawman,
                                 FusionWorld    *world );

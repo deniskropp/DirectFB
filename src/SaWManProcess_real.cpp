@@ -28,7 +28,8 @@
 
 #include <config.h>
 
-#include "SaWMan.h"
+#include "SaWManManager.h"
+#include "SaWManProcess.h"
 
 extern "C" {
 #include <directfb_util.h>
@@ -43,7 +44,7 @@ extern "C" {
 #include <core/core.h>
 }
 
-D_DEBUG_DOMAIN( DirectFB_SaWMan, "DirectFB/SaWMan", "DirectFB SaWMan" );
+D_DEBUG_DOMAIN( DirectFB_SaWManProcess, "DirectFB/SaWManProcess", "DirectFB SaWManProcess" );
 
 /*********************************************************************************************************************/
 
@@ -51,16 +52,44 @@ namespace DirectFB {
 
 
 DFBResult
-ISaWManWM_Real::RegisterProcess(
-                    SaWManProcessFlags                         flags,
-                    s32                                        pid,
-                    u32                                        fusion_id,
-                    SaWManProcess                            **ret_process
+ISaWManProcess_Real::SetExiting(
 )
 {
-    D_DEBUG_AT( DirectFB_SaWMan, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManProcess, "%s()", __FUNCTION__ );
 
-    return (DFBResult) sawman_register_process( obj, flags, pid, fusion_id, dfb_core_world(core), ret_process );
+     /* Set 'cleanly exiting' flag. */
+     obj->flags = (SaWManProcessFlags)(obj->flags | SWMPF_EXITING);
+
+     return DFB_OK;
+}
+
+DFBResult
+ISaWManProcess_Real::RegisterManager(
+                    const SaWManRegisterManagerData           *data,
+                    SaWManManager                            **ret_manager
+)
+{
+     D_DEBUG_AT( DirectFB_SaWManProcess, "%s()", __FUNCTION__ );
+
+     if (m_sawman->manager.present)
+          return DFB_BUSY;
+
+     /* Initialize manager data. */
+     m_sawman->manager.call      = data->call;
+     m_sawman->manager.callbacks = data->callbacks;
+     m_sawman->manager.context   = data->context;
+
+     /* Set manager flag for our process. */
+     obj->flags = (SaWManProcessFlags)(obj->flags | SWMPF_MANAGER);
+
+     /* Activate it at last. */
+     m_sawman->manager.present = true;
+
+     SaWManManager_Init_Dispatch( core, &m_sawman->manager, &m_sawman->manager.call_from );
+
+     *ret_manager = &m_sawman->manager;
+
+     return DFB_OK;
 }
 
 

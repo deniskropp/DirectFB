@@ -107,6 +107,8 @@ typedef struct {
      SaWManProcessFlags     flags;
 
      FusionRef              ref;
+
+     FusionCall             call;
 } SaWManProcess;
 
 

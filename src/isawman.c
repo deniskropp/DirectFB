@@ -93,7 +93,6 @@ ISaWMan_Start( ISaWMan    *thiz,
                pid_t      *ret_pid )
 {
      int     ret;
-     char   *tmp = NULL;
      SaWMan *sawman;
 
      DIRECT_INTERFACE_GET_DATA( ISaWMan )
@@ -102,29 +101,18 @@ ISaWMan_Start( ISaWMan    *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
-
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      ret = sawman_lock( sawman );
      if (ret)
-          goto out;
+          return ret;
 
-     tmp = SHSTRDUP( sawman->shmpool, name );
-     if (!tmp) {
-          ret = D_OOSHM();
-          goto out;
-     }
-
-     ret = sawman_call( sawman, SWMCID_START, tmp );
+     ret = sawman_call( sawman, SWMCID_START, (void*) name, strlen(name) + 1, false );
      if (ret < 0) {
           if (ret_pid)
                *ret_pid = -ret;
           ret = DFB_OK;
      }
-
-out:
-     if (tmp)
-          SHFREE( sawman->shmpool, tmp );
 
      sawman_unlock( sawman );
 
@@ -148,7 +136,7 @@ ISaWMan_Stop( ISaWMan *thiz,
      if (ret)
           return ret;
 
-     ret = sawman_call( sawman, SWMCID_STOP, (void*)(long) pid );
+     ret = sawman_call( sawman, SWMCID_STOP, &pid, sizeof(u32), false );
 
      sawman_unlock( sawman );
 
@@ -201,6 +189,7 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
      DirectResult    ret;
      ISaWManManager *manager;
      SaWMan         *sawman;
+     SaWManManager  *manager_object;
 
      DIRECT_INTERFACE_GET_DATA( ISaWMan )
 
@@ -215,13 +204,13 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
      if (ret)
           return ret;
 
-     ret = sawman_register( sawman, callbacks, context );
+     ret = sawman_register( sawman, callbacks, context, &manager_object );
      if (ret)
           goto out;
 
      DIRECT_ALLOCATE_INTERFACE( manager, ISaWManManager );
 
-     ret = ISaWManManager_Construct( manager, data->sawman, data->process );
+     ret = ISaWManManager_Construct( manager, data->sawman, data->process, manager_object );
      if (ret) {
           sawman_unregister( sawman );
           goto out;
@@ -244,25 +233,24 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
 
      if (callbacks->WindowAdded) {
           SaWManWindow     *window;
-          SaWManWindowInfo *info;
+          SaWManWindowInfo  info;
 
-          info = &sawman->callback.info;
           direct_list_foreach (window, sawman->windows) {
                D_MAGIC_ASSERT( window, SaWManWindow );
-               info->handle = (SaWManWindowHandle)window;
-               info->caps   = window->caps;
-               SAWMANWINDOWCONFIG_COPY( &info->config, &window->window->config )
-               info->config.key_selection = window->window->config.key_selection;
-               info->config.keys          = window->window->config.keys;
-               info->config.num_keys      = window->window->config.num_keys;
-               info->resource_id          = window->window->resource_id;
-               info->application_id       = window->window->config.application_id;
-               info->win_id               = window->window->id;
-               info->flags = window->flags
+               info.handle = (SaWManWindowHandle)window;
+               info.caps   = window->caps;
+               SAWMANWINDOWCONFIG_COPY( &info.config, &window->window->config )
+               info.config.key_selection = window->window->config.key_selection;
+               info.config.keys          = window->window->config.keys;
+               info.config.num_keys      = window->window->config.num_keys;
+               info.resource_id          = window->window->resource_id;
+               info.application_id       = window->window->config.application_id;
+               info.win_id               = window->window->id;
+               info.flags = window->flags
                              | (window->window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
                              | (window->window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
 
-               callbacks->WindowAdded( context, info );
+               callbacks->WindowAdded( context, &info );
           }
      }
 

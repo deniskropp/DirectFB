@@ -106,7 +106,7 @@ sawman_switch_focus( SaWMan       *sawman,
      if (from == to)
           return DFB_OK;
 
-     switch (ret = sawman_call( sawman, SWMCID_SWITCH_FOCUS, to )) {
+     switch (ret = sawman_call( sawman, SWMCID_SWITCH_FOCUS, &to, sizeof(to), false )) {
           case DFB_OK:
           case DFB_NOIMPL:
                break;
