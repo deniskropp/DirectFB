@@ -1,3 +1,42 @@
+commit 1c63c8c27e9a9aaeab04d5c0dffbd50ffccf9054
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 31 20:40:30 2011 +0200
+
+    Makefile: Add src/core/Interface.h
+
+commit c35b3de90d1282d78999772343080f112b660c34
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 31 19:00:04 2011 +0200
+
+    SecureFusion: Backport from 1.5.x secure-fusion branch
+    
+    as of this commit
+    	83bb21e8c3f04a03272ce4d5804b83942b6bcdf3
+
+commit 181deefe3e5dbe7c47d6fb0c8b63ecb441b3a71a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu May 5 20:58:28 2011 +0200
+
+    Fusion: Change FusionObjectID to u32.
+
+commit a66bcda76389264e0cd1c88028c1e9caa61e7d6f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 31 17:40:30 2011 +0200
+
+    version: 1.4.14
+
+commit 31b1f2ac0554845e6a3e9a364534eef6825e7509
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu May 26 23:56:07 2011 +0800
+
+    NEWS and ChangeLog for 1.4.13
+
+commit af7b4a455e56f655fce29bf5efba1d992cf9ad23
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu May 26 23:32:44 2011 +0800
+
+    Welcome 1.4.13!
+
 commit 593d5efa7774968ebaba65551c314634af78c01e
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Fri May 13 14:21:03 2011 +0200
