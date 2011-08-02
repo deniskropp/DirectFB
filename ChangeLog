@@ -1,3 +1,231 @@
+commit fa37c644e0f6c8c9d8e993aa4be30da41ca9eea7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 31 14:05:59 2011 +0200
+
+    version: 1.5.2
+
+commit d31957b0e7b64a7ac09799c2ee63b69c30ef94f2
+Merge: ee5bad2 83bb21e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 31 14:05:14 2011 +0200
+
+    Merge branch 'secure-fusion'
+    
+    Conflicts:
+    	lib/fusion/call.c
+    	lib/fusion/shm/pool.c
+
+commit 83bb21e8c3f04a03272ce4d5804b83942b6bcdf3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 31 13:59:16 2011 +0200
+
+    SecureFusion: Final major step including permission enforcement, object ownership, new surface locking...
+    
+    Add _GetID() functions for all core objects.
+    
+    Add permissions for catcher in throw function, e.g. to ref_up/catch, call, attach to reactor...
+    
+    Set object owner to catcher in throw function of surface, window and palette objects for now,
+    but only if the owner has not been set yet. This is enough for the time being.
+    
+    Check object owner in lookup functions and fail if owner is set, but does not match.
+    
+    Turn CoreGraphicsState into a FusionObject to handle reference counting and to get rid of
+    the custom creation/throw/catch code etc.
+    
+    Add CoreGraphicsStateClient_Deinit().
+    
+    Add CoreLayer::GetPrimaryContext().
+    
+    Add CoreLayerRegion::GetSurface() to add surface permissions to region owner.
+    
+    Add CoreSurface::GetPalette() to add palette permissions to surface owner.
+    
+    Add CoreWindow::GetSurface() to add surface permissions to window owner.
+    
+    Add special code for parent and top level window in DFBWindowDescription passing of
+    CoreLayerContext::CreateWindow(). The windows are passed as object arguments to go
+    through the object ownership checks on dispatcher side when looked up by id.
+    
+    Remove LockBuffer and UnlockBuffer from CoreSurface interface and use dfb_surface_lock_buffer()
+    at all locations again.
+    
+    Add CoreSurface::PreLockBuffer(), PreReadBuffer() and PreWriteBuffer() doing all work that
+    needs to write to shared memory, e.g. allocating a buffer, syncing allocations, syncing with
+    accelerator, and then returning the index of the allocation to be used. Call these new functions
+    from dfb_surface_buffer_lock/read/write() and then call into surface pool implementation locally.
+    
+    Add special code for parent window and keys in CoreWindowConfig passing of CoreWindow::SetConfig().
+    The window is passed as object argument to go through the object ownership checks on dispatcher
+    side when looked up by id. Separately pass the keys as another argument to have it copied and set
+    the pointer in a copy of the config on the dispatcher side.
+    
+    Add attach/detach permission for everyone to input devices.
+    
+    Fix ref up/down for input devices changing from global to local counting.
+    
+    Add ref up/down permission for everyone to input devices.
+    
+    Add execute permission for everyone to layer call.
+    
+    Remove preallocated surface pool for now, instead create a normal surface and copy the data
+    from preallocated area to new surface buffers. This also reenables acceleration for preallocated
+    surfaces which had been broken since DirectFB 1.2. In future versions there will be proper
+    support for preallocated surfaces again.
+    
+    Refactor local and shared surface pools and only use local pool in single app and only shared
+    pool in multi app build.
+    
+    The local surface pool has been heavily simplified to just do the malloc/free instead of the
+    FusionCall code etc.
+    
+    The shared surface pool has been reimplemented to create a file in tmpfs per surface buffer
+    allocation that is writable by slaves, since all Fusion SHM Pools are read only now! This
+    avoids security holes as no heap information is writable and allows for more fine grained
+    permission management per surface buffer. The tmpfs files are currently mapped/unmapped on
+    Lock/Unlock.
+    
+    Add CSPCAPS_READ and CSPCAPS_WRITE being set automatically when the surface pool provides
+    a Read and Write function.
+
+commit 2311b095790da1279d3f470a4d84ff62ff1585b5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 31 13:02:53 2011 +0200
+
+    Fusion: Just return OK in single app implementations for permission management.
+
+commit 6c0941f93c38774210287e1ce620d56c18a65498
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Jul 30 23:44:43 2011 +0200
+
+    Fusion: Add fusion_get_tmpfs(), remove obsolete select() call.
+
+commit ee5bad2be947b14e4b5eb5ff5b6e247ae38b4c17
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jul 29 19:00:33 2011 +0200
+
+    core: call dfb_gfxcard_...() directly for slaves that are not using secure fusion
+
+commit 362ac4eb76c8e02f367ae60e8b835ef77ac8cf76
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jul 29 17:40:51 2011 +0200
+
+    core: only reject preallocated surfaces when using secure-fusion and not being master
+
+commit d1ee31a964be266e5da51dec373c1acca73b540a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jul 29 14:55:15 2011 +0200
+
+    Fusion: Use new security mechanism in linux-fusion 8.5.0
+    
+    Add generic fusion_entry_add_permissions() with plain bit mask.
+    
+    Add per entity type functions, e.g. fusion_call_add_permissions() with specific bit mask.
+    
+    Map shared shared root page read only in slaves.
+    
+    Remove writable flag in shared memory pools (all read only in secure mode). This change
+    is needed as the heap information was writable and therefore not secure enough. Writable
+    shared memory will only exist outside of shared memory pools, e.g. a separate file per
+    surface buffer allocation.
+    
+    Enforce shared memory permissions on file system level, using 0640 instead of 0660, so the
+    master may be run as a different user, but with the slaves being in the same group, see also
+    the shmfile-group option to control which group is being used.
+    
+    Add a field to FusionObject to store the owner's FusionID. At the moment this stays zero
+    until it is set.
+    
+    For now, all skirmishs have default permission to allow lock/unlock for all other Fusionees.
+    
+    Skirmishs will be removed soon anyhow...
+
+commit dfb1fe6535d21c531c33e6f9799a07246537879e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jul 29 14:44:30 2011 +0200
+
+    Flux: Generate TypeName_GetID( ptr ) instead of ptr->object.id.
+
+commit 0238806f7e9a06efd75cf6f4d28809fb12c8e793
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jul 29 12:53:03 2011 +0200
+
+    debian: updated changelog (prepare for next release)
+
+commit bd8e632837b9036556cd16c7a8eb9081c29a8316
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 13 22:13:28 2011 +0100
+
+    Fusion: Fix assertion in single app fusion_call_destroy().
+
+commit 8f846662325ea4a379dd32ae439661bbe4585fdb
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 18:37:23 2011 +0200
+
+    Fusion: Add dummy fusion_ref_throw() and fusion_ref_catch() for single app.
+
+commit ece4a422b6202216c55f4b2ca55d22b4a77ea856
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 18:36:46 2011 +0200
+
+    Fusion: Add fusion_call_init3() and fusion_call_execute3() for single app.
+
+commit 60c0c53855c91576db8a9d74aef60b5cfba28f99
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 18:51:43 2011 +0200
+
+    Core: Remove generated files from flux on make distclean.
+
+commit 996a50f98f29791092d6d9ac01ca9f6d470d7c1f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 12:51:41 2011 +0200
+
+    call: Comment out error message in fusion_call_destroy() for now
+    
+    The call is destroyed by the kernel module already when the creator dies.
+
+commit baaef5da12eb7f729b70f0c134cf5ca705f08a65
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 12:50:55 2011 +0200
+
+    Flux: Check fusion_config->secure_fusion to use real interface in slaves as well when false.
+
+commit cbf43bbd7e74786af7b100ecc082ad00cea70423
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 12:50:14 2011 +0200
+
+    Runtime Options: Add "[no-]secure-fusion", disabled by default.
+
+commit b77af7da090537f58e0d9b0da1825a5ca5a2a54e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 11:30:11 2011 +0200
+
+    Flux: Added TODO for types/structs.
+
+commit 40374b545999c6a0ddfdf239cc6e74710bc8d082
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 6 11:05:13 2011 +0200
+
+    SecureFusion: Add documentation, status...
+
+commit 6eaf208059700844e2de0d1259f3e0585eb7f7af
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Jul 26 15:13:59 2011 +0200
+
+    fusion: Use new FUSION_SHM_GET_BASE as a replacement for FUSION_SHMPOOL_GET_BASE.
+
+commit 13089ccf8bd4ec9465859653e386435fe8dbe9f5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 21 00:52:18 2011 +0200
+
+    atomic: Fix usage of keyword 'new' in MIPS specific code.
+
+commit 6ce7767e894c434d3893728aa3d501a7db687543
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jul 15 18:15:55 2011 +0200
+
+    release 1.5.1
+
 commit ba84b928a9d1db8e37fb2b16ee58863f6e6497e7
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Fri Jul 15 01:24:01 2011 +0200

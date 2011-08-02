@@ -1,3 +1,72 @@
+1.5.2
+-----
+
+Core
+- Add _GetID() functions for all core objects.
+- Add permissions for catcher in throw function, e.g. to ref_up/catch, call, attach to reactor...
+- Set object owner to catcher in throw function of surface, window and palette objects for now,
+  but only if the owner has not been set yet. This is enough for the time being.
+- Check object owner in lookup functions and fail if owner is set, but does not match.
+- Turn CoreGraphicsState into a FusionObject to handle reference counting and to get rid of
+  the custom creation/throw/catch code etc.
+- Add CoreGraphicsStateClient_Deinit().
+- Add CoreLayer::GetPrimaryContext().
+- Add CoreLayerRegion::GetSurface() to add surface permissions to region owner.
+- Add CoreSurface::GetPalette() to add palette permissions to surface owner.
+- Add CoreWindow::GetSurface() to add surface permissions to window owner.
+- Add special code for parent and top level window in DFBWindowDescription passing of
+  CoreLayerContext::CreateWindow(). The windows are passed as object arguments to go
+  through the object ownership checks on dispatcher side when looked up by id.
+- Remove LockBuffer and UnlockBuffer from CoreSurface interface and use dfb_surface_lock_buffer()
+  at all locations again.
+- Add CoreSurface::PreLockBuffer(), PreReadBuffer() and PreWriteBuffer() doing all work that
+  needs to write to shared memory, e.g. allocating a buffer, syncing allocations, syncing with
+  accelerator, and then returning the index of the allocation to be used. Call these new functions
+  from dfb_surface_buffer_lock/read/write() and then call into surface pool implementation locally.
+- Add special code for parent window and keys in CoreWindowConfig passing of CoreWindow::SetConfig().
+  The window is passed as object argument to go through the object ownership checks on dispatcher
+  side when looked up by id. Separately pass the keys as another argument to have it copied and set
+  the pointer in a copy of the config on the dispatcher side.
+- Add attach/detach permission for everyone to input devices.
+- Fix ref up/down for input devices changing from global to local counting.
+- Add ref up/down permission for everyone to input devices.
+- Add execute permission for everyone to layer call.
+- Remove preallocated surface pool for now, instead create a normal surface and copy the data
+  from preallocated area to new surface buffers. This also reenables acceleration for preallocated
+  surfaces which had been broken since DirectFB 1.2. In future versions there will be proper
+  support for preallocated surfaces again.
+- Refactor local and shared surface pools and only use local pool in single app and only shared
+  pool in multi app build.
+- The local surface pool has been heavily simplified to just do the malloc/free instead of the
+  FusionCall code etc.
+- The shared surface pool has been reimplemented to create a file in tmpfs per surface buffer
+  allocation that is writable by slaves, since all Fusion SHM Pools are read only now! This
+  avoids security holes as no heap information is writable and allows for more fine grained
+  permission management per surface buffer. The tmpfs files are currently mapped/unmapped on
+  Lock/Unlock.
+- Add CSPCAPS_READ and CSPCAPS_WRITE being set automatically when the surface pool provides
+  a Read and Write function.
+
+Fusion
+- Use new security mechanism in linux-fusion 8.5.0
+- Add generic fusion_entry_add_permissions() with plain bit mask.
+- Add per entity type functions, e.g. fusion_call_add_permissions() with specific bit mask.
+- Map shared shared root page read only in slaves.
+- Remove writable flag in shared memory pools (all read only in secure mode). This change
+  is needed as the heap information was writable and therefore not secure enough. Writable
+  shared memory will only exist outside of shared memory pools, e.g. a separate file per
+  surface buffer allocation.
+- Enforce shared memory permissions on file system level, using 0640 instead of 0660, so the
+  master may be run as a different user, but with the slaves being in the same group, see also
+  the shmfile-group option to control which group is being used.
+- Add a field to FusionObject to store the owner's FusionID. At the moment this stays zero
+  until it is set.
+- For now, all skirmishs have default permission to allow lock/unlock for all other Fusionees.
+
+Flux
+- Generate TypeName_GetID( ptr ) instead of ptr->object.id.
+
+
 1.5.1
 -----
 
