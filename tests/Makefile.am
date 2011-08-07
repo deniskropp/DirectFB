@@ -53,6 +53,7 @@ bin_PROGRAMS = \
 	dfbtest_mirror	\
 	dfbtest_reinit	\
 	dfbtest_scale	\
+	dfbtest_stereo_window	\
 	dfbtest_sync	\
 	dfbtest_water	\
 	dfbtest_window	\
@@ -111,6 +112,9 @@ dfbtest_reinit_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_scale_SOURCES = dfbtest_scale.c
 dfbtest_scale_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_stereo_window_SOURCES = dfbtest_stereo_window.c
+dfbtest_stereo_window_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_sync_SOURCES = dfbtest_sync.c
 dfbtest_sync_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
