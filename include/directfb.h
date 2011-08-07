@@ -2521,8 +2521,9 @@ typedef enum {
      DSECAPS_CONNECTORS   = 0x00001000, /* Select output connector(s). */
      DSECAPS_SLOW_BLANKING = 0x00002000, /* Slow Blanking on outputs is supported. */
      DSECAPS_RESOLUTION   = 0x00004000, /* Different encoder resolutions supported */
+     DSECAPS_FRAMING      = 0x00008000, /* Can select picture framing mode for stereo */
 
-     DSECAPS_ALL          = 0x00007f3f
+     DSECAPS_ALL          = 0x0000FF3F
 } DFBScreenEncoderCapabilities;
 
 /*
