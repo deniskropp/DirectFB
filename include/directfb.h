@@ -1115,6 +1115,7 @@ typedef enum {
                                                 original shape */
      DFFA_STYLE_ITALIC        = 0x00000200,  /* load italic style */
      DFFA_VERTICAL_LAYOUT     = 0x00000400,  /* load vertical layout */
+     DFFA_STYLE_BOLD          = 0x00000800,  /* load bold style */
 } DFBFontAttributes;
 
 /*
