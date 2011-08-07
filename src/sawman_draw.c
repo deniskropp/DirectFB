@@ -207,7 +207,8 @@ static void
 draw_border( SaWManWindow    *sawwin,
              CardState       *state,
              const DFBRegion *region,
-             int              thickness )
+             int              thickness,
+             bool             right_eye )
 {
      int                     i;
      DFBRegion               old_clip;
@@ -218,6 +219,7 @@ draw_border( SaWManWindow    *sawwin,
      const int              *indices;
      unsigned int            num_colors;
      unsigned int            num_indices;
+     int                     offset;
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
@@ -237,6 +239,11 @@ draw_border( SaWManWindow    *sawwin,
 
      /* Initialize border rectangles. */
      rects[0] = sawwin->bounds;
+
+     /* Translate for stereo effect. */
+     offset = window->config.z;
+     offset *= right_eye ? -1 : 1;
+     dfb_rectangle_translate( &rects[0], offset, 0 );
 
      for (i=1; i<thickness; i++) {
           rects[i].x = rects[i-1].x + 1;
@@ -285,7 +292,8 @@ draw_window( SaWManTier   *tier,
              SaWManWindow *sawwin2,
              CardState    *state,
              DFBRegion    *region,
-             bool          alpha_channel )
+             bool          alpha_channel,
+             bool          right_eye )
 {
      SaWMan                  *sawman;
      CoreWindow              *window;
@@ -294,6 +302,9 @@ draw_window( SaWManTier   *tier,
      DFBRectangle             src;
      DFBRegion                clip;
      DFBRegion                old_clip;
+     int                      offset;
+     DFBSurfaceStereoEye      eye;
+     DFBSurfaceStereoEye      old_eye = 0; // silence compiler
 
      D_MAGIC_ASSERT( sawwin,  SaWManWindow );
      D_MAGIC_ASSERT( state, CardState );
@@ -310,6 +321,11 @@ draw_window( SaWManTier   *tier,
 
      D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
                  sawwin, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
+
+     /* Modify dst for stereo offset. */
+     offset = window->config.z;
+     offset *= right_eye ? -1 : 1;
+     dfb_rectangle_translate( &dst, offset, 0 );
 
      /* Setup clipping region. */
      clip = *region;
@@ -456,6 +472,13 @@ draw_window( SaWManTier   *tier,
      state->source    = window->surface;
      state->modified |= SMF_SOURCE;
 
+     /* Save current eye */
+     if (window->caps & DWCAPS_STEREO) {
+          old_eye = dfb_surface_get_stereo_eye( window->surface );
+          eye = right_eye ? DSSE_RIGHT : DSSE_LEFT;
+          dfb_surface_set_stereo_eye( window->surface, eye );
+     }
+
      D_DEBUG_AT( SaWMan_Draw, "  [][] %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &clip ) );
 
      /* Change clipping region. */
@@ -494,13 +517,18 @@ draw_window( SaWManTier   *tier,
 
      /* Restore clipping region. */
      dfb_state_set_clip( state, &old_clip );
+
+     /* Restore eye. */
+     if (window->caps & DWCAPS_STEREO)
+          dfb_surface_set_stereo_eye( window->surface, old_eye );
 }
 
 static void
 draw_window_color( SaWManWindow *sawwin,
                    CardState    *state,
                    DFBRegion    *region,
-                   bool          alpha_channel )
+                   bool          alpha_channel,
+                   bool          right_eye )
 {
      SaWMan                  *sawman;
      CoreWindow              *window;
@@ -509,6 +537,7 @@ draw_window_color( SaWManWindow *sawwin,
      DFBRegion                clip;
      DFBRegion                old_clip;
      DFBColor                 color;
+     int                      offset;
 
 
      sawman = sawwin->sawman;
@@ -522,6 +551,11 @@ draw_window_color( SaWManWindow *sawwin,
                  sawwin, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
 
      color = window->config.color;
+
+     /* Modify dst for stereo offset. */
+     offset = window->config.z;
+     offset *= right_eye ? -1 : 1;
+     dfb_rectangle_translate( &dst, offset, 0 );
 
      /* Setup clipping region. */
      clip = *region;
@@ -574,13 +608,16 @@ sawman_draw_window( SaWManTier   *tier,
                     SaWManWindow *sawwin,
                     CardState    *state,
                     DFBRegion    *pregion,
-                    bool          alpha_channel )
+                    bool          alpha_channel,
+                    bool          right_eye )
 {
      CoreWindow      *window;
      DFBRegion        xregion = *pregion;
      DFBRegion       *region  = &xregion;
      int              border;
      bool             input;
+     int              offset;
+     DFBRectangle     dst;
 
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_MAGIC_ASSERT( state, CardState );
@@ -598,22 +635,34 @@ sawman_draw_window( SaWManTier   *tier,
      /* if input only, we only draw the border */
      input = (window->caps & DWCAPS_INPUTONLY) || (window->config.options & DWOP_INPUTONLY);
      
-     if (!input &&
-         dfb_region_intersect( region,
-                               sawwin->bounds.x + border,
-                               sawwin->bounds.y + border,
-                               sawwin->bounds.x + sawwin->bounds.w - border - 1,
-                               sawwin->bounds.y + sawwin->bounds.h - border - 1 ) &&
-         dfb_region_rectangle_intersect( region, &sawwin->dst )
-         ) {
-          if( window->surface )
-               draw_window( tier, sawwin, 0, state, region, alpha_channel );
-          else if( window->caps & DWCAPS_COLOR )
-               draw_window_color( sawwin, state, region, alpha_channel );
+     offset = window->config.z;
+     offset *= right_eye ? -1 : 1;
+
+     dst = sawwin->dst;
+     dfb_rectangle_translate( &dst, offset, 0 );
+
+     if (!input) {
+          D_DEBUG_AT( SaWMan_Draw, "  -> dst     %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS( &dst ) );
+
+          if (dfb_region_intersect( region,
+                                    sawwin->bounds.x + border + offset,
+                                    sawwin->bounds.y + border,
+                                    sawwin->bounds.x + sawwin->bounds.w - border - 1 + offset,
+                                    sawwin->bounds.y + sawwin->bounds.h - border - 1 ))
+          {
+               D_DEBUG_AT( SaWMan_Draw, "  -> region  %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( region ) );
+
+               if (dfb_region_rectangle_intersect( region, &dst )) {
+                    if( window->surface )
+                         draw_window( tier, sawwin, 0, state, region, alpha_channel, right_eye );
+                    else if( window->caps & DWCAPS_COLOR )
+                         draw_window_color( sawwin, state, region, alpha_channel, right_eye );
+               }
+          }
      }
 
      if (border)
-          draw_border( sawwin, state, pregion, border );
+          draw_border( sawwin, state, pregion, border, right_eye );
 
      /* Reset blitting source. */
      state->source    = NULL;
@@ -625,7 +674,8 @@ sawman_draw_two_windows( SaWManTier   *tier,
                          SaWManWindow *sawwin1,
                          SaWManWindow *sawwin2,
                          CardState    *state,
-                         DFBRegion    *pregion )
+                         DFBRegion    *pregion,
+                         bool          right_eye )
 {
      CoreWindow      *window1;
      CoreWindow      *window2;
@@ -663,18 +713,18 @@ sawman_draw_two_windows( SaWManTier   *tier,
      if (color1 || color2) {
           /* window 1 */
           if (color1)
-               draw_window_color( sawwin1, state, region, false );
+               draw_window_color( sawwin1, state, region, false, right_eye );
           else if (!input1)
-               draw_window( tier, sawwin1, 0, state, region, false );
+               draw_window( tier, sawwin1, 0, state, region, false, right_eye );
 
           if (border1)
-               draw_border( sawwin1, state, pregion, border1 );
+               draw_border( sawwin1, state, pregion, border1, right_eye );
 
           /* window 2 */
           if (color2)
-               draw_window_color( sawwin2, state, region, true );
+               draw_window_color( sawwin2, state, region, true, right_eye );
           else if (!input2)
-               draw_window( tier, sawwin2, 0, state, region, true );
+               draw_window( tier, sawwin2, 0, state, region, true, right_eye );
      }
      else {
 #ifndef OLD_COREWINDOWS_STRUCTURE
@@ -689,21 +739,21 @@ sawman_draw_two_windows( SaWManTier   *tier,
                && (caps.accel & DFXL_BLIT2) )
           {
                D_ASSUME ( border1 == 0 );
-               draw_window( tier, sawwin1, sawwin2, state, region, true );
+               draw_window( tier, sawwin1, sawwin2, state, region, true, right_eye );
           }
           else
 #endif
           {
-               draw_window( tier, sawwin1, 0, state, region, false );
+               draw_window( tier, sawwin1, 0, state, region, false, right_eye );
                if (border1)
-                    draw_border( sawwin1, state, pregion, border1 );
+                    draw_border( sawwin1, state, pregion, border1, right_eye );
 
-               draw_window( tier, sawwin2, 0, state, region, true );
+               draw_window( tier, sawwin2, 0, state, region, true, right_eye );
           }
      }
 
      if (border2)
-          draw_border( sawwin2, state, pregion, border2 );
+          draw_border( sawwin2, state, pregion, border2, right_eye );
 
      /* Reset blitting source. */
      state->source    = NULL;

@@ -69,7 +69,7 @@ extern "C"
 #define WINDOW_SUBWINDOWS_COUNT(window) ((window)->subwindows.count)
 #endif
 
-#define SAWMANWINDOWCONFIG_COPY( a, b )  {  \
+#define SAWMANWINDOWCONFIG_COPY( a, b )  do {  \
      (a)->bounds       = (b)->bounds;       \
      (a)->opacity      = (b)->opacity;      \
      (a)->stacking     = (b)->stacking;     \
@@ -82,9 +82,10 @@ extern "C"
      (a)->cursor_flags = (b)->cursor_flags; \
      (a)->cursor_resolution = (b)->cursor_resolution; \
      (a)->src_geometry = (b)->src_geometry; \
-     (a)->dst_geometry = (b)->dst_geometry; }
+     (a)->dst_geometry = (b)->dst_geometry; \
+     (a)->z            = (b)->z; } while (0)
 
-#define SAWMANWINDOWCONFIG_COPY_IF( a, b, f )  {  \
+#define SAWMANWINDOWCONFIG_COPY_IF( a, b, f )  do {  \
      if (f & CWCF_POSITION)   { (a)->bounds.x     = (b)->bounds.x;     \
                                 (a)->bounds.y     = (b)->bounds.y; }   \
      if (f & CWCF_SIZE)       { (a)->bounds.w     = (b)->bounds.w;     \
@@ -100,7 +101,8 @@ extern "C"
      if (f & CWCF_CURSOR_FLAGS) (a)->cursor_flags = (b)->cursor_flags; \
      if (f & CWCF_CURSOR_RESOLUTION) (a)->cursor_resolution = (b)->cursor_resolution; \
      if (f & CWCF_SRC_GEOMETRY) (a)->src_geometry = (b)->src_geometry; \
-     if (f & CWCF_DST_GEOMETRY) (a)->dst_geometry = (b)->dst_geometry; }
+     if (f & CWCF_DST_GEOMETRY) (a)->dst_geometry = (b)->dst_geometry; \
+     if (f & CWCF_STEREO_DEPTH) (a)->z            = (b)->z; } while (0)
 
 /**********************************************************************************************************************/
 
@@ -163,8 +165,9 @@ typedef enum {
      SWMUF_FORCE_INVISIBLE    = 0x0002,
      SWMUF_SCALE_REGION       = 0x0004,
      SWMUF_UPDATE_BORDER      = 0x0008,
+     SWMUF_RIGHT_EYE          = 0x0010,
 
-     SWMUF_ALL                = 0x000F
+     SWMUF_ALL                = 0x001F
 } SaWManUpdateFlags;
 
 /**********************************************************************************************************************/
@@ -272,16 +275,39 @@ struct __SaWMan_SaWMan {
      FusionCall                call;
 };
 
+/*
+ * Notifications
+ */
 typedef enum {
      SAWMAN_TIER_UPDATE
 } SaWManTierChannels;
 
+/*
+ * Tier update notification
+ */
 typedef struct {
      DFBRegion              regions[SAWMAN_MAX_UPDATE_REGIONS];
      unsigned int           num_regions;
      SaWManStackingClasses  classes;
 } SaWManTierUpdate;
 
+/*
+ * Per left/right tier update info
+ */
+typedef struct {
+     DFBUpdates              updates;
+     DFBRegion               update_regions[SAWMAN_MAX_UPDATE_REGIONS];
+
+     DFBUpdates              updating;
+     DFBRegion               updating_regions[SAWMAN_MAX_UPDATED_REGIONS];
+
+     DFBUpdates              updated;
+     DFBRegion               updated_regions[SAWMAN_MAX_UPDATED_REGIONS];
+} SaWManTierLR;
+
+/*
+ * Per HW layer
+ */
 struct __SaWMan_SaWManTier {
      DirectLink              link;
 
@@ -303,8 +329,6 @@ struct __SaWMan_SaWManTier {
 
      DFBDimension            size;
 
-     DFBUpdates              updates;
-     DFBRegion               update_regions[SAWMAN_MAX_UPDATE_REGIONS];
      bool                    update_once;
 
      bool                    active;
@@ -330,14 +354,22 @@ struct __SaWMan_SaWManTier {
      int                     cursor_dx;
      int                     cursor_dy;
 
-     DFBUpdates              updating;
-     DFBRegion               updating_regions[SAWMAN_MAX_UPDATED_REGIONS];
-
-     DFBUpdates              updated;
-     DFBRegion               updated_regions[SAWMAN_MAX_UPDATED_REGIONS];
-
      FusionReactor          *reactor;
+
+     SaWManTierLR            left;
+     SaWManTierLR            right;
 };
+
+/*
+ * Per left/right window update info
+ */
+typedef struct {
+     DFBUpdates             visible;
+     DFBRegion              visible_regions[SAWMAN_MAX_VISIBLE_REGIONS];
+
+     DFBUpdates             updates;
+     DFBRegion              updates_regions[SAWMAN_MAX_UPDATES_REGIONS];
+} SaWManWindowLR;
 
 struct __SaWMan_SaWManWindow {
      DirectLink             link;
@@ -369,13 +401,10 @@ struct __SaWMan_SaWManWindow {
 
      int                    priority;           /* derived from stacking class */
 
-     DFBUpdates             visible;
-     DFBRegion              visible_regions[SAWMAN_MAX_VISIBLE_REGIONS];
-
      long long              update_ms;
 
-     DFBUpdates             updates;
-     DFBRegion              updates_regions[SAWMAN_MAX_UPDATES_REGIONS];
+     SaWManWindowLR         left;
+     SaWManWindowLR         right;
 };
 
 struct __SaWMan_SaWManGrabbedKey {

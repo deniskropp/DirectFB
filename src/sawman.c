@@ -1023,9 +1023,13 @@ add_tier( SaWMan                *sawman,
 
      tier->reactor = fusion_reactor_new( 0, "SaWMan Tier", world );
 
-     dfb_updates_init( &tier->updates,  tier->update_regions, SAWMAN_MAX_UPDATE_REGIONS );
-     dfb_updates_init( &tier->updating, tier->updating_regions, SAWMAN_MAX_UPDATING_REGIONS );
-     dfb_updates_init( &tier->updated,  tier->updated_regions, SAWMAN_MAX_UPDATED_REGIONS );
+     dfb_updates_init( &tier->left.updates,  tier->left.update_regions, SAWMAN_MAX_UPDATE_REGIONS );
+     dfb_updates_init( &tier->left.updating, tier->left.updating_regions, SAWMAN_MAX_UPDATING_REGIONS );
+     dfb_updates_init( &tier->left.updated,  tier->left.updated_regions, SAWMAN_MAX_UPDATED_REGIONS );
+
+     dfb_updates_init( &tier->right.updates,  tier->right.update_regions, SAWMAN_MAX_UPDATE_REGIONS );
+     dfb_updates_init( &tier->right.updating, tier->right.updating_regions, SAWMAN_MAX_UPDATING_REGIONS );
+     dfb_updates_init( &tier->right.updated,  tier->right.updated_regions, SAWMAN_MAX_UPDATED_REGIONS );
 
      D_MAGIC_SET( tier, SaWManTier );
 

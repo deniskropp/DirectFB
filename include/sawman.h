@@ -130,6 +130,7 @@ typedef enum {
      SWMCF_COLOR_KEY     = 0x00000100,
      SWMCF_OPAQUE        = 0x00000200,
      SWMCF_COLOR         = 0x00000400,
+     SWMCF_STEREO_DEPTH  = 0x00000800,
 
      SWMCF_KEY_SELECTION = 0x00001000,
 
@@ -140,7 +141,7 @@ typedef enum {
      SWMCF_SRC_GEOMETRY  = 0x00010000,
      SWMCF_DST_GEOMETRY  = 0x00020000,
 
-     SWMCF_ALL           = 0x0003F73F
+     SWMCF_ALL           = 0x0003FF3F
 } SaWManWindowConfigFlags;
 
 typedef struct {
@@ -165,6 +166,8 @@ typedef struct {
 
      DFBWindowCursorFlags     cursor_flags;
      DFBDimension             cursor_resolution;
+
+     int                      z;              /* stereoscopic offset used to establish perceived depth */
 } SaWManWindowConfig;
 
 typedef struct {

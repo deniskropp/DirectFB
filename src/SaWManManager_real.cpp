@@ -70,8 +70,10 @@ ISaWManManager_Real::QueueUpdate(
 
      region = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
 
-     if (!update || dfb_region_region_intersect( &region, update ))
-          dfb_updates_add( &tier->updates, &region );
+     if (!update || dfb_region_region_intersect( &region, update )) {
+          dfb_updates_add( &tier->left.updates, &region );
+          dfb_updates_add( &tier->right.updates, &region );
+     }
 
      sawman_unlock( m_sawman );
 
@@ -192,7 +194,8 @@ ISaWManManager_Real::SetScalingMode(
           direct_list_foreach (tier, m_sawman->tiers) {
                DFBRegion update = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
 
-               dfb_updates_add( &tier->updates, &update );
+               dfb_updates_add( &tier->left.updates, &update );
+               dfb_updates_add( &tier->right.updates, &update );
           }
      }
 
@@ -295,6 +298,9 @@ ISaWManManager_Real::SetWindowConfig(
      if (flags & SWMCF_OPACITY)
           sawman_set_opacity( sawman, sawwin, config->opacity );
 
+     if (flags & SWMCF_STEREO_DEPTH)
+          sawman_set_stereo_depth( sawman, sawwin, config->z );
+
      if (flags & (SWMCF_POSITION | SWMCF_SIZE)) {
           if( flags == SWMCF_POSITION ) {
                window->config.bounds.x = config->bounds.x;
@@ -394,6 +400,9 @@ ISaWManManager_Real::SetWindowConfig(
 
      if (flags & (SWMCF_POSITION | SWMCF_SIZE | SWMCF_SRC_GEOMETRY | SWMCF_DST_GEOMETRY | SWMCF_ASSOCIATION))
           sawman_update_geometry( sawwin );
+
+     if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_OPACITY | CWCF_OPTIONS | CWCF_STEREO_DEPTH))
+          sawman_update_visible( sawman );
 
      sawman_unlock( sawman );
 

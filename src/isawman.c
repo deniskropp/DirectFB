@@ -239,7 +239,7 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
                D_MAGIC_ASSERT( window, SaWManWindow );
                info.handle = (SaWManWindowHandle)window;
                info.caps   = window->caps;
-               SAWMANWINDOWCONFIG_COPY( &info.config, &window->window->config )
+               SAWMANWINDOWCONFIG_COPY( &info.config, &window->window->config );
                info.config.key_selection = window->window->config.key_selection;
                info.config.keys          = window->window->config.keys;
                info.config.num_keys      = window->window->config.num_keys;

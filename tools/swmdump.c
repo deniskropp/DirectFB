@@ -275,13 +275,22 @@ dump_tier( SaWMan *sawman, SaWManTier *tier, int n )
           printf( "             State  0x%08x\n", region->state );
      }
 
-     if (tier->updates.num_regions) {
+     if (tier->left.updates.num_regions) {
           int i;
 
-          printf( "  Updates\n" );
+          printf( "  Left Updates\n" );
 
-          for (i=0; i<tier->updates.num_regions; i++)
-               printf( "             [%d]    %4d,%4d - %4dx%4d\n", i, DFB_RECTANGLE_VALS_FROM_REGION( &tier->updates.regions[i] ) );
+          for (i=0; i<tier->left.updates.num_regions; i++)
+               printf( "             [%d]    %4d,%4d - %4dx%4d\n", i, DFB_RECTANGLE_VALS_FROM_REGION( &tier->left.updates.regions[i] ) );
+     }
+
+     if (tier->right.updates.num_regions) {
+          int i;
+
+          printf( "  Right Updates\n" );
+
+          for (i=0; i<tier->right.updates.num_regions; i++)
+               printf( "             [%d]    %4d,%4d - %4dx%4d\n", i, DFB_RECTANGLE_VALS_FROM_REGION( &tier->right.updates.regions[i] ) );
      }
 
      printf( "\n"

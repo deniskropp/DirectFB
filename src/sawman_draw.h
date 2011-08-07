@@ -46,13 +46,15 @@ void sawman_draw_window    ( SaWManTier      *tier,
                              SaWManWindow    *sawwin,
                              CardState       *state,
                              DFBRegion       *pregion,
-                             bool             alpha_channel );
+                             bool             alpha_channel,
+                             bool             right_eye );
 
 void sawman_draw_two_windows( SaWManTier      *tier,
                               SaWManWindow    *sawwin1,
                               SaWManWindow    *sawwin2,
                               CardState       *state,
-                              DFBRegion       *pregion );
+                              DFBRegion       *pregion,
+                              bool             right_eye );
 
 void sawman_draw_background( SaWManTier      *tier,
                              CardState       *state,

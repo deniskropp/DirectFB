@@ -74,6 +74,10 @@ DirectResult  sawman_set_opacity               ( SaWMan                *sawman,
                                                  SaWManWindow          *sawwin,
                                                  u8                     opacity );
 
+DirectResult  sawman_set_stereo_depth          ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin,
+                                                 int                    z );
+
 DirectResult  sawman_window_set_cursor_flags   ( SaWMan                *sawman,
                                                  SaWManWindow          *sawwin,
                                                  DFBWindowCursorFlags   flags );

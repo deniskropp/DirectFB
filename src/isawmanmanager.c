@@ -424,7 +424,7 @@ ISaWManManager_GetWindowInfo( ISaWManManager     *thiz,
 
      info->handle               = handle;
      info->caps                 = sawwin->caps;
-     SAWMANWINDOWCONFIG_COPY( &info->config, &window->config )
+     SAWMANWINDOWCONFIG_COPY( &info->config, &window->config );
      info->config.key_selection = window->config.key_selection;
      info->config.keys          = window->config.keys;
      info->config.num_keys      = window->config.num_keys;
