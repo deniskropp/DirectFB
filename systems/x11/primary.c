@@ -106,21 +106,32 @@ dfb_x11_destroy_window( DFBX11 *x11, X11LayerData *lds )
 }
 
 static DFBResult
-dfb_x11_update_screen( DFBX11 *x11, X11LayerData *lds, const DFBRegion *region, CoreSurfaceBufferLock *lock )
+dfb_x11_update_screen( DFBX11 *x11, X11LayerData *lds, const DFBRegion *left_region, const DFBRegion *right_region,
+                       CoreSurfaceBufferLock *left_lock, CoreSurfaceBufferLock *right_lock )
 {
      int           ret;
      DFBX11Shared *shared = x11->shared;
 
-     DFB_REGION_ASSERT( region );
-     D_ASSERT( lock != NULL );
+     DFB_REGION_ASSERT( left_region );
+     D_ASSERT( left_lock != NULL );
 
      /* FIXME: Just a hot fix! */
-     while (shared->update.lock)
+     while (shared->update.left_lock)
           usleep( 10000 );
 
-     shared->update.region = *region;
-     shared->update.xw     = lds->xw;
-     shared->update.lock   = lock;
+     shared->update.xw           = lds->xw;
+     shared->update.left_region  = *left_region;
+     shared->update.left_lock    = left_lock;
+
+     shared->update.stereo       = (lds->config.options & DLOP_STEREO);
+
+     if (shared->update.stereo) {
+          DFB_REGION_ASSERT( right_region );
+          D_ASSERT( right_lock != NULL );
+
+          shared->update.right_region = *right_region;
+          shared->update.right_lock   = right_lock;
+     }
 
      if (fusion_call_execute( &shared->call, FCEF_NONE, X11_UPDATE_SCREEN, &shared->update, &ret ))
           return DFB_FUSION;
@@ -154,8 +165,9 @@ primaryInitScreen( CoreScreen           *screen,
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      /* Set the screen capabilities. */
-     description->caps    = DSCCAPS_OUTPUTS;
-     description->outputs = 1;
+     description->caps     = DSCCAPS_ENCODERS | DSCCAPS_OUTPUTS;
+     description->encoders = 1;
+     description->outputs  = 1;
 
      /* Set the screen name. */
      snprintf( description->name,
@@ -183,6 +195,92 @@ primaryGetScreenSize( CoreScreen *screen,
 }
 
 static DFBResult
+primaryInitEncoder( CoreScreen                  *screen,
+                    void                        *driver_data,
+                    void                        *screen_data,
+                    int                          encoder,
+                    DFBScreenEncoderDescription *description,
+                    DFBScreenEncoderConfig      *config )
+{
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
+     (void) shared;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     direct_snputs( description->name, "X11 Encoder", DFB_SCREEN_ENCODER_DESC_NAME_LENGTH );
+
+     description->caps            = DSECAPS_TV_STANDARDS | DSECAPS_SCANMODE   | DSECAPS_FREQUENCY |
+                                    DSECAPS_CONNECTORS   | DSECAPS_RESOLUTION | DSECAPS_FRAMING;
+     description->type            = DSET_DIGITAL;
+     description->tv_standards    = DSETV_DIGITAL;
+     description->all_connectors  = DSOC_COMPONENT | DSOC_HDMI;
+     description->all_resolutions = DSOR_640_480  | DSOR_720_480   | DSOR_720_576   | DSOR_800_600 |
+                                    DSOR_1024_768 | DSOR_1152_864  | DSOR_1280_720  | DSOR_1280_768 |
+                                    DSOR_1280_960 | DSOR_1280_1024 | DSOR_1400_1050 | DSOR_1600_1200 |
+                                    DSOR_1920_1080;
+
+     config->flags          = DSECONF_TV_STANDARD | DSECONF_SCANMODE   | DSECONF_FREQUENCY |
+                              DSECONF_CONNECTORS  | DSECONF_RESOLUTION | DSECONF_FRAMING;
+     config->tv_standard    = DSETV_DIGITAL;
+     config->out_connectors = DSOC_COMPONENT | DSOC_HDMI;
+     config->scanmode       = DSESM_PROGRESSIVE;
+     config->frequency      = DSEF_60HZ;
+     config->framing        = DSEPF_MONO;
+     config->resolution     = DSOR_1280_720;
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryTestEncoderConfig( CoreScreen                   *screen,
+                          void                         *driver_data,
+                          void                         *screen_data,
+                          int                           encoder,
+                          const DFBScreenEncoderConfig *config,
+                          DFBScreenEncoderConfigFlags  *failed )
+{
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
+     (void) shared;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     return DFB_OK;
+}
+
+static DFBResult
+primarySetEncoderConfig( CoreScreen                   *screen,
+                         void                         *driver_data,
+                         void                         *screen_data,
+                         int                           encoder,
+                         const DFBScreenEncoderConfig *config )
+{
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
+     int hor[] = { 640,720,720,800,1024,1152,1280,1280,1280,1280,1400,1600,1920 };
+     int ver[] = { 480,480,576,600, 768, 864, 720, 768, 960,1024,1050,1200,1080 };
+
+     int res;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     (void)encoder; /* all outputs are active */
+
+     res = D_BITn32(config->resolution);
+     if ( (res == -1) || (res >= D_ARRAY_SIZE(hor)) )
+          return DFB_INVARG;
+
+     shared->screen_size.w = hor[res];
+     shared->screen_size.h = ver[res];
+
+     return DFB_OK;
+}
+
+static DFBResult
 primaryInitOutput( CoreScreen                   *screen,
                    void                         *driver_data,
                    void                         *screen_data,
@@ -197,10 +295,12 @@ primaryInitOutput( CoreScreen                   *screen,
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
+     direct_snputs( description->name, "X11 Output", DFB_SCREEN_OUTPUT_DESC_NAME_LENGTH );
+
      description->caps = DSOCAPS_RESOLUTION;
 
-     config->flags |= DSOCONF_RESOLUTION;
-     config->resolution = DSOR_UNKNOWN;
+     config->flags      |= DSOCONF_RESOLUTION;
+     config->resolution  = DSOR_UNKNOWN;
 
      return DFB_OK;
 }
@@ -257,11 +357,14 @@ primarySetOutputConfig( CoreScreen                  *screen,
 }
 
 static ScreenFuncs primaryScreenFuncs = {
-     .InitScreen       = primaryInitScreen,
-     .GetScreenSize    = primaryGetScreenSize,
-     .InitOutput       = primaryInitOutput,
-     .TestOutputConfig = primaryTestOutputConfig,
-     .SetOutputConfig  = primarySetOutputConfig
+     .InitScreen        = primaryInitScreen,
+     .GetScreenSize     = primaryGetScreenSize,
+     .InitEncoder       = primaryInitEncoder,
+     .TestEncoderConfig = primaryTestEncoderConfig,
+     .SetEncoderConfig  = primarySetEncoderConfig,
+     .InitOutput        = primaryInitOutput,
+     .TestOutputConfig  = primaryTestOutputConfig,
+     .SetOutputConfig   = primarySetOutputConfig
 };
 
 ScreenFuncs *x11PrimaryScreenFuncs = &primaryScreenFuncs;
@@ -308,8 +411,10 @@ primaryInitLayer( CoreLayer                  *layer,
      }
 
      /* set capabilities and type */
-     description->caps = DLCAPS_SURFACE;
+     description->caps = DLCAPS_SURFACE | DLCAPS_STEREO;
      description->type = DLTF_GRAPHICS;
+     description->surface_caps     = DSCAPS_SYSTEMONLY;
+     description->surface_accessor = CSAID_CPU;
 
      /* set name */
      snprintf( description->name,
@@ -412,7 +517,7 @@ primaryTestRegion( CoreLayer                  *layer,
                break;
      }
 
-     if (config->options)
+     if (config->options & ~(DLOP_ALPHACHANNEL | DLOP_STEREO))
           fail |= CLRCF_OPTIONS;
 
      if (failed)
@@ -455,6 +560,8 @@ primarySetRegion( CoreLayer                  *layer,
 
      if (x11->shared->x_error)
           return DFB_FAILURE;
+
+     lds->config = *config;
 
      ret = dfb_x11_create_window( x11, lds, config );
      if (ret)
@@ -507,7 +614,7 @@ primaryFlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
-     return dfb_x11_update_screen( x11, lds, &region, left_lock );
+     return dfb_x11_update_screen( x11, lds, &region, &region, left_lock, right_lock );
 }
 
 static DFBResult
@@ -524,17 +631,21 @@ primaryUpdateRegion( CoreLayer             *layer,
      DFBX11       *x11 = driver_data;
      X11LayerData *lds = layer_data;
 
-     DFBRegion  region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
+     DFBRegion  left_region  = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
+     DFBRegion  right_region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      if (x11->shared->x_error)
           return DFB_FAILURE;
 
-     if (left_update && !dfb_region_region_intersect( &region, left_update ))
+     if (left_update && !dfb_region_region_intersect( &left_region, left_update ))
           return DFB_OK;
 
-     return dfb_x11_update_screen( x11, lds, &region, left_lock );
+     if (right_update && !dfb_region_region_intersect( &right_region, right_update ))
+          return DFB_OK;
+
+     return dfb_x11_update_screen( x11, lds, &left_region, &right_region, left_lock, right_lock );
 }
 
 static DisplayLayerFuncs primaryLayerFuncs = {
@@ -746,6 +857,132 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
      return DFB_OK;
 }
 
+static void
+update_scaled32( XWindow *xw, const DFBRectangle *clip, CoreSurfaceBufferLock *lock, int xoffset )
+{
+     u32 *dst;
+     u64 *src;
+     int  x, y;
+
+     D_ASSERT( xw != NULL );
+     DFB_RECTANGLE_ASSERT( clip );
+
+     D_DEBUG_AT( X11_Update, "%s( %4d,%4d-%4dx%4d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( clip ) );
+
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+
+     dst = (u32*)(xw->virtualscreen + ((clip->x / 2) + xoffset) * xw->bpp + (clip->y + xw->ximage_offset) * xw->ximage->bytes_per_line);
+     src = lock->addr + 4 * clip->x + clip->y * lock->pitch;
+
+     for (y=0; y<clip->h; y++) {
+          for (x=0; x<clip->w/2; x++) {
+               u64 S2 = src[x];
+
+               S2 &= ~0x0101010101010101ULL;
+               S2 >>= 1;
+
+               dst[x] = ((u32) S2) + ((u32) (S2 >> 32));
+          }
+
+          dst = (u32*)((u8*) dst + xw->ximage->bytes_per_line);
+          src = (u64*)((u8*) src + lock->pitch);
+     }
+}
+
+static DFBResult
+update_stereo( DFBX11 *x11, const DFBRectangle *left_clip, const DFBRectangle *right_clip,
+               CoreSurfaceBufferLock *left_lock, CoreSurfaceBufferLock *right_lock, XWindow *xw )
+{
+     CoreSurface  *surface;
+     DFBRectangle  rect;
+     DFBRectangle  left;
+     DFBRectangle  right;
+
+     D_ASSERT( x11 != NULL );
+     DFB_RECTANGLE_ASSERT( left_clip );
+     DFB_RECTANGLE_ASSERT( right_clip );
+
+     D_DEBUG_AT( X11_Update, "%s( %4d,%4d-%4dx%4d | %4d,%4d-%4dx%4d )\n",
+                 __FUNCTION__, DFB_RECTANGLE_VALS( left_clip ), DFB_RECTANGLE_VALS( right_clip ) );
+
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( left_lock );
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( right_lock );
+
+     XLockDisplay( x11->display );
+
+     if (!xw) {
+          XUnlockDisplay( x11->display );
+          return DFB_OK;
+     }
+
+     D_ASSERT( left_lock->allocation->surface == right_lock->allocation->surface );
+
+     surface = left_lock->allocation->surface;
+     D_ASSERT( surface != NULL );
+
+     switch (surface->config.format) {
+          case DSPF_ARGB:
+          case DSPF_RGB32:
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
+
+     if (!left_lock->addr || !right_lock->addr)
+          return DFB_UNSUPPORTED;
+
+     xw->ximage_offset = (xw->ximage_offset ? 0 : xw->height);
+
+     left  = *left_clip;
+     right = *right_clip;
+
+     if (left.x & 1) {
+          left.x--;
+          left.w++;
+     }
+
+     if (left.w & 1)
+          left.w++;
+
+     if (right.x & 1) {
+          right.x--;
+          right.w++;
+     }
+
+     if (right.w & 1)
+          right.w++;
+
+     update_scaled32( xw, &left, left_lock, 0 );
+     update_scaled32( xw, &right, right_lock, xw->width / 2 );
+
+     // FIXME
+     rect.x = 0;
+     rect.y = 0;
+     rect.w = xw->width;
+     rect.h = xw->height;
+
+     /* Wait for previous data to be processed... */
+     XSync( x11->display, False );
+
+     /* ...and immediately queue or send the next! */
+     if (x11->use_shm) {
+          /* Just queue the command, it's XShm :) */
+          XShmPutImage( xw->display, xw->window, xw->gc, xw->ximage,
+                        rect.x, rect.y + xw->ximage_offset, rect.x, rect.y, rect.w, rect.h, False );
+
+          /* Make sure the queue has really happened! */
+          XFlush( x11->display );
+     }
+     else
+          /* Initiate transfer of buffer... */
+          XPutImage( xw->display, xw->window, xw->gc, xw->ximage,
+                     rect.x, rect.y + xw->ximage_offset, rect.x, rect.y, rect.w, rect.h );
+
+     XUnlockDisplay( x11->display );
+
+     return DFB_OK;
+}
+
 /******************************************************************************/
 
 DFBResult
@@ -775,7 +1012,8 @@ dfb_x11_create_window_handler( DFBX11 *x11, SetModeData *setmode )
           shared->window_count--;
      }
 
-     bool bSucces = dfb_x11_open_window( x11, &xw, 0, 0, config->width, config->height, config->format );
+     bool bSucces = dfb_x11_open_window( x11, &xw, dfb_config->x11_position.x, dfb_config->x11_position.y,
+                                         config->width, config->height, config->format );
 
      /* Set video mode */
      if ( !bSucces ) {
@@ -822,16 +1060,29 @@ dfb_x11_destroy_window_handler( DFBX11 *x11, DestroyData *destroy )
 DFBResult
 dfb_x11_update_screen_handler( DFBX11 *x11, UpdateScreenData *data )
 {
-     DFBRectangle rect;
-
      D_DEBUG_AT( X11_Update, "%s( %p )\n", __FUNCTION__, data );
 
-     rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->region );
+     if (data->stereo) {
+          DFBRectangle left_rect;
+          DFBRectangle right_rect;
 
-     if (data->lock)
-          update_screen( x11, &rect, data->lock, data->xw );
+          left_rect  = DFB_RECTANGLE_INIT_FROM_REGION( &data->left_region );
+          right_rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->right_region );
 
-     data->lock = NULL;
+          if (data->left_lock && data->right_lock)
+               update_stereo( x11, &left_rect, &right_rect, data->left_lock, data->right_lock, data->xw );
+     }
+     else {
+          DFBRectangle rect;
+
+          rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->left_region );
+
+          if (data->left_lock)
+               update_screen( x11, &rect, data->left_lock, data->xw );
+     }
+
+     data->left_lock  = NULL;
+     data->right_lock = NULL;
 
      return DFB_OK;
 }

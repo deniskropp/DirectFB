@@ -36,6 +36,8 @@
 
 #include <direct/mem.h>
 
+#include <misc/conf.h>
+
 #include "x11.h"
 
 D_DEBUG_DOMAIN( X11_Window, "X11/Window", "X11 Window handling" );
@@ -79,6 +81,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
      XWindow              *xw;
      XSetWindowAttributes  attr = { .background_pixmap = 0 };
      void                 *old_error_handler = 0;
+     unsigned int          cw_mask = CWEventMask;
 
      D_DEBUG_AT( X11_Window, "Creating %4dx%4d %s window...\n", iWidth, iHeight, dfb_pixelformat_name(format) );
 
@@ -105,6 +108,12 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
           | ExposureMask
           | StructureNotifyMask;
 
+     if (dfb_config->x11_borderless) {
+          attr.override_redirect = True;
+
+          cw_mask |= CWOverrideRedirect;
+     }
+
      XLockDisplay( x11->display );
 
      old_error_handler = XSetErrorHandler( error_handler );
@@ -114,7 +123,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
      xw->window = XCreateWindow( xw->display,
                                  RootWindowOfScreen(xw->screenptr),
                                  iXPos, iYPos, iWidth, iHeight, 0, xw->depth, InputOutput,
-                                 xw->visual, CWEventMask, &attr );
+                                 xw->visual, cw_mask, &attr );
      XSync( xw->display, False );
      if (!xw->window || error_code) {
           D_FREE( xw );

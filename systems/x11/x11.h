@@ -45,8 +45,11 @@ typedef struct {
 } SetModeData;
 
 typedef struct {
-     DFBRegion              region;
-     CoreSurfaceBufferLock *lock;
+     bool                   stereo;
+     DFBRegion              left_region;
+     DFBRegion              right_region;
+     CoreSurfaceBufferLock *left_lock;
+     CoreSurfaceBufferLock *right_lock;
      XWindow               *xw;
 } UpdateScreenData;
 
