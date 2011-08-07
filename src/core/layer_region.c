@@ -455,6 +455,13 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      if (dfb_layer_region_lock( region ))
           return DFB_FUSION;
 
+     /* Check for stereo region */
+     if (region->config.options & DLOP_STEREO) {
+          ret = dfb_layer_region_flip_update_stereo( region, update, update, flags );
+          dfb_layer_region_unlock( region );
+          return ret;
+     }
+
      D_ASSUME( region->surface != NULL );
 
      /* Check for NULL surface. */
