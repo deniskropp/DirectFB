@@ -396,46 +396,6 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
      return ret;
 }
 
-static DFBResult
-IDirectFBSurface_Window_GetStereoEye( IDirectFBSurface    *thiz,
-                                      DFBSurfaceStereoEye *ret_eye )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
-
-     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, ret_eye );
-
-     if (!data->base.surface)
-          return DFB_DESTROYED;
-
-     if (!(data->base.surface->config.caps & DSCAPS_STEREO))
-          return DFB_UNSUPPORTED;
-
-     *ret_eye = data->base.surface->buffers == data->base.surface->left_buffers ? DSSE_LEFT : DSSE_RIGHT;
-
-     return DFB_OK;
-}
-
-static DFBResult
-IDirectFBSurface_Window_SetStereoEye( IDirectFBSurface    *thiz,
-                                     DFBSurfaceStereoEye  eye )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
-
-     D_DEBUG_AT( Surface, "%s( %p, %d )\n", __FUNCTION__, thiz, eye );
-
-     if (!data->base.surface)
-          return DFB_DESTROYED;
-
-     if (!(data->base.surface->config.caps & DSCAPS_STEREO))
-          return DFB_UNSUPPORTED;
-
-     dfb_surface_set_stereo_eye(data->base.surface, eye);
-
-     data->base.state.modified |= SMF_DESTINATION;
-
-     return DFB_OK;
-}
-
 DFBResult
 IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    IDirectFBSurface       *parent,
@@ -497,8 +457,6 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      thiz->Flip          = IDirectFBSurface_Window_Flip;
      thiz->FlipStereo    = IDirectFBSurface_Window_FlipStereo;
      thiz->GetSubSurface = IDirectFBSurface_Window_GetSubSurface;
-     thiz->GetStereoEye  = IDirectFBSurface_Window_GetStereoEye;
-     thiz->SetStereoEye  = IDirectFBSurface_Window_SetStereoEye;
      
      return DFB_OK;
 }
