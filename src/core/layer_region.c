@@ -1247,7 +1247,7 @@ region_buffer_lock( CoreLayerRegion       *region,
           D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      
           /* Lock the surface buffer. */
-          ret = dfb_surface_buffer_lock( buffer, CSAID_LAYER0 + context->layer_id, CSAF_READ, &region->right_buffer_lock );
+          ret = dfb_surface_buffer_lock( buffer, region->surface_accessor, CSAF_READ, &region->right_buffer_lock );
           if (ret) {
                D_DERROR( ret, "Core/LayerRegion: Could not lock region surface for SetRegion()!\n" );
                dfb_surface_unlock( surface );
