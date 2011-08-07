@@ -350,6 +350,7 @@ dfb_window_create( CoreWindowStack             *stack,
      context = stack->context;
      layer   = dfb_layer_at( context->layer_id );
 
+     D_DEBUG_AT( Core_Windows, "  -> caps 0x%08x\n", desc->caps );
 
      caps         = desc->caps;
      pixelformat  = desc->pixelformat;
@@ -365,6 +366,8 @@ dfb_window_create( CoreWindowStack             *stack,
      else
           caps &= ~DWCAPS_SUBWINDOW;
 
+     if (caps & DWCAPS_STEREO)
+          surface_caps |= DSCAPS_STEREO;
 
      if (!dfb_config->translucent_windows) {
           caps &= ~DWCAPS_ALPHACHANNEL;
