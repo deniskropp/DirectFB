@@ -259,6 +259,9 @@ typedef struct
      u64           resource_id;
 
      bool          no_singleton;
+
+     bool          x11_borderless;
+     DFBPoint      x11_position;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

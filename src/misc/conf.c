@@ -147,6 +147,7 @@ static const char *config_usage =
      "  mmio-length=<bytes>            Length of MMIO area (devmem system)\n"
      "  accelerator=<id>               Accelerator ID selecting graphics driver (devmem system)\n"
      "\n"
+     "  x11-borderless[=<x>.<y>]       Disable X11 window borders, optionally position window\n"
      "  [no-]matrox-sgram              Use Matrox SGRAM features\n"
      "  [no-]matrox-crtc2              Experimental Matrox CRTC2 support\n"
      "  matrox-tv-standard=(pal|ntsc|pal-60)\n"
@@ -1588,6 +1589,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
           else {
                D_ERROR( "DirectFB/Config: "
                         "No cable type specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "x11-borderless" ) == 0) {
+          dfb_config->x11_borderless = true;
+
+          if (value && direct_sscanf( value, "%d.%d", &dfb_config->x11_position.x, &dfb_config->x11_position.y ) < 2) {
+               D_ERROR("DirectFB/Config '%s': Could not parse x and y!\n", name);
                return DFB_INVARG;
           }
      } else
