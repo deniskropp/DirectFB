@@ -1,3 +1,43 @@
+1.5.3
+-----
+
+IDirectFB
+- Implement primary surface creation with DSCAPS_STEREO in fullscreen and windowed mode.
+
+IDirectFBFont
+- Add DFFA_STYLE_BOLD for loading bold face from a file.
+
+IDirectFBScreen
+- Add DSECAPS_FRAMING to indicate support for different stereo output modes.
+
+IDirectFBScreen
+- Add full resolution side-by-side to DFBScreenEncoderPictureFraming and rework naming.
+
+IDirectFBSurface
+- Move _Layer/_Window implementation of Get/SetStereoEye() to generic IDirectFBSurface, add missing generic FlipStereo().
+
+Runtime Options
+- Add 'x11-borderless=[x.y]' to disable X11 window borders and optionally position window
+
+Graphics
+- Add BatchBlit driver function to reduce overhead.
+
+Core
+- Fix crash when dfb_wm_update_cursor() is called with 'no-cursor' option.
+- In region_buffer_lock() fix surface accessor argument for right buffer lock.
+- In dfb_layer_region_flip_update() redirect to dfb_layer_region_flip_update_stereo() automatically.
+- In dfb_window_create() add DSCAPS_STEREO when DWCAPS_STEREO is used.
+
+X11
+- Add stereo display support via side-by-side output, implement 'x11-borderless' option.
+
+FreeType2
+- Add support for DFFA_VERTICAL_LAYOUT and DFFA_STYLE_ITALIC.
+
+dfbtest_stereo_window
+- Add simple test for stereo depth of windows.
+
+
 1.5.2
 -----
 
