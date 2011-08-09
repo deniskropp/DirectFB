@@ -20,6 +20,7 @@ Runtime Options
 - Add 'x11-borderless=[x.y]' to disable X11 window borders and optionally position window
 
 Graphics
+- Add BatchFill driver function to reduce overhead.
 - Add BatchBlit driver function to reduce overhead.
 
 Core

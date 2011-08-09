@@ -1,3 +1,17 @@
+commit c5b23f00f27f7a531f4eeeed8025b9c9a047e558
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Aug 9 22:55:54 2011 +0200
+
+    Graphics: Add BatchFill driver function to reduce overhead.
+    
+    This is only used by FillSpans so far.
+
+commit d0ea019404a191da743d2af9e7ebd11021597f1f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Aug 9 22:08:57 2011 +0200
+
+    NEWS/ChangeLog for 1.5.3
+
 commit 308b095d54aee05ad9ca1cb9f712e650664d7480
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Tue Aug 9 21:10:17 2011 +0200
