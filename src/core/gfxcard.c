@@ -32,6 +32,7 @@
 #include <string.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <direct/debug.h>
 #include <direct/memcpy.h>
@@ -2269,10 +2270,48 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      dfb_state_unlock( state );
 }
 
+static void
+clip_blits( const DFBRegion         *clip,
+            const DFBRectangle      *rects,
+            const DFBPoint          *points,
+            unsigned int             num,
+            DFBSurfaceBlittingFlags  flags,
+            DFBRectangle            *ret_rects,
+            DFBPoint                *ret_points,
+            unsigned int            *ret_num )
+{
+     unsigned int i;
+     unsigned int clipped_num = 0;
+
+     DFB_REGION_ASSERT( clip );
+     D_ASSERT( rects != NULL );
+     D_ASSERT( points != NULL );
+     D_ASSERT( ret_rects != NULL );
+     D_ASSERT( ret_points != NULL );
+     D_ASSERT( ret_num != NULL );
+
+     for (i=0; i<num; i++) {
+          if (dfb_clip_blit_precheck( clip, rects[i].w, rects[i].h, points[i].x, points[i].y )) {
+               DFBRectangle rect = { points[i].x, points[i].y, rects[i].w, rects[i].h };
+
+               ret_rects[clipped_num] = rects[i];
+
+               clip_blit_rotated( &ret_rects[clipped_num], &rect, clip, flags );
+
+               ret_points[clipped_num].x = rect.x;
+               ret_points[clipped_num].y = rect.y;
+
+               clipped_num++;
+          }
+     }
+
+     *ret_num = clipped_num;
+}
+
 void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                             int num, CardState *state )
 {
-     int i = 0;
+     unsigned int i = 0;
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %p, %p [%d], %p )\n", __FUNCTION__, rects, points, num, state );
 
@@ -2292,20 +2331,77 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
      {
-          for (; i<num; i++) {
-               if ((state->render_options & DSRO_MATRIX) ||
-                   dfb_clip_blit_precheck( &state->clip,
-                                           rects[i].w, rects[i].h,
-                                           points[i].x, points[i].y ))
-               {
-                    if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
-                        !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
-                         dfb_clip_blit( &state->clip, &rects[i],
-                                        &points[i].x, &points[i].y );
+          if (card->funcs.BatchBlit) {
+               unsigned int done = 0;
 
-                    if (!card->funcs.Blit( card->driver_data, card->device_data,
-                                           &rects[i], points[i].x, points[i].y ))
-                         break;
+               if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) && !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT )) {
+                    DFBRectangle *clipped_rects;
+                    DFBPoint     *clipped_points;
+                    unsigned int  clipped_num;
+
+                    if (num > 256) {
+                         clipped_rects = D_MALLOC( sizeof(DFBRectangle) * num );
+                         if (!clipped_rects) {
+                              D_OOM();
+                         }
+                         else {
+                              clipped_points = D_MALLOC( sizeof(DFBPoint) * num );
+                              if (!clipped_points) {
+                                   D_OOM();
+                                   D_FREE( clipped_rects );
+                              }
+                              else {
+                                   clip_blits( &state->clip, rects, points, num, state->blittingflags,
+                                               clipped_rects, clipped_points, &clipped_num );
+
+                                   /* The driver has to reject all or none */
+                                   if (card->funcs.BatchBlit( card->driver_data, card->device_data, clipped_rects, clipped_points, clipped_num, &done ))
+                                        i = num;
+                                   else
+                                        i = done;
+
+                                   D_FREE( clipped_points );
+                                   D_FREE( clipped_rects );
+                              }
+                         }
+                    }
+                    else {
+                         clipped_rects  = alloca( sizeof(DFBRectangle) * num );
+                         clipped_points = alloca( sizeof(DFBPoint) * num );
+
+                         clip_blits( &state->clip, rects, points, num, state->blittingflags, clipped_rects, clipped_points, &clipped_num );
+
+                         /* The driver has to reject all or none */
+                         if (card->funcs.BatchBlit( card->driver_data, card->device_data, clipped_rects, clipped_points, clipped_num, &done ))
+                              i = num;
+                         else
+                              i = done;
+                    }
+               }
+               else {
+                    /* The driver has to reject all or none */
+                    if (card->funcs.BatchBlit( card->driver_data, card->device_data, rects, points, num, &done ))
+                         i = num;
+                    else
+                         i = done;
+               }
+          }
+          else {
+               for (; i<num; i++) {
+                    if ((state->render_options & DSRO_MATRIX) ||
+                        dfb_clip_blit_precheck( &state->clip,
+                                                rects[i].w, rects[i].h,
+                                                points[i].x, points[i].y ))
+                    {
+                         if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
+                             !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
+                              dfb_clip_blit( &state->clip, &rects[i],
+                                             &points[i].x, &points[i].y );
+
+                         if (!card->funcs.Blit( card->driver_data, card->device_data,
+                                                &rects[i], points[i].x, points[i].y ))
+                              break;
+                    }
                }
           }
 

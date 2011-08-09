@@ -283,6 +283,17 @@ typedef struct _GraphicsDeviceFuncs {
       * Signal end of sequence, i.e. destination surface is consistent again.
       */
      void (*StopDrawing)( void *driver_data, void *device_data, CardState *state );
+
+
+     /*
+      * BatchBlit
+      *
+      * When driver returns false (late fallback), it may set *ret_num
+      * to the number of successful blits in case of partial execution.
+      */
+     bool (*BatchBlit)( void *driver_data, void *device_data,
+                        const DFBRectangle *rects, const DFBPoint *points,
+                        unsigned int num, unsigned int *ret_num );
 } GraphicsDeviceFuncs;
 
 typedef struct {
