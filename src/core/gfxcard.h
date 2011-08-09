@@ -294,6 +294,16 @@ typedef struct _GraphicsDeviceFuncs {
      bool (*BatchBlit)( void *driver_data, void *device_data,
                         const DFBRectangle *rects, const DFBPoint *points,
                         unsigned int num, unsigned int *ret_num );
+
+     /*
+      * BatchFill
+      *
+      * When driver returns false (late fallback), it may set *ret_num
+      * to the number of successful fills in case of partial execution.
+      */
+     bool (*BatchFill)( void *driver_data, void *device_data,
+                        const DFBRectangle *rects,
+                        unsigned int num, unsigned int *ret_num );
 } GraphicsDeviceFuncs;
 
 typedef struct {

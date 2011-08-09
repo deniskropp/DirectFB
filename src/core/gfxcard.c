@@ -1345,6 +1345,56 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
      if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
      {
+          if (card->funcs.BatchFill) {
+               unsigned int done = 0;   // FIXME: when rectangles are clipped this number does not correlate to 'num'
+
+               do {
+                    DFBRectangle *rects;
+                    int           real_num;
+
+                    if (num_spans > 256) {
+                         rects = D_MALLOC( sizeof(DFBRectangle) * num_spans );
+                         if (!rects) {
+                              D_OOM();
+                              break;
+                         }
+                    }
+                    else
+                         rects = alloca( sizeof(DFBRectangle) * num_spans );
+
+                    for (real_num = 0; i<num_spans; i++) {
+                         rects[real_num].x = spans[i].x;
+                         rects[real_num].y = y + i;
+                         rects[real_num].w = spans[i].w;
+                         rects[real_num].h = 1;
+
+                         if (rects[real_num].w > card->limits.dst_max.w ||
+                             rects[real_num].h > card->limits.dst_max.h) {
+                              if (!dfb_clip_rectangle( &state->clip, &rects[real_num]))
+                                   continue;
+
+                              if (rects[real_num].w > card->limits.dst_max.w ||
+                                  rects[real_num].h > card->limits.dst_max.h)
+                                   continue;
+                         }
+                         else if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
+                                  !D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLRECTANGLE ) &&
+                                  !dfb_clip_rectangle( &state->clip, &rects[real_num] ))
+                              continue;
+
+                         real_num++;
+                    }
+
+                    if (card->funcs.BatchFill( card->driver_data, card->device_data, &rects[0], real_num, &done ))
+                         i = num_spans;
+                    else
+                         i = done;
+
+                    if (num_spans > 256)
+                         D_FREE( rects );
+               } while (0);
+          }
+
           for (; i<num_spans; i++) {
                DFBRectangle rect = { spans[i].x, y + i, spans[i].w, 1 };
 
@@ -2332,7 +2382,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
          dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
      {
           if (card->funcs.BatchBlit) {
-               unsigned int done = 0;
+               unsigned int done = 0;   // FIXME: when rectangles are clipped this number does not correlate to 'num'
 
                if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) && !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT )) {
                     DFBRectangle *clipped_rects;
