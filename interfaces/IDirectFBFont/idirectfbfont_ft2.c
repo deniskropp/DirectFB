@@ -901,6 +901,13 @@ Construct( IDirectFBFont               *thiz,
                disable_kerning = true;
           if (desc->attributes & DFFA_MONOCHROME)
                load_mono = true;
+          if (desc->attributes & DFFA_VERTICAL_LAYOUT)
+               load_flags |= FT_LOAD_VERTICAL_LAYOUT;
+
+#ifdef FT_LOAD_OBLIQUE
+          if (desc->attributes & DFFA_STYLE_ITALIC)
+               load_flags |= FT_LOAD_OBLIQUE;
+#endif
      }
 
      if (load_mono)
