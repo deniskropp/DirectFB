@@ -1010,7 +1010,8 @@ Construct( IDirectFBFont               *thiz,
                font->pixel_format == DSPF_A8 ||
                font->pixel_format == DSPF_A4 ||
                font->pixel_format == DSPF_A1 ||
-               font->pixel_format == DSPF_A1_LSB );
+               font->pixel_format == DSPF_A1_LSB ||
+               font->pixel_format == DSPF_LUT2 );
 
      font->ascender   = face->size->metrics.ascender >> 6;
      font->descender  = face->size->metrics.descender >> 6;
