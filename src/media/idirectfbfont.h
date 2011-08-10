@@ -35,18 +35,26 @@
 
 #include <core/coretypes.h>
 
+typedef enum {
+     IDFBFONT_CONTEXT_CONTENT_TYPE_UNKNOWN,
+
+     IDFBFONT_CONTEXT_CONTENT_TYPE_MALLOCED,
+     IDFBFONT_CONTEXT_CONTENT_TYPE_MAPPED,
+     IDFBFONT_CONTEXT_CONTENT_TYPE_MEMORY
+} IDirectFBFont_ProbeContextContentType;
+
 /*
  * probing context
  */
 typedef struct {
      /* Only set if databuffer is created from file.
         deprecated - use memory location below. */
-     const char    *filename;
+     const char                            *filename;
 
      /* if !=NULL, pointer to the file content */
-     unsigned char *content;
-     unsigned int   content_size;
-     bool           content_mapped;
+     unsigned char                         *content;
+     unsigned int                           content_size;
+     IDirectFBFont_ProbeContextContentType  content_type;
 } IDirectFBFont_ProbeContext;
 
 DFBResult
@@ -62,13 +70,13 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
  * used by implementors of IDirectFBFont
  */
 typedef struct {
-     int                ref;       /* reference counter    */
-     CoreFont          *font;      /* pointer to core font */
-     unsigned char     *content;   /* possible allocation, free at intf. close */
-     unsigned int       content_size;
-     bool               content_mapped;
+     int                                    ref;       /* reference counter    */
+     CoreFont                              *font;      /* pointer to core font */
+     unsigned char                         *content;   /* possible allocation, free at intf. close */
+     unsigned int                           content_size;
+     IDirectFBFont_ProbeContextContentType  content_type;
 
-     DFBTextEncodingID  encoding;  /* text encoding */
+     DFBTextEncodingID                      encoding;  /* text encoding */
 } IDirectFBFont_data;
 
 /*

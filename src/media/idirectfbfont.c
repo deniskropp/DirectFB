@@ -60,10 +60,21 @@ IDirectFBFont_Destruct( IDirectFBFont *thiz )
 
      /* release memory, if any */
      if (data->content) {
-          if (data->content_mapped)
-               direct_file_unmap( NULL, data->content, data->content_size );
-          else
-               D_FREE( data->content );
+          switch (data->content_type) {
+               case IDFBFONT_CONTEXT_CONTENT_TYPE_MALLOCED:
+                    D_FREE( data->content );
+                    break;
+
+               case IDFBFONT_CONTEXT_CONTENT_TYPE_MAPPED:
+                    direct_file_unmap( NULL, data->content, data->content_size );
+                    break;
+
+               case IDFBFONT_CONTEXT_CONTENT_TYPE_MEMORY:
+                    break;
+
+               default:
+                    D_BUG( "unexpected content type %d", data->content_type );
+          }
      }
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -851,9 +862,9 @@ try_map_file( IDirectFBDataBuffer_data   *buffer_data,
                return ret;
           }
 
-          ctx->content        = map;
-          ctx->content_size   = info.size;
-          ctx->content_mapped = true;
+          ctx->content      = map;
+          ctx->content_size = info.size;
+          ctx->content_type = IDFBFONT_CONTEXT_CONTENT_TYPE_MAPPED;
 
           direct_file_close( &file );
 
@@ -867,10 +878,23 @@ static void
 unmap_or_free( IDirectFBFont_ProbeContext *ctx )
 {
      if (ctx->content) {
-          if (ctx->content_mapped)
-               direct_file_unmap( NULL, ctx->content, ctx->content_size );
-          else
-               D_FREE( ctx->content );
+          switch (ctx->content_type) {
+               case IDFBFONT_CONTEXT_CONTENT_TYPE_MALLOCED:
+                    D_FREE( ctx->content );
+                    break;
+
+               case IDFBFONT_CONTEXT_CONTENT_TYPE_MAPPED:
+                    direct_file_unmap( NULL, ctx->content, ctx->content_size );
+                    break;
+
+               case IDFBFONT_CONTEXT_CONTENT_TYPE_MEMORY:
+                    break;
+
+               default:
+                    D_BUG( "unexpected content type %d", ctx->content_type );
+          }
+
+          ctx->content = NULL;
      }
 }
 
@@ -884,7 +908,7 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
      DirectInterfaceFuncs       *funcs = NULL;
      IDirectFBDataBuffer_data   *buffer_data;
      IDirectFBFont              *ifont;
-     IDirectFBFont_ProbeContext  ctx = {0};
+     IDirectFBFont_ProbeContext  ctx = { NULL, NULL, 0, IDFBFONT_CONTEXT_CONTENT_TYPE_UNKNOWN };
 
      /* Get the private information of the data buffer. */
      buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
@@ -894,8 +918,15 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
      /* Provide a fallback for image providers without data buffer support. */
      ctx.filename = buffer_data->filename;
 
+     if (buffer_data->is_memory) {
+          IDirectFBDataBuffer_Memory_data *mem_data = (IDirectFBDataBuffer_Memory_data*) buffer_data;
+
+          ctx.content      = (unsigned char*) mem_data->buffer;
+          ctx.content_size = mem_data->length;
+          ctx.content_type = IDFBFONT_CONTEXT_CONTENT_TYPE_MEMORY;
+     }
      /* try to map the "file" content first */
-     if (try_map_file( buffer_data, &ctx ) != DFB_OK) {
+     else if (try_map_file( buffer_data, &ctx ) != DFB_OK) {
           /* try to load the "file" content from the buffer */
 
           /* we need to be able to seek (this implies non-streamed,
@@ -911,6 +942,7 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
                     return DR_NOLOCALMEMORY;
 
                ctx.content_size = 0;
+               ctx.content_type = IDFBFONT_CONTEXT_CONTENT_TYPE_MALLOCED;
 
                while (ctx.content_size < size) {
                     unsigned int get = size - ctx.content_size;
@@ -944,6 +976,8 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
           }
      }
 
+     D_ASSERT( ctx.content_type != IDFBFONT_CONTEXT_CONTENT_TYPE_UNKNOWN );
+
      /* Find a suitable implementation. */
      ret = DirectGetInterface( &funcs, "IDirectFBFont", NULL, DirectProbeInterface, &ctx );
      if (ret) {
@@ -965,7 +999,7 @@ IDirectFBFont_CreateFromBuffer( IDirectFBDataBuffer       *buffer,
           IDirectFBFont_data *data = (IDirectFBFont_data*)(ifont->priv);
           data->content = ctx.content;
           data->content_size = ctx.content_size;
-          data->content_mapped = ctx.content_mapped;
+          data->content_type = ctx.content_type;
      }
 
      *interface = ifont;
