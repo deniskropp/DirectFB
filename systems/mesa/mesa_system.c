@@ -67,6 +67,8 @@ InitLocal( MesaData *mesa )
      const char *ver;
      const char *extensions;
      EGLint      major, minor;
+     
+     setenv( "EGL_PLATFORM","drm",0 );
 
      mesa->fd = open( device_name, O_RDWR );
      if (mesa->fd < 0) {
