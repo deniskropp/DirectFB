@@ -35,11 +35,18 @@
 
 #include <GL/gl.h>
 #include <GL/glext.h>
+#ifndef GLAPIENTRY
+#define GLAPIENTRY
+#endif
+#include <gbm.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <drm.h>
 #include <xf86drmMode.h>
 
+#ifdef GL_OES_EGL_image
+static PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES_func;
+#endif
 
 #include <fusion/shmalloc.h>
 
@@ -70,6 +77,7 @@ typedef struct {
      CoreLayer           *layer;
 
      int                  fd;      /* DRM file descriptor */
+     struct gbm_device   *gbm;
      EGLDisplay           dpy;
      EGLContext           ctx;
 

@@ -37,7 +37,7 @@
 
 #include <misc/conf.h>
 
-#include <xf86drm.h>  
+#include <xf86drm.h>
 #include <i915_drm.h>
 
 #include "mesa_system.h"
@@ -63,13 +63,12 @@ typedef struct {
      int   pitch;
      int   size;
 
-     EGLImageKHR image;
-     EGLint      name;
-     EGLint      handle;
-
-     GLuint      fbo;
-     GLuint      color_rb;
-     GLuint      texture;
+     EGLImageKHR     image;
+     EGLint          handle;
+     struct gbm_bo  *bo;
+     GLuint          fbo;
+     GLuint          color_rb;
+     GLuint          texture;
 
      uint32_t    fb_id;
 } MesaAllocationData;
@@ -288,18 +287,13 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
      glGetIntegerv( GL_RENDERBUFFER_BINDING, &rbo );
 
+     alloc->bo = gbm_bo_create( mesa->gbm, surface->config.size.w, surface->config.size.h, GBM_BO_FORMAT_ARGB8888,
+                                                                            GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING );
 
-     EGLint image_attribs[] = {
-          EGL_WIDTH,                    surface->config.size.w,
-          EGL_HEIGHT,                   surface->config.size.h,
-          EGL_DRM_BUFFER_FORMAT_MESA,   EGL_DRM_BUFFER_FORMAT_ARGB32_MESA,
-          EGL_DRM_BUFFER_USE_MESA,      EGL_DRM_BUFFER_USE_SCANOUT_MESA,
-          EGL_NONE
-     };
+     alloc->handle = gbm_bo_get_handle( alloc->bo ).u32;
+     alloc->pitch  = gbm_bo_get_pitch( alloc->bo );
 
-     alloc->image = eglCreateDRMImageMESA( local->mesa->dpy, image_attribs );
-
-     eglExportDRMImageMESA( local->mesa->dpy, alloc->image, &alloc->name, &alloc->handle, &alloc->pitch );
+     alloc->image  = eglCreateImageKHR( mesa->dpy, NULL, EGL_NATIVE_PIXMAP_KHR, alloc->bo, NULL );
 
      alloc->size = alloc->pitch * surface->config.size.h;
 
@@ -393,6 +387,7 @@ mesaDeallocateBuffer( CoreSurfacePool       *pool,
 
      drmModeRmFB( local->mesa->fd,  alloc->fb_id );
      eglDestroyImageKHR( local->mesa->dpy, alloc->image );
+     gbm_bo_destroy( alloc->bo );
 
      D_MAGIC_CLEAR( alloc );
 
@@ -453,10 +448,10 @@ mesaLock( CoreSurfacePool       *pool,
                     struct drm_i915_gem_mmap_gtt arg;
                     memset(&arg, 0, sizeof(arg));
                     arg.handle = alloc->handle;
-                          
+
                     drmCommandWriteRead( local->mesa->fd, DRM_I915_GEM_MMAP_GTT, &arg, sizeof( arg ) );
                     lock->addr = mmap( 0, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, local->mesa->fd, arg.offset );
-               }                                   
+               }
                break;
 
           default:
