@@ -770,7 +770,6 @@ png_row_callback( png_structp png_read_ptr,
                     src16+=4;
                     src+=8;
                }
-               printf("colorkey: %8x\n",data->color_key);
           }
           else {
                /* assume four channels here, since we have setup libpng to convert everything to four channels before */
