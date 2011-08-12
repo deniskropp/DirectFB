@@ -661,10 +661,6 @@ png_info_callback( png_structp png_read_ptr,
 
           case PNG_COLOR_TYPE_GRAY:
                data->pitch = data->width;
-
-               if (data->bpp == 16)
-                    png_set_strip_16( data->png_ptr );
-
                break;
 
           case PNG_COLOR_TYPE_GRAY_ALPHA:
@@ -673,9 +669,6 @@ png_info_callback( png_structp png_read_ptr,
 
           default:
                data->pitch = data->width * 4;
-
-               if (data->bpp == 16)
-                    png_set_strip_16( data->png_ptr );
 
 #ifdef WORDS_BIGENDIAN
                if (!(data->color_type & PNG_COLOR_MASK_ALPHA))
@@ -737,8 +730,60 @@ png_row_callback( png_structp png_read_ptr,
      }
 
      /* write to image data */
-     png_progressive_combine_row( data->png_ptr, (png_bytep) (data->image +
-                                  row_num * data->pitch), new_row );
+     if (data->bpp == 16) {
+
+          u8  *dst = (u8*)(data->image + row_num * data->pitch);
+          u8  *src = (u8*)new_row;
+
+          if (data->color_keyed) {
+               png_color_16p trans = &data->info_ptr->trans_color;
+               u16 *src16 = (u16*)src;
+               u32 *dst32 = (u32*)dst;
+               int i = data->width;
+
+               while (i--) {
+                    int keyed = 0;
+#ifdef WORDS_BIGENDIAN
+                    u16 comp_r = src16[1];
+                    u16 comp_g = src16[2];
+                    u16 comp_b = src16[3];
+                    u32 pixel32 = src[1] << 24 | src[3] << 16 | src[5] << 8 | src[7];
+#else
+                    u16 comp_r = src16[2];
+                    u16 comp_g = src16[1];
+                    u16 comp_b = src16[0];
+
+                    u32 pixel32 = src[6] << 24 | src[4] << 16 | src[2] << 8 | src[0];
+#endif
+                    /* is the pixel supposted to match the color key in 16 bit per channel resolution? */
+                    if ((comp_r == trans->red) && (comp_g == trans->green) && (comp_b == trans->blue))
+                         keyed = 1;
+
+                    /*
+                     *  if the pixel was not supposed to get keyed but the colorkey matches in the reduced
+                     *  color space, then toggle the least significant blue bit
+                     */
+                    if (!keyed && (pixel32 == (0xff000000 | data->color_key)))
+                         pixel32 ^= 0x00000001;
+
+                    *dst32++ = pixel32;
+                    src16+=4;
+                    src+=8;
+               }
+               printf("colorkey: %8x\n",data->color_key);
+          }
+          else {
+               /* assume four channels here, since we have setup libpng to convert everything to four channels before */
+               int i = 4 *data->width;
+
+               while (i--) {
+                    *dst++ = *src;
+                    src+=2;
+               }
+          }
+     }
+     else
+          direct_memcpy ( (png_bytep) (data->image + row_num * data->pitch), new_row, data->pitch );
 
      /* increase row counter, FIXME: interlaced? */
      data->rows++;
