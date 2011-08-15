@@ -438,7 +438,7 @@ gles2_validate_COLORKEY(GLES2DriverData *gdrv,
      int b = (state->src_colorkey & 0x000000FF)      ;
 
      /* send converted color key to shader */
-     glUniform3iARB( prog->dfbColorkey, r, g, b );
+     glUniform3i( prog->dfbColorkey, r, g, b );
 
      D_DEBUG_AT(GLES2__2D, "  -> loaded colorkey %d %d %d\n", r, g, b);
 

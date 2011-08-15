@@ -115,7 +115,9 @@ mesaFlipRegion( CoreLayer                  *layer,
      int       ret;
      MesaData *mesa = driver_data;
 
-     ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, left_lock->handle, 0, NULL );
+//   ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, left_lock->handle, 0, NULL );
+     ret = drmModeSetCrtc( mesa->fd, mesa->encoder->crtc_id, left_lock->handle, 0, 0,
+                           &mesa->connector->connector_id, 1, &mesa->mode );
 
      dfb_surface_flip( surface, false );
 

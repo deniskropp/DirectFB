@@ -67,6 +67,8 @@ InitLocal( MesaData *mesa )
      const char *ver;
      const char *extensions;
      EGLint      major, minor;
+     
+     setenv( "EGL_PLATFORM","drm",0 );
 
      mesa->fd = open( device_name, O_RDWR );
      if (mesa->fd < 0) {
@@ -75,7 +77,9 @@ InitLocal( MesaData *mesa )
           return ret;
      }
 
-     mesa->dpy = eglGetDRMDisplayMESA( mesa->fd );
+     mesa->gbm = gbm_create_device( mesa->fd );
+
+     mesa->dpy = eglGetDisplay( mesa->gbm );
      if (mesa->dpy == EGL_NO_DISPLAY) {
           D_ERROR( "DirectFB/Mesa: eglGetDisplay() failed!\n" );
           close( mesa->fd );
