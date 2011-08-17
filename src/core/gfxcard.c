@@ -1958,8 +1958,10 @@ DFBVertex_Transform( DFBVertex    *v,
                      s32           matrix[9],
                      bool          affine )
 {
+     unsigned int i;
+
      if (affine) {
-          for (unsigned int i=0; i<num; i++) {
+          for (i=0; i<num; i++) {
                float _x, _y;
 
                _x = ((v[i].x) * matrix[0] + (v[i].y) * matrix[1] + matrix[2]) / 0x10000;
@@ -1970,7 +1972,7 @@ DFBVertex_Transform( DFBVertex    *v,
           }
      }
      else {
-          for (unsigned int i=0; i<num; i++) {
+          for (i=0; i<num; i++) {
                float _x, _y, _w;
 
                _x = ((v[i].x) * matrix[0] + (v[i].y) * matrix[1] + matrix[2]);
@@ -1997,8 +1999,10 @@ GenefxVertexAffine_Transform( GenefxVertexAffine *v,
                               s32                 matrix[9],
                               bool                affine )
 {
+     unsigned int i;
+
      if (affine) {
-          for (unsigned int i=0; i<num; i++) {
+          for (i=0; i<num; i++) {
                int _x, _y;
 
                _x = ((v[i].x) * matrix[0] + (v[i].y) * matrix[1] + matrix[2]) / 0x10000;
@@ -2009,7 +2013,7 @@ GenefxVertexAffine_Transform( GenefxVertexAffine *v,
           }
      }
      else {
-          for (unsigned int i=0; i<num; i++) {
+          for (i=0; i<num; i++) {
                int _x, _y, _w;
 
                _x = ((v[i].x) * matrix[0] + (v[i].y) * matrix[1] + matrix[2]);
