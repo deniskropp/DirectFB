@@ -511,8 +511,10 @@ CoreGraphicsStateClient_TileBlit( CoreGraphicsStateClient *client,
      D_ASSERT( points2 != NULL );
 
      if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
+          u32 i;
+
           // FIXME: will overwrite rects, points
-          for (u32 i=0; i<num; i++)
+          for (i=0; i<num; i++)
                dfb_gfxcard_tileblit( (DFBRectangle*) &rects[i], points1[i].x, points1[i].y, points2[i].x, points2[i].y, client->state );
      }
      else {
