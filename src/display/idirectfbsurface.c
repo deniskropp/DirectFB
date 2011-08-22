@@ -112,6 +112,8 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      if (data->surface)
           dfb_surface_detach( data->surface, &data->reaction );
 
+     CoreGraphicsStateClient_Deinit( &data->state_client );
+
      dfb_state_stop_drawing( &data->state );
 
      dfb_state_set_destination( &data->state, NULL );
