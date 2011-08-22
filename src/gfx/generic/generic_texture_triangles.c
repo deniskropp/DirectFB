@@ -217,6 +217,7 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
      int half_top    = v1->y - v0->y;
      int half_bottom = v2->y - v1->y;
 
+     int y;
      int sl, sr;
      int tl, tr;
      int dsl, dsr;
@@ -331,7 +332,7 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
      }
 
      if (y_top > v0->y) {
-          for (int y=v0->y; y<y_top; y++) {
+          for (y=v0->y; y<y_top; y++) {
                INC_DDA(dda1);
                INC_DDA(dda2);
           }
@@ -367,7 +368,7 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
      /*
       * Loop over clipped lines
       */
-     for (int y=y_top; y<=y_bottom; y++) {
+     for (y=y_top; y<=y_bottom; y++) {
           /*
            * Slope update (for bottom half)
            */
@@ -465,12 +466,14 @@ Genefx_TextureTriangles( CardState            *state,
                          DFBTriangleFormation  formation,
                          const DFBRegion      *clip )
 {
+     int i;
+
      /*
       * Convert vertices
       */
      GenefxVertexAffine genefx_vertices[num];
 
-     for (int i=0; i<num; i++) {
+     for (i=0; i<num; i++) {
           genefx_vertices[i].x = vertices[i].x;
           genefx_vertices[i].y = vertices[i].y;
           genefx_vertices[i].s = vertices[i].s * state->source->config.size.w * 0x10000;
