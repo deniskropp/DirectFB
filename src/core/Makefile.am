@@ -112,6 +112,7 @@ libdirectfb_core_la_SOURCES = \
 	prealloc_surface_pool.c	\
 	screen.c		\
 	screens.c		\
+	shared_secure_surface_pool.c	\
 	shared_surface_pool.c	\
 	state.c			\
 	surface.c		\

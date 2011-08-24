@@ -34,6 +34,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core_parts.h>
@@ -44,6 +45,7 @@
 
 #if FUSION_BUILD_MULTI
 extern SurfacePoolFuncs sharedSurfacePoolFuncs;
+extern SurfacePoolFuncs sharedSecureSurfacePoolFuncs;
 #else
 extern SurfacePoolFuncs localSurfacePoolFuncs;
 #endif
@@ -88,10 +90,19 @@ dfb_surface_core_initialize( CoreDFB              *core,
      data->shared = shared;
 
 #if FUSION_BUILD_MULTI
-     ret = dfb_surface_pool_initialize( core, &sharedSurfacePoolFuncs, &shared->surface_pool );
-     if (ret) {
-          D_DERROR( ret, "Core/Surface: Could not register 'shared' surface pool!\n" );
-          return ret;
+     if (fusion_config->secure_fusion) {
+          ret = dfb_surface_pool_initialize( core, &sharedSecureSurfacePoolFuncs, &shared->surface_pool );
+          if (ret) {
+               D_DERROR( ret, "Core/Surface: Could not register 'shared' surface pool!\n" );
+               return ret;
+          }
+     }
+     else {
+          ret = dfb_surface_pool_initialize( core, &sharedSurfacePoolFuncs, &shared->surface_pool );
+          if (ret) {
+               D_DERROR( ret, "Core/Surface: Could not register 'shared' surface pool!\n" );
+               return ret;
+          }
      }
 #else
      ret = dfb_surface_pool_initialize( core, &localSurfacePoolFuncs, &shared->surface_pool );
@@ -121,7 +132,10 @@ dfb_surface_core_join( CoreDFB              *core,
      data->shared = shared;
 
 #if FUSION_BUILD_MULTI
-     dfb_surface_pool_join( core, shared->surface_pool, &sharedSurfacePoolFuncs );
+     if (fusion_config->secure_fusion)
+          dfb_surface_pool_join( core, shared->surface_pool, &sharedSecureSurfacePoolFuncs );
+     else
+          dfb_surface_pool_join( core, shared->surface_pool, &sharedSurfacePoolFuncs );
 #else
      dfb_surface_pool_join( core, shared->surface_pool, &localSurfacePoolFuncs );
 #endif
