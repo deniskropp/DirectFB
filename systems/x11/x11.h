@@ -57,6 +57,7 @@ typedef struct {
 typedef struct {
      UpdateScreenData     update;
      SetModeData          setmode;
+     DestroyData          destroy;
                          
      FusionSkirmish       lock;
      FusionCall           call;

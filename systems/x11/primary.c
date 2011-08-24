@@ -95,11 +95,10 @@ dfb_x11_destroy_window( DFBX11 *x11, X11LayerData *lds )
 {
      int           ret;
      DFBX11Shared *shared = x11->shared;
-     DestroyData   destroy;
      
-     destroy.xw = &(lds->xw);
+     shared->destroy.xw = &(lds->xw);
 
-     if (fusion_call_execute( &shared->call, FCEF_NONE, X11_DESTROY_WINDOW, &destroy, &ret ))
+     if (fusion_call_execute( &shared->call, FCEF_NONE, X11_DESTROY_WINDOW, &shared->destroy, &ret ))
           return DFB_FUSION;
 
      return ret;
