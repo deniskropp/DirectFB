@@ -982,6 +982,108 @@ AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
 
 
 
+dnl Imlib2 check
+imlib2="no"
+AC_ARG_ENABLE(imlib2,
+  [  --enable-imlib2         build Imlib2 image provider [[default=yes]]],
+  enable_imlib2="$enableval", enable_imlib2="yes")
+
+if test "x$enable_imlib2" = "xyes"; then
+  AC_PATH_PROG(IMLIB2_CONFIG, imlib2-config, no)
+  if test "x$IMLIB2_CONFIG" = xno; then
+    AC_MSG_WARN([*** Imlib2 library not found, building without Imlib2 support ***])
+    imlib2="no"
+  else
+    IMLIB2_CFLAGS=`imlib2-config --cflags`
+    IMLIB2_LIBS=`imlib2-config --libs`
+    imlib2="yes"
+  fi
+fi
+
+AC_SUBST(IMLIB2_LIBS)
+AC_SUBST(IMLIB2_CFLAGS)
+
+AM_CONDITIONAL(IMLIB2, test "x$imlib2" = xyes)
+
+
+dnl PNM check
+AC_ARG_ENABLE(pnm,
+  [  --enable-pnm            build PNM (PBM/PGM/PPM) image provider [[default=yes]]],
+  pnm="$enableval", pnm="yes")
+
+AM_CONDITIONAL(PNM, test "x$pnm" = "xyes")
+
+
+dnl SVG check
+SVGCAIRO_REQUIRED_VERSION=0.1.6
+
+svg="no"
+AC_ARG_ENABLE(svg,
+  [  --enable-svg            build SVG image provider [[default=yes]]],
+  enable_svg="$enableval", enable_svg="yes")
+
+if test "x$enable_svg" = "xyes"; then
+  AC_MSG_CHECKING(for libsvg-cairo >= $SVGCAIRO_REQUIRED_VERSION)
+  if $PKG_CONFIG --atleast-version=$SVGCAIRO_REQUIRED_VERSION libsvg-cairo; then
+    SVG_CFLAGS=`$PKG_CONFIG --cflags libsvg-cairo`
+    SVG_LIBS=`$PKG_CONFIG --libs libsvg-cairo`
+    SVG_VERSION=`$PKG_CONFIG --modversion libsvg-cairo`
+    AC_MSG_RESULT([found (version $SVG_VERSION)])
+    svg="yes"
+  else
+    AC_MSG_RESULT([not found])
+    AC_MSG_WARN([
+*** SVG-Cairo at least $SVGCAIRO_REQUIRED_VERSION not found -- SVG image provider will not be built.])
+  fi
+fi
+
+AC_SUBST(SVG_CFLAGS)
+AC_SUBST(SVG_LIBS)
+
+AM_CONDITIONAL(SVG, test "x$svg" = "xyes")
+
+
+dnl MPEG2 check
+AC_ARG_ENABLE(mpeg2,
+  [  --enable-mpeg2          build MPEG2 image provider [[default=yes]]],
+  mpeg2="$enableval", mpeg2="yes")
+
+AM_CONDITIONAL(MPEG2, test "x$mpeg2" = "xyes")
+
+
+dnl BMP check
+AC_ARG_ENABLE(bmp,
+  [  --enable-bmp            build BMP image provider [[default=yes]]],
+  bmp="$enableval", bmp="yes")
+
+AM_CONDITIONAL(BMP, test "x$bmp" = "xyes")
+
+
+dnl JPEG2000 Check
+AC_ARG_ENABLE(jpeg2000,
+  [  --enable-jpeg2000       build JPEG2000 image provider [[default=yes]]],
+  jpeg2000="$enableval", jpeg2000="yes")
+
+if test "$jpeg2000" = "yes"; then
+  dnl Test for libjasper
+  AC_CHECK_LIB(jasper, jas_image_decode, jasper="yes", jasper="no", [-lm])
+  if test "$jasper" = "yes"; then
+    AC_CHECK_HEADER(jasper/jasper.h,, jasper="no")
+  fi
+  if test "$jasper" == "yes"; then
+    JASPER_LIBS="-ljasper -lm -ljpeg"
+  else
+    AC_MSG_WARN([
+*** Jasper not found. JPEG2000 image provider will not be built.])
+    jpeg2000="no"
+  fi
+fi
+
+AC_SUBST(JASPER_LIBS)
+
+AM_CONDITIONAL(JPEG2000, test "x$jpeg2000" = "xyes")
+
+
 dnl Test for freetype
 AC_ARG_ENABLE(freetype,
               AC_HELP_STRING([--enable-freetype],
@@ -2003,6 +2105,7 @@ inputdrivers/wm97xx_ts/Makefile
 interfaces/Makefile
 interfaces/IDirectFBFont/Makefile
 interfaces/IDirectFBImageProvider/Makefile
+interfaces/IDirectFBImageProvider/mpeg2/Makefile
 interfaces/IDirectFBVideoProvider/Makefile
 interfaces/IDirectFBWindows/Makefile
 interfaces/IWater/Makefile
@@ -2083,7 +2186,14 @@ Building Window Manager Modules:
 Building Image Provider Modules:
   GIF                       $enable_gif 
   JPEG                      $JPEG                 $LIBJPEG
-  PNG                       $PNG                 $LIBPNG_CFLAGS $LIBPNG_LIBS
+  PNG                       $PNG                  $LIBPNG_CFLAGS $LIBPNG_LIBS
+  Imlib2                    $imlib2               $IMLIB2_CFLAGS $IMLIB2_LIBS
+  PNM                       $pnm
+  SVG                       $svg                  $LIBSVG_CFLAGS $LIBSVG_LIBS
+  BMP                       $bmp
+  JPEG2000                  $jpeg2000             $JASPER_LIBS
+  MPEG2                     $mpeg2
+
 
 Building Video Provider Modules:
   GIF                       $enable_gif
