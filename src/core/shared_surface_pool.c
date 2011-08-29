@@ -30,8 +30,9 @@
 
 #include <direct/debug.h>
 
-#include <fusion/fusion.h>
-#include <fusion/shm/shm_internal.h>
+#include <fusion/conf.h>
+#include <fusion/shmalloc.h>
+#include <fusion/shm/pool.h>
 
 #include <core/core.h>
 #include <core/surface_pool.h>
@@ -42,9 +43,7 @@
 /**********************************************************************************************************************/
 
 typedef struct {
-     char         tmpfs_dir[FUSION_SHM_TMPFS_PATH_NAME_LEN + 20];
-
-     u64          indices;
+     FusionSHMPoolShared *shmpool;
 } SharedPoolData;
 
 typedef struct {
@@ -53,9 +52,9 @@ typedef struct {
 } SharedPoolLocalData;
 
 typedef struct {
-     u64          index;
-     int          pitch;
-     int          size;
+     void *addr;
+     int   pitch;
+     int   size;
 } SharedAllocationData;
 
 /**********************************************************************************************************************/
@@ -86,61 +85,27 @@ sharedInitPool( CoreDFB                    *core,
                 void                       *system_data,
                 CoreSurfacePoolDescription *ret_desc )
 {
+     DFBResult            ret;
      SharedPoolData      *data  = pool_data;
      SharedPoolLocalData *local = pool_local;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
 
-     ret_desc->caps              = CSPCAPS_VIRTUAL;
-     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
-     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_INTERNAL | CSTF_EXTERNAL;
-     ret_desc->priority          = CSPP_DEFAULT;
-
-     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Shared Memory" );
-
      local->core  = core;
      local->world = dfb_core_world( core );
 
-     snprintf( data->tmpfs_dir, sizeof(data->tmpfs_dir), "%s/dfb.%d",
-               fusion_get_tmpfs( local->world ), fusion_world_index( local->world ) );
+     ret = fusion_shm_pool_create( local->world, "Surface Memory Pool", dfb_config->surface_shmpool_size,
+                                   fusion_config->debugshm, &data->shmpool );
+     if (ret)
+          return ret;
 
-     if (mkdir( data->tmpfs_dir, 0750 ) < 0) {
-          DIR           *dir;
-          struct dirent *entry = NULL;
-          struct dirent  tmp;
+     ret_desc->caps              = CSPCAPS_VIRTUAL;
+     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_INTERNAL | CSTF_EXTERNAL;
+     ret_desc->priority          = (dfb_system_caps() & CSCAPS_PREFER_SHM) ? CSPP_PREFERED : CSPP_DEFAULT;
 
-          if (errno != EEXIST) {
-               D_PERROR( "Core/Surface/SHM: Could not create '%s'!\n", data->tmpfs_dir );
-               return DFB_IO;
-          }
-
-          D_WARN( "%s exists, cleaning up", data->tmpfs_dir );
-
-          dir = opendir( data->tmpfs_dir );
-          if (!dir) {
-               D_PERROR( "Core/Surface/SHM: Could not open '%s'!\n", data->tmpfs_dir );
-               return DFB_IO;
-          }
-
-          while (readdir_r( dir, &tmp, &entry ) == 0 && entry) {
-               char buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
-
-               if (!direct_strcmp( entry->d_name, "." ) ||
-                   !direct_strcmp( entry->d_name, ".." ))
-                    continue;
-
-               snprintf( buf, sizeof(buf), "%s/%s", data->tmpfs_dir, entry->d_name );
-
-               if (unlink( buf ) < 0) {
-                    D_PERROR( "Core/Surface/SHM: Could not remove '%s'!\n", buf );
-                    closedir( dir );
-                    return DFB_IO;
-               }
-          }
-
-          closedir( dir );
-     }
+     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Shared Memory" );
 
      return DFB_OK;
 }
@@ -150,12 +115,12 @@ sharedDestroyPool( CoreSurfacePool *pool,
                    void            *pool_data,
                    void            *pool_local )
 {
-     SharedPoolData *data = pool_data;
+     SharedPoolData      *data  = pool_data;
+     SharedPoolLocalData *local = pool_local;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
-     if (rmdir( data->tmpfs_dir ) < 0)
-          D_PERROR( "Core/Surface/SHM: Could not remove '%s'!\n", data->tmpfs_dir );
+     fusion_shm_pool_destroy( local->world, data->shmpool );
 
      return DFB_OK;
 }
@@ -171,36 +136,19 @@ sharedAllocateBuffer( CoreSurfacePool       *pool,
      CoreSurface          *surface;
      SharedPoolData       *data  = pool_data;
      SharedAllocationData *alloc = alloc_data;
-     char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
-     int                   fd;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      surface = buffer->surface;
+
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      dfb_surface_calc_buffer_size( surface, 8, 0, &alloc->pitch, &alloc->size );
 
-     alloc->index = ++(data->indices);
-
-     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%zu", data->tmpfs_dir, surface->object.id, alloc->index );
-
-     fd = open( buf, O_RDWR | O_CREAT | O_EXCL, 0660 );
-     if (fd < 0) {
-          D_PERROR( "Core/Surface/SHM: Could not create '%s'!\n", buf );
-          return DFB_IO;
-     }
-
-     fchmod( fd, 0660 );
-
-     if (ftruncate( fd, alloc->size ) < 0) {
-          D_PERROR( "Core/Surface/SHM: Setting file size for '%s' to %d failed!\n", buf, alloc->size );
-          unlink( buf );
-          return DFB_IO;
-     }
-
-     close( fd );
+     alloc->addr = SHMALLOC( data->shmpool, alloc->size );
+     if (!alloc->addr)
+          return D_OOSHM();
 
      allocation->flags = CSALF_VOLATILE;
      allocation->size  = alloc->size;
@@ -216,23 +164,13 @@ sharedDeallocateBuffer( CoreSurfacePool       *pool,
                         CoreSurfaceAllocation *allocation,
                         void                  *alloc_data )
 {
-     CoreSurface          *surface;
      SharedPoolData       *data  = pool_data;
      SharedAllocationData *alloc = alloc_data;
-     char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%zu", data->tmpfs_dir, surface->object.id, alloc->index );
-
-     if (unlink( buf ) < 0) {
-          D_PERROR( "Core/Surface/SHM: Could not remove '%s'!\n", buf );
-          return DFB_IO;
-     }
+     SHFREE( data->shmpool, alloc->addr );
 
      return DFB_OK;
 }
@@ -245,42 +183,13 @@ sharedLock( CoreSurfacePool       *pool,
             void                  *alloc_data,
             CoreSurfaceBufferLock *lock )
 {
-     CoreSurface          *surface;
-     CoreSurfaceBuffer    *buffer;
-     SharedPoolData       *data  = pool_data;
      SharedAllocationData *alloc = alloc_data;
-     char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
-     int                   fd;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     buffer = lock->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%zu", data->tmpfs_dir, surface->object.id, alloc->index );
-
-     fd = open( buf, O_RDWR );
-     if (fd < 0) {
-          D_PERROR( "Core/Surface/SHM: Could not open '%s'!\n", buf );
-          return DFB_IO;
-     }
-
-
-     lock->addr = mmap( NULL, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
-
-     close( fd );
-
-     if (lock->addr == MAP_FAILED) {
-          D_PERROR( "Core/Surface/SHM: Could not mmap '%s'!\n", buf );
-          return DFB_IO;
-     }
-
-
+     lock->addr  = alloc->addr;
      lock->pitch = alloc->pitch;
 
      return DFB_OK;
@@ -294,13 +203,9 @@ sharedUnlock( CoreSurfacePool       *pool,
               void                  *alloc_data,
               CoreSurfaceBufferLock *lock )
 {
-     SharedAllocationData *alloc = alloc_data;
-
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
-
-     munmap( lock->addr, alloc->size );
 
      return DFB_OK;
 }

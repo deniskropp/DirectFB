@@ -85,7 +85,7 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      /* destroy buffers */
      for (i=0; i<MAX_SURFACE_BUFFERS; i++) {
           if (surface->buffers[i])
-               dfb_surface_buffer_destroy( surface->buffers[i] );
+               dfb_surface_buffer_decouple( surface->buffers[i] );
      }
 
      dfb_system_surface_data_destroy( surface, surface->data );
@@ -281,11 +281,13 @@ dfb_surface_create( CoreDFB                  *core,
           for (i=0; i<buffers; i++) {
                CoreSurfaceBuffer *buffer;
      
-               ret = dfb_surface_buffer_new( surface, CSBF_NONE, &buffer );
+               ret = dfb_surface_buffer_create( core, surface, CSBF_NONE, &buffer );
                if (ret) {
                     D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
                     goto error;
                }
+
+               dfb_surface_buffer_globalize( buffer );
      
                surface->buffers[i] = buffer;
                if (eye == DSSE_LEFT)
@@ -319,7 +321,7 @@ error:
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<MAX_SURFACE_BUFFERS; i++) {
                if (surface->buffers[i])
-                    dfb_surface_buffer_destroy( surface->buffers[i] );
+                    dfb_surface_buffer_decouple( surface->buffers[i] );
           }
      }
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
@@ -456,11 +458,11 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+
      if (surface->num_buffers == 0)
           return DFB_SUSPENDED;
      
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
-
      back  = (surface->flips + CSBR_BACK)  % surface->num_buffers;
      front = (surface->flips + CSBR_FRONT) % surface->num_buffers;
 
@@ -503,14 +505,16 @@ dfb_surface_reconfig( CoreSurface             *surface,
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( config != NULL );
 
-     if (surface->type & CSTF_PREALLOCATED)
-          return DFB_UNSUPPORTED;
-
      if (config->flags & CSCONF_PREALLOCATED)
           return DFB_UNSUPPORTED;
 
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
+
+     if (surface->type & CSTF_PREALLOCATED) {
+          fusion_skirmish_dismiss( &surface->lock );
+          return DFB_UNSUPPORTED;
+     }
 
      if (  (config->flags == CSCONF_SIZE ||
           ((config->flags == (CSCONF_SIZE | CSCONF_FORMAT)) && (config->format == surface->config.format)))  &&
@@ -523,27 +527,12 @@ dfb_surface_reconfig( CoreSurface             *surface,
           return DFB_OK;
      }
 
-#if 1
-     /* Precheck the Surface Buffers. */
-     num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
-     for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
-          dfb_surface_set_stereo_eye(surface, eye);
-          for (i=0; i<surface->num_buffers; i++) {
-               if (surface->buffers[i]->locked) {
-                    fusion_skirmish_dismiss( &surface->lock );
-                    return DFB_LOCKED;
-               }
-          }
-     }
-     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
-#endif
-
      /* Destroy the Surface Buffers. */
      num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<surface->num_buffers; i++) {
-               dfb_surface_buffer_destroy( surface->buffers[i] );
+               dfb_surface_buffer_decouple( surface->buffers[i] );
                surface->buffers[i] = NULL;
           }
      }
@@ -588,12 +577,14 @@ dfb_surface_reconfig( CoreSurface             *surface,
           for (i=0; i<buffers; i++) {
                CoreSurfaceBuffer *buffer;
      
-               ret = dfb_surface_buffer_new( surface, CSBF_NONE, &buffer );
+               ret = dfb_surface_buffer_create( core_dfb, surface, CSBF_NONE, &buffer );
                if (ret) {
                     D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
                     goto error;
                }
-     
+
+               dfb_surface_buffer_globalize( buffer );
+
                surface->buffers[i] = buffer;
                if (eye == DSSE_LEFT)
                     surface->num_buffers++;
@@ -631,15 +622,17 @@ dfb_surface_destroy_buffers( CoreSurface *surface )
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (surface->type & CSTF_PREALLOCATED)
-          return DFB_UNSUPPORTED;
-
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
 
+     if (surface->type & CSTF_PREALLOCATED) {
+          fusion_skirmish_dismiss( &surface->lock );
+          return DFB_UNSUPPORTED;
+     }
+
      /* Destroy the Surface Buffers. */
      for (i=0; i<surface->num_buffers; i++) {
-          dfb_surface_buffer_destroy( surface->buffers[i] );
+          dfb_surface_buffer_decouple( surface->buffers[i] );
           surface->buffers[i] = NULL;
      }
 
@@ -662,11 +655,13 @@ dfb_surface_lock_buffer( CoreSurface            *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (surface->num_buffers == 0)
-          return DFB_SUSPENDED;
-
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
+
+     if (surface->num_buffers == 0) {
+          fusion_skirmish_dismiss( &surface->lock );
+          return DFB_SUSPENDED;
+     }
 
      buffer = dfb_surface_get_buffer( surface, role );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -711,11 +706,13 @@ dfb_surface_read_buffer( CoreSurface            *surface,
      D_ASSERT( pitch > 0 );
      DFB_RECTANGLE_ASSERT_IF( rect );
 
-     if (surface->num_buffers == 0)
-          return DFB_SUSPENDED;
-
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
+
+     if (surface->num_buffers == 0) {
+          fusion_skirmish_dismiss( &surface->lock );
+          return DFB_SUSPENDED;
+     }
 
      buffer = dfb_surface_get_buffer( surface, role );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -742,11 +739,13 @@ dfb_surface_write_buffer( CoreSurface            *surface,
      D_ASSERT( pitch > 0 );
      DFB_RECTANGLE_ASSERT_IF( rect );
 
-     if (surface->num_buffers == 0)
-          return DFB_SUSPENDED;
-
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
+
+     if (surface->num_buffers == 0) {
+          fusion_skirmish_dismiss( &surface->lock );
+          return DFB_SUSPENDED;
+     }
 
      buffer = dfb_surface_get_buffer( surface, role );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -771,11 +770,13 @@ dfb_surface_dump_buffer( CoreSurface           *surface,
      D_ASSERT( path != NULL );
      D_ASSERT( prefix != NULL );
 
-     if (surface->num_buffers == 0)
-          return DFB_SUSPENDED;
-
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
+
+     if (surface->num_buffers == 0) {
+          fusion_skirmish_dismiss( &surface->lock );
+          return DFB_SUSPENDED;
+     }
 
      buffer = dfb_surface_get_buffer( surface, role );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );

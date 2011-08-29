@@ -137,7 +137,7 @@ buffer_locks( CoreSurface *surface, bool video )
      for (i=0; i<surface->num_buffers; i++) {
           CoreSurfaceBuffer *buffer = surface->buffers[i];
 
-          locks += buffer->locked;
+          locks += dfb_surface_buffer_locks( buffer );
      }
 
      return locks;
