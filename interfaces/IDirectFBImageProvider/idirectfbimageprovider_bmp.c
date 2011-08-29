@@ -318,18 +318,32 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
                break;
           case 24:
                for (i = 0; i < data->width; i++) {
+#ifdef WORDS_BIGENDIAN
                     dst[i] = (buf[i*3+2]    ) | 
                              (buf[i*3+1]<< 8) |
                              (buf[i*3+0]<<16) |
                              0xff000000;
+#else
+                    dst[i] = (buf[i*3+0]    ) | 
+                             (buf[i*3+1]<< 8) |
+                             (buf[i*3+2]<<16) |
+                             0xff000000;
+#endif
                }
                break;
           case 32:
                for (i = 0; i < data->width; i++) {
+#ifdef WORDS_BIGENDIAN
                     dst[i] = (buf[i*4+2]    ) | 
                              (buf[i*4+1]<< 8) |
                              (buf[i*4+0]<<16) |
                              (buf[i*4+3]<<24);
+#else
+                    dst[i] = (buf[i*4+1]    ) | 
+                             (buf[i*4+2]<< 8) |
+                             (buf[i*4+3]<<16) |
+                             (buf[i*4+0]<<24);
+#endif
                }
                break; 
           default:
