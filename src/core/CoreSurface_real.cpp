@@ -130,7 +130,7 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
      buffer = allocation->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     locks = dfb_surface_buffer_lock( buffer );
+     locks = dfb_surface_buffer_locks( buffer );
 
 #if 1
      /*
