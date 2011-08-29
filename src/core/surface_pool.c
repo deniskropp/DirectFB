@@ -665,7 +665,6 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
      int                     i;
      const SurfacePoolFuncs *funcs;
      CoreSurfaceBuffer      *buffer;
-     CoreSurface            *surface;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
@@ -676,10 +675,6 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
 
      buffer = allocation->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      funcs = get_funcs( pool );
 
@@ -696,6 +691,12 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
      }
 
      if (allocation->flags & CSALF_ONEFORALL) {
+          CoreSurface *surface;
+
+          surface = buffer->surface;
+          D_MAGIC_ASSERT( surface, CoreSurface );
+          FUSION_SKIRMISH_ASSERT( &surface->lock );
+
           for (i=0; i<surface->num_buffers; i++)
                remove_allocation( pool, surface->buffers[i], allocation );
      }
@@ -1163,8 +1164,10 @@ remove_allocation( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
-     D_MAGIC_ASSERT( buffer->surface, CoreSurface );
-     FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
+     if (buffer->surface) {
+          D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+          FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
+     }
      FUSION_SKIRMISH_ASSERT( &pool->lock );
      D_ASSERT( pool == allocation->pool );
 

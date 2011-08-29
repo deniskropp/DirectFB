@@ -87,6 +87,7 @@ CoreLayerContext  *dfb_core_create_layer_context ( CoreDFB *core );
 CoreLayerRegion   *dfb_core_create_layer_region  ( CoreDFB *core );
 CorePalette       *dfb_core_create_palette       ( CoreDFB *core );
 CoreSurface       *dfb_core_create_surface       ( CoreDFB *core );
+CoreSurfaceBuffer *dfb_core_create_surface_buffer( CoreDFB *core );
 CoreWindow        *dfb_core_create_window        ( CoreDFB *core );
 
 DFBResult          dfb_core_get_graphics_state   ( CoreDFB            *core,
@@ -108,6 +109,10 @@ DFBResult          dfb_core_get_palette          ( CoreDFB            *core,
 DFBResult          dfb_core_get_surface          ( CoreDFB            *core,
                                                    u32                 object_id,
                                                    CoreSurface       **ret_surface );
+
+DFBResult          dfb_core_get_surface_buffer   ( CoreDFB            *core,
+                                                   u32                 object_id,
+                                                   CoreSurfaceBuffer **ret_surface );
 
 DFBResult          dfb_core_get_window           ( CoreDFB            *core,
                                                    u32                 object_id,
@@ -203,6 +208,7 @@ struct __DFB_CoreDFBShared {
      FusionObjectPool    *layer_region_pool;
      FusionObjectPool    *palette_pool;
      FusionObjectPool    *surface_pool;
+     FusionObjectPool    *surface_buffer_pool;
      FusionObjectPool    *window_pool;
 
      FusionSHMPoolShared *shmpool;

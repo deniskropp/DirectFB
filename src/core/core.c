@@ -529,6 +529,26 @@ dfb_core_create_surface( CoreDFB *core )
      return (CoreSurface*) fusion_object_create( core->shared->surface_pool, core->world );
 }
 
+CoreSurfaceBuffer *
+dfb_core_create_surface_buffer( CoreDFB *core )
+{
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->surface_pool != NULL );
+
+     return (CoreSurfaceBuffer*) fusion_object_create( core->shared->surface_buffer_pool, core->world );
+}
+
 CoreWindow *
 dfb_core_create_window( CoreDFB *core )
 {
@@ -705,6 +725,38 @@ dfb_core_get_surface( CoreDFB      *core,
           return ret;
 
      *ret_surface = (CoreSurface*) object;
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_core_get_surface_buffer( CoreDFB            *core,
+                             u32                 object_id,
+                             CoreSurfaceBuffer **ret_buffer )
+{
+     DFBResult     ret;
+     FusionObject *object;
+
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+     D_ASSERT( ret_buffer != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->surface_buffer_pool != NULL );
+
+     ret = fusion_object_get( core->shared->surface_buffer_pool, object_id, &object );
+     if (ret)
+          return ret;
+
+     *ret_buffer = (CoreSurfaceBuffer*) object;
 
      return DFB_OK;
 }
@@ -1133,6 +1185,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      /* Destroy surface and palette objects. */
      fusion_object_pool_destroy( shared->graphics_state_pool, core->world );
+     fusion_object_pool_destroy( shared->surface_buffer_pool, core->world );
      fusion_object_pool_destroy( shared->surface_pool, core->world );
      fusion_object_pool_destroy( shared->palette_pool, core->world );
 
@@ -1173,6 +1226,7 @@ dfb_core_initialize( CoreDFB *core )
      shared->layer_region_pool   = dfb_layer_region_pool_create( core->world );
      shared->palette_pool        = dfb_palette_pool_create( core->world );
      shared->surface_pool        = dfb_surface_pool_create( core->world );
+     shared->surface_buffer_pool = dfb_surface_buffer_pool_create( core->world );
      shared->window_pool         = dfb_window_pool_create( core->world );
 
      for (i=0; i<D_ARRAY_SIZE(core_parts); i++) {

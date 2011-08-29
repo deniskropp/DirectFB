@@ -69,10 +69,57 @@ D_DEBUG_DOMAIN( Core_SurfBuffer, "Core/SurfBuffer", "DirectFB Core Surface Buffe
 
 /**********************************************************************************************************************/
 
+static void
+surface_buffer_destructor( FusionObject *object, bool zombie, void *ctx )
+{
+     CoreSurfaceAllocation *allocation;
+     unsigned int           i;
+     CoreSurfaceBuffer     *buffer  = (CoreSurfaceBuffer*) object;
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     D_DEBUG_AT( Core_SurfBuffer, "destroying %p (%dx%d%s)\n", buffer,
+                 buffer->config.size.w, buffer->config.size.h, zombie ? " ZOMBIE" : "");
+
+     D_DEBUG_AT( Core_SurfBuffer, "  -> allocs %d\n", buffer->allocs.count );
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     fusion_vector_foreach_reverse (allocation, i, buffer->allocs) {
+          CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+          dfb_surface_pool_deallocate( allocation->pool, allocation );
+     }
+
+     fusion_vector_destroy( &buffer->allocs );
+
+     direct_serial_deinit( &buffer->serial );
+
+     D_MAGIC_CLEAR( buffer );
+
+     fusion_object_destroy( object );
+}
+
+FusionObjectPool *
+dfb_surface_buffer_pool_create( const FusionWorld *world )
+{
+     FusionObjectPool *pool;
+
+     pool = fusion_object_pool_create( "Surface Buffer Pool",
+                                       sizeof(CoreSurfaceBuffer),
+                                       sizeof(CoreSurfaceBufferNotification),
+                                       surface_buffer_destructor, NULL, world );
+
+     return pool;
+}
+
+/**********************************************************************************************************************/
+
 DFBResult
-dfb_surface_buffer_new( CoreSurface             *surface,
-                        CoreSurfaceBufferFlags   flags,
-                        CoreSurfaceBuffer      **ret_buffer )
+dfb_surface_buffer_create( CoreDFB                 *core,
+                           CoreSurface             *surface,
+                           CoreSurfaceBufferFlags   flags,
+                           CoreSurfaceBuffer      **ret_buffer )
 {
      CoreSurfaceBuffer *buffer;
 
@@ -87,9 +134,9 @@ dfb_surface_buffer_new( CoreSurface             *surface,
           D_DEBUG_AT( Core_SurfBuffer, "  -> STICKED\n" );
 #endif
 
-     buffer = SHCALLOC( surface->shmpool, 1, sizeof(CoreSurfaceBuffer) );
+     buffer = dfb_core_create_surface_buffer( core );
      if (!buffer)
-          return D_OOSHM();
+          return DFB_FUSION;
 
      direct_serial_init( &buffer->serial );
      direct_serial_increase( &buffer->serial );
@@ -97,6 +144,7 @@ dfb_surface_buffer_new( CoreSurface             *surface,
      buffer->surface = surface;
      buffer->flags   = flags;
      buffer->format  = surface->config.format;
+     buffer->config  = surface->config;
 
      if (surface->config.caps & DSCAPS_VIDEOONLY)
           buffer->policy = CSP_VIDEOONLY;
@@ -107,7 +155,11 @@ dfb_surface_buffer_new( CoreSurface             *surface,
 
      fusion_vector_init( &buffer->allocs, 2, surface->shmpool );
 
+     fusion_object_set_lock( &buffer->object, &surface->lock );
+
      D_MAGIC_SET( buffer, CoreSurfaceBuffer );
+
+     fusion_object_activate( &buffer->object );
 
      *ret_buffer = buffer;
 
@@ -115,31 +167,24 @@ dfb_surface_buffer_new( CoreSurface             *surface,
 }
 
 DFBResult
-dfb_surface_buffer_destroy( CoreSurfaceBuffer *buffer )
+dfb_surface_buffer_decouple( CoreSurfaceBuffer *buffer )
 {
-     CoreSurface           *surface;
      CoreSurfaceAllocation *allocation;
-     int                    i;
+     unsigned int           i;
+
+     D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_decouple( %p )\n", buffer );
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
+     buffer->surface = NULL;
 
-     D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_destroy( %p [%dx%d] )\n",
-                 buffer, surface->config.size.w, surface->config.size.h );
+     fusion_vector_foreach (allocation, i, buffer->allocs) {
+          CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
-     fusion_vector_foreach_reverse (allocation, i, buffer->allocs)
-          dfb_surface_pool_deallocate( allocation->pool, allocation );
+          allocation->surface = NULL;
+     }
 
-     fusion_vector_destroy( &buffer->allocs );
-
-     direct_serial_deinit( &buffer->serial );
-
-     D_MAGIC_CLEAR( buffer );
-
-     SHFREE( surface->shmpool, buffer );
+     dfb_surface_buffer_unlink( &buffer );
 
      return DFB_OK;
 }
@@ -272,11 +317,14 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      /* Lock the allocation. */
      dfb_surface_buffer_lock_init( lock, accessor, access );
 
+     dfb_surface_buffer_ref( buffer );
+
      ret = dfb_surface_pool_lock( allocation->pool, allocation, lock );
      if (ret) {
           D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
                     allocation->pool->desc.name );
           dfb_surface_buffer_lock_deinit( lock );
+          dfb_surface_buffer_unref( buffer );
 
           /* Destroy if newly created. */
 //FIXME          if (allocated)
@@ -284,13 +332,6 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
 
           return ret;
      }
-
-#if 0
-     /* FIXME: don't use weak counter */
-     buffer->locked++;
-
-     D_DEBUG_AT( Core_SurfBuffer, "  -> locked %dx now\n", buffer->locked );
-#endif
 
      return DFB_OK;
 }
@@ -308,9 +349,6 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
      D_MAGIC_ASSERT( lock->buffer, CoreSurfaceBuffer );
-     D_MAGIC_ASSERT( lock->buffer->surface, CoreSurface );
-
-     FUSION_SKIRMISH_ASSERT( &lock->buffer->surface->lock );
 
      allocation = lock->allocation;
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
@@ -332,13 +370,11 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
           return ret;
      }
 
-#if 0
-     buffer->locked--;
-#endif
-
      dfb_surface_buffer_lock_reset( lock );
 
      dfb_surface_buffer_lock_deinit( lock );
+
+     dfb_surface_buffer_unref( buffer );
 
      return DFB_OK;
 }

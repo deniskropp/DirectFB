@@ -125,9 +125,12 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                    CoreSurfaceAccessFlags  access )
 {
      CoreSurfaceBuffer *buffer;
+     int                locks;
 
      buffer = allocation->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     locks = dfb_surface_buffer_lock( buffer );
 
 #if 1
      /*
@@ -145,7 +148,7 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                /* Software read access after hardware write requires flush of the (bus) read cache. */
                dfb_gfxcard_flush_read_cache();
 
-               if (!buffer->locked) {
+               if (!locks) {
                     /* ...clear hardware write access. */
                     allocation->accessed[CSAID_GPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_GPU] & ~CSAF_WRITE);
 
@@ -162,7 +165,7 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                     dfb_gfxcard_sync(); /* TODO: wait for serial instead */
 
                     /* ...clear hardware read access. */
-                    if (!buffer->locked)
+                    if (!locks)
                          allocation->accessed[CSAID_GPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_GPU] & ~CSAF_READ);
                }
           }
@@ -176,7 +179,7 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                dfb_gfxcard_flush_texture_cache();
 
                /* ...clear software write access. */
-               if (!buffer->locked)
+               if (!locks)
                     allocation->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_CPU] & ~CSAF_WRITE);
           }
      }
