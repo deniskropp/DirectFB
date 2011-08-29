@@ -192,11 +192,14 @@ fusion_ref_down (FusionRef *ref, bool global)
           return DR_FAILURE;
      }
 
+// FIMXE: the following had to be commented out as the ref down may cause a ref watcher to free the memory of 'ref' (via ioctl)
+#if 0
      if (ref->multi.shared)
           D_DEBUG_AT( Fusion_Ref, "  -> %d references now\n",
                       ioctl( _fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id ) );
      else
           D_DEBUG_AT( Fusion_Ref, "  -> destroyed\n" );
+#endif
 
      return DR_OK;
 }
