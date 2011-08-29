@@ -69,7 +69,7 @@ Construct( IDirectFBImageProvider *thiz,
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, SVG )
 
 typedef struct {
-     int               ref;
+     IDirectFBImageProvider_data   base;
 
      svg_cairo_t      *svg_cairo;
 
@@ -186,29 +186,8 @@ IDirectFBImageProvider_SVG_Destruct( IDirectFBImageProvider *thiz )
      if (data->svg_cairo)
           svg_cairo_destroy( data->svg_cairo );
 
-     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult
-IDirectFBImageProvider_SVG_Release( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_SVG );
-
-     if (--data->ref == 0)
-          IDirectFBImageProvider_SVG_Destruct( thiz );
-
-     return DFB_OK;
-}
-
-static DFBResult
-IDirectFBImageProvider_SVG_AddRef( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_SVG );
-
-     data->ref++;
-
-     return DFB_OK;
-}
 
 #ifdef CAIRO_HAS_DIRECTFB_SURFACE
 
@@ -490,7 +469,7 @@ Construct( IDirectFBImageProvider *thiz, IDirectFBDataBuffer *buffer )
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBImageProvider_SVG );
 
-     data->ref = 1;
+     data->base.ref = 1;
  
      status = svg_cairo_create( &data->svg_cairo );
      if (status != SVG_CAIRO_STATUS_SUCCESS) {
@@ -606,8 +585,8 @@ Construct( IDirectFBImageProvider *thiz, IDirectFBDataBuffer *buffer )
      if (data->height < 1)
           data->height = 200;
 
-     thiz->AddRef                = IDirectFBImageProvider_SVG_AddRef;
-     thiz->Release               = IDirectFBImageProvider_SVG_Release;
+     data->base.Destruct = IDirectFBImageProvider_SVG_Destruct;
+
      thiz->RenderTo              = IDirectFBImageProvider_SVG_RenderTo;
      thiz->SetRenderCallback     = IDirectFBImageProvider_SVG_SetRenderCallback;
      thiz->GetImageDescription   = IDirectFBImageProvider_SVG_GetImageDescription;

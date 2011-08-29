@@ -58,7 +58,7 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, JPEG2000 )
 
 
 typedef struct {
-     int                    ref;
+     IDirectFBImageProvider_data   base;
      
      jas_image_t           *image;
      
@@ -126,30 +126,7 @@ IDirectFBImageProvider_JPEG2000_Destruct( IDirectFBImageProvider *thiz )
           jas_image_destroy( data->image );
           
      release_jasper();
-
-     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
-
-static DFBResult
-IDirectFBImageProvider_JPEG2000_AddRef( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_JPEG2000 )
-
-     data->ref++;
-
-     return DFB_OK;
-}
-
-static DFBResult
-IDirectFBImageProvider_JPEG2000_Release( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_JPEG2000 )
-
-     if (--data->ref == 0)
-           IDirectFBImageProvider_JPEG2000_Destruct( thiz );
-
-     return DFB_OK;
-}  
 
 static DFBResult
 IDirectFBImageProvider_JPEG2000_RenderTo( IDirectFBImageProvider *thiz,
@@ -396,7 +373,7 @@ Construct( IDirectFBImageProvider *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBImageProvider_JPEG2000 )
      
-     data->ref = 1;
+     data->base.ref = 1;
      
      init_jasper();
      
@@ -461,8 +438,8 @@ Construct( IDirectFBImageProvider *thiz,
                return DFB_UNSUPPORTED;
      }
 
-     thiz->AddRef                = IDirectFBImageProvider_JPEG2000_AddRef;
-     thiz->Release               = IDirectFBImageProvider_JPEG2000_Release;
+     data->base.Destruct = IDirectFBImageProvider_JPEG2000_Destruct;
+
      thiz->RenderTo              = IDirectFBImageProvider_JPEG2000_RenderTo;
      thiz->SetRenderCallback     = IDirectFBImageProvider_JPEG2000_SetRenderCallback;
      thiz->GetImageDescription   = IDirectFBImageProvider_JPEG2000_GetImageDescription;

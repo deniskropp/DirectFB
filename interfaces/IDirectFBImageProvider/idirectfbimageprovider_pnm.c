@@ -55,12 +55,6 @@ Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer );
 
 static DFBResult
-IDirectFBImageProvider_PNM_AddRef( IDirectFBImageProvider *thiz );
-
-static DFBResult
-IDirectFBImageProvider_PNM_Release( IDirectFBImageProvider *thiz );
-
-static DFBResult
 IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *dest,
                                      const DFBRectangle     *dest_rect );
@@ -117,20 +111,19 @@ typedef struct {
 
 
 struct __IDirectFBImageProvider_PNM_data {
-     int                    ref;
-     IDirectFBDataBuffer   *buffer;
+     IDirectFBImageProvider_data   base;
 
      PFormat                format;
      PImgType               type;
      unsigned int           img_offset;
      
-     u8                  *img;
+     u8                    *img;
      int                    width;
      int                    height;
      int                    colors;
 
      PRowCallback           getrow;
-     u8                  *rowbuf;     /* buffer for ascii images */
+     u8                    *rowbuf;     /* buffer for ascii images */
      int                    bufp;       /* current position in buffer */
      int                    chunksize;  /* maximum size of each sample */
 
@@ -143,8 +136,8 @@ struct __IDirectFBImageProvider_PNM_data {
 
 #define P_GET( buf, n ) \
 {\
-     data->buffer->WaitForData( data->buffer, n );\
-     err = data->buffer->GetData( data->buffer, n, buf, &len );\
+     data->base.buffer->WaitForData( data->base.buffer, n );\
+     err = data->base.buffer->GetData( data->base.buffer, n, buf, &len );\
      if (err) {\
           if (err == DFB_EOF)\
                return DFB_OK;\
@@ -500,7 +493,7 @@ p_init( IDirectFBImageProvider_PNM_data *data )
           }
      }
 
-     data->buffer->GetPosition( data->buffer, &data->img_offset );
+     data->base.buffer->GetPosition( data->base.buffer, &data->img_offset );
      
      return err;
 }
@@ -513,35 +506,9 @@ IDirectFBImageProvider_PNM_Destruct( IDirectFBImageProvider *thiz )
      IDirectFBImageProvider_PNM_data *data;
 
      data = (IDirectFBImageProvider_PNM_data*) thiz->priv;
-
-     if (data->buffer)
-          data->buffer->Release( data->buffer );
      
      if (data->img)
           D_FREE( data->img );
-
-     DIRECT_DEALLOCATE_INTERFACE( thiz );
-}
-
-static DFBResult
-IDirectFBImageProvider_PNM_AddRef( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_PNM )
-
-     data->ref++;
-
-     return DFB_OK;
-}
-
-static DFBResult
-IDirectFBImageProvider_PNM_Release( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_PNM )
-
-     if (--data->ref == 0)
-           IDirectFBImageProvider_PNM_Destruct( thiz );
-
-     return DFB_OK;
 }
 
 static DFBResult
@@ -658,10 +625,10 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           }          
           
           if (cb_result == DIRCR_OK) {
-               data->buffer->Release( data->buffer );
-               data->buffer = NULL;
+               data->base.buffer->Release( data->base.buffer );
+               data->base.buffer = NULL;
           } else {
-               data->buffer->SeekTo( data->buffer, data->img_offset );
+               data->base.buffer->SeekTo( data->base.buffer, data->img_offset );
                D_FREE( data->img );
                data->img = NULL;
           }
@@ -776,8 +743,8 @@ Construct( IDirectFBImageProvider *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBImageProvider_PNM )
 
-     data->ref    = 1;
-     data->buffer = buffer;
+     data->base.ref    = 1;
+     data->base.buffer = buffer;
 
      buffer->AddRef( buffer );
 
@@ -792,8 +759,8 @@ Construct( IDirectFBImageProvider *thiz,
                (data->type == PIMG_RAW) ? "Raw" : "Plain",
                format_names[data->format], data->width, data->height );
 
-     thiz->AddRef                = IDirectFBImageProvider_PNM_AddRef;
-     thiz->Release               = IDirectFBImageProvider_PNM_Release;
+     data->base.Destruct = IDirectFBImageProvider_PNM_Destruct;
+
      thiz->RenderTo              = IDirectFBImageProvider_PNM_RenderTo;
      thiz->SetRenderCallback     = IDirectFBImageProvider_PNM_SetRenderCallback;
      thiz->GetImageDescription   = IDirectFBImageProvider_PNM_GetImageDescription;

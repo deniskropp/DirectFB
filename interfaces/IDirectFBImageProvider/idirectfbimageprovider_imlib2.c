@@ -79,18 +79,13 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, IMLIB2 )
  * private data struct of IDirectFBImageProvider_IMLIB2
  */
 typedef struct {
+     IDirectFBImageProvider_data   base;
      int            ref;      /* reference counter */
      char          *filename; /* filename of file to load */
      Imlib_Image    im;
 } IDirectFBImageProvider_IMLIB2_data;
 
 
-
-static DFBResult
-IDirectFBImageProvider_IMLIB2_AddRef  ( IDirectFBImageProvider *thiz );
-
-static DFBResult
-IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
 IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
@@ -110,6 +105,19 @@ static DFBResult
 IDirectFBImageProvider_IMLIB2_GetImageDescription( IDirectFBImageProvider *thiz,
                                                    DFBImageDescription    *dsc );
 
+
+static void
+IDirectFBImageProvider_IMLIB2_Destruct( IDirectFBImageProvider *thiz )
+{
+     IDirectFBImageProvider_IMLIB2_data *data =
+                              (IDirectFBImageProvider_IMLIB2_data*)thiz->priv;
+
+     if (data->filename)
+          D_FREE( data->filename );
+
+     if (data->im)
+          imlib_free_image();
+}
 
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
@@ -160,7 +168,7 @@ Construct( IDirectFBImageProvider *thiz,
           return DFB_DEAD;
      }
 
-     data->ref = 1;
+     data->base.ref = 1;
      data->filename = D_STRDUP( buffer_data->filename );
 
      /* The image is already loaded and in cache at this point.
@@ -169,42 +177,13 @@ Construct( IDirectFBImageProvider *thiz,
 
      D_DEBUG( "DirectFB/Media: IMLIB2 Provider Construct '%s'\n", data->filename );
 
-     thiz->AddRef = IDirectFBImageProvider_IMLIB2_AddRef;
-     thiz->Release = IDirectFBImageProvider_IMLIB2_Release;
+     data->base.Destruct = IDirectFBImageProvider_IMLIB2_Destruct;
+
      thiz->RenderTo = IDirectFBImageProvider_IMLIB2_RenderTo;
      thiz->SetRenderCallback = IDirectFBImageProvider_IMLIB2_SetRenderCallback;
      thiz->GetImageDescription = IDirectFBImageProvider_IMLIB2_GetImageDescription;
      thiz->GetSurfaceDescription = IDirectFBImageProvider_IMLIB2_GetSurfaceDescription;
 
-     return DFB_OK;
-}
-
-
-static DFBResult
-IDirectFBImageProvider_IMLIB2_AddRef  ( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
-
-     data->ref++;
-
-     return DFB_OK;
-}
-
-static DFBResult
-IDirectFBImageProvider_IMLIB2_Release ( IDirectFBImageProvider *thiz )
-{
-
-     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_IMLIB2)
-
-     if (--data->ref == 0) {
-          D_FREE( data->filename );
-          imlib_free_image();
-          D_FREE( thiz->priv );
-          thiz->priv = NULL;
-     }
-#ifndef DFB_DEBUG
-     D_FREE( thiz );
-#endif
      return DFB_OK;
 }
 

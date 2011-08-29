@@ -79,8 +79,7 @@ enum {
  * private data struct of IDirectFBImageProvider_MPEG2
  */
 typedef struct {
-     int                  ref;      /* reference counter */
-     IDirectFBDataBuffer *buffer;
+     IDirectFBImageProvider_data   base;
 
      MPEG2_Decoder       *dec;
 
@@ -94,11 +93,6 @@ typedef struct {
      CoreDFB             *core;
 } IDirectFBImageProvider_MPEG2_data;
 
-static DFBResult
-IDirectFBImageProvider_MPEG2_AddRef  ( IDirectFBImageProvider *thiz );
-
-static DFBResult
-IDirectFBImageProvider_MPEG2_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
 IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
@@ -133,6 +127,19 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx )
      return DFB_UNSUPPORTED;
 }
 
+static void
+IDirectFBImageProvider_MPEG2_Destruct( IDirectFBImageProvider *thiz )
+{
+     IDirectFBImageProvider_MPEG2_data *data =
+                              (IDirectFBImageProvider_MPEG2_data*)thiz->priv;
+
+     MPEG2_Close(data->dec);
+
+     /* Deallocate image data. */
+     if (data->image)
+          D_FREE( data->image );
+}
+
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            ... )
@@ -149,8 +156,8 @@ Construct( IDirectFBImageProvider *thiz,
      core = va_arg( tag, CoreDFB * );
      va_end( tag );
        
-     data->ref    = 1;
-     data->buffer = buffer;
+     data->base.ref    = 1;
+     data->base.buffer = buffer;
      data->core   = core;
 
      /* Increase the data buffer reference counter. */
@@ -170,8 +177,8 @@ Construct( IDirectFBImageProvider *thiz,
 
      data->stage = STAGE_IMAGE;
 
-     thiz->AddRef = IDirectFBImageProvider_MPEG2_AddRef;
-     thiz->Release = IDirectFBImageProvider_MPEG2_Release;
+     data->base.Destruct = IDirectFBImageProvider_MPEG2_Destruct;
+
      thiz->RenderTo = IDirectFBImageProvider_MPEG2_RenderTo;
      thiz->SetRenderCallback = IDirectFBImageProvider_MPEG2_SetRenderCallback;
      thiz->GetImageDescription = IDirectFBImageProvider_MPEG2_GetImageDescription;
@@ -191,44 +198,6 @@ error:
      return ret;
 }
 
-static void
-IDirectFBImageProvider_MPEG2_Destruct( IDirectFBImageProvider *thiz )
-{
-     IDirectFBImageProvider_MPEG2_data *data =
-                              (IDirectFBImageProvider_MPEG2_data*)thiz->priv;
-
-     MPEG2_Close(data->dec);
-
-     /* Decrease the data buffer reference counter. */
-     data->buffer->Release( data->buffer );
-
-     /* Deallocate image data. */
-     if (data->image)
-          D_FREE( data->image );
-
-     DIRECT_DEALLOCATE_INTERFACE( thiz );
-}
-
-static DFBResult
-IDirectFBImageProvider_MPEG2_AddRef( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
-
-     data->ref++;
-
-     return DFB_OK;
-}
-
-static DFBResult
-IDirectFBImageProvider_MPEG2_Release( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
-
-     if (--data->ref == 0)
-          IDirectFBImageProvider_MPEG2_Destruct( thiz );
-
-     return DFB_OK;
-}
 
 static DFBResult
 IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,

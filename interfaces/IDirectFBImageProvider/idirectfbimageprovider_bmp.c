@@ -62,9 +62,7 @@ typedef enum {
 } BMPImageCompression;
 
 typedef struct {
-     int                    ref;
-
-     IDirectFBDataBuffer   *buffer;
+     IDirectFBImageProvider_data   base;
 
      int                    width;
      int                    height;
@@ -76,7 +74,7 @@ typedef struct {
 
      DFBColor              *palette;
 
-     u32                 *image;
+     u32                   *image;
 
      DIRenderCallback       render_callback;
      void                  *render_callback_ctx;
@@ -117,7 +115,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
 
      memset( buf, 0, sizeof(buf) );
 
-     ret = fetch_data( data->buffer, buf, sizeof(buf) );
+     ret = fetch_data( data->base.buffer, buf, sizeof(buf) );
      if (ret)
           return ret;
 
@@ -221,7 +219,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
           bihsize -= 40;
           while (bihsize--) {
                u8 b; 
-               ret = fetch_data( data->buffer, &b, 1 );
+               ret = fetch_data( data->base.buffer, &b, 1 );
                if (ret)
                     return ret;
           }
@@ -236,7 +234,7 @@ bmp_decode_header( IDirectFBImageProvider_BMP_data *data )
           if (!data->palette)
                return D_OOM();
 
-          ret = fetch_data( data->buffer, src, data->num_colors*4 );
+          ret = fetch_data( data->base.buffer, src, data->num_colors*4 );
           if (ret)
                return ret;
 
@@ -275,7 +273,7 @@ bmp_decode_rgb_row( IDirectFBImageProvider_BMP_data *data, int row )
      u32       *dst;
      int        i;
 
-     ret = fetch_data( data->buffer, buf, pitch );
+     ret = fetch_data( data->base.buffer, buf, pitch );
      if (ret)
           return ret;
 
@@ -348,37 +346,14 @@ IDirectFBImageProvider_BMP_Destruct( IDirectFBImageProvider *thiz )
 {
      IDirectFBImageProvider_BMP_data *data = thiz->priv;
 
-     if (data->buffer)
-          data->buffer->Release( data->buffer );
+     if (data->base.buffer)
+          data->base.buffer->Release( data->base.buffer );
 
      if (data->image)
           D_FREE( data->image );
 
      if (data->palette)
           D_FREE( data->palette );
-
-     DIRECT_DEALLOCATE_INTERFACE( thiz );
-}
-
-static DirectResult
-IDirectFBImageProvider_BMP_AddRef( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_BMP )
-
-     data->ref++;
-
-     return DFB_OK;
-}
-
-static DirectResult
-IDirectFBImageProvider_BMP_Release( IDirectFBImageProvider *thiz )
-{
-     DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_BMP )
-
-     if (--data->ref == 0)
-           IDirectFBImageProvider_BMP_Destruct( thiz );
-
-     return DFB_OK;
 }
 
 static DFBResult
@@ -449,7 +424,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
                return D_OOM();
           }
 
-          data->buffer->SeekTo( data->buffer, data->img_offset );
+          data->base.buffer->SeekTo( data->base.buffer, data->img_offset );
 
           for (y = data->height-1; y >= 0 && cb_result == DIRCR_OK; y--) {
                ret = bmp_decode_rgb_row( data, y );
@@ -481,8 +456,8 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
           }
 
           if (cb_result == DIRCR_OK) {
-               data->buffer->Release( data->buffer );
-               data->buffer = NULL;
+               data->base.buffer->Release( data->base.buffer );
+               data->base.buffer = NULL;
           }
           else {
                D_FREE( data->image );
@@ -568,8 +543,8 @@ Construct( IDirectFBImageProvider *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBImageProvider_BMP )
 
-     data->ref    = 1;
-     data->buffer = buffer;
+     data->base.ref    = 1;
+     data->base.buffer = buffer;
 
      buffer->AddRef( buffer );
 
@@ -579,8 +554,8 @@ Construct( IDirectFBImageProvider *thiz,
           return ret;
      }
 
-     thiz->AddRef                = IDirectFBImageProvider_BMP_AddRef;
-     thiz->Release               = IDirectFBImageProvider_BMP_Release;
+     data->base.Destruct = IDirectFBImageProvider_BMP_Destruct;
+
      thiz->RenderTo              = IDirectFBImageProvider_BMP_RenderTo;
      thiz->SetRenderCallback     = IDirectFBImageProvider_BMP_SetRenderCallback;
      thiz->GetImageDescription   = IDirectFBImageProvider_BMP_GetImageDescription;
