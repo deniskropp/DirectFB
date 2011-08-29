@@ -206,6 +206,8 @@ struct __DFB_CoreSurfaceBuffer {
      FusionVector             allocs;        /* Allocations within Surface Pools. */
 
      CoreSurfaceConfig        config;        /* Configuration of its surface at the time of the buffer creation */
+     CoreSurfaceTypeFlags     type;
+     unsigned long            resource_id;   /* layer id, window id, or user specified */
 };
 
 

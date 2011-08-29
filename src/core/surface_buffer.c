@@ -141,10 +141,12 @@ dfb_surface_buffer_create( CoreDFB                 *core,
      direct_serial_init( &buffer->serial );
      direct_serial_increase( &buffer->serial );
 
-     buffer->surface = surface;
-     buffer->flags   = flags;
-     buffer->format  = surface->config.format;
-     buffer->config  = surface->config;
+     buffer->surface     = surface;
+     buffer->flags       = flags;
+     buffer->format      = surface->config.format;
+     buffer->config      = surface->config;
+     buffer->type        = surface->type;
+     buffer->resource_id = surface->resource_id;
 
      if (surface->config.caps & DSCAPS_VIDEOONLY)
           buffer->policy = CSP_VIDEOONLY;
