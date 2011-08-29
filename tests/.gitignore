@@ -9,6 +9,7 @@ dfbtest_gl3
 dfbtest_init
 dfbtest_mirror
 dfbtest_reinit
+dfbtest_resize
 dfbtest_scale
 dfbtest_stereo_window
 dfbtest_sync
