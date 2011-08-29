@@ -281,7 +281,7 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
           allocation = chunk->allocation;
           if (allocation) {
                CoreSurfaceBuffer *other;
-               int                size;
+               int                size, locks;
 
                D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
                D_ASSERT( chunk->buffer == allocation->buffer );
@@ -290,8 +290,9 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
                other = allocation->buffer;
                D_MAGIC_ASSERT( other, CoreSurfaceBuffer );
 
-               if (other->locked) {
-                    D_DEBUG_AT( SurfMan, "  ++ %7d locked %dx\n", allocation->size, other->locked );
+               locks = dfb_surface_buffer_locks( other );
+               if (locks) {
+                    D_DEBUG_AT( SurfMan, "  ++ %7d locked %dx\n", allocation->size, locks );
                     goto next_reset;
                }
 

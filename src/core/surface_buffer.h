@@ -31,6 +31,7 @@
 
 #include <direct/debug.h>
 
+#include <fusion/object.h>
 #include <fusion/vector.h>
 
 #include <core/surface.h>
@@ -64,6 +65,14 @@ typedef enum {
 
      CSALF_ALL           = 0x00001007   /* All of these. */
 } CoreSurfaceAllocationFlags;
+
+typedef enum {
+     CSBNF_NONE     = 0x00000000
+} CoreSurfaceBufferNotificationFlags;
+
+typedef struct {
+     CoreSurfaceBufferNotificationFlags  flags;
+} CoreSurfaceBufferNotification;
 
 /*
  * An Allocation of a Surface Buffer
@@ -180,6 +189,8 @@ dfb_surface_buffer_lock_deinit( CoreSurfaceBufferLock *lock )
  * A Surface Buffer of a Surface
  */
 struct __DFB_CoreSurfaceBuffer {
+     FusionObject             object;
+
      int                      magic;
 
      DirectSerial             serial;        /* Increased when content is written. */
@@ -194,18 +205,16 @@ struct __DFB_CoreSurfaceBuffer {
 
      FusionVector             allocs;        /* Allocations within Surface Pools. */
 
-#if 1
-     unsigned int             locked;        /* Lock count. FIXME: Add fail safe cleanup! */
-#endif
+     CoreSurfaceConfig        config;        /* Configuration of its surface at the time of the buffer creation */
 };
 
 
-DFBResult dfb_surface_buffer_new    ( CoreSurface             *surface,
+DFBResult dfb_surface_buffer_create ( CoreDFB                 *core,
+                                      CoreSurface             *surface,
                                       CoreSurfaceBufferFlags   flags,
                                       CoreSurfaceBuffer      **ret_buffer );
 
-DFBResult dfb_surface_buffer_destroy( CoreSurfaceBuffer       *buffer );
-
+DFBResult dfb_surface_buffer_decouple( CoreSurfaceBuffer       *buffer );
 
 DFBResult dfb_surface_buffer_lock   ( CoreSurfaceBuffer       *buffer,
                                       CoreSurfaceAccessorID    accessor,
@@ -259,8 +268,25 @@ dfb_surface_buffer_index( CoreSurfaceBuffer *buffer )
      return 0;
 }
 
+static inline int
+dfb_surface_buffer_locks( CoreSurfaceBuffer *buffer )
+{
+     int refs;
+
+     fusion_ref_stat( &buffer->object.ref, &refs );
+
+     D_ASSERT( refs > 0 );
+
+     return refs - 1;
+}
+
 DFBResult dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
                                          CoreSurfaceAccessFlags  access );
+
+
+FUSION_OBJECT_METHODS( CoreSurfaceBuffer, dfb_surface_buffer );
+
+FusionObjectPool *dfb_surface_buffer_pool_create( const FusionWorld *world );
 
 #endif
 

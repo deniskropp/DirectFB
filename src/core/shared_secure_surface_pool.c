@@ -53,6 +53,8 @@ typedef struct {
 typedef struct {
      int          pitch;
      int          size;
+
+     DFBSurfaceID surface_id;
 } SharedAllocationData;
 
 /**********************************************************************************************************************/
@@ -177,9 +179,11 @@ sharedSecureAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     alloc->surface_id = surface->object.id;
+
      dfb_surface_calc_buffer_size( surface, 8, 0, &alloc->pitch, &alloc->size );
 
-     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%p", data->tmpfs_dir, surface->object.id, alloc );
+     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%p", data->tmpfs_dir, alloc->surface_id, alloc );
 
      fd = open( buf, O_RDWR | O_CREAT | O_EXCL, 0660 );
      if (fd < 0) {
@@ -211,7 +215,6 @@ sharedSecureDeallocateBuffer( CoreSurfacePool       *pool,
                               CoreSurfaceAllocation *allocation,
                               void                  *alloc_data )
 {
-     CoreSurface          *surface;
      SharedPoolData       *data  = pool_data;
      SharedAllocationData *alloc = alloc_data;
      char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
@@ -219,10 +222,7 @@ sharedSecureDeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%p", data->tmpfs_dir, surface->object.id, alloc );
+     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%p", data->tmpfs_dir, alloc->surface_id, alloc );
 
      if (unlink( buf ) < 0) {
           D_PERROR( "Core/Surface/SHM: Could not remove '%s'!\n", buf );
@@ -257,7 +257,7 @@ sharedSecureLock( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%p", data->tmpfs_dir, surface->object.id, alloc );
+     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%p", data->tmpfs_dir, alloc->surface_id, alloc );
 
      fd = open( buf, O_RDWR );
      if (fd < 0) {
