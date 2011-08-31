@@ -18,6 +18,9 @@ if ENABLE_VOODOO
 PROXY_DIR = proxy
 endif
 
+if BUILD_DVC
+DVC_DIR = lib/dvc
+endif
 
 if DIRECTFB_BUILD_PURE_VOODOO
 NON_PURE_VOODOO_SUBDIRS = 
@@ -36,6 +39,7 @@ SUBDIRS = \
 	lib			\
 	flux			\
 	src 			\
+	$(DVC_DIR)		\
 	$(TOOLS_DIR)		\
 	$(NON_PURE_VOODOO_SUBDIRS)	\
 	$(PROXY_DIR)		\
