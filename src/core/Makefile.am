@@ -125,6 +125,16 @@ libdirectfb_core_la_SOURCES = \
 	windowstack.c		\
 	wm.c
 
+libdirectfb_core_la_COMPILE_FIRST = CoreDFB.h \
+	CoreGraphicsState.h \
+	CoreLayerContext.h \
+	CoreLayer.h \
+	CoreLayerRegion.h \
+	CorePalette.h \
+	CoreSurface.h \
+	CoreWindow.h \
+	CoreWindowStack.h
+
 distclean-local:
 	rm -f CoreDFB.cpp
 	rm -f CoreDFB.h
