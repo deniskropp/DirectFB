@@ -982,6 +982,385 @@ AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
 
 
 
+dnl Imlib2 check
+imlib2="no"
+AC_ARG_ENABLE(imlib2,
+  [  --enable-imlib2         build Imlib2 image provider [[default=yes]]],
+  enable_imlib2="$enableval", enable_imlib2="yes")
+
+if test "x$enable_imlib2" = "xyes"; then
+  AC_PATH_PROG(IMLIB2_CONFIG, imlib2-config, no)
+  if test "x$IMLIB2_CONFIG" = xno; then
+    AC_MSG_WARN([*** Imlib2 library not found, building without Imlib2 support ***])
+    imlib2="no"
+  else
+    IMLIB2_CFLAGS=`imlib2-config --cflags`
+    IMLIB2_LIBS=`imlib2-config --libs`
+    imlib2="yes"
+  fi
+fi
+
+AC_SUBST(IMLIB2_LIBS)
+AC_SUBST(IMLIB2_CFLAGS)
+
+AM_CONDITIONAL(IMLIB2, test "x$imlib2" = xyes)
+
+
+dnl PNM check
+AC_ARG_ENABLE(pnm,
+  [  --enable-pnm            build PNM (PBM/PGM/PPM) image provider [[default=yes]]],
+  pnm="$enableval", pnm="yes")
+
+AM_CONDITIONAL(PNM, test "x$pnm" = "xyes")
+
+
+dnl SVG check
+SVGCAIRO_REQUIRED_VERSION=0.1.6
+
+svg="no"
+AC_ARG_ENABLE(svg,
+  [  --enable-svg            build SVG image provider [[default=yes]]],
+  enable_svg="$enableval", enable_svg="yes")
+
+if test "x$enable_svg" = "xyes"; then
+  AC_MSG_CHECKING(for libsvg-cairo >= $SVGCAIRO_REQUIRED_VERSION)
+  if $PKG_CONFIG --atleast-version=$SVGCAIRO_REQUIRED_VERSION libsvg-cairo; then
+    SVG_CFLAGS=`$PKG_CONFIG --cflags libsvg-cairo`
+    SVG_LIBS=`$PKG_CONFIG --libs libsvg-cairo`
+    SVG_VERSION=`$PKG_CONFIG --modversion libsvg-cairo`
+    AC_MSG_RESULT([found (version $SVG_VERSION)])
+    svg="yes"
+  else
+    AC_MSG_RESULT([not found])
+    AC_MSG_WARN([
+*** SVG-Cairo at least $SVGCAIRO_REQUIRED_VERSION not found -- SVG image provider will not be built.])
+  fi
+fi
+
+AC_SUBST(SVG_CFLAGS)
+AC_SUBST(SVG_LIBS)
+
+AM_CONDITIONAL(SVG, test "x$svg" = "xyes")
+
+
+dnl MPEG2 check
+AC_ARG_ENABLE(mpeg2,
+  [  --enable-mpeg2          build MPEG2 image provider [[default=yes]]],
+  mpeg2="$enableval", mpeg2="yes")
+
+AM_CONDITIONAL(MPEG2, test "x$mpeg2" = "xyes")
+
+
+dnl BMP check
+AC_ARG_ENABLE(bmp,
+  [  --enable-bmp            build BMP image provider [[default=yes]]],
+  bmp="$enableval", bmp="yes")
+
+AM_CONDITIONAL(BMP, test "x$bmp" = "xyes")
+
+
+dnl JPEG2000 Check
+AC_ARG_ENABLE(jpeg2000,
+  [  --enable-jpeg2000       build JPEG2000 image provider [[default=yes]]],
+  jpeg2000="$enableval", jpeg2000="yes")
+
+if test "$jpeg2000" = "yes"; then
+  dnl Test for libjasper
+  AC_CHECK_LIB(jasper, jas_image_decode, jasper="yes", jasper="no", [-lm])
+  if test "$jasper" = "yes"; then
+    AC_CHECK_HEADER(jasper/jasper.h,, jasper="no")
+  fi
+  if test "$jasper" == "yes"; then
+    JASPER_LIBS="-ljasper -lm -ljpeg"
+  else
+    AC_MSG_WARN([
+*** Jasper not found. JPEG2000 image provider will not be built.])
+    jpeg2000="no"
+  fi
+fi
+
+AC_SUBST(JASPER_LIBS)
+
+AM_CONDITIONAL(JPEG2000, test "x$jpeg2000" = "xyes")
+
+
+#
+# OpenQuicktime check
+#
+openquicktime="no"
+AC_ARG_ENABLE(openquicktime,
+  [  --enable-openquicktime  build OpenQuicktime video provider [[default=no]]],
+  enable_openquicktime="$enableval", enable_openquicktime="no")
+
+if test "x$enable_openquicktime" = "xyes"; then
+  AC_CHECK_LIB(openquicktime, quicktime_open, openquicktime="yes", openquicktime="no")
+  if test "x$openquicktime" = xyes; then
+    OPENQUICKTIME_LIBS="-lopenquicktime"
+
+    AC_CHECK_HEADER(openquicktime/openquicktime.h, , openquicktime="no")
+    if test "x$openquicktime" = xno; then
+      AC_MSG_WARN([*** OpenQuicktime header not found, building without OpenQuicktime support ***])
+    fi
+  else
+    AC_MSG_WARN([*** OpenQuicktime library not found, building without OpenQuicktime support ***])
+  fi
+fi
+
+AC_SUBST(OPENQUICKTIME_LIBS)
+
+AM_CONDITIONAL(OPENQUICKTIME_PROVIDER, test "x$openquicktime" = xyes)
+
+#
+# Avifile check
+#
+avifile=no
+AC_ARG_ENABLE(avifile,
+  [  --enable-avifile        build AviFile video provider [[default=no]]],
+  enable_avifile="$enableval", enable_avifile=no)
+
+if test x$enable_avifile = xyes; then
+  AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
+  if test x$AVIFILE_CONFIG = xno; then
+    AC_MSG_WARN([
+*** avifile-config not found -- AVI media provider will not be built.])
+  else
+    AC_PROG_CXX
+    avifile=yes
+    AVIFILE_CFLAGS=`$AVIFILE_CONFIG --cflags`
+    AVIFILE_LIBS="`$AVIFILE_CONFIG --libs` -lstdc++"
+  fi
+fi
+
+AC_SUBST(AVIFILE_CFLAGS)
+AC_SUBST(AVIFILE_LIBS)
+
+AM_CONDITIONAL(AVIFILE_PROVIDER, test x$avifile = xyes)
+
+#
+# libmpeg3 check
+#
+mpeg3=no
+AC_ARG_ENABLE(libmpeg3,
+  [  --enable-libmpeg3       build Libmpeg3 video provider [[default=no]]],
+  enable_mpeg3="$enableval", enable_mpeg3=no)
+
+if test x$enable_mpeg3 = xyes; then
+  AC_CHECK_LIB(mpeg3, mpeg3_open,
+    [
+      AC_CHECK_HEADER(libmpeg3.h,
+        mpeg3=yes
+        LIBMPEG3_LIBS='-lmpeg3',
+        AC_MSG_WARN([
+*** libmpeg3 headers not found -- Libmpeg3 video provider will not be built.]))
+    ],[
+      AC_MSG_WARN([
+*** libmpeg3 not found -- Libmpeg3 video provider will not be build.])
+    ], -lm -lpthread)
+fi
+
+AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$mpeg3 = xyes)
+AC_SUBST(LIBMPEG3_LIBS)
+
+#
+# Libflash check
+#
+flash=no
+AC_ARG_ENABLE(flash,
+  [  --enable-flash          build Flash media provider [[default=no]]],
+  enable_flash="$enableval", enable_flash=no)
+if test x$enable_flash = xyes; then
+  AC_CHECK_HEADER(flash.h,
+    [ AC_PROG_CXX
+      AC_LANG_PUSH(C++)
+      AC_CHECK_LIB(z, gzsetparams, LIBZ=-lz)
+      AC_CHECK_LIB(jpeg, jpeg_destroy_decompress, LIBJPEG=-ljpeg)
+      AC_CHECK_LIB(flash, FlashGetInfo, 
+        [  flash=yes
+           FLASH_LIBS="-lflash $LIBJPEG $LIBZ -lm"],
+        [  AC_MSG_WARN([
+*** libflash not found -- Flash media provider will not be built.])
+        ], $LIBJPEG $LIBZ -lm)
+      AC_LANG_POP(C++)
+    ],[  AC_MSG_WARN([
+*** libflash headers not found -- Flash media provider will not be built.])
+    ])
+fi
+
+AC_SUBST(FLASH_LIBS)
+
+AM_CONDITIONAL(FLASH_PROVIDER, test x$flash = xyes)
+
+#
+# Xine check
+#
+xine="no"
+AC_ARG_ENABLE(xine,
+  [  --enable-xine           build Xine video provider [[default=yes]]],
+  enable_xine="$enableval", enable_xine="yes")
+
+if test "x$enable_xine" = "xyes"; then
+	AC_PATH_PROG(XINE_CONFIG, xine-config, no)
+	if test "x$XINE_CONFIG" = "xno"; then
+		AC_MSG_WARN([
+*** xine-config not found -- Xine video provider will not be built.])
+	else
+		AC_MSG_CHECKING([for xine-lib >= 1.0.0])
+		XINE_VERSION=`$XINE_CONFIG --version`
+		case $XINE_VERSION in
+			1.*)
+				AC_MSG_RESULT(yes)
+				xine="yes"
+				XINE_CFLAGS=`$XINE_CONFIG --cflags`
+				XINE_LIBS=`$XINE_CONFIG --libs`
+				XINE_PLUGINDIR=`$XINE_CONFIG --plugindir`
+				;;
+			*)
+				AC_MSG_RESULT(no)
+				AC_MSG_WARN([
+*** xine-lib 1.0.0 or newer is required - Xine video provider will not be built.])
+				;;
+		esac
+	fi
+fi
+
+AC_SUBST(XINE_CFLAGS)
+AC_SUBST(XINE_LIBS)
+AC_SUBST(XINE_PLUGINDIR)
+
+AM_CONDITIONAL(XINE_PROVIDER, test "x$xine" = "xyes")
+
+
+#
+# Xine/VDPAU check
+#
+xine_vdpau="no"
+AC_ARG_ENABLE(xine-vdpau,
+  [  --enable-xine-vdpau      build Xine/VDPAU video provider [[default=yes]]],
+  enable_xine_vdpau="$enableval", enable_xine_vdpau="yes")
+
+if test "x$enable_xine_vdpau" = "xyes"; then
+	AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
+	if test "$PKG_CONFIG" = "no"; then
+		AC_MSG_WARN([
+*** pkg-config not found -- Xine/VDPAU video provider will not be built.])
+	else
+		AC_MSG_CHECKING([for xine-lib >= 1.1.90])
+      if $PKG_CONFIG --atleast-version 1.1.90 libxine; then
+         AC_MSG_RESULT(yes)
+
+         AC_MSG_CHECKING([for vdpau >= 0.3])
+         if $PKG_CONFIG --atleast-version 0.3 vdpau; then
+            AC_MSG_RESULT(yes)
+            xine_vdpau="yes"
+            XINE_VDPAU_CFLAGS=`$PKG_CONFIG --cflags libxine vdpau`
+            XINE_VDPAU_LIBS=`$PKG_CONFIG --libs libxine vdpau`
+            XINE_VDPAU_PLUGINDIR=`$PKG_CONFIG --variable=plugindir libxine`
+         else
+            AC_MSG_RESULT(no)
+            AC_MSG_WARN([
+*** vdpau 0.3 or newer is required - Xine/VDPAU video provider will not be built.])
+         fi
+      else
+         AC_MSG_RESULT(no)
+         AC_MSG_WARN([
+*** xine-lib 1.1.90 or newer is required - Xine/VDPAU video provider will not be built.])
+      fi
+	fi
+fi
+
+AC_SUBST(XINE_VDPAU_CFLAGS)
+AC_SUBST(XINE_VDPAU_LIBS)
+AC_SUBST(XINE_VDPAU_PLUGINDIR)
+
+AM_CONDITIONAL(XINE_VDPAU_PROVIDER, test "x$xine_vdpau" = "xyes")
+
+
+#
+# Swfdec check
+#
+swfdec="no"
+AC_ARG_ENABLE(swfdec,
+  [  --enable-swfdec         build Swfdec (Flash decoder) video provider [[default=yes]]],
+  enable_swfdec="$enableval", enable_swfdec="yes")
+
+if test "x$enable_swfdec" = "xyes"; then
+    swfdec_pc="no"
+    AC_MSG_CHECKING([for libswfdec >= 0.5.0])
+    for i in "swfdec" "swfdec-0.5"; do
+        if $PKG_CONFIG --atleast-version=0.5.0 $i; then
+            swfdec_pc=$i
+        fi
+    done
+    if test "x$swfdec_pc" != "xno"; then
+        AC_MSG_RESULT(yes)
+        swfdec="yes"
+        SWFDEC_CFLAGS=`$PKG_CONFIG --cflags $swfdec_pc`
+        SWFDEC_LIBS=`$PKG_CONFIG --libs $swfdec_pc`
+    else
+        AC_MSG_RESULT(no)
+        AC_MSG_WARN([
+*** Swfdec 0.5.0 or newer is required - Swfdec video provider will not be built.])
+    fi
+fi
+          
+AC_SUBST(SWFDEC_CFLAGS)
+AC_SUBST(SWFDEC_LIBS)
+
+AM_CONDITIONAL(SWFDEC_PROVIDER, test "x$swfdec" = "xyes")
+
+#
+# FFmpeg check
+#
+ffmpeg="no"
+AC_ARG_ENABLE(ffmpeg,
+  [  --enable-ffmpeg         build FFmpeg video provider [[default=yes]]],
+  enable_ffmpeg="$enableval", enable_ffmpeg="yes")
+
+if test "x$enable_ffmpeg" = "xyes"; then
+    AC_MSG_CHECKING([for libavcodec/libavformat/libavutil])
+    if $PKG_CONFIG libavcodec libavformat libavutil; then
+        AC_MSG_RESULT(yes)
+        ffmpeg="yes"
+        FFMPEG_CFLAGS=`$PKG_CONFIG --cflags libavcodec libavformat libavutil`
+        FFMPEG_LIBS=`$PKG_CONFIG --libs libavcodec libavformat libavutil`
+    else
+        AC_MSG_RESULT(no)
+        AC_MSG_WARN([
+*** libavcodec/libavformat/libavutil are required - FFmpeg video provider will not be built.])
+    fi
+fi
+          
+AC_SUBST(FFMPEG_CFLAGS)
+AC_SUBST(FFMPEG_LIBS)
+
+AM_CONDITIONAL(FFMPEG_PROVIDER, test "x$ffmpeg" = "xyes")
+
+
+#
+# Check for FusionSound
+#
+have_fusionsound=no
+AC_ARG_WITH(fusionsound, [  --with-fusionsound      enable FusionSound support [[default=yes]]],, with_fusionsound=yes)
+if test x$with_fusionsound = xyes; then
+  FUSIONSOUND_REQUIRED_VERSION=1.1.0
+
+  AC_MSG_CHECKING(for FusionSound)
+
+  if $PKG_CONFIG --atleast-version $FUSIONSOUND_REQUIRED_VERSION fusionsound ; then
+    have_fusionsound=yes
+    FUSIONSOUND_CFLAGS=`$PKG_CONFIG --cflags fusionsound`
+    FUSIONSOUND_LIBS=`$PKG_CONFIG --libs fusionsound`
+    AC_DEFINE(HAVE_FUSIONSOUND,1,[Define to 1 if you want FusionSound support.])
+
+    AC_MSG_RESULT(found)
+  else
+    AC_MSG_WARN([
+*** FusionSound >= $FUSIONSOUND_REQUIRED_VERSION not found, disabling FusionSound support, falling back to OSS.])
+  fi
+fi
+AM_CONDITIONAL(HAVE_FUSIONSOUND, test "x$have_fusionsound" = xyes)
+
+
 dnl Test for freetype
 AC_ARG_ENABLE(freetype,
               AC_HELP_STRING([--enable-freetype],
@@ -1303,9 +1682,13 @@ fi
 
 if test "$checkfor_sh772x" = "yes" && test "$have_sh4" = "yes"; then
   PKG_CHECK_MODULES([SH772X_DEP],
-    [uiomux >= 1.5.0 shbeu >= 1.0.2 shjpeg >= 1.3.3], [sh772x=yes], [sh772x=no])
+    [uiomux >= 1.5.0 shbeu >= 1.0.2], [sh772x=yes], [sh772x=no])
   if test "$sh772x" = "no"; then
-       AC_MSG_WARN([*** Missing UIOMUX, SHBEU or SHJPEG library -- sh772x driver will not be built.])
+       AC_MSG_WARN([*** Missing UIOMUX or SHBEU library -- sh772x driver will not be built.])
+  fi
+  PKG_CHECK_MODULES([SH772X_SHJPEG_DEP], [shjpeg >= 1.3.3], [sh772x_shjpeg=yes], [sh772x_shjpeg=no])
+  if test "$sh772x_shjpeg" = "no"; then
+       AC_MSG_WARN([*** Missing SHJPEG library -- sh772x driver will be build without shjpeg support.])
   fi
 fi
 if test "$sh772x" = "yes"; then
@@ -1779,6 +2162,8 @@ AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
 AM_CONDITIONAL(GFX_VMWARE, test "$vmware" = "yes")
 AM_CONDITIONAL(GFX_VDPAU, test "$vdpau" = "yes")
 
+AM_CONDITIONAL(SH772X_SHJPEG, test "$sh772x_shjpeg" = "yes")
+
 AM_CONDITIONAL(DBOX2REMOTE, test "$enable_dbox2remote" = "yes")
 AM_CONDITIONAL(DREAMBOXREMOTE, test "$enable_dreamboxremote" = "yes")
 AM_CONDITIONAL(DYNAPRO_INPUT, test "$enable_dynapro_ts" = "yes")
@@ -1863,6 +2248,10 @@ AC_SUBST(MODULEDIR)
 AC_SUBST(MODULEDIRNAME)
 AC_SUBST(INCLUDEDIR)
 AC_SUBST(INTERNALINCLUDEDIR)
+
+AC_SUBST(FUSIONSOUND_CFLAGS)
+AC_SUBST(FUSIONSOUND_LIBS)
+
 AS_AC_EXPAND(SYSCONFDIR, $sysconfdir)
 
 CFLAGS="$CFLAGS -Werror-implicit-function-declaration"
@@ -1880,6 +2269,7 @@ if test "$GCC" = "yes"; then
   CXXFLAGS="-Wall -Wno-strict-aliasing $CXXFLAGS"
 fi
 
+AM_CONDITIONAL(BUILD_DVC, test "x$ffmpeg" = "xyes")
 
 AC_OUTPUT([
 
@@ -1911,6 +2301,8 @@ lib/voodoo/Makefile
 lib/voodoo/build.h
 lib/voodoo/unix/Makefile
 lib/voodoo/voodoo.pc
+
+lib/dvc/Makefile
 
 flux/Makefile
 
@@ -2003,7 +2395,9 @@ inputdrivers/wm97xx_ts/Makefile
 interfaces/Makefile
 interfaces/IDirectFBFont/Makefile
 interfaces/IDirectFBImageProvider/Makefile
+interfaces/IDirectFBImageProvider/mpeg2/Makefile
 interfaces/IDirectFBVideoProvider/Makefile
+interfaces/IDirectFBVideoProvider/video_out_dfb/Makefile
 interfaces/IDirectFBWindows/Makefile
 interfaces/IWater/Makefile
 
@@ -2083,12 +2477,27 @@ Building Window Manager Modules:
 Building Image Provider Modules:
   GIF                       $enable_gif 
   JPEG                      $JPEG                 $LIBJPEG
-  PNG                       $PNG                 $LIBPNG_CFLAGS $LIBPNG_LIBS
+  PNG                       $PNG                  $LIBPNG_CFLAGS $LIBPNG_LIBS
+  Imlib2                    $imlib2               $IMLIB2_CFLAGS $IMLIB2_LIBS
+  PNM                       $pnm
+  SVG                       $svg                  $LIBSVG_CFLAGS $LIBSVG_LIBS
+  BMP                       $bmp
+  JPEG2000                  $jpeg2000             $JASPER_LIBS
+  MPEG2                     $mpeg2
+
 
 Building Video Provider Modules:
   GIF                       $enable_gif
   Video4Linux               $V4L (v2: $V4L2)
   MNG                       $MNG                 $LIBMNG_CFLAGS $LIBMNG_LIBS
+  AviFile                   $avifile
+  Flash                     $flash
+  Libmpeg3                  $mpeg3
+  OpenQuicktime             $openquicktime
+  Xine                      $xine
+  Xine/VDPAU                $xine_vdpau
+  Swfdec                    $swfdec
+  FFmpeg                    $ffmpeg
 
 Building Font Modules:
   FreeType2                 $FREETYPE                 $FREETYPE_CFLAGS $FREETYPE_LIBS

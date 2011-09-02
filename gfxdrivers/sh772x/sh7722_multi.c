@@ -37,7 +37,7 @@
 #include "sh7722_multi.h"
 
 
-D_DEBUG_DOMAIN( SH7722_Layer, "SH7722/Layer", "Renesas SH7722 Layers" );
+D_DEBUG_DOMAIN( SH7722_Layer, "SH772x/Layer", "Renesas SH772x Layers" );
 
 /**********************************************************************************************************************/
 
@@ -61,8 +61,8 @@ sh7722InitLayer( CoreLayer                  *layer,
                  DFBDisplayLayerConfig      *config,
                  DFBColorAdjustment         *adjustment )
 {
-	 SH7722DriverData *sdrv = driver_data;
-	 SH7722DeviceData *sdev = sdrv->dev;
+     SH7722DriverData *sdrv = driver_data;
+     SH7722DeviceData *sdev = sdrv->dev;
      D_DEBUG_AT( SH7722_Layer, "%s()\n", __FUNCTION__ );
 
      /* set capabilities and type */

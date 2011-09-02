@@ -56,7 +56,7 @@ DFB_GRAPHICS_DRIVER( sh7722 )
 #include <shbeu/shbeu.h>
 #include <uiomux/uiomux.h>
 
-D_DEBUG_DOMAIN( SH7722_Driver, "SH7722/Driver", "Renesas SH7722 Driver" );
+D_DEBUG_DOMAIN( SH7722_Driver, "SH772x/Driver", "Renesas SH7722 Driver" );
 
 /**********************************************************************************************************************/
 
@@ -120,14 +120,14 @@ driver_init_driver( CoreGraphicsDevice  *device,
                               PROT_READ | PROT_WRITE,
                               MAP_SHARED, sdrv->gfx_fd, 0 );
      if (sdrv->gfx_shared == MAP_FAILED) {
-          D_PERROR( "SH7722/Driver: Could not map shared area!\n" );
+          D_PERROR( "SH772x/Driver: Could not map shared area!\n" );
           close( sdrv->gfx_fd );
           return DFB_INIT;
      }
 
      sdrv->mmio_base = dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!sdrv->mmio_base) {
-          D_PERROR( "SH7722/Driver: Could not map MMIO area!\n" );
+          D_PERROR( "SH772x/Driver: Could not map MMIO area!\n" );
           munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
           close( sdrv->gfx_fd );
           return DFB_INIT;
@@ -135,7 +135,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
      /* libshbeu */
      sdrv->shbeu = shbeu_open();
      if (!sdrv->shbeu) {
-          D_PERROR( "SH7722/Driver: Could not initialize libshbeu" );
+          D_PERROR( "SH772x/Driver: Could not initialize libshbeu" );
           munmap( (void*) sdrv->gfx_shared, direct_page_align( sizeof(SH772xGfxSharedArea) ) );
           close( sdrv->gfx_fd );
           return DFB_INIT;
@@ -238,40 +238,40 @@ driver_init_device( CoreGraphicsDevice *device,
       */
 #ifdef SH772X_FBDEV_SUPPORT
      { 
-     	  struct fb_fix_screeninfo fsi;
-     	  struct fb_var_screeninfo vsi;
-		  int fbdev;
+            struct fb_fix_screeninfo fsi;
+            struct fb_var_screeninfo vsi;
+            int fbdev;
 
-		  if ((fbdev = open("/dev/fb0", O_RDWR)) < 0) {
-			   D_ERROR( "SH7722/Driver: Can't open fbdev to get LCDC info!\n" );
-			   return DFB_FAILURE;
-		  }
+            if ((fbdev = open("/dev/fb0", O_RDWR)) < 0) {
+                  D_ERROR( "SH772x/Driver: Can't open fbdev to get LCDC info!\n" );
+                  return DFB_FAILURE;
+            }
 
-		  if (ioctl(fbdev, FBIOGET_FSCREENINFO, &fsi) < 0) {
-			   D_ERROR( "SH7722/Driver: FBIOGET_FSCREEINFO failed.\n" );
-			   close(fbdev);
-			   return DFB_FAILURE;
-		  }
+            if (ioctl(fbdev, FBIOGET_FSCREENINFO, &fsi) < 0) {
+                  D_ERROR( "SH772x/Driver: FBIOGET_FSCREEINFO failed.\n" );
+                  close(fbdev);
+                  return DFB_FAILURE;
+            }
 
-		  if (ioctl(fbdev, FBIOGET_VSCREENINFO, &vsi) < 0) {
-			   D_ERROR( "SH7722/Driver: FBIOGET_VSCREEINFO failed.\n" );
-			   close(fbdev);
-			   return DFB_FAILURE;
-		  }
+            if (ioctl(fbdev, FBIOGET_VSCREENINFO, &vsi) < 0) {
+                  D_ERROR( "SH772x/Driver: FBIOGET_VSCREEINFO failed.\n" );
+                  close(fbdev);
+                  return DFB_FAILURE;
+            }
 
-		  sdev->lcd_width  = vsi.xres;
-		  sdev->lcd_height = vsi.yres;
-		  sdev->lcd_pitch  = fsi.line_length;
-		  sdev->lcd_size   = fsi.smem_len;
-		  sdev->lcd_offset = 0;
-		  sdev->lcd_phys   = fsi.smem_start;
-		  sdrv->lcd_virt   = mmap(NULL, fsi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED,
-				  				  fbdev, 0);
-		  if (sdrv->lcd_virt == MAP_FAILED) {
-			   D_PERROR( "SH7722/Driver: mapping fbdev failed.\n" );
-			   close(fbdev);
-			   return DFB_FAILURE;
-		  }
+            sdev->lcd_width  = vsi.xres;
+            sdev->lcd_height = vsi.yres;
+            sdev->lcd_pitch  = fsi.line_length;
+            sdev->lcd_size   = fsi.smem_len;
+            sdev->lcd_offset = 0;
+            sdev->lcd_phys   = fsi.smem_start;
+            sdrv->lcd_virt   = mmap(NULL, fsi.smem_len, PROT_READ | PROT_WRITE, MAP_SHARED,
+                                            fbdev, 0);
+            if (sdrv->lcd_virt == MAP_FAILED) {
+                  D_PERROR( "SH772x/Driver: mapping fbdev failed.\n" );
+                  close(fbdev);
+                  return DFB_FAILURE;
+            }
 
 
           /* Clear LCD buffer. */
@@ -293,7 +293,7 @@ driver_init_device( CoreGraphicsDevice *device,
           /* Register the framebuffer with UIOMux */
           uiomux_register (sdrv->lcd_virt, sdev->lcd_phys, sdev->lcd_size);
 
-		  close(fbdev);
+          close(fbdev);
      }     
 #else
      sdev->lcd_width  = SH7722_LCD_WIDTH;
@@ -303,7 +303,7 @@ driver_init_device( CoreGraphicsDevice *device,
      sdev->lcd_offset = dfb_gfxcard_reserve_memory( device, sdev->lcd_size );
 
      if (sdev->lcd_offset < 0) {
-          D_ERROR( "SH7722/Driver: Allocating %d bytes for the LCD buffer failed!\n", sdev->lcd_size );
+          D_ERROR( "SH772x/Driver: Allocating %d bytes for the LCD buffer failed!\n", sdev->lcd_size );
           return DFB_FAILURE;
      }
 
@@ -314,7 +314,7 @@ driver_init_device( CoreGraphicsDevice *device,
      sdrv->lcd_virt = dfb_gfxcard_memory_virtual( device, sdev->lcd_offset );
 #endif
 
-     D_INFO( "SH7722/LCD: Allocated %dx%d %s Buffer (%d bytes) at 0x%08lx (%p)\n",
+     D_INFO( "SH772x/LCD: Allocated %dx%d %s Buffer (%d bytes) at 0x%08lx (%p)\n",
              sdev->lcd_width, sdev->lcd_height, dfb_pixelformat_name(sdev->lcd_format),
              sdev->lcd_size, sdev->lcd_phys, sdrv->lcd_virt );
 
@@ -464,11 +464,11 @@ driver_close_driver( CoreGraphicsDevice *device,
 
      D_DEBUG_AT( SH7722_Driver, "%s()\n", __FUNCTION__ );
 
-     D_INFO( "SH7722/BLT: %u starts, %u done, %u interrupts, %u wait_idle, %u wait_next, %u idle\n",
+     D_INFO( "SH772x/BLT: %u starts, %u done, %u interrupts, %u wait_idle, %u wait_next, %u idle\n",
              shared->num_starts, shared->num_done, shared->num_interrupts,
              shared->num_wait_idle, shared->num_wait_next, shared->num_idle );
 
-     D_INFO( "SH7722/BLT: %u words, %u words/start, %u words/idle, %u starts/idle\n",
+     D_INFO( "SH772x/BLT: %u words, %u words/start, %u words/idle, %u starts/idle\n",
              shared->num_words,
              shared->num_words  / shared->num_starts,
              shared->num_words  / shared->num_idle,

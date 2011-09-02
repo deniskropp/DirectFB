@@ -1,0 +1,150 @@
+diff -r 23f700befc6c src/video_out/Makefile.am
+--- a/src/video_out/Makefile.am	Sun Feb 20 23:38:32 2011 +0100
++++ b/src/video_out/Makefile.am	Wed Mar 16 14:17:05 2011 +0100
+@@ -40,6 +40,9 @@
+ 
+ if ENABLE_VDPAU
+ vdpau_module = xineplug_vo_out_vdpau.la
++
++xine_includedir = $(includedir)/xine
++xine_include_HEADERS = video_out_vdpau.h
+ endif
+ 
+ if ENABLE_XCB
+diff -r 23f700befc6c src/video_out/video_out_vdpau.c
+--- a/src/video_out/video_out_vdpau.c	Sun Feb 20 23:38:32 2011 +0100
++++ b/src/video_out/video_out_vdpau.c	Wed Mar 16 14:17:05 2011 +0100
+@@ -52,6 +52,8 @@
+ #include <vdpau/vdpau_x11.h>
+ #include "accel_vdpau.h"
+ 
++#include "video_out_vdpau.h"
++
+ #ifdef HAVE_FFMPEG_AVUTIL_H
+ #  include <mem.h>
+ #else
+@@ -2353,6 +2355,7 @@
+ {
+   vdpau_class_t       *class   = (vdpau_class_t *) class_gen;
+   x11_visual_t        *visual  = (x11_visual_t *) visual_gen;
++  x11_visual_vdpau_t  *vdpau   = visual->d ? NULL : (x11_visual_vdpau_t *) visual_gen;
+   vdpau_driver_t      *this;
+   config_values_t      *config  = class->xine->config;
+   int i;
+@@ -2437,15 +2440,22 @@
+   this->yuv2rgb_factory = yuv2rgb_factory_init (MODE_24_BGR, 0, NULL);
+   this->ovl_yuv2rgb = this->yuv2rgb_factory->create_converter( this->yuv2rgb_factory );
+ 
+-  VdpStatus st = vdp_device_create_x11( visual->display, visual->screen, &vdp_device, &vdp_get_proc_address );
+-  if ( st != VDP_STATUS_OK ) {
+-    fprintf(stderr, "vo_vdpau: Can't create vdp device : " );
+-    if ( st == VDP_STATUS_NO_IMPLEMENTATION )
+-      fprintf(stderr, "No vdpau implementation.\n" );
+-    else
+-      fprintf(stderr, "unsupported GPU?\n" );
+-    vdpau_dispose( &this->vo_driver );
+-    return NULL;
++  VdpStatus st;
++  if (vdpau) {
++    vdp_device           = vdpau->device;
++    vdp_get_proc_address = vdpau->vdp_get_proc_address;
++  }
++  else {
++    st = vdp_device_create_x11( visual->display, visual->screen, &vdp_device, &vdp_get_proc_address );
++    if ( st != VDP_STATUS_OK ) {
++      fprintf(stderr, "vo_vdpau: Can't create vdp device : " );
++      if ( st == VDP_STATUS_NO_IMPLEMENTATION )
++        fprintf(stderr, "No vdpau implementation.\n" );
++      else
++        fprintf(stderr, "unsupported GPU?\n" );
++      vdpau_dispose( &this->vo_driver );
++      return NULL;
++    }
+   }
+   st = vdp_get_proc_address( vdp_device, VDP_FUNC_ID_GET_ERROR_STRING , (void*)&vdp_get_error_string );
+   if ( vdpau_init_error( st, "Can't get GET_ERROR_STRING proc address !!", &this->vo_driver, 0 ) )
+@@ -2600,6 +2610,22 @@
+   if ( vdpau_init_error( st, "Can't get PREEMPTION_CALLBACK_REGISTER proc address !!", &this->vo_driver, 1 ) )
+     return NULL;
+ 
++  /* Check for extended initialization */
++  if (vdpau) {
++    vdp_queue_target_create_x11       = vdpau->vdp_queue_target_create_x11;
++    vdp_queue_target_destroy          = vdpau->vdp_queue_target_destroy;
++    vdp_queue_create                  = vdpau->vdp_queue_create;
++    vdp_queue_destroy                 = vdpau->vdp_queue_destroy;
++    vdp_queue_display                 = vdpau->vdp_queue_display;
++    vdp_queue_block                   = vdpau->vdp_queue_block;
++    vdp_queue_set_background_color    = vdpau->vdp_queue_set_background_color;
++    vdp_queue_get_time                = vdpau->vdp_queue_get_time;
++    vdp_queue_query_surface_status    = vdpau->vdp_queue_query_surface_status;
++
++    vdp_preemption_callback_register  = vdpau->vdp_preemption_callback_register;
++  }
++
++
+   st = vdp_preemption_callback_register(vdp_device, &vdp_preemption_callback, (void*)this);
+   if ( vdpau_init_error( st, "Can't register preemption callback !!", &this->vo_driver, 1 ) )
+     return NULL;
+diff -r 23f700befc6c src/video_out/video_out_vdpau.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/src/video_out/video_out_vdpau.h	Wed Mar 16 14:17:05 2011 +0100
+@@ -0,0 +1,58 @@
++/*
++ * kate: space-indent on; indent-width 2; mixedindent off; indent-mode cstyle; remove-trailing-space on;
++ * Copyright (C) 2008 the xine project
++ * Copyright (C) 2008 Christophe Thommeret <hftom@free.fr>
++ *
++ * This file is part of xine, a free video player.
++ *
++ * xine is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * xine is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
++ *
++ *
++ * video_out_vdpau.c, a video output plugin
++ * using VDPAU (Video Decode and Presentation Api for Unix)
++ *
++ *
++ */
++
++#ifndef __VIDEO_OUT__VDPAU_H__
++#define __VIDEO_OUT__VDPAU_H__
++
++#include <xine.h>
++
++#include <vdpau/vdpau_x11.h>
++
++
++typedef struct {
++  x11_visual_t  x11;  // if x11.d (drawable) is zero, it will use this extended struct
++
++  VdpDevice device;
++
++  VdpGetProcAddress *vdp_get_proc_address;
++
++  VdpPresentationQueueTargetCreateX11 *vdp_queue_target_create_x11;
++  VdpPresentationQueueTargetDestroy *vdp_queue_target_destroy;
++  VdpPresentationQueueCreate *vdp_queue_create;
++  VdpPresentationQueueDestroy *vdp_queue_destroy;
++  VdpPresentationQueueDisplay *vdp_queue_display;
++  VdpPresentationQueueBlockUntilSurfaceIdle *vdp_queue_block;
++  VdpPresentationQueueSetBackgroundColor *vdp_queue_set_background_color;
++  VdpPresentationQueueGetTime *vdp_queue_get_time;
++  VdpPresentationQueueQuerySurfaceStatus *vdp_queue_query_surface_status;
++
++  VdpPreemptionCallbackRegister *vdp_preemption_callback_register;
++} x11_visual_vdpau_t;
++
++#endif
++

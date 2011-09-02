@@ -36,7 +36,7 @@
 #include "sh7722_screen.h"
 
 
-D_DEBUG_DOMAIN( SH7722_Screen, "SH7722/Screen", "Renesas SH7722 Screen" );
+D_DEBUG_DOMAIN( SH7722_Screen, "SH772x/Screen", "Renesas SH772x Screen" );
 
 /**********************************************************************************************************************/
 
@@ -53,7 +53,7 @@ sh7722InitScreen( CoreScreen           *screen,
      description->caps = DSCCAPS_NONE;
 
      /* Set the screen name. */
-     snprintf( description->name, DFB_SCREEN_DESC_NAME_LENGTH, "SH7722 Screen" );
+     snprintf( description->name, DFB_SCREEN_DESC_NAME_LENGTH, "SH772x Screen" );
 
      return DFB_OK;
 }
@@ -65,8 +65,8 @@ sh7722GetScreenSize( CoreScreen *screen,
                   int        *ret_width,
                   int        *ret_height )
 {
-	 SH7722DriverData *sdrv = driver_data;
-	 SH7722DeviceData *sdev = sdrv->dev;
+     SH7722DriverData *sdrv = driver_data;
+     SH7722DeviceData *sdev = sdrv->dev;
      D_DEBUG_AT( SH7722_Screen, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( ret_width != NULL );
