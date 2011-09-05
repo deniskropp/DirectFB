@@ -501,7 +501,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
           return DFB_OK;
      }
 
-#if 1
+#if 0
      /* Precheck the Surface Buffers. */
      for (i=0; i<surface->num_buffers; i++) {
           if (surface->buffers[i]->locked) {
