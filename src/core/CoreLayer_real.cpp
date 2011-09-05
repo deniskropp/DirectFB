@@ -54,23 +54,11 @@ ILayer_Real::CreateContext(
                     CoreLayerContext                         **ret_context
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
 
     D_ASSERT( ret_context != NULL );
 
     return dfb_layer_create_context( obj, ret_context );
-}
-
-DFBResult
-ILayer_Real::ActivateContext(
-                    CoreLayerContext                          *context
-)
-{
-    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Requestor::%s()\n", __FUNCTION__ );
-
-    D_ASSERT( context != NULL );
-
-    return dfb_layer_activate_context( obj, context );
 }
 
 DFBResult
@@ -79,11 +67,54 @@ ILayer_Real::GetPrimaryContext(
                     CoreLayerContext                         **ret_context
 )
 {
-     D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Requestor::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
 
      D_ASSERT( ret_context != NULL );
 
      return dfb_layer_get_primary_context( obj, activate, ret_context );
+}
+
+DFBResult
+ILayer_Real::ActivateContext(
+                    CoreLayerContext                          *context
+)
+{
+    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+
+    D_ASSERT( context != NULL );
+
+    return dfb_layer_activate_context( obj, context );
+}
+
+DFBResult
+ILayer_Real::GetCurrentOutputField(
+                    s32                                       *ret_field
+)
+{
+     D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+
+     D_ASSERT( ret_field != NULL );
+
+     return dfb_layer_get_current_output_field( obj, ret_field );
+}
+
+DFBResult
+ILayer_Real::SetLevel(
+                    s32                                        level
+)
+{
+     D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+
+     return dfb_layer_set_level( obj, level );
+}
+
+DFBResult
+ILayer_Real::WaitVSync(
+)
+{
+    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+
+    return dfb_layer_wait_vsync( obj );
 }
 
 

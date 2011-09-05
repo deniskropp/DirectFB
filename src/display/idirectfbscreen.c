@@ -36,6 +36,8 @@
 
 #include <directfb.h>
 
+#include <core/CoreScreen.h>
+
 #include <core/layers.h>
 #include <core/screen.h>
 #include <core/screens.h>
@@ -143,22 +145,21 @@ IDirectFBScreen_GetSize( IDirectFBScreen *thiz,
                          int             *ret_width,
                          int             *ret_height )
 {
-     DFBResult ret;
-     int       width  = 0;
-     int       height = 0;
+     DFBResult    ret;
+     DFBDimension size;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!ret_width && !ret_height)
           return DFB_INVARG;
 
-     ret = dfb_screen_get_screen_size( data->screen, &width, &height );
+     ret = CoreScreen_GetScreenSize( data->screen, &size );
 
      if (ret_width)
-          *ret_width = width;
+          *ret_width = size.w;
 
      if (ret_height)
-          *ret_height = height;
+          *ret_height = size.h;
 
      return ret;
 }
@@ -201,7 +202,7 @@ IDirectFBScreen_SetPowerMode( IDirectFBScreen    *thiz,
                return DFB_INVARG;
      }
 
-     return dfb_screen_set_powermode( data->screen, mode );
+     return CoreScreen_SetPowerMode( data->screen, mode );
 }
 
 static DFBResult
@@ -209,16 +210,27 @@ IDirectFBScreen_WaitForSync( IDirectFBScreen *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
-     return dfb_screen_wait_vsync( data->screen );
+     return CoreScreen_WaitVSync( data->screen );
 }
 
 static DFBResult
 IDirectFBScreen_GetVSyncCount( IDirectFBScreen *thiz,
                                unsigned long   *ret_count )
 {
+     DFBResult ret;
+     u64       count;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
-     return dfb_screen_get_vsync_count( data->screen, ret_count );
+     D_ASSERT( ret_count != NULL );
+
+     ret = CoreScreen_GetVSyncCount( data->screen, &count );
+     if (ret)
+          return ret;
+
+     *ret_count = count;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -291,8 +303,8 @@ IDirectFBScreen_TestMixerConfiguration( IDirectFBScreen            *thiz,
           return ret;
 
      /* Test the patched configuration. */
-     return dfb_screen_test_mixer_config( data->screen,
-                                          mixer, &patched, failed );
+     return CoreScreen_TestMixerConfig( data->screen,
+                                        mixer, &patched, failed );
 }
 
 static DFBResult
@@ -325,7 +337,7 @@ IDirectFBScreen_SetMixerConfiguration( IDirectFBScreen            *thiz,
           return ret;
 
      /* Set the patched configuration. */
-     return dfb_screen_set_mixer_config( data->screen, mixer, &patched );
+     return CoreScreen_SetMixerConfig( data->screen, mixer, &patched );
 }
 
 static DFBResult
@@ -398,8 +410,8 @@ IDirectFBScreen_TestEncoderConfiguration( IDirectFBScreen              *thiz,
           return ret;
 
      /* Test the patched configuration. */
-     return dfb_screen_test_encoder_config( data->screen,
-                                            encoder, &patched, failed );
+     return CoreScreen_TestEncoderConfig( data->screen,
+                                          encoder, &patched, failed );
 }
 
 static DFBResult
@@ -432,7 +444,7 @@ IDirectFBScreen_SetEncoderConfiguration( IDirectFBScreen              *thiz,
           return ret;
 
      /* Set the patched configuration. */
-     return dfb_screen_set_encoder_config( data->screen, encoder, &patched );
+     return CoreScreen_SetEncoderConfig( data->screen, encoder, &patched );
 }
 
 static DFBResult
@@ -505,8 +517,8 @@ IDirectFBScreen_TestOutputConfiguration( IDirectFBScreen             *thiz,
           return ret;
 
      /* Test the patched configuration. */
-     return dfb_screen_test_output_config( data->screen,
-                                           output, &patched, failed );
+     return CoreScreen_TestOutputConfig( data->screen,
+                                         output, &patched, failed );
 }
 
 static DFBResult
@@ -539,7 +551,7 @@ IDirectFBScreen_SetOutputConfiguration( IDirectFBScreen             *thiz,
           return ret;
 
      /* Set the patched configuration. */
-     return dfb_screen_set_output_config( data->screen, output, &patched );
+     return CoreScreen_SetOutputConfig( data->screen, output, &patched );
 }
 
 /******************************************************************************/

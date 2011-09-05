@@ -119,6 +119,31 @@ ISurface_Real::SetPalette(
 }
 
 
+DFBResult
+ISurface_Real::SetAlphaRamp(
+                         u8                                         a0,
+                         u8                                         a1,
+                         u8                                         a2,
+                         u8                                         a3
+                         )
+{
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+
+     return dfb_surface_set_alpha_ramp( obj, a0, a1, a2, a3 );
+}
+
+
+DFBResult
+ISurface_Real::SetField(
+                         s32                                        field
+                         )
+{
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+
+     return dfb_surface_set_field( obj, field );
+}
+
+
 static void
 manage_interlocks( CoreSurfaceAllocation  *allocation,
                    CoreSurfaceAccessorID   accessor,

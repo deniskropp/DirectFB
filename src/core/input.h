@@ -173,9 +173,9 @@ DFBResult         dfb_input_device_get_keymap_entry( CoreInputDevice           *
                                                      int                        keycode,
                                                      DFBInputDeviceKeymapEntry *entry );
 
-DFBResult         dfb_input_device_set_keymap_entry( CoreInputDevice           *device,
-                                                     int                        keycode,
-                                                     DFBInputDeviceKeymapEntry *entry );
+DFBResult         dfb_input_device_set_keymap_entry( CoreInputDevice                 *device,
+                                                     int                              keycode,
+                                                     const DFBInputDeviceKeymapEntry *entry );
 
 DFBResult         dfb_input_device_load_keymap   ( CoreInputDevice           *device,
                                                    char                      *filename );
@@ -205,5 +205,15 @@ DFBResult         dfb_input_remove_device( int   device_index,
 typedef enum {
      DFB_WINDOWSTACK_INPUTDEVICE_LISTENER
 } DFB_INPUT_GLOBALS;
+
+
+DirectResult CoreInputDevice_Call( CoreInputDevice     *device,
+                                   FusionCallExecFlags  flags,
+                                   int                  call_arg,
+                                   void                *ptr,
+                                   unsigned int         length,
+                                   void                *ret_ptr,
+                                   unsigned int         ret_size,
+                                   unsigned int        *ret_length );
 
 #endif

@@ -15,17 +15,6 @@ interface {
         }
 
         method {
-                name    ActivateContext
-
-                arg {
-                        name        context
-                        direction   input
-                        type        object
-                        typename    CoreLayerContext
-                }
-        }
-
-        method {
                 name    GetPrimaryContext
 
                 arg {
@@ -41,6 +30,43 @@ interface {
                         type        object
                         typename    CoreLayerContext
                 }
+        }
+
+        method {
+                name    ActivateContext
+
+                arg {
+                        name        context
+                        direction   input
+                        type        object
+                        typename    CoreLayerContext
+                }
+        }
+
+        method {
+                name    GetCurrentOutputField
+
+                arg {
+                        name        field
+                        direction   output
+                        type        int
+                        typename    s32
+                }
+        }
+
+        method {
+                name    SetLevel
+
+                arg {
+                        name        level
+                        direction   input
+                        type        int
+                        typename    s32
+                }
+        }
+
+        method {
+                name    WaitVSync
         }
 }
 

@@ -283,6 +283,7 @@ dfb_layer_context_activate( CoreLayerContext *context )
      DFBResult        ret;
      int              index;
      CoreLayer       *layer;
+     CoreLayerShared *shared;
      CoreLayerRegion *region;
 
      D_DEBUG_AT( Core_LayerContext, "%s( %p )\n", __FUNCTION__, context );
@@ -293,6 +294,9 @@ dfb_layer_context_activate( CoreLayerContext *context )
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
+
+     shared = layer->shared;
+     D_ASSERT( shared != NULL );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
@@ -322,6 +326,9 @@ dfb_layer_context_activate( CoreLayerContext *context )
      }
 
      context->active = true;
+
+     /* Remember new primary pixel format. */
+     shared->pixelformat = context->primary.config.format;
 
      /* set new adjustment */
      if (layer->funcs->SetColorAdjustment)
@@ -814,6 +821,9 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
      /* Remember new region config. */
      context->primary.config = region_config;
+
+     /* Remember new primary pixel format. */
+     shared->pixelformat = region_config.format;
 
      /*
       * Write back modified entries.

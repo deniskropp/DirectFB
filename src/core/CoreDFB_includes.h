@@ -18,6 +18,7 @@ extern "C" {
 #include <core/layer_control.h>
 #include <core/layers_internal.h>
 #include <core/palette.h>
+#include <core/screens.h>
 #include <core/state.h>
 #include <core/surface.h>
 #include <core/windows.h>
@@ -370,6 +371,57 @@ CorePalette_Throw( CorePalette *palette,
           palette->object.owner = catcher;
 
      return fusion_ref_throw( &palette->object.ref, catcher );
+}
+
+
+
+static __inline__ u32
+CoreScreen_GetID( const CoreScreen *screen )
+{
+     return dfb_screen_id( screen );
+}
+
+static __inline__ DirectResult
+CoreScreen_Lookup( CoreDFB     *core,
+                   u32          object_id,
+                   FusionID     caller,
+                   CoreScreen **ret_screen )
+{
+     if (object_id >= (u32) dfb_screens_num())
+          return DR_IDNOTFOUND;
+
+     *ret_screen = dfb_screens_at( object_id );
+
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreScreen_Unref( CoreScreen *screen )
+{
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreScreen_Catch( CoreDFB     *core,
+                  u32          object_id,
+                  CoreScreen **ret_screen )
+{
+     if (object_id >= (u32) dfb_screens_num())
+          return DR_IDNOTFOUND;
+
+     *ret_screen = dfb_screens_at( object_id );
+
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreScreen_Throw( CoreScreen *screen,
+                  FusionID    catcher,
+                  u32        *ret_object_id )
+{
+     *ret_object_id = dfb_screen_id( screen );
+
+     return DR_OK;
 }
 
 

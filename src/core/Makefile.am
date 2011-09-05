@@ -22,6 +22,8 @@ internalinclude_HEADERS = \
 	CoreGraphicsState.h	\
 	CoreGraphicsState_includes.h	\
 	CoreGraphicsStateClient.h	\
+	CoreInputDevice.h		\
+	CoreInputDevice_includes.h	\
 	CoreLayer.h		\
 	CoreLayer_includes.h	\
 	CoreLayerContext.h	\
@@ -30,6 +32,8 @@ internalinclude_HEADERS = \
 	CoreLayerRegion_includes.h	\
 	CorePalette.h		\
 	CorePalette_includes.h	\
+	CoreScreen.h		\
+	CoreScreen_includes.h	\
 	CoreSurface.h		\
 	CoreSurface_includes.h	\
 	CoreWindow.h		\
@@ -81,6 +85,8 @@ libdirectfb_core_la_SOURCES = \
 	CoreGraphicsState.cpp	\
 	CoreGraphicsState_real.cpp	\
 	CoreGraphicsStateClient.c		\
+	CoreInputDevice.cpp		\
+	CoreInputDevice_real.cpp	\
 	CoreLayer.cpp		\
 	CoreLayer_real.cpp	\
 	CoreLayerContext.cpp	\
@@ -89,6 +95,8 @@ libdirectfb_core_la_SOURCES = \
 	CoreLayerRegion_real.cpp	\
 	CorePalette.cpp		\
 	CorePalette_real.cpp	\
+	CoreScreen.cpp		\
+	CoreScreen_real.cpp	\
 	CoreSurface.cpp		\
 	CoreSurface_real.cpp	\
 	CoreWindow.cpp		\
@@ -130,6 +138,8 @@ distclean-local:
 	rm -f CoreDFB.h
 	rm -f CoreGraphicsState.cpp
 	rm -f CoreGraphicsState.h
+	rm -f CoreInputDevice.cpp
+	rm -f CoreInputDevice.h
 	rm -f CoreLayerContext.cpp
 	rm -f CoreLayerContext.h
 	rm -f CoreLayer.cpp
@@ -138,6 +148,8 @@ distclean-local:
 	rm -f CoreLayerRegion.h
 	rm -f CorePalette.cpp
 	rm -f CorePalette.h
+	rm -f CoreScreen.cpp
+	rm -f CoreScreen.h
 	rm -f CoreSurface.cpp
 	rm -f CoreSurface.h
 	rm -f CoreWindow.cpp

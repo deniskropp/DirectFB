@@ -50,6 +50,8 @@
 #include <fusion/reactor.h>
 #include <fusion/arena.h>
 
+#include <core/CoreInputDevice.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -142,11 +144,11 @@ typedef struct {
      FusionReactor               *reactor;       /* event dispatcher */
      FusionSkirmish               lock;
 
-     FusionCall                   call;          /* driver call via master */
-
      unsigned int                 axis_num;
      DFBInputDeviceAxisInfo      *axis_info;
      FusionRef                    ref; /* Ref between shared device & local device */
+
+     FusionCall                   call;
 } InputDeviceShared;
 
 struct __DFB_CoreInputDevice {
@@ -161,6 +163,24 @@ struct __DFB_CoreInputDevice {
 
      CoreDFB            *core;
 };
+
+/**********************************************************************************************************************/
+
+DirectResult
+CoreInputDevice_Call( CoreInputDevice     *device,
+                      FusionCallExecFlags  flags,
+                      int                  call_arg,
+                      void                *ptr,
+                      unsigned int         length,
+                      void                *ret_ptr,
+                      unsigned int         ret_size,
+                      unsigned int        *ret_length )
+{
+     D_ASSERT( device != NULL );
+     D_ASSERT( device->shared != NULL );
+
+     return fusion_call_execute3( &device->shared->call, flags, call_arg, ptr, length, ret_ptr, ret_size, ret_length );
+}
 
 /**********************************************************************************************************************/
 
@@ -303,12 +323,14 @@ static void allocate_device_keymap( CoreDFB *core, CoreInputDevice *device );
 static DFBInputDeviceKeymapEntry *get_keymap_entry( CoreInputDevice *device,
                                                     int              code );
 
-static DFBResult set_keymap_entry( CoreInputDevice           *device,
-                                   int                        code,
-                                   DFBInputDeviceKeymapEntry *entry );
+static DFBResult set_keymap_entry( CoreInputDevice                 *device,
+                                   int                              code,
+                                   const DFBInputDeviceKeymapEntry *entry );
 
 static DFBResult load_keymap( CoreInputDevice           *device,
                               char                      *filename );
+
+static DFBResult reload_keymap( CoreInputDevice *device );
 
 static DFBInputDeviceKeySymbol     lookup_keysymbol( char *symbolname );
 static DFBInputDeviceKeyIdentifier lookup_keyidentifier( char *identifiername );
@@ -1122,9 +1144,9 @@ dfb_input_device_get_keymap_entry( CoreInputDevice           *device,
 }
 
 DFBResult
-dfb_input_device_set_keymap_entry( CoreInputDevice           *device,
-                                   int                        keycode,
-                                   DFBInputDeviceKeymapEntry *entry )
+dfb_input_device_set_keymap_entry( CoreInputDevice                 *device,
+                                   int                              keycode,
+                                   const DFBInputDeviceKeymapEntry *entry )
 {
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
@@ -1151,22 +1173,17 @@ dfb_input_device_load_keymap   ( CoreInputDevice           *device,
 DFBResult
 dfb_input_device_reload_keymap( CoreInputDevice *device )
 {
-     int                ret;
      InputDeviceShared *shared;
 
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
      shared = device->shared;
-
      D_ASSERT( shared != NULL );
 
      D_INFO( "DirectFB/Input: Reloading keymap for '%s' [0x%02x]...\n",
              shared->device_info.desc.name, shared->id );
 
-     if (fusion_call_execute( &shared->call, FCEF_NONE, CIDC_RELOAD_KEYMAP, NULL, &ret ))
-          return DFB_FUSION;
-
-     return ret;
+     return reload_keymap( device );
 }
 
 /** internal **/
@@ -1280,34 +1297,6 @@ reload_keymap( CoreInputDevice *device )
              shared->device_info.desc.name, shared->id );
 
      return DFB_OK;
-}
-
-static FusionCallHandlerResult
-input_device_call_handler( int           caller,   /* fusion id of the caller */
-                           int           call_arg, /* optional call parameter */
-                           void         *call_ptr, /* optional call parameter */
-                           void         *ctx,      /* optional handler context */
-                           unsigned int  serial,
-                           int          *ret_val )
-{
-     CoreInputDeviceCommand  command = call_arg;
-     CoreInputDevice        *device  = ctx;
-
-     D_DEBUG_AT( Core_Input, "%s( %d, %d, %p, %p )\n", __FUNCTION__, caller, call_arg, call_ptr, ctx );
-
-     D_MAGIC_ASSERT( device, CoreInputDevice );
-
-     switch (command) {
-          case CIDC_RELOAD_KEYMAP:
-               *ret_val = reload_keymap( device );
-               break;
-
-          default:
-               D_BUG( "unknown Core Input Device Command '%d'", command );
-               *ret_val = DFB_BUG;
-     }
-
-     return FCHR_RETURN;
 }
 
 static DFBResult
@@ -1472,7 +1461,7 @@ init_devices( CoreDFB *core )
                fusion_reactor_set_lock( shared->reactor, &shared->lock );
 
                /* init call */
-               fusion_call_init( &shared->call, input_device_call_handler, device, dfb_core_world(core) );
+               CoreInputDevice_Init_Dispatch( core, device, &shared->call );
 
                /* initialize shared data */
                shared->id          = make_id(device_info.prefered_id);
@@ -1629,12 +1618,6 @@ dfb_input_create_device(int device_index, CoreDFB *core_in, void *driver_in)
      fusion_reactor_add_permissions( shared->reactor, 0, FUSION_REACTOR_PERMIT_ATTACH_DETACH );
 
      fusion_reactor_set_lock( shared->reactor, &shared->lock );
-
-     /* init call */
-     fusion_call_init( &shared->call,
-                       input_device_call_handler,
-                       device,
-                       dfb_core_world(device->core) );
 
      /* initialize shared data */
      shared->id          = make_id(device_info.prefered_id);
@@ -1991,9 +1974,9 @@ get_keymap_entry( CoreInputDevice *device,
 
 /* replace a single keymap entry with the code-entry pair */
 static DFBResult
-set_keymap_entry( CoreInputDevice           *device,
-                  int                        code,
-                  DFBInputDeviceKeymapEntry *entry )
+set_keymap_entry( CoreInputDevice                 *device,
+                  int                              code,
+                  const DFBInputDeviceKeymapEntry *entry )
 {
      InputDeviceKeymap         *map;
 
@@ -2104,7 +2087,7 @@ load_keymap( CoreInputDevice           *device,
                /* fall through */
           }
 
-          ret = set_keymap_entry( device, keycode, &entry );
+          ret = CoreInputDevice_SetKeymapEntry( device, keycode, &entry );
           if( ret )
                return ret;
      }

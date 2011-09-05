@@ -37,6 +37,8 @@
 
 #include <directfb.h>
 
+#include <core/CoreDFB.h>
+
 #include <core/fonts.h>
 #include <core/gfxcard.h>
 #include <core/surface.h>
@@ -292,8 +294,8 @@ Construct( IDirectFBFont               *thiz,
           config.preallocated[0].addr = (void*)(row+1);
           config.preallocated[0].pitch = row->pitch;
 
-          ret = dfb_surface_create( core, &config, CSTF_PREALLOCATED, 0, NULL,
-                                    &data->rows[i]->surface );
+          ret = CoreDFB_CreateSurface( core, &config, CSTF_PREALLOCATED, 0, NULL,
+                                       &data->rows[i]->surface );
 
           if (ret) {
                D_DERROR( ret, "DGIFF/Font: Could not create preallocated %s %dx%d glyph row surface!\n",

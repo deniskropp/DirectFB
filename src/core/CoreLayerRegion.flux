@@ -4,6 +4,17 @@ interface {
 	object  CoreLayerRegion
 
 	method {
+		name GetSurface
+
+		arg {
+			name      surface
+			direction output
+			type      object
+			typename  CoreSurface
+		}
+	}
+
+	method {
 		name FlipUpdate
 
 		arg {
@@ -22,15 +33,5 @@ interface {
 		}
 	}
 
-	method {
-		name GetSurface
-
-		arg {
-			name      surface
-			direction output
-			type      object
-			typename  CoreSurface
-		}
-	}
 }
 

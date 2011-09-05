@@ -50,6 +50,17 @@ namespace DirectFB {
 
 
 DFBResult
+ILayerRegion_Real::GetSurface(
+                    CoreSurface                              **ret_surface
+)
+{
+     D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
+
+     return dfb_layer_region_get_surface( obj, ret_surface );
+}
+
+
+DFBResult
 ILayerRegion_Real::FlipUpdate(
                     const DFBRegion                           *update,
                     DFBSurfaceFlipFlags                        flags
@@ -58,17 +69,6 @@ ILayerRegion_Real::FlipUpdate(
     D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
 
     return dfb_layer_region_flip_update( obj, update, flags );
-}
-
-
-DFBResult
-ILayerRegion_Real::GetSurface(
-                    CoreSurface                              **ret_surface
-)
-{
-     D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
-
-     return dfb_layer_region_get_surface( obj, ret_surface );
 }
 
 

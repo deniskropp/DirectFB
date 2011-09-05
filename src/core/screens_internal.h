@@ -63,6 +63,8 @@ typedef struct {
      CoreScreenOutput     *outputs;
 
      void                 *screen_data;
+
+     FusionCall            call;
 } CoreScreenShared;
 
 struct __DFB_CoreScreen {

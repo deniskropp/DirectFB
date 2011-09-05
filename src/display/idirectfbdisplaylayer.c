@@ -322,7 +322,7 @@ IDirectFBDisplayLayer_SetOpacity( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_opacity( data->context, opacity );
+     return CoreLayerContext_SetOpacity( data->context, opacity );
 }
 
 static DFBResult
@@ -330,7 +330,7 @@ IDirectFBDisplayLayer_GetCurrentOutputField( IDirectFBDisplayLayer *thiz, int *f
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     return dfb_layer_get_current_output_field( data->layer, field );
+     return CoreLayer_GetCurrentOutputField( data->layer, field );
 }
 
 static DFBResult
@@ -341,7 +341,7 @@ IDirectFBDisplayLayer_SetFieldParity( IDirectFBDisplayLayer *thiz, int field )
      if (data->level != DLSCL_EXCLUSIVE)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_field_parity( data->context, field );
+     return CoreLayerContext_SetFieldParity( data->context, field );
 }
 
 static DFBResult
@@ -361,7 +361,7 @@ IDirectFBDisplayLayer_SetClipRegions( IDirectFBDisplayLayer *thiz,
      if (data->level != DLSCL_EXCLUSIVE)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_clip_regions( data->context, regions, num_regions, positive );
+     return CoreLayerContext_SetClipRegions( data->context, regions, num_regions, positive );
 }
 
 static DFBResult
@@ -381,7 +381,7 @@ IDirectFBDisplayLayer_SetSourceRectangle( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_sourcerectangle( data->context, &source );
+     return CoreLayerContext_SetSourceRectangle( data->context, &source );
 }
 
 static DFBResult
@@ -404,7 +404,7 @@ IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_screenlocation( data->context, &location );
+     return CoreLayerContext_SetScreenLocation( data->context, &location );
 }
 
 static DFBResult
@@ -412,6 +412,8 @@ IDirectFBDisplayLayer_SetScreenPosition( IDirectFBDisplayLayer *thiz,
                                          int                    x,
                                          int                    y )
 {
+     DFBPoint position;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
      if (! D_FLAGS_IS_SET( data->desc.caps, DLCAPS_SCREEN_POSITION ))
@@ -420,7 +422,10 @@ IDirectFBDisplayLayer_SetScreenPosition( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_screenposition( data->context, x, y );
+     position.x = x;
+     position.y = y;
+
+     return CoreLayerContext_SetScreenPosition( data->context, &position );
 }
 
 static DFBResult
@@ -443,7 +448,7 @@ IDirectFBDisplayLayer_SetScreenRectangle( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_screenrectangle( data->context, &rect );
+     return CoreLayerContext_SetScreenRectangle( data->context, &rect );
 }
 
 static DFBResult
@@ -452,12 +457,19 @@ IDirectFBDisplayLayer_SetSrcColorKey( IDirectFBDisplayLayer *thiz,
                                       u8                     g,
                                       u8                     b )
 {
+     DFBColorKey key;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_src_colorkey( data->context, r, g, b, -1 );
+     key.r     = r;
+     key.g     = g;
+     key.b     = b;
+     key.index = -1;
+
+     return CoreLayerContext_SetSrcColorKey( data->context, &key );
 }
 
 static DFBResult
@@ -466,12 +478,19 @@ IDirectFBDisplayLayer_SetDstColorKey( IDirectFBDisplayLayer *thiz,
                                       u8                     g,
                                       u8                     b )
 {
+     DFBColorKey key;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_dst_colorkey( data->context, r, g, b, -1 );
+     key.r     = r;
+     key.g     = g;
+     key.b     = b;
+     key.index = -1;
+
+     return CoreLayerContext_SetDstColorKey( data->context, &key );
 }
 
 static DFBResult
@@ -507,7 +526,7 @@ IDirectFBDisplayLayer_SetLevel( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_set_level( data->layer, level );
+     return CoreLayer_SetLevel( data->layer, level );
 }
 
 static DFBResult
@@ -536,7 +555,7 @@ IDirectFBDisplayLayer_TestConfiguration( IDirectFBDisplayLayer       *thiz,
          ((config->flags & DLCONF_HEIGHT) && (config->height < 0)))
           return DFB_INVARG;
 
-     return dfb_layer_context_test_configuration( data->context, config, failed );
+     return CoreLayerContext_TestConfiguration( data->context, config, failed );
 }
 
 static DFBResult
@@ -728,6 +747,7 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
                                  DFBWindowID             id,
                                  IDirectFBWindow       **window )
 {
+     DFBResult   ret;
      CoreWindow *w;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
@@ -739,9 +759,9 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
      //if (data->level == DLSCL_SHARED)
      //    return DFB_ACCESSDENIED;
 
-     w = dfb_layer_context_find_window( data->context, id );
-     if (!w)
-          return DFB_IDNOTFOUND;
+     ret = CoreLayerContext_FindWindow( data->context, id, &w ); // FIXME: ref count?
+     if (ret)
+          return ret;
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
@@ -884,7 +904,7 @@ IDirectFBDisplayLayer_SetColorAdjustment( IDirectFBDisplayLayer    *thiz,
      if (!adj->flags)
           return DFB_OK;
 
-     return dfb_layer_context_set_coloradjustment( data->context, adj );
+     return CoreLayerContext_SetColorAdjustment( data->context, adj );
 }
 
 static DFBResult
@@ -892,7 +912,7 @@ IDirectFBDisplayLayer_WaitForSync( IDirectFBDisplayLayer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     return dfb_layer_wait_vsync( data->layer );
+     return CoreLayer_WaitVSync( data->layer );
 }
 
 static DFBResult
@@ -950,7 +970,7 @@ IDirectFBDisplayLayer_SetRotation( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_layer_context_set_rotation( data->context, rotation );
+     return CoreLayerContext_SetRotation( data->context, rotation );
 }
 
 static DFBResult

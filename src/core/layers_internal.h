@@ -76,6 +76,8 @@ typedef struct {
      FusionSHMPoolShared               *shmpool;
 
      FusionCall                         call;
+
+     DFBSurfacePixelFormat              pixelformat;
 } CoreLayerShared;
 
 struct __DFB_CoreLayer {
