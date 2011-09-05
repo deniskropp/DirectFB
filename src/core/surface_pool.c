@@ -865,6 +865,35 @@ error_cleanup:
 }
 
 DFBResult
+dfb_surface_pool_prelock( CoreSurfacePool        *pool,
+                          CoreSurfaceAllocation  *allocation,
+                          CoreSurfaceAccessorID   accessor,
+                          CoreSurfaceAccessFlags  access )
+{
+     DFBResult               ret;
+     const SurfacePoolFuncs *funcs;
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     D_DEBUG_AT( Core_SurfPoolLock, "%s( %p [%d], %p )\n", __FUNCTION__, pool, pool->pool_id, allocation );
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+     D_ASSERT( pool == allocation->pool );
+
+     funcs = get_funcs( pool );
+
+     if (funcs->PreLock) {
+          ret = funcs->PreLock( pool, pool->data, get_local(pool), allocation, allocation->data, accessor, access );
+          if (ret) {
+               D_DERROR( ret, "Core/SurfacePool: Could not prelock allocation!\n" );
+               return ret;
+          }
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_surface_pool_lock( CoreSurfacePool       *pool,
                        CoreSurfaceAllocation *allocation,
                        CoreSurfaceBufferLock *lock )

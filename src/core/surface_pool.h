@@ -171,6 +171,17 @@ typedef struct {
                             void                   *pool_data,
                             void                   *pool_local,
                             CoreSurfaceBuffer      *buffer );
+
+     /*
+      * Manage interlocks
+      */
+     DFBResult (*PreLock) ( CoreSurfacePool        *pool,
+                            void                   *pool_data,
+                            void                   *pool_local,
+                            CoreSurfaceAllocation  *allocation,
+                            void                   *alloc_data,
+                            CoreSurfaceAccessorID   accessor,
+                            CoreSurfaceAccessFlags  access );
 } SurfacePoolFuncs;
 
 
@@ -245,6 +256,11 @@ DFBResult dfb_surface_pool_deallocate( CoreSurfacePool         *pool,
 DFBResult dfb_surface_pool_displace  ( CoreSurfacePool         *pool,
                                        CoreSurfaceBuffer       *buffer,
                                        CoreSurfaceAllocation  **ret_allocation );
+
+DFBResult dfb_surface_pool_prelock   ( CoreSurfacePool         *pool,
+                                       CoreSurfaceAllocation   *allocation,
+                                       CoreSurfaceAccessorID    accessor,
+                                       CoreSurfaceAccessFlags   access );
 
 DFBResult dfb_surface_pool_lock      ( CoreSurfacePool         *pool,
                                        CoreSurfaceAllocation   *allocation,
