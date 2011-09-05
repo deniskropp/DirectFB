@@ -144,4 +144,29 @@ distclean-local:
 	rm -f CoreWindowStack.cpp
 	rm -f CoreWindowStack.h
 
+# quirks for generated headers
+CoreGraphicsStateClient.c: CoreGraphicsState.h CoreDFB.h
+core.c: CoreDFB.h
+surface.c: CoreDFB.h
+graphics_state.c: CoreGraphicsState.h
+layer_context.c: CoreLayerContext.h
+layers.c: CoreLayer.h
+layer_region.c: CoreLayerRegion.h
+palette.c: CorePalette.h
+surface.c: CoreSurface.h
+surface_buffer.c: CoreSurface.h
+windows.c: CoreWindow.h
+windowstack.c: CoreWindowStack.h
+
+CoreDFB_real.cpp: CoreGraphicsState.h CoreDFB.h
+CoreGraphicsState_real.cpp: CoreGraphicsState.h
+CoreLayerContext_real.cpp: CoreLayerContext.h
+CoreLayer_real.cpp: CoreLayer.h
+CoreLayerRegion_real.cpp: CoreLayerRegion.h
+CorePalette_real.cpp: CorePalette.h
+CoreSurface_real.cpp: CoreSurface.h
+CoreWindow_real.cpp: CoreWindow.h
+CoreWindowStack_real.cpp: CoreWindowStack.h
+
+
 include $(top_srcdir)/rules/flux_comp.make
