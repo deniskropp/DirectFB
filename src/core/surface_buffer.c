@@ -159,6 +159,8 @@ dfb_surface_buffer_create( CoreDFB                 *core,
 
      fusion_object_set_lock( &buffer->object, &surface->lock );
 
+     fusion_ref_add_permissions( &buffer->object.ref, 0, FUSION_REF_PERMIT_REF_UNREF_LOCAL );
+
      D_MAGIC_SET( buffer, CoreSurfaceBuffer );
 
      fusion_object_activate( &buffer->object );
@@ -315,6 +317,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      if (!allocation)
           return DFB_BUG;
 
+
+     D_DEBUG_AT( Core_SurfBuffer, "  -> %s\n", allocation->pool->desc.name );
 
      /* Lock the allocation. */
      dfb_surface_buffer_lock_init( lock, accessor, access );
