@@ -36,9 +36,11 @@ include_HEADERS = \
 	init.h			\
 	instance.h		\
 	interface.h		\
+	link.h			\
 	manager.h		\
 	message.h		\
 	server.h		\
+	packet.h		\
 	play.h			\
 	types.h
 
