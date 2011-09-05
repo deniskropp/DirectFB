@@ -37,6 +37,8 @@
 
 #include <fusion/shmalloc.h>
 
+#include <core/CoreScreen.h>
+
 #include <core/core.h>
 #include <core/core_parts.h>
 
@@ -248,6 +250,10 @@ dfb_screen_core_initialize( CoreDFB             *core,
           /* Store pointer to sshared data and core. */
           screen->shared = sshared;
           screen->core   = core;
+
+          CoreScreen_Init_Dispatch( core, screen, &sshared->call );
+
+          fusion_call_add_permissions( &sshared->call, 0, FUSION_CALL_PERMIT_EXECUTE );
 
           /* Add the screen to the sshared list. */
           core_screens->screens[ core_screens->num++ ] = sshared;
@@ -544,6 +550,12 @@ dfb_screens_enumerate( CoreScreenCallback  callback,
      }
 }
 
+unsigned int
+dfb_screens_num()
+{
+     return num_screens;
+}
+
 CoreScreen *
 dfb_screens_at( DFBScreenID screen_id )
 {
@@ -575,7 +587,20 @@ dfb_screens_at_translated( DFBScreenID screen_id )
 }
 
 DFBScreenID
-dfb_screen_id_translated( CoreScreen *screen )
+dfb_screen_id( const CoreScreen *screen )
+{
+     CoreScreenShared *shared;
+     
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     
+     shared = screen->shared;
+     
+     return shared->screen_id;
+}
+
+DFBScreenID
+dfb_screen_id_translated( const CoreScreen *screen )
 {
      CoreScreenShared *shared;
      CoreScreen       *primary;

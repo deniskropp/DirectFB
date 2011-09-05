@@ -304,22 +304,16 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                         r_reg.x2 == data->base.surface->config.size.w  - 1 &&
                         r_reg.y2 == data->base.surface->config.size.h - 1)
                     {
-                         ret = dfb_surface_lock( data->base.surface );
-                         if (ret)
-                              return ret;
-     
-                         dfb_surface_flip( data->base.surface, false );
-     
-                         dfb_surface_unlock( data->base.surface );
+                         CoreSurface_Flip( data->base.surface, false );
                     }
                     else {
                          /* Remember current stereo eye. */
                          eye = dfb_surface_get_stereo_eye(data->base.surface);
 
                          dfb_surface_set_stereo_eye(data->base.surface, DSSE_LEFT);
-                         dfb_back_to_front_copy( data->base.surface, &l_reg );
+                         dfb_back_to_front_copy( data->base.surface, &l_reg );  // FIXME secure-fusion
                          dfb_surface_set_stereo_eye(data->base.surface, DSSE_RIGHT);
-                         dfb_back_to_front_copy( data->base.surface, &r_reg );
+                         dfb_back_to_front_copy( data->base.surface, &r_reg );  // FIXME secure-fusion
 
                          /* Restore current stereo focus. */
                          dfb_surface_set_stereo_eye(data->base.surface, eye);

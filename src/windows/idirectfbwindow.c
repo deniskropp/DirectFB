@@ -44,6 +44,7 @@
 
 #include <idirectfb.h>
 
+#include <core/CoreSurface.h>
 #include <core/CoreWindow.h>
 
 #include <core/core.h>
@@ -1011,6 +1012,8 @@ IDirectFBWindow_ResizeSurface( IDirectFBWindow *thiz,
                                int              width,
                                int              height )
 {
+     CoreSurfaceConfig config;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -1018,10 +1021,18 @@ IDirectFBWindow_ResizeSurface( IDirectFBWindow *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
+     if (!data->window->surface)
+          return DFB_UNSUPPORTED;
+
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
 
-     return dfb_surface_reformat( data->window->surface, width, height, data->window->surface->config.format );
+     config = data->window->surface->config;
+
+     config.size.w = width;
+     config.size.h = height;
+
+     return CoreSurface_SetConfig( data->window->surface, &config );
 }
 
 static DFBResult

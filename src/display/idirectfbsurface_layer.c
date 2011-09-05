@@ -205,7 +205,7 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
      D_DEBUG_AT( Surface, "  -> FLIPSTEREO %4d,%4d-%4dx%4d, %4d,%4d-%4dx%4d\n", 
           DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
-     return dfb_layer_region_flip_update_stereo( data->region, &l_reg, &r_reg, flags );
+     return CoreLayerRegion_FlipUpdateStereo( data->region, &l_reg, &r_reg, flags );
 }
 
 static DFBResult

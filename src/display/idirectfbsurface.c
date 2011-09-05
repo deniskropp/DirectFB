@@ -425,7 +425,7 @@ IDirectFBSurface_SetAlphaRamp( IDirectFBSurface *thiz,
      if (!data->surface)
           return DFB_DESTROYED;
 
-     dfb_surface_set_alpha_ramp( data->surface, a0, a1, a2, a3 );
+     CoreSurface_SetAlphaRamp( data->surface, a0, a1, a2, a3 );
 
      return DFB_OK;
 }
@@ -657,16 +657,10 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
          reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
      {
-          ret = dfb_surface_lock( data->surface );
-          if (ret)
-               return ret;
-
-          dfb_surface_flip( data->surface, false );
-
-          dfb_surface_unlock( data->surface );
+          CoreSurface_Flip( data->surface, false );
      }
      else
-          dfb_back_to_front_copy( data->surface, &reg );
+          dfb_back_to_front_copy( data->surface, &reg );    // FIXME secure-fusion
 
      return DFB_OK;
 }
@@ -688,7 +682,7 @@ IDirectFBSurface_SetField( IDirectFBSurface    *thiz,
      if (field < 0 || field > 1)
           return DFB_INVARG;
 
-     dfb_surface_set_field( data->surface, field );
+     CoreSurface_SetField( data->surface, field );
 
      return DFB_OK;
 }
@@ -2930,22 +2924,16 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                    r_reg.x2 == data->surface->config.size.w  - 1 &&
                    r_reg.y2 == data->surface->config.size.h - 1)
                {
-                    ret = dfb_surface_lock( data->surface );
-                    if (ret)
-                         return ret;
-
-                    dfb_surface_flip( data->surface, false );
-
-                    dfb_surface_unlock( data->surface );
+                    CoreSurface_Flip( data->surface, false );
                }
                else {
                     /* Remember current stereo eye. */
                     eye = dfb_surface_get_stereo_eye(data->surface);
 
                     dfb_surface_set_stereo_eye(data->surface, DSSE_LEFT);
-                    dfb_back_to_front_copy( data->surface, &l_reg );
+                    dfb_back_to_front_copy( data->surface, &l_reg );  // FIXME secure-fusion
                     dfb_surface_set_stereo_eye(data->surface, DSSE_RIGHT);
-                    dfb_back_to_front_copy( data->surface, &r_reg );
+                    dfb_back_to_front_copy( data->surface, &r_reg );  // FIXME secure-fusion
 
                     /* Restore current stereo focus. */
                     dfb_surface_set_stereo_eye(data->surface, eye);

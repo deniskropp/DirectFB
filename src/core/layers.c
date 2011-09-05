@@ -649,26 +649,14 @@ dfb_layer_id_translate( DFBDisplayLayerID layer_id )
 DFBSurfacePixelFormat
 dfb_primary_layer_pixelformat( void )
 {
-     CoreLayerShared       *shared;
-     CoreLayerContext      *context;
-     CoreLayer             *layer  = dfb_layer_at_translated(DLID_PRIMARY);
-     DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
+     CoreLayerShared *shared;
+     CoreLayer       *layer = dfb_layer_at_translated(DLID_PRIMARY);
 
      D_ASSERT( layer != NULL );
-     D_ASSERT( layer->shared != NULL );
 
      shared = layer->shared;
+     D_ASSERT( shared != NULL );
 
-     /* If no context is active, return the default format. */
-     if (dfb_layer_get_active_context( layer, &context ) != DFB_OK)
-          return shared->default_config.pixelformat;
-
-     /* Use the format from the current configuration. */
-     format = context->config.pixelformat;
-
-     /* Decrease the context's reference counter. */
-     dfb_layer_context_unref( context );
-
-     return format;
+     return shared->pixelformat;
 }
 

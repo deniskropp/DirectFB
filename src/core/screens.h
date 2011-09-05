@@ -269,6 +269,11 @@ void dfb_screens_enumerate( CoreScreenCallback  callback,
                             void               *ctx );
 
 /*
+ * Returns the number of screens.
+ */
+unsigned int dfb_screens_num( void );
+
+/*
  * Returns the screen with the specified ID.
  */
 CoreScreen *dfb_screens_at( DFBScreenID screen_id );
@@ -276,8 +281,13 @@ CoreScreen *dfb_screens_at( DFBScreenID screen_id );
 CoreScreen *dfb_screens_at_translated( DFBScreenID screen_id );
 
 /*
+ * Return the ID of the specified screen.
+ */
+DFBScreenID dfb_screen_id( const CoreScreen *screen );
+
+/*
  * Return the (translated) ID of the specified screen.
  */
-DFBScreenID dfb_screen_id_translated( CoreScreen *screen );
+DFBScreenID dfb_screen_id_translated( const CoreScreen *screen );
 
 #endif

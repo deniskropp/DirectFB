@@ -41,6 +41,8 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <core/CoreInputDevice.h>
+
 #include <core/input.h>
 
 #include <directfb.h>
@@ -129,7 +131,7 @@ main( int argc, char *argv[] )
 
      /* Reload the keymap. FIXME: Make public API? */
      if (reload) {
-          ret = dfb_input_device_reload_keymap( dfb_input_device_at( id ) );
+          ret = CoreInputDevice_ReloadKeymap( dfb_input_device_at( id ) );
           if (ret) {
                D_DERROR( ret, "Tools/Input: Reloading the keymap failed!\n" );
                goto error;

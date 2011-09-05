@@ -53,6 +53,51 @@ interface {
 
 
 	method {
+		name	SetAlphaRamp
+
+		arg {
+			name	    a0
+			direction   input
+			type        int
+			typename    u8
+		}
+
+		arg {
+			name	    a1
+			direction   input
+			type        int
+			typename    u8
+		}
+
+		arg {
+			name	    a2
+			direction   input
+			type        int
+			typename    u8
+		}
+
+		arg {
+			name	    a3
+			direction   input
+			type        int
+			typename    u8
+		}
+	}
+
+
+	method {
+		name	SetField
+
+		arg {
+			name	    field
+			direction   input
+			type        int
+			typename    s32
+		}
+	}
+
+
+	method {
 		name	PreLockBuffer
 
 		arg {

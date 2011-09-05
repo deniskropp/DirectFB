@@ -2,6 +2,8 @@ CoreDFB.cpp
 CoreDFB.h
 CoreGraphicsState.cpp
 CoreGraphicsState.h
+CoreInputDevice.cpp
+CoreInputDevice.h
 CoreLayer.cpp
 CoreLayer.h
 CoreLayerContext.cpp
@@ -12,6 +14,8 @@ CorePalette.cpp
 CorePalette.h
 CoreSurface.cpp
 CoreSurface.h
+CoreScreen.cpp
+CoreScreen.h
 CoreWindow.cpp
 CoreWindow.h
 CoreWindowStack.cpp

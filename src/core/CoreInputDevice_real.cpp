@@ -28,7 +28,7 @@
 
 #include <config.h>
 
-#include "CoreLayerRegion.h"
+#include "CoreInputDevice.h"
 
 extern "C" {
 #include <directfb_util.h>
@@ -38,10 +38,10 @@ extern "C" {
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
-#include <core/core.h>
+#include <core/input.h>
 }
 
-D_DEBUG_DOMAIN( DirectFB_CoreLayerRegion, "DirectFB/CoreLayerRegion", "DirectFB CoreLayerRegion" );
+D_DEBUG_DOMAIN( DirectFB_CoreInputDevice, "DirectFB/CoreInputDevice", "DirectFB CoreInputDevice" );
 
 /*********************************************************************************************************************/
 
@@ -50,38 +50,24 @@ namespace DirectFB {
 
 
 DFBResult
-ILayerRegion_Real::GetSurface(
-                    CoreSurface                              **ret_surface
+IInputDevice_Real::SetKeymapEntry(
+                    s32                                        key_code,
+                    const DFBInputDeviceKeymapEntry           *entry
 )
 {
-     D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreInputDevice, "IInputDevice_Real::%s()\n", __FUNCTION__ );
 
-     return dfb_layer_region_get_surface( obj, ret_surface );
+    return dfb_input_device_set_keymap_entry( obj, key_code, entry );
 }
 
-
 DFBResult
-ILayerRegion_Real::FlipUpdate(
-                    const DFBRegion                           *update,
-                    DFBSurfaceFlipFlags                        flags
+IInputDevice_Real::ReloadKeymap(
+
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreInputDevice, "IInputDevice_Real::%s()\n", __FUNCTION__ );
 
-    return dfb_layer_region_flip_update( obj, update, flags );
-}
-
-
-DFBResult
-ILayerRegion_Real::FlipUpdateStereo(
-                    const DFBRegion                           *left,
-                    const DFBRegion                           *right,
-                    DFBSurfaceFlipFlags                        flags
-)
-{
-    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
-
-    return dfb_layer_region_flip_update_stereo( obj, left, right, flags );
+    return dfb_input_device_reload_keymap( obj );
 }
 
 

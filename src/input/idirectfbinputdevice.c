@@ -38,6 +38,8 @@
 
 #include <directfb.h>
 
+#include <core/CoreInputDevice.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -218,7 +220,7 @@ IDirectFBInputDevice_SetKeymapEntry( IDirectFBInputDevice      *thiz,
          keycode > data->desc.max_keycode)
           return DFB_INVARG;
 
-     return dfb_input_device_set_keymap_entry( data->device, keycode, entry );
+     return CoreInputDevice_SetKeymapEntry( data->device, keycode, entry );
 }
 
 static DFBResult

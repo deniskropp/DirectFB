@@ -48,6 +48,7 @@
 #include <core/CoreLayerContext.h>
 #include <core/CoreLayerRegion.h>
 #include <core/CorePalette.h>
+#include <core/CoreScreen.h>
 #include <core/CoreSurface.h>
 #include <core/CoreWindow.h>
 #include <core/CoreWindowStack.h>
@@ -1594,7 +1595,7 @@ IDirectFB_WaitForSync( IDirectFB *thiz )
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
-     dfb_layer_wait_vsync( data->layer );
+     CoreLayer_WaitVSync( data->layer );
 
      return DFB_OK;
 }
@@ -1734,6 +1735,7 @@ IDirectFB_InitLayers( IDirectFB *thiz )
                CoreWindowStack            *stack;
                CardCapabilities            caps;
                DFBDisplayLayerConfigFlags  fail;
+               DFBColorKey                 key;
 
                ret = CoreLayer_GetPrimaryContext( layer, false, &context );
                if (ret) {
@@ -1753,7 +1755,7 @@ IDirectFB_InitLayers( IDirectFB *thiz )
                     conf->config.buffermode = (caps.accel & DFXL_BLIT) ? DLBM_BACKVIDEO : DLBM_BACKSYSTEM;
                }
 
-               if (dfb_layer_context_test_configuration( context, &conf->config, &fail )) {
+               if (CoreLayerContext_TestConfiguration( context, &conf->config, &fail )) {
                     if (fail & (DLCONF_WIDTH | DLCONF_HEIGHT)) {
                          D_ERROR( "DirectFB/DirectFBCreate: "
                                   "Setting desktop resolution to %dx%d failed!\n"
@@ -1779,7 +1781,7 @@ IDirectFB_InitLayers( IDirectFB *thiz )
 
                          conf->config.buffermode = DLBM_BACKSYSTEM;
 
-                         if (dfb_layer_context_test_configuration( context, &conf->config, &fail )) {
+                         if (CoreLayerContext_TestConfiguration( context, &conf->config, &fail )) {
                               D_ERROR( "DirectFB/DirectFBCreate: "
                                        "Setting system memory desktop back buffer failed!\n"
                                        "     -> Using front buffer only mode.\n" );
@@ -1790,7 +1792,7 @@ IDirectFB_InitLayers( IDirectFB *thiz )
                }
 
                if (conf->config.flags) {
-                    ret = dfb_layer_context_set_configuration( context, &conf->config );
+                    ret = CoreLayerContext_SetConfiguration( context, &conf->config );
                     if (ret) {
                          D_DERROR( ret, "InitLayers: Could not set configuration for layer %d!\n", i );
                          dfb_layer_context_unref( context );
@@ -1801,7 +1803,7 @@ IDirectFB_InitLayers( IDirectFB *thiz )
                ret = dfb_layer_context_get_configuration( context, &conf->config );
                D_ASSERT( ret == DFB_OK );
 
-               ret = dfb_layer_context_get_primary_region( context, true, &data->layers[i].region );
+               ret = CoreLayerContext_GetPrimaryRegion( context, true, &data->layers[i].region );
                if (ret) {
                     D_DERROR( ret, "InitLayers: Could not get primary region of layer %d!\n", i );
                     dfb_layer_context_unref( context );
@@ -1820,14 +1822,17 @@ IDirectFB_InitLayers( IDirectFB *thiz )
                     InitLayerPalette( data, conf, data->layers[i].surface, &data->layers[i].palette );
 
                if (conf->src_key_index >= 0 && conf->src_key_index < D_ARRAY_SIZE(conf->palette)) {
-                    dfb_layer_context_set_src_colorkey( context,
-                                                        conf->palette[conf->src_key_index].r,
-                                                        conf->palette[conf->src_key_index].g,
-                                                        conf->palette[conf->src_key_index].b,
-                                                        conf->src_key_index );
+                    conf->src_key.r = conf->palette[conf->src_key_index].r;
+                    conf->src_key.g = conf->palette[conf->src_key_index].g;
+                    conf->src_key.b = conf->palette[conf->src_key_index].b;
                }
-               else
-                    dfb_layer_context_set_src_colorkey( context, conf->src_key.r, conf->src_key.g, conf->src_key.b, -1 );
+
+               key.r     = conf->src_key.r;
+               key.g     = conf->src_key.g;
+               key.b     = conf->src_key.b;
+               key.index = conf->src_key_index;
+
+               CoreLayerContext_SetSrcColorKey( context, &key );
 
                switch (conf->background.mode) {
                     case DLBM_COLOR:
