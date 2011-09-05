@@ -162,10 +162,12 @@ CoreGraphicsStateClient.c: CoreGraphicsState.h CoreDFB.h
 core.c: CoreDFB.h
 surface.c: CoreDFB.h
 graphics_state.c: CoreGraphicsState.h
+input.c: CoreInputDevice.h
 layer_context.c: CoreLayerContext.h
 layers.c: CoreLayer.h
 layer_region.c: CoreLayerRegion.h
 palette.c: CorePalette.h
+screens.c: CoreScreen.h
 surface.c: CoreSurface.h
 surface_buffer.c: CoreSurface.h
 windows.c: CoreWindow.h
@@ -173,10 +175,12 @@ windowstack.c: CoreWindowStack.h
 
 CoreDFB_real.cpp: CoreGraphicsState.h CoreDFB.h
 CoreGraphicsState_real.cpp: CoreGraphicsState.h
+CoreInputDevice_real.cpp: CoreInputDevice.h
 CoreLayerContext_real.cpp: CoreLayerContext.h
 CoreLayer_real.cpp: CoreLayer.h
 CoreLayerRegion_real.cpp: CoreLayerRegion.h
 CorePalette_real.cpp: CorePalette.h
+CoreScreen_real.cpp: CoreScreen.h
 CoreSurface_real.cpp: CoreSurface.h
 CoreWindow_real.cpp: CoreWindow.h
 CoreWindowStack_real.cpp: CoreWindowStack.h
