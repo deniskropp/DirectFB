@@ -532,6 +532,21 @@ repaint_tier( SaWMan              *sawman,
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawman, tier );
 
+     {
+          SaWManListenerCallData data;
+
+          data.call        = SWMLC_TIER_UPDATE;
+          data.stereo_eye  = right_eye ? DSSE_RIGHT : DSSE_LEFT;
+          data.layer_id    = tier->layer_id;
+          data.num_updates = num_updates;
+
+          D_ASSERT( num_updates <= D_ARRAY_SIZE(data.updates) );
+
+          direct_memcpy( data.updates, updates, num_updates * sizeof(DFBRegion) );
+
+          fusion_reactor_dispatch( sawman->reactor, &data, true, NULL );
+     }
+
      /* Set stereo eye */
      old_eye = dfb_surface_get_stereo_eye( surface );
      eye = right_eye ? DSSE_RIGHT : DSSE_LEFT;
@@ -966,8 +981,13 @@ sawman_process_updates( SaWMan              *sawman,
                                                         tier->single_key.r, tier->single_key.g,
                                                         tier->single_key.b, tier->single_key.index );
 
+                    sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
+
                     // FIXME: put in function, same as below
                     if (tier->single_options & DLOP_STEREO) {
+                         sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
+
+
                          window_eye = dfb_surface_get_stereo_eye(surface);
                          region_eye = dfb_surface_get_stereo_eye(tier->region->surface);
                          dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
@@ -986,6 +1006,7 @@ sawman_process_updates( SaWMan              *sawman,
                     else {
                          dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
                     }
+
 
                     tier->active = true;
 

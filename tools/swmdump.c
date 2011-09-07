@@ -52,6 +52,7 @@
 #include <isawman.h>
 
 static DFBBoolean show_geometry = DFB_FALSE;
+static DFBBoolean m_listen      = DFB_FALSE;
 
 static DFBBoolean parse_command_line( int argc, char *argv[] );
 
@@ -330,6 +331,42 @@ dump_tiers( SaWMan *sawman )
 
 /**********************************************************************************************************************/
 
+static void
+Listen_TierUpdate( void                *context,
+                   DFBSurfaceStereoEye  stereo_eye,
+                   DFBDisplayLayerID    layer_id,
+                   const DFBRegion     *updates,
+                   unsigned int         num_updates )
+{
+     unsigned int i;
+
+     for (i=0; i<num_updates; i++) {
+          D_INFO( "Tier/Update: %-5s [%u] "DFB_RECT_FORMAT"\n",
+                  stereo_eye == DSSE_LEFT ? "LEFT" : "RIGHT", layer_id,
+                  DFB_RECTANGLE_VALS_FROM_REGION(&updates[i]) );
+     }
+}
+
+static void
+Listen_WindowBlit( void                *context,
+                   DFBSurfaceStereoEye  stereo_eye,
+                   DFBWindowID          window_id,
+                   u32                  resource_id,
+                   const DFBRectangle  *src,
+                   const DFBRectangle  *dst )
+{
+     D_INFO( "Window/Blit: %-5s [%u] (0x%04x) "DFB_RECT_FORMAT" -> "DFB_RECT_FORMAT"\n",
+             stereo_eye == DSSE_LEFT ? "LEFT" : "RIGHT", window_id, resource_id,
+             DFB_RECTANGLE_VALS(src), DFB_RECTANGLE_VALS(dst) );
+}
+
+static SaWManListeners m_listeners = {
+     .TierUpdate = Listen_TierUpdate,
+     .WindowBlit = Listen_WindowBlit,
+};
+
+/**********************************************************************************************************************/
+
 int
 main( int argc, char *argv[] )
 {
@@ -412,6 +449,16 @@ main( int argc, char *argv[] )
 
      printf( "\n" );
 
+     if (m_listen) {
+          ret = saw->RegisterListeners( saw, &m_listeners, NULL );
+          if (ret) {
+               DirectFBError( "ISaWMan::RegisterListener", ret );
+               return -5;
+          }
+
+          pause();
+     }
+
      /* SaWMan deinitialization. */
      saw->Release( saw );
 
@@ -430,6 +477,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
      fprintf (stderr, "Options:\n");
      fprintf (stderr, "   -g, --geometry  Show advanced geometry settings\n");
+     fprintf (stderr, "   -l, --listen    Register listener and print events\n");
      fprintf (stderr, "   -h, --help      Show this help message\n");
      fprintf (stderr, "   -v, --version   Print version information\n");
      fprintf (stderr, "\n");
@@ -455,6 +503,11 @@ parse_command_line( int argc, char *argv[] )
 
           if (strcmp (arg, "-g") == 0 || strcmp (arg, "--geometry") == 0) {
                show_geometry = true;
+               continue;
+          }
+
+          if (strcmp (arg, "-l") == 0 || strcmp (arg, "--listen") == 0) {
+               m_listen = true;
                continue;
           }
 

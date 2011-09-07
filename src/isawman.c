@@ -304,6 +304,100 @@ ISaWMan_GetUpdates( ISaWMan                *thiz,
      return DFB_OK;
 }
 
+typedef struct {
+     DirectLink          link;
+
+     SaWManListeners     listeners;
+     void               *context;
+
+     Reaction            reaction;
+} Listener;
+
+static ReactionResult
+ISaWMan_Listener( const void *msg_data,
+                  void       *ctx )
+{
+     Listener                     *listener = ctx;
+     const SaWManListenerCallData *data     = msg_data;
+
+     switch (data->call) {
+          case SWMLC_TIER_UPDATE:
+               if (listener->listeners.TierUpdate)
+                    listener->listeners.TierUpdate( listener->context, data->stereo_eye, data->layer_id, data->updates, data->num_updates );
+               break;
+
+          case SWMLC_WINDOW_BLIT:
+               if (listener->listeners.WindowBlit)
+                    listener->listeners.WindowBlit( listener->context, data->stereo_eye, data->window_id, data->resource_id, &data->src, &data->dst );
+               break;
+
+          default:
+               D_BUG( "unknown listener call %d", data->call );
+               break;
+     }
+
+     return RS_OK;
+}
+
+static DirectResult
+ISaWMan_RegisterListeners( ISaWMan               *thiz,
+                           const SaWManListeners *listeners,
+                           void                  *context )
+{
+     Listener *listener;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWMan )
+
+     if (!listeners)
+          return DFB_INVARG;
+
+     listener = D_CALLOC( 1, sizeof(Listener) );
+     if (!listener)
+          return D_OOM();
+
+     listener->listeners = *listeners;
+     listener->context   = context;
+
+     pthread_mutex_lock( &data->lock );
+
+     direct_list_append( &data->listeners, &listener->link );
+
+     pthread_mutex_unlock( &data->lock );
+
+     fusion_reactor_attach( m_sawman->reactor, ISaWMan_Listener, listener, &listener->reaction );
+
+     return DFB_OK;
+}
+
+static DirectResult
+ISaWMan_UnregisterListeners( ISaWMan *thiz,
+                             void    *context )
+{
+     Listener *listener;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWMan )
+
+     pthread_mutex_lock( &data->lock );
+
+     direct_list_foreach (listener, data->listeners) {
+          if (listener->context == context) {
+               fusion_reactor_detach( m_sawman->reactor, &listener->reaction );
+
+               direct_list_remove( &data->listeners, &listener->link );
+               
+               D_FREE( listener );
+
+               pthread_mutex_unlock( &data->lock );
+
+               return DFB_OK;
+          }
+     }
+
+     pthread_mutex_unlock( &data->lock );
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
 
 DirectResult
@@ -331,13 +425,15 @@ ISaWMan_Construct( ISaWMan       *thiz,
           data->num_tiers++;
      }
 
-     thiz->AddRef         = ISaWMan_AddRef;
-     thiz->Release        = ISaWMan_Release;
-     thiz->Start          = ISaWMan_Start;
-     thiz->Stop           = ISaWMan_Stop;
-     thiz->ReturnKeyEvent = ISaWMan_ReturnKeyEvent;
-     thiz->CreateManager  = ISaWMan_CreateManager;
-     thiz->GetUpdates     = ISaWMan_GetUpdates;
+     thiz->AddRef              = ISaWMan_AddRef;
+     thiz->Release             = ISaWMan_Release;
+     thiz->Start               = ISaWMan_Start;
+     thiz->Stop                = ISaWMan_Stop;
+     thiz->ReturnKeyEvent      = ISaWMan_ReturnKeyEvent;
+     thiz->CreateManager       = ISaWMan_CreateManager;
+     thiz->GetUpdates          = ISaWMan_GetUpdates;
+     thiz->RegisterListeners   = ISaWMan_RegisterListeners;
+     thiz->UnregisterListeners = ISaWMan_UnregisterListeners;
 
      return DFB_OK;
 }

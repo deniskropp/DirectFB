@@ -3348,6 +3348,8 @@ update_single( SaWMan              *sawman,
                DFBRectangle src = tmp;
                DFBRegion    cursor_visible;
 
+               sawman_dispatch_blit( sawman, sawwin, right_eye, &src, &tmp, &regions[i] );
+
                tmp.x -= tier->single_src.x;
                tmp.y -= tier->single_src.y;
 

@@ -54,6 +54,8 @@ typedef struct {
           DFBRegion                   updates_regions[SAWMAN_MAX_UPDATE_REGIONS];
      }                           tiers[3];
      unsigned int                num_tiers;
+
+     DirectLink                 *listeners;
 } ISaWMan_data;
 
 /*

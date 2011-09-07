@@ -172,6 +172,28 @@ typedef enum {
 
 /**********************************************************************************************************************/
 
+typedef enum {
+     SWMLC_TIER_UPDATE        = 1,
+     SWMLC_WINDOW_BLIT        = 2,
+} SaWManListenerCall;
+
+typedef struct {
+     SaWManListenerCall       call;
+
+     DFBSurfaceStereoEye      stereo_eye;
+
+     DFBDisplayLayerID        layer_id;
+     DFBRegion                updates[SAWMAN_MAX_UPDATE_REGIONS];
+     unsigned int             num_updates;
+
+     DFBWindowID              window_id;
+     u32                      resource_id;
+     DFBRectangle             src;
+     DFBRectangle             dst;
+} SaWManListenerCallData;
+
+/**********************************************************************************************************************/
+
 // FIXME: temporary solution
 typedef struct {
      FusionCall                call;
@@ -273,6 +295,8 @@ struct __SaWMan_SaWMan {
      } cursor;
 
      FusionCall                call;
+
+     FusionReactor            *reactor;
 };
 
 /*
@@ -466,7 +490,16 @@ DirectResult sawman_register_process( SaWMan                *sawman,
                                       SaWManProcess        **ret_process );
 
 /**********************************************************************************************************************/
+
+void sawman_dispatch_blit( SaWMan             *sawman,
+                           SaWManWindow       *sawwin,
+                           bool                right_eye,
+                           const DFBRectangle *src,
+                           const DFBRectangle *dst,
+                           const DFBRegion    *clip );
                      
+/**********************************************************************************************************************/
+
 static inline DirectResult
 sawman_lock( SaWMan *sawman )
 {

@@ -43,6 +43,7 @@
 #include <core/windows_internal.h>
 #include <core/windowstack.h>
 
+#include <gfx/clip.h>
 #include <gfx/convert.h>
 
 #include <misc/util.h>
@@ -54,6 +55,46 @@
 D_DEBUG_DOMAIN( SaWMan_Draw, "SaWMan/Draw", "SaWMan window manager drawing" );
 
 /**********************************************************************************************************************/
+
+void
+sawman_dispatch_blit( SaWMan             *sawman,
+                      SaWManWindow       *sawwin,
+                      bool                right_eye,
+                      const DFBRectangle *src,
+                      const DFBRectangle *dst,
+                      const DFBRegion    *clip )
+{
+     SaWManListenerCallData data;
+
+     if (clip) {
+          D_DEBUG_AT( SaWMan_Draw, "%s( %p,  %d,%d-%dx%d %d,%d-%dx%d    %d,%d-%dx%d )\n", __FUNCTION__,
+                      sawwin, DFB_RECTANGLE_VALS( src ),
+                      DFB_RECTANGLE_VALS( dst ), DFB_RECTANGLE_VALS_FROM_REGION( clip ) );
+     }
+     else {
+          D_DEBUG_AT( SaWMan_Draw, "%s( %p,  %d,%d-%dx%d %d,%d-%dx%d    NO CLIP )\n", __FUNCTION__,
+                      sawwin, DFB_RECTANGLE_VALS( src ), DFB_RECTANGLE_VALS( dst ) );
+     }
+
+     data.call        = SWMLC_WINDOW_BLIT;
+     data.stereo_eye  = right_eye ? DSSE_RIGHT : DSSE_LEFT;
+     data.window_id   = sawwin->window->id;
+     data.resource_id = sawwin->window->resource_id;
+     data.src         = *src;
+     data.dst         = *dst;
+
+     if (clip) {
+          if (dfb_clip_blit_precheck( clip, dst->w, dst->h, dst->x, dst->y )) {
+               dfb_clip_stretchblit( clip, &data.src, &data.dst );
+     
+               fusion_reactor_dispatch( sawman->reactor, &data, true, NULL );
+          }
+          else
+               D_DEBUG_AT( SaWMan_Draw, "  -> CLIPPED!\n" );
+     }
+     else
+          fusion_reactor_dispatch( sawman->reactor, &data, true, NULL );
+}
 
 void sawman_draw_cursor    ( CoreWindowStack *stack,
                              CardState       *state,
@@ -332,6 +373,13 @@ draw_window( SaWManTier   *tier,
 
      if (!dfb_region_rectangle_intersect( &clip, &dst ))
           return;
+
+
+     sawman_dispatch_blit( sawman, sawwin, right_eye, &sawwin->src, &dst, &clip );
+
+     if (sawwin2)
+          sawman_dispatch_blit( sawman, sawwin2, right_eye, &sawwin2->src, &dst, &clip );
+
 
      /* Backup clipping region. */
      old_clip = state->clip;

@@ -266,6 +266,25 @@ typedef struct {
 
 } SaWManCallbacks;
 
+/*
+ * Listeners to be used together with the SaWMan Manager interface
+ */
+
+typedef struct {
+     void (*TierUpdate)     ( void                 *context,
+                              DFBSurfaceStereoEye   stereo_eye,
+                              DFBDisplayLayerID     layer_id,
+                              const DFBRegion      *updates,
+                              unsigned int          num_updates );
+
+     void (*WindowBlit)     ( void                 *context,
+                              DFBSurfaceStereoEye   stereo_eye,
+                              DFBWindowID           window_id,
+                              u32                   resource_id,
+                              const DFBRectangle   *src,
+                              const DFBRectangle   *dst );
+} SaWManListeners;
+
 /***********
  * ISaWMan *
  ***********/
@@ -338,6 +357,26 @@ DEFINE_INTERFACE(   ISaWMan,
           DFBWindowStackingClass    stacking_class,
           DFBRegion                *ret_updates,
           unsigned int             *ret_num
+     );
+ 
+ 
+   /** Listeners **/
+ 
+     /*
+      * Register listeners
+      */
+     DirectResult (*RegisterListeners) (
+          ISaWMan                  *thiz,
+          const SaWManListeners    *listeners,
+          void                     *context
+     );
+
+     /*
+      * Unregister listeners
+      */
+     DirectResult (*UnregisterListeners) (
+          ISaWMan                  *thiz,
+          void                     *context
      );
 )
 

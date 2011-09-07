@@ -275,6 +275,10 @@ sawman_initialize( SaWMan         *sawman,
 
      fusion_call_add_permissions( &sawman->call, 0, FUSION_CALL_PERMIT_EXECUTE );
 
+     sawman->reactor = fusion_reactor_new( sizeof(SaWManListenerCallData), "SaWMan Listeners", world );
+
+     fusion_reactor_add_permissions( sawman->reactor, 0, FUSION_REACTOR_PERMIT_ATTACH_DETACH );
+
      /* Register ourself as a new process. */
      ret = sawman_register_process( sawman, SWMPF_MASTER, getpid(), fusion_id(world), world, &m_process );
      if (ret) {
@@ -414,6 +418,8 @@ sawman_shutdown( SaWMan      *sawman,
 
      /* Clear global singleton. */
      m_process = NULL;
+
+     fusion_reactor_destroy( sawman->reactor );
 
      /* Destroy process watcher call. */
      fusion_call_destroy( &sawman->process_watch );
