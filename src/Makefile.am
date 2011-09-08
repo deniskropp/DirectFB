@@ -42,8 +42,7 @@ endif
 
 libdirectfb_la_SOURCES = 		\
 	$(NON_PURE_VOODOO_SOURCES)	\
-	directfb.c			\
-	dummy.cpp
+	directfb.c
 
 libdirectfb_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
