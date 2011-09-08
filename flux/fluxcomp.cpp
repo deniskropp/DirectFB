@@ -94,6 +94,7 @@ static const char *license =
 
 static const char *filename;
 
+
 /**********************************************************************************************************************/
 
 static void
@@ -108,7 +109,7 @@ print_usage (const char *prg_name)
 }
 
 static bool
-parse_command_line( int argc, char *argv[] )
+parse_command_line( int argc, char *argv[], bool *c_mode )
 {
      int n;
 
@@ -123,6 +124,11 @@ parse_command_line( int argc, char *argv[] )
           if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0) {
                fprintf (stderr, "fluxcomp version %s\n", DIRECTFB_VERSION);
                return false;
+          }
+
+          if (strcmp (arg, "-c") == 0 || strcmp (arg, "--generate-c") == 0) {
+               *c_mode = true;
+               continue;
           }
 
           if (filename || access( arg, R_OK )) {
@@ -281,11 +287,11 @@ public:
      std::string ArgumentsOutputObjectDecl() const;
      std::string ArgumentsInputObjectDecl() const;
 
-     std::string ArgumentsOutputObjectCatch() const;
+     std::string ArgumentsOutputObjectCatch( bool c_mode ) const;
      std::string ArgumentsOutputObjectThrow() const;
      std::string ArgumentsInoutReturn() const;
 
-     std::string ArgumentsInputObjectLookup() const;
+     std::string ArgumentsInputObjectLookup( bool c_mode ) const;
      std::string ArgumentsInputObjectUnref() const;
 
      std::string ArgumentsNames() const;
@@ -1020,7 +1026,7 @@ Method::ArgumentsInputObjectDecl() const
 }
 
 std::string
-Method::ArgumentsOutputObjectCatch() const
+Method::ArgumentsOutputObjectCatch( bool c_mode ) const
 {
      std::string result;
 
@@ -1033,7 +1039,7 @@ Method::ArgumentsOutputObjectCatch() const
                char buf[1000];
 
                snprintf( buf, sizeof(buf),
-                         "    ret = (DFBResult) %s_Catch( core, return_block.%s_id, &%s );\n"
+                         "    ret = (DFBResult) %s_Catch( %s, return_block.%s_id, &%s );\n"
                          "    if (ret) {\n"
                          "         D_DERROR( ret, \"%%s: Catching %s by ID %%u failed!\\n\", __FUNCTION__, return_block.%s_id );\n"
                          "         return ret;\n"
@@ -1041,7 +1047,7 @@ Method::ArgumentsOutputObjectCatch() const
                          "\n"
                          "    *%s = %s;\n"
                          "\n",
-                         arg->type_name.c_str(), arg->name.c_str(), arg->name.c_str(),
+                         arg->type_name.c_str(), c_mode ? "core_dfb" : "core", arg->name.c_str(), arg->name.c_str(),
                          arg->name.c_str(), arg->name.c_str(),
                          arg->param_name().c_str(), arg->name.c_str() );
 
@@ -1101,7 +1107,7 @@ Method::ArgumentsInoutReturn() const
 }
 
 std::string
-Method::ArgumentsInputObjectLookup() const
+Method::ArgumentsInputObjectLookup( bool c_mode ) const
 {
      std::string result;
 
@@ -1116,7 +1122,7 @@ Method::ArgumentsInputObjectLookup() const
                if (arg->optional) {
                     snprintf( buf, sizeof(buf),
                               "            if (args->%s_set) {\n"
-                              "                ret = (DFBResult) %s_Lookup( core, args->%s_id, caller, &%s );\n"
+                              "                ret = (DFBResult) %s_Lookup( %s, args->%s_id, caller, &%s );\n"
                               "                if (ret) {\n"
                               "                     D_DERROR( ret, \"%%s: Looking up %s by ID %%u failed!\\n\", __FUNCTION__, args->%s_id );\n"
                               "%s"
@@ -1125,20 +1131,20 @@ Method::ArgumentsInputObjectLookup() const
                               "            }\n"
                               "\n",
                               arg->name.c_str(),
-                              arg->type_name.c_str(), arg->name.c_str(), arg->name.c_str(),
+                              arg->type_name.c_str(), c_mode ? "core_dfb" : "core", arg->name.c_str(), arg->name.c_str(),
                               arg->name.c_str(), arg->name.c_str(),
                               async ? "" : "                     return_args->result = ret;\n" );
                }
                else {
                     snprintf( buf, sizeof(buf),
-                              "            ret = (DFBResult) %s_Lookup( core, args->%s_id, caller, &%s );\n"
+                              "            ret = (DFBResult) %s_Lookup( %s, args->%s_id, caller, &%s );\n"
                               "            if (ret) {\n"
                               "                 D_DERROR( ret, \"%%s: Looking up %s by ID %%u failed!\\n\", __FUNCTION__, args->%s_id );\n"
                               "%s"
                               "                 return DFB_OK;\n"
                               "            }\n"
                               "\n",
-                              arg->type_name.c_str(), arg->name.c_str(), arg->name.c_str(),
+                              arg->type_name.c_str(), c_mode ? "core_dfb" : "core", arg->name.c_str(), arg->name.c_str(),
                               arg->name.c_str(), arg->name.c_str(),
                               async ? "" : "                 return_args->result = ret;\n" );
                }
@@ -1224,9 +1230,11 @@ Method::ArgumentsSize( const Interface *face ) const
 class FluxComp
 {
 public:
-     void GenerateHeader( const Interface   *face );
+     void GenerateHeader( const Interface   *face,
+                          bool              c_mode );
 
-     void GenerateSource( const Interface   *face );
+     void GenerateSource( const Interface   *face,
+                          bool              c_mode );
 
      void PrintInterface( FILE              *file,
                           const Interface   *face,
@@ -1238,7 +1246,7 @@ public:
 /**********************************************************************************************************************/
 
 void
-FluxComp::GenerateHeader( const Interface *face )
+FluxComp::GenerateHeader( const Interface *face, bool c_mode )
 {
      FILE        *file;
      std::string  filename = face->object + ".h";
@@ -1303,15 +1311,18 @@ FluxComp::GenerateHeader( const Interface *face )
      fprintf( file, "\n"
                     "#ifdef __cplusplus\n"
                     "}\n"
+                    "%s"
                     "\n"
                     "\n"
-                    "namespace DirectFB {\n"
+                    "%s"
                     "\n"
                     "\n"
                     "/*\n"
                     " * %s Calls\n"
                     " */\n"
                     "typedef enum {\n",
+               c_mode ? "#endif\n" : "",
+              !c_mode ? "namespace DirectFB {\n" : "",
               face->object.c_str() );
 
      /* Method IDs */
@@ -1321,8 +1332,8 @@ FluxComp::GenerateHeader( const Interface *face )
      for (Entity::vector::const_iterator iter = face->entities.begin(); iter != face->entities.end(); iter++) {
           const Method *method = dynamic_cast<const Method*>( *iter );
 
-          fprintf( file, "    %s_%s = %d,\n",
-                   face->object.c_str(), method->name.c_str(), index++ );
+          fprintf( file, "    %s%s_%s = %d,\n",
+                   c_mode ? "_" : "", face->object.c_str(), method->name.c_str(), index++ );
      }
 
      fprintf( file, "} %sCall;\n"
@@ -1338,7 +1349,7 @@ FluxComp::GenerateHeader( const Interface *face )
           fprintf( file, "/*\n"
                          " * %s_%s\n"
                          " */\n"
-                         "typedef struct {\n"
+                         "typedef struct {\n"                         
                          "%s"
                          "} %s%s;\n"
                          "\n"
@@ -1348,7 +1359,8 @@ FluxComp::GenerateHeader( const Interface *face )
                          "\n"
                          "\n",
                    face->object.c_str(), method->name.c_str(),
-                   method->ArgumentsAsMemberDecl().c_str(),
+                   (method->ArgumentsAsMemberDecl().empty() && c_mode)? "     u8 dummy\n" : method->ArgumentsAsMemberDecl().c_str(), // FIXME workaround for blocking fusion bug
+//                 method->ArgumentsAsMemberDecl().c_str(), 
                    face->object.c_str(), method->name.c_str(),
                    method->ArgumentsOutputAsMemberDecl().c_str(),
                    face->object.c_str(), method->name.c_str() );
@@ -1357,129 +1369,178 @@ FluxComp::GenerateHeader( const Interface *face )
 
      /* Abstract Interface */
 
-     PrintInterface( file, face, face->name, "Interface", true );
+     if (!c_mode) {
+          PrintInterface( file, face, face->name, "Interface", true );
 
 
-     /* Real Interface */
+          /* Real Interface */
 
-     fprintf( file, "\n"
-                    "\n"
-                    "\n"
-                    "class %s_Real : public %s\n"
-                    "{\n"
-                    "private:\n"
-                    "    %s *obj;\n"
-                    "\n"
-                    "public:\n"
-                    "    %s_Real( CoreDFB *core, %s *obj )\n"
-                    "        :\n"
-                    "        %s( core ),\n"
-                    "        obj( obj )\n"
-                    "    {\n"
-                    "    }\n"
-                    "\n"
-                    "public:\n",
-              face->name.c_str(), face->name.c_str(), face->object.c_str(),
-              face->name.c_str(), face->object.c_str(), face->name.c_str() );
+          fprintf( file, "\n"
+                         "\n"
+                         "\n"
+                         "class %s_Real : public %s\n"
+                         "{\n"
+                         "private:\n"
+                         "    %s *obj;\n"
+                         "\n"
+                         "public:\n"
+                         "    %s_Real( CoreDFB *core, %s *obj )\n"
+                         "        :\n"
+                         "        %s( core ),\n"
+                         "        obj( obj )\n"
+                         "    {\n"
+                         "    }\n"
+                         "\n"
+                         "public:\n",
+                   face->name.c_str(), face->name.c_str(), face->object.c_str(),
+                   face->name.c_str(), face->object.c_str(), face->name.c_str() );
+     }
 
      for (Entity::vector::const_iterator iter = face->entities.begin(); iter != face->entities.end(); iter++) {
           const Method *method = dynamic_cast<const Method*>( *iter );
 
-          fprintf( file, "    virtual DFBResult %s(\n"
-                         "%s\n"
-                         "    );\n"
-                         "\n",
-                   method->name.c_str(),
-                   method->ArgumentsAsParamDecl().c_str() );
+          if (!c_mode) {
+               fprintf( file, "    virtual DFBResult %s(\n"
+                              "%s\n"
+                              "    );\n"
+                              "\n",
+                        method->name.c_str(),
+                        method->ArgumentsAsParamDecl().c_str() );
+          }
+          else  {
+               fprintf( file, "DFBResult %s_Real__%s( %s *obj%s\n"
+                              "%s );\n"
+                              "\n",
+                        face->name.c_str(), method->name.c_str(), face->object.c_str(), method->ArgumentsAsParamDecl().empty() ? "" : ",",
+                        method->ArgumentsAsParamDecl().c_str() );
+          }
      }
 
-     fprintf( file, "};\n" );
+     if (!c_mode) {
+          fprintf( file, "};\n" );
 
 
-     /* Requestor Interface */
+          /* Requestor Interface */
 
-     fprintf( file, "\n"
-                    "\n"
-                    "\n"
-                    "class %s_Requestor : public %s\n"
-                    "{\n"
-                    "private:\n"
-                    "    %s *obj;\n"
-                    "\n"
-                    "public:\n"
-                    "    %s_Requestor( CoreDFB *core, %s *obj )\n"
-                    "        :\n"
-                    "        %s( core ),\n"
-                    "        obj( obj )\n"
-                    "    {\n"
-                    "    }\n"
-                    "\n"
-                    "public:\n",
-              face->name.c_str(), face->name.c_str(), face->object.c_str(),
-              face->name.c_str(), face->object.c_str(), face->name.c_str() );
+          fprintf( file, "\n"
+                         "\n"
+                         "\n"
+                         "class %s_Requestor : public %s\n"
+                         "{\n"
+                         "private:\n"
+                         "    %s *obj;\n"
+                         "\n"
+                         "public:\n"
+                         "    %s_Requestor( CoreDFB *core, %s *obj )\n"
+                         "        :\n"
+                         "        %s( core ),\n"
+                         "        obj( obj )\n"
+                         "    {\n"
+                         "    }\n"
+                         "\n"
+                         "public:\n",
+                   face->name.c_str(), face->name.c_str(), face->object.c_str(),
+                   face->name.c_str(), face->object.c_str(), face->name.c_str() );
+     }
 
      for (Entity::vector::const_iterator iter = face->entities.begin(); iter != face->entities.end(); iter++) {
           const Method *method = dynamic_cast<const Method*>( *iter );
 
-          fprintf( file, "    virtual DFBResult %s(\n"
-                         "%s\n"
-                         "    );\n"
-                         "\n",
-                   method->name.c_str(),
-                   method->ArgumentsAsParamDecl().c_str() );
+          if (!c_mode) {
+               fprintf( file, "    virtual DFBResult %s(\n"
+                              "%s\n"
+                              "    );\n"
+                              "\n",
+                        method->name.c_str(),
+                        method->ArgumentsAsParamDecl().c_str() );
+          }
+          else {
+
+               fprintf( file, "DFBResult %s_Requestor__%s( %s *obj%s\n"
+                              "%s );\n"
+                              "\n",
+                        face->name.c_str(), method->name.c_str(), face->object.c_str(), method->ArgumentsAsParamDecl().empty() ? "" : ",",
+                        method->ArgumentsAsParamDecl().c_str() );
+          }
      }
 
-     fprintf( file, "};\n" );
+     if (!c_mode) {
+          fprintf( file, "};\n" );
 
 
-     /* Dispatch Object */
+          /* Dispatch Object */
 
-     fprintf( file, "\n"
-                    "\n"
-                    "\n"
-                    "class %sDispatch\n"
-                    "{\n"
-                    "\n"
-                    "public:\n"
-                    "    %sDispatch( CoreDFB *core, %s *real )\n"
-                    "        :\n"
-                    "        core( core ),\n"
-                    "        real( real )\n"
-                    "    {\n"
-                    "    }\n"
-                    "\n"
-                    "\n"
-                    "    virtual DFBResult Dispatch( FusionID      caller,\n"
-                    "                                int           method,\n"
-                    "                                void         *ptr,\n"
-                    "                                unsigned int  length,\n"
-                    "                                void         *ret_ptr,\n"
-                    "                                unsigned int  ret_size,\n"
-                    "                                unsigned int *ret_length );\n"
-                    "\n"
-                    "private:\n"
-                    "    CoreDFB              *core;\n"
-                    "    %-20s *real;\n"
-                    "};\n",
-              face->object.c_str(), face->object.c_str(), face->name.c_str(), face->name.c_str() );
+          fprintf( file, "\n"
+                         "\n"
+                         "\n"
+                         "class %sDispatch\n"
+                         "{\n"
+                         "\n"
+                         "public:\n"
+                         "    %sDispatch( CoreDFB *core, %s *real )\n"
+                         "        :\n"
+                         "        core( core ),\n"
+                         "        real( real )\n"
+                         "    {\n"
+                         "    }\n"
+                         "\n"
+                         "\n"
+                         "    virtual DFBResult Dispatch( FusionID      caller,\n"
+                         "                                int           method,\n"
+                         "                                void         *ptr,\n"
+                         "                                unsigned int  length,\n"
+                         "                                void         *ret_ptr,\n"
+                         "                                unsigned int  ret_size,\n"
+                         "                                unsigned int *ret_length );\n"
+                         "\n"
+                         "private:\n"
+                         "    CoreDFB              *core;\n"
+                         "    %-20s *real;\n"
+                         "};\n",
+                   face->object.c_str(), face->object.c_str(), face->name.c_str(), face->name.c_str() );
 
 
-     fprintf( file, "\n"
-                    "\n"
-                    "}\n"
-                    "\n"
-                    "#endif\n"
-                    "\n"
-                    "#endif\n" );
+          fprintf( file, "\n"
+                         "\n"
+                         "}\n"
+                         "\n"
+                         "#endif\n"
+                         "\n"
+                         "#endif\n" );
+
+     }
+     else {
+          fprintf( file, "\n"
+                         "DFBResult %sDispatch__Dispatch( %s *obj,\n"
+                         "                    FusionID      caller,\n"
+                         "                    int           method,\n"
+                         "                    void         *ptr,\n"
+                         "                    unsigned int  length,\n"
+                         "                    void         *ret_ptr,\n"
+                         "                    unsigned int  ret_size,\n"
+                         "                    unsigned int *ret_length );\n",
+                   face->object.c_str(), face->object.c_str() );
+
+          fprintf( file, "\n"
+                         "\n"
+                         "#endif\n" );
+
+     }
 
      fclose( file );
 }
 
 void
-FluxComp::GenerateSource( const Interface *face )
+FluxComp::GenerateSource( const Interface *face, bool c_mode )
 {
      FILE        *file;
-     std::string  filename = face->object + ".cpp";
+     std::string  filename = face->object;
+
+     if (!c_mode)
+          filename += ".cpp";
+     else
+          filename += ".c";
+
 
      file = fopen( filename.c_str(), "w" );
      if (!file) {
@@ -1491,9 +1552,13 @@ FluxComp::GenerateSource( const Interface *face )
                     "#include <config.h>\n"
                     "\n"
                     "#include \"%s.h\"\n"
-                    "\n"
-                    "extern \"C\" {\n"
-                    "#include <directfb_util.h>\n"
+                    "\n",
+              license, face->object.c_str() );
+
+     if (!c_mode)
+          fprintf( file, "extern \"C\" {\n" );
+
+     fprintf( file, "#include <directfb_util.h>\n"
                     "\n"
                     "#include <direct/debug.h>\n"
                     "#include <direct/mem.h>\n"
@@ -1502,44 +1567,70 @@ FluxComp::GenerateSource( const Interface *face )
                     "\n"
                     "#include <fusion/conf.h>\n"
                     "\n"
-                    "#include <core/core.h>\n"
-                    "}\n"
-                    "\n"
+                    "#include <core/core.h>\n" );
+
+     if (!c_mode)
+          fprintf( file, "}\n" );
+
+     fprintf( file, "\n"
                     "D_DEBUG_DOMAIN( DirectFB_%s, \"DirectFB/%s\", \"DirectFB %s\" );\n"
                     "\n"
                     "/*********************************************************************************************************************/\n"
                     "\n",
-              license, face->object.c_str(), face->object.c_str(), face->object.c_str(), face->object.c_str() );
+              face->object.c_str(), face->object.c_str(), face->object.c_str() );
 
      /* C Wrappers */
 
      for (Entity::vector::const_iterator iter = face->entities.begin(); iter != face->entities.end(); iter++) {
           const Method *method = dynamic_cast<const Method*>( *iter );
 
-          fprintf( file, "DFBResult\n"
-                         "%s_%s(\n"
-                         "                    %-40s  *obj%s\n"
-                         "%s\n"
-                         ")\n"
-                         "{\n"
-                         "    if (!fusion_config->secure_fusion || dfb_core_is_master( core_dfb )) {\n"
-                         "        DirectFB::%s_Real real( core_dfb, obj );\n"
-                         "\n"
-                         "        return real.%s( %s );\n"
-                         "    }\n"
-                         "\n"
-                         "    DirectFB::%s_Requestor requestor( core_dfb, obj );\n"
-                         "\n"
-                         "    return requestor.%s( %s );\n"
-                         "}\n"
-                         "\n",
-                   face->object.c_str(), method->name.c_str(),
-                   face->object.c_str(), method->entities.empty() ? "" : ",",
-                   method->ArgumentsAsParamDecl().c_str(),
-                   face->name.c_str(),
-                   method->name.c_str(), method->ArgumentsNames().c_str(),
-                   face->name.c_str(),
-                   method->name.c_str(), method->ArgumentsNames().c_str() );
+          if (!c_mode) {
+               fprintf( file, "DFBResult\n"
+                              "%s_%s(\n"
+                              "                    %-40s  *obj%s\n"
+                              "%s\n"
+                              ")\n"
+                              "{\n"
+                              "    if (!fusion_config->secure_fusion || dfb_core_is_master( core_dfb )) {\n"
+                              "        DirectFB::%s_Real real( core_dfb, obj );\n"
+                              "\n"
+                              "        return real.%s( %s );\n"
+                              "    }\n"
+                              "\n"
+                              "    DirectFB::%s_Requestor requestor( core_dfb, obj );\n"
+                              "\n"
+                              "    return requestor.%s( %s );\n"
+                              "}\n"
+                              "\n",
+                        face->object.c_str(), method->name.c_str(),
+                        face->object.c_str(), method->entities.empty() ? "" : ",",
+                        method->ArgumentsAsParamDecl().c_str(),
+                        face->name.c_str(),
+                        method->name.c_str(), method->ArgumentsNames().c_str(),
+                        face->name.c_str(),
+                        method->name.c_str(), method->ArgumentsNames().c_str() );
+          }
+          else {
+               fprintf( file, "DFBResult\n"
+                              "%s_%s(\n"
+                              "                    %-40s  *obj%s\n"
+                              "%s\n"
+                              ")\n"
+                              "{\n"
+                              "    if (!fusion_config->secure_fusion || dfb_core_is_master( core_dfb )) {\n"
+                              "        return %s_Real__%s( obj%s%s );\n"
+                              "    }\n"
+                              "\n"
+                              "    return %s_Requestor__%s( obj%s%s );\n"
+                              "}\n"
+                              "\n",
+                        face->object.c_str(), method->name.c_str(),
+                        face->object.c_str(), method->entities.empty() ? "" : ",",
+                        method->ArgumentsAsParamDecl().c_str(),
+                        face->name.c_str(), method->name.c_str(), method->ArgumentsAsParamDecl().empty() ? "" : ", ", method->ArgumentsNames().c_str(),
+                        face->name.c_str(), method->name.c_str(), method->ArgumentsAsParamDecl().empty() ? "" : ", ", method->ArgumentsNames().c_str() );
+          }
+
      }
 
 
@@ -1555,61 +1646,113 @@ FluxComp::GenerateSource( const Interface *face )
                     "                     void         *ret_ptr,\n"
                     "                     unsigned int  ret_size,\n"
                     "                     unsigned int *ret_length )\n"
-                    "{\n"
-                    "    DirectFB::%sDispatch *dispatch = (DirectFB::%sDispatch*) ctx;\n"
-                    "\n"
-                    "    dispatch->Dispatch( caller, call_arg, ptr, length, ret_ptr, ret_size, ret_length );\n"
-                    "\n"
-                    "    return FCHR_RETURN;\n"
-                    "}\n"
-                    "\n",
-              face->object.c_str(), face->object.c_str(), face->object.c_str() );
+                    "{\n",
+              face->object.c_str() );
+
+     if (!c_mode) {
+          fprintf( file, "    DirectFB::%sDispatch *dispatch = (DirectFB::%sDispatch*) ctx;\n"
+                         "\n"
+                         "    dispatch->Dispatch( caller, call_arg, ptr, length, ret_ptr, ret_size, ret_length );\n"
+                         "\n"
+                         "    return FCHR_RETURN;\n"
+                         "}\n"
+                         "\n",
+                   face->object.c_str(), face->object.c_str() );
+     }
+     else {
+          fprintf( file, "%s *obj = (%s*) ctx;"
+                         "\n"
+                         "    %sDispatch__Dispatch( obj, caller, call_arg, ptr, length, ret_ptr, ret_size, ret_length );\n"
+                         "\n"
+                         "    return FCHR_RETURN;\n"
+                         "}\n"
+                         "\n",
+                   face->object.c_str(), face->object.c_str(),
+                   face->object.c_str() );
+     }
 
      fprintf( file, "void *%s_Init_Dispatch(\n"
                     "                    CoreDFB              *core,\n"
                     "                    %-20s *obj,\n"
                     "                    FusionCall           *call\n"
                     ")\n"
-                    "{\n"
-                    "    DirectFB::%sDispatch *dispatch = new DirectFB::%sDispatch( core, new DirectFB::%s_Real(core, obj) );\n"
-                    "\n"
-                    "    fusion_call_init3( call, %s_Dispatch, dispatch, core->world );\n"
-                    "\n"
-                    "    return dispatch;\n"
-                    "}\n"
-                    "\n",
-              face->object.c_str(), face->object.c_str(), face->object.c_str(), face->object.c_str(), face->name.c_str(), face->object.c_str() );
+                    "{\n",
+                    face->object.c_str(), face->object.c_str() );
+
+     if (!c_mode) {
+          fprintf( file, "    DirectFB::%sDispatch *dispatch = new DirectFB::%sDispatch( core, new DirectFB::%s_Real(core, obj) );\n"
+                         "\n"
+                         "    fusion_call_init3( call, %s_Dispatch, dispatch, core->world );\n"
+                         "\n"
+                         "    return dispatch;\n"
+                         "}\n"
+                         "\n",
+                    face->object.c_str(), face->object.c_str(), face->name.c_str(), face->object.c_str() );
+     }
+     else {
+          fprintf( file, "    fusion_call_init3( call, %s_Dispatch, obj, core->world );\n"
+                         "\n"
+                         "    return NULL;\n"
+                         "}\n"
+                         "\n",
+                   face->object.c_str() );
+     }
 
      fprintf( file, "void  %s_Deinit_Dispatch(\n"
                     "                    void                 *_dispatch\n"
                     ")\n"
-                    "{\n"
-                    "    DirectFB::%sDispatch *dispatch = (DirectFB::%sDispatch*) _dispatch;\n"
-                    "\n"
-                    "    delete dispatch;\n"
-                    "}\n"
-                    "\n",
-              face->object.c_str(), face->object.c_str(), face->object.c_str() );
+                    "{\n", 
+              face->object.c_str() );
 
+     if (!c_mode) {
+          fprintf( file, "    DirectFB::%sDispatch *dispatch = (DirectFB::%sDispatch*) _dispatch;\n"
+                         "\n"
+                         "    delete dispatch;\n"
+                         "}\n"
+                         "\n",
+                   face->object.c_str(), face->object.c_str() );
+     }
+     else {
+          fprintf( file, "}\n"
+                         "\n" );
+     }
 
      fprintf( file, "/*********************************************************************************************************************/\n"
-                    "\n"
-                    "namespace DirectFB {\n"
-                    "\n"
                     "\n" );
+
+     if (!c_mode) {
+          fprintf( file, "namespace DirectFB {\n"
+                         "\n"
+                         "\n" );
+     }
 
      /* Requestor Methods */
 
      for (Entity::vector::const_iterator iter = face->entities.begin(); iter != face->entities.end(); iter++) {
           const Method *method = dynamic_cast<const Method*>( *iter );
 
-          if (method->async) {
+          if (!c_mode) {
                fprintf( file, "\n"
                               "DFBResult\n"
                               "%s_Requestor::%s(\n"
                               "%s\n"
-                              ")\n"
-                              "{\n"
+                              ")\n",
+                        face->name.c_str(), method->name.c_str(),
+                        method->ArgumentsAsParamDecl().c_str() );
+          }
+          else {
+               fprintf( file, "\n"
+                              "DFBResult\n"
+                              "%s_Requestor__%s( %s *obj%s\n"
+                              "%s\n"
+                              ")\n",
+                        face->name.c_str(), method->name.c_str(), face->object.c_str(), method->ArgumentsAsParamDecl().empty() ? "" : ",",
+                        method->ArgumentsAsParamDecl().c_str() );
+
+          }
+
+          if (method->async) {
+               fprintf( file, "{\n"
                               "    DFBResult           ret;\n"
                               "%s"
                               "    %s%s       *block = (%s%s*) alloca( %s );\n"
@@ -1620,7 +1763,7 @@ FluxComp::GenerateSource( const Interface *face )
                               "\n"
                               "%s"
                               "\n"
-                              "    ret = (DFBResult) %s_Call( obj, FCEF_ONEWAY, %s_%s, block, %s, NULL, 0, NULL );\n"
+                              "    ret = (DFBResult) %s_Call( obj, FCEF_ONEWAY, %s%s_%s, block, %s, NULL, 0, NULL );\n"
                               "    if (ret) {\n"
                               "        D_DERROR( ret, \"%%s: %s_Call( %s_%s ) failed!\\n\", __FUNCTION__ );\n"
                               "        return ret;\n"
@@ -1632,25 +1775,18 @@ FluxComp::GenerateSource( const Interface *face )
                               "    return DFB_OK;\n"
                               "}\n"
                               "\n",
-                        face->name.c_str(), method->name.c_str(),
-                        method->ArgumentsAsParamDecl().c_str(),
                         method->ArgumentsOutputObjectDecl().c_str(),
                         face->object.c_str(), method->name.c_str(), face->object.c_str(), method->name.c_str(), method->ArgumentsSize( face ).c_str(),
                         face->object.c_str(), face->name.c_str(),
                         method->ArgumentsAssertions().c_str(),
                         method->ArgumentsInputAssignments().c_str(),
-                        face->object.c_str(), face->object.c_str(), method->name.c_str(), method->ArgumentsSize( face ).c_str(),
+                        face->object.c_str(), c_mode ? "_" : "", face->object.c_str(), method->name.c_str(), method->ArgumentsSize( face ).c_str(),
                         face->object.c_str(), face->object.c_str(), method->name.c_str(),
                         method->ArgumentsOutputAssignments().c_str(),
-                        method->ArgumentsOutputObjectCatch().c_str() );
+                        method->ArgumentsOutputObjectCatch( c_mode ).c_str() );
           }
           else {
-               fprintf( file, "\n"
-                              "DFBResult\n"
-                              "%s_Requestor::%s(\n"
-                              "%s\n"
-                              ")\n"
-                              "{\n"
+               fprintf( file, "{\n"
                               "    DFBResult           ret;\n"
                               "%s"
                               "    %s%s       *block = (%s%s*) alloca( %s );\n"
@@ -1662,7 +1798,7 @@ FluxComp::GenerateSource( const Interface *face )
                               "\n"
                               "%s"
                               "\n"
-                              "    ret = (DFBResult) %s_Call( obj, FCEF_NONE, %s_%s, block, %s, &return_block, sizeof(return_block), NULL );\n"
+                              "    ret = (DFBResult) %s_Call( obj, FCEF_NONE, %s%s_%s, block, %s, &return_block, sizeof(return_block), NULL );\n"
                               "    if (ret) {\n"
                               "        D_DERROR( ret, \"%%s: %s_Call( %s_%s ) failed!\\n\", __FUNCTION__ );\n"
                               "        return ret;\n"
@@ -1679,19 +1815,17 @@ FluxComp::GenerateSource( const Interface *face )
                               "    return DFB_OK;\n"
                               "}\n"
                               "\n",
-                        face->name.c_str(), method->name.c_str(),
-                        method->ArgumentsAsParamDecl().c_str(),
                         method->ArgumentsOutputObjectDecl().c_str(),
                         face->object.c_str(), method->name.c_str(), face->object.c_str(), method->name.c_str(), method->ArgumentsSize( face ).c_str(),
                         face->object.c_str(), method->name.c_str(),
                         face->object.c_str(), face->name.c_str(),
                         method->ArgumentsAssertions().c_str(),
                         method->ArgumentsInputAssignments().c_str(),
-                        face->object.c_str(), face->object.c_str(), method->name.c_str(), method->ArgumentsSize( face ).c_str(),
+                        face->object.c_str(), c_mode ? "_" : "", face->object.c_str(), method->name.c_str(), method->ArgumentsSize( face ).c_str(),
                         face->object.c_str(), face->object.c_str(), method->name.c_str(),
                         face->object.c_str(), method->name.c_str(),
                         method->ArgumentsOutputAssignments().c_str(),
-                        method->ArgumentsOutputObjectCatch().c_str() );
+                        method->ArgumentsOutputObjectCatch( c_mode ).c_str() );
           }
      }
 
@@ -1699,8 +1833,18 @@ FluxComp::GenerateSource( const Interface *face )
 
      fprintf( file, "/*********************************************************************************************************************/\n"
                     "\n"
-                    "DFBResult\n"
-                    "%sDispatch::Dispatch( FusionID      caller,\n"
+                    "DFBResult\n" );
+
+     if (!c_mode) {
+          fprintf( file, "%sDispatch::Dispatch( \n",
+                   face->object.c_str() );
+     }
+     else {
+          fprintf( file, "%sDispatch__Dispatch( %s *obj,\n",
+                   face->object.c_str(), face->object.c_str());
+     }
+
+     fprintf( file, "                                FusionID      caller,\n"
                     "                                int           method,\n"
                     "                                void         *ptr,\n"
                     "                                unsigned int  length,\n"
@@ -1714,41 +1858,49 @@ FluxComp::GenerateSource( const Interface *face )
                     "    D_DEBUG_AT( DirectFB_%s, \"%sDispatch::%%s()\\n\", __FUNCTION__ );\n"
                     "\n"
                     "    switch (method) {\n",
-              face->object.c_str(), face->object.c_str(), face->object.c_str() );
+              face->object.c_str(), face->object.c_str() );
 
      /* Dispatch Methods */
 
      for (Entity::vector::const_iterator iter = face->entities.begin(); iter != face->entities.end(); iter++) {
           const Method *method = dynamic_cast<const Method*>( *iter );
 
+          if (!c_mode) 
+               fprintf( file, "        case %s_%s: {\n", face->object.c_str(), method->name.c_str() );
+          else
+               fprintf( file, "        case _%s_%s: {\n", face->object.c_str(), method->name.c_str() );
+
           if (method->async) {
-               fprintf( file, "        case %s_%s: {\n"
-                              "%s"
+               fprintf( file, "%s"
                               "%s"
                               "            D_UNUSED\n"
                               "            %s%s       *args        = (%s%s *) ptr;\n"
                               "\n"
                               "            D_DEBUG_AT( DirectFB_%s, \"=-> %s_%s\\n\" );\n"
                               "\n"
-                              "%s"
-                              "            real->%s( %s );\n"
-                              "\n"
-                              "%s"
-                              "            return DFB_OK;\n"
-                              "        }\n"
-                              "\n",
-                        face->object.c_str(), method->name.c_str(),
+                              "%s",
                         method->ArgumentsInputObjectDecl().c_str(),
                         method->ArgumentsOutputObjectDecl().c_str(),
                         face->object.c_str(), method->name.c_str(), face->object.c_str(), method->name.c_str(),
                         face->object.c_str(), face->object.c_str(), method->name.c_str(),
-                        method->ArgumentsInputObjectLookup().c_str(),
-                        method->name.c_str(), method->ArgumentsAsMemberParams().c_str(),
+                        method->ArgumentsInputObjectLookup( c_mode ).c_str() );
+
+               if (!c_mode)
+                    fprintf( file, "            real->%s( %s );\n",
+                             method->name.c_str(), method->ArgumentsAsMemberParams().c_str() );
+               else
+                    fprintf( file, "            %s_Real__%s( obj%s%s );\n",
+                             face->name.c_str(), method->name.c_str(), method->ArgumentsAsParamDecl().empty() ? "" : ", ", method->ArgumentsAsMemberParams().c_str() );
+
+               fprintf( file, "\n"
+                              "%s"
+                              "            return DFB_OK;\n"
+                              "        }\n"
+                              "\n",
                         method->ArgumentsInputObjectUnref().c_str() );
           }
           else {
-               fprintf( file, "        case %s_%s: {\n"
-                              "%s"
+               fprintf( file, "%s"
                               "%s"
                               "            D_UNUSED\n"
                               "            %s%s       *args        = (%s%s *) ptr;\n"
@@ -1756,9 +1908,23 @@ FluxComp::GenerateSource( const Interface *face )
                               "\n"
                               "            D_DEBUG_AT( DirectFB_%s, \"=-> %s_%s\\n\" );\n"
                               "\n"
-                              "%s"
-                              "            return_args->result = real->%s( %s );\n"
-                              "            if (return_args->result == DFB_OK) {\n"
+                              "%s",
+                        method->ArgumentsInputObjectDecl().c_str(),
+                        method->ArgumentsOutputObjectDecl().c_str(),
+                        face->object.c_str(), method->name.c_str(), face->object.c_str(), method->name.c_str(),
+                        face->object.c_str(), method->name.c_str(), face->object.c_str(), method->name.c_str(),
+                        face->object.c_str(), face->object.c_str(), method->name.c_str(),
+                        method->ArgumentsInputObjectLookup( c_mode ).c_str() );
+
+               if (!c_mode)
+                    fprintf( file, "            return_args->result = real->%s( %s );\n",
+                             method->name.c_str(), method->ArgumentsAsMemberParams().c_str() );
+               else
+                    fprintf( file, "            return_args->result = %s_Real__%s( obj%s%s );\n",
+                             face->name.c_str(), method->name.c_str(), method->ArgumentsAsParamDecl().empty() ? "" : ", ", method->ArgumentsAsMemberParams().c_str() );
+
+
+               fprintf( file, "            if (return_args->result == DFB_OK) {\n"
                               "%s"
                               "%s"
                               "            }\n"
@@ -1769,14 +1935,6 @@ FluxComp::GenerateSource( const Interface *face )
                               "            return DFB_OK;\n"
                               "        }\n"
                               "\n",
-                        face->object.c_str(), method->name.c_str(),
-                        method->ArgumentsInputObjectDecl().c_str(),
-                        method->ArgumentsOutputObjectDecl().c_str(),
-                        face->object.c_str(), method->name.c_str(), face->object.c_str(), method->name.c_str(),
-                        face->object.c_str(), method->name.c_str(), face->object.c_str(), method->name.c_str(),
-                        face->object.c_str(), face->object.c_str(), method->name.c_str(),
-                        method->ArgumentsInputObjectLookup().c_str(),
-                        method->name.c_str(), method->ArgumentsAsMemberParams().c_str(),
                         method->ArgumentsOutputObjectThrow().c_str(),
                         method->ArgumentsInoutReturn().c_str(),
                         face->object.c_str(), method->name.c_str(),
@@ -1789,9 +1947,9 @@ FluxComp::GenerateSource( const Interface *face )
                     "    return DFB_NOSUCHMETHOD;\n"
                     "}\n" );
 
-
-     fprintf( file, "\n"
-                    "}\n" );
+     if (!c_mode)
+          fprintf( file, "\n"
+                         "}\n" );
 
      fclose( file );
 }
@@ -1842,6 +2000,8 @@ main( int argc, char *argv[] )
      DirectResult   ret;
      Entity::vector faces;
 
+     bool           c_mode = false;
+
      direct_initialize();
 
 //     direct_debug_config_domain( "fluxcomp", true );
@@ -1850,9 +2010,8 @@ main( int argc, char *argv[] )
 //     direct_config->debugmem = true;
 
      /* Parse the command line. */
-     if (!parse_command_line( argc, argv ))
+     if (!parse_command_line( argc, argv, &c_mode ))
           return -1;
-
 
      ret = Entity::GetEntities( filename, faces );
      if (ret == DR_OK) {
@@ -1861,8 +2020,8 @@ main( int argc, char *argv[] )
           for (Entity::vector::const_iterator iter = faces.begin(); iter != faces.end(); iter++) {
                const Interface *face = dynamic_cast<const Interface*>( *iter );
 
-               fc.GenerateHeader( face );
-               fc.GenerateSource( face );
+               fc.GenerateHeader( face, c_mode );
+               fc.GenerateSource( face, c_mode );
           }
      }
 
