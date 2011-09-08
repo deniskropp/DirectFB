@@ -80,29 +80,29 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 
 
 libdirectfb_core_la_SOURCES = \
-	CoreDFB.cpp		\
-	CoreDFB_real.cpp	\
-	CoreGraphicsState.cpp	\
-	CoreGraphicsState_real.cpp	\
+	CoreDFB.c		\
+	CoreDFB_real.c		\
+	CoreGraphicsState.c	\
+	CoreGraphicsState_real.c	\
 	CoreGraphicsStateClient.c		\
-	CoreInputDevice.cpp		\
-	CoreInputDevice_real.cpp	\
-	CoreLayer.cpp		\
-	CoreLayer_real.cpp	\
-	CoreLayerContext.cpp	\
-	CoreLayerContext_real.cpp	\
-	CoreLayerRegion.cpp	\
-	CoreLayerRegion_real.cpp	\
-	CorePalette.cpp		\
-	CorePalette_real.cpp	\
-	CoreScreen.cpp		\
-	CoreScreen_real.cpp	\
-	CoreSurface.cpp		\
-	CoreSurface_real.cpp	\
-	CoreWindow.cpp		\
-	CoreWindow_real.cpp	\
-	CoreWindowStack.cpp		\
-	CoreWindowStack_real.cpp	\
+	CoreInputDevice.c		\
+	CoreInputDevice_real.c	\
+	CoreLayer.c		\
+	CoreLayer_real.c	\
+	CoreLayerContext.c	\
+	CoreLayerContext_real.c	\
+	CoreLayerRegion.c	\
+	CoreLayerRegion_real.c	\
+	CorePalette.c		\
+	CorePalette_real.c	\
+	CoreScreen.c		\
+	CoreScreen_real.c	\
+	CoreSurface.c		\
+	CoreSurface_real.c	\
+	CoreWindow.c		\
+	CoreWindow_real.c	\
+	CoreWindowStack.c		\
+	CoreWindowStack_real.c	\
 	clipboard.c		\
 	colorhash.c		\
 	core.c			\
@@ -134,27 +134,27 @@ libdirectfb_core_la_SOURCES = \
 	wm.c
 
 distclean-local:
-	rm -f CoreDFB.cpp
+	rm -f CoreDFB.c
 	rm -f CoreDFB.h
-	rm -f CoreGraphicsState.cpp
+	rm -f CoreGraphicsState.c
 	rm -f CoreGraphicsState.h
-	rm -f CoreInputDevice.cpp
+	rm -f CoreInputDevice.c
 	rm -f CoreInputDevice.h
-	rm -f CoreLayerContext.cpp
+	rm -f CoreLayerContext.c
 	rm -f CoreLayerContext.h
-	rm -f CoreLayer.cpp
+	rm -f CoreLayer.c
 	rm -f CoreLayer.h
-	rm -f CoreLayerRegion.cpp
+	rm -f CoreLayerRegion.c
 	rm -f CoreLayerRegion.h
-	rm -f CorePalette.cpp
+	rm -f CorePalette.c
 	rm -f CorePalette.h
-	rm -f CoreScreen.cpp
+	rm -f CoreScreen.c
 	rm -f CoreScreen.h
-	rm -f CoreSurface.cpp
+	rm -f CoreSurface.c
 	rm -f CoreSurface.h
-	rm -f CoreWindow.cpp
+	rm -f CoreWindow.c
 	rm -f CoreWindow.h
-	rm -f CoreWindowStack.cpp
+	rm -f CoreWindowStack.c
 	rm -f CoreWindowStack.h
 
 # quirks for generated headers
@@ -173,17 +173,17 @@ surface_buffer.c: CoreSurface.h
 windows.c: CoreWindow.h
 windowstack.c: CoreWindowStack.h
 
-CoreDFB_real.cpp: CoreGraphicsState.h CoreDFB.h
-CoreGraphicsState_real.cpp: CoreGraphicsState.h
-CoreInputDevice_real.cpp: CoreInputDevice.h
-CoreLayerContext_real.cpp: CoreLayerContext.h
-CoreLayer_real.cpp: CoreLayer.h
-CoreLayerRegion_real.cpp: CoreLayerRegion.h
-CorePalette_real.cpp: CorePalette.h
-CoreScreen_real.cpp: CoreScreen.h
-CoreSurface_real.cpp: CoreSurface.h
-CoreWindow_real.cpp: CoreWindow.h
-CoreWindowStack_real.cpp: CoreWindowStack.h
+CoreDFB_real.c: CoreGraphicsState.h CoreDFB.h
+CoreGraphicsState_real.c: CoreGraphicsState.h
+CoreInputDevice_real.c: CoreInputDevice.h
+CoreLayerContext_real.c: CoreLayerContext.h
+CoreLayer_real.c: CoreLayer.h
+CoreLayerRegion_real.c: CoreLayerRegion.h
+CorePalette_real.c: CorePalette.h
+CoreScreen_real.c: CoreScreen.h
+CoreSurface_real.c: CoreSurface.h
+CoreWindow_real.c: CoreWindow.h
+CoreWindowStack_real.c: CoreWindowStack.h
 
 
 include $(top_srcdir)/rules/flux_comp.make

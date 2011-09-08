@@ -30,7 +30,6 @@
 
 #include "CoreScreen.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -39,47 +38,45 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/screen.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_CoreScreen, "DirectFB/CoreScreen", "DirectFB CoreScreen" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 
 DFBResult
-IScreen_Real::SetPowerMode(
+IScreen_Real__SetPowerMode(
+                    CoreScreen                                *obj,
                     DFBScreenPowerMode                         mode
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     return dfb_screen_set_powermode( obj, mode );
 }
 
 
 DFBResult
-IScreen_Real::WaitVSync(
-
+IScreen_Real__WaitVSync(
+                    CoreScreen                                *obj
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     return dfb_screen_wait_vsync( obj );
 }
 
 
 DFBResult
-IScreen_Real::GetVSyncCount(
+IScreen_Real__GetVSyncCount(
+                    CoreScreen                                *obj,
                     u64                                       *ret_count
 )
 {
     DFBResult     ret;
     unsigned long count;
 
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     ret = dfb_screen_get_vsync_count( obj, &count );
     if (ret)
@@ -92,13 +89,14 @@ IScreen_Real::GetVSyncCount(
 
 
 DFBResult
-IScreen_Real::TestMixerConfig(
+IScreen_Real__TestMixerConfig(
+                    CoreScreen                                *obj,
                     u32                                        mixer,
                     const DFBScreenMixerConfig                *config,
                     DFBScreenMixerConfigFlags                 *ret_failed
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
     D_ASSERT( ret_failed != NULL );
@@ -108,12 +106,13 @@ IScreen_Real::TestMixerConfig(
 
 
 DFBResult
-IScreen_Real::SetMixerConfig(
+IScreen_Real__SetMixerConfig(
+                    CoreScreen                                *obj,
                     u32                                        mixer,
                     const DFBScreenMixerConfig                *config
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
 
@@ -122,13 +121,14 @@ IScreen_Real::SetMixerConfig(
 
 
 DFBResult
-IScreen_Real::TestEncoderConfig(
+IScreen_Real__TestEncoderConfig(
+                    CoreScreen                                *obj,
                     u32                                        encoder,
                     const DFBScreenEncoderConfig              *config,
                     DFBScreenEncoderConfigFlags               *ret_failed
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
     D_ASSERT( ret_failed != NULL );
@@ -138,12 +138,13 @@ IScreen_Real::TestEncoderConfig(
 
 
 DFBResult
-IScreen_Real::SetEncoderConfig(
+IScreen_Real__SetEncoderConfig(
+                    CoreScreen                                *obj,
                     u32                                        encoder,
                     const DFBScreenEncoderConfig              *config
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
 
@@ -152,13 +153,14 @@ IScreen_Real::SetEncoderConfig(
 
 
 DFBResult
-IScreen_Real::TestOutputConfig(
+IScreen_Real__TestOutputConfig(
+                    CoreScreen                                *obj,
                     u32                                        output,
                     const DFBScreenOutputConfig               *config,
                     DFBScreenOutputConfigFlags                *ret_failed
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
     D_ASSERT( ret_failed != NULL );
@@ -168,12 +170,13 @@ IScreen_Real::TestOutputConfig(
 
 
 DFBResult
-IScreen_Real::SetOutputConfig(
+IScreen_Real__SetOutputConfig(
+                    CoreScreen                                *obj,
                     u32                                        output,
                     const DFBScreenOutputConfig               *config
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
 
@@ -182,11 +185,12 @@ IScreen_Real::SetOutputConfig(
 
 
 DFBResult
-IScreen_Real::GetScreenSize(
+IScreen_Real__GetScreenSize(
+                    CoreScreen                                *obj,
                     DFBDimension                              *ret_size
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( ret_size != NULL );
 
@@ -195,12 +199,13 @@ IScreen_Real::GetScreenSize(
 
 
 DFBResult
-IScreen_Real::GetLayerDimension(
+IScreen_Real__GetLayerDimension(
+                    CoreScreen                                *obj,
                     CoreLayer                                 *layer,
                     DFBDimension                              *ret_size
 )
 {
-    D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreScreen, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( layer != NULL );
     D_ASSERT( ret_size != NULL );
@@ -208,5 +213,3 @@ IScreen_Real::GetLayerDimension(
     return dfb_screen_get_layer_dimension( obj, layer, &ret_size->w, &ret_size->h );
 }
 
-
-}

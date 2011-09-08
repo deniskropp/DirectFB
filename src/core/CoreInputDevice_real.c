@@ -28,9 +28,8 @@
 
 #include <config.h>
 
-#include "CoreLayerRegion.h"
+#include "CoreInputDevice.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -38,38 +37,32 @@ extern "C" {
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
-#include <core/core.h>
-}
+#include <core/input.h>
 
-D_DEBUG_DOMAIN( DirectFB_CoreLayerRegion, "DirectFB/CoreLayerRegion", "DirectFB CoreLayerRegion" );
+D_DEBUG_DOMAIN( DirectFB_CoreInputDevice, "DirectFB/CoreInputDevice", "DirectFB CoreInputDevice" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 
 DFBResult
-ILayerRegion_Real::GetSurface(
-                    CoreSurface                              **ret_surface
+IInputDevice_Real__SetKeymapEntry(
+                    CoreInputDevice                           *obj,
+                    s32                                        key_code,
+                    const DFBInputDeviceKeymapEntry           *entry
 )
 {
-     D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreInputDevice, "%s()\n", __FUNCTION__ );
 
-     return dfb_layer_region_get_surface( obj, ret_surface );
+    return dfb_input_device_set_keymap_entry( obj, key_code, entry );
 }
-
 
 DFBResult
-ILayerRegion_Real::FlipUpdate(
-                    const DFBRegion                           *update,
-                    DFBSurfaceFlipFlags                        flags
+IInputDevice_Real__ReloadKeymap(
+                    CoreInputDevice                            *obj
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreInputDevice, "%s()\n", __FUNCTION__ );
 
-    return dfb_layer_region_flip_update( obj, update, flags );
+    return dfb_input_device_reload_keymap( obj );
 }
 
-
-}

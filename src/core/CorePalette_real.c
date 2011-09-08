@@ -30,7 +30,6 @@
 
 #include "CorePalette.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -41,24 +40,21 @@ extern "C" {
 #include <core/core.h>
 
 #include <gfx/convert.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_CorePalette, "DirectFB/CorePalette", "DirectFB CorePalette" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 
 DFBResult
-IPalette_Real::SetEntries(
+IPalette_Real__SetEntries(
+                        CorePalette    *obj,
                         const DFBColor *colors,
                         u32             num,
                         u32             offset
                         )
 {
-     D_DEBUG_AT( DirectFB_CorePalette, "IPalette_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CorePalette, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( colors != NULL );
 
@@ -82,13 +78,14 @@ IPalette_Real::SetEntries(
 }
 
 DFBResult
-IPalette_Real::SetEntriesYUV(
+IPalette_Real__SetEntriesYUV(
+                        CorePalette       *obj,
                         const DFBColorYUV *colors,
                         u32                num,
                         u32                offset
                         )
 {
-     D_DEBUG_AT( DirectFB_CorePalette, "IPalette_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CorePalette, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( colors != NULL );
 
@@ -109,8 +106,5 @@ IPalette_Real::SetEntriesYUV(
      }
 
      return DFB_OK;
-}
-
-
 }
 

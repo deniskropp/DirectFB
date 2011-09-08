@@ -30,7 +30,6 @@
 
 #include "CoreGraphicsState.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -38,22 +37,19 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/core.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_CoreGraphicsState, "DirectFB/CoreGraphicsState", "DirectFB CoreGraphicsState" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 
 DFBResult
-IGraphicsState_Real::SetDrawingFlags(
+IGraphicsState_Real__SetDrawingFlags(
+                    CoreGraphicsState                         *obj,
                     DFBSurfaceDrawingFlags                     flags
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_state_set_drawing_flags( &obj->state, flags );
 
@@ -62,11 +58,12 @@ IGraphicsState_Real::SetDrawingFlags(
 
 
 DFBResult
-IGraphicsState_Real::SetBlittingFlags(
+IGraphicsState_Real__SetBlittingFlags(
+                    CoreGraphicsState                         *obj,
                     DFBSurfaceBlittingFlags                    flags
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_state_set_blitting_flags( &obj->state, flags );
 
@@ -75,11 +72,12 @@ IGraphicsState_Real::SetBlittingFlags(
 
 
 DFBResult
-IGraphicsState_Real::SetClip(
+IGraphicsState_Real__SetClip(
+                    CoreGraphicsState                         *obj,
                     const DFBRegion                           *region
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( region != NULL );
 
@@ -90,11 +88,12 @@ IGraphicsState_Real::SetClip(
 
 
 DFBResult
-IGraphicsState_Real::SetColor(
+IGraphicsState_Real__SetColor(
+                    CoreGraphicsState                         *obj,
                     const DFBColor                            *color
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( color != NULL );
 
@@ -105,11 +104,12 @@ IGraphicsState_Real::SetColor(
 
 
 DFBResult
-IGraphicsState_Real::SetSrcBlend(
+IGraphicsState_Real__SetSrcBlend(
+                    CoreGraphicsState                         *obj,
                     DFBSurfaceBlendFunction                    function
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_state_set_src_blend( &obj->state, function );
 
@@ -118,11 +118,12 @@ IGraphicsState_Real::SetSrcBlend(
 
 
 DFBResult
-IGraphicsState_Real::SetDstBlend(
+IGraphicsState_Real__SetDstBlend(
+                    CoreGraphicsState                         *obj,
                     DFBSurfaceBlendFunction                    function
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_state_set_dst_blend( &obj->state, function );
 
@@ -131,11 +132,12 @@ IGraphicsState_Real::SetDstBlend(
 
 
 DFBResult
-IGraphicsState_Real::SetSrcColorKey(
+IGraphicsState_Real__SetSrcColorKey(
+                    CoreGraphicsState                         *obj,
                     u32                                        key
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_state_set_src_colorkey( &obj->state, key );
 
@@ -144,11 +146,12 @@ IGraphicsState_Real::SetSrcColorKey(
 
 
 DFBResult
-IGraphicsState_Real::SetDstColorKey(
+IGraphicsState_Real__SetDstColorKey(
+                    CoreGraphicsState                         *obj,
                     u32                                        key
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_state_set_dst_colorkey( &obj->state, key );
 
@@ -157,11 +160,12 @@ IGraphicsState_Real::SetDstColorKey(
 
 
 DFBResult
-IGraphicsState_Real::SetDestination(
+IGraphicsState_Real__SetDestination(
+                    CoreGraphicsState                         *obj,
                     CoreSurface                               *surface
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( surface != NULL );
 
@@ -172,11 +176,12 @@ IGraphicsState_Real::SetDestination(
 
 
 DFBResult
-IGraphicsState_Real::SetSource(
+IGraphicsState_Real__SetSource(
+                    CoreGraphicsState                         *obj,
                     CoreSurface                               *surface
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( surface != NULL );
 
@@ -187,11 +192,12 @@ IGraphicsState_Real::SetSource(
 
 
 DFBResult
-IGraphicsState_Real::SetSourceMask(
+IGraphicsState_Real__SetSourceMask(
+                    CoreGraphicsState                         *obj,
                     CoreSurface                               *surface
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( surface != NULL );
 
@@ -202,12 +208,13 @@ IGraphicsState_Real::SetSourceMask(
 
 
 DFBResult
-IGraphicsState_Real::SetSourceMaskVals(
+IGraphicsState_Real__SetSourceMaskVals(
+                    CoreGraphicsState                         *obj,
                     const DFBPoint                            *offset,
                     DFBSurfaceMaskFlags                        flags
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( offset != NULL );
 
@@ -218,12 +225,13 @@ IGraphicsState_Real::SetSourceMaskVals(
 
 
 DFBResult
-IGraphicsState_Real::SetIndexTranslation(
+IGraphicsState_Real__SetIndexTranslation(
+                    CoreGraphicsState                         *obj,
                     const s32                                 *indices,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_state_set_index_translation( &obj->state, (const s32*) indices, num );
 
@@ -232,11 +240,12 @@ IGraphicsState_Real::SetIndexTranslation(
 
 
 DFBResult
-IGraphicsState_Real::SetColorKey(
+IGraphicsState_Real__SetColorKey(
+                    CoreGraphicsState                         *obj,
                     const DFBColorKey                         *key
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( key != NULL );
 
@@ -247,11 +256,12 @@ IGraphicsState_Real::SetColorKey(
 
 
 DFBResult
-IGraphicsState_Real::SetRenderOptions(
+IGraphicsState_Real__SetRenderOptions(
+                    CoreGraphicsState                         *obj,
                     DFBSurfaceRenderOptions                    options
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_state_set_render_options( &obj->state, options );
 
@@ -260,11 +270,12 @@ IGraphicsState_Real::SetRenderOptions(
 
 
 DFBResult
-IGraphicsState_Real::SetMatrix(
+IGraphicsState_Real__SetMatrix(
+                    CoreGraphicsState                         *obj,
                     const s32                                 *values
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_state_set_matrix( &obj->state, (const s32*) values );
 
@@ -273,11 +284,12 @@ IGraphicsState_Real::SetMatrix(
 
 
 DFBResult
-IGraphicsState_Real::SetSource2(
+IGraphicsState_Real__SetSource2(
+                    CoreGraphicsState                         *obj,
                     CoreSurface                               *surface
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( surface != NULL );
 
@@ -288,12 +300,13 @@ IGraphicsState_Real::SetSource2(
 
 
 DFBResult
-IGraphicsState_Real::DrawRectangles(
+IGraphicsState_Real__DrawRectangles(
+                    CoreGraphicsState                         *obj,
                     const DFBRectangle                        *rects,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     for (u32 i=0; i<num; i++)
          dfb_gfxcard_drawrectangle( (DFBRectangle*) &rects[i], &obj->state );
@@ -303,12 +316,13 @@ IGraphicsState_Real::DrawRectangles(
 
 
 DFBResult
-IGraphicsState_Real::DrawLines(
+IGraphicsState_Real__DrawLines(
+                    CoreGraphicsState                         *obj,
                     const DFBRegion                           *lines,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_gfxcard_drawlines( (DFBRegion*) lines, num, &obj->state );
 
@@ -317,12 +331,13 @@ IGraphicsState_Real::DrawLines(
 
 
 DFBResult
-IGraphicsState_Real::FillRectangles(
+IGraphicsState_Real__FillRectangles(
+                    CoreGraphicsState                         *obj,
                     const DFBRectangle                        *rects,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_gfxcard_fillrectangles( rects, num, &obj->state );
 
@@ -331,12 +346,13 @@ IGraphicsState_Real::FillRectangles(
 
 
 DFBResult
-IGraphicsState_Real::FillTriangles(
+IGraphicsState_Real__FillTriangles(
+                    CoreGraphicsState                         *obj,
                     const DFBTriangle                         *triangles,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_gfxcard_filltriangles( triangles, num, &obj->state );
 
@@ -345,12 +361,13 @@ IGraphicsState_Real::FillTriangles(
 
 
 DFBResult
-IGraphicsState_Real::FillTrapezoids(
+IGraphicsState_Real__FillTrapezoids(
+                    CoreGraphicsState                         *obj,
                     const DFBTrapezoid                        *trapezoids,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_gfxcard_filltrapezoids( trapezoids, num, &obj->state );
 
@@ -359,13 +376,14 @@ IGraphicsState_Real::FillTrapezoids(
 
 
 DFBResult
-IGraphicsState_Real::FillSpans(
+IGraphicsState_Real__FillSpans(
+                    CoreGraphicsState                         *obj,
                     s32                                        y,
                     const DFBSpan                             *spans,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     dfb_gfxcard_fillspans( y, (DFBSpan*) spans, num, &obj->state );
 
@@ -374,13 +392,14 @@ IGraphicsState_Real::FillSpans(
 
 
 DFBResult
-IGraphicsState_Real::Blit(
+IGraphicsState_Real__Blit(
+                    CoreGraphicsState                         *obj,
                     const DFBRectangle                        *rects,
                     const DFBPoint                            *points,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( rects != NULL );
     D_ASSERT( points != NULL );
@@ -393,14 +412,15 @@ IGraphicsState_Real::Blit(
 
 
 DFBResult
-IGraphicsState_Real::Blit2(
+IGraphicsState_Real__Blit2(
+                    CoreGraphicsState                         *obj,
                     const DFBRectangle                        *rects,
                     const DFBPoint                            *points1,
                     const DFBPoint                            *points2,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( rects != NULL );
     D_ASSERT( points1 != NULL );
@@ -414,13 +434,14 @@ IGraphicsState_Real::Blit2(
 
 
 DFBResult
-IGraphicsState_Real::StretchBlit(
+IGraphicsState_Real__StretchBlit( 
+                    CoreGraphicsState                         *obj,
                     const DFBRectangle                        *srects,
                     const DFBRectangle                        *drects,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( srects != NULL );
     D_ASSERT( drects != NULL );
@@ -433,14 +454,15 @@ IGraphicsState_Real::StretchBlit(
 
 
 DFBResult
-IGraphicsState_Real::TileBlit(
+IGraphicsState_Real__TileBlit(
+                    CoreGraphicsState                         *obj,
                     const DFBRectangle                        *rects,
                     const DFBPoint                            *points1,
                     const DFBPoint                            *points2,
                     u32                                        num
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( rects != NULL );
     D_ASSERT( points1 != NULL );
@@ -455,13 +477,14 @@ IGraphicsState_Real::TileBlit(
 
 
 DFBResult
-IGraphicsState_Real::TextureTriangles(
+IGraphicsState_Real__TextureTriangles(
+                    CoreGraphicsState                         *obj,
                     const DFBVertex                           *vertices,
                     u32                                        num,
                     DFBTriangleFormation                       formation
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( vertices != NULL );
 
@@ -469,8 +492,5 @@ IGraphicsState_Real::TextureTriangles(
     dfb_gfxcard_texture_triangles( (DFBVertex*) vertices, num, formation, &obj->state );
 
     return DFB_OK;
-}
-
-
 }
 

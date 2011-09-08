@@ -30,7 +30,6 @@
 
 #include "CoreLayer.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -39,22 +38,19 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/core.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_CoreLayer, "DirectFB/CoreLayer", "DirectFB CoreLayer" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 
 DFBResult
-ILayer_Real::CreateContext(
+ILayer_Real__CreateContext(
+                    CoreLayer                                 *obj,
                     CoreLayerContext                         **ret_context
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayer, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( ret_context != NULL );
 
@@ -62,12 +58,13 @@ ILayer_Real::CreateContext(
 }
 
 DFBResult
-ILayer_Real::GetPrimaryContext(
+ILayer_Real__GetPrimaryContext(
+                    CoreLayer                                 *obj,
                     bool                                       activate,
                     CoreLayerContext                         **ret_context
 )
 {
-     D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreLayer, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( ret_context != NULL );
 
@@ -75,11 +72,12 @@ ILayer_Real::GetPrimaryContext(
 }
 
 DFBResult
-ILayer_Real::ActivateContext(
+ILayer_Real__ActivateContext(
+                    CoreLayer                                 *obj,
                     CoreLayerContext                          *context
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayer, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( context != NULL );
 
@@ -87,11 +85,12 @@ ILayer_Real::ActivateContext(
 }
 
 DFBResult
-ILayer_Real::GetCurrentOutputField(
+ILayer_Real__GetCurrentOutputField(
+                    CoreLayer                                 *obj,
                     s32                                       *ret_field
 )
 {
-     D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreLayer, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( ret_field != NULL );
 
@@ -99,23 +98,23 @@ ILayer_Real::GetCurrentOutputField(
 }
 
 DFBResult
-ILayer_Real::SetLevel(
+ILayer_Real__SetLevel(
+                    CoreLayer                                 *obj,
                     s32                                        level
 )
 {
-     D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreLayer, "%s()\n", __FUNCTION__ );
 
      return dfb_layer_set_level( obj, level );
 }
 
 DFBResult
-ILayer_Real::WaitVSync(
+ILayer_Real__WaitVSync(
+                    CoreLayer                                 *obj
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayer, "ILayer_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayer, "%s()\n", __FUNCTION__ );
 
     return dfb_layer_wait_vsync( obj );
 }
 
-
-}

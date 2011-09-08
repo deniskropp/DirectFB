@@ -30,7 +30,6 @@
 
 #include "CoreWindowStack.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -38,138 +37,142 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/core.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_CoreWindowStack, "DirectFB/CoreWindowStack", "DirectFB CoreWindowStack" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 
 DFBResult
-IWindowStack_Real::RepaintAll(
+IWindowStack_Real__RepaintAll(
+                    CoreWindowStack                           *obj
+                    
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_repaint_all( obj );
 }
 
 
 DFBResult
-IWindowStack_Real::CursorEnable(
+IWindowStack_Real__CursorEnable(
+                    CoreWindowStack                           *obj,
                     bool                                       enable
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
-    return dfb_windowstack_cursor_enable( core, obj, enable );
+    return dfb_windowstack_cursor_enable( core_dfb, obj, enable );
 }
 
 
 DFBResult
-IWindowStack_Real::CursorSetShape(
+IWindowStack_Real__CursorSetShape(
+                    CoreWindowStack                           *obj,
                     CoreSurface                               *shape,
                     const DFBPoint                            *hotspot
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_cursor_set_shape( obj, shape, hotspot->x, hotspot->y );
 }
 
 
 DFBResult
-IWindowStack_Real::CursorSetOpacity(
+IWindowStack_Real__CursorSetOpacity(
+                    CoreWindowStack                           *obj,
                     u8                                         opacity
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_cursor_set_opacity( obj, opacity );
 }
 
 
 DFBResult
-IWindowStack_Real::CursorSetAcceleration(
+IWindowStack_Real__CursorSetAcceleration(
+                    CoreWindowStack                           *obj,
                     u32                                        numerator,
                     u32                                        denominator,
                     u32                                        threshold
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_cursor_set_acceleration( obj, numerator, denominator, threshold );
 }
 
 
 DFBResult
-IWindowStack_Real::CursorWarp(
+IWindowStack_Real__CursorWarp(
+                    CoreWindowStack                           *obj,
                     const DFBPoint                            *position
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_cursor_warp( obj, position->x, position->y );
 }
 
 
 DFBResult
-IWindowStack_Real::CursorGetPosition(
+IWindowStack_Real__CursorGetPosition(
+                    CoreWindowStack                           *obj,
                     DFBPoint                                  *ret_position
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_get_cursor_position( obj, &ret_position->x, &ret_position->y );
 }
 
 
 DFBResult
-IWindowStack_Real::BackgroundSetMode(
+IWindowStack_Real__BackgroundSetMode(
+                    CoreWindowStack                           *obj,
                     DFBDisplayLayerBackgroundMode              mode
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_set_background_mode( obj, mode );
 }
 
 
 DFBResult
-IWindowStack_Real::BackgroundSetImage(
+IWindowStack_Real__BackgroundSetImage(
+                    CoreWindowStack                           *obj,
                     CoreSurface                               *image
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_set_background_image( obj, image );
 }
 
 
 DFBResult
-IWindowStack_Real::BackgroundSetColor(
+IWindowStack_Real__BackgroundSetColor(
+                    CoreWindowStack                           *obj,
                     const DFBColor                            *color
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_set_background_color( obj, color );
 }
 
 
 DFBResult
-IWindowStack_Real::BackgroundSetColorIndex(
+IWindowStack_Real__BackgroundSetColorIndex(
+                    CoreWindowStack                           *obj,
                     s32                                        index
 )
 {
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_set_background_color_index( obj, index );
 }
-
-
-}
-

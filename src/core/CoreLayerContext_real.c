@@ -30,7 +30,6 @@
 
 #include "CoreLayerContext.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -38,23 +37,20 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/core.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_CoreLayerContext, "DirectFB/CoreLayerContext", "DirectFB CoreLayerContext" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 
 DFBResult
-ILayerContext_Real::GetPrimaryRegion(
+ILayerContext_Real__GetPrimaryRegion(
+                    CoreLayerContext                          *obj,
                     bool                                       create,
                     CoreLayerRegion                          **ret_region
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( ret_region != NULL );
 
@@ -62,12 +58,13 @@ ILayerContext_Real::GetPrimaryRegion(
 }
 
 DFBResult
-ILayerContext_Real::TestConfiguration(
+ILayerContext_Real__TestConfiguration(
+                    CoreLayerContext                          *obj,
                     const DFBDisplayLayerConfig               *config,
                     DFBDisplayLayerConfigFlags                *ret_failed
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
 
@@ -75,11 +72,12 @@ ILayerContext_Real::TestConfiguration(
 }
 
 DFBResult
-ILayerContext_Real::SetConfiguration(
+ILayerContext_Real__SetConfiguration(
+                    CoreLayerContext                          *obj,
                     const DFBDisplayLayerConfig               *config
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
 
@@ -87,11 +85,12 @@ ILayerContext_Real::SetConfiguration(
 }
 
 DFBResult
-ILayerContext_Real::SetSrcColorKey(
+ILayerContext_Real__SetSrcColorKey(
+                    CoreLayerContext                          *obj,
                     const DFBColorKey                         *key
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( key != NULL );
 
@@ -100,11 +99,12 @@ ILayerContext_Real::SetSrcColorKey(
 
 
 DFBResult
-ILayerContext_Real::SetDstColorKey(
+ILayerContext_Real__SetDstColorKey(
+                    CoreLayerContext                          *obj,
                     const DFBColorKey                         *key
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( key != NULL );
 
@@ -113,11 +113,12 @@ ILayerContext_Real::SetDstColorKey(
 
 
 DFBResult
-ILayerContext_Real::SetSourceRectangle(
+ILayerContext_Real__SetSourceRectangle(
+                    CoreLayerContext                          *obj,
                     const DFBRectangle                        *rectangle
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( rectangle != NULL );
 
@@ -126,11 +127,12 @@ ILayerContext_Real::SetSourceRectangle(
 
 
 DFBResult
-ILayerContext_Real::SetScreenLocation(
+ILayerContext_Real__SetScreenLocation(
+                    CoreLayerContext                          *obj,
                     const DFBLocation                         *location
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( location != NULL );
 
@@ -139,11 +141,12 @@ ILayerContext_Real::SetScreenLocation(
 
 
 DFBResult
-ILayerContext_Real::SetScreenRectangle(
+ILayerContext_Real__SetScreenRectangle(
+                    CoreLayerContext                          *obj,
                     const DFBRectangle                        *rectangle
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( rectangle != NULL );
 
@@ -152,11 +155,12 @@ ILayerContext_Real::SetScreenRectangle(
 
 
 DFBResult
-ILayerContext_Real::SetScreenPosition(
+ILayerContext_Real__SetScreenPosition(
+                    CoreLayerContext                          *obj,
                     const DFBPoint                            *position
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( position != NULL );
 
@@ -165,33 +169,36 @@ ILayerContext_Real::SetScreenPosition(
 
 
 DFBResult
-ILayerContext_Real::SetOpacity(
+ILayerContext_Real__SetOpacity(
+                    CoreLayerContext                          *obj,
                     u8                                         opacity
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     return dfb_layer_context_set_opacity( obj, opacity );
 }
 
 
 DFBResult
-ILayerContext_Real::SetRotation(
+ILayerContext_Real__SetRotation(
+                    CoreLayerContext                          *obj,
                     s32                                        rotation
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     return dfb_layer_context_set_rotation( obj, rotation );
 }
 
 
 DFBResult
-ILayerContext_Real::SetColorAdjustment(
+ILayerContext_Real__SetColorAdjustment(
+                    CoreLayerContext                          *obj,
                     const DFBColorAdjustment                  *adjustment
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( adjustment != NULL );
 
@@ -200,24 +207,26 @@ ILayerContext_Real::SetColorAdjustment(
 
 
 DFBResult
-ILayerContext_Real::SetFieldParity(
+ILayerContext_Real__SetFieldParity(
+                    CoreLayerContext                          *obj,
                     u32                                        field
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     return dfb_layer_context_set_field_parity( obj, field );
 }
 
 
 DFBResult
-ILayerContext_Real::SetClipRegions(
+ILayerContext_Real__SetClipRegions(
+                    CoreLayerContext                          *obj,
                     const DFBRegion                           *regions,
                     u32                                        num,
                     bool                                       positive
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( regions != NULL );
 
@@ -225,7 +234,8 @@ ILayerContext_Real::SetClipRegions(
 }
 
 DFBResult
-ILayerContext_Real::CreateWindow(
+ILayerContext_Real__CreateWindow(
+                    CoreLayerContext                          *obj,
                     const DFBWindowDescription                *description,
                     CoreWindow                                *parent,
                     CoreWindow                                *toplevel,
@@ -234,7 +244,7 @@ ILayerContext_Real::CreateWindow(
 {
     DFBWindowDescription description_copy;
 
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( description != NULL );
     D_ASSERT( ret_window != NULL );
@@ -244,18 +254,19 @@ ILayerContext_Real::CreateWindow(
     description_copy.parent_id   = parent   ? parent->object.id   : 0;
     description_copy.toplevel_id = toplevel ? toplevel->object.id : 0;
 
-    return dfb_layer_context_create_window( core, obj, &description_copy, ret_window );
+    return dfb_layer_context_create_window( core_dfb, obj, &description_copy, ret_window );
 }
 
 DFBResult
-ILayerContext_Real::FindWindow(
+ILayerContext_Real__FindWindow(
+                    CoreLayerContext                          *obj,
                     DFBWindowID                                window_id,
                     CoreWindow                               **ret_window
 )
 {
     CoreWindow *window;
 
-    D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerContext, "%s()\n", __FUNCTION__ );
 
     D_ASSERT( ret_window != NULL );
 
@@ -268,6 +279,4 @@ ILayerContext_Real::FindWindow(
     return DFB_OK;
 }
 
-
-}
 

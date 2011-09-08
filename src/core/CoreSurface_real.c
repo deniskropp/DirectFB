@@ -30,7 +30,6 @@
 
 #include "CoreSurface.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -40,22 +39,19 @@ extern "C" {
 #include <core/core.h>
 #include <core/surface.h>
 #include <core/surface_pool.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_CoreSurface, "DirectFB/CoreSurface", "DirectFB CoreSurface" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 
 DFBResult
-ISurface_Real::SetConfig(
+ISurface_Real__SetConfig(
+                        CoreSurface                               *obj,
                         const CoreSurfaceConfig                   *config
                         )
 {
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( config != NULL );
 
@@ -64,13 +60,14 @@ ISurface_Real::SetConfig(
 
 
 DFBResult
-ISurface_Real::Flip(
+ISurface_Real__Flip(
+                   CoreSurface                               *obj,
                    bool                                       swap
                    )
 {
      DFBResult ret;
 
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
 
      dfb_surface_lock( obj );
 
@@ -83,13 +80,14 @@ ISurface_Real::Flip(
 
 
 DFBResult
-ISurface_Real::GetPalette(
+ISurface_Real__GetPalette(
+                         CoreSurface                               *obj,
                          CorePalette                              **ret_palette
                          )
 {
      DFBResult ret;
 
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( ret_palette != NULL );
 
@@ -107,11 +105,12 @@ ISurface_Real::GetPalette(
 
 
 DFBResult
-ISurface_Real::SetPalette(
+ISurface_Real__SetPalette(
+                         CoreSurface                               *obj,
                          CorePalette                               *palette
                          )
 {
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( palette != NULL );
 
@@ -120,25 +119,27 @@ ISurface_Real::SetPalette(
 
 
 DFBResult
-ISurface_Real::SetAlphaRamp(
+ISurface_Real__SetAlphaRamp(
+                         CoreSurface                               *obj,
                          u8                                         a0,
                          u8                                         a1,
                          u8                                         a2,
                          u8                                         a3
                          )
 {
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
 
      return dfb_surface_set_alpha_ramp( obj, a0, a1, a2, a3 );
 }
 
 
 DFBResult
-ISurface_Real::SetField(
+ISurface_Real__SetField(
+                         CoreSurface                               *obj,
                          s32                                        field
                          )
 {
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
 
      return dfb_surface_set_field( obj, field );
 }
@@ -219,7 +220,8 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
 }
 
 DFBResult
-ISurface_Real::PreLockBuffer(
+ISurface_Real__PreLockBuffer(
+                         CoreSurface                               *obj,
                          u32                                        buffer_index,
                          CoreSurfaceAccessorID                      accessor,
                          CoreSurfaceAccessFlags                     access,
@@ -232,7 +234,7 @@ ISurface_Real::PreLockBuffer(
      CoreSurface           *surface    = obj;
      bool                   allocated  = false;
 
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
 
      if (buffer_index >= (u32)surface->num_buffers)
           return DFB_INVARG;
@@ -287,7 +289,8 @@ out:
 }
 
 DFBResult
-ISurface_Real::PreReadBuffer(
+ISurface_Real__PreReadBuffer(
+                         CoreSurface                               *obj,
                          u32                                        buffer_index,
                          const DFBRectangle                        *rect,
                          u32                                       *ret_allocation_index
@@ -299,7 +302,7 @@ ISurface_Real::PreReadBuffer(
      CoreSurface           *surface    = obj;
      bool                   allocated  = false;
 
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
 
      if (buffer_index >= (u32)surface->num_buffers)
           return DFB_INVARG;
@@ -359,7 +362,8 @@ out:
 }
 
 DFBResult
-ISurface_Real::PreWriteBuffer(
+ISurface_Real__PreWriteBuffer(
+                         CoreSurface                               *obj,
                          u32                                        buffer_index,
                          const DFBRectangle                        *rect,
                          u32                                       *ret_allocation_index
@@ -371,7 +375,7 @@ ISurface_Real::PreWriteBuffer(
      CoreSurface           *surface    = obj;
      bool                   allocated  = false;
 
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
 
      if (buffer_index >= (u32)surface->num_buffers)
           return DFB_INVARG;
@@ -429,7 +433,3 @@ out:
 
      return ret;
 }
-
-
-}
-

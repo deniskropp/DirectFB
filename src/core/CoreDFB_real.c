@@ -31,7 +31,6 @@
 #include <core/CoreDFB.h>
 #include <core/CoreGraphicsState.h>
 
-extern "C" {
 #include <directfb.h>
 
 #include <direct/debug.h>
@@ -40,23 +39,21 @@ extern "C" {
 #include <fusion/conf.h>
 
 #include <core/core.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_CoreDFB, "DirectFB/Core", "DirectFB Core" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
 
 DFBResult
-ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
+ICore_Real__CreateSurface( CoreDFB                  *obj,
+                           const CoreSurfaceConfig  *config,
                            CoreSurfaceTypeFlags      type,
                            u64                       resource_id,
                            CorePalette              *palette,
                            CoreSurface             **ret_surface )
 {
-     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
+     D_DEBUG_AT( DirectFB_CoreDFB, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( obj, CoreDFB );
      D_ASSERT( config != NULL );
@@ -72,10 +69,11 @@ ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
 }
 
 DFBResult
-ICore_Real::CreatePalette( u32           size,
+ICore_Real__CreatePalette( CoreDFB      *obj,
+                           u32           size,
                            CorePalette **ret_palette )
 {
-     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
+     D_DEBUG_AT( DirectFB_CoreDFB, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( obj, CoreDFB );
      D_ASSERT( ret_palette != NULL );
@@ -84,30 +82,28 @@ ICore_Real::CreatePalette( u32           size,
 }
 
 DFBResult
-ICore_Real::CreateState(
+ICore_Real__CreateState( CoreDFB                              *obj,
                     CoreGraphicsState                        **ret_state
 )
 {
-    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreDFB, "%s()\n", __FUNCTION__ );
 
     D_MAGIC_ASSERT( obj, CoreDFB );
     D_ASSERT( ret_state != NULL );
 
-    return dfb_graphics_state_create( core, ret_state );
+    return dfb_graphics_state_create( core_dfb, ret_state );
 }
 
 DFBResult
-ICore_Real::WaitIdle(
+ICore_Real__WaitIdle( CoreDFB                                 *obj
 
 )
 {
-    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreDFB, "%s()\n", __FUNCTION__ );
 
     D_MAGIC_ASSERT( obj, CoreDFB );
 
     return dfb_gfxcard_sync();
 }
 
-
-}
 
