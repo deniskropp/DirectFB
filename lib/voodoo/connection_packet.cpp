@@ -35,6 +35,7 @@ extern "C" {
 #include <direct/fastlz.h>
 #include <direct/list.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
 #include <direct/util.h>
@@ -268,8 +269,12 @@ VoodooConnectionPacket::io_loop()
                          VoodooPacketHeader *header;
                          size_t              aligned;
 
+                         D_DEBUG_AT( Voodoo_Input, "  -> last = %zu\n", last );
+
                          /* Get the packet header. */
                          header  = (VoodooPacketHeader *)(input.buffer + last);
+                         D_DEBUG_AT( Voodoo_Input, "  -> header = %p\n", header );
+                         D_DEBUG_AT( Voodoo_Input, "  -> header->size = %u\n", header->size );
                          aligned = VOODOO_MSG_ALIGN( header->size );
 
                          D_DEBUG_AT( Voodoo_Input, "  -> Next packet has %u ("_ZU") -> %u bytes (flags 0x%04x)...\n",

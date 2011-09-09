@@ -45,6 +45,7 @@ extern "C" {
 #include <direct/debug.h>
 #include <direct/list.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
 #include <direct/util.h>
