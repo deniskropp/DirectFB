@@ -268,6 +268,14 @@ ISurface_Real::PreLockBuffer(
           goto out;
      }
 
+     ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
+     if (ret) {
+          /* Destroy if newly created. */
+          if (allocated)
+               dfb_surface_pool_deallocate( allocation->pool, allocation );
+          goto out;
+     }
+
      manage_interlocks( allocation, accessor, access );
 
      *ret_allocation_index = fusion_vector_index_of( &buffer->allocs, allocation );
@@ -330,8 +338,17 @@ ISurface_Real::PreReadBuffer(
           goto out;
      }
 
-     if (!(allocation->pool->desc.caps & CSPCAPS_READ))
+     if (!(allocation->pool->desc.caps & CSPCAPS_READ)) {
+          ret = dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_READ );
+          if (ret) {
+               /* Destroy if newly created. */
+               if (allocated)
+                    dfb_surface_pool_deallocate( allocation->pool, allocation );
+               goto out;
+          }
+
           manage_interlocks( allocation, CSAID_CPU, CSAF_READ );
+     }
 
      *ret_allocation_index = fusion_vector_index_of( &buffer->allocs, allocation );
 
@@ -393,8 +410,17 @@ ISurface_Real::PreWriteBuffer(
           goto out;
      }
 
-     if (!(allocation->pool->desc.caps & CSPCAPS_WRITE))
+     if (!(allocation->pool->desc.caps & CSPCAPS_WRITE)) {
+          ret = dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_WRITE );
+          if (ret) {
+               /* Destroy if newly created. */
+               if (allocated)
+                    dfb_surface_pool_deallocate( allocation->pool, allocation );
+               goto out;
+          }
+
           manage_interlocks( allocation, CSAID_CPU, CSAF_WRITE );
+     }
 
      *ret_allocation_index = fusion_vector_index_of( &buffer->allocs, allocation );
 

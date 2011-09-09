@@ -1,5 +1,7 @@
 ## Makefile.am for DirectFB/flux
 
+CXX=g++
+
 INCLUDES = \
 	-I$(top_builddir)/lib \
 	-I$(top_builddir)/include \
