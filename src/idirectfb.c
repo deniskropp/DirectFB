@@ -103,8 +103,6 @@ D_DEBUG_DOMAIN( IDFB, "IDirectFB", "DirectFB Main Interface" );
 
 /**********************************************************************************************************************/
 
-IDirectFB *idirectfb_singleton = NULL;
-
 typedef struct {
      DFBScreenCallback  callback;
      void              *callback_ctx;

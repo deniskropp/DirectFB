@@ -80,6 +80,10 @@
 
 static DFBResult CreateRemote( const char *host, int session, IDirectFB **ret_interface );
 
+
+IDirectFB *idirectfb_singleton = NULL;
+
+
 /*
  * Version checking
  */
