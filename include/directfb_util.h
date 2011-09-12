@@ -1266,7 +1266,10 @@ dfb_box_region_union( DFBBox          *box,
      DFB_REGION_ASSERT( region );
 
      if (DFB_BOX_EMPTY( box )) {
-          *box = DFB_BOX_INIT_FROM_REGION( region );
+          box->x1 = region->x1;
+          box->y1 = region->y1;
+          box->x2 = region->x2 + 1;
+          box->y2 = region->y2 + 1;
      }
      else {
           if (box->x1 > region->x1)
