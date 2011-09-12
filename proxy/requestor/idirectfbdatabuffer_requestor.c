@@ -452,9 +452,9 @@ Construct( IDirectFBDataBuffer *thiz,
      IDirectFB      *idirectfb = arg;
      IDirectFB_data *idirectfb_data;
 
-     DIRECT_INTERFACE_GET_DATA_FROM( idirectfb, idirectfb_data, IDirectFB );
-
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBDataBuffer_Requestor );
+
+     DIRECT_INTERFACE_GET_DATA_FROM( idirectfb, idirectfb_data, IDirectFB );
 
      ret = IDirectFBDataBuffer_Construct( thiz, NULL, idirectfb_data->core, idirectfb );
      if (ret)

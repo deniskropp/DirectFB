@@ -452,19 +452,22 @@ static DirectResult
 Handle_FlipReturned( IDirectFBSurface *thiz,
                      unsigned int      millis )
 {
+     long long    now, diff;
+     unsigned int frames;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      D_DEBUG_AT( IDirectFBSurface_RequestorFlip, "%s( %p, millis %u )\n", __FUNCTION__, thiz, millis );
 
-     long long now = direct_clock_get_micros();
+     now = direct_clock_get_micros();
 
      data->flip.returned = millis;
 
      data->flip.fps_count++;
 
 
-     long long    diff   = now - data->flip.fps_stamp;
-     unsigned int frames = data->flip.fps_count - data->flip.fps_old;
+     diff   = now - data->flip.fps_stamp;
+     frames = data->flip.fps_count - data->flip.fps_old;
 
      if (diff > 10000000) {
           long long kfps = frames * 1000000000ULL / diff;
@@ -495,7 +498,7 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
      if (!region || (region->x1 == 0 && region->y1 == 0))
           use_notify_or_buffer = true;
 
-     millis = direct_clock_get_abs_millis();
+     millis = (unsigned int) direct_clock_get_abs_millis();
 
      if (flags & DSFLIP_WAIT) {
           VoodooResponseMessage *response;
@@ -551,7 +554,7 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
           }
 
           data->flip.requested = millis;
-          data->flip.end       = direct_clock_get_abs_millis();;
+          data->flip.end       = (unsigned int) direct_clock_get_abs_millis();
 
           direct_mutex_lock( &data->flip.lock );
 
@@ -561,6 +564,8 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
           direct_mutex_unlock( &data->flip.lock );
      }
      else if (use_notify_or_buffer && data->flip.use_buffer) {
+          DFBEvent event;
+
           {
                DFBWindowEvent event;
 
@@ -578,10 +583,8 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
           }
 
           data->flip.requested = millis;
-          data->flip.end       = direct_clock_get_abs_millis();;
+          data->flip.end       = (unsigned int) direct_clock_get_abs_millis();
 
-
-          DFBEvent event;
 
           while (data->flip.buffer->GetEvent( data->flip.buffer, &event ) == DFB_OK) {
                if (event.clazz == DFEC_WINDOW && event.window.type == DWET_KEYDOWN)

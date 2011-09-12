@@ -60,6 +60,8 @@ static DFBResult Construct( IDirectFBWindow  *thiz,
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBWindow, Requestor )
 
 
+D_DEBUG_DOMAIN( IDirectFBWindow_Requestor, "IDirectFBWindow/Requestor", "IDirectFBWindow Requestor" );
+
 /**************************************************************************************************/
 
 static void
@@ -163,6 +165,8 @@ IDirectFBWindow_Requestor_AttachEventBuffer( IDirectFBWindow      *thiz,
      VoodooResponseMessage                *response;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
+
+     D_DEBUG_AT( IDirectFBWindow_Requestor, "%s( buffer %p )\n", __FUNCTION__, buffer );
 
      if (!buffer)
           return DFB_INVARG;
