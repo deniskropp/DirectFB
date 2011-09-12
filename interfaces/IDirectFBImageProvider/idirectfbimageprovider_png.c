@@ -364,6 +364,16 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                     /*
                      * Convert to ARGB and use generic loading code.
                      */
+                    if (data->bpp == 16) {
+                         /* in 16 bit grayscale,  conversion to RGB32 is already done! */
+
+                         for (x=0; x<256; x++)
+                              data->palette[x] = 0xff000000 | (x << 16) | (x << 8) | x;
+
+                         dfb_scale_linear_32( data->image, data->width, data->height,
+                                         lock.addr, lock.pitch, &rect, dst_surface, &clip );
+                         break;
+                    }
 
                     // FIXME: allocates four additional bytes because the scaling functions
                     //        in src/misc/gfx_util.c have an off-by-one bug which causes
@@ -583,6 +593,10 @@ png_info_callback( png_structp png_read_ptr,
      int                              i;
      IDirectFBImageProvider_PNG_data *data;
 
+     u32 bpp1[2] = {0, 0xff};
+     u32 bpp2[4] = {0, 0x55, 0xaa, 0xff};
+     u32 bpp4[16] = {0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+
      data = png_get_progressive_ptr( png_read_ptr );
 
      /* error stage? */
@@ -626,13 +640,71 @@ png_info_callback( png_structp png_read_ptr,
 
                data->color_key = key;
           }
+          else if (data->color_type == PNG_COLOR_TYPE_GRAY) {
+               /* ...or based on trans gray value */
+               png_color_16p trans = &data->info_ptr->trans_color;
+
+               switch(data->bpp) {
+                    case 1:
+                    data->color_key = (((bpp1[trans->gray]) << 16) |
+                                      ((bpp1[trans->gray]) << 8) |
+                                      ((bpp1[trans->gray])));
+                    break;
+                    case 2:
+                    data->color_key = (((bpp2[trans->gray]) << 16) |
+                                      ((bpp2[trans->gray]) << 8) |
+                                      ((bpp2[trans->gray])));
+                    break;
+                    case 4:
+                    data->color_key = (((bpp4[trans->gray]) << 16) |
+                                      ((bpp4[trans->gray]) << 8) |
+                                      ((bpp4[trans->gray])));
+                    break;
+                    case 8:
+                    data->color_key = (((trans->gray & 0x00ff) << 16) |
+                                      ((trans->gray & 0x00ff) << 8) |
+                                      ((trans->gray & 0x00ff)));
+                    break;
+                    case 16:
+                    default:
+                    data->color_key = (((trans->gray & 0xff00) << 8) |
+                                      ((trans->gray & 0xff00)) |
+                                      ((trans->gray & 0xff00) >> 8));
+                    break;
+               }
+          }
           else {
                /* ...or based on trans rgb value */
                png_color_16p trans = &data->info_ptr->trans_color;
 
-               data->color_key = (((trans->red & 0xff00) << 8) |
-                                  ((trans->green & 0xff00)) |
-                                  ((trans->blue & 0xff00) >> 8));
+               switch(data->bpp) {
+                    case 1:
+                    data->color_key = (((bpp1[trans->red]) << 16) |
+                                      ((bpp1[trans->green]) << 8) |
+                                      ((bpp1[trans->blue])));
+                    break;
+                    case 2:
+                    data->color_key = (((bpp2[trans->red]) << 16) |
+                                      ((bpp2[trans->green]) << 8) |
+                                      ((bpp2[trans->blue])));
+                    break;
+                    case 4:
+                    data->color_key = (((bpp4[trans->red]) << 16) |
+                                      ((bpp4[trans->green]) << 8) |
+                                      ((bpp4[trans->blue])));
+                    break;
+                    case 8:
+                    data->color_key = (((trans->red & 0x00ff) << 16) |
+                                      ((trans->green & 0x00ff) << 8) |
+                                      ((trans->blue & 0x00ff)));
+                    break;
+                    case 16:
+                    default:
+                    data->color_key = (((trans->red & 0xff00) << 8) |
+                                      ((trans->green & 0xff00)) |
+                                      ((trans->blue & 0xff00) >> 8));
+                    break;
+               }
           }
      }
 
@@ -660,9 +732,10 @@ png_info_callback( png_structp png_read_ptr,
           }
 
           case PNG_COLOR_TYPE_GRAY:
-               data->pitch = data->width;
-               break;
-
+               if (data->bpp < 16) {
+                    data->pitch = data->width;
+                    break;
+               }
           case PNG_COLOR_TYPE_GRAY_ALPHA:
                png_set_gray_to_rgb( data->png_ptr );
                /* fall through */
@@ -756,22 +829,25 @@ png_row_callback( png_structp png_read_ptr,
                     u32 pixel32 = src[6] << 24 | src[4] << 16 | src[2] << 8 | src[0];
 #endif
                     /* is the pixel supposted to match the color key in 16 bit per channel resolution? */
-                    if ((comp_r == trans->red) && (comp_g == trans->green) && (comp_b == trans->blue))
+                    if (((comp_r == trans->gray) && (data->color_type == PNG_COLOR_TYPE_GRAY)) ||
+                        ((comp_g == trans->green) && (comp_b == trans->blue) && (comp_r == trans->red)))
                          keyed = 1;
 
                     /*
                      *  if the pixel was not supposed to get keyed but the colorkey matches in the reduced
                      *  color space, then toggle the least significant blue bit
                      */
-                    if (!keyed && (pixel32 == (0xff000000 | data->color_key)))
+                    if (!keyed && (pixel32 == (0xff000000 | data->color_key))) {
+                         D_ONCE( "ImageProvider/PNG: adjusting pixel data to protect it from being keyed!\n");
                          pixel32 ^= 0x00000001;
+                    }
 
                     *dst32++ = pixel32;
                     src16+=4;
                     src+=8;
                }
           }
-          else {
+          else if (src){
                /* assume four channels here, since we have setup libpng to convert everything to four channels before */
                int i = 4 *data->width;
 
@@ -782,7 +858,9 @@ png_row_callback( png_structp png_read_ptr,
           }
      }
      else
-          direct_memcpy ( (png_bytep) (data->image + row_num * data->pitch), new_row, data->pitch );
+          png_progressive_combine_row( data->png_ptr, (png_bytep)(data->image + row_num * data->pitch), new_row );
+
+          //direct_memcpy ( (png_bytep) (data->image + row_num * data->pitch), new_row, data->pitch );
 
      /* increase row counter, FIXME: interlaced? */
      data->rows++;
