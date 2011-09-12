@@ -50,12 +50,12 @@ typedef void (*Func)( void );
 
 
 static Func init_funcs[] = {
+     __D_conf_init,
      __D_direct_init,
      __D_util_init,
      __D_result_init,
 	 DirectResult__init,
      __D_mem_init,
-     __D_conf_init,
      __D_thread_init,
      __D_log_init,
      __D_log_domain_init,
@@ -68,13 +68,13 @@ static Func deinit_funcs[] = {
      __D_interface_deinit,
      __D_log_domain_deinit,
      __D_thread_deinit,
-     __D_conf_deinit,
      __D_mem_deinit,
 	 DirectResult__deinit,
      __D_result_deinit,
      __D_util_deinit,
      __D_direct_deinit,
-     __D_log_deinit
+     __D_log_deinit,
+     __D_conf_deinit,
 };
 
 /**********************************************************************************************************************/
