@@ -343,7 +343,7 @@ DestroyPixmap( glxPoolLocalData *local,
 
      glXWaitX();
 
-     glDeleteTextures( 1, &pixmap->buffer.texture );
+//FIXME: crashes without proper context     glDeleteTextures( 1, &pixmap->buffer.texture );
 
      XFreeGC( local->display, pixmap->gc );
 
