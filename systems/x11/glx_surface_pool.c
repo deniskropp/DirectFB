@@ -127,6 +127,9 @@ InitLocal( glxPoolLocalData *local,
           GLX_BLUE_SIZE,
           8,
 
+          GLX_DEPTH_SIZE,
+          16,
+
           GLX_X_VISUAL_TYPE,
           GLX_TRUE_COLOR,
 
