@@ -24,7 +24,8 @@ if GFX_GLES2
 GL_PROGS = \
 	dfbtest_gl1	\
 	dfbtest_gl2	\
-	dfbtest_gl3
+	dfbtest_gl3	\
+	dfbtest_old_gl2
 else
 GL_PROGS =
 endif
@@ -104,6 +105,10 @@ dfbtest_gl2_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GL
 dfbtest_gl3_SOURCES = dfbtest_gl3.c
 dfbtest_gl3_CFLAGS  = $(GLES2_CFLAGS)
 dfbtest_gl3_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GLES2_LIBS)
+
+dfbtest_old_gl2_SOURCES = dfbtest_old_gl2.c
+dfbtest_old_gl2_CFLAGS  = $(GLES2_CFLAGS)
+dfbtest_old_gl2_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GLES2_LIBS)
 
 dfbtest_mirror_SOURCES = dfbtest_mirror.c
 dfbtest_mirror_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)

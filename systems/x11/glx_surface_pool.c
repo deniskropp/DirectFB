@@ -127,6 +127,9 @@ InitLocal( glxPoolLocalData *local,
           GLX_BLUE_SIZE,
           8,
 
+          GLX_DEPTH_SIZE,
+          16,
+
           GLX_X_VISUAL_TYPE,
           GLX_TRUE_COLOR,
 
@@ -340,7 +343,7 @@ DestroyPixmap( glxPoolLocalData *local,
 
      glXWaitX();
 
-     glDeleteTextures( 1, &pixmap->buffer.texture );
+//FIXME: crashes without proper context     glDeleteTextures( 1, &pixmap->buffer.texture );
 
      XFreeGC( local->display, pixmap->gc );
 

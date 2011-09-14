@@ -28,6 +28,7 @@ libdirectfb_x11_la_LDFLAGS += -lGL
 endif
 
 libdirectfb_x11_la_SOURCES = \
+	idirectfbgl.c		\
 	primary.c		\
 	primary.h		\
 	surfacemanager.c	\
