@@ -736,12 +736,17 @@ png_info_callback( png_structp png_read_ptr,
                     data->pitch = data->width;
                     break;
                }
+
+               /* fall through */
           case PNG_COLOR_TYPE_GRAY_ALPHA:
                png_set_gray_to_rgb( data->png_ptr );
-               /* fall through */
 
+               /* fall through */
           default:
                data->pitch = data->width * 4;
+
+               if (!data->color_keyed)
+                    png_set_strip_16( data->png_ptr ); /* if it is color keyed we will handle conversion ourselves */
 
 #ifdef WORDS_BIGENDIAN
                if (!(data->color_type & PNG_COLOR_MASK_ALPHA))
@@ -803,18 +808,52 @@ png_row_callback( png_structp png_read_ptr,
      }
 
      /* write to image data */
-     if (data->bpp == 16) {
-
+     if (data->bpp == 16 && data->color_keyed) {
           u8  *dst = (u8*)(data->image + row_num * data->pitch);
           u8  *src = (u8*)new_row;
 
-          if (data->color_keyed) {
-               png_color_16p trans = &data->info_ptr->trans_color;
-               u16 *src16 = (u16*)src;
-               u32 *dst32 = (u32*)dst;
-               int i = data->width;
+          if (src) {
+               int src_advance = 8;
+               int src16_advance = 4;
+               int dst32_advance = 1;
+               int src16_initial_offset = 0;
+               int dst32_initial_offset = 0;
 
-               while (i--) {
+               if (!(row_num % 2)) { /* even lines 0,2,4 ... */
+                    switch (pass_num) {
+                         case 1:
+                              dst32_initial_offset = 4;
+                              src16_initial_offset = 16;
+                              src_advance = 64;
+                              src16_advance = 32;
+                              dst32_advance = 8;
+                              break;
+                         case 3:
+                              dst32_initial_offset = 2;
+                              src16_initial_offset = 8;
+                              src_advance = 32;
+                              src16_advance = 16;
+                              dst32_advance = 4;
+                              break;
+                         case 5:
+                              dst32_initial_offset = 1;
+                              src16_initial_offset = 4;
+                              src_advance = 16;
+                              src16_advance = 8;
+                              dst32_advance = 2;
+                              break;
+                         default:
+                              break;
+                    }
+               }
+
+               png_color_16p trans = &data->info_ptr->trans_color;
+               u16 *src16 = (u16*)src + src16_initial_offset;
+               u32 *dst32 = (u32*)dst + dst32_initial_offset;
+
+               int remaining = data->width - dst32_initial_offset;
+
+               while (remaining > 0) {
                     int keyed = 0;
 #ifdef WORDS_BIGENDIAN
                     u16 comp_r = src16[1];
@@ -842,25 +881,17 @@ png_row_callback( png_structp png_read_ptr,
                          pixel32 ^= 0x00000001;
                     }
 
-                    *dst32++ = pixel32;
-                    src16+=4;
-                    src+=8;
-               }
-          }
-          else if (src){
-               /* assume four channels here, since we have setup libpng to convert everything to four channels before */
-               int i = 4 *data->width;
+                    *dst32 = pixel32;
 
-               while (i--) {
-                    *dst++ = *src;
-                    src+=2;
+                    src16 += src16_advance;
+                    src   += src_advance;
+                    dst32 += dst32_advance;
+                    remaining-= dst32_advance;
                }
           }
      }
      else
           png_progressive_combine_row( data->png_ptr, (png_bytep)(data->image + row_num * data->pitch), new_row );
-
-          //direct_memcpy ( (png_bytep) (data->image + row_num * data->pitch), new_row, data->pitch );
 
      /* increase row counter, FIXME: interlaced? */
      data->rows++;
