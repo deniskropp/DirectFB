@@ -333,6 +333,9 @@ Genefx_TextureTriangleAffine( GenefxState        *gfxs,
 
      if (y_top > v0->y) {
           for (y=v0->y; y<y_top; y++) {
+               if (y == v1->y)
+                    SETUP_DDA(v1->x, v1->y, v2->x, v2->y, dda2);
+
                INC_DDA(dda1);
                INC_DDA(dda2);
           }
