@@ -1260,7 +1260,7 @@ FluxComp::GenerateHeader( const Interface *face, bool c_mode )
                     "#ifndef ___%s__H___\n"
                     "#define ___%s__H___\n"
                     "\n"
-                    "#include \"%s_includes.h\"\n"
+                    "#include <core/%s_includes.h>\n"
                     "\n"
                     "/**********************************************************************************************************************\n"
                     " * %s\n"
