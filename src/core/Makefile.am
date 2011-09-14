@@ -3,6 +3,7 @@
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib		\
+	-I$(top_builddir)/src		\
 	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src
@@ -17,28 +18,28 @@ AM_CPPFLAGS = \
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
-	CoreDFB.h		\
+	$(builddir)/CoreDFB.h		\
 	CoreDFB_includes.h	\
-	CoreGraphicsState.h	\
+	$(builddir)/CoreGraphicsState.h	\
 	CoreGraphicsState_includes.h	\
 	CoreGraphicsStateClient.h	\
-	CoreInputDevice.h		\
+	$(builddir)/CoreInputDevice.h		\
 	CoreInputDevice_includes.h	\
-	CoreLayer.h		\
+	$(builddir)/CoreLayer.h		\
 	CoreLayer_includes.h	\
-	CoreLayerContext.h	\
+	$(builddir)/CoreLayerContext.h	\
 	CoreLayerContext_includes.h	\
-	CoreLayerRegion.h	\
+	$(builddir)/CoreLayerRegion.h	\
 	CoreLayerRegion_includes.h	\
-	CorePalette.h		\
+	$(builddir)/CorePalette.h		\
 	CorePalette_includes.h	\
-	CoreScreen.h		\
+	$(builddir)/CoreScreen.h		\
 	CoreScreen_includes.h	\
-	CoreSurface.h		\
+	$(builddir)/CoreSurface.h		\
 	CoreSurface_includes.h	\
-	CoreWindow.h		\
+	$(builddir)/CoreWindow.h		\
 	CoreWindow_includes.h	\
-	CoreWindowStack.h		\
+	$(builddir)/CoreWindowStack.h		\
 	CoreWindowStack_includes.h	\
 	Interface.h		\
 	clipboard.h		\
@@ -80,28 +81,28 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 
 
 libdirectfb_core_la_SOURCES = \
-	CoreDFB.cpp		\
+	$(builddir)/CoreDFB.cpp		\
 	CoreDFB_real.cpp	\
-	CoreGraphicsState.cpp	\
+	$(builddir)/CoreGraphicsState.cpp	\
 	CoreGraphicsState_real.cpp	\
 	CoreGraphicsStateClient.c		\
-	CoreInputDevice.cpp		\
+	$(builddir)/CoreInputDevice.cpp		\
 	CoreInputDevice_real.cpp	\
-	CoreLayer.cpp		\
+	$(builddir)/CoreLayer.cpp		\
 	CoreLayer_real.cpp	\
-	CoreLayerContext.cpp	\
+	$(builddir)/CoreLayerContext.cpp	\
 	CoreLayerContext_real.cpp	\
-	CoreLayerRegion.cpp	\
+	$(builddir)/CoreLayerRegion.cpp	\
 	CoreLayerRegion_real.cpp	\
-	CorePalette.cpp		\
+	$(builddir)/CorePalette.cpp		\
 	CorePalette_real.cpp	\
-	CoreScreen.cpp		\
+	$(builddir)/CoreScreen.cpp		\
 	CoreScreen_real.cpp	\
-	CoreSurface.cpp		\
+	$(builddir)/CoreSurface.cpp		\
 	CoreSurface_real.cpp	\
-	CoreWindow.cpp		\
+	$(builddir)/CoreWindow.cpp		\
 	CoreWindow_real.cpp	\
-	CoreWindowStack.cpp		\
+	$(builddir)/CoreWindowStack.cpp		\
 	CoreWindowStack_real.cpp	\
 	clipboard.c		\
 	colorhash.c		\
@@ -158,32 +159,32 @@ distclean-local:
 	rm -f CoreWindowStack.h
 
 # quirks for generated headers
-CoreGraphicsStateClient.c: CoreGraphicsState.h CoreDFB.h
-core.c: CoreDFB.h
-surface.c: CoreDFB.h
-graphics_state.c: CoreGraphicsState.h
-input.c: CoreInputDevice.h
-layer_context.c: CoreLayerContext.h
-layers.c: CoreLayer.h
-layer_region.c: CoreLayerRegion.h
-palette.c: CorePalette.h
-screens.c: CoreScreen.h
-surface.c: CoreSurface.h
-surface_buffer.c: CoreSurface.h
-windows.c: CoreWindow.h
-windowstack.c: CoreWindowStack.h
+$(srcdir)/CoreGraphicsStateClient.c: CoreGraphicsState.h CoreDFB.h
+$(srcdir)/core.c: CoreDFB.h
+$(srcdir)/surface.c: CoreDFB.h
+$(srcdir)/graphics_state.c: CoreGraphicsState.h
+$(srcdir)/input.c: CoreInputDevice.h
+$(srcdir)/layer_context.c: CoreLayerContext.h
+$(srcdir)/layers.c: CoreLayer.h
+$(srcdir)/layer_region.c: CoreLayerRegion.h
+$(srcdir)/palette.c: CorePalette.h
+$(srcdir)/screens.c: CoreScreen.h
+$(srcdir)/surface.c: CoreSurface.h
+$(srcdir)/surface_buffer.c: CoreSurface.h
+$(srcdir)/windows.c: CoreWindow.h
+$(srcdir)/windowstack.c: CoreWindowStack.h
 
-CoreDFB_real.cpp: CoreGraphicsState.h CoreDFB.h
-CoreGraphicsState_real.cpp: CoreGraphicsState.h
-CoreInputDevice_real.cpp: CoreInputDevice.h
-CoreLayerContext_real.cpp: CoreLayerContext.h
-CoreLayer_real.cpp: CoreLayer.h
-CoreLayerRegion_real.cpp: CoreLayerRegion.h
-CorePalette_real.cpp: CorePalette.h
-CoreScreen_real.cpp: CoreScreen.h
-CoreSurface_real.cpp: CoreSurface.h
-CoreWindow_real.cpp: CoreWindow.h
-CoreWindowStack_real.cpp: CoreWindowStack.h
+$(srcdir)/CoreDFB_real.cpp: CoreGraphicsState.h CoreDFB.h
+$(srcdir)/CoreGraphicsState_real.cpp: CoreGraphicsState.h
+$(srcdir)/CoreInputDevice_real.cpp: CoreInputDevice.h
+$(srcdir)/CoreLayerContext_real.cpp: CoreLayerContext.h
+$(srcdir)/CoreLayer_real.cpp: CoreLayer.h
+$(srcdir)/CoreLayerRegion_real.cpp: CoreLayerRegion.h
+$(srcdir)/CorePalette_real.cpp: CorePalette.h
+$(srcdir)/CoreScreen_real.cpp: CoreScreen.h
+$(srcdir)/CoreSurface_real.cpp: CoreSurface.h
+$(srcdir)/CoreWindow_real.cpp: CoreWindow.h
+$(srcdir)/CoreWindowStack_real.cpp: CoreWindowStack.h
 
 
 include $(top_srcdir)/rules/flux_comp.make
