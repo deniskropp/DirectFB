@@ -18,10 +18,6 @@ if ENABLE_VOODOO
 PROXY_DIR = proxy
 endif
 
-if BUILD_DVC
-DVC_DIR = lib/dvc
-endif
-
 if DIRECTFB_BUILD_PURE_VOODOO
 NON_PURE_VOODOO_SUBDIRS = 
 else
