@@ -108,7 +108,7 @@ print_usage (const char *prg_name)
 }
 
 static bool
-parse_command_line( int argc, char *argv[], bool *c_mode )
+parse_command_line( int argc, char *argv[], bool *c_mode, std::string &include_prefix )
 {
      int n;
 
@@ -129,7 +129,14 @@ parse_command_line( int argc, char *argv[], bool *c_mode )
                *c_mode = true;
                continue;
           }
-
+          if (strncmp (arg, "-p=",3) == 0) {
+               include_prefix = std::string(&arg[3]);
+               continue;
+          }
+          if (strncmp (arg, "--include-prefix=", 17) == 0) {
+               include_prefix = std::string(&arg[17]);
+               continue;
+          }
           if (filename || access( arg, R_OK )) {
                print_usage (argv[0]);
                return false;
@@ -1230,7 +1237,8 @@ class FluxComp
 {
 public:
      void GenerateHeader( const Interface   *face,
-                          bool              c_mode );
+                          bool              c_mode,
+                          std::string       include_prefix );
 
      void GenerateSource( const Interface   *face,
                           bool              c_mode );
@@ -1245,7 +1253,7 @@ public:
 /**********************************************************************************************************************/
 
 void
-FluxComp::GenerateHeader( const Interface *face, bool c_mode )
+FluxComp::GenerateHeader( const Interface *face, bool c_mode, std::string include_prefix )
 {
      FILE        *file;
      std::string  filename = face->object + ".h";
@@ -1260,7 +1268,7 @@ FluxComp::GenerateHeader( const Interface *face, bool c_mode )
                     "#ifndef ___%s__H___\n"
                     "#define ___%s__H___\n"
                     "\n"
-                    "#include <core/%s_includes.h>\n"
+                    "#include %s%s%s%s_includes.h%s\n"
                     "\n"
                     "/**********************************************************************************************************************\n"
                     " * %s\n"
@@ -1273,7 +1281,11 @@ FluxComp::GenerateHeader( const Interface *face, bool c_mode )
                     "#endif\n"
                     "\n"
                     "\n",
-              license, face->object.c_str(), face->object.c_str(), face->object.c_str(), face->object.c_str() );
+              license, 
+              face->object.c_str(), 
+              face->object.c_str(), 
+              include_prefix.empty() ? "\"" : "<", include_prefix.c_str(), include_prefix.empty() ? "" : "/", face->object.c_str(), include_prefix.empty() ? "\"" : ">",
+              face->object.c_str() );
 
      /* C Wrappers */
 
@@ -2000,6 +2012,7 @@ main( int argc, char *argv[] )
      Entity::vector faces;
 
      bool           c_mode = false;
+     std::string    include_prefix;
 
      direct_initialize();
 
@@ -2009,7 +2022,7 @@ main( int argc, char *argv[] )
      direct_config->debugmem = true;
 
      /* Parse the command line. */
-     if (!parse_command_line( argc, argv, &c_mode ))
+     if (!parse_command_line( argc, argv, &c_mode, include_prefix ))
           return -1;
 
      ret = Entity::GetEntities( filename, faces );
@@ -2019,7 +2032,7 @@ main( int argc, char *argv[] )
           for (Entity::vector::const_iterator iter = faces.begin(); iter != faces.end(); iter++) {
                const Interface *face = dynamic_cast<const Interface*>( *iter );
 
-               fc.GenerateHeader( face, c_mode );
+               fc.GenerateHeader( face, c_mode, include_prefix );
                fc.GenerateSource( face, c_mode );
           }
      }
