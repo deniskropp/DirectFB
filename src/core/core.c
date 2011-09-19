@@ -1367,7 +1367,7 @@ dfb_core_arena_shutdown( FusionArena *arena,
           return dfb_core_leave( core, emergency );
      }
 
-     fusion_call_destroy( &shared->call );
+     CoreDFB_Deinit_Dispatch( &shared->call );
 
      /* Shutdown. */
      ret = dfb_core_shutdown( core, emergency );

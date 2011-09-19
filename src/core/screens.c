@@ -337,6 +337,8 @@ dfb_screen_core_shutdown( DFBScreenCore *data,
                     D_ERROR("DirectFB/Core/screens: "
                              "Failed to shutdown screen %d!\n", shared->screen_id);
 
+          CoreScreen_Deinit_Dispatch( &shared->call );
+
           /* Deinitialize the lock. */
           fusion_skirmish_destroy( &shared->lock );
 

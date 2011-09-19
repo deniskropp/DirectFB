@@ -307,6 +307,8 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           dfb_surface_unlink( &stack->bg.image );
      }
 
+     CoreWindowStack_Deinit_Dispatch( &stack->call );
+
      /* Deallocate shared stack data. */
      if (stack->stack_data) {
           SHFREE( stack->shmpool, stack->stack_data );

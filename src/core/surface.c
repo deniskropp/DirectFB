@@ -67,7 +67,7 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      D_DEBUG_AT( Core_Surface, "destroying %p (%dx%d%s)\n", surface,
                  surface->config.size.w, surface->config.size.h, zombie ? " ZOMBIE" : "");
 
-     fusion_call_destroy( &surface->call );
+     CoreSurface_Deinit_Dispatch( &surface->call );
 
      dfb_surface_lock( surface );
 

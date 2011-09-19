@@ -115,7 +115,7 @@ window_destructor( FusionObject *object, bool zombie, void *ctx )
           return;
      }
 
-     fusion_call_destroy( &window->call );
+     CoreWindow_Deinit_Dispatch( &window->call );
 
      dfb_windowstack_lock( stack );
 
@@ -143,7 +143,6 @@ window_destructor( FusionObject *object, bool zombie, void *ctx )
      }
 
      dfb_windowstack_unlock( stack );
-
 
      /* Unlink the primary region of the context. */
      if (window->primary_region)
