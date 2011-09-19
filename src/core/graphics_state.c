@@ -63,6 +63,8 @@ state_destructor( FusionObject *object, bool zombie, void *ctx )
 
      dfb_state_destroy( &state->state );
 
+     CoreGraphicsState_Deinit_Dispatch( &state->call );
+
      D_MAGIC_CLEAR( state );
 
      fusion_object_destroy( object );

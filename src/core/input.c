@@ -600,7 +600,8 @@ dfb_input_core_shutdown( DFBInputCore *data,
           devshared = device->shared;
           D_ASSERT( devshared != NULL );
 
-          fusion_call_destroy( &devshared->call );
+          CoreInputDevice_Deinit_Dispatch( &devshared->call );
+
           fusion_skirmish_destroy( &devshared->lock );
 
           if (device->driver_data != NULL) {

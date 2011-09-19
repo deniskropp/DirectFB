@@ -118,6 +118,8 @@ region_destructor( FusionObject *object, bool zombie, void *ctx )
      if (region->region_data)
           SHFREE( shared->shmpool, region->region_data );
 
+     CoreLayerRegion_Deinit_Dispatch( &region->call );
+
      /* Deinitialize the lock. */
      fusion_skirmish_destroy( &region->lock );
 
