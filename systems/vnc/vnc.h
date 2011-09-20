@@ -44,19 +44,19 @@ typedef struct {
      FusionCall          call;
 
      DFBDimension        screen_size;
-     void               *screen_buffer;
      CoreSurface        *screen_surface;
 } DFBVNCShared;
 
 typedef struct {
-     DFBVNCShared       *shared;
+     DFBVNCShared          *shared;
 
-     CoreDFB            *core;
+     CoreDFB               *core;
 
-     CoreScreen         *screen;
-     CoreLayer          *layer;
+     CoreScreen            *screen;
+     CoreLayer             *layer;
 
-     rfbScreenInfoPtr    rfb_screen;
+     rfbScreenInfoPtr       rfb_screen;
+     CoreSurfaceBufferLock  buffer_lock;
 } DFBVNC;
 
 typedef enum {

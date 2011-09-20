@@ -85,6 +85,8 @@ static void palette_destructor( FusionObject *object, bool zombie, void *ctx )
      SHFREE( palette->shmpool, palette->entries_yuv );
      SHFREE( palette->shmpool, palette->entries );
 
+     CorePalette_Deinit_Dispatch( &palette->call );
+
      D_MAGIC_CLEAR( palette );
 
      fusion_object_destroy( object );

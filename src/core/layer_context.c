@@ -106,7 +106,7 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_MAGIC_ASSERT( context, CoreLayerContext );
 
-     fusion_call_destroy( &context->call );
+     CoreLayerContext_Deinit_Dispatch( &context->call );
 
      /* Remove the context from the layer's context stack. */
      dfb_layer_remove_context( layer, context );

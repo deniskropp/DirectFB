@@ -318,6 +318,8 @@ dfb_layer_core_shutdown( DFBLayerCore *data,
                                    "Failed to shutdown layer %d!\n", shared->layer_id );
           }
 
+          CoreLayer_Deinit_Dispatch( &shared->call );
+
           /* Deinitialize the lock. */
           fusion_skirmish_destroy( &shared->lock );
 
