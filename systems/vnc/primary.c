@@ -105,25 +105,15 @@ primaryInitScreen( CoreScreen           *screen,
      /* Set the screen name. */
      direct_snputs( description->name, "VNC Primary Screen", DFB_SCREEN_DESC_NAME_LENGTH );
 
-     /*
-      * Allocate shared memory for RFB screen frame buffer
-      */
-     shared->screen_buffer = SHCALLOC( dfb_core_shmpool_data(vnc->core), shared->screen_size.h, 4 * shared->screen_size.w );
-     if (!shared->screen_buffer)
-          return D_OOSHM();
-
-
      /* Set video mode */
      vnc->rfb_screen = rfbGetScreen( &argc, argv, shared->screen_size.w, shared->screen_size.h, 8, 3, 4 );
      if (!vnc->rfb_screen) {
           D_ERROR( "DirectFB/VNC: rfbGetScreen( %dx%d, 8, 3, 4 ) failed!\n", shared->screen_size.w, shared->screen_size.h );
-          SHFREE( dfb_core_shmpool_data(vnc->core), shared->screen_buffer );
           return DFB_FAILURE;
      }
 
      vnc->rfb_screen->screenData = vnc;
 
-     rfbNewFramebuffer( vnc->rfb_screen, shared->screen_buffer, shared->screen_size.w, shared->screen_size.h, 8, 3, 4 );
 
 
      /* Connect key handler */
@@ -139,7 +129,6 @@ primaryInitScreen( CoreScreen           *screen,
 
      if (vnc->rfb_screen->listenSock == -1) {
           D_ERROR( "DirectFB/VNC: rfbInitServer() failed to initialize listening socket!\n" );
-          SHFREE( dfb_core_shmpool_data(vnc->core), shared->screen_buffer );
           return DFB_FAILURE;
      }
 
@@ -147,22 +136,22 @@ primaryInitScreen( CoreScreen           *screen,
      DFBResult         ret;
      CoreSurfaceConfig config;
 
-     config.flags                  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS | CSCONF_PREALLOCATED;
+     config.flags                  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
      config.size.w                 = shared->screen_size.w;
      config.size.h                 = shared->screen_size.h;
      config.format                 = DSPF_ABGR;
      config.caps                   = DSCAPS_SYSTEMONLY;// | DSCAPS_SHARED;
-     config.preallocated[0].addr   = shared->screen_buffer;
-     config.preallocated[0].handle = 0;
-     config.preallocated[0].pitch  = shared->screen_size.w * 4;
 
-     ret = dfb_surface_create( vnc->core, &config, CSTF_PREALLOCATED, 0, NULL, &shared->screen_surface );
+     ret = dfb_surface_create( vnc->core, &config, CSTF_NONE, 0, NULL, &shared->screen_surface );
      if (ret) {
-          D_DERROR( ret, "DirectFB/VNC: Could not create preallocated screen surface!\n" );
-          SHFREE( dfb_core_shmpool_data(vnc->core), shared->screen_buffer );
+          D_DERROR( ret, "DirectFB/VNC: Could not createscreen surface!\n" );
           return ret;
      }
 
+
+     dfb_surface_lock_buffer( shared->screen_surface, 0, CSAID_CPU, CSAF_WRITE, &vnc->buffer_lock );
+
+     rfbNewFramebuffer( vnc->rfb_screen, vnc->buffer_lock.addr, shared->screen_size.w, shared->screen_size.h, 8, 3, 4 );
 
      rfbRunEventLoop( vnc->rfb_screen, -1, TRUE );
 
@@ -174,11 +163,12 @@ primaryShutdownScreen( CoreScreen *screen,
                        void       *driver_data,
                        void       *screen_data )
 {
-     DFBVNC *vnc = driver_data;
+     DFBVNC        *vnc = driver_data;
+     DFBVNCShared  *shared = vnc->shared;
 
      rfbScreenCleanup( vnc->rfb_screen );
 
-     SHFREE( dfb_core_shmpool_data(vnc->core), vnc->shared->screen_buffer );
+     dfb_surface_unlock_buffer( shared->screen_surface, &vnc->buffer_lock );
 
      return DFB_OK;
 }
