@@ -85,11 +85,17 @@ surface_buffer_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
+     if (buffer->surface)
+          dfb_surface_lock( buffer->surface );
+
      fusion_vector_foreach_reverse (allocation, i, buffer->allocs) {
           CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
           dfb_surface_pool_deallocate( allocation->pool, allocation );
      }
+
+     if (buffer->surface)
+          dfb_surface_unlock( buffer->surface );
 
      fusion_vector_destroy( &buffer->allocs );
 
