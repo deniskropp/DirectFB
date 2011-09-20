@@ -8052,6 +8052,7 @@ static const GenefxFunc Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[DFB_NUM_P
 #define SET_PIXEL( D, S )                                                  \
      switch (S >> 24) {                                                    \
           case 0:                                                          \
+               D += S;                                                     \
                break;                                                      \
           case 0xff:                                                       \
                D = S;                                                      \
