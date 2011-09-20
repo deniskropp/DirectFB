@@ -1370,8 +1370,7 @@ FluxComp::GenerateHeader( const Interface *face, bool c_mode, std::string includ
                          "\n"
                          "\n",
                    face->object.c_str(), method->name.c_str(),
-                   (method->ArgumentsAsMemberDecl().empty() && c_mode)? "     u8 dummy;\n" : method->ArgumentsAsMemberDecl().c_str(), // FIXME workaround for blocking fusion bug
-//                 method->ArgumentsAsMemberDecl().c_str(), 
+                   method->ArgumentsAsMemberDecl().c_str(),
                    face->object.c_str(), method->name.c_str(),
                    method->ArgumentsOutputAsMemberDecl().c_str(),
                    face->object.c_str(), method->name.c_str() );
