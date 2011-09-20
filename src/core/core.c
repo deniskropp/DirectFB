@@ -1198,8 +1198,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      /* Destroy surface and palette objects. */
      fusion_object_pool_destroy( shared->graphics_state_pool, core->world );
-     fusion_object_pool_destroy( shared->surface_buffer_pool, core->world );
      fusion_object_pool_destroy( shared->surface_pool, core->world );
+     fusion_object_pool_destroy( shared->surface_buffer_pool, core->world );
      fusion_object_pool_destroy( shared->palette_pool, core->world );
 
      /* Destroy remaining core parts. */
