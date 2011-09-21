@@ -262,6 +262,8 @@ typedef struct
 
      bool          x11_borderless;
      DFBPoint      x11_position;
+
+     bool          flip_notify;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

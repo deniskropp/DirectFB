@@ -138,6 +138,7 @@ static const char *config_usage =
      "  [no-]decorations               Enable window decorations (if supported by wm)\n"
      "  [no-]startstop                 Issue StartDrawing/StopDrawing to driver\n"
      "  [no-]autoflip-window           Auto flip non-flipping windowed primary surfaces\n"
+     "  [no-]flip-notify               Use FlipNotify for remote display\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
      "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n"
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
@@ -961,6 +962,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-autoflip-window" ) == 0) {
           dfb_config->autoflip_window = false;
+     } else
+     if (strcmp (name, "flip-notify" ) == 0) {
+          dfb_config->flip_notify = true;
+     } else
+     if (strcmp (name, "no-flip-notify" ) == 0) {
+          dfb_config->flip_notify = false;
      } else
      if (strcmp (name, "vsync-none" ) == 0) {
           dfb_config->pollvsync_none = true;

@@ -49,6 +49,8 @@
 #include <voodoo/manager.h>
 #include <voodoo/message.h>
 
+#include <misc/conf.h>
+
 #include <idirectfbsurface_dispatcher.h>
 
 #include "idirectfbfont_requestor.h"
@@ -1740,77 +1742,77 @@ Construct( IDirectFBSurface *thiz,
 
      direct_mutex_init( &data->flip.lock );
      direct_waitqueue_init( &data->flip.queue );
-#if 1
-     ret = voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, NULL, thiz, LocalDispatch, &data->local );
-     if (ret) {
-          D_DERROR( ret, "IDirectFBSurface_Requestor: Could not register local dispatch!\n" );
-          DIRECT_DEALLOCATE_INTERFACE( thiz );
-          return ret;
+
+     if (dfb_config->flip_notify) {
+          ret = voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, NULL, thiz, LocalDispatch, &data->local );
+          if (ret) {
+               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not register local dispatch!\n" );
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
+               return ret;
+          }
+
+          ret = voodoo_manager_request( manager, instance,
+                                        IDIRECTFBSURFACE_METHOD_ID_SetRemoteInstance, VREQ_RESPOND, &response,
+                                        VMBT_ID, data->local,
+                                        VMBT_NONE );
+          if (ret)
+               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not set remote instance, FlipNotify not used!\n" );
+          else if (response->result)
+               D_DERROR( response->result, "IDirectFBSurface_Requestor: Could not set remote instance, FlipNotify not used!\n" );
+          else {
+               D_INFO( "IDirectFBSurface_Requestor: Using FlipNotify\n" );
+
+               data->flip.use_notify = true;
+
+               voodoo_manager_finish_request( manager, response );
+          }
+
+          /*
+           * Implement fallback for missing FlipNotify support via event buffer and hidden window
+           */
+          if (!data->flip.use_notify) {
+               DFBWindowDescription   desc;
+               IDirectFBDisplayLayer *layer;
+
+               ret = data->idirectfb->CreateEventBuffer( data->idirectfb, &data->flip.buffer );
+               if (ret) {
+                    D_DERROR( ret, "IDirectFBSurface_Requestor: Could not create event buffer for FlipNotify fallback!\n" );
+                    DIRECT_DEALLOCATE_INTERFACE( thiz );
+                    return ret;
+               }
+
+               ret = data->idirectfb->GetDisplayLayer( data->idirectfb, DLID_PRIMARY, &layer );
+               if (ret) {
+                    D_DERROR( ret, "IDirectFBSurface_Requestor: Could not get display layer for FlipNotify fallback!\n" );
+                    DIRECT_DEALLOCATE_INTERFACE( thiz );
+                    return ret;
+               }
+
+               desc.flags = DWDESC_CAPS;
+               desc.caps  = DWCAPS_INPUTONLY | DWCAPS_NODECORATION;
+
+               ret = layer->CreateWindow( layer, &desc, &data->flip.window );
+               if (ret) {
+                    D_DERROR( ret, "IDirectFBSurface_Requestor: Could not create window for FlipNotify fallback!\n" );
+                    DIRECT_DEALLOCATE_INTERFACE( thiz );
+                    return ret;
+               }
+
+               ret = data->flip.window->AttachEventBuffer( data->flip.window, data->flip.buffer );
+               if (ret) {
+                    D_DERROR( ret, "IDirectFBSurface_Requestor: Could not attach event buffer for FlipNotify fallback!\n" );
+                    DIRECT_DEALLOCATE_INTERFACE( thiz );
+                    return ret;
+               }
+
+               layer->Release( layer );
+
+
+               D_INFO( "IDirectFBSurface_Requestor: Using FlipNotify fallback via event buffer/window!\n" );
+
+               data->flip.use_buffer = true;
+          }
      }
-#if 1
-     ret = voodoo_manager_request( manager, instance,
-                                   IDIRECTFBSURFACE_METHOD_ID_SetRemoteInstance, VREQ_RESPOND, &response,
-                                   VMBT_ID, data->local,
-                                   VMBT_NONE );
-     if (ret)
-          D_DERROR( ret, "IDirectFBSurface_Requestor: Could not set remote instance, FlipNotify not used!\n" );
-     else if (response->result)
-          D_DERROR( response->result, "IDirectFBSurface_Requestor: Could not set remote instance, FlipNotify not used!\n" );
-     else {
-          D_INFO( "IDirectFBSurface_Requestor: Using FlipNotify\n" );
-
-          data->flip.use_notify = true;
-
-          voodoo_manager_finish_request( manager, response );
-     }
-#endif
-
-     /*
-      * Implement fallback for missing FlipNotify support via event buffer and hidden window
-      */
-     if (!data->flip.use_notify) {
-          DFBWindowDescription   desc;
-          IDirectFBDisplayLayer *layer;
-
-          ret = data->idirectfb->CreateEventBuffer( data->idirectfb, &data->flip.buffer );
-          if (ret) {
-               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not create event buffer for FlipNotify fallback!\n" );
-               DIRECT_DEALLOCATE_INTERFACE( thiz );
-               return ret;
-          }
-
-          ret = data->idirectfb->GetDisplayLayer( data->idirectfb, DLID_PRIMARY, &layer );
-          if (ret) {
-               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not get display layer for FlipNotify fallback!\n" );
-               DIRECT_DEALLOCATE_INTERFACE( thiz );
-               return ret;
-          }
-
-          desc.flags = DWDESC_CAPS;
-          desc.caps  = DWCAPS_INPUTONLY | DWCAPS_NODECORATION;
-
-          ret = layer->CreateWindow( layer, &desc, &data->flip.window );
-          if (ret) {
-               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not create window for FlipNotify fallback!\n" );
-               DIRECT_DEALLOCATE_INTERFACE( thiz );
-               return ret;
-          }
-
-          ret = data->flip.window->AttachEventBuffer( data->flip.window, data->flip.buffer );
-          if (ret) {
-               D_DERROR( ret, "IDirectFBSurface_Requestor: Could not attach event buffer for FlipNotify fallback!\n" );
-               DIRECT_DEALLOCATE_INTERFACE( thiz );
-               return ret;
-          }
-
-          layer->Release( layer );
-
-
-          D_INFO( "IDirectFBSurface_Requestor: Using FlipNotify fallback via event buffer/window!\n" );
-
-          data->flip.use_buffer = true;
-     }
-#endif
 
      thiz->AddRef = IDirectFBSurface_Requestor_AddRef;
      thiz->Release = IDirectFBSurface_Requestor_Release;
