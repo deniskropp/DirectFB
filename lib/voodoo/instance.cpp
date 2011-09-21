@@ -90,7 +90,9 @@ VoodooInstance::Release()
      if (!--refs) {
           D_DEBUG_AT( Voodoo_Instance, "  -> zero refs, deleting instance...\n" );
 
+#ifndef WIN32  //FIXME: why does delete this crash with MSVC?
           delete this;
+#endif
      }
 }
 
