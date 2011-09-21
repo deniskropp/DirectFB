@@ -64,14 +64,14 @@ direct_page_align( unsigned long value )
 pid_t
 direct_getpid( void )
 {
-     return 1;
+     return GetCurrentThreadId();
 }
 
 __no_instrument_function__
 pid_t
 direct_gettid( void )
 {
-     return 1;
+     return GetCurrentThreadId();
 }
 
 /**********************************************************************************************************************/
