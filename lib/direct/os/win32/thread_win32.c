@@ -110,6 +110,10 @@ direct_thread_init( DirectThread *thread )
 void
 direct_thread_deinit( DirectThread *thread )
 {
+     D_DEBUG_AT( Direct_ThreadInit, "%s( %p )\n", __FUNCTION__, thread );
+     D_DEBUG_AT( Direct_ThreadInit, "  -> id %u\n", thread->tid );
+
+     TerminateThread( thread->handle.thread, 0 );
 }
 
 /**********************************************************************************************************************/
@@ -140,25 +144,32 @@ direct_thread_set_name( const char *name )
 void
 direct_thread_cancel( DirectThread *thread )
 {
+     thread->canceled = true;
+
      D_UNIMPLEMENTED();
 }
 
 void
 direct_thread_detach( DirectThread *thread )
 {
+     thread->detached = true;
+
      D_UNIMPLEMENTED();
 }
 
 void
 direct_thread_testcancel( DirectThread *thread )
 {
-     D_UNIMPLEMENTED();
+     if (thread->canceled)
+          ExitThread( 0 );
 }
 
 void
 direct_thread_join( DirectThread *thread )
 {
-     D_UNIMPLEMENTED();
+     WaitForSingleObject( thread->handle.thread, INFINITE );
+
+     thread->joined = true;
 }
 
 void
