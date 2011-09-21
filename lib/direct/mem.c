@@ -88,7 +88,7 @@ local_alloc_hash_iterator( DirectHash    *hash,
      MemDesc       *desc  = value;
      unsigned long *total = ctx;
 
-     direct_log_printf( NULL, "%7zu bytes at %p allocated in %s (%s: %u)\n",
+     direct_log_printf( NULL, ""_ZUn(7)" bytes at %p allocated in %s (%s: %u)\n",
                         desc->bytes, desc->mem, desc->func, desc->file, desc->line );
 
      if (desc->trace)
@@ -145,7 +145,7 @@ direct_dbg_malloc( const char* file, int line, const char *func, size_t bytes )
      void          *mem;
      unsigned long *val;
 
-     D_DEBUG_AT( Direct_Mem, "  +%6zu bytes [%s:%d in %s()]\n", bytes, file, line, func );
+     D_DEBUG_AT( Direct_Mem, "  +"_ZUn(6)" bytes [%s:%d in %s()]\n", bytes, file, line, func );
 
      if (direct_config->debugmem) {
           MemDesc *desc;
@@ -187,7 +187,7 @@ direct_dbg_calloc( const char* file, int line, const char *func, size_t count, s
      void          *mem;
      unsigned long *val;
 
-     D_DEBUG_AT( Direct_Mem, "  +%6zu bytes [%s:%d in %s()]\n", count * bytes, file, line, func );
+     D_DEBUG_AT( Direct_Mem, "  +"_ZUn(6)" bytes [%s:%d in %s()]\n", count * bytes, file, line, func );
 
      if (direct_config->debugmem) {
           MemDesc *desc;
@@ -230,7 +230,7 @@ direct_dbg_realloc( const char *file, int line, const char *func, const char *wh
      unsigned long *val;
      MemDesc       *desc;
 
-     D_DEBUG_AT( Direct_Mem, "  *%6zu bytes [%s:%d in %s()] '%s' <- %p\n", bytes, file, line, func, what, mem );
+     D_DEBUG_AT( Direct_Mem, "  *"_ZUn(6)" bytes [%s:%d in %s()] '%s' <- %p\n", bytes, file, line, func, what, mem );
 
      if (!mem)
           return direct_dbg_malloc( file, line, func, bytes );
@@ -243,7 +243,7 @@ direct_dbg_realloc( const char *file, int line, const char *func, const char *wh
      val = (unsigned long*)((char*) mem - DISABLED_OFFSET);
 
      if (val[0] == ~0) {
-          D_DEBUG_AT( Direct_Mem, "  *%6zu bytes [%s:%d in %s()] '%s'\n", bytes, file, line, func, what );
+          D_DEBUG_AT( Direct_Mem, "  *"_ZUn(6)" bytes [%s:%d in %s()] '%s'\n", bytes, file, line, func, what );
 
           val = direct_realloc( val, bytes + DISABLED_OFFSET );
 
@@ -277,7 +277,7 @@ direct_dbg_realloc( const char *file, int line, const char *func, const char *wh
 
           D_DEBUG_AT( Direct_Mem, "  '-> %p\n", new_mem );
 
-          D_DEBUG_AT( Direct_Mem, "  %c%6zu bytes [%s:%d in %s()] (%s%zu) <- %p -> %p '%s'\n",
+          D_DEBUG_AT( Direct_Mem, "  %c"_ZUn(6)" bytes [%s:%d in %s()] (%s"_ZU") <- %p -> %p '%s'\n",
                       (bytes > desc->bytes) ? '>' : '<', bytes, file, line, func,
                       (bytes > desc->bytes) ? "+" : "", bytes - desc->bytes, mem, new_mem, what);
 
@@ -287,7 +287,7 @@ direct_dbg_realloc( const char *file, int line, const char *func, const char *wh
           }
 
           if (!new_mem)
-               D_WARN( "could not reallocate memory (%p: %zu->%zu)", mem, desc->bytes, bytes );
+               D_WARN( "could not reallocate memory (%p: "_ZU"->"_ZU")", mem, desc->bytes, bytes );
           else
                desc = fill_mem_desc( new_mem, bytes, func, file, line, direct_trace_copy_buffer(NULL) );
 
@@ -307,7 +307,7 @@ direct_dbg_strdup( const char* file, int line, const char *func, const char *str
      unsigned long *val;
      size_t         bytes = direct_strlen( string ) + 1;
 
-     D_DEBUG_AT( Direct_Mem, "  +%6zu bytes [%s:%d in %s()] <- \"%30s\"\n", bytes, file, line, func, string );
+     D_DEBUG_AT( Direct_Mem, "  +"_ZUn(6)" bytes [%s:%d in %s()] <- \"%30s\"\n", bytes, file, line, func, string );
 
      if (direct_config->debugmem) {
           MemDesc *desc;
@@ -382,7 +382,7 @@ direct_dbg_free( const char *file, int line, const char *func, const char *what,
                    mem, what, file, line, func );
      }
      else {
-          D_DEBUG_AT( Direct_Mem, "  -%6zu bytes [%s:%d in %s()] -> %p '%s'\n", desc->bytes, file, line, func, mem, what );
+          D_DEBUG_AT( Direct_Mem, "  -"_ZUn(6)" bytes [%s:%d in %s()] -> %p '%s'\n", desc->bytes, file, line, func, mem, what );
 
           if (desc->trace)
                direct_trace_free_buffer( desc->trace );

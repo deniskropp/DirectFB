@@ -82,6 +82,7 @@ typedef int64_t s64;
 
 #define _ZD "%zd"
 #define _ZU "%zu"
+#define _ZUn(x) "%" #x "zu"
 
 /*
  * Define the bool type by including stdbool.h (preferably)...

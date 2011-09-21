@@ -97,6 +97,7 @@ struct timespec {
 
 #define _ZD "%d"
 #define _ZU "%u"
+#define _ZUn(x) "%" #x "u"
 
 
 #define SIGTRAP      5
