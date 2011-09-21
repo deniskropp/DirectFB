@@ -40,6 +40,7 @@ log_write( DirectLog  *log,
            size_t      bytes )
 {
      printf( "%s", buffer );
+     fflush( stdout );
 
      return DR_OK;
 }
