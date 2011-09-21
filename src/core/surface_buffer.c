@@ -336,11 +336,12 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
                     allocation->pool->desc.name );
           dfb_surface_buffer_lock_deinit( lock );
-          dfb_surface_buffer_unref( buffer );
 
           /* Destroy if newly created. */
 //FIXME          if (allocated)
 //               dfb_surface_pool_deallocate( allocation->pool, allocation );
+
+          dfb_surface_buffer_unref( buffer );
 
           return ret;
      }
