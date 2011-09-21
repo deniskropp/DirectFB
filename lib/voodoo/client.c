@@ -80,6 +80,9 @@ voodoo_client_create( const char     *host,
 
      D_ASSERT( ret_client != NULL );
 
+     if (!host)
+          host = "";
+
      if (!port)
           port = 2323;
 
