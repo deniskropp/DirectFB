@@ -95,10 +95,11 @@ dummyInitLayer( CoreLayer                  *layer,
      direct_snputs( description->name, "Dummy", DFB_DISPLAY_LAYER_DESC_NAME_LENGTH );
 
 
-     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT;
+     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
      config->width       = dfb_config->mode.width  ?: DUMMY_WIDTH;
      config->height      = dfb_config->mode.height ?: DUMMY_HEIGHT;
      config->pixelformat = dfb_config->mode.format ?: DUMMY_FORMAT;
+     config->buffermode  = DLBM_FRONTONLY;
 
      return DFB_OK;
 }
