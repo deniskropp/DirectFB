@@ -15,37 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\proxy\dispatcher\idirectfb_dispatcher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\proxy\dispatcher\idirectfbdatabuffer_dispatcher.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\proxy\dispatcher\idirectfbdisplaylayer_dispatcher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\proxy\dispatcher\idirectfbeventbuffer_dispatcher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\proxy\dispatcher\idirectfbfont_dispatcher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\proxy\dispatcher\idirectfbimageprovider_dispatcher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\proxy\dispatcher\idirectfbinputdevice_dispatcher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\proxy\dispatcher\idirectfbpalette_dispatcher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\proxy\dispatcher\idirectfbscreen_dispatcher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\proxy\dispatcher\idirectfbsurface_dispatcher.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\proxy\dispatcher\idirectfbwindow_dispatcher.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\proxy\requestor\idirectfb_requestor.c">

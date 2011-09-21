@@ -51,7 +51,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>P:\DirectFBWin32\Win32\DiVine\include;P:\DirectFBWin32\Win32\FusionDale\include;P:\DirectFBWin32\Win32;P:\DirectFBWin32\lib;P:\DirectFBWin32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\DirectFB\Win32\DiVine\include;F:\DirectFB\Win32\FusionDale\include;F:\DirectFB\Win32;F:\DirectFB\lib;F:\DirectFB\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsManaged>true</CompileAsManaged>
     </ClCompile>
     <Link>
@@ -59,7 +59,7 @@
       <AdditionalDependencies>libdivine.lib;libfusiondale.lib;libdirect.lib;libfusion.lib;libvoodoo.lib;libdirectfb.lib</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <EntryPointSymbol>main</EntryPointSymbol>
-      <AdditionalLibraryDirectories>P:\DirectFBWin32\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>F:\DirectFB\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -67,7 +67,7 @@
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>WIN32;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <AdditionalIncludeDirectories>P:\DirectFBWin32\Win32\DiVine\include;P:\DirectFBWin32\Win32\FusionDale\include;P:\DirectFBWin32\Win32;P:\DirectFBWin32\lib;P:\DirectFBWin32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\DirectFB\Win32\DiVine\include;F:\DirectFB\Win32\FusionDale\include;F:\DirectFB\Win32;F:\DirectFB\lib;F:\DirectFB\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsManaged>Pure</CompileAsManaged>
     </ClCompile>
     <Link>
@@ -75,7 +75,7 @@
       <AdditionalDependencies>libdivine.lib;libfusiondale.lib;libdirect.lib;libfusion.lib;libvoodoo.lib;libdirectfb.lib</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
       <EntryPointSymbol>main</EntryPointSymbol>
-      <AdditionalLibraryDirectories>P:\DirectFBWin32\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>F:\DirectFB\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

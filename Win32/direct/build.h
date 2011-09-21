@@ -37,7 +37,7 @@
 #define DIRECT_OS_WIN32            (3)
 
 
-#define DIRECT_BUILD_DEBUG     (0)
+#define DIRECT_BUILD_DEBUG     (1)
 #define DIRECT_BUILD_DEBUGS    (1)
 #define DIRECT_BUILD_TRACE     (0)
 #define DIRECT_BUILD_TEXT      (1)

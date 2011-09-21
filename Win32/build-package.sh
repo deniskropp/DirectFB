@@ -40,7 +40,7 @@ cp -a $DEBUG/*.lib "$DIR/lib/"
 
 cp -a $DEBUG/*.exe "$DIR/bin/"
 
-HEADERS="`find .. -name '*.h'`"
+HEADERS="`find -L .. -name '*.h'`"
 
 for HEADER in $HEADERS; do
     echo "X------- $HEADER"
@@ -53,6 +53,12 @@ for HEADER in $HEADERS; do
             continue
             ;;
         ../lib/fusion/shm*)
+            continue
+            ;;
+        ../lib/dvc*)
+            continue
+            ;;
+        ../lib/One*)
             continue
             ;;
         ../src/gfx/generic*)

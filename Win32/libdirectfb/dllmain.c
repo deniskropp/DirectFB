@@ -54,18 +54,18 @@ BOOL WINAPI DllMain(
                //IDirectFBVideoProvider_Requestor_ctor();
                IDirectFBWindow_Requestor_ctor();
 
-               IDirectFB_Dispatcher_ctor();
+               //IDirectFB_Dispatcher_ctor();
                IDirectFBDataBuffer_Dispatcher_ctor();
-               IDirectFBDisplayLayer_Dispatcher_ctor();
+               //IDirectFBDisplayLayer_Dispatcher_ctor();
                IDirectFBEventBuffer_Dispatcher_ctor();
-               IDirectFBFont_Dispatcher_ctor();
-               IDirectFBImageProvider_Dispatcher_ctor();
-               IDirectFBInputDevice_Dispatcher_ctor();
-               IDirectFBPalette_Dispatcher_ctor();
-               IDirectFBScreen_Dispatcher_ctor();
-               IDirectFBSurface_Dispatcher_ctor();
+               //IDirectFBFont_Dispatcher_ctor();
+               //IDirectFBImageProvider_Dispatcher_ctor();
+               //IDirectFBInputDevice_Dispatcher_ctor();
+               //IDirectFBPalette_Dispatcher_ctor();
+               //IDirectFBScreen_Dispatcher_ctor();
+               //IDirectFBSurface_Dispatcher_ctor();
                //IDirectFBVideoProvider_Dispatcher_ctor();
-               IDirectFBWindow_Dispatcher_ctor();
+               //IDirectFBWindow_Dispatcher_ctor();
             break;
 
         case DLL_THREAD_ATTACH:
