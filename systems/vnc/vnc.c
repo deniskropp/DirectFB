@@ -67,9 +67,12 @@ static FusionCallHandlerResult
 VNC_Dispatch( int           caller,
               int           call_arg,
               void         *call_ptr,
+              unsigned int  length,
               void         *ctx,
               unsigned int  serial,
-              int          *ret_val );
+              void         *ret_ptr,
+              unsigned int  ret_size,
+              unsigned int *ret_length );
 
 /**********************************************************************************************************************/
 
@@ -101,7 +104,7 @@ system_initialize( CoreDFB *core, void **data )
      dfb_vnc->shared->screen_size.w = dfb_config->mode.width  ? dfb_config->mode.width  : 1280;
      dfb_vnc->shared->screen_size.h = dfb_config->mode.height ? dfb_config->mode.height :  720;
 
-     fusion_call_init( &dfb_vnc->shared->call, VNC_Dispatch, dfb_vnc, dfb_core_world(core) );
+     fusion_call_init3( &dfb_vnc->shared->call, VNC_Dispatch, dfb_vnc, dfb_core_world(core) );
 
      dfb_vnc->screen = dfb_screens_register( NULL, dfb_vnc, vncPrimaryScreenFuncs );
 
@@ -311,20 +314,22 @@ static FusionCallHandlerResult
 VNC_Dispatch( int           caller,
               int           call_arg,
               void         *call_ptr,
+              unsigned int  length,
               void         *ctx,
               unsigned int  serial,
-              int          *ret_val )
+              void         *ret_ptr,
+              unsigned int  ret_size,
+              unsigned int *ret_length )
 {
      DFBVNC *vnc = ctx;
 
      switch (call_arg) {
           case VNC_MARK_RECT_AS_MODIFIED:
-               *ret_val = VNC_Dispatch_MarkRectAsModified( vnc, call_ptr );
+               VNC_Dispatch_MarkRectAsModified( vnc, call_ptr );
                break;
 
           default:
                D_BUG( "unknown call" );
-               *ret_val = DFB_BUG;
                break;
      }
 
