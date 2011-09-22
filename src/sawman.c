@@ -54,6 +54,7 @@
 
 #include <SaWMan.h>
 #include <SaWManProcess.h>
+#include <SaWManManager.h>
 
 #include <sawman.h>
 #include <sawman_internal.h>
@@ -283,7 +284,7 @@ sawman_initialize( SaWMan         *sawman,
      ret = sawman_register_process( sawman, SWMPF_MASTER, getpid(), fusion_id(world), world, &m_process );
      if (ret) {
           D_MAGIC_CLEAR( sawman );
-          goto error;
+          goto error_register;
      }
 
      if (ret_process)
@@ -291,6 +292,9 @@ sawman_initialize( SaWMan         *sawman,
 
      return DFB_OK;
 
+
+error_register:
+     SaWMan_Deinit_Dispatch( &sawman->call );
 
 error:
      if (sawman->tiers) {
@@ -561,6 +565,8 @@ sawman_unregister( SaWMan *sawman )
      m_process->flags &= ~SWMPF_MANAGER;
 
      sawman->manager.present = false;
+     SaWManManager_Deinit_Dispatch( &sawman->manager.call_from );
+
 
      return DFB_OK;
 }
@@ -901,13 +907,14 @@ unregister_process( SaWMan        *sawman,
 
           /* Ready for new manager. */
           sawman->manager.present = false;
+          SaWManManager_Deinit_Dispatch( &sawman->manager.call_from );
      }
      else {
           /* Call application manager executable. */
           sawman_call( sawman, SWMCID_PROCESS_REMOVED, process, sizeof(*process), false );
      }
 
-     fusion_call_destroy( &process->call );
+     SaWManProcess_Deinit_Dispatch( &process->call );
 
      D_MAGIC_CLEAR( process );
 
