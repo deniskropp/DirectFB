@@ -1705,8 +1705,6 @@ lib/voodoo/Makefile
 lib/voodoo/build.h
 lib/voodoo/voodoo.pc
 
-flux/Makefile
-
 patches/Makefile
 
 proxy/Makefile

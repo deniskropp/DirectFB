@@ -34,7 +34,6 @@ SUBDIRS = \
 	docs			\
 	include 		\
 	lib			\
-	flux			\
 	src 			\
 	$(TOOLS_DIR)		\
 	$(NON_PURE_VOODOO_SUBDIRS)	\
