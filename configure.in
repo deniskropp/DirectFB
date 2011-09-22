@@ -2025,8 +2025,6 @@ lib/voodoo/build.h
 lib/voodoo/unix/Makefile
 lib/voodoo/voodoo.pc
 
-flux/Makefile
-
 patches/Makefile
 
 proxy/Makefile

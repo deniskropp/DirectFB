@@ -33,7 +33,6 @@ SUBDIRS = \
 	docs			\
 	include 		\
 	lib			\
-	flux			\
 	src 			\
 	$(DVC_DIR)		\
 	$(TOOLS_DIR)		\
