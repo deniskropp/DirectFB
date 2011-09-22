@@ -139,7 +139,7 @@ primaryInitScreen( CoreScreen           *screen,
      config.flags                  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
      config.size.w                 = shared->screen_size.w;
      config.size.h                 = shared->screen_size.h;
-     config.format                 = DSPF_ABGR;
+     config.format                 = DSPF_ARGB;
      config.caps                   = DSCAPS_SYSTEMONLY;// | DSCAPS_SHARED;
 
      ret = dfb_surface_create( vnc->core, &config, CSTF_NONE, 0, NULL, &shared->screen_surface );
@@ -152,6 +152,14 @@ primaryInitScreen( CoreScreen           *screen,
      dfb_surface_lock_buffer( shared->screen_surface, 0, CSAID_CPU, CSAF_WRITE, &vnc->buffer_lock );
 
      rfbNewFramebuffer( vnc->rfb_screen, vnc->buffer_lock.addr, shared->screen_size.w, shared->screen_size.h, 8, 3, 4 );
+
+     /* patch serverFormat structure for ARGB */
+     vnc->rfb_screen->serverFormat.redShift   = 16;
+     vnc->rfb_screen->serverFormat.greenShift = 8;
+     vnc->rfb_screen->serverFormat.blueShift  = 0;
+     vnc->rfb_screen->serverFormat.redMax     = 255;
+     vnc->rfb_screen->serverFormat.greenMax   = 255;
+     vnc->rfb_screen->serverFormat.blueMax    = 255;
 
      rfbRunEventLoop( vnc->rfb_screen, -1, TRUE );
 
