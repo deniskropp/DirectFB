@@ -191,7 +191,8 @@ driver_open_device( CoreInputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-     int           fd, buttons, axes;
+     int           fd;
+     char          buttons, axes;
      JoystickData *data;
      char          devicename[20];
 
@@ -212,8 +213,10 @@ driver_open_device( CoreInputDevice      *device,
      }
 
      /* query number of buttons and axes */
-     ioctl( fd, JSIOCGBUTTONS, &buttons );
-     ioctl( fd, JSIOCGAXES, &axes );
+     if (ioctl( fd, JSIOCGBUTTONS, &buttons ) == -1)
+          buttons = 0;
+     if (ioctl( fd, JSIOCGAXES, &axes ) == -1)
+          axes = 0;
 
      /* fill device info structure */
      snprintf( info->desc.name,
