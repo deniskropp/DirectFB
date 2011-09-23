@@ -2185,18 +2185,24 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
          dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
      {
           for (; i<num; i++) {
+               DFBRectangle drect = { points[i].x, points[i].y, rects[i].w, rects[i].h };
+
+               if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+                    D_UTIL_SWAP( drect.w, drect.h );
+
                if ((state->render_options & DSRO_MATRIX) ||
                    dfb_clip_blit_precheck( &state->clip,
-                                           rects[i].w, rects[i].h,
-                                           points[i].x, points[i].y ))
+                                           drect.w, drect.h,
+                                           drect.x, drect.y ))
                {
+                    DFBRectangle srect = rects[i];
+
                     if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
                         !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
-                         dfb_clip_blit( &state->clip, &rects[i],
-                                        &points[i].x, &points[i].y );
+                         clip_blit_rotated( &srect, &drect, &state->clip, state->blittingflags );
 
                     if (!card->funcs.Blit( card->driver_data, card->device_data,
-                                           &rects[i], points[i].x, points[i].y ))
+                                           &srect, drect.x, drect.y ))
                          break;
                }
           }
@@ -2264,14 +2270,19 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
           else {
                if (gAcquire( state, DFXL_BLIT )) {
                     for (; i<num; i++) {
-                         if (dfb_clip_blit_precheck( &state->clip,
-                                                     rects[i].w, rects[i].h,
-                                                     points[i].x, points[i].y ))
-                         {
-                              dfb_clip_blit( &state->clip, &rects[i],
-                                             &points[i].x, &points[i].y );
+                         DFBRectangle drect = { points[i].x, points[i].y, rects[i].w, rects[i].h };
 
-                              gBlit( state, &rects[i], points[i].x, points[i].y );
+                         if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+                              D_UTIL_SWAP( drect.w, drect.h );
+
+                         if (dfb_clip_blit_precheck( &state->clip,
+                                                     drect.w, drect.h,
+                                                     drect.x, drect.y ))
+                         {
+                              DFBRectangle srect = rects[i];
+
+                              clip_blit_rotated( &srect, &drect, &state->clip, state->blittingflags );
+                              gBlit( state, &srect, drect.x, drect.y );
                          }
                     }
 
