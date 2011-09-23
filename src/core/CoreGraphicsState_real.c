@@ -405,7 +405,10 @@ IGraphicsState_Real__Blit(
     D_ASSERT( points != NULL );
 
     // FIXME: remove casts
-    dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, &obj->state );
+    if (num > 1)
+         dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, &obj->state );         
+    else
+         dfb_gfxcard_blit( (DFBRectangle*) rects, ((DFBPoint*)points)->x, ((DFBPoint*)points)->y, &obj->state );
 
     return DFB_OK;
 }

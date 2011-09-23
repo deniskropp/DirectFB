@@ -421,7 +421,10 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
 
      if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           // FIXME: will overwrite rects, points
-          dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, client->state );
+          if (num > 1)
+               dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, client->state );
+          else
+               dfb_gfxcard_blit( (DFBRectangle*) rects, ((DFBPoint*)points)->x, ((DFBPoint*)points)->y, client->state );
      }
      else {
           DFBResult ret;
