@@ -34,8 +34,6 @@
 
 #define __ASSEMBLY__
 
-#include <linux/config.h>
-
 #if defined(CONFIG_8xx) || defined(CONFIG_403GCX)
 #define L1_CACHE_LINE_SIZE       16
 #define LG_L1_CACHE_LINE_SIZE     4 
