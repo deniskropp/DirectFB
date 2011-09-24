@@ -147,6 +147,7 @@ static const char *config_usage =
      "  mmio-phys=<hexaddress>         Physical start of MMIO area (devmem system)\n"
      "  mmio-length=<bytes>            Length of MMIO area (devmem system)\n"
      "  accelerator=<id>               Accelerator ID selecting graphics driver (devmem system)\n"
+     "  resource-manager=<impl>        Use this resource manager implementation\n"
      "\n"
      "  [no-]matrox-sgram              Use Matrox SGRAM features\n"
      "  [no-]matrox-crtc2              Experimental Matrox CRTC2 support\n"
@@ -1587,6 +1588,18 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-capslock-meta" ) == 0) {
           dfb_config->capslock_meta = false;
+     } else
+     if (strcmp (name, "resource-manager" ) == 0) {
+          if (value) {
+               if (dfb_config->resource_manager)
+                    D_FREE( dfb_config->resource_manager );
+
+               dfb_config->resource_manager = D_STRDUP( value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No implementation specified!\n", name );
+               return DFB_INVARG;
+          }
      } else
      if (strcmp (name, "h3600-device" ) == 0) {
           if (value) {

@@ -3,6 +3,10 @@ interface {
         version     "1.0"
         object      CoreDFB
 
+	method {
+		name	Register
+	}
+
         method {
                 name    CreateSurface
 

@@ -116,6 +116,9 @@ struct __Fusion_FusionWorld {
      FusionForkCallback   fork_callback;
      
      void                *fusionee;
+
+     FusionLeaveCallback  leave_callback;
+     void                *leave_ctx;
 };
 
 /*******************************************
