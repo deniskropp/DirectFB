@@ -35,9 +35,11 @@
 
 #include <pthread.h>
 
+#include <direct/hash.h>
+#include <direct/list.h>
+
 #include <fusion/fusion.h>
 #include <fusion/arena.h>
-#include <direct/list.h>
 #include <fusion/shmalloc.h>
 #include <fusion/shm/shm_internal.h>
 
@@ -446,7 +448,7 @@ dfb_core_create_graphics_state( CoreDFB *core )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->graphics_state_pool != NULL );
 
-     return (CoreGraphicsState*) fusion_object_create( core->shared->graphics_state_pool, core->world );
+     return (CoreGraphicsState*) fusion_object_create( core->shared->graphics_state_pool, core->world, Core_GetIdentity() );
 }
 
 CoreLayerContext *
@@ -466,7 +468,7 @@ dfb_core_create_layer_context( CoreDFB *core )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( shared->layer_context_pool != NULL );
 
-     return (CoreLayerContext*) fusion_object_create( shared->layer_context_pool, core->world );
+     return (CoreLayerContext*) fusion_object_create( shared->layer_context_pool, core->world, Core_GetIdentity() );
 }
 
 CoreLayerRegion *
@@ -486,7 +488,7 @@ dfb_core_create_layer_region( CoreDFB *core )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->layer_region_pool != NULL );
 
-     return (CoreLayerRegion*) fusion_object_create( core->shared->layer_region_pool, core->world );
+     return (CoreLayerRegion*) fusion_object_create( core->shared->layer_region_pool, core->world, Core_GetIdentity() );
 }
 
 CorePalette *
@@ -506,7 +508,7 @@ dfb_core_create_palette( CoreDFB *core )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->palette_pool != NULL );
 
-     return (CorePalette*) fusion_object_create( core->shared->palette_pool, core->world );
+     return (CorePalette*) fusion_object_create( core->shared->palette_pool, core->world, Core_GetIdentity() );
 }
 
 CoreSurface *
@@ -526,7 +528,7 @@ dfb_core_create_surface( CoreDFB *core )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->surface_pool != NULL );
 
-     return (CoreSurface*) fusion_object_create( core->shared->surface_pool, core->world );
+     return (CoreSurface*) fusion_object_create( core->shared->surface_pool, core->world, Core_GetIdentity() );
 }
 
 CoreSurfaceBuffer *
@@ -546,7 +548,7 @@ dfb_core_create_surface_buffer( CoreDFB *core )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->surface_pool != NULL );
 
-     return (CoreSurfaceBuffer*) fusion_object_create( core->shared->surface_buffer_pool, core->world );
+     return (CoreSurfaceBuffer*) fusion_object_create( core->shared->surface_buffer_pool, core->world, Core_GetIdentity() );
 }
 
 CoreWindow *
@@ -566,7 +568,7 @@ dfb_core_create_window( CoreDFB *core )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->window_pool != NULL );
 
-     return (CoreWindow*) fusion_object_create( core->shared->window_pool, core->world );
+     return (CoreWindow*) fusion_object_create( core->shared->window_pool, core->world, Core_GetIdentity() );
 }
 
 DFBResult
@@ -1243,12 +1245,37 @@ dfb_core_initialize( CoreDFB *core )
      shared->window_pool         = dfb_window_pool_create( core->world );
 
      for (i=0; i<D_ARRAY_SIZE(core_parts); i++) {
-          DFBResult ret;
-
           if ((ret = dfb_core_part_initialize( core, core_parts[i] ))) {
                dfb_core_shutdown( core, true );
                return ret;
           }
+     }
+
+     if (dfb_config->resource_manager) {
+          DirectInterfaceFuncs *funcs;
+
+          direct_hash_create( 23, &core_dfb->resource.clients );
+
+          ret = DirectGetInterface( &funcs, "ICoreResourceManager", dfb_config->resource_manager, NULL, NULL );
+          if (ret == DFB_OK) {
+               void *ptr;
+
+               ret = funcs->Allocate( &ptr );
+               if (ret == DFB_OK) {
+                    ret = funcs->Construct( ptr, core );
+                    if (ret == DFB_OK) {
+                         D_INFO( "Core/Resource: Using resource manager '%s'\n", dfb_config->resource_manager );
+
+                         core->resource.manager = ptr;
+                    }
+                    else
+                         D_DERROR( ret, "Core/Resource: Failed to construct manager '%s'!\n", dfb_config->resource_manager );
+               }
+               else
+                    D_DERROR( ret, "Core/Resource: Failed to allocate manager '%s'!\n", dfb_config->resource_manager );
+          }
+          else
+               D_DERROR( ret, "Core/Resource: Failed to load manager '%s'!\n", dfb_config->resource_manager );
      }
 
      return DFB_OK;
@@ -1274,6 +1301,8 @@ dfb_core_join( CoreDFB *core )
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
+     CoreDFB_Register( core );
+
      for (i=0; i<D_ARRAY_SIZE(core_parts); i++) {
           DFBResult ret;
 
@@ -1287,6 +1316,14 @@ dfb_core_join( CoreDFB *core )
 }
 
 /******************************************************************************/
+
+static void
+dfb_core_leave_callback( FusionWorld *world,
+                         FusionID     fusion_id,
+                         void        *ctx )
+{
+     Core_Resource_DisposeClient( fusion_id );
+}
 
 static int
 dfb_core_arena_initialize( FusionArena *arena,
@@ -1335,6 +1372,8 @@ dfb_core_arena_initialize( FusionArena *arena,
      CoreDFB_Init_Dispatch( core, core, &shared->call );
 
      fusion_call_add_permissions( &shared->call, 0, FUSION_CALL_PERMIT_EXECUTE );
+
+     fusion_world_set_leave_callback( core->world, dfb_core_leave_callback, NULL );
 
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
@@ -1427,5 +1466,280 @@ dfb_core_arena_leave( FusionArena *arena,
           return ret;
 
      return DFB_OK;
+}
+
+/*********************************************************************************************************************/
+
+#define CORE_TLS_IDENTITY_STACK_MAX     8
+
+typedef struct {
+     FusionID     identity[CORE_TLS_IDENTITY_STACK_MAX];
+     unsigned int identity_count;
+} CoreTLS;
+
+static DirectTLS core_tls_key;
+
+static void
+core_tls_destroy( void *arg )
+{
+     CoreTLS *core_tls = arg;
+
+     D_FREE( core_tls );
+}
+
+void
+Core_TLS__init( void )
+{
+     direct_tls_register( &core_tls_key, core_tls_destroy );
+}
+
+void
+Core_TLS__deinit( void )
+{
+     direct_tls_unregister( &core_tls_key );
+}
+
+
+static CoreTLS *
+Core_GetTLS( void )
+{
+     CoreTLS *core_tls;
+
+     core_tls = direct_tls_get( core_tls_key );
+     if (!core_tls) {
+          core_tls = D_CALLOC( 1, sizeof(CoreTLS) );
+          if (!core_tls) {
+               D_OOM();
+               return NULL;
+          }
+
+          direct_tls_set( core_tls_key, core_tls );
+     }
+
+     return core_tls;
+}
+
+void
+Core_PushIdentity( FusionID caller )
+{
+     CoreTLS *core_tls = Core_GetTLS();
+
+     if (core_tls) {
+          core_tls->identity_count++;
+
+          if (core_tls->identity_count <= CORE_TLS_IDENTITY_STACK_MAX)
+               core_tls->identity[core_tls->identity_count-1] = caller;
+          else
+               D_WARN( "identity stack overflow" );
+     }
+     else
+          D_WARN( "TLS error" );
+}
+
+void
+Core_PopIdentity()
+{
+     CoreTLS *core_tls = Core_GetTLS();
+
+     if (core_tls) {
+          D_ASSERT( core_tls->identity_count > 0 );
+
+          if (core_tls->identity_count > 0)
+               core_tls->identity_count--;
+          else
+               D_BUG( "no identity" );
+     }
+     else
+          D_WARN( "TLS error" );
+}
+
+FusionID
+Core_GetIdentity()
+{
+     CoreTLS *core_tls = Core_GetTLS();
+
+     if (core_tls) {
+          if (core_tls->identity_count == 0) {
+               //D_WARN( "no identity" );
+
+               return 0;
+          }
+
+          if (core_tls->identity_count <= CORE_TLS_IDENTITY_STACK_MAX)
+               return core_tls->identity[core_tls->identity_count-1];
+
+          D_WARN( "wrong identity due to overflow" );
+
+          return core_tls->identity[CORE_TLS_IDENTITY_STACK_MAX-1];
+     }
+
+     D_WARN( "TLS error" );
+
+     return 0;
+}
+
+
+D_DEBUG_DOMAIN( Core_Resource, "Core/Resource", "Core Resource" );
+
+DFBResult
+Core_Resource_CheckSurface( const CoreSurfaceConfig *config,
+                            CoreSurfaceTypeFlags     type,
+                            u64                      resource_id,
+                            CorePalette             *palette )
+{
+     ICoreResourceClient *client;
+
+     D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, config->size.w, config->size.h,
+                 dfb_pixelformat_name( config->format ), type, resource_id, Core_GetIdentity() );
+
+     if (core_dfb->resource.manager) {
+          client = Core_Resource_GetClient( Core_GetIdentity() );
+          if (!client)
+               return DFB_DEAD;
+
+          return client->CheckSurface( client, config, type, resource_id, palette );
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+Core_Resource_CheckSurfaceUpdate( CoreSurface             *surface,
+                                  const CoreSurfaceConfig *config )
+{
+     ICoreResourceClient *client;
+
+     D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, config->size.w, config->size.h,
+                 dfb_pixelformat_name( config->format ), surface->type, surface->resource_id, surface->object.identity );
+
+     if (core_dfb->resource.manager) {
+          client = Core_Resource_GetClient( surface->object.identity );
+          if (!client)
+               return DFB_DEAD;
+
+          return client->CheckSurfaceUpdate( client, surface, config );
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+Core_Resource_AddSurface( CoreSurface *surface )
+{
+     ICoreResourceClient *client;
+
+     D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, surface->config.size.w, surface->config.size.h,
+                 dfb_pixelformat_name( surface->config.format ), surface->type, surface->resource_id, Core_GetIdentity() );
+
+     if (core_dfb->resource.manager) {
+          client = Core_Resource_GetClient( surface->object.identity );
+          if (!client)
+               return DFB_DEAD;
+
+          return client->AddSurface( client, surface );
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+Core_Resource_RemoveSurface( CoreSurface *surface )
+{
+     ICoreResourceClient *client;
+
+     D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, surface->config.size.w, surface->config.size.h,
+                 dfb_pixelformat_name( surface->config.format ), surface->type, surface->resource_id, surface->object.identity );
+
+     if (core_dfb->resource.manager) {
+          client = Core_Resource_GetClient( surface->object.identity );
+          if (!client)
+               return DFB_DEAD;
+
+          return client->RemoveSurface( client, surface );
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+Core_Resource_UpdateSurface( CoreSurface             *surface,
+                             const CoreSurfaceConfig *config )
+{
+     ICoreResourceClient *client;
+
+     D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, config->size.w, config->size.h,
+                 dfb_pixelformat_name( config->format ), surface->type, surface->resource_id, surface->object.identity );
+
+     if (core_dfb->resource.manager) {
+          client = Core_Resource_GetClient( surface->object.identity );
+          if (!client)
+               return DFB_DEAD;
+
+          return client->UpdateSurface( client, surface, config );
+     }
+
+     return DFB_OK;
+}
+
+
+ICoreResourceClient *
+Core_Resource_GetClient( FusionID identity )
+{
+     ICoreResourceClient *client = NULL;
+
+     D_DEBUG_AT( Core_Resource, "%s( %lu )\n", __FUNCTION__, identity );
+
+     if (core_dfb->resource.manager)
+          client = direct_hash_lookup( core_dfb->resource.clients, identity );
+
+     return client;
+}
+
+DFBResult
+Core_Resource_AddClient( FusionID identity )
+{
+     DFBResult            ret;
+     ICoreResourceClient *client;
+
+     D_DEBUG_AT( Core_Resource, "%s( %lu )\n", __FUNCTION__, identity );
+
+     if (core_dfb->resource.manager) {
+          client = direct_hash_lookup( core_dfb->resource.clients, identity );
+          if (client) {
+               D_BUG( "alredy registered" );
+               return DFB_BUSY;
+          }
+
+          ret = core_dfb->resource.manager->CreateClient( core_dfb->resource.manager, identity, &client );
+          if (ret) {
+               D_DERROR( ret, "Core/Resource: ICoreResourceManager::CreateClient() failed!\n" );
+               return ret;
+          }
+
+          ret = direct_hash_insert( core_dfb->resource.clients, identity, client );
+          if (ret) {
+               D_DERROR( ret, "Core/Resource: Could not insert client into hash table!\n" );
+               client->Release( client );
+               client = NULL;
+               return ret;
+          }
+     }
+
+     return DFB_OK;
+}
+
+void
+Core_Resource_DisposeClient( FusionID identity )
+{
+     ICoreResourceClient *client;
+
+     if (core_dfb->resource.manager) {
+          client = direct_hash_lookup( core_dfb->resource.clients, identity );
+          if (client) {
+               direct_hash_remove( core_dfb->resource.clients, identity );
+
+               client->Release( client );
+          }
+     }
 }
 

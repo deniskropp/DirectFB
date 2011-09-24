@@ -122,6 +122,9 @@ struct __Fusion_FusionWorld {
           pthread_mutex_t      lock;
           DirectLink          *list;
      }                    deferred;
+
+     FusionLeaveCallback  leave_callback;
+     void                *leave_ctx;
 };
 
 #if FUSION_BUILD_MULTI

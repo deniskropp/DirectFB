@@ -50,12 +50,27 @@ namespace DirectFB {
 
 
 DFBResult
+ICore_Real::Register(
+
+)
+{
+    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Requestor::%s()\n", __FUNCTION__ );
+
+    D_MAGIC_ASSERT( obj, CoreDFB );
+
+    return Core_Resource_AddClient( Core_GetIdentity() );;
+}
+
+DFBResult
 ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
                            CoreSurfaceTypeFlags      type,
                            u64                       resource_id,
                            CorePalette              *palette,
                            CoreSurface             **ret_surface )
 {
+     DFBResult    ret;
+     CoreSurface *surface;
+
      D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %p )\n", __FUNCTION__, core );
 
      D_MAGIC_ASSERT( obj, CoreDFB );
@@ -68,7 +83,19 @@ ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
      if (fusion_config->secure_fusion && !dfb_core_is_master( core_dfb ))
           config_copy.flags = (CoreSurfaceConfigFlags)(config_copy.flags & ~CSCONF_PREALLOCATED);
 
-     return dfb_surface_create( obj, &config_copy, type, resource_id, palette, ret_surface );
+     ret = Core_Resource_CheckSurface( config, type, resource_id, palette );
+     if (ret)
+          return ret;
+
+     ret = dfb_surface_create( obj, &config_copy, type, resource_id, palette, &surface );
+     if (ret)
+          return ret;
+
+     Core_Resource_AddSurface( surface );
+
+     *ret_surface = surface;
+
+     return DFB_OK;
 }
 
 DFBResult

@@ -60,6 +60,7 @@ struct __Fusion_FusionObject {
      int                magic;
 
      FusionObjectID     id;
+     FusionID           identity;
 
      FusionObjectState  state;
 
@@ -95,7 +96,8 @@ DirectResult     FUSION_API  fusion_object_pool_enum          ( FusionObjectPool
 
 
 FusionObject     FUSION_API *fusion_object_create             ( FusionObjectPool       *pool,
-                                                                const FusionWorld      *world );
+                                                                const FusionWorld      *world,
+                                                                FusionID                identity );
 
 DirectResult     FUSION_API  fusion_object_get                ( FusionObjectPool       *pool,
                                                                 FusionObjectID          object_id,

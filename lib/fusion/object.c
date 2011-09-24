@@ -309,7 +309,8 @@ fusion_object_pool_enum( FusionObjectPool     *pool,
 
 FusionObject *
 fusion_object_create( FusionObjectPool  *pool,
-                      const FusionWorld *world )
+                      const FusionWorld *world,
+                      FusionID           identity )
 {
      FusionObject      *object;
      FusionWorldShared *shared;
@@ -339,6 +340,8 @@ fusion_object_create( FusionObjectPool  *pool,
 
      /* Set object id. */
      object->id = ++pool->id_pool;
+
+     object->identity = identity;
 
      /* Initialize the reference counter. */
      if (fusion_ref_init( &object->ref, pool->name, world )) {

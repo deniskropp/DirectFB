@@ -52,6 +52,10 @@ typedef enum {
 
 typedef void (*FusionForkCallback) ( FusionForkAction action, FusionForkState state );
 
+typedef void (*FusionLeaveCallback)( FusionWorld *world,
+                                     FusionID     fusion_id,
+                                     void        *ctx );
+
 /*
  * Enters a fusion world by joining or creating it.
  *
@@ -90,6 +94,13 @@ FusionForkAction FUSION_API fusion_world_get_fork_action( FusionWorld *world );
  */
 void FUSION_API fusion_world_set_fork_callback( FusionWorld        *world,
                                                 FusionForkCallback  callback );
+
+/*
+ * Registers a callback called when a slave exits.
+ */
+void FUSION_API fusion_world_set_leave_callback( FusionWorld         *world,
+                                                 FusionLeaveCallback  callback,
+                                                 void                *ctx );
 
 /*
  * Return the index of the specified world.
@@ -139,6 +150,18 @@ bool FUSION_API fusion_is_shared( FusionWorld *world,
                                   const void  *ptr );
 
 const char * FUSION_API fusion_get_tmpfs( FusionWorld *world );
+
+/*
+ * Get the executable path of the Fusionee
+ *
+ * Returns DR_LIMITEXCEEDED when buf_size too small,
+ * with the required number of bytes returned in ret_size.
+ */
+DirectResult FUSION_API fusion_get_fusionee_path( const FusionWorld *world,
+                                                  FusionID           fusion_id,
+                                                  char              *buf,
+                                                  size_t             buf_size,
+                                                  size_t            *ret_size );
 
 #endif
 

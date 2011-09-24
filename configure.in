@@ -2112,6 +2112,7 @@ inputdrivers/ucb1x00_ts/Makefile
 inputdrivers/wm97xx_ts/Makefile
 
 interfaces/Makefile
+interfaces/ICoreResourceManager/Makefile
 interfaces/IDirectFBFont/Makefile
 interfaces/IDirectFBImageProvider/Makefile
 interfaces/IDirectFBImageProvider/mpeg2/Makefile

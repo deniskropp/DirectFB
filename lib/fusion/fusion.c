@@ -1123,6 +1123,12 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                                                      (header->msg_size != sizeof(FusionCallMessage3))
                                                      ?data + sizeof(FusionCallMessage3) : NULL );
                               break;
+                         case FMT_LEAVE:
+                              D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_LEAVE...\n" );
+
+                              if (world->leave_callback)
+                                   world->leave_callback( world, *((FusionID*)data), world->leave_ctx );
+                              break;
                          default:
                               D_DEBUG( "Fusion/Receiver: discarding message of unknown type '%d'\n",
                                        header->msg_type );
@@ -1217,6 +1223,50 @@ fusion_deferred_loop( DirectThread *thread, void *arg )
 }
 
 /**********************************************************************************************************************/
+
+DirectResult
+fusion_get_fusionee_path( const FusionWorld *world,
+                          FusionID           fusion_id,
+                          char              *buf,
+                          size_t             buf_size,
+                          size_t            *ret_size )
+{
+     FusionGetFusioneeInfo info;
+     size_t                len;
+
+     D_ASSERT( world != NULL );
+     D_ASSERT( buf != NULL );
+     D_ASSERT( ret_size != NULL );
+
+     info.fusion_id = fusion_id;
+
+     while (ioctl( world->fusion_fd, FUSION_GET_FUSIONEE_INFO, &info ) < 0) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+
+               default:
+                    break;
+          }
+
+          D_PERROR( "Fusion: FUSION_GET_FUSIONEE_INFO failed!\n" );
+
+          return DR_FUSION;
+     }
+
+     len = strlen( info.exe_file ) + 1;
+
+     if (len > buf_size) {
+          *ret_size = len;
+          return DR_LIMITEXCEEDED;
+     }
+
+     direct_memcpy( buf, info.exe_file, len );
+
+     *ret_size = len;
+
+     return DR_OK;
+}
 
 #else /* FUSION_BUILD_KERNEL */
 
@@ -2538,6 +2588,20 @@ fusion_world_set_fork_callback( FusionWorld        *world,
 }
 
 /*
+ * Registers a callback called when a slave exits.
+ */
+void
+fusion_world_set_leave_callback( FusionWorld         *world,
+                                 FusionLeaveCallback  callback,
+                                 void                *ctx )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     world->leave_callback = callback;
+     world->leave_ctx      = ctx;
+}
+
+/*
  * Return the index of the specified world.
  */
 int
@@ -2870,6 +2934,18 @@ fusion_get_tmpfs( FusionWorld *world )
      D_MAGIC_ASSERT( world->shared, FusionWorldShared );
 
      return "/tmp";
+}
+
+DirectResult
+fusion_get_fusionee_path( const FusionWorld *world,
+                          FusionID           fusion_id,
+                          char              *buf,
+                          size_t             buf_size,
+                          size_t            *ret_size )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
 }
 
 #endif

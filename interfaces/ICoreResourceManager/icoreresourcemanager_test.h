@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The DirectFB Organization (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -26,50 +26,22 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <config.h>
+#ifndef __ICORERESOURCEMANAGER_TEST_H__
+#define __ICORERESOURCEMANAGER_TEST_H__
 
-#include <direct/util.h>
+#include <directfb.h>
 
-#include <core/core.h>
-
-#include "init.h"
-
-
-void DFBResult__init( void );
-void DFBResult__deinit( void );
-
-/**********************************************************************************************************************/
-
-typedef void (*Func)( void );
+#include <core/coretypes.h>
 
 
-static Func init_funcs[] = {
-      DFBResult__init,
-      Core_TLS__init,
-};
+/*
+ * private data struct of ICoreResourceManager_test
+ */
+typedef struct {
+     int                       ref;             /* reference counter */
 
-static Func deinit_funcs[] = {
-      Core_TLS__deinit,
-	 DFBResult__deinit,
-};
+     CoreDFB                  *core;
+} ICoreResourceManager_test_data;
 
-/**********************************************************************************************************************/
 
-void
-__DFB_init_all()
-{
-     size_t i;
-
-     for (i=0; i<D_ARRAY_SIZE(init_funcs); i++)
-          init_funcs[i]();
-}
-
-void
-__DFB_deinit_all()
-{
-     size_t i;
-
-     for (i=0; i<D_ARRAY_SIZE(deinit_funcs); i++)
-          deinit_funcs[i]();
-}
-
+#endif

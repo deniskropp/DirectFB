@@ -38,6 +38,8 @@
 #include "coretypes.h"
 #include "coredefs.h"
 
+#include <core/surface.h>
+
 
 #define DIRECTFB_CORE_ABI     46
 
@@ -197,6 +199,9 @@ DFBFontManager *dfb_core_font_manager( CoreDFB *core );
 
 
 
+D_DECLARE_INTERFACE( ICoreResourceManager );
+D_DECLARE_INTERFACE( ICoreResourceClient );
+
 
 
 struct __DFB_CoreDFBShared {
@@ -243,10 +248,105 @@ struct __DFB_CoreDFB {
      DirectCleanupHandler    *cleanup_handler;
 
      DFBFontManager          *font_manager;
+
+     struct {
+          ICoreResourceManager     *manager;
+
+          DirectHash               *clients;
+     }                        resource;
 };
 
 
 extern CoreDFB *core_dfb;     // FIXME
+
+
+void Core_TLS__init( void );
+void Core_TLS__deinit( void );
+
+
+/*
+ * Identity management
+ *
+ * Incoming dispatch pushes ID of caller
+ */
+
+void      Core_PushIdentity( FusionID caller );
+
+void      Core_PopIdentity ( void );
+
+FusionID  Core_GetIdentity ( void );
+
+/*
+ * Resource management
+ *
+ * Quotas etc can be implemented.
+ *
+ * Run time option 'resource-manager' is needed.
+ */
+
+DFBResult Core_Resource_CheckSurface      ( const CoreSurfaceConfig  *config,
+                                            CoreSurfaceTypeFlags      type,
+                                            u64                       resource_id,
+                                            CorePalette              *palette );
+
+DFBResult Core_Resource_CheckSurfaceUpdate( CoreSurface              *surface,
+                                            const CoreSurfaceConfig  *config );
+
+DFBResult Core_Resource_AddSurface        ( CoreSurface              *surface );
+
+DFBResult Core_Resource_RemoveSurface     ( CoreSurface              *surface );
+
+DFBResult Core_Resource_UpdateSurface     ( CoreSurface              *surface,
+                                            const CoreSurfaceConfig  *config );
+
+
+/*
+ * Resource manager main interface
+ *
+ * Implementation can be loaded via 'resource-manager' option.
+ */
+D_DEFINE_INTERFACE( ICoreResourceManager,
+
+     DFBResult (*CreateClient)       ( ICoreResourceManager     *thiz,
+                                       FusionID                  identity,
+                                       ICoreResourceClient     **ret_client );
+);
+
+/*
+ * Per slave resource accounting
+ */
+D_DEFINE_INTERFACE( ICoreResourceClient,
+
+     DFBResult (*CheckSurface)       ( ICoreResourceClient      *thiz,
+                                       const CoreSurfaceConfig  *config,
+                                       CoreSurfaceTypeFlags      type,
+                                       u64                       resource_id,
+                                       CorePalette              *palette );
+
+     DFBResult (*CheckSurfaceUpdate) ( ICoreResourceClient      *thiz,
+                                       CoreSurface              *surface,
+                                       const CoreSurfaceConfig  *config );
+
+     DFBResult (*AddSurface)         ( ICoreResourceClient      *thiz,
+                                       CoreSurface              *surface );
+
+     DFBResult (*RemoveSurface)      ( ICoreResourceClient      *thiz,
+                                       CoreSurface              *surface );
+
+     DFBResult (*UpdateSurface)      ( ICoreResourceClient      *thiz,
+                                       CoreSurface              *surface,
+                                       const CoreSurfaceConfig  *config );
+);
+
+
+/*
+ * Client instance management
+ */
+
+ICoreResourceClient *Core_Resource_GetClient    ( FusionID identity );
+
+DFBResult            Core_Resource_AddClient    ( FusionID identity );
+void                 Core_Resource_DisposeClient( FusionID identity );
 
 #endif
 

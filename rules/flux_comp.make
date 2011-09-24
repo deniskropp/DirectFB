@@ -1,2 +1,2 @@
 $(builddir)/%.cpp $(builddir)/%.h: $(srcdir)/%.flux
-	fluxcomp --include-prefix=core $<
+	fluxcomp -i --include-prefix=core $<

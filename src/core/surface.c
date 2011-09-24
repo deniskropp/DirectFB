@@ -67,6 +67,8 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      D_DEBUG_AT( Core_Surface, "destroying %p (%dx%d%s)\n", surface,
                  surface->config.size.w, surface->config.size.h, zombie ? " ZOMBIE" : "");
 
+     Core_Resource_RemoveSurface( surface );
+
      CoreSurface_Deinit_Dispatch( &surface->call );
 
      dfb_surface_lock( surface );
@@ -494,6 +496,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
      DFBResult ret;
      DFBSurfaceStereoEye eye;
      int num_eyes;
+     CoreSurfaceConfig new_config;
 
      D_DEBUG_AT( Core_Surface, "%s( %p, %dx%d %s -> %dx%d %s )\n", __FUNCTION__, surface,
                  surface->config.size.w, surface->config.size.h, dfb_pixelformat_name( surface->config.format ),
@@ -527,8 +530,44 @@ dfb_surface_reconfig( CoreSurface             *surface,
           return DFB_OK;
      }
 
+     new_config = surface->config;
+
+     if (config->flags & CSCONF_SIZE)
+          new_config.size = config->size;
+
+     if (config->flags & CSCONF_FORMAT)
+          new_config.format = config->format;
+
+     if (config->flags & CSCONF_CAPS) {
+          if (config->caps & DSCAPS_ROTATED)
+               D_UNIMPLEMENTED();
+
+          new_config.caps = config->caps & ~DSCAPS_ROTATED;
+     }
+
+     if (new_config.caps & DSCAPS_SYSTEMONLY)
+          surface->type = (surface->type & ~CSTF_EXTERNAL) | CSTF_INTERNAL;
+     else if (new_config.caps & DSCAPS_VIDEOONLY)
+          surface->type = (surface->type & ~CSTF_INTERNAL) | CSTF_EXTERNAL;
+     else
+          surface->type = surface->type & ~(CSTF_INTERNAL | CSTF_EXTERNAL);
+
+     if (new_config.caps & DSCAPS_TRIPLE)
+          buffers = 3;
+     else if (new_config.caps & DSCAPS_DOUBLE)
+          buffers = 2;
+     else {
+          buffers = 1;
+
+          new_config.caps &= ~DSCAPS_ROTATED;
+     }
+
+     ret = Core_Resource_CheckSurfaceUpdate( surface, &new_config );
+     if (ret)
+          return ret;
+
      /* Destroy the Surface Buffers. */
-     num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
+     num_eyes = new_config.caps & DSCAPS_STEREO ? 2 : 1;
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<surface->num_buffers; i++) {
@@ -540,38 +579,12 @@ dfb_surface_reconfig( CoreSurface             *surface,
 
      surface->num_buffers = 0;
 
-     if (config->flags & CSCONF_SIZE)
-          surface->config.size = config->size;
+     Core_Resource_UpdateSurface( surface, &new_config );
 
-     if (config->flags & CSCONF_FORMAT)
-          surface->config.format = config->format;
-
-     if (config->flags & CSCONF_CAPS) {
-          if (config->caps & DSCAPS_ROTATED)
-               D_UNIMPLEMENTED();
-
-          surface->config.caps = config->caps & ~DSCAPS_ROTATED;
-     }
-
-     if (surface->config.caps & DSCAPS_SYSTEMONLY)
-          surface->type = (surface->type & ~CSTF_EXTERNAL) | CSTF_INTERNAL;
-     else if (surface->config.caps & DSCAPS_VIDEOONLY)
-          surface->type = (surface->type & ~CSTF_INTERNAL) | CSTF_EXTERNAL;
-     else
-          surface->type = surface->type & ~(CSTF_INTERNAL | CSTF_EXTERNAL);
-
-     if (surface->config.caps & DSCAPS_TRIPLE)
-          buffers = 3;
-     else if (surface->config.caps & DSCAPS_DOUBLE)
-          buffers = 2;
-     else {
-          buffers = 1;
-
-          surface->config.caps &= ~DSCAPS_ROTATED;
-     }
+     surface->config = new_config;
 
      /* Recreate the Surface Buffers. */
-     num_eyes = config->caps & DSCAPS_STEREO ? 2 : 1;
+     num_eyes = new_config.caps & DSCAPS_STEREO ? 2 : 1;
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<buffers; i++) {

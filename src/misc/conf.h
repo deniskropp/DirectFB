@@ -264,6 +264,8 @@ typedef struct
      DFBPoint      x11_position;
 
      bool          flip_notify;
+
+     char         *resource_manager;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;
