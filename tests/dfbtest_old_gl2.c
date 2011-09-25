@@ -677,7 +677,7 @@ Initialize( Test   *test,
 
      ret = test->dfb->CreateSurface( test->dfb, &dsc, &test->primary );
      if (ret) {
-          D_DERROR( ret, "IDirectFB::CreateSurface( DSCAPS_PRIMARY | DSCAPS_TRIPLE ) failed!\n" );
+          D_DERROR( ret, "IDirectFB::CreateSurface( DSCAPS_PRIMARY | DSCAPS_FLIPPING ) failed!\n" );
           return ret;
      }
 
