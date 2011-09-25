@@ -721,13 +721,672 @@ windows_updating( SaWMan     *sawman,
      return false;
 }
 
+static DFBResult
+process_single( SaWMan              *sawman,
+                SaWManTier          *tier,
+                SaWManWindow        *single,
+                DFBSurfaceFlipFlags  flags )
+{
+     DFBResult                   ret;
+     CoreWindow                 *window;
+     CoreSurface                *surface;
+     DFBDisplayLayerOptions      options = DLOP_NONE;
+     DFBRectangle                dst  = single->dst;
+     DFBRectangle                src  = single->src;
+     DFBRegion                   clip = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
+     CoreLayer                  *layer;
+     CoreLayerShared            *shared;
+     CoreLayerRegion            *region;
+     int                         screen_width;
+     int                         screen_height;
+     DFBColorKey                 single_key;
+     const DisplayLayerFuncs    *funcs;
+     CoreLayerRegionConfigFlags  failed;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+     D_MAGIC_ASSERT( single, SaWManWindow );
+
+     layer = dfb_layer_at( tier->layer_id );
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->funcs != NULL );
+     D_ASSERT( layer->funcs->TestRegion != NULL );
+
+     funcs = layer->funcs;
+
+     shared = layer->shared;
+     D_ASSERT( shared != NULL );
+
+     region = tier->region;
+     D_ASSERT( region != NULL );
+
+     dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
+
+     if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
+          dst.x = dst.x * screen_width  / tier->size.w;
+          dst.y = dst.y * screen_height / tier->size.h;
+          dst.w = dst.w * screen_width  / tier->size.w;
+          dst.h = dst.h * screen_height / tier->size.h;
+     }
+     else {
+          if (dst.w != src.w || dst.h != src.h)
+               return DFB_UNSUPPORTED;
+
+          if (shared->description.caps & DLCAPS_SCREEN_POSITION) {
+               dfb_rectangle_intersect_by_region( &dst, &clip );
+
+               src.x += dst.x - single->dst.x;
+               src.y += dst.y - single->dst.y;
+               src.w  = dst.w;
+               src.h  = dst.h;
+
+               dst.x += (screen_width  - tier->size.w) / 2;
+               dst.y += (screen_height - tier->size.h) / 2;
+          }
+     }
+
+#ifdef SAWMAN_NO_LAYER_DOWNSCALE
+     if (dst.w < src.w)
+          return DFB_UNSUPPORTED;
+#endif
+
+#ifdef SAWMAN_NO_LAYER_DST_WINDOW
+     if (dst.x != 0 || dst.y != 0 || dst.w != screen_width || dst.h != screen_height)
+          return DFB_UNSUPPORTED;
+#endif
+
+
+     window = single->window;
+     D_MAGIC_COREWINDOW_ASSERT( window );
+
+     surface = window->surface;
+     D_ASSERT( surface != NULL );
+
+     if (window->config.options & DWOP_ALPHACHANNEL)
+          options |= DLOP_ALPHACHANNEL;
+
+     if (window->caps & DWCAPS_LR_MONO ||
+         window->caps & DWCAPS_STEREO) 
+          options |= DLOP_STEREO;
+
+     if (window->config.options & DWOP_COLORKEYING)
+          options |= DLOP_SRC_COLORKEY;
+
+     single_key = tier->single_key;
+
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
+          CorePalette *palette = surface->palette;
+
+          D_ASSERT( palette != NULL );
+          D_ASSERT( palette->num_entries > 0 );
+
+          dfb_surface_set_palette( tier->region->surface, surface->palette );
+
+          if (options & DLOP_SRC_COLORKEY) {
+               int index = window->config.color_key % palette->num_entries;
+
+               single_key.r     = palette->entries[index].r;
+               single_key.g     = palette->entries[index].g;
+               single_key.b     = palette->entries[index].b;
+               single_key.index = index;
+          }
+     }
+     else {
+          DFBColor color;
+
+          dfb_pixel_to_color( surface->config.format, window->config.color_key, &color );
+
+          single_key.r     = color.r;
+          single_key.g     = color.g;
+          single_key.b     = color.b;
+          single_key.index = window->config.color_key;
+     }
+
+     /* Complete reconfig? */
+     if (tier->single_window  != single ||
+         !DFB_RECTANGLE_EQUAL( tier->single_src, src ) ||
+         tier->single_format  != surface->config.format ||
+         tier->single_options != options)
+     {
+          DFBDisplayLayerConfig  config;
+          DFBSurfaceStereoEye    window_eye, region_eye;
+          CoreLayerRegionConfig  region_config;
+
+          D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d [%dx%d] %s single mode for %p on %p...\n",
+                      single->src.w, single->src.h, src.w, src.h,
+                      dfb_pixelformat_name( surface->config.format ), single, tier );
+
+          config.flags        = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | 
+                                DLCONF_BUFFERMODE | DLCONF_SURFACE_CAPS;
+          config.width        = src.w;
+          config.height       = src.h;
+          config.pixelformat  = surface->config.format;
+          config.options      = options;
+          config.buffermode   = DLBM_FRONTONLY;
+          config.surface_caps = tier->context->config.surface_caps | (options & DLOP_STEREO ? DSCAPS_STEREO : 0);
+
+          sawman->callback.layer_reconfig.layer_id = tier->layer_id;
+          sawman->callback.layer_reconfig.single   = (SaWManWindowHandle) single;
+          sawman->callback.layer_reconfig.config   = config;
+
+          switch (sawman_call( sawman, SWMCID_LAYER_RECONFIG,
+                               &sawman->callback.layer_reconfig, sizeof(sawman->callback.layer_reconfig), true ))
+          {
+               case DFB_OK:
+                    config = sawman->callback.layer_reconfig.config;
+               case DFB_NOIMPL: 
+                    /* continue, no change demanded */
+                    break;
+
+               default:
+                    return DFB_UNSUPPORTED;
+          }
+
+          config = sawman->callback.layer_reconfig.config;
+
+          region_config = tier->region->config;
+
+          region_config.width = config.width;
+          region_config.height = config.height;
+          region_config.format = config.pixelformat;
+          region_config.options = config.options;
+          region_config.buffermode = config.buffermode;
+          region_config.surface_caps = config.surface_caps;
+          region_config.src_key = tier->single_key;
+          region_config.dest = dst;
+          region_config.source = src;
+
+          /* Let the driver examine the modified configuration. */
+          ret = funcs->TestRegion( layer, layer->driver_data, layer->layer_data,
+                                   &region_config, &failed );
+          if (ret)
+               return ret;
+
+          tier->single_mode     = true;
+          tier->single_window   = single;
+          tier->single_width    = src.w;
+          tier->single_height   = src.h;
+          tier->single_src      = src;
+          tier->single_dst      = dst;
+          tier->single_format   = surface->config.format;
+          tier->single_options  = options;
+          tier->single_key      = single_key;
+
+          tier->active          = false;
+          tier->region->state  |= CLRSF_FROZEN;
+
+          dfb_updates_reset( &tier->left.updates );
+          dfb_updates_reset( &tier->right.updates );
+
+
+          if (region->surface) {
+               if (memcmp(&region->config, &region_config, sizeof(region_config))) {
+                    dfb_layer_region_disable(region);
+
+//                    flags |= CLRCF_FREEZE;
+
+                    ret = dfb_layer_context_reallocate_surface( layer, region, &region_config );
+                    if (ret)
+                         D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
+               }
+          }
+          else {
+               ret = dfb_layer_context_allocate_surface( layer, region, &region_config );
+               if (ret)
+                    D_DERROR( ret, "Core/Layers: Allocation of layer surface failed!\n" );
+          }
+
+          dfb_layer_region_set_configuration( region, &region_config, //CLRCF_ALL );
+                                              CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_OPTIONS |
+                                              CLRCF_BUFFERMODE | CLRCF_SURFACE_CAPS | CLRCF_SRCKEY | CLRCF_DEST | CLRCF_SOURCE );
+
+          /* Enable the primary region. */
+          if (! D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
+               dfb_layer_region_enable( region );
+
+
+
+          sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
+
+          // FIXME: put in function, same as below
+          if (tier->single_options & DLOP_STEREO) {
+               sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
+
+
+               window_eye = dfb_surface_get_stereo_eye(surface);
+               region_eye = dfb_surface_get_stereo_eye(tier->region->surface);
+               dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
+               dfb_surface_set_stereo_eye(tier->region->surface, DSSE_LEFT);
+               dfb_gfx_copy_to( surface, tier->region->surface, &src, window->config.z, 0, false );
+
+               if (window->caps & DWCAPS_STEREO) {
+                    dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
+               }
+               dfb_surface_set_stereo_eye(tier->region->surface, DSSE_RIGHT);
+               dfb_gfx_copy_to( surface, tier->region->surface, &src, -window->config.z, 0, false );
+
+               dfb_surface_set_stereo_eye(surface, window_eye);
+               dfb_surface_set_stereo_eye(tier->region->surface, region_eye);
+          }
+          else {
+               dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
+          }
+
+
+          tier->active = true;
+
+          if (sawman->cursor.context && tier->context->layer_id == sawman->cursor.context->layer_id)
+               dfb_layer_activate_context( dfb_layer_at(tier->context->layer_id), tier->context );
+
+          if (tier->single_options & DLOP_STEREO) {
+               dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags );
+          }
+          else {
+               dfb_layer_region_flip_update( tier->region, NULL, flags );
+          }
+
+          dfb_updates_reset( &tier->left.updates );
+          dfb_updates_reset( &tier->right.updates );
+
+          if (1) {
+               SaWManTierUpdate update;
+
+               update.regions[0].x1 = 0;
+               update.regions[0].y1 = 0;
+               update.regions[0].x2 = tier->single_width  - 1;
+               update.regions[0].y2 = tier->single_height - 1;
+
+               update.num_regions   = 1;
+               update.classes       = tier->classes;
+
+               fusion_reactor_dispatch_channel( tier->reactor, SAWMAN_TIER_UPDATE, &update, sizeof(update), true, NULL );
+          }
+
+          return DFB_OK;
+     }
+
+     /* Update destination window */
+     if (!DFB_RECTANGLE_EQUAL( tier->single_dst, dst )) {
+          CoreLayerRegionConfig region_config;
+
+          region_config.dest = dst;
+
+          tier->single_dst = dst;
+
+          D_DEBUG_AT( SaWMan_Auto, "  -> Changing single destination to %d,%d-%dx%d.\n",
+                      DFB_RECTANGLE_VALS(&dst) );
+
+          dfb_layer_region_set_configuration( region, &region_config, CLRCF_DEST );
+     }
+     else {
+          if (tier->single_options & DLOP_STEREO) {
+               DFBSurfaceStereoEye    window_eye, region_eye;
+
+               window_eye = dfb_surface_get_stereo_eye(surface);
+               region_eye = dfb_surface_get_stereo_eye(tier->region->surface);
+               dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
+               dfb_surface_set_stereo_eye(tier->region->surface, DSSE_LEFT);
+               dfb_gfx_copy_to( surface, tier->region->surface, &src, window->config.z, 0, false );
+
+               if (window->caps & DWCAPS_STEREO) {
+                    dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
+               }
+               dfb_surface_set_stereo_eye(tier->region->surface, DSSE_RIGHT);
+               dfb_gfx_copy_to( surface, tier->region->surface, &src, -window->config.z, 0, false );
+
+               dfb_surface_set_stereo_eye(surface, window_eye);
+               dfb_surface_set_stereo_eye(tier->region->surface, region_eye);
+          }
+          else {
+               dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
+          }
+     }
+
+     /* Update color key */
+     if (!DFB_COLORKEY_EQUAL( single_key, tier->single_key )) {
+          CoreLayerRegionConfig region_config;
+
+          region_config.src_key = single_key;
+
+          tier->single_key = single_key;
+
+          D_DEBUG_AT( SaWMan_Auto, "  -> Changing single color key.\n" );
+
+          dfb_layer_region_set_configuration( region, &region_config, CLRCF_SRCKEY );
+     }
+
+     tier->active = true;
+
+     if (tier->single_options & DLOP_STEREO) {
+          dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags );
+     }
+     else {
+          dfb_layer_region_flip_update( tier->region, NULL, flags );
+     }
+
+     dfb_updates_reset( &tier->left.updates );
+     dfb_updates_reset( &tier->right.updates );
+
+     fusion_skirmish_notify( sawman->lock );
+
+     return DFB_OK;
+}
+
+static DFBResult
+set_config( SaWMan     *sawman,
+            SaWManTier *tier )
+{
+     DFBResult              ret;
+     DFBDisplayLayerConfig *config;
+     CoreLayer             *layer;
+     CoreLayerShared       *shared;
+     int                    screen_width;
+     int                    screen_height;
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     layer = dfb_layer_at( tier->layer_id );
+     D_ASSERT( layer != NULL );
+
+     shared = layer->shared;
+     D_ASSERT( shared != NULL );
+
+     dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
+
+
+     if (tier->border_only)
+          config = &tier->border_config;
+     else
+          config = &tier->config;
+
+     D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s %s mode.\n", config->width, config->height,
+                 dfb_pixelformat_name( config->pixelformat ), tier->border_only ? "border" : "standard" );
+
+     sawman->callback.layer_reconfig.layer_id = tier->layer_id;
+     sawman->callback.layer_reconfig.single   = SAWMAN_WINDOW_NONE;
+     sawman->callback.layer_reconfig.config   = *config;
+     ret = sawman_call( sawman, SWMCID_LAYER_RECONFIG,
+                        &sawman->callback.layer_reconfig, sizeof(sawman->callback.layer_reconfig), true );
+
+     /* on DFB_OK we try to overrule the default configuration */
+     if ( !ret && !dfb_layer_context_test_configuration( tier->context, &(sawman->callback.layer_reconfig.config), NULL ) ) {
+          *config = sawman->callback.layer_reconfig.config;
+          D_DEBUG_AT( SaWMan_Auto, "  -> Overruled to %dx%d %s %s mode.\n", config->width, config->height,
+                      dfb_pixelformat_name( config->pixelformat ), tier->border_only ? "border" : "standard" );
+     }
+
+     tier->active         = false;
+     tier->region->state |= CLRSF_FROZEN;
+
+     dfb_updates_reset( &tier->left.updates );
+     dfb_updates_reset( &tier->right.updates );
+
+     /* Temporarily to avoid configuration errors. */
+     dfb_layer_context_set_screenposition( tier->context, 0, 0 );
+
+     ret = dfb_layer_context_set_configuration( tier->context, config );
+     if (ret) {
+          D_DERROR( ret, "SaWMan/Auto: Switching to standard mode failed!\n" );
+          /* fixme */
+     }
+
+     tier->size.w = config->width;
+     tier->size.h = config->height;
+
+     /* Notify application manager about new tier size if previous mode was single. */
+     if (tier->single_mode)
+          sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size, sizeof(tier->size), false );
+
+     if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
+          DFBRectangle full = { 0, 0, screen_width, screen_height };
+
+          dfb_layer_context_set_screenrectangle( tier->context, &full );
+     }
+     else if (shared->description.caps & DLCAPS_SCREEN_POSITION) {
+          dfb_layer_context_set_screenposition( tier->context,
+                                                (screen_width  - config->width)  / 2,
+                                                (screen_height - config->height) / 2 );
+     }
+
+     if (config->options & DLOP_SRC_COLORKEY) {
+          if (DFB_PIXELFORMAT_IS_INDEXED( config->pixelformat )) {
+               int          index;
+               CoreSurface *surface;
+               CorePalette *palette;
+
+               surface = tier->region->surface;
+               D_MAGIC_ASSERT( surface, CoreSurface );
+
+               palette = surface->palette;
+               D_ASSERT( palette != NULL );
+               D_ASSERT( palette->num_entries > 0 );
+
+               index = tier->key.index % palette->num_entries;
+
+               dfb_layer_context_set_src_colorkey( tier->context,
+                                                   palette->entries[index].r,
+                                                   palette->entries[index].g,
+                                                   palette->entries[index].b,
+                                                   index );
+          }
+          else
+               dfb_layer_context_set_src_colorkey( tier->context,
+                                                   tier->key.r, tier->key.g, tier->key.b, tier->key.index );
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+process_updates( SaWMan              *sawman,
+                 SaWManTier          *tier,
+                 DFBSurfaceFlipFlags  flags )
+{
+     int              i, n, d;
+     int              total;
+     int              bounding;
+     const DFBRegion *left_updates  = NULL;
+     const DFBRegion *right_updates = NULL;
+     unsigned int     left_num  = 0;
+     unsigned int     right_num = 0;
+     DFBRegion        full_tier_region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+
+     dfb_updates_stat( &tier->left.updates, &total, &bounding );
+     dfb_updates_stat( &tier->right.updates, &n, &d );
+     total += n;
+     bounding += d;
+
+     n = tier->left.updates.max_regions - tier->left.updates.num_regions + 1;
+     n += tier->right.updates.max_regions - tier->right.updates.num_regions + 1;
+     d = n + 1;
+
+     /* Try to optimize updates. In buffer swapping modes we can save the copy by updating everything. */
+     if ((total > tier->size.w * tier->size.h) ||
+         (total > tier->size.w * tier->size.h * 3 / 5 && (tier->context->config.buffermode == DLBM_BACKVIDEO ||
+                                                          tier->context->config.buffermode == DLBM_TRIPLE)))
+     {
+          left_updates = &full_tier_region;
+          left_num     = 1;
+
+          if (tier->region->config.options & DLOP_STEREO) {
+               right_updates = &full_tier_region;
+               right_num     = 1;
+          }
+     }
+     else if (tier->left.updates.num_regions + tier->right.updates.num_regions < 2 || total < bounding * n / d) {
+          left_updates = tier->left.updates.regions;
+          left_num     = tier->left.updates.num_regions;
+
+          if (tier->region->config.options & DLOP_STEREO) {
+               right_updates = tier->right.updates.regions;
+               right_num     = tier->right.updates.num_regions;
+          }
+     }
+     else {
+          left_updates = &tier->left.updates.bounding;
+          left_num     = 1;
+
+          if (tier->region->config.options & DLOP_STEREO) {
+               right_updates = &tier->right.updates.bounding;
+               right_num     = 1;
+          }
+     }
+
+     if (left_num)
+          repaint_tier( sawman, tier, left_updates, left_num, flags, false );
+
+     if (right_num)
+          repaint_tier( sawman, tier, right_updates, right_num, flags, true );
+
+
+     switch (tier->region->config.buffermode) {
+          case DLBM_TRIPLE:
+               /* Add the updated region. */
+               for (i=0; i<left_num; i++) {
+                    const DFBRegion *update = &left_updates[i];
+
+                    DFB_REGION_ASSERT( update );
+
+                    D_DEBUG_AT( SaWMan_Surface, "  -> adding %d, %d - %dx%d  (%d) to updating (left)\n",
+                                DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
+
+                    dfb_updates_add( &tier->left.updating, update );
+               }
+
+               for (i=0; i<right_num; i++) {
+                    const DFBRegion *update = &right_updates[i];
+
+                    DFB_REGION_ASSERT( update );
+
+                    D_DEBUG_AT( SaWMan_Surface, "  -> adding %d, %d - %dx%d  (%d) to updating (right)\n",
+                                DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
+
+                    dfb_updates_add( &tier->right.updating, update );
+               }
+
+               if (!tier->left.updated.num_regions && !tier->right.updated.num_regions)
+                    sawman_flush_updating( sawman, tier );
+               break;
+
+          case DLBM_BACKVIDEO:
+               if (tier->region->config.options & DLOP_STEREO) {
+                    DFBSurfaceStereoEye old_eye = dfb_surface_get_stereo_eye( tier->region->surface );
+
+                    /* Flip the whole region. */
+                    dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags );
+
+                    /* Copy back the updated region. */
+                    if (left_num) {
+                         dfb_surface_set_stereo_eye( tier->region->surface, DSSE_LEFT );
+
+                         dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
+                    }
+
+                    if (right_num) {
+                         dfb_surface_set_stereo_eye( tier->region->surface, DSSE_RIGHT );
+
+                         dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, right_updates, right_num, 0, 0 );
+                    }
+
+                    dfb_surface_set_stereo_eye( tier->region->surface, old_eye );
+               }
+               else {
+                    /* Flip the whole region. */
+                    dfb_layer_region_flip_update( tier->region, NULL, flags );
+
+                    /* Copy back the updated region. */
+                    dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
+               }
+               break;
+
+          default:
+               /* Flip the updated region .*/
+               for (i=0; i<left_num; i++) {
+                    const DFBRegion *update = &left_updates[i];
+
+                    DFB_REGION_ASSERT( update );
+
+                    dfb_layer_region_flip_update( tier->region, update, flags );
+               }
+
+               for (i=0; i<right_num; i++) {
+                    const DFBRegion *update = &right_updates[i];
+
+                    DFB_REGION_ASSERT( update );
+
+                    dfb_layer_region_flip_update( tier->region, update, flags );
+               }
+               break;
+     }
+
+#ifdef SAWMAN_DUMP_TIER_FRAMES
+     {
+          DFBResult          ret;
+          CoreSurfaceBuffer *buffer;
+
+          D_MAGIC_ASSERT( tier->region->surface, CoreSurface );
+
+          if (fusion_skirmish_prevail( &tier->region->surface->lock ) == DFB_OK) {
+               if (tier->region->config.options & DLOP_STEREO) {
+                    DFBSurfaceStereoEye eye;
+
+                    eye = dfb_surface_get_stereo_eye( tier->region->surface );
+
+                    dfb_surface_set_stereo_eye( tier->region->surface, DSSE_LEFT );
+                    buffer = dfb_surface_get_buffer( tier->region->surface, CSBR_FRONT );
+                    D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+                    ret = dfb_surface_buffer_dump( buffer, ".", "tier_left" );
+
+                    dfb_surface_set_stereo_eye( tier->region->surface, DSSE_RIGHT );
+                    buffer = dfb_surface_get_buffer( tier->region->surface, CSBR_FRONT );
+                    D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+                    ret = dfb_surface_buffer_dump( buffer, ".", "tier_right" );
+
+                    dfb_surface_set_stereo_eye( tier->region->surface, eye );
+               }
+               else {
+                    buffer = dfb_surface_get_buffer( tier->region->surface, CSBR_FRONT );
+                    D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+                    ret = dfb_surface_buffer_dump( buffer, ".", "tier" );
+               }
+
+               fusion_skirmish_dismiss( &tier->region->surface->lock );
+          }
+     }
+#endif
+
+
+     if (1) {
+          SaWManTierUpdate update;
+
+          direct_memcpy( &update.regions[0], left_updates, sizeof(DFBRegion) * left_num );
+
+          update.num_regions = left_num;
+          update.classes     = tier->classes;
+
+          fusion_reactor_dispatch_channel( tier->reactor, SAWMAN_TIER_UPDATE, &update, sizeof(update), true, NULL );
+     }
+
+
+     dfb_updates_reset( &tier->left.updates );
+     dfb_updates_reset( &tier->right.updates );
+
+     fusion_skirmish_notify( sawman->lock );
+
+     return DFB_OK;
+}
+
 /* FIXME: Split up in smaller functions and clean up things like forcing reconfiguration. */
 DirectResult
 sawman_process_updates( SaWMan              *sawman,
                         DFBSurfaceFlipFlags  flags )
 {
      DirectResult  ret;
-     int           i;
      int           idx = -1;
      SaWManTier   *tier;
 
@@ -737,30 +1396,11 @@ sawman_process_updates( SaWMan              *sawman,
      D_DEBUG_AT( SaWMan_Update, "%s( %p, 0x%08x )\n", __FUNCTION__, sawman, flags );
 
      direct_list_foreach (tier, sawman->tiers) {
-          int              n, d;
-          int              total;
-          int              bounding;
-          bool             none = false;
-          bool             border_only;
-          SaWManWindow    *single;
-          CoreLayer       *layer;
-          CoreLayerShared *shared;
-          int              screen_width;
-          int              screen_height;
-          DFBColorKey      single_key;
-          const DFBRegion *left_updates  = NULL;
-          const DFBRegion *right_updates = NULL;
-          unsigned int     left_num  = 0;
-          unsigned int     right_num = 0;
-          DFBRegion        full_tier_region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
+          bool          none = false;
+          bool          border_only;
+          SaWManWindow *single;
 
           idx++;
-
-          layer = dfb_layer_at( tier->layer_id );
-          D_ASSERT( layer != NULL );
-
-          shared = layer->shared;
-          D_ASSERT( shared != NULL );
 
           D_MAGIC_ASSERT( tier, SaWManTier );
 
@@ -792,8 +1432,6 @@ sawman_process_updates( SaWMan              *sawman,
           if (!tier->config.width || !tier->config.height)
                continue;
 
-          dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
-
           single = get_single_window( sawman, tier, &none );
 
           if (none && !sawman_config->show_empty) {
@@ -811,8 +1449,10 @@ sawman_process_updates( SaWMan              *sawman,
                          dfb_layer_region_flip_update( sawman->cursor.region, NULL, DSFLIP_NONE );
                     }
                }
+
                dfb_updates_reset( &tier->left.updates );
                dfb_updates_reset( &tier->right.updates );
+
                continue;
           }
 
@@ -831,280 +1471,10 @@ sawman_process_updates( SaWMan              *sawman,
           }
 
           if (single && !border_only) {
-               CoreWindow             *window;
-               CoreSurface            *surface;
-               DFBDisplayLayerOptions  options = DLOP_NONE;
-               DFBRectangle            dst  = single->dst;
-               DFBRectangle            src  = single->src;
-               DFBRegion               clip = DFB_REGION_INIT_FROM_DIMENSION( &tier->size );
-
-               if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
-                    dst.x = dst.x * screen_width  / tier->size.w;
-                    dst.y = dst.y * screen_height / tier->size.h;
-                    dst.w = dst.w * screen_width  / tier->size.w;
-                    dst.h = dst.h * screen_height / tier->size.h;
-               }
-               else {
-                    if (dst.w != src.w || dst.h != src.h)
-                         goto no_single;
-
-                    if (shared->description.caps & DLCAPS_SCREEN_POSITION) {
-                         dfb_rectangle_intersect_by_region( &dst, &clip );
-
-                         src.x += dst.x - single->dst.x;
-                         src.y += dst.y - single->dst.y;
-                         src.w  = dst.w;
-                         src.h  = dst.h;
-
-                         dst.x += (screen_width  - tier->size.w) / 2;
-                         dst.y += (screen_height - tier->size.h) / 2;
-                    }
-               }
-
-#ifdef SAWMAN_NO_LAYER_DOWNSCALE
-               if (rect.w < src.w)
-                    goto no_single;
-#endif
-
-#ifdef SAWMAN_NO_LAYER_DST_WINDOW
-               if (dst.x != 0 || dst.y != 0 || dst.w != screen_width || dst.h != screen_height)
-                    goto no_single;
-#endif
-
-
-               window = single->window;
-               D_MAGIC_COREWINDOW_ASSERT( window );
-
-               surface = window->surface;
-               D_ASSERT( surface != NULL );
-
-               if (window->config.options & DWOP_ALPHACHANNEL)
-                    options |= DLOP_ALPHACHANNEL;
-
-               if (window->caps & DWCAPS_LR_MONO ||
-                   window->caps & DWCAPS_STEREO) 
-                    options |= DLOP_STEREO;
-
-               if (window->config.options & DWOP_COLORKEYING)
-                    options |= DLOP_SRC_COLORKEY;
-
-               single_key = tier->single_key;
-
-               if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format )) {
-                    CorePalette *palette = surface->palette;
-
-                    D_ASSERT( palette != NULL );
-                    D_ASSERT( palette->num_entries > 0 );
-
-                    dfb_surface_set_palette( tier->region->surface, surface->palette );
-
-                    if (options & DLOP_SRC_COLORKEY) {
-                         int index = window->config.color_key % palette->num_entries;
-
-                         single_key.r     = palette->entries[index].r;
-                         single_key.g     = palette->entries[index].g;
-                         single_key.b     = palette->entries[index].b;
-                         single_key.index = index;
-                    }
-               }
-               else {
-                    DFBColor color;
-
-                    dfb_pixel_to_color( surface->config.format, window->config.color_key, &color );
-
-                    single_key.r     = color.r;
-                    single_key.g     = color.g;
-                    single_key.b     = color.b;
-                    single_key.index = window->config.color_key;
-               }
-
-               /* Complete reconfig? */
-               if (tier->single_window  != single ||
-                   !DFB_RECTANGLE_EQUAL( tier->single_src, src ) ||
-                   tier->single_format  != surface->config.format ||
-                   tier->single_options != options)
-               {
-                    DFBDisplayLayerConfig  config;
-                    DFBSurfaceStereoEye    window_eye, region_eye;
-
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d [%dx%d] %s single mode for %p on %p...\n",
-                                single->src.w, single->src.h, src.w, src.h,
-                                dfb_pixelformat_name( surface->config.format ), single, tier );
-
-                    config.flags        = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | 
-                                          DLCONF_BUFFERMODE | DLCONF_SURFACE_CAPS;
-                    config.width        = src.w;
-                    config.height       = src.h;
-                    config.pixelformat  = surface->config.format;
-                    config.options      = options;
-                    config.buffermode   = DLBM_FRONTONLY;
-                    config.surface_caps = tier->context->config.surface_caps | (options & DLOP_STEREO ? DSCAPS_STEREO : 0);
-
-                    sawman->callback.layer_reconfig.layer_id = tier->layer_id;
-                    sawman->callback.layer_reconfig.single   = (SaWManWindowHandle) single;
-                    sawman->callback.layer_reconfig.config   = config;
-
-                    switch (sawman_call( sawman, SWMCID_LAYER_RECONFIG,
-                                         &sawman->callback.layer_reconfig, sizeof(sawman->callback.layer_reconfig), true )) {
-                         case DFB_OK:
-                              config = sawman->callback.layer_reconfig.config;
-                         case DFB_NOIMPL: 
-                              /* continue, no change demanded */
-                              break;
-
-                         default:
-                              goto no_single;
-                    }
-
-                    if (dfb_layer_context_test_configuration( tier->context, &config, NULL ) != DFB_OK)
-                         goto no_single;
-
-                    tier->single_mode     = true;
-                    tier->single_window   = single;
-                    tier->single_width    = src.w;
-                    tier->single_height   = src.h;
-                    tier->single_src      = src;
-                    tier->single_dst      = dst;
-                    tier->single_format   = surface->config.format;
-                    tier->single_options  = options;
-                    tier->single_key      = single_key;
-
-                    tier->active          = false;
-                    tier->region->state  |= CLRSF_FROZEN;
-
-                    dfb_updates_reset( &tier->left.updates );
-                    dfb_updates_reset( &tier->right.updates );
-
-                    dfb_layer_context_set_configuration( tier->context, &config );
-
-                    if (shared->description.caps & DLCAPS_SCREEN_LOCATION)
-                         dfb_layer_context_set_screenrectangle( tier->context, &dst );
-                    else if (shared->description.caps & DLCAPS_SCREEN_POSITION)
-                         dfb_layer_context_set_screenposition( tier->context, dst.x, dst.y );
-
-                    dfb_layer_context_set_src_colorkey( tier->context,
-                                                        tier->single_key.r, tier->single_key.g,
-                                                        tier->single_key.b, tier->single_key.index );
-
-                    sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
-
-                    // FIXME: put in function, same as below
-                    if (tier->single_options & DLOP_STEREO) {
-                         sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
-
-
-                         window_eye = dfb_surface_get_stereo_eye(surface);
-                         region_eye = dfb_surface_get_stereo_eye(tier->region->surface);
-                         dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
-                         dfb_surface_set_stereo_eye(tier->region->surface, DSSE_LEFT);
-                         dfb_gfx_copy_to( surface, tier->region->surface, &src, window->config.z, 0, false );
-
-                         if (window->caps & DWCAPS_STEREO) {
-                              dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
-                         }
-                         dfb_surface_set_stereo_eye(tier->region->surface, DSSE_RIGHT);
-                         dfb_gfx_copy_to( surface, tier->region->surface, &src, -window->config.z, 0, false );
-
-                         dfb_surface_set_stereo_eye(surface, window_eye);
-                         dfb_surface_set_stereo_eye(tier->region->surface, region_eye);
-                    }
-                    else {
-                         dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
-                    }
-
-
-                    tier->active = true;
-
-                    if (sawman->cursor.context && tier->context->layer_id == sawman->cursor.context->layer_id)
-                         dfb_layer_activate_context( dfb_layer_at(tier->context->layer_id), tier->context );
-
-                    if (tier->single_options & DLOP_STEREO) {
-                         dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags );
-                    }
-                    else {
-                         dfb_layer_region_flip_update( tier->region, NULL, flags );
-                    }
-
-                    dfb_updates_reset( &tier->left.updates );
-                    dfb_updates_reset( &tier->right.updates );
-
-                    if (1) {
-                         SaWManTierUpdate update;
-
-                         update.regions[0].x1 = 0;
-                         update.regions[0].y1 = 0;
-                         update.regions[0].x2 = tier->single_width  - 1;
-                         update.regions[0].y2 = tier->single_height - 1;
-
-                         update.num_regions   = 1;
-                         update.classes       = tier->classes;
-
-                         fusion_reactor_dispatch_channel( tier->reactor, SAWMAN_TIER_UPDATE, &update, sizeof(update), true, NULL );
-                    }
+               ret = process_single( sawman, tier, single, flags );
+               if (ret == DR_OK)
                     continue;
-               }
-
-               /* Update destination window */
-               if (!DFB_RECTANGLE_EQUAL( tier->single_dst, dst )) {
-                    tier->single_dst = dst;
-
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Changing single destination to %d,%d-%dx%d.\n",
-                                DFB_RECTANGLE_VALS(&dst) );
-
-                    dfb_layer_context_set_screenrectangle( tier->context, &dst );
-               }
-               else {
-                    if (tier->single_options & DLOP_STEREO) {
-                         DFBSurfaceStereoEye    window_eye, region_eye;
-
-                         window_eye = dfb_surface_get_stereo_eye(surface);
-                         region_eye = dfb_surface_get_stereo_eye(tier->region->surface);
-                         dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
-                         dfb_surface_set_stereo_eye(tier->region->surface, DSSE_LEFT);
-                         dfb_gfx_copy_to( surface, tier->region->surface, &src, window->config.z, 0, false );
-
-                         if (window->caps & DWCAPS_STEREO) {
-                              dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
-                         }
-                         dfb_surface_set_stereo_eye(tier->region->surface, DSSE_RIGHT);
-                         dfb_gfx_copy_to( surface, tier->region->surface, &src, -window->config.z, 0, false );
-
-                         dfb_surface_set_stereo_eye(surface, window_eye);
-                         dfb_surface_set_stereo_eye(tier->region->surface, region_eye);
-                    }
-                    else {
-                         dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
-                    }
-               }
-
-               /* Update color key */
-               if (!DFB_COLORKEY_EQUAL( single_key, tier->single_key )) {
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Changing single color key.\n" );
-
-                    tier->single_key = single_key;
-
-                    dfb_layer_context_set_src_colorkey( tier->context,
-                                                        tier->single_key.r, tier->single_key.g,
-                                                        tier->single_key.b, tier->single_key.index );
-               }
-
-               tier->active = true;
-
-               if (tier->single_options & DLOP_STEREO) {
-                    dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags );
-               }
-               else {
-                    dfb_layer_region_flip_update( tier->region, NULL, flags );
-               }
-
-               dfb_updates_reset( &tier->left.updates );
-               dfb_updates_reset( &tier->right.updates );
-
-               fusion_skirmish_notify( sawman->lock );
-               continue;
           }
-
-no_single:
 
           if (tier->single_mode) {
                D_DEBUG_AT( SaWMan_Auto, "  -> Switching back from single mode...\n" );
@@ -1114,98 +1484,20 @@ no_single:
 
           /* Switch border/default config? */
           if (tier->border_only != border_only) {
-               DFBDisplayLayerConfig *config;
-
                tier->border_only = border_only;
 
-               if (border_only)
-                    config = &tier->border_config;
-               else
-                    config = &tier->config;
-
-               D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d %s %s mode.\n", config->width, config->height,
-                           dfb_pixelformat_name( config->pixelformat ), border_only ? "border" : "standard" );
-
-               sawman->callback.layer_reconfig.layer_id = tier->layer_id;
-               sawman->callback.layer_reconfig.single   = SAWMAN_WINDOW_NONE;
-               sawman->callback.layer_reconfig.config   = *config;
-               ret = sawman_call( sawman, SWMCID_LAYER_RECONFIG,
-                                  &sawman->callback.layer_reconfig, sizeof(sawman->callback.layer_reconfig), true );
-
-               /* on DFB_OK we try to overrule the default configuration */
-               if ( !ret && !dfb_layer_context_test_configuration( tier->context, &(sawman->callback.layer_reconfig.config), NULL ) ) {
-                    *config = sawman->callback.layer_reconfig.config;
-                    D_DEBUG_AT( SaWMan_Auto, "  -> Overruled to %dx%d %s %s mode.\n", config->width, config->height,
-                         dfb_pixelformat_name( config->pixelformat ), border_only ? "border" : "standard" );
-               }
-
-               tier->active         = false;
-               tier->region->state |= CLRSF_FROZEN;
-
-               dfb_updates_reset( &tier->left.updates );
-               dfb_updates_reset( &tier->right.updates );
-
-               /* Temporarily to avoid configuration errors. */
-               dfb_layer_context_set_screenposition( tier->context, 0, 0 );
-
-               ret = dfb_layer_context_set_configuration( tier->context, config );
-               if (ret) {
-                    D_DERROR( ret, "SaWMan/Auto: Switching to standard mode failed!\n" );
-                    /* fixme */
-               }
-
-               tier->size.w = config->width;
-               tier->size.h = config->height;
-
-               /* Notify application manager about new tier size if previous mode was single. */
-               if (tier->single_mode)
-                    sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size, sizeof(tier->size), false );
-
-               if (shared->description.caps & DLCAPS_SCREEN_LOCATION) {
-                    DFBRectangle full = { 0, 0, screen_width, screen_height };
-
-                    dfb_layer_context_set_screenrectangle( tier->context, &full );
-               }
-               else if (shared->description.caps & DLCAPS_SCREEN_POSITION) {
-                    dfb_layer_context_set_screenposition( tier->context,
-                                                          (screen_width  - config->width)  / 2,
-                                                          (screen_height - config->height) / 2 );
-               }
-
-               if (config->options & DLOP_SRC_COLORKEY) {
-                    if (DFB_PIXELFORMAT_IS_INDEXED( config->pixelformat )) {
-                         int          index;
-                         CoreSurface *surface;
-                         CorePalette *palette;
-
-                         surface = tier->region->surface;
-                         D_MAGIC_ASSERT( surface, CoreSurface );
-
-                         palette = surface->palette;
-                         D_ASSERT( palette != NULL );
-                         D_ASSERT( palette->num_entries > 0 );
-
-                         index = tier->key.index % palette->num_entries;
-
-                         dfb_layer_context_set_src_colorkey( tier->context,
-                                                             palette->entries[index].r,
-                                                             palette->entries[index].g,
-                                                             palette->entries[index].b,
-                                                             index );
-                    }
-                    else
-                         dfb_layer_context_set_src_colorkey( tier->context,
-                                                             tier->key.r, tier->key.g, tier->key.b, tier->key.index );
-               }
+               set_config( sawman, tier );
           }
 
           if (!tier->active) {
+               DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
+
                D_DEBUG_AT( SaWMan_Auto, "  -> Activating tier...\n" );
 
                tier->active = true;
 
-               DFBRegion region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
                dfb_updates_add( &tier->left.updates, &region );
+
                if (tier->region->config.options & DLOP_STEREO) 
                     dfb_updates_add( &tier->right.updates, &region );
 
@@ -1216,197 +1508,8 @@ no_single:
           tier->single_mode   = false;
           tier->single_window = NULL;
 
-          if (!tier->left.updates.num_regions && !tier->right.updates.num_regions)
-               continue;
-
-
-          dfb_updates_stat( &tier->left.updates, &total, &bounding );
-          dfb_updates_stat( &tier->right.updates, &n, &d );
-          total += n;
-          bounding += d;
-
-          n = tier->left.updates.max_regions - tier->left.updates.num_regions + 1;
-          n += tier->right.updates.max_regions - tier->right.updates.num_regions + 1;
-          d = n + 1;
-
-          /* Try to optimize updates. In buffer swapping modes we can save the copy by updating everything. */
-          if ((total > tier->size.w * tier->size.h) ||
-              (total > tier->size.w * tier->size.h * 3 / 5 && (tier->context->config.buffermode == DLBM_BACKVIDEO ||
-                                                               tier->context->config.buffermode == DLBM_TRIPLE)))
-          {
-               left_updates = &full_tier_region;
-               left_num     = 1;
-
-               if (tier->region->config.options & DLOP_STEREO) {
-                    right_updates = &full_tier_region;
-                    right_num     = 1;
-               }
-          }
-          else if (tier->left.updates.num_regions + tier->right.updates.num_regions < 2 || total < bounding * n / d) {
-               left_updates = tier->left.updates.regions;
-               left_num     = tier->left.updates.num_regions;
-
-               if (tier->region->config.options & DLOP_STEREO) {
-                    right_updates = tier->right.updates.regions;
-                    right_num     = tier->right.updates.num_regions;
-               }
-          }
-          else {
-               left_updates = &tier->left.updates.bounding;
-               left_num     = 1;
-
-               if (tier->region->config.options & DLOP_STEREO) {
-                    right_updates = &tier->right.updates.bounding;
-                    right_num     = 1;
-               }
-          }
-
-          if (left_num)
-               repaint_tier( sawman, tier, left_updates, left_num, flags, false );
-
-          if (right_num)
-               repaint_tier( sawman, tier, right_updates, right_num, flags, true );
-
-
-          switch (tier->region->config.buffermode) {
-               case DLBM_TRIPLE:
-                    /* Add the updated region. */
-                    for (i=0; i<left_num; i++) {
-                         const DFBRegion *update = &left_updates[i];
-
-                         DFB_REGION_ASSERT( update );
-
-                         D_DEBUG_AT( SaWMan_Surface, "  -> adding %d, %d - %dx%d  (%d) to updating (left)\n",
-                                     DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
-
-                         dfb_updates_add( &tier->left.updating, update );
-                    }
-
-                    for (i=0; i<right_num; i++) {
-                         const DFBRegion *update = &right_updates[i];
-
-                         DFB_REGION_ASSERT( update );
-
-                         D_DEBUG_AT( SaWMan_Surface, "  -> adding %d, %d - %dx%d  (%d) to updating (right)\n",
-                                     DFB_RECTANGLE_VALS_FROM_REGION( update ), i );
-
-                         dfb_updates_add( &tier->right.updating, update );
-                    }
-
-                    if (!tier->left.updated.num_regions && !tier->right.updated.num_regions)
-                         sawman_flush_updating( sawman, tier );
-                    break;
-
-               case DLBM_BACKVIDEO:
-                    if (tier->region->config.options & DLOP_STEREO) {
-                         DFBSurfaceStereoEye old_eye = dfb_surface_get_stereo_eye( tier->region->surface );
-
-                         /* Flip the whole region. */
-                         dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags );
-
-                         /* Copy back the updated region. */
-                         if (left_num) {
-                              dfb_surface_set_stereo_eye( tier->region->surface, DSSE_LEFT );
-
-                              dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
-                         }
-
-                         if (right_num) {
-                              dfb_surface_set_stereo_eye( tier->region->surface, DSSE_RIGHT );
-
-                              dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, right_updates, right_num, 0, 0 );
-                         }
-
-                         dfb_surface_set_stereo_eye( tier->region->surface, old_eye );
-                    }
-                    else {
-                         /* Flip the whole region. */
-                         dfb_layer_region_flip_update( tier->region, NULL, flags );
-
-                         /* Copy back the updated region. */
-                         dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
-                    }
-                    break;
-
-               default:
-                    /* Flip the updated region .*/
-                    for (i=0; i<left_num; i++) {
-                         const DFBRegion *update = &left_updates[i];
-
-                         DFB_REGION_ASSERT( update );
-
-                         dfb_layer_region_flip_update( tier->region, update, flags );
-                    }
-
-                    for (i=0; i<right_num; i++) {
-                         const DFBRegion *update = &right_updates[i];
-
-                         DFB_REGION_ASSERT( update );
-
-                         dfb_layer_region_flip_update( tier->region, update, flags );
-                    }
-                    break;
-          }
-
-#ifdef SAWMAN_DUMP_TIER_FRAMES
-          {
-               DFBResult          ret;
-               CoreSurfaceBuffer *buffer;
-
-               D_MAGIC_ASSERT( tier->region->surface, CoreSurface );
-
-               if (fusion_skirmish_prevail( &tier->region->surface->lock ) == DFB_OK) {
-                    if (tier->region->config.options & DLOP_STEREO) {
-                         DFBSurfaceStereoEye eye;
-     
-                         eye = dfb_surface_get_stereo_eye( tier->region->surface );
-     
-                         dfb_surface_set_stereo_eye( tier->region->surface, DSSE_LEFT );
-                         buffer = dfb_surface_get_buffer( tier->region->surface, CSBR_FRONT );
-                         D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-                         ret = dfb_surface_buffer_dump( buffer, ".", "tier_left" );
-     
-                         dfb_surface_set_stereo_eye( tier->region->surface, DSSE_RIGHT );
-                         buffer = dfb_surface_get_buffer( tier->region->surface, CSBR_FRONT );
-                         D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-                         ret = dfb_surface_buffer_dump( buffer, ".", "tier_right" );
-     
-                         dfb_surface_set_stereo_eye( tier->region->surface, eye );
-                    }
-                    else {
-                         buffer = dfb_surface_get_buffer( tier->region->surface, CSBR_FRONT );
-                         D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-                         ret = dfb_surface_buffer_dump( buffer, ".", "tier" );
-                    }
-
-                    fusion_skirmish_dismiss( &tier->region->surface->lock );
-               }
-          }
-#endif
-
-          if (1) {
-               SaWManTierUpdate update;
-
-               direct_memcpy( &update.regions[0], left_updates, sizeof(DFBRegion) * left_num );
-
-               update.num_regions = left_num;
-               update.classes     = tier->classes;
-
-               fusion_reactor_dispatch_channel( tier->reactor, SAWMAN_TIER_UPDATE, &update, sizeof(update), true, NULL );
-          }
-
-
-
-
-
-
-
-
-          dfb_updates_reset( &tier->left.updates );
-          dfb_updates_reset( &tier->right.updates );
-
-          fusion_skirmish_notify( sawman->lock );
+          if (tier->left.updates.num_regions || tier->right.updates.num_regions)
+               process_updates( sawman, tier, flags );
      }
 
      return DFB_OK;
