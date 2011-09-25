@@ -1337,7 +1337,10 @@ if test "$checkfor_gl" = "yes"; then
                   glx=yes
                   AC_DEFINE(USE_GLX,1,[Define to 1 if GLX has been selected or detected])
                   ])
+  GL_LIBS="-lGL"
 fi
+
+AC_SUBST(GL_LIBS)
 
 if test "$checkfor_gles2" = "yes"; then
    if test "$enable_mesa" = "yes"; then

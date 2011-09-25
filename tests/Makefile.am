@@ -20,14 +20,18 @@ INCLUDES = \
 	-I$(top_srcdir)/src	\
 	-DLINUX_2_6
 
-if GFX_GLES2
-GL_PROGS = \
+GL_PROGS_ = \
 	dfbtest_gl1	\
 	dfbtest_gl2	\
 	dfbtest_gl3	\
 	dfbtest_old_gl2
-else
-GL_PROGS =
+
+if GFX_GL
+GL_PROGS = $(GL_PROGS_)
+endif
+
+if GFX_GLES2
+GL_PROGS = $(GL_PROGS_)
 endif
 
 if DIRECTFB_BUILD_PURE_VOODOO
@@ -96,19 +100,19 @@ dfbtest_init_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_gl1_SOURCES = dfbtest_gl1.c
 dfbtest_gl1_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_gl1_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GLES2_LIBS)
+dfbtest_gl1_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS)
 
 dfbtest_gl2_SOURCES = dfbtest_gl2.c
 dfbtest_gl2_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_gl2_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GLES2_LIBS)
+dfbtest_gl2_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS)
 
 dfbtest_gl3_SOURCES = dfbtest_gl3.c
 dfbtest_gl3_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_gl3_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GLES2_LIBS)
+dfbtest_gl3_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS)
 
 dfbtest_old_gl2_SOURCES = dfbtest_old_gl2.c
 dfbtest_old_gl2_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_old_gl2_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GLES2_LIBS)
+dfbtest_old_gl2_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS)
 
 dfbtest_mirror_SOURCES = dfbtest_mirror.c
 dfbtest_mirror_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
