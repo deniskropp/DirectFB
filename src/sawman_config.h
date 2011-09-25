@@ -51,6 +51,8 @@ typedef struct {
      }                     cursor;
 
      DFBDimension          resolution;
+
+     bool                  static_layer;
 } SaWManConfig;
 
 

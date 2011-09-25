@@ -64,6 +64,7 @@ static const char *config_usage =
      "  flip-once-timeout=<num>            Flip once timeout\n"
      "  hw-cursor=<layer-id>               Set HW Cursor mode\n"
      "  resolution=<width>x<height>        Set virtual SaWMan resolution\n"
+     "  [no-]static-layer                  Disable layer reconfiguration\n"
      "\n";
 
 
@@ -354,6 +355,12 @@ sawman_config_set( const char *name, const char *value )
                D_ERROR("SaWMan/Config '%s': No width and height specified!\n", name);
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "static-layer") == 0) {
+          sawman_config->static_layer = true;
+     } else
+     if (strcmp (name, "no-static-layer") == 0) {
+          sawman_config->static_layer = false;
      } else
           return DFB_UNSUPPORTED;
 

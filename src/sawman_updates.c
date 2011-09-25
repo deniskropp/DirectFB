@@ -630,6 +630,11 @@ get_single_window( SaWMan     *sawman,
           D_MAGIC_COREWINDOW_ASSERT( window );
 
           if (SAWMAN_VISIBLE_WINDOW(window) && (tier->classes & (1 << window->config.stacking))) {
+               if (sawman_config->static_layer) {
+                    *ret_none = false;
+                    return NULL;
+               }
+
                if (      single 
                     || ( window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR) ) 
                     || ( window->config.options & DWOP_INPUTONLY ) )
