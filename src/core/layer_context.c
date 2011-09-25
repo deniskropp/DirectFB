@@ -74,17 +74,6 @@ static void      build_updated_config( CoreLayer                   *layer,
                                        CoreLayerRegionConfig       *ret_config,
                                        CoreLayerRegionConfigFlags  *ret_flags );
 
-static DFBResult allocate_surface    ( CoreLayer                   *layer,
-                                       CoreLayerRegion             *region,
-                                       CoreLayerRegionConfig       *config );
-
-static DFBResult reallocate_surface  ( CoreLayer                   *layer,
-                                       CoreLayerRegion             *region,
-                                       CoreLayerRegionConfig       *config );
-
-static DFBResult deallocate_surface  ( CoreLayer                   *layer,
-                                       CoreLayerRegion             *region );
-
 static void      screen_rectangle    ( CoreLayerContext            *context,
                                        const DFBLocation           *location,
                                        DFBRectangle                *rect );
@@ -318,7 +307,7 @@ dfb_layer_context_activate( CoreLayerContext *context )
                     D_ASSERT( region->right_buffer_lock.buffer == NULL );
                }
 
-               ret = reallocate_surface( layer, region, &region->config );
+               ret = dfb_layer_context_reallocate_surface( layer, region, &region->config );
                if (ret)
                     D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
           }
@@ -782,12 +771,12 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                     flags |= CLRCF_SURFACE | CLRCF_PALETTE;
 
                     if (region->surface) {
-                         ret = reallocate_surface( layer, region, &region_config );
+                         ret = dfb_layer_context_reallocate_surface( layer, region, &region_config );
                          if (ret)
                               D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
                     }
                     else {
-                         ret = allocate_surface( layer, region, &region_config );
+                         ret = dfb_layer_context_allocate_surface( layer, region, &region_config );
                          if (ret)
                               D_DERROR( ret, "Core/Layers: Allocation of layer surface failed!\n" );
                     }
@@ -800,7 +789,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                     }
                }
                else if (region->surface)
-                    deallocate_surface( layer, region );
+                    dfb_layer_context_deallocate_surface( layer, region );
 
                region->state |= configured;
 
@@ -817,7 +806,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                     dfb_layer_region_disable( region );
 
                     if (region->surface)
-                         deallocate_surface( layer, region );
+                         dfb_layer_context_deallocate_surface( layer, region );
                }
           }
 
@@ -1778,10 +1767,10 @@ build_updated_config( CoreLayer                   *layer,
 /*
  * region surface (re/de)allocation
  */
-static DFBResult
-allocate_surface( CoreLayer             *layer,
-                  CoreLayerRegion       *region,
-                  CoreLayerRegionConfig *config )
+DFBResult
+dfb_layer_context_allocate_surface( CoreLayer             *layer,
+                                    CoreLayerRegion       *region,
+                                    CoreLayerRegionConfig *config )
 {
      DFBResult                ret;
      const DisplayLayerFuncs *funcs;
@@ -1892,10 +1881,10 @@ allocate_surface( CoreLayer             *layer,
      return ret;
 }
 
-static DFBResult
-reallocate_surface( CoreLayer             *layer,
-                    CoreLayerRegion       *region,
-                    CoreLayerRegionConfig *config )
+DFBResult
+dfb_layer_context_reallocate_surface( CoreLayer             *layer,
+                                      CoreLayerRegion       *region,
+                                      CoreLayerRegionConfig *config )
 {
      DFBResult                ret;
      const DisplayLayerFuncs *funcs;
@@ -2011,8 +2000,8 @@ reallocate_surface( CoreLayer             *layer,
      return DFB_OK;
 }
 
-static DFBResult
-deallocate_surface( CoreLayer *layer, CoreLayerRegion *region )
+DFBResult
+dfb_layer_context_deallocate_surface( CoreLayer *layer, CoreLayerRegion *region )
 {
      DFBResult                ret;
      const DisplayLayerFuncs *funcs;
