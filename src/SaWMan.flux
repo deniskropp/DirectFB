@@ -34,5 +34,42 @@ interface {
                         typename    SaWManProcess
                 }
         }
+
+        method {
+                name    Start
+
+                arg {
+                        name        name
+                        direction   input
+                        type        int
+                        typename    u8
+			count	    name_len
+                }
+
+                arg {
+                        name        name_len
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        pid
+                        direction   output
+                        type        int
+                        typename    s32
+                }
+        }
+
+        method {
+                name    Stop
+
+                arg {
+                        name        pid
+                        direction   input
+                        type        int
+                        typename    s32
+                }
+        }
 }
 

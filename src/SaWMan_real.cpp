@@ -51,6 +51,53 @@ namespace DirectFB {
 
 
 DFBResult
+ISaWManWM_Real::Start(
+                    const u8                                  *name,
+                    u32                                        name_len,
+                    s32                                       *ret_pid
+)
+{
+     int ret;
+
+     D_DEBUG_AT( DirectFB_SaWMan, "%s()", __FUNCTION__ );
+
+     ret = sawman_lock( obj );
+     if (ret)
+          return (DFBResult) ret;
+
+     ret = sawman_call( obj, SWMCID_START, (void*) name, name_len, false );
+     if (ret < 0) {
+          if (ret_pid)
+               *ret_pid = -ret;
+          ret = DFB_OK;
+     }
+
+     sawman_unlock( obj );
+
+     return (DFBResult) ret;
+}
+
+DFBResult
+ISaWManWM_Real::Stop(
+                    s32                                        pid
+)
+{
+    DirectResult ret;
+
+    D_DEBUG_AT( DirectFB_SaWMan, "%s()", __FUNCTION__ );
+
+    ret = sawman_lock( obj );
+    if (ret)
+         return (DFBResult) ret;
+
+    ret = sawman_call( obj, SWMCID_STOP, &pid, sizeof(u32), false );
+
+    sawman_unlock( obj );
+
+    return (DFBResult) ret;
+}
+
+DFBResult
 ISaWManWM_Real::RegisterProcess(
                     SaWManProcessFlags                         flags,
                     s32                                        pid,

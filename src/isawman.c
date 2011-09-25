@@ -30,6 +30,8 @@
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 
+#include <SaWMan.h>
+
 #include <sawman.h>
 
 #include "sawman_window.h"
@@ -92,7 +94,6 @@ ISaWMan_Start( ISaWMan    *thiz,
                const char *name,
                pid_t      *ret_pid )
 {
-     int     ret;
      SaWMan *sawman;
 
      DIRECT_INTERFACE_GET_DATA( ISaWMan )
@@ -103,44 +104,21 @@ ISaWMan_Start( ISaWMan    *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     ret = sawman_lock( sawman );
-     if (ret)
-          return ret;
-
-     ret = sawman_call( sawman, SWMCID_START, (void*) name, strlen(name) + 1, false );
-     if (ret < 0) {
-          if (ret_pid)
-               *ret_pid = -ret;
-          ret = DFB_OK;
-     }
-
-     sawman_unlock( sawman );
-
-     return ret;
+     return SaWMan_Start( sawman, (const u8*) name, strlen(name) + 1, ret_pid );
 }
 
 static DirectResult
 ISaWMan_Stop( ISaWMan *thiz,
               pid_t    pid )
 {
-     DirectResult  ret;
-     SaWMan       *sawman;
+     SaWMan *sawman;
 
      DIRECT_INTERFACE_GET_DATA( ISaWMan )
 
      sawman = data->sawman;
-
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     ret = sawman_lock( sawman );
-     if (ret)
-          return ret;
-
-     ret = sawman_call( sawman, SWMCID_STOP, &pid, sizeof(u32), false );
-
-     sawman_unlock( sawman );
-
-     return ret;
+     return SaWMan_Stop( sawman, pid );
 }
 
 static DirectResult
