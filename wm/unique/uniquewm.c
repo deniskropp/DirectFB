@@ -34,6 +34,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+#include <core/core.h>
 #include <core/input.h>
 #include <core/surface.h>
 #include <core/surface_buffer.h>
@@ -275,7 +276,7 @@ unique_wm_create_context( void )
      D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->context_pool != NULL );
 
-     return (UniqueContext*) fusion_object_create( wm_shared->context_pool, wm_data->world );
+     return (UniqueContext*) fusion_object_create( wm_shared->context_pool, wm_data->world, Core_GetIdentity() );
 }
 
 UniqueDecoration *
@@ -286,7 +287,7 @@ unique_wm_create_decoration( void )
      D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->decoration_pool != NULL );
 
-     return (UniqueDecoration*) fusion_object_create( wm_shared->decoration_pool, wm_data->world );
+     return (UniqueDecoration*) fusion_object_create( wm_shared->decoration_pool, wm_data->world, Core_GetIdentity() );
 }
 
 UniqueWindow *
@@ -297,7 +298,7 @@ unique_wm_create_window( void )
      D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->window_pool != NULL );
 
-     return (UniqueWindow*) fusion_object_create( wm_shared->window_pool, wm_data->world );
+     return (UniqueWindow*) fusion_object_create( wm_shared->window_pool, wm_data->world, Core_GetIdentity() );
 }
 
 /**************************************************************************************************/
