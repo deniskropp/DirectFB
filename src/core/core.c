@@ -1474,12 +1474,14 @@ core_tls_destroy( void *arg )
      D_FREE( core_tls );
 }
 
+__attribute__((constructor))
 void
 Core_TLS__init( void )
 {
      pthread_key_create( &core_tls_key, core_tls_destroy );
 }
 
+__attribute__((destructor))
 void
 Core_TLS__deinit( void )
 {
