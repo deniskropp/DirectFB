@@ -36,7 +36,7 @@
 #include <linux/fusion.h>
 
 #define FUSION_API_MAJOR_REQUIRED 8
-#define FUSION_API_MINOR_REQUIRED 5
+#define FUSION_API_MINOR_REQUIRED 7
 
 #if FUSION_API_MAJOR_REQUIRED > FUSION_API_MAJOR_PROVIDED
 #error Major version of Fusion Kernel Module too low! Upgrade your kernel.
