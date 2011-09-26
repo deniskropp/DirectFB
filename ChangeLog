@@ -1,3 +1,639 @@
+commit ed28cd4807986bee530fe5df34a8ca89914b251b
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Sep 14 12:22:29 2011 +0200
+
+    png: fixes for adam7 deinterlacing in 16->8bit per color component conversion case
+    
+    We now hand off handling of adam7 deinterlacing to libpng except for the case
+    of 16 bit colorkeyed images.
+    
+    In that case use our own minimal adam7 code (just enough to have to correct
+    end result without perfect intermediate results before the final pass)
+
+commit 434dbe813c078c7e80f1494e26fccb217e6d9e56
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 12 15:25:57 2011 +0200
+
+    png: various fixes for colorkey handling and grayscale images
+    
+    - fix 1,2,4 bpp color key handling
+    - fix 1,2,4 bpp grayscale crashes
+    - fix color protection in 16 bit grayscale colorkeying case
+
+commit 2e2f62f1df6be01ec27a38e96cc41a3fc269a26f
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Aug 12 13:17:04 2011 +0200
+
+    png: remove printf()
+
+commit 62fade905549e979c663260c05acd984631d23ba
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Aug 12 13:00:29 2011 +0200
+
+    png: dont use libpngs internal 16 to 8 bit channel conversion but our own
+    
+    For colorkeying, protect pixels that would be keyed only due to the reduction
+    of colordepth by toggling the least significant blue bit.
+
+commit e918bd71445d31ea9928efafcd7819dd877f952d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 26 14:30:49 2011 +0200
+
+    core: make Core_TLS__init() a constructor /  Core_TLS__deinit() a destructor
+
+commit f1a1673084c113f79f7221c54e7168266db710b3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Sep 25 22:39:49 2011 +0200
+
+    Core: Export layer surface allocation functions.
+
+commit 554ffad60532456fe1f4d71e0703fb4bcf21d3ce
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Sep 24 13:07:49 2011 +0200
+
+    Core: Resource management and client identification
+    
+    (merged into 1.4.15)
+    
+    ICoreResourceManager and ICoreResourceClient
+    - Add new interfaces for resource management, optionally being loaded as modules.
+    - The manager has one method to create a new client instance (called within master, per slave).
+    - The client has a few methods for checking surface creation/reconfig, adding/removing/updating surfaces.
+    
+    Runtime Options
+    - Add "resource-manager" option to load a resource manager implementation, default is none.
+    
+    Core
+    - Add ICore::Register() method for slaves joining to create a resource client instance in the master.
+    - Make ICore_Real::CreateSurface() use the new Core_Resource_CheckSurface() function for
+      asking the resource manager (if any) for creation of the resource.
+    - Add Core_Push/PopIdentity() to store the caller ID of an incoming request in TLS.
+    - Add Core_GetIdentity() to query the current identity, i.e. ID of the Fusionee that made the IPC call.
+    - Add Core_Resource methods wrapping and managing instances of ICoreResourceClient.
+    
+    Flux
+    - Run fluxcomp with argument "-i" to generate calls to Core_Push/PopIdentity().
+    
+    Fusion
+    - Add fusion_get_fusionee_path() to retrieve the executable file name of a Fusionee (as in /proc/*/exe).
+      This can be used when the resource client is created to apply special limitations, privileges...
+    - Add fusion_world_set_leave_callback() to register a callback for processing the new FMT_LEAVE message
+      when a slave leaves the world. This is used by the master to cleanup the resource client instance.
+    - Add FusionID parameter to fusion_object_create() to give objects an identity, i.e. the identity of the
+      Fusionee calling the master to create an object.
+    
+    ICoreResourceManager_test
+    - Add test implementation for ICoreResourceManager and ICoreResourceClient that keeps track of
+      and prints the amount of surface memory being used per slave process.
+    
+    == Following example shows test with df_window started as slave ==
+    
+    cyto [~/DFB/DirectFB] /opt/dfb/bin/dfbmaster --dfb:resource-manager=test
+    
+       ~~~~~~~~~~~~~~~~~~~~~~~~~~| DirectFB 1.6.0-pre1 |~~~~~~~~~~~~~~~~~~~~~~~~~~
+            (c) 2001-2010  The world wide DirectFB Open Source Community
+            (c) 2000-2004  Convergence (integrated media) GmbH
+          ----------------------------------------------------------------
+    
+    (*) DirectFB/Core: Multi Application Core. (2011-09-24 11:08) [ DEBUG ][ TRACE ]
+    (*) Direct/Memcpy: Using Generic 64bit memcpy()
+    (*) Fusion/SHM: Using MADV_REMOVE (2.6.38.0 >= 2.6.19.2)
+    (*) Direct/Thread: Started 'Fusion Dispatch' (-1) [MESSAGING OTHER/OTHER 0/0] <8388608>...
+    (*) Direct/Thread: Started 'Fusion Deferred' (-1) [MESSAGING OTHER/OTHER 0/0] <8388608>...
+    (*) GLX/Surfaces: Using visual 0x96 (24bit) and 0x9c (32bit)
+    (*) Direct/Thread: Started 'X11 Input' (-1) [INPUT OTHER/OTHER 0/0] <8388608>...
+    (*) DirectFB/Input: X11 Input 0.1 (directfb.org)
+    (*) DirectFB/Genefx: MMX detected and enabled
+    (*) DirectFB/Graphics: OpenGL Acceleration - Mesa DRI Intel(R) Sandybridge Desktop  0.5 (Denis Oliver Kropp)
+    (*) DirectFB/Core/WM: Default 0.3 (directfb.org)
+    (*) Direct/Interface: Loaded 'test' implementation of 'ICoreResourceManager'.
+    (*) Core/Resource: Using resource manager 'test'
+    (*) X11/Display: Using XShm.
+      { start df_window }
+    (*) ICoreResourceClient/test: Adding ID 2 - '/opt/dfb/bin/df_window'
+    (*) ICoreResourceClient/test: Check surface 40x40 ARGB 6k (ID 2, at 0k)
+    (*) ICoreResourceClient/test: Check surface 40x40 ARGB 6k (ID 2, at 6k)
+    (*) ICoreResourceClient/test: Check surface 852x480 ARGB 1597k (ID 2, at 12k)
+    (*) ICoreResourceClient/test: Check surface 832x26 ARGB 84k (ID 2, at 1610k)
+    (*) ICoreResourceClient/test: Check surface 300x200 ARGB 234k (ID 2, at 1694k)
+    (*) ICoreResourceClient/test: Check surface 512x145 ARGB 290k (ID 2, at 1928k)
+      { quit df_window }
+    (*) ICoreResourceClient/test: Removing ID 2
+
+commit 99b64481ab95f91aa101e9550e432d41401a816c
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 26 12:36:09 2011 +0200
+
+    libfusion: require fusion 8.7.x
+    bl
+
+commit f57b59ec0fb3c119dbe7a76f2dff756d0c7b525b
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 26 12:23:55 2011 +0200
+
+    remove dublicate singleton
+
+commit 56a183b7885acde9d8b36462754e8b3e16fe5f2f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Sep 21 14:33:26 2011 +0200
+
+    buffer: move unref in case of lock failure below (commented out) code.
+
+commit 1703d47ab128654ca7b8c6a3f0dfe5150ef58157
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Sep 21 14:08:25 2011 +0200
+
+    Dummy: Initialise buffer mode in display layer config.
+
+commit f0a06b6092b529f25cdada95a6d2375a076fdd26
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 20 21:04:12 2011 +0200
+
+    Genefx: Fix Bop_argb_blend_alphachannel_src_invsrc_Aop_argb for special case alpha = 0.
+
+commit a3a70fbb726204665b09357eaea571903c4b19fb
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Sep 12 20:13:51 2011 +0200
+
+    singleton: Move idirectfb_singleton from idirectfb.c to directfb.c for pure voodoo mode.
+
+commit 399442b33a14924d1197df412fbfd0fafd477d85
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Aug 18 00:03:00 2011 +0200
+
+    CoreGraphicsStateClient: move declaration out of for statement
+
+commit 84cf3aa6d5c3efb6281eb7f3bc5284179052bd3d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Aug 18 00:02:45 2011 +0200
+
+    gfxcard: move declaration out of for statement
+
+commit 1ac79f8905f513a5395e5b59c3d691e49f8a3f11
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Sep 14 16:39:41 2011 +0200
+
+    Genefx: Fix top clipping of flat top triangles.
+
+commit 0b9214f6b0671d183ab28acc20f6f9d8b62cec96
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Aug 18 00:01:51 2011 +0200
+
+    generic: move declaration out of for statement
+
+commit 5578e8cf24e41c394c226e4bd8870ce77c09a1c0
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Sep 23 18:24:10 2011 +0200
+
+    core: do not always call dfb_gfxcard_batchblit()
+    
+    since dfb_gfxcard_blit() is tested better that batchblit()
+    use it if we can.
+
+commit 5bbee5faccffe92c978d9138593bed737e497026
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Sep 23 18:19:02 2011 +0200
+
+    gfxcard: make use of clip_blit_rotated() in dfb_gfxcard_batchblit()
+    
+    This fixes clipped rotated blits and clipped flipped blits
+    
+    (backport of a0e3065cd8668849f2fb4198b7eb6742b9999c19)
+
+commit b740a197848bed0839cb3281428f1cec85a9e720
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu Dec 2 12:42:08 2010 +0100
+
+    jpeg: correctly setup iDCT scale factors for libjpeg version >= 7
+    
+    Previously the code selected scale factors that resulted in an image
+    smaller or equal the desired size. Now the code selects scale factors
+    that create an image equal or larger than the desired size.
+    (cherry picked from commit 6e312f3ac7b5ea985a7888382f5c33dd8f6f638a)
+
+commit d549e215853752f5f2fc37088c005aaafe536ea4
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri Sep 23 10:00:02 2011 +0200
+
+    libdirect: remove include of <linux/config.h>
+    
+    That header has been removed from the Linux kernel with 2.6.19
+    and it should not have been needed anyway.
+
+commit b4136762ab0413ee8fe4f69b2953f3709e1372e8
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 22 15:59:14 2011 +0200
+
+    remove flux
+    
+    flux now has its own package
+    please checkout
+    
+    git://git.directfb.org/git/directfb/core/flux
+    
+    and make sure to have fluxcomp in your path when building DirectFB from git.
+    You dont need it if you build a distribution tarball.
+
+commit 85f7aa74be710d7f671a2cadac6e2ce4b0bd26ee
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 22 13:19:30 2011 +0200
+
+    system/vnc: backport from 1.6
+
+commit e97f88f31c5773f5894ec381f87493e4fd47d0ef
+Merge: 65f70e8 c216d8c
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 22 11:52:53 2011 +0200
+
+    Merge branch 'directfb-1.4' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.4
+
+commit c216d8cded5417845cdc6f137815087d9c2f101b
+Author: André Draszik <andre.draszik@st.com>
+Date:   Thu Sep 22 10:24:08 2011 +0100
+
+    joystick: wrong number for buttons & axes read
+    
+    When using the DirectFB joystick input module, a wrong number for
+    buttons and axes is read. The interface declares the variables
+    used to get the number of buttons and axes as 'char' not 'int'.
+    (cherry picked from commit e25007f9f6abfe49623580a53f591c60a52171de)
+
+commit 65f70e843caa560aaca4265ba7295a5ffdbc3b73
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Sep 20 19:08:25 2011 +0200
+
+    system/vnc: allocate system only surface, instead of using a peallocated one
+    
+    This makes the vnc system at least usable again
+
+commit 35646e24cd87741da6f1c404b09f23feb9062d6e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Mar 28 17:10:10 2011 +0200
+
+    VNC: Almost reimplement VNC system module
+    
+    Improvements
+    - Input driver is part of system module now,
+      special attach code no longer needed
+    - Fixed several bugs in input event processing
+    - Initialize rfbScreen once for the session, 32bit
+    - Default screen size is 1280x720 if not set via mode option
+    - Use preallocated shared memory surface for screen
+    - Render layer onto preallocated ABGR screen surface
+    - Layer positioning and scaling is supported
+    - Only stream modified rects from clients to master
+      (calling rfbMarkRectAsModified there) using FusionCall2
+    - Use automatic port allocation
+    - Detect failure in setting up listen socket
+    - Use rfbNewFramebuffer call
+
+commit d9ed9f9106fef995f19df2ecf49d8d3d8b5d25a0
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon May 9 13:56:12 2011 +0100
+
+    generic: use 24bpp colorkey template for RGB18 and ARGBx666
+    
+    removing lots of more or less duplicated code and giving us
+    Bop_PFI_KtoK_Aop_PFI Bop_PFI_StoK_Aop_PFI Bop_PFI_SKtoK_Aop_PFI
+    for these formats for free
+    (cherry picked from commit 31f38654212e60b06f3e1eb24c9ba36b65016e45)
+
+commit 17fbb8aece5813a506c0277eb989e1948566bd55
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon May 9 12:51:23 2011 +0100
+
+    generic: use 24bpp colorkey template for RGB24, ARGB8565, VYU
+    
+    removing lots of more or less duplicated code and giving us
+    Bop_PFI_KtoK_Aop_PFI Bop_PFI_StoK_Aop_PFI Bop_PFI_SKtoK_Aop_PFI (RGB24)
+    for free
+    (cherry picked from commit b8f8935f2ee3b21cea972d49f81b7800d81b8600)
+
+commit 3843a225c7389ef9bc373bcf3e98f7eea7f1bcb0
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon May 9 12:45:21 2011 +0100
+
+    generic: add a colorkey template for 24bpp pixelformats
+    (cherry picked from commit 7db0ff1b9803dd084ae7fe1eab9604687bfd5d96)
+
+commit 882be417f4f90cfedc9b0406f5a3ab0ef841b725
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Sep 21 17:54:44 2011 +0100
+
+    generic: use 24bpp acc template for RGB18 and ARGBx666
+    
+    this gives us Sop_PFI_TEX_to_Dacc Sop_PFI_TEX_Kto_Dacc Sacc_StoK_Aop_PFI
+    for free for these formats
+    (cherry picked from commit e5b1bd1cf057d2cce048ee20a5d910e2e8049d37)
+
+commit bd807416fa7e2c38d9a8f5caecc1e7b2df1e037c
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Sep 21 17:54:29 2011 +0100
+
+    generic: use 24bpp acc template for RGB24 and ARGB8565
+    
+    this gives us Sop_PFI_TEX_to_Dacc Sop_PFI_TEX_Kto_Dacc Sacc_StoK_Aop_rgb24
+    for free for these formats
+    (cherry picked from commit 4d6372cf22c4020ec9941692328a5a6652be130b)
+
+commit 84bba354f4f30a2137a39da8278c7bdb27d372e1
+Author: André Draszik <andre.draszik@st.com>
+Date:   Fri May 6 16:24:21 2011 +0100
+
+    generic: add an acc template for 24bpp pixelformats
+    (cherry picked from commit 8882c9f8fbdd3fc92581af6be55ec7ae45be84ef)
+
+commit 58a126810e8b68af4a60d1508c6bbfa6a73e8b2b
+Merge: 794cf21 9ff9111
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Sep 20 17:20:29 2011 +0200
+
+    Merge branch 'directfb-1.4' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.4
+
+commit 794cf21aae893bd0bd8204a73c70e932b09528c5
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Sep 20 17:20:19 2011 +0200
+
+    core: shutdown fixes
+
+commit 9ff9111d9e62c4952f1359083fa2d48972c351d0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 20 17:09:44 2011 +0200
+
+    ignore
+
+commit 2a62e11b9ae2c7235d64c9534baccd632d773d2a
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Sep 20 13:36:02 2011 +0200
+
+    debian: add fluxcomp to development package
+
+commit c3f068eb69d2a9f818af613fc2828e7dd3162182
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Sep 20 13:00:50 2011 +0200
+
+    flux: remove workaround for c-mode (dummy data for fusion_call_execute3)
+    
+    Requires new linux-fusion
+
+commit 503008cff52482117e7f5dcc79a9e916b0e61525
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 19 18:55:44 2011 +0200
+
+    core: remove Dispatch class, use functions instead (even in C++ mode)
+    
+    This patch also adds _Deinit_Dispatch() calls which were missing before (fixes leaks)
+
+commit b0a3dab8be317355f8a29abfe0ec04b5b2d748d4
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 15 14:24:45 2011 +0200
+
+    flux: added option --include-prefix= to fix build of external projects(e.g sawman)
+
+commit 7cf3a16a1119ca42b884f286325419faffad3f0c
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Sep 14 15:39:18 2011 +0200
+
+    debian: remove vdpau package (leftover from 1.6)
+
+commit ba067d3a9a8224d22d08320c05f5121c389b328f
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Sep 14 15:37:58 2011 +0200
+
+    debian: update packages
+
+commit d8c3c63a8fbd16cbcf2da0574fc88cd3c49d7260
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Sep 14 14:58:25 2011 +0200
+
+    build: fix out-of-tree builds
+
+commit c79f963a3741ed258513a411709b66144516181e
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 8 18:55:24 2011 +0200
+
+    build: set version to 1.4.15
+
+commit 62772469277615f91f362f227dde604f5264a2a5
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 8 18:49:14 2011 +0200
+
+    build: remove dummy.cpp to prevent linkage of libstdc++
+    
+    Welcome back, C-only DirectFB!
+
+commit 78c7d3b4595e1f6ca5090ce161feec3c983e4877
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 8 18:41:39 2011 +0200
+
+    core: move from C++ to C using fluxcomp's C mode and slightly modified real implementations
+
+commit 2959f6b7e1f6f8772bf2b5e00608bdc63e67e1b6
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 8 18:37:44 2011 +0200
+
+    fluxcomp: added semicolon to fix warning in generated C code
+
+commit 34e389af64aaf5a6646b88b8db7681704b2febdf
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 8 18:21:38 2011 +0200
+
+    fluxcomp: added C mode for generation C instead of C++
+
+commit 14d09cec3c336fb37c96551dc7236021a8af7448
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 5 18:00:13 2011 +0200
+
+    core: add prelock to manage interlocks at master
+
+commit 573e83fac823ab55ac494fba69340544a459da4d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 5 15:35:29 2011 +0200
+
+    core: set permissions for FUSION_REF_UP/DOWN for secure-fusion
+
+commit cf794ca4cce2cb1d746662b3162ed0146307ac2f
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 5 17:59:18 2011 +0200
+
+    core: remove obsolete code
+
+commit 8761b6e6d3d28df5b53f92907279ea0d7e8f9c83
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 5 16:19:32 2011 +0200
+
+    build: set CXX=g++ for fluxcomp, to avoid the cross compiler from being used
+
+commit 18dd62e52bfcbc9b14889559742c0ada20519f96
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 5 13:05:31 2011 +0200
+
+    build: add more explicit rules for new generated headers
+
+commit bb913955b02d528e0c6c5aea3c3615cb4c219be6
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 5 15:13:20 2011 +0200
+
+    core: added missing files, got lost during merge
+
+commit 5771e0c0c3db4714d5e2db59fcd67763421c17ee
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Sep 5 12:43:21 2011 +0200
+
+    SecureFusion: Final major update adding CoreScreen and CoreInputDevice interface
+    
+    Also lots of additions to CoreLayerContext, some in CoreSurface, fixes...
+    
+    (removed 1.6 specific functions for merge)
+
+commit 51e340dd4d937c23bcc634f96893f7a1fb964bee
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 29 05:09:26 2011 +0200
+
+    Core: Add copy of surface type flags and resource id to surface buffer.
+    
+    This can be used by unlock/dealloc functions in surface pools rather
+    than accessing the surface object which is no longer permitted in
+    unlock/dealloc functions.
+
+commit 301fa0b344058519f9af4d36852fcbdeadc493cf
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 5 14:26:08 2011 +0200
+
+    Core: remove precheck for locked buffers in dfb_surface_reconfig()
+
+commit d8cc5766d84b1b3b6e8c5c5e92c092b2da616cae
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 29 04:27:16 2011 +0200
+
+    Core: Fix typo in last commit of Surface Buffer object changes
+
+commit e734384c3b6815442160674050198fe20e9c7182
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 29 04:15:58 2011 +0200
+
+    Core: Make Surface Buffer a FusionObject and implement locked surface resizing
+    
+    The Surface Buffer object is created when a surface is created or reconfigured.
+    
+    It has a global ref count of as long as it belongs to the surface.
+    
+    dfb_surface_reconfig() no longer returns when a surface is locked, but decouples
+    the buffers by setting the back pointer from the Surface Buffer object to the surface to NULL
+    and decreasing the global ref count.
+    
+    When a buffer is locked, the local ref count is increased, to keep the buffer
+    object alive until the buffer is unlocked.
+    
+    Fixed locking for a few functions accessing surface members before locking it.
+    
+    Weak 'locked' counter in buffer is now replaced by dfb_surface_buffer_locks()
+    function returning the local ref count of the Surface Buffer object.
+    
+    All functions involved in unlocking and deallocating a buffer may no longer
+    use the surface back pointer unconditionally.
+
+commit 2d14126a17e6a8842b5496b0fcfdaf0bc7f31640
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 29 03:40:22 2011 +0200
+
+    Fusion: Fix crash by commenting out debug print after unref (in fusion_ref_down itself)
+
+commit d9172bf12d2cbd04bfc82a8976716b6be574829b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 29 03:39:43 2011 +0200
+
+    Fusion: Fix fusion_vector_foreach_reverse for empty vectors
+
+commit ce71fec521d9db7fdff6b59b6a887099ff19df30
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 5 13:27:50 2011 +0200
+
+    surface pools: always initialize shared surface pool priority with CSPP_DEFAULT
+
+commit a888a8f94eb8c9ef9e5273bf7d06a5da290cb44c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Aug 24 11:30:13 2011 +0200
+
+    Core: Use old shm surface pool for non-secure fusion, get rid of indices in secure surface pool.
+
+commit 7999db4d87b406cb97f4f4624521c845e4b71cb1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Aug 24 11:22:40 2011 +0200
+
+    X11: Fix crash in non-secure mode.
+
+commit cb2474eb6ef9b153b08a9a215f2b8f0d4ead1233
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 22 23:02:48 2011 +0200
+
+    IDirectFBSurface: Fix missing CoreGraphicsStateClient_Deinit() that has led to a memory leak.
+
+commit 4b1eba2b1f14d9e189a5f51ed3877652cdbc05c2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Aug 7 10:54:54 2011 +0200
+
+    Core: Fix crash when dfb_wm_update_cursor() is called with 'no-cursor' option.
+
+commit a042bfcbd9d5d7528192365098b87a2bd7ea229b
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 5 12:38:21 2011 +0200
+
+    build: fix build of generated core files by specifying explicit rules
+
+commit 16503d6106f8be798faed973a01c2e275c20388b
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Wed Jul 27 12:42:51 2011 +0100
+
+    sh772x: Only use the shjpeg library if available
+    
+    This allows DirectFB to work on the SH7723 device which does not have
+    the JPU hardware & associated shjpeg library.
+    
+    Patch by Michael Szafranek
+
+commit 1d02b51175f446d4863b8bf48cefc1db373f1a0e
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Wed Jul 27 11:52:42 2011 +0100
+
+    sh772x: Move dfb_surface_lock/unlock to CoreSurface fns
+
+commit c89ae8a21f7f440365b2c0e657afd92feba87b1b
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Wed Jul 27 11:49:17 2011 +0100
+
+    sh772x: Fix sh7722_jpeg destructor releasing a buffer it doesn't own
+
+commit 033f74a81750e90b828d37a1f632e9b2a258a203
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Tue Jul 26 14:17:36 2011 +0100
+
+    sh772x: comsmetic changes only (tabs to spaces)
+
+commit e747b4271d01550c57c232408a174c36187b46a7
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Tue Jul 26 13:50:58 2011 +0100
+
+    sh772x: Correct device name in debug messages
+
+commit 9211441f6edc07f99bde47c16bf1f6ce1805225f
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Tue Jul 26 09:18:31 2011 +0100
+
+    sh772x: Fix warnings in sh7722_jpeg.c
+
+commit 10f6e1767dd947dfa2d56e2b0ff33234bd6cf2a2
+Author: Phil Edworthy <phil.edworthy@renesas.com>
+Date:   Mon Jul 25 14:54:13 2011 +0100
+
+    sh772x: Fix build error, new arg to dfb_surface_create_simple
+
+commit ed0eed1883ee75792999c5344eeb8d3eb47de755
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 31 20:49:41 2011 +0200
+
+    update ChangeLog for 1.4.14 once more
+
 commit 59cd1abc9dffda5ea0b5b50f4d4203b0d216ef2e
 Author: Andreas Shimokawa <andi@directfb.org>
 Date:   Fri Jul 29 19:00:33 2011 +0200

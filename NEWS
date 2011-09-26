@@ -1,3 +1,126 @@
+1.4.15
+------
+
+IDirectFBSurface
+- Fix missing CoreGraphicsStateClient_Deinit() that has led to a memory leak.
+
+ICoreResourceManager and ICoreResourceClient
+- Add new interfaces for resource management, optionally being loaded as modules.
+- The manager has one method to create a new client instance (called within master, per slave).
+- The client has a few methods for checking surface creation/reconfig, adding/removing/updating surfaces.
+
+Runtime Options
+- Add "resource-manager" option to load a resource manager implementation, default is none.
+
+Core
+- Secure Fusion final major update adding CoreScreen and CoreInputDevice interface
+- move from C++ to C using fluxcomp's C mode and slightly modified real implementations
+- Add ICore::Register() method for slaves joining to create a resource client instance in the master.
+- Make ICore_Real::CreateSurface() use the new Core_Resource_CheckSurface() function for
+  asking the resource manager (if any) for creation of the resource.
+- Add Core_Push/PopIdentity() to store the caller ID of an incoming request in TLS.
+- Add Core_GetIdentity() to query the current identity, i.e. ID of the Fusionee that made the IPC call.
+- Add Core_Resource methods wrapping and managing instances of ICoreResourceClient.
+- do not always call dfb_gfxcard_batchblit()
+- shutdown fixes
+- remove Dispatch class, use functions instead (even in C++ mode)
+- add prelock to manage interlocks at master
+- set permissions for FUSION_REF_UP/DOWN for secure-fusion
+- remove obsolete code
+- added missing files, got lost during merge
+- Add copy of surface type flags and resource id to surface buffer.
+- remove precheck for locked buffers in dfb_surface_reconfig()
+- Fix typo in last commit of Surface Buffer object changes
+- Make Surface Buffer a FusionObject and implement locked surface resizing
+- Use old shm surface pool for non-secure fusion, get rid of indices in secure surface pool.
+- Fix crash when dfb_wm_update_cursor() is called with 'no-cursor' option.
+- Export layer surface allocation functions.
+
+Flux
+- Run fluxcomp with argument "-i" to generate calls to Core_Push/PopIdentity().
+- Flux has its own package now, please checkout git://git.directfb.org/git/directfb/core/flux
+- remove workaround for c-mode (dummy data for fusion_call_execute3)
+- added option --include-prefix= to fix build of external projects(e.g sawman)
+- added semicolon to fix warning in generated C code
+- added C mode for generation C instead of C++
+
+Fusion
+- Add fusion_get_fusionee_path() to retrieve the executable file name of a Fusionee (as in /proc/*/exe).
+  This can be used when the resource client is created to apply special limitations, privileges...
+- Add fusion_world_set_leave_callback() to register a callback for processing the new FMT_LEAVE message
+  when a slave leaves the world. This is used by the master to cleanup the resource client instance.
+- Add FusionID parameter to fusion_object_create() to give objects an identity, i.e. the identity of the
+  Fusionee calling the master to create an object.
+- Fix crash by commenting out debug print after unref (in fusion_ref_down itself)
+- Fix fusion_vector_foreach_reverse for empty vectors
+
+Graphics
+- make use of clip_blit_rotated() in dfb_gfxcard_batchblit()
+- always initialize shared surface pool priority with CSPP_DEFAULT
+
+Genefx
+- Fix Bop_argb_blend_alphachannel_src_invsrc_Aop_argb for special case alpha = 0.
+- Fix top clipping of flat top triangles.
+- use 24bpp colorkey template for RGB18 and ARGBx666
+- use 24bpp colorkey template for RGB24, ARGB8565, VYU
+- add a colorkey template for 24bpp pixelformats
+- use 24bpp acc template for RGB18 and ARGBx666
+- use 24bpp acc template for RGB24 and ARGB8565
+- add an acc template for 24bpp pixelformats
+
+ICoreResourceManager_test
+- Add test implementation for ICoreResourceManager and ICoreResourceClient that keeps track of
+  and prints the amount of surface memory being used per slave process.
+    
+JPEG
+- correctly setup iDCT scale factors for libjpeg version 7 or higher
+
+PNG
+- various fixes for colorkey handling and grayscale images
+- fixes for adam7 deinterlacing in 16->8bit per color component conversion case
+
+Dummy
+- Initialise buffer mode in display layer config.
+
+Joystick
+- wrong number for buttons and axes read
+
+VNC
+- Input driver is part of system module now,
+  special attach code no longer needed
+- Fixed several bugs in input event processing
+- Initialize rfbScreen once for the session, 32bit
+- Default screen size is 1280x720 if not set via mode option
+- Use preallocated shared memory surface for screen
+- Render layer onto preallocated ABGR screen surface
+- Layer positioning and scaling is supported
+- Only stream modified rects from clients to master
+  (calling rfbMarkRectAsModified there) using FusionCall2
+- Use automatic port allocation
+- Detect failure in setting up listen socket
+- Use rfbNewFramebuffer call
+
+Build
+- fix out-of-tree builds
+- set version to 1.4.15
+- remove dummy.cpp to prevent linkage of libstdc++
+- set CXX=g++ for fluxcomp, to avoid the cross compiler from being used
+- add more explicit rules for new generated headers
+- fix build of generated core files by specifying explicit rules
+
+SH772x
+- Only use the shjpeg library if available, thanks to Michael Szafranek
+- Move dfb_surface_lock/unlock to CoreSurface fns
+- Fix sh7722_jpeg destructor releasing a buffer it doesn't own
+- comsmetic changes only (tabs to spaces)
+- Correct device name in debug messages
+- Fix warnings in sh7722_jpeg.c
+- Fix build error, new arg to dfb_surface_create_simple
+
+X11
+- Fix crash in non-secure mode.
+
+
 1.4.14
 ------
 
