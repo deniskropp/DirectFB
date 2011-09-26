@@ -2698,6 +2698,17 @@ fusion_world_set_fork_callback( FusionWorld        *world,
 }
 
 /*
+ * Registers a callback called when a slave exits.
+ */
+void
+fusion_world_set_leave_callback( FusionWorld         *world,
+                                 FusionLeaveCallback  callback,
+                                 void                *ctx )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+}
+
+/*
  * Return the index of the specified world.
  */
 int
