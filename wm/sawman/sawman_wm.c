@@ -1536,6 +1536,9 @@ wm_close_stack( CoreWindowStack *stack,
 
      D_MAGIC_CLEAR( data );
 
+     if (sawman->lock == &stack->context->lock)
+          sawman->lock = NULL;
+
      return DFB_OK;
 }
 

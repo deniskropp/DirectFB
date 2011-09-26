@@ -887,7 +887,8 @@ unregister_process( SaWMan        *sawman,
 {
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( process, SaWManProcess );
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
+     if (sawman->lock)
+          FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      /* Destroy reference counter. */
      fusion_ref_destroy( &process->ref );
