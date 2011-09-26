@@ -805,13 +805,11 @@ static DirectResult layer_reconfig( void                *context,
           SaWManWindowInfo info;
 
           D_INFO( "   going to single mode, window: %p\n", (void*)(reconfig->single) );
-          res = tm->manager->GetWindowInfo( tm->manager, reconfig->layer_id, &info );
-          if (res)
+          res = tm->manager->GetWindowInfo( tm->manager, reconfig->single, &info );
+          if (res == DFB_OK)
               D_INFO( "   size: %dx%d\n", info.config.bounds.w, info.config.bounds.h );
      }
 
-     config->width  = 300;
-     config->height = 300;
 
      D_INFO( "   requested layer size: %dx%d\n", config->width, config->height );
      
