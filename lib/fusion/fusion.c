@@ -1098,7 +1098,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
 
                               /* If the call comes from kernel space it is most likely a destructor call, defer it */
-                              if (((FusionCallMessage*) data)->caller == 0) {
+                              if (fusion_config->defer_destructors && ((FusionCallMessage*) data)->caller == 0) {
                                    defer_message( world, header, data );
                               }
                               else

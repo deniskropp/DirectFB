@@ -55,6 +55,7 @@ const char   *fusion_config_usage =
      "  [no-]debugshm                  Enable shared memory allocation tracking\n"
      "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
      "  [no-]secure-fusion             Use secure fusion, e.g. read-only shm (default=no)\n"
+     "  [no-]defer-destructors         Handle destructor calls in separate thread\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -128,6 +129,12 @@ fusion_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-secure-fusion" ) == 0) {
           fusion_config->secure_fusion = false;
+     } else
+     if (strcmp (name, "defer-destructors" ) == 0) {
+          fusion_config->defer_destructors = true;
+     } else
+     if (strcmp (name, "no-defer-destructors" ) == 0) {
+          fusion_config->defer_destructors = false;
      } else
      if (direct_config_set( name, value ))
           return DR_UNSUPPORTED;

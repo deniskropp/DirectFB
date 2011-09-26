@@ -43,6 +43,8 @@ struct __Fusion_FusionConfig {
      gid_t shmfile_gid;       /* group that owns shm file */     
 
      bool  secure_fusion;
+
+     bool  defer_destructors;
 };
 
 extern FusionConfig FUSION_API *fusion_config;
