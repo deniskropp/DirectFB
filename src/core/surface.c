@@ -567,7 +567,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
           return ret;
 
      /* Destroy the Surface Buffers. */
-     num_eyes = new_config.caps & DSCAPS_STEREO ? 2 : 1;
+     num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<surface->num_buffers; i++) {
