@@ -90,10 +90,9 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
                dfb_surface_buffer_decouple( surface->buffers[i] );
      }
 
-     dfb_system_surface_data_destroy( surface, surface->data );
-
      /* release the system driver specific surface data */
      if (surface->data) {
+          dfb_system_surface_data_destroy( surface, surface->data );
           SHFREE( surface->shmpool, surface->data );
           surface->data = NULL;
      }
@@ -137,6 +136,7 @@ dfb_surface_create( CoreDFB                  *core,
      int                 buffers;
      CoreSurface *       surface;
      char                buf[64];
+     int                 data_size;
      int                 num_eyes;
      DFBSurfaceStereoEye eye;
 
@@ -264,17 +264,16 @@ dfb_surface_create( CoreDFB                  *core,
      }
 
      /* Create the system driver specific surface data information */
-     int data_size = dfb_system_surface_data_size();
-
+     data_size = dfb_system_surface_data_size();
      if (data_size) {
           surface->data = SHCALLOC( surface->shmpool, 1, data_size );
           if (!surface->data) {
               ret = D_OOSHM();
               goto error;
           }
-     }
 
-     dfb_system_surface_data_init(surface,surface->data);
+          dfb_system_surface_data_init( surface, surface->data );
+     }
 
      /* Create the Surface Buffers. */
      num_eyes = config->caps & DSCAPS_STEREO ? 2 : 1;

@@ -1394,7 +1394,11 @@ typedef enum {
       ((fmt) == DSPF_NV12)         ||   \
       ((fmt) == DSPF_NV16)         ||   \
       ((fmt) == DSPF_NV21)         ||   \
-      ((fmt) == DSPF_AYUV))
+      ((fmt) == DSPF_AYUV)         ||   \
+      ((fmt) == DSPF_YUV444P)      ||   \
+      ((fmt) == DSPF_AVYU)         ||   \
+      ((fmt) == DSPF_VYU)          ||   \
+      ((fmt) == DSPF_YV16))
 
 /*
  * Color space used by the colors in the surface. 
