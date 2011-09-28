@@ -441,7 +441,7 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                     }
                     break;
 
-               case DSPF_ARGBF88871:
+               case DSPF_RGBAF88871:
                     if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY) {
                          for (i=0; i<gfxs->Blut->num_entries; i++) {
                               int alpha = entries[i].a + 1;
