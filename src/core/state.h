@@ -208,6 +208,8 @@ struct _CardState {
      s32                      src_colormatrix[12];     /* transformation matrix for DSBLIT_SRC_COLORMATRIX (fixed 16.16) */
 
      DFBConvolutionFilter     src_convolution;
+
+     void                    *gfxcard_data; /* gfx driver specific state data */
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );

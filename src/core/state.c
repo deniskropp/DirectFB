@@ -145,6 +145,9 @@ dfb_state_init( CardState *state, CoreDFB *core )
 
      D_MAGIC_SET( state, CardState );
 
+     state->gfxcard_data = NULL;
+     dfb_gfxcard_state_init( state );
+
      return 0;
 }
 
@@ -159,6 +162,9 @@ dfb_state_destroy( CardState *state )
      D_ASSERT( state->source == NULL );
      D_ASSERT( state->source2 == NULL );
      D_ASSERT( state->source_mask == NULL );
+
+     dfb_gfxcard_state_destroy( state );
+     state->gfxcard_data = NULL;
 
      D_MAGIC_CLEAR( state );
 

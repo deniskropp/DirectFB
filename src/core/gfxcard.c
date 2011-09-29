@@ -918,6 +918,42 @@ dfb_gfxcard_state_release( CardState *state )
      Core_PopIdentity();
 }
 
+void
+dfb_gfxcard_state_init ( CardState *state )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     if (dfb_config->software_only)
+          return;
+
+     if (card) {
+          D_ASSERT( card != NULL );
+          D_ASSERT( card->shared != NULL );
+
+          if (card->funcs.StateInit)
+               card->funcs.StateInit( card->driver_data, card->device_data,
+                                      state );
+     }
+}
+
+void
+dfb_gfxcard_state_destroy ( CardState *state )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     if (dfb_config->software_only)
+          return;
+
+     if (card) {
+          D_ASSERT( card != NULL );
+          D_ASSERT( card->shared != NULL );
+
+          if (card->funcs.StateDestroy)
+               card->funcs.StateDestroy( card->driver_data, card->device_data,
+                                         state );
+     }
+}
+
 /** DRAWING FUNCTIONS **/
 
 #define DFB_TRANSFORM(x, y, m, affine) \
