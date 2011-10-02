@@ -2678,12 +2678,16 @@ wm_set_window_config( CoreWindow             *window,
                          SWMUF_UPDATE_BORDER | SWMUF_FORCE_COMPLETE | SWMUF_RIGHT_EYE );
           }
 
-          if ( (config->options ^ window->config.options) & DWOP_INPUTONLY ) {
-               window->config.options = config->options;
-               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
-          }
+          if ( (config->options ^ window->config.options) & (DWOP_INPUTONLY | DWOP_STEREO_SIDE_BY_SIDE_HALF) ) {
+               if (config->options & DWOP_STEREO_SIDE_BY_SIDE_HALF) {
+                    DFBDisplayLayerConfig *config = &tier->config;
 
-          if ( (config->options ^ window->config.options) & DWOP_INPUTONLY ) {
+                    config->flags            |= DLCONF_OPTIONS | DLCONF_SURFACE_CAPS;
+                    config->options          |= DLOP_STEREO;
+                    config->surface_caps     |= DSCAPS_STEREO;
+                    dfb_layer_context_set_configuration( tier->context, config );
+               }
+
                window->config.options = config->options;
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
           }

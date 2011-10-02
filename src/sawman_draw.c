@@ -363,6 +363,14 @@ draw_window( SaWManTier   *tier,
      D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__,
                  sawwin, DFB_RECTANGLE_VALS_FROM_REGION( region ) );
 
+     if (window->config.options & DWOP_STEREO_SIDE_BY_SIDE_HALF) {
+          src.x /= 2;
+          src.w /= 2;
+
+          if (right_eye)
+               src.x += window->surface->config.size.w / 2;
+     }
+
      /* Modify dst for stereo offset. */
      offset = window->config.z;
      offset *= right_eye ? -1 : 1;
