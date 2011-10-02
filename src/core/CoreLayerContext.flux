@@ -255,5 +255,23 @@ interface {
 			typename  CoreWindow
 		}
 	}
+
+	method {
+		name FindWindowByResourceID
+
+		arg {
+			name      resource_id
+			direction input
+			type      int
+			typename  u64
+		}
+
+		arg {
+			name      window
+			direction output
+			type      object
+			typename  CoreWindow
+		}
+	}
 }
 

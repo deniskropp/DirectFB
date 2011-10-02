@@ -757,11 +757,8 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
      if (!window)
           return DFB_INVARG;
    
-      //remove for now
-     //if (data->level == DLSCL_SHARED)
-     //    return DFB_ACCESSDENIED;
-
-     ret = CoreLayerContext_FindWindow( data->context, id, &w ); // FIXME: ref count?
+     /* IDirectFBWindow_Construct won't ref it, so we don't unref it */
+     ret = CoreLayerContext_FindWindow( data->context, id, &w );
      if (ret)
           return ret;
 
@@ -1029,88 +1026,39 @@ IDirectFBDisplayLayer_GetRotation( IDirectFBDisplayLayer *thiz,
      D_MAGIC_ASSERT( context, CoreLayerContext );
 
      /* Lock the context. */
-     if (dfb_layer_context_lock( context ))
-          return DFB_FUSION;
+//     if (dfb_layer_context_lock( context ))
+//          return DFB_FUSION;
 
      *ret_rotation = context->rotation;
 
      /* Unlock the context. */
-     dfb_layer_context_unlock( context );
+//     dfb_layer_context_unlock( context );
 
      return DFB_OK;
 }
 
-typedef struct {
-     unsigned long    resource_id;
-     CoreWindow      *window;
-} IDirectFBDisplayLayer_GetWindowByResourceID_Context;
-
-static DFBEnumerationResult
-IDirectFBDisplayLayer_GetWindowByResourceID_WindowCallback( CoreWindow *window,
-                                                            void       *_ctx )
-{
-     IDirectFBDisplayLayer_GetWindowByResourceID_Context *ctx = _ctx;
-
-     if (window->surface) {
-          if (window->surface->resource_id == ctx->resource_id) {
-               ctx->window = window;
-
-               return DFENUM_CANCEL;
-          }
-     }
-
-     return DFENUM_OK;
-}
 
 static DFBResult
 IDirectFBDisplayLayer_GetWindowByResourceID( IDirectFBDisplayLayer  *thiz,
                                              unsigned long           resource_id,
                                              IDirectFBWindow       **ret_window )
 {
-     DFBResult                                            ret;
-     CoreLayerContext                                    *context;
-     CoreWindowStack                                     *stack;
-     IDirectFBDisplayLayer_GetWindowByResourceID_Context  ctx;
+     DFBResult   ret;
+     CoreWindow *w;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
      if (!ret_window)
           return DFB_INVARG;
 
-     context = data->context;
-     D_MAGIC_ASSERT( context, CoreLayerContext );
-
-     stack = context->stack;
-     D_ASSERT( stack != NULL );
-
-     ctx.resource_id = resource_id;
-     ctx.window      = NULL;
-
-     ret = dfb_layer_context_lock( context );
+     /* IDirectFBWindow_Construct won't ref it, so we don't unref it */
+     ret = CoreLayerContext_FindWindowByResourceID( data->context, resource_id, &w );
      if (ret)
-         return ret;
+          return ret;
 
-     ret = dfb_wm_enum_windows( stack, IDirectFBDisplayLayer_GetWindowByResourceID_WindowCallback, &ctx );
-     if (ret == DFB_OK) {
-          if (ctx.window) {
-               IDirectFBWindow *window;
+     DIRECT_ALLOCATE_INTERFACE( *ret_window, IDirectFBWindow );
 
-               ret = dfb_window_ref( ctx.window );
-               if (ret == DFB_OK) {
-                    DIRECT_ALLOCATE_INTERFACE( window, IDirectFBWindow );
-
-                    ret = IDirectFBWindow_Construct( window, ctx.window, data->layer, data->core, data->idirectfb );
-                    if (ret == DFB_OK)
-                         *ret_window = window;
-               }
-          }
-          else
-               ret = DFB_IDNOTFOUND;
-     }
-
-     dfb_layer_context_unlock( context );
-
-     return ret;
+     return IDirectFBWindow_Construct( *ret_window, w, data->layer, data->core, data->idirectfb );
 }
 
 DFBResult

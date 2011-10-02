@@ -38,6 +38,7 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/core.h>
+#include <core/wm.h>
 }
 
 D_DEBUG_DOMAIN( DirectFB_CoreLayerContext, "DirectFB/CoreLayerContext", "DirectFB CoreLayerContext" );
@@ -278,6 +279,69 @@ ILayerContext_Real::FindWindow(
     *ret_window = window;
 
     return DFB_OK;
+}
+
+typedef struct {
+     unsigned long    resource_id;
+     CoreWindow      *window;
+} FindWindowByResourceID_Context;
+
+static DFBEnumerationResult
+FindWindowByResourceID_WindowCallback( CoreWindow *window,
+                                       void       *_ctx )
+{
+     FindWindowByResourceID_Context *ctx = (FindWindowByResourceID_Context *) _ctx;
+
+     if (window->surface) {
+          if (window->surface->resource_id == ctx->resource_id) {
+               ctx->window = window;
+
+               return DFENUM_CANCEL;
+          }
+     }
+
+     return DFENUM_OK;
+}
+
+DFBResult
+ILayerContext_Real::FindWindowByResourceID(
+                    u64                                        resource_id,
+                    CoreWindow                               **ret_window
+)
+{
+     DFBResult                       ret;
+     CoreLayerContext               *context = obj;
+     CoreWindowStack                *stack;
+     FindWindowByResourceID_Context  ctx;
+
+     D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
+
+     D_ASSERT( ret_window != NULL );
+
+     stack = context->stack;
+     D_ASSERT( stack != NULL );
+
+     ctx.resource_id = resource_id;
+     ctx.window      = NULL;
+
+     ret = (DFBResult) dfb_layer_context_lock( context );
+     if (ret)
+         return ret;
+
+     ret = dfb_wm_enum_windows( stack, FindWindowByResourceID_WindowCallback, &ctx );
+     if (ret == DFB_OK) {
+          if (ctx.window) {
+               ret = (DFBResult) dfb_window_ref( ctx.window );
+               if (ret == DFB_OK)
+                    *ret_window = ctx.window;
+          }
+          else
+               ret = DFB_IDNOTFOUND;
+     }
+
+     dfb_layer_context_unlock( context );
+
+     return ret;
 }
 
 
