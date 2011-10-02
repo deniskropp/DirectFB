@@ -10,6 +10,24 @@ interface {
 
 
 	method {
+		name GetInsets
+
+		arg {
+			name		window
+			direction	input
+			type		object
+			typename	CoreWindow
+		}
+
+		arg {
+			name		insets
+			direction	output
+			type		struct
+			typename	DFBInsets
+		}
+	}
+
+	method {
 		name CursorEnable
 
 		arg {
