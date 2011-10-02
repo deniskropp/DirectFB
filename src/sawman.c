@@ -366,17 +366,8 @@ sawman_join( SaWMan         *sawman,
      m_sawman = sawman;
      m_world  = world;
 
-     /* Lock SaWMan. */
-     ret = sawman_lock( sawman );
-     if (ret)
-          goto error;
-
      /* Register ourself as a new process. */
      ret = SaWMan_RegisterProcess( sawman, SWMPF_NONE, getpid(), fusion_id( world ), &m_process );
-
-     /* Unlock SaWMan. */
-     sawman_unlock( sawman );
-
      if (ret)
           goto error;
 
