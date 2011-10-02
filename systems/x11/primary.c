@@ -412,8 +412,6 @@ primaryInitLayer( CoreLayer                  *layer,
      /* set capabilities and type */
      description->caps = DLCAPS_SURFACE | DLCAPS_STEREO;
      description->type = DLTF_GRAPHICS;
-     description->surface_caps     = DSCAPS_SYSTEMONLY;
-     description->surface_accessor = CSAID_CPU;
 
      /* set name */
      snprintf( description->name,
