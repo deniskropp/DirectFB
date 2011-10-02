@@ -52,6 +52,7 @@
 #include <core/CoreLayerRegion.h>
 #include <core/CoreSurface.h>
 #include <core/CoreWindow.h>
+#include <core/CoreWindowStack.h>
 
 #include <display/idirectfbsurface.h>
 #include <display/idirectfbsurface_window.h>
@@ -411,11 +412,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      stack = window->stack;
      D_MAGIC_ASSERT( stack, CoreWindowStack );
 
-     dfb_layer_context_lock( stack->context );
-
-     dfb_wm_get_insets( stack, window, &insets );
-     
-     dfb_layer_context_unlock( stack->context );
+     CoreWindowStack_GetInsets( stack, window, &insets );
 
      ret = CoreWindow_GetSurface( window, &surface );
      if (ret)

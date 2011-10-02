@@ -38,6 +38,7 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/core.h>
+#include <core/wm.h>
 }
 
 D_DEBUG_DOMAIN( DirectFB_CoreWindowStack, "DirectFB/CoreWindowStack", "DirectFB CoreWindowStack" );
@@ -55,6 +56,28 @@ IWindowStack_Real::RepaintAll(
     D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
 
     return dfb_windowstack_repaint_all( obj );
+}
+
+
+DFBResult
+IWindowStack_Real::GetInsets(
+     CoreWindow                               *window,
+     DFBInsets                                *ret_insets
+)
+{
+    DFBResult ret;
+
+    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
+
+    ret = (DFBResult) dfb_layer_context_lock( obj->context );
+    if (ret)
+         return ret;
+
+    ret = dfb_wm_get_insets( obj, window, ret_insets );
+
+    dfb_layer_context_unlock( obj->context );
+
+    return ret;
 }
 
 
