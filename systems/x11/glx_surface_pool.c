@@ -494,6 +494,9 @@ glxAllocateBuffer( CoreSurfacePool       *pool,
 
      alloc->depth  = DFB_COLOR_BITS_PER_PIXEL( buffer->format ) + DFB_ALPHA_BITS_PER_PIXEL( buffer->format );
 
+     if (surface->type & CSTF_LAYER)
+          alloc->depth = 24;
+
      /*
       * Create a pixmap
       */
