@@ -834,7 +834,6 @@ fusion_call_init (FusionCall        *call,
                   const FusionWorld *world)
 {
      D_ASSERT( call != NULL );
-     D_ASSERT( call->handler == NULL );
      D_ASSERT( handler != NULL );
 
      /* Called locally. */
@@ -851,7 +850,6 @@ fusion_call_init3 (FusionCall         *call,
                    const FusionWorld  *world)
 {
      D_ASSERT( call != NULL );
-     D_ASSERT( call->handler == NULL );
      D_ASSERT( handler3 != NULL );
 
      /* Called locally. */
