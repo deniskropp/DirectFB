@@ -46,6 +46,7 @@
 
 #include <core/CoreSurface.h>
 #include <core/CoreWindow.h>
+#include <core/CoreWindowStack.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -293,9 +294,7 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
      if (!x && !y)
           return DFB_INVARG;
 
-     dfb_windowstack_lock( data->window->stack );
-     dfb_wm_get_insets( data->window->stack, data->window, &insets );
-     dfb_windowstack_unlock( data->window->stack );
+     CoreWindowStack_GetInsets( data->window->stack, data->window, &insets );
 
      if (x)
           *x = data->window->config.bounds.x-insets.l;
@@ -322,9 +321,7 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
      if (!width && !height)
           return DFB_INVARG;
 
-     dfb_windowstack_lock( data->window->stack );
-     dfb_wm_get_insets( data->window->stack, data->window, &insets );
-     dfb_windowstack_unlock( data->window->stack );
+     CoreWindowStack_GetInsets( data->window->stack, data->window, &insets );
 
      if (width)
           *width = data->window->config.bounds.w-insets.l-insets.r;
