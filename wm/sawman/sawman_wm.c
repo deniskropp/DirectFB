@@ -2253,7 +2253,8 @@ wm_add_window( CoreWindowStack *stack,
 
           default:
                direct_list_remove( &sawman->windows, &sawwin->link );
-               break;
+               sawman_unlock( sawman );
+               return ret;
      }
 
      if (ret == DFB_OK && sawwin->parent) {
