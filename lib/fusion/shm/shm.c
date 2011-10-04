@@ -77,7 +77,7 @@ fusion_find_tmpfs( char *name, int len )
              (!strcmp( mount_fs, "tmpfs" ) || !strcmp( mount_fs, "shmfs" ) || !strcmp( mount_fs, "ramfs" )))
           {
                struct statfs stat;
-               int           bytes;
+               s64           bytes;
 
                if (statfs( mount_point, &stat )) {
                     D_PERROR( "Fusion/SHM: statfs on '%s' failed!\n", mount_point );
