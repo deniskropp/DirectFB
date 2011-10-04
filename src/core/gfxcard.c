@@ -2160,7 +2160,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
               !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
-               clip_blit_flipped_rotated( rect, &drect, &state->clip, state->blittingflags );
+               dfb_clip_blit_flipped_rotated( &state->clip, rect, &drect, state->blittingflags );
 
           hw = card->funcs.Blit( card->driver_data, card->device_data, rect, drect.x, drect.y );
 
@@ -2171,7 +2171,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
           /* Use software fallback. */
           if (!(state->render_options & DSRO_MATRIX)) {
                if (gAcquire( state, DFXL_BLIT )) {
-                    clip_blit_flipped_rotated( rect, &drect, &state->clip, state->blittingflags );
+                    dfb_clip_blit_flipped_rotated( &state->clip, rect, &drect, state->blittingflags );
 
                     gBlit( state, rect, drect.x, drect.y );
 
@@ -2277,7 +2277,7 @@ clip_blits( const DFBRegion         *clip,
           if (dfb_clip_blit_precheck( clip, drect.w, drect.h, drect.x, drect.y )) {
                ret_rects[clipped_num] = rects[i];
 
-               clip_blit_flipped_rotated( &ret_rects[clipped_num], &drect, clip, flags );
+               dfb_clip_blit_flipped_rotated( clip, &ret_rects[clipped_num], &drect, flags );
 
                ret_points[clipped_num].x = drect.x;
                ret_points[clipped_num].y = drect.y;
@@ -2383,7 +2383,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
 
                          if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
                              !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
-                              clip_blit_flipped_rotated( &srect, &drect, &state->clip, state->blittingflags );
+                              dfb_clip_blit_flipped_rotated( &state->clip, &srect, &drect, state->blittingflags );
 
                          if (!card->funcs.Blit( card->driver_data, card->device_data,
                                                 &srect, drect.x, drect.y ))
@@ -2466,7 +2466,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                          {
                               DFBRectangle srect = rects[i];
 
-                              clip_blit_flipped_rotated( &srect, &drect, &state->clip, state->blittingflags );
+                              dfb_clip_blit_flipped_rotated( &state->clip, &srect, &drect, state->blittingflags );
                               gBlit( state, &srect, drect.x, drect.y );
                          }
                     }

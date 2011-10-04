@@ -381,8 +381,8 @@ dfb_clip_stretchblit( const DFBRegion *clip,
 
 
 void
-clip_blit_flipped_rotated( DFBRectangle *srect,
-                           DFBRectangle *drect, const DFBRegion *clip, DFBSurfaceBlittingFlags flags )
+dfb_clip_blit_flipped_rotated( const DFBRegion *clip,
+                         DFBRectangle *srect, DFBRectangle *drect, DFBSurfaceBlittingFlags flags )
 {
      DFBRegion dest    = DFB_REGION_INIT_FROM_RECTANGLE( drect );
      DFBRegion clipped = dest;
