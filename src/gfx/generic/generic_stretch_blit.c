@@ -645,38 +645,26 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      h = drect->h;
 
+     Aop_X = drect->x;
+     Aop_Y = drect->y;
+
+     Bop_X = srect->x;
+     Bop_Y = srect->y;
+
+     Bop_advance = Genefx_Bop_next;
+
      if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
           gfxs->Astep *= -1;
 
-          Aop_X = drect->x + drect->w - 1;
-          Aop_Y = drect->y;
-
-          Bop_X = srect->x;
-          Bop_Y = srect->y;
-
-          Aop_advance = Genefx_Aop_next;
-          Bop_advance = Genefx_Bop_next;
+          Aop_X += (drect->w - 1);
      }
-     else if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
-          Aop_X = drect->x;
-          Aop_Y = drect->y + drect->h - 1;
-
-          Bop_X = srect->x;
-          Bop_Y = srect->y;
+     if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
+          Aop_Y += (drect->h - 1);
 
           Aop_advance = Genefx_Aop_prev;
-          Bop_advance = Genefx_Bop_next;
      }
-     else {
-          Aop_X = drect->x;
-          Aop_Y = drect->y;
-
-          Bop_X = srect->x;
-          Bop_Y = srect->y;
-
+     else
           Aop_advance = Genefx_Aop_next;
-          Bop_advance = Genefx_Bop_next;
-     }
 
      Genefx_Aop_xy( gfxs, Aop_X, Aop_Y );
      Genefx_Bop_xy( gfxs, Bop_X, Bop_Y );
