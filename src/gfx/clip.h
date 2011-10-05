@@ -75,7 +75,7 @@ dfb_clip_needed( const DFBRegion *clip, DFBRectangle *rect )
  */
 DFBBoolean   dfb_clip_triangle_precheck( const DFBRegion   *clip,
                                          const DFBTriangle *tri );
-                                         
+
 /*
  * Clips the triangle to the clipping region.
  * Returns true if the triangle if visible within the region.
@@ -85,7 +85,7 @@ DFBBoolean   dfb_clip_triangle_precheck( const DFBRegion   *clip,
 DFBBoolean   dfb_clip_triangle( const DFBRegion   *clip,
                                 const DFBTriangle *tri,
                                 DFBPoint           buf[6],
-                                int               *num );                                
+                                int               *num );
 
 /*
  * Simple check if requested blitting lies outside of the clipping region.
@@ -120,6 +120,22 @@ void dfb_clip_blit( const DFBRegion *clip,
 void dfb_clip_stretchblit( const DFBRegion *clip,
                            DFBRectangle    *srect,
                            DFBRectangle    *drect );
+
+/*
+ * Clips the blitting request to the clipping region.
+ * This includes adjustment of source AND destination coordinates.
+ *
+ * In contrast to dfb_clip_blit() this also honors DSBLIT_ROTATE_ and DSBLIT_FLIP_ blittingflags.
+ *
+ * FIXME: rotation and flipping is not supported simultaniously since the software driver
+ * would crash in its current state.
+ */
+
+void
+dfb_clip_blit_flipped_rotated( const DFBRegion *clip,
+                               DFBRectangle *srect, DFBRectangle *drect, DFBSurfaceBlittingFlags flags );
+
+
 
 #endif
 
