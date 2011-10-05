@@ -367,6 +367,8 @@ create_arena( FusionWorld *world,
      if (ret)
           goto error;
 
+     fusion_skirmish_add_permissions( &arena->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+
      ret = fusion_ref_init( &arena->ref, buf, world );
      if (ret)
           goto error_ref;

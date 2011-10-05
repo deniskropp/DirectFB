@@ -86,6 +86,8 @@ dfb_clipboard_core_initialize( CoreDFB                *core,
 
      fusion_skirmish_init( &shared->lock, "Clipboard Core", dfb_core_world(core) );
 
+     fusion_skirmish_add_permissions( &shared->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+
      D_MAGIC_SET( data, DFBClipboardCore );
      D_MAGIC_SET( shared, DFBClipboardCoreShared );
 

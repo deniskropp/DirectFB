@@ -209,7 +209,6 @@ DirectResult
 fusion_shm_pool_attach( FusionSHM           *shm,
                         FusionSHMPoolShared *pool )
 {
-     DirectResult     ret;
      FusionSHMShared *shared;
 
      D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p )\n", __FUNCTION__, shm, pool );
@@ -223,22 +222,13 @@ fusion_shm_pool_attach( FusionSHM           *shm,
 
      D_ASSERT( shared == pool->shm );
 
-     ret = fusion_skirmish_prevail( &pool->lock );
-     if (ret) {
-          return ret;
-     }
-
      D_ASSERT( pool->active );
      D_ASSERT( pool->index >= 0 );
      D_ASSERT( pool->index < FUSION_SHM_MAX_POOLS );
      D_ASSERT( pool == &shared->pools[pool->index] );
      D_ASSERT( !shm->pools[pool->index].attached );
 
-     ret = join_pool( shm, &shm->pools[pool->index], pool );
-
-     fusion_skirmish_dismiss( &pool->lock );
-
-     return ret;
+     return join_pool( shm, &shm->pools[pool->index], pool );
 }
 
 DirectResult
@@ -259,12 +249,6 @@ fusion_shm_pool_detach( FusionSHM           *shm,
 
      D_ASSERT( shared == pool->shm );
 
-     ret = fusion_skirmish_prevail( &pool->lock );
-     if (ret) {
-          fusion_skirmish_dismiss( &shared->lock );
-          return ret;
-     }
-
      D_ASSERT( pool->active );
      D_ASSERT( pool->index >= 0 );
      D_ASSERT( pool->index < FUSION_SHM_MAX_POOLS );
@@ -275,8 +259,6 @@ fusion_shm_pool_detach( FusionSHM           *shm,
      D_MAGIC_ASSERT( &shm->pools[pool->index], FusionSHMPool );
 
      leave_pool( shm, &shm->pools[pool->index], pool );
-
-     fusion_skirmish_dismiss( &pool->lock );
 
      return DR_OK;
 }

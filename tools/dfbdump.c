@@ -53,6 +53,8 @@
 #include <fusion/shm/shm.h>
 #include <fusion/shm/shm_internal.h>
 
+#include <core/CoreLayer.h>
+
 #include <core/core.h>
 #include <core/layer_control.h>
 #include <core/layer_context.h>
@@ -650,27 +652,19 @@ static void
 dump_windows( CoreLayer *layer )
 {
      DFBResult         ret;
-     CoreLayerShared  *shared;
      CoreLayerContext *context;
      CoreWindowStack  *stack;
 
-     shared = layer->shared;
-
-     ret = fusion_skirmish_prevail( &shared->lock );
-     if (ret) {
-          D_DERROR( ret, "DirectFB/Dump: Could not lock the shared layer data!\n" );
+     if (!layer->shared->contexts.primary)
           return;
-     }
 
-     context = layer->shared->contexts.primary;
-     if (!context) {
-          fusion_skirmish_dismiss( &shared->lock );
+     ret = CoreLayer_GetPrimaryContext( layer, false, &context );
+     if (ret)
           return;
-     }
 
      stack = dfb_layer_context_windowstack( context );
      if (!stack) {
-          fusion_skirmish_dismiss( &shared->lock );
+          dfb_layer_context_unref( context );
           return;
      }
 
@@ -687,7 +681,7 @@ dump_windows( CoreLayer *layer )
 
      dfb_windowstack_unlock( stack );
 
-     fusion_skirmish_dismiss( &shared->lock );
+     dfb_layer_context_unref( context );
 }
 
 static DFBEnumerationResult

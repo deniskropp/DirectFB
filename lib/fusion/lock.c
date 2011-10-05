@@ -84,8 +84,6 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 
      fusion_entry_add_permissions( world, FT_SKIRMISH, skirmish->multi.id, 0,
-                                   FUSION_SKIRMISH_PREVAIL,
-                                   FUSION_SKIRMISH_DISMISS,
                                    FUSION_SKIRMISH_LOCK_COUNT,
                                    0 );
 
@@ -264,6 +262,49 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
 
           D_PERROR ("FUSION_SKIRMISH_NOTIFY");
           return DR_FUSION;
+     }
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_skirmish_add_permissions( FusionSkirmish            *skirmish,
+                                 FusionID                   fusion_id,
+                                 FusionSkirmishPermissions  skirmish_permissions )
+{
+     FusionEntryPermissions permissions;
+
+     permissions.type        = FT_SKIRMISH;
+     permissions.id          = skirmish->multi.id;
+     permissions.fusion_id   = fusion_id;
+     permissions.permissions = 0;
+
+     if (skirmish_permissions & FUSION_SKIRMISH_PERMIT_PREVAIL)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_SKIRMISH_PREVAIL );
+
+     if (skirmish_permissions & FUSION_SKIRMISH_PERMIT_SWOOP)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_SKIRMISH_SWOOP );
+
+     if (skirmish_permissions & FUSION_SKIRMISH_PERMIT_DISMISS)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_SKIRMISH_DISMISS );
+
+     if (skirmish_permissions & FUSION_SKIRMISH_PERMIT_LOCK_COUNT)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_SKIRMISH_LOCK_COUNT );
+
+     if (skirmish_permissions & FUSION_SKIRMISH_PERMIT_WAIT)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_SKIRMISH_WAIT );
+
+     if (skirmish_permissions & FUSION_SKIRMISH_PERMIT_NOTIFY)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_SKIRMISH_NOTIFY );
+
+     if (skirmish_permissions & FUSION_SKIRMISH_PERMIT_DESTROY)
+          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_SKIRMISH_DESTROY );
+
+     while (ioctl( _fusion_fd( skirmish->multi.shared ), FUSION_ENTRY_ADD_PERMISSIONS, &permissions ) < 0) {
+          if (errno != EINTR) {
+               D_PERROR( "Fusion/Reactor: FUSION_ENTRY_ADD_PERMISSIONS( id %d ) failed!\n", skirmish->multi.id );
+               return DR_FAILURE;
+          }
      }
 
      return DR_OK;
@@ -721,6 +762,14 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
 
      pthread_cond_broadcast( &skirmish->single->cond );
 
+     return DR_OK;
+}
+
+DirectResult
+fusion_skirmish_add_permissions( FusionSkirmish            *skirmish,
+                                 FusionID                   fusion_id,
+                                 FusionSkirmishPermissions  skirmish_permissions )
+{
      return DR_OK;
 }
 

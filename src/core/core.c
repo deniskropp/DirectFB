@@ -1498,6 +1498,11 @@ dfb_core_arena_initialize( FusionArena *arena,
 
      fusion_skirmish_init( &shared->lock, "DirectFB Core", core->world );
 
+     fusion_skirmish_add_permissions( &shared->lock, 0,
+                                      FUSION_SKIRMISH_PERMIT_PREVAIL |
+                                      FUSION_SKIRMISH_PERMIT_DISMISS |
+                                      FUSION_SKIRMISH_PERMIT_WAIT );
+
      CoreDFB_Init_Dispatch( core, core, &shared->call );
 
      fusion_call_add_permissions( &shared->call, 0, FUSION_CALL_PERMIT_EXECUTE );

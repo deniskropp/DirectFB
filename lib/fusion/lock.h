@@ -121,5 +121,27 @@ DirectResult fusion_skirmish_notify ( FusionSkirmish    *skirmish );
      } while (0)
 #endif
 
+
+typedef enum {
+     FUSION_SKIRMISH_PERMIT_NONE                  = 0x00000000,
+
+     FUSION_SKIRMISH_PERMIT_PREVAIL               = 0x00000001,
+     FUSION_SKIRMISH_PERMIT_SWOOP                 = 0x00000002,
+     FUSION_SKIRMISH_PERMIT_DISMISS               = 0x00000004,
+     FUSION_SKIRMISH_PERMIT_LOCK_COUNT            = 0x00000008,
+     FUSION_SKIRMISH_PERMIT_WAIT                  = 0x00000010,
+     FUSION_SKIRMISH_PERMIT_NOTIFY                = 0x00000020,
+     FUSION_SKIRMISH_PERMIT_DESTROY               = 0x00000040,
+
+     FUSION_SKIRMISH_PERMIT_ALL                   = 0x0000007F,
+} FusionSkirmishPermissions;
+
+/*
+ * Give permissions to another fusionee to use the skirmish.
+ */
+DirectResult fusion_skirmish_add_permissions( FusionSkirmish            *skimrish,
+                                              FusionID                   fusion_id,
+                                              FusionSkirmishPermissions  permissions );
+
 #endif
 
