@@ -116,8 +116,6 @@ ISaWManManager_QueueUpdate( ISaWManManager         *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
      return SaWManManager_QueueUpdate( data->manager, stacking, region );
 }
 
@@ -131,8 +129,6 @@ ISaWManManager_ProcessUpdates( ISaWManManager      *thiz,
 
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
-
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      return SaWManManager_ProcessUpdates( data->manager, flags );
 }
@@ -175,8 +171,6 @@ ISaWManManager_SetVisible( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
      D_UNIMPLEMENTED();
 
      return DFB_UNIMPLEMENTED;// sawman_set_visible( sawman, window );
@@ -198,8 +192,6 @@ ISaWManManager_SwitchFocus( ISaWManManager     *thiz,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
-
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      return SaWManManager_SwitchFocus( data->manager, window );
 }
@@ -230,8 +222,6 @@ ISaWManManager_GetSize( ISaWManManager         *thiz,
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
      tier = sawman_tier_by_class( sawman, stacking );
 
      *ret_size = tier->size;
@@ -260,8 +250,6 @@ ISaWManManager_InsertWindow( ISaWManManager       *thiz,
      D_MAGIC_ASSERT( window, SaWManWindow );
      D_MAGIC_ASSERT_IF( sawrel, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
      return SaWManManager_InsertWindow( data->manager, window, sawrel, relation );
 }
 
@@ -282,8 +270,6 @@ ISaWManManager_RemoveWindow( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
      return SaWManManager_RemoveWindow( data->manager, window );
 }
 
@@ -300,8 +286,6 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
 
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
-
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      return SaWManManager_SetScalingMode( data->manager, mode );
 }
@@ -332,8 +316,6 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
      return SaWManManager_SetWindowConfig( data->manager, sawwin, config, flags );
 }
 
@@ -363,8 +345,6 @@ ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
      evt = *event;
      sawman_post_event( sawman, window, &evt );
 
@@ -381,7 +361,7 @@ ISaWManManager_Lock( ISaWManManager *thiz )
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     return sawman_lock( sawman );
+     return DR_OK;//sawman_lock( sawman );
 }
 
 static DirectResult
@@ -394,9 +374,7 @@ ISaWManManager_Unlock( ISaWManManager *thiz )
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
-     return sawman_unlock( sawman );
+     return DR_OK;//sawman_unlock( sawman );
 }
 
 static DirectResult
@@ -419,8 +397,6 @@ ISaWManManager_GetWindowInfo( ISaWManManager     *thiz,
 
      window = sawwin->window;
      D_ASSERT( window != NULL );
-
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      info->handle               = handle;
      info->caps                 = sawwin->caps;
@@ -455,8 +431,6 @@ ISaWManManager_GetProcessInfo( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
      *process = *sawwin->process;
 
      return DFB_OK;
@@ -467,10 +441,8 @@ ISaWManManager_IsWindowShowing( ISaWManManager     *thiz,
                                 SaWManWindowHandle  handle,
                                 DFBBoolean         *ret_showing )
 {
-     DFBResult       ret;
-     bool            showing;
-     SaWMan         *sawman;
-     SaWManWindow   *sawwin = (SaWManWindow*)handle;
+     SaWMan       *sawman;
+     SaWManWindow *sawwin = (SaWManWindow*)handle;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
@@ -481,15 +453,7 @@ ISaWManManager_IsWindowShowing( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
-
-     ret = sawman_showing_window( sawman, sawwin, &showing );
-     if (ret)
-          return ret;
-
-     *ret_showing = showing ? DFB_TRUE : DFB_FALSE;
-
-     return DFB_OK;
+     return SaWManManager_IsShowingWindow( data->manager, sawwin, ret_showing );
 }
 
 DirectResult

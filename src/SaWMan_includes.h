@@ -165,6 +165,8 @@ SaWManWindow_Lookup( CoreDFB       *core,
      if (ret)
           return (DirectResult) ret;
 /*
+     Don't check owner here, so far calls come from application manager only, which needs access to all windows.
+
      if (window->object.owner && window->object.owner != caller) {
           dfb_window_unref( window );
           return DR_ACCESSDENIED;

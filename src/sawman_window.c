@@ -193,7 +193,6 @@ sawman_post_event( SaWMan         *sawman,
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_ASSERT( sawwin->window != NULL );
      D_ASSERT( event != NULL );
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      event->buttons   = sawman->buttons;
      event->modifiers = sawman->modifiers;

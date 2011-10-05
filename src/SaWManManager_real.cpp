@@ -54,6 +54,64 @@ namespace DirectFB {
 
 
 DFBResult
+ISaWManManager_Real::Activate(
+)
+{
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
+
+     sawman_lock( m_sawman );
+
+     if (m_sawman->manager.active) {
+          sawman_unlock( m_sawman );
+          return DFB_BUSY;
+     }
+
+     m_sawman->manager.active = true;
+
+     /*
+      * Attach to existing entities.
+      */
+     if (m_sawman->manager.callbacks.ProcessAdded) {
+          SaWManProcess *process;
+
+          direct_list_foreach (process, m_sawman->processes) {
+               D_MAGIC_ASSERT( process, SaWManProcess );
+
+               sawman_call( m_sawman, SWMCID_PROCESS_ADDED, process, sizeof(*process), false );
+          }
+     }
+
+     if (m_sawman->manager.callbacks.WindowAdded) {
+          SaWManWindow     *window;
+          SaWManWindowInfo  info;
+
+          direct_list_foreach (window, m_sawman->windows) {
+               D_MAGIC_ASSERT( window, SaWManWindow );
+               info.handle = (SaWManWindowHandle)window;
+               info.caps   = window->caps;
+               SAWMANWINDOWCONFIG_COPY( &info.config, &window->window->config );
+               info.config.key_selection = window->window->config.key_selection;
+               info.config.keys          = window->window->config.keys;
+               info.config.num_keys      = window->window->config.num_keys;
+               info.resource_id          = window->window->resource_id;
+               info.application_id       = window->window->config.application_id;
+               info.win_id               = window->window->id;
+               info.flags = (SaWManWindowFlags)(
+                             window->flags
+                             | (window->window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
+                             | (window->window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0) );
+
+               sawman_call( m_sawman, SWMCID_WINDOW_ADDED, &info, sizeof(info), false );
+          }
+     }
+
+     sawman_unlock( m_sawman );
+
+     return DFB_OK;
+}
+
+
+DFBResult
 ISaWManManager_Real::QueueUpdate(
                     DFBWindowStackingClass  stacking,
                     const DFBRegion        *update
@@ -62,7 +120,7 @@ ISaWManManager_Real::QueueUpdate(
      SaWManTier *tier;
      DFBRegion   region;
 
-     D_DEBUG_AT( DirectFB_SaWManManager, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
 
      sawman_lock( m_sawman );
 
@@ -88,7 +146,7 @@ ISaWManManager_Real::ProcessUpdates(
 {
      DFBResult ret;
 
-     D_DEBUG_AT( DirectFB_SaWManManager, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
 
      sawman_lock( m_sawman );
 
@@ -107,7 +165,7 @@ ISaWManManager_Real::CloseWindow(
 {
      DFBWindowEvent event;
 
-     D_DEBUG_AT( DirectFB_SaWManManager, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
 
      event.type = DWET_CLOSE;
 
@@ -126,7 +184,7 @@ ISaWManManager_Real::InsertWindow(
 {
      DFBResult ret;
 
-     D_DEBUG_AT( DirectFB_SaWManManager, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
 
      sawman_lock( m_sawman );
 
@@ -146,7 +204,7 @@ ISaWManManager_Real::RemoveWindow(
 {
      DFBResult ret;
 
-     D_DEBUG_AT( DirectFB_SaWManManager, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
 
      sawman_lock( m_sawman );
 
@@ -165,7 +223,7 @@ ISaWManManager_Real::SwitchFocus(
 {
      DFBResult ret;
 
-     D_DEBUG_AT( DirectFB_SaWManManager, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
 
      sawman_lock( m_sawman );
 
@@ -182,7 +240,7 @@ ISaWManManager_Real::SetScalingMode(
                     SaWManScalingMode     mode
 )
 {
-     D_DEBUG_AT( DirectFB_SaWManManager, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
 
      sawman_lock( m_sawman );
 
@@ -225,7 +283,7 @@ ISaWManManager_Real::SetWindowConfig(
      SaWMan     *sawman;
      CoreWindow *window;
 
-     D_DEBUG_AT( DirectFB_SaWManManager, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
 
      sawman = m_sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
@@ -405,6 +463,30 @@ ISaWManManager_Real::SetWindowConfig(
           sawman_update_visible( sawman );
 
      sawman_unlock( sawman );
+
+     return ret;
+}
+
+
+DFBResult
+ISaWManManager_Real::IsShowingWindow(
+                    SaWManWindow         *window,
+                    DFBBoolean           *ret_showing
+)
+{
+     DFBResult ret;
+     bool      showing;
+
+     D_DEBUG_AT( DirectFB_SaWManManager, "%s()\n", __FUNCTION__ );
+
+     sawman_lock( m_sawman );
+
+     ret = (DFBResult) sawman_showing_window( m_sawman, window, &showing );
+
+     sawman_unlock( m_sawman );
+
+     if (ret == DFB_OK)
+          *ret_showing = showing ? DFB_TRUE : DFB_FALSE;
 
      return ret;
 }

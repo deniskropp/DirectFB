@@ -213,6 +213,8 @@ typedef struct {
      void                     *context;
 
      DFBInputEvent             event;
+
+     bool                      active;
 } SaWManManager;
 
 typedef struct {
@@ -271,6 +273,7 @@ struct __SaWMan_SaWMan {
      /* reserved area for callback stuctures */
      struct {
           SaWManWindowInfo     info;
+          SaWManWindowInfo     preconfig;
           SaWManWindowReconfig reconfig;
           DFBDimension         size;
           SaWManLayerReconfig  layer_reconfig;
@@ -566,7 +569,6 @@ sawman_tier_by_class( SaWMan                 *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( (stacking & ~3) == 0 );
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      direct_list_foreach (tier, sawman->tiers) {
           D_MAGIC_ASSERT( tier, SaWManTier );

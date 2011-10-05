@@ -31,6 +31,7 @@
 #include <fusion/shmalloc.h>
 
 #include <SaWMan.h>
+#include <SaWManManager.h>
 
 #include <sawman.h>
 
@@ -178,10 +179,6 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     ret = sawman_lock( sawman );
-     if (ret)
-          return ret;
-
      ret = sawman_register( sawman, callbacks, context, &manager_object );
      if (ret)
           goto out;
@@ -196,46 +193,9 @@ ISaWMan_CreateManager( ISaWMan                  *thiz,
 
      *ret_manager = manager;
 
-     /*
-      * Attach to existing entities.
-      */
-     if (callbacks->ProcessAdded) {
-          SaWManProcess *process;
-
-          direct_list_foreach (process, sawman->processes) {
-               D_MAGIC_ASSERT( process, SaWManProcess );
-
-               callbacks->ProcessAdded( context, process );
-          }
-     }
-
-     if (callbacks->WindowAdded) {
-          SaWManWindow     *window;
-          SaWManWindowInfo  info;
-
-          direct_list_foreach (window, sawman->windows) {
-               D_MAGIC_ASSERT( window, SaWManWindow );
-               info.handle = (SaWManWindowHandle)window;
-               info.caps   = window->caps;
-               SAWMANWINDOWCONFIG_COPY( &info.config, &window->window->config );
-               info.config.key_selection = window->window->config.key_selection;
-               info.config.keys          = window->window->config.keys;
-               info.config.num_keys      = window->window->config.num_keys;
-               info.resource_id          = window->window->resource_id;
-               info.application_id       = window->window->config.application_id;
-               info.win_id               = window->window->id;
-               info.flags = window->flags
-                             | (window->window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
-                             | (window->window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
-
-               callbacks->WindowAdded( context, &info );
-          }
-     }
-
+     SaWManManager_Activate( manager_object );
 
 out:
-     sawman_unlock( sawman );
-
      return ret;
 }
 

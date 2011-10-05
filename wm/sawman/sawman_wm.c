@@ -2045,7 +2045,7 @@ wm_preconfigure_window( CoreWindowStack *stack,
           sawwin->parent = parent;
      }
 
-     info = &sawman->callback.info;
+     info = &sawman->callback.preconfig;
      SAWMANWINDOWCONFIG_COPY( &info->config, &window->config );
 
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_PRECONFIG, &info->config, sizeof(info->config), true )) {

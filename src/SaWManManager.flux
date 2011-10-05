@@ -4,6 +4,10 @@ interface {
         object      SaWManManager
 
         method {
+                name    Activate
+        }
+
+        method {
                 name    QueueUpdate
 		async   yes
 
@@ -133,6 +137,24 @@ interface {
                         direction   input
                         type        enum
                         typename    SaWManWindowConfigFlags
+                }
+        }
+
+        method {
+                name    IsShowingWindow
+
+                arg {
+                        name        window
+                        direction   input
+                        type        object
+                        typename    SaWManWindow
+                }
+
+                arg {
+                        name        showing
+                        direction   output
+                        type        enum
+                        typename    DFBBoolean
                 }
         }
 }

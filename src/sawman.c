@@ -497,15 +497,10 @@ sawman_register( SaWMan                 *sawman,
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( callbacks != NULL );
-     FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      D_ASSERT( m_sawman == sawman );
      D_ASSERT( m_world != NULL );
      D_MAGIC_ASSERT( m_process, SaWManProcess );
-
-     /* Check if another manager already exists. */
-     if (sawman->manager.present)
-          return DFB_BUSY;
 
      /* Initialize the call to the manager executable (ourself). */
      ret = fusion_call_init3( &data.call, manager_call_handler, sawman, m_world );
@@ -556,6 +551,8 @@ sawman_unregister( SaWMan *sawman )
      m_process->flags &= ~SWMPF_MANAGER;
 
      sawman->manager.present = false;
+     sawman->manager.active  = false;
+
      SaWManManager_Deinit_Dispatch( &sawman->manager.call_from );
 
 
@@ -581,7 +578,7 @@ sawman_call( SaWMan       *sawman,
      D_ASSERT( m_sawman == sawman );
 
      /* Check for presence of manager. */
-     if (!sawman->manager.present)
+     if (!sawman->manager.present || !sawman->manager.active)
           return DFB_NOIMPL;
 
      /* Avoid useless context switches etc. */
@@ -899,6 +896,8 @@ unregister_process( SaWMan        *sawman,
 
           /* Ready for new manager. */
           sawman->manager.present = false;
+          sawman->manager.active  = false;
+
           SaWManManager_Deinit_Dispatch( &sawman->manager.call_from );
      }
      else {

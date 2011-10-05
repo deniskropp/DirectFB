@@ -71,8 +71,12 @@ ISaWManProcess_Real::RegisterManager(
 {
      D_DEBUG_AT( DirectFB_SaWManProcess, "%s()", __FUNCTION__ );
 
-     if (m_sawman->manager.present)
+     sawman_lock( m_sawman );
+
+     if (m_sawman->manager.present) {
+          sawman_unlock( m_sawman );
           return DFB_BUSY;
+     }
 
      /* Initialize manager data. */
      m_sawman->manager.call      = data->call;
@@ -82,10 +86,12 @@ ISaWManProcess_Real::RegisterManager(
      /* Set manager flag for our process. */
      obj->flags = (SaWManProcessFlags)(obj->flags | SWMPF_MANAGER);
 
-     /* Activate it at last. */
      m_sawman->manager.present = true;
 
      SaWManManager_Init_Dispatch( core, &m_sawman->manager, &m_sawman->manager.call_from );
+
+     sawman_unlock( m_sawman );
+
 
      *ret_manager = &m_sawman->manager;
 
