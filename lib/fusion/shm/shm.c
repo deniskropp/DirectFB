@@ -143,6 +143,8 @@ fusion_shm_init( FusionWorld *world )
                return ret;
           }
 
+          fusion_skirmish_add_permissions( &shared->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+
           /* Initialize static pool array. */
           for (i=0; i<FUSION_SHM_MAX_POOLS; i++)
                shared->pools[i].index = i;

@@ -723,6 +723,9 @@ fusion_enter( int               world_index,
           fusion_skirmish_init( &shared->arenas_lock, "Fusion Arenas", world );
           fusion_skirmish_init( &shared->reactor_globals, "Fusion Reactor Globals", world );
 
+          fusion_skirmish_add_permissions( &shared->arenas_lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+          fusion_skirmish_add_permissions( &shared->reactor_globals, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+
           /* Create the main pool. */
           ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x100000,
                                         fusion_config->debugshm, &shared->main_pool );

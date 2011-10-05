@@ -183,6 +183,8 @@ fusion_object_pool_create( const char             *name,
      /* Initialize the pool lock. */
      fusion_skirmish_init( &pool->lock, name, world );
 
+     fusion_skirmish_add_permissions( &pool->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+
      /* Fill information. */
      pool->shared       = shared;
      pool->name         = SHSTRDUP( shared->main_pool, name );
