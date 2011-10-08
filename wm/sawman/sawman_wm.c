@@ -3799,6 +3799,8 @@ update_hw_cursor( SaWMan                *sawman,
                return ret;
           }
 
+          sawman->cursor.region->config.keep_buffers = true;
+
           D_DEBUG_AT( SaWMan_Cursor, "  -> reconfiguring done.\n" );
      }
 
