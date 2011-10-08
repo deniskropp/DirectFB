@@ -1507,14 +1507,15 @@ unrealize_region( CoreLayerRegion *region )
           if (region->left_buffer_lock.buffer) {
                dfb_surface_unlock_buffer( region->surface, &region->left_buffer_lock );
 
-               if (!stereo)
+               if (!stereo && !region->config.keep_buffers)
                     dfb_surface_destroy_buffers( region->surface );
           }
           if (stereo) { 
                if (region->right_buffer_lock.buffer)
                     dfb_surface_unlock_buffer( region->surface, &region->right_buffer_lock );
 
-               dfb_surface_destroy_buffers( region->surface );
+               if (!region->config.keep_buffers)
+                    dfb_surface_destroy_buffers( region->surface );
           }
      }
 
