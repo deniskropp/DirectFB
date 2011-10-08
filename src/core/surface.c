@@ -505,8 +505,6 @@ dfb_surface_reconfig( CoreSurface             *surface,
      }
 
      new_config = surface->config;
-     
-     surface->num_buffers = 0;
 
      if (config->flags & CSCONF_SIZE)
           new_config.size = config->size;
