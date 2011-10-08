@@ -55,7 +55,7 @@ DFBResult
 ISaWManProcess_Real::SetExiting(
 )
 {
-     D_DEBUG_AT( DirectFB_SaWManProcess, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManProcess, "%s()\n", __FUNCTION__ );
 
      /* Set 'cleanly exiting' flag. */
      obj->flags = (SaWManProcessFlags)(obj->flags | SWMPF_EXITING);
@@ -69,7 +69,7 @@ ISaWManProcess_Real::RegisterManager(
                     SaWManManager                            **ret_manager
 )
 {
-     D_DEBUG_AT( DirectFB_SaWManProcess, "%s()", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_SaWManProcess, "%s()\n", __FUNCTION__ );
 
      sawman_lock( m_sawman );
 
