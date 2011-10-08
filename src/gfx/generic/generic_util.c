@@ -130,6 +130,12 @@ void Genefx_Aop_crab( GenefxState *gfxs )
      gfxs->AopY++;
 }
 
+void Genefx_Aop_prev_crab( GenefxState *gfxs )
+{
+     gfxs->Aop[0] -= gfxs->dst_bpp;
+     gfxs->AopY++;
+}
+
 void Genefx_Aop_next( GenefxState *gfxs )
 {
      int pitch = gfxs->dst_pitch;

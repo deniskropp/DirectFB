@@ -2123,7 +2123,10 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      bool         hw    = false;
      DFBRectangle drect = { dx, dy, rect->w, rect->h };
 
-     if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
+     dfb_simplify_blittingflags( &blittingflags );
+
+     if (blittingflags & DSBLIT_ROTATE90)
           D_UTIL_SWAP( drect.w, drect.h );
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d, %p )\n",
@@ -2160,7 +2163,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
               !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
-               dfb_clip_blit_flipped_rotated( &state->clip, rect, &drect, state->blittingflags );
+               dfb_clip_blit_flipped_rotated( &state->clip, rect, &drect, blittingflags );
 
           hw = card->funcs.Blit( card->driver_data, card->device_data, rect, drect.x, drect.y );
 
@@ -2171,7 +2174,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
           /* Use software fallback. */
           if (!(state->render_options & DSRO_MATRIX)) {
                if (gAcquire( state, DFXL_BLIT )) {
-                    dfb_clip_blit_flipped_rotated( &state->clip, rect, &drect, state->blittingflags );
+                    dfb_clip_blit_flipped_rotated( &state->clip, rect, &drect, blittingflags );
 
                     gBlit( state, rect, drect.x, drect.y );
 
@@ -2267,11 +2270,12 @@ clip_blits( const DFBRegion         *clip,
      D_ASSERT( ret_rects != NULL );
      D_ASSERT( ret_points != NULL );
      D_ASSERT( ret_num != NULL );
+     D_ASSERT( !(flags & (DSBLIT_ROTATE270 | DSBLIT_ROTATE180)) );
 
      for (i=0; i<num; i++) {
           DFBRectangle drect = { points[i].x, points[i].y, rects[i].w, rects[i].h };
 
-          if (flags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+          if (flags & (DSBLIT_ROTATE90))
                D_UTIL_SWAP( drect.w, drect.h );
 
           if (dfb_clip_blit_precheck( clip, drect.w, drect.h, drect.x, drect.y )) {
@@ -2293,6 +2297,9 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                             int num, CardState *state )
 {
      unsigned int i = 0;
+
+     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
+     dfb_simplify_blittingflags( &blittingflags );
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %p, %p [%d], %p )\n", __FUNCTION__, rects, points, num, state );
 
@@ -2332,7 +2339,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                                    D_FREE( clipped_rects );
                               }
                               else {
-                                   clip_blits( &state->clip, rects, points, num, state->blittingflags,
+                                   clip_blits( &state->clip, rects, points, num, blittingflags,
                                                clipped_rects, clipped_points, &clipped_num );
 
                                    /* The driver has to reject all or none */
@@ -2350,7 +2357,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                          clipped_rects  = alloca( sizeof(DFBRectangle) * num );
                          clipped_points = alloca( sizeof(DFBPoint) * num );
 
-                         clip_blits( &state->clip, rects, points, num, state->blittingflags, clipped_rects, clipped_points, &clipped_num );
+                         clip_blits( &state->clip, rects, points, num, blittingflags, clipped_rects, clipped_points, &clipped_num );
 
                          /* The driver has to reject all or none */
                          if (card->funcs.BatchBlit( card->driver_data, card->device_data, clipped_rects, clipped_points, clipped_num, &done ))
@@ -2371,7 +2378,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                for (; i<num; i++) {
                     DFBRectangle drect = { points[i].x, points[i].y, rects[i].w, rects[i].h };
 
-                    if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+                    if (blittingflags & DSBLIT_ROTATE90)
                          D_UTIL_SWAP( drect.w, drect.h );
 
                     if ((state->render_options & DSRO_MATRIX) ||
@@ -2383,7 +2390,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
 
                          if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
                              !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
-                              dfb_clip_blit_flipped_rotated( &state->clip, &srect, &drect, state->blittingflags );
+                              dfb_clip_blit_flipped_rotated( &state->clip, &srect, &drect, blittingflags );
 
                          if (!card->funcs.Blit( card->driver_data, card->device_data,
                                                 &srect, drect.x, drect.y ))
@@ -2457,7 +2464,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                     for (; i<num; i++) {
                          DFBRectangle drect = { points[i].x, points[i].y, rects[i].w, rects[i].h };
 
-                         if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+                         if (blittingflags & DSBLIT_ROTATE90)
                               D_UTIL_SWAP( drect.w, drect.h );
 
                          if (dfb_clip_blit_precheck( &state->clip,
@@ -2466,7 +2473,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                          {
                               DFBRectangle srect = rects[i];
 
-                              dfb_clip_blit_flipped_rotated( &state->clip, &srect, &drect, state->blittingflags );
+                              dfb_clip_blit_flipped_rotated( &state->clip, &srect, &drect, blittingflags );
                               gBlit( state, &srect, drect.x, drect.y );
                          }
                     }
@@ -2749,6 +2756,9 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 {
      bool hw = false;
 
+     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
+     dfb_simplify_blittingflags( &blittingflags );
+
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
@@ -2758,7 +2768,7 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %dx%d -> %d,%d - %dx%d, %p )\n",
                  __FUNCTION__, DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect), state );
 
-     if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) {
+     if (state->blittingflags & DSBLIT_ROTATE90) {
           if (srect->w == drect->h && srect->h == drect->w) {
                dfb_gfxcard_blit( srect, drect->x, drect->y, state );
                return;

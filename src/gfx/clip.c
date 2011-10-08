@@ -37,6 +37,7 @@
 #include <misc/util.h>
 
 #include <gfx/clip.h>
+#include <gfx/util.h>
 
 D_DEBUG_DOMAIN( Core_Clipping,    "Core/Clipping",    "DirectFB Software Clipping" );
 
@@ -384,10 +385,13 @@ void
 dfb_clip_blit_flipped_rotated( const DFBRegion *clip,
                          DFBRectangle *srect, DFBRectangle *drect, DFBSurfaceBlittingFlags flags )
 {
+
      DFBRegion dest    = DFB_REGION_INIT_FROM_RECTANGLE( drect );
      DFBRegion clipped = dest;
 
-     if (flags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) {
+     D_ASSERT( !(flags & (DSBLIT_ROTATE270 | DSBLIT_ROTATE180)) );
+
+     if (flags & DSBLIT_ROTATE90) {
           D_ASSERT( srect->w == drect->h );
           D_ASSERT( srect->h == drect->w );
      }
@@ -399,66 +403,50 @@ dfb_clip_blit_flipped_rotated( const DFBRegion *clip,
      dfb_region_region_intersect( &clipped, clip );
      dfb_rectangle_from_region( drect, &clipped );
 
+     switch (flags & (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL | DSBLIT_ROTATE90)) {
+          case DSBLIT_NOFX:
+               srect->x += clipped.x1 - dest.x1;
+               srect->y += clipped.y1 - dest.y1;
+               break;
+          case DSBLIT_FLIP_HORIZONTAL:
+               srect->x += dest.x2 - clipped.x2;
+               srect->y += clipped.y1 - dest.y1;
+               break;
+          case DSBLIT_FLIP_VERTICAL:
+               srect->x += clipped.x1 - dest.x1;
+               srect->y += dest.y2 - clipped.y2;
+               break;
+          case DSBLIT_ROTATE90:
+               srect->x += dest.y2 - clipped.y2;
+               srect->y += clipped.x1 - dest.x1;
+               break;
+          case (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL): // ROTATE180
+               srect->x += dest.x2 - clipped.x2;
+               srect->y += dest.y2 - clipped.y2;
+               break;
+          case (DSBLIT_ROTATE90 | DSBLIT_FLIP_VERTICAL | DSBLIT_FLIP_HORIZONTAL): // ROTATE270
+               srect->x += clipped.y1 - dest.y1;
+               srect->y += dest.x2 - clipped.x2;
+               break;
+          case (DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL):
+               srect->x += clipped.y1 - dest.y1;
+               srect->y += clipped.x1 - dest.x1;
+               break;
+          case (DSBLIT_ROTATE90 | DSBLIT_FLIP_VERTICAL):
+               srect->x += dest.y2 - clipped.y2;
+               srect->y += dest.x2 - clipped.x2;
+               break;
+     }
+
      if (flags & DSBLIT_ROTATE90) {
-          srect->x += dest.y2 - clipped.y2;
-          srect->y += clipped.x1 - dest.x1;
           srect->w  = drect->h;
           srect->h  = drect->w;
-
-          D_DEBUG_AT( Core_Clipping, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (90°)\n",
-                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
      }
-     else if (flags & DSBLIT_ROTATE180) {
-          srect->x += dest.x2 - clipped.x2;
-          srect->y += dest.y2 - clipped.y2;
-          srect->w  = drect->w;
-          srect->h  = drect->h;
-
-          D_DEBUG_AT( Core_Clipping, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (180°)\n",
-                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
-     }
-     else if (flags & DSBLIT_ROTATE270) {
-          srect->x += clipped.y1 - dest.y1;
-          srect->y += dest.x2 - clipped.x2;
-          srect->w  = drect->h;
-          srect->h  = drect->w;
-
-          D_DEBUG_AT( Core_Clipping, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (270°)\n",
-                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
-     }
-     else if (flags & (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL)) {
-          // FIXME: rotation and FLIP_ should be supported together, it is not the case in the software driver,
-          // so dont support it here either for now
-          int xfixup, yfixup;
-
-          if (flags & DSBLIT_FLIP_HORIZONTAL)
-              xfixup = dest.x2 - clipped.x2;
-          else
-              xfixup = clipped.x1 - dest.x1;
-
-          if (flags & DSBLIT_FLIP_VERTICAL)
-              yfixup = dest.y2 - clipped.y2;
-          else
-              yfixup = clipped.y1 - dest.y1;
-
-          srect->x += xfixup;
-          srect->y += yfixup;
+     else {
           srect->w = drect->w;
           srect->h = drect->h;
-
-          D_DEBUG_AT( Core_Clipping, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (flipped: %s %s)\n",
-                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect),
-                      (flags & DSBLIT_FLIP_HORIZONTAL) ? "horizontally" : "",
-                      (flags & DSBLIT_FLIP_VERTICAL  ) ? "vertically"   : ""  );
-
-     } else {
-          srect->x += clipped.x1 - dest.x1;
-          srect->y += clipped.y1 - dest.y1;
-          srect->w  = drect->w;
-          srect->h  = drect->h;
-
-          D_DEBUG_AT( Core_Clipping, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d\n",
-                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
      }
-}
 
+     D_DEBUG_AT( Core_Clipping, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d\n",
+                 DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
+}
