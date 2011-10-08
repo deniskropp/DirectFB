@@ -1188,14 +1188,12 @@ unrealize_region( CoreLayerRegion *region )
      D_FLAGS_SET( region->state, CLRSF_FROZEN );
 
      /* Unlock the region buffer if it is locked. */
-     if (region->surface && region->surface_lock.buffer) {
+     if (region->surface && region->surface_lock.buffer)
           dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
-     }
 
      /* Destroy the surface region if it exists. */
-     if (region->surface ) {
+     if (region->surface && !region->config.keep_buffers)
          dfb_surface_destroy_buffers( region->surface );
-    }
 
      return DFB_OK;
 }

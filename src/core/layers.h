@@ -63,6 +63,8 @@ struct __DFB_CoreLayerRegionConfig {
      DFBRegion                 *clips;            /* clip regions */
      int                        num_clips;        /* number of clip regions */
      DFBBoolean                 positive;         /* show or cut out regions */
+
+     bool                       keep_buffers;
 };
 
 #if D_DEBUG_ENABLED
