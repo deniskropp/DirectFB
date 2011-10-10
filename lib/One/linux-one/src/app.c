@@ -95,7 +95,7 @@ OneAppTarget_Dispatch( OneTarget          *target,
                return -EINTR;
      }
 
-     if (data->packets.items) {
+     if (0&&data->packets.items) {
           packet = (OnePacket*) data->packets.items->prev;
           if (packet) {
                ret = OnePacket_Write( packet, header, iov, iov_count );
