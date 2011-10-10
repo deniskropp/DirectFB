@@ -64,6 +64,13 @@ NON_PURE_VOODOO_LIBS = \
 	windows/libdirectfb_windows.la
 endif
 
+if DIRECTFB_BUILD_ONE
+ONE_LIB = \
+	../lib/One/libone.la
+else
+ONE_LIB =
+endif
+
 if DIRECTFB_BUILD_VOODOO
 VOODOO_LIB = \
 	../lib/voodoo/libvoodoo.la
@@ -79,6 +86,7 @@ libdirectfb_la_LIBADD = \
 	gfx/libdirectfb_gfx.la		\
 	../lib/direct/libdirect.la	\
 	../lib/fusion/libfusion.la	\
+	$(ONE_LIB)			\
 	$(VOODOO_LIB)
 
 
