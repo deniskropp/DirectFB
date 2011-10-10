@@ -68,9 +68,6 @@ one_core_cleanup( OneCore *core )
      ONE_DEBUG( "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( core, OneCore );
-
-
-     D_MAGIC_CLEAR( core );
 }
 
 pid_t
