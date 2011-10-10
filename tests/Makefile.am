@@ -1,5 +1,11 @@
 ## Makefile.am for DirectFB/tests
 
+if DIRECTFB_BUILD_ONE
+ONE_PROGS = \
+	OneBench
+endif
+
+
 if DIRECTFB_BUILD_VOODOO
 SUBDIRS = voodoo
 
@@ -17,6 +23,7 @@ INCLUDES = \
 	-I$(top_builddir)/lib \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/lib	\
+	-I$(top_srcdir)/lib/One	\
 	-I$(top_srcdir)/src	\
 	-DLINUX_2_6
 
@@ -68,6 +75,7 @@ bin_PROGRAMS = \
 	dfbtest_windows_watcher	\
 	direct_stream	\
 	direct_test	\
+	$(ONE_PROGS)	\
 	$(VOODOO_PROGS)
 
 libdirectfb = $(top_builddir)/src/libdirectfb.la
@@ -79,6 +87,13 @@ libvoodoo = \
         ../lib/voodoo/libvoodoo.la
 else
 libvoodoo =
+endif
+
+if DIRECTFB_BUILD_ONE
+libone = \
+        ../lib/One/libone.la
+else
+libone =
 endif
 
 coretest_blit2_SOURCES = coretest_blit2.c
@@ -173,6 +188,9 @@ fusion_skirmish_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 fusion_stream_SOURCES = fusion_stream.c
 fusion_stream_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
+
+OneBench_SOURCES = OneBench.c
+OneBench_LDADD   = $(libdirectfb) $(libone) $(libfusion) $(libdirect)
 
 voodoo_bench_SOURCES = voodoo_bench.c
 voodoo_bench_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)

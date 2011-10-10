@@ -1,0 +1,6 @@
+O_TARGET := linux-one.o
+
+obj-y   := $(ONECORE)/onecore_impl.o app.o debug.o entries.o fifo.o list.o onedev.o one_udp.o packet.o queue.o target.o
+obj-$(CONFIG_LINUX_ONE)   := $(O_TARGET)
+
+include $(TOPDIR)/Rules.make
