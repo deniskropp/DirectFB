@@ -1475,6 +1475,7 @@ checkfor_dynapro=no
 checkfor_elo=no
 checkfor_gunze=no
 checkfor_h3600ts=no
+checkfor_input_hub=no
 checkfor_joystick=no
 checkfor_keyboard=no
 checkfor_linux_input=no
@@ -1496,7 +1497,7 @@ AC_ARG_WITH(inputdrivers,
                            [inputdrivers to build. Possible inputdrivers]
                            [are: all (builds all drivers), none (builds none),]
                            [dbox2remote, dreamboxremote, dynapro, elo-input,]
-                           [gunze, h3600_ts, joystick, keyboard, linuxinput,]
+                           [gunze, h3600_ts, input_hub, joystick, keyboard, linuxinput,]
                            [lirc, mutouch, penmount, ps2mouse, serialmouse,]
                            [sonypijogdial, tslib, ucb1x00, wm97xx, zytronic.]
                            [@<:@default=all@:>@]),
@@ -1509,6 +1510,7 @@ if test "$inputdrivers" = "all"; then
   checkfor_elo=no
   checkfor_gunze=no
   checkfor_h3600ts=yes
+  checkfor_input_hub=yes
   checkfor_joystick=yes
   checkfor_keyboard=yes
   checkfor_linux_input=yes
@@ -1546,6 +1548,9 @@ else
                   ;;
           h3600_ts)
                   checkfor_h3600ts=yes
+                  ;;
+          input_hub)
+                  checkfor_input_hub=yes
                   ;;
           joystick)
                   checkfor_joystick=yes
@@ -1633,6 +1638,11 @@ if test "$checkfor_h3600ts" = "yes"; then
   dnl Test for H3600 Touchscreen support
   AC_CHECK_HEADER( [linux/h3600_ts.h], enable_h3600_ts=yes, enable_h3600_ts=no  
     AC_MSG_WARN([*** H3600 Touchscreen driver will not be built.]))
+fi
+
+enable_input_hub=no
+if test "$checkfor_input_hub" = "yes"; then
+    enable_input_hub=yes
 fi
 
 enable_joystick=no
@@ -1920,6 +1930,7 @@ AM_CONDITIONAL(DYNAPRO_INPUT, test "$enable_dynapro_ts" = "yes")
 AM_CONDITIONAL(ELO_INPUT, test "$enable_elo_input" = "yes")
 AM_CONDITIONAL(GUNZE_INPUT, test "$enable_gunze_input" = "yes")
 AM_CONDITIONAL(H3600_TS, test "$enable_h3600_ts" = "yes")
+AM_CONDITIONAL(INPUT_HUB, test "$enable_input_hub" = "yes")
 AM_CONDITIONAL(JOYSTICK_INPUT, test "$enable_joystick" = "yes")
 AM_CONDITIONAL(KEYBOARD_INPUT, test "$enable_keyboard" = "yes")
 AM_CONDITIONAL(LINUX_INPUT, test "$enable_linux_input" = "yes")
@@ -2126,6 +2137,7 @@ inputdrivers/dynapro/Makefile
 inputdrivers/elo/Makefile
 inputdrivers/gunze/Makefile
 inputdrivers/h3600_ts/Makefile
+inputdrivers/input_hub/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
 inputdrivers/linux_input/Makefile
@@ -2283,6 +2295,7 @@ Building Input Drivers:
   ELO Touchscreen           $enable_elo_input
   Gunze Touchscreen         $enable_gunze_input
   H3600 Touchscreen         $enable_h3600_ts
+  Input Hub                 $enable_input_hub
   Joystick                  $enable_joystick
   Keyboard                  $enable_keyboard
   Linux Input               $enable_linux_input

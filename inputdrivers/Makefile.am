@@ -24,6 +24,10 @@ if H3600_TS
 H3600_TS_DIR = h3600_ts
 endif
 
+if INPUT_HUB
+INPUT_HUB_DIR = input_hub
+endif
+
 if JOYSTICK_INPUT
 JOYSTICK_INPUT_DIR = joystick
 endif
@@ -83,6 +87,7 @@ SUBDIRS = \
 	$(ELO_INPUT_DIR)	\
 	$(GUNZE_INPUT_DIR)	\
 	$(H3600_TS_DIR)		\
+	$(INPUT_HUB_DIR)	\
 	$(JOYSTICK_INPUT_DIR)	\
 	$(KEYBOARD_INPUT_DIR)	\
 	$(LINUX_INPUT_DIR)	\

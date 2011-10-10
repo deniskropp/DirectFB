@@ -1423,6 +1423,25 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+     if (strcmp (name, "input-hub" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long qid;
+
+               qid = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->input_hub_qid = qid;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
      if (strcmp (name, "video-phys" ) == 0) {
           if (value) {
                char *error;

@@ -266,6 +266,8 @@ typedef struct
      bool          flip_notify;
 
      char         *resource_manager;
+
+     u32           input_hub_qid;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;
