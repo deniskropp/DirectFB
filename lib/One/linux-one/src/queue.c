@@ -224,11 +224,37 @@ one_queue_attach( OneApp         *oneapp,
 
      ONE_DEBUG( "%s( %u to %u )\n", __FUNCTION__, queue_attach->target_id, queue_attach->queue_id );
 
-     if (!one_core_is_local( one_core, queue_attach->target_id ))
-          return -EINVAL;
+     if (!one_core_is_local( one_core, queue_attach->target_id )) {
+          /* Don't allow remote queue attaching to remote queue */
+          if (!one_core_is_local( one_core, queue_attach->queue_id ))
+               return -EINVAL;
 
-     if (!one_core_is_local( one_core, queue_attach->queue_id ))
+          /* Attach remote queue to local queue */
           return one_core_attach( one_core, oneapp, queue_attach );
+     }
+
+     if (!one_core_is_local( one_core, queue_attach->queue_id )) {
+          if (!oneapp) {
+               OneApp *app;
+
+               ret = one_queue_lookup(&one_devs[0].queue, queue_attach->target_id, &target_queue);
+               if (ret)
+                    return ret;
+
+               direct_list_foreach (app, one_devs[0].apps) {
+                    if (app->one_id == target_queue->one_id) {
+                         oneapp = app;
+                         break;
+                    }
+               }
+
+               if (!oneapp)
+                    return -EIDRM;
+          }
+
+          /* Attach local queue to remote queue */
+          return one_core_attach( one_core, oneapp, queue_attach );
+     }
 
      ret = one_queue_lookup(&oneapp->dev->queue, queue_attach->queue_id, &queue);
      if (ret)
