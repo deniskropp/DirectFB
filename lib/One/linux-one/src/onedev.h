@@ -30,6 +30,8 @@ struct __One_OneDev {
      int           refs;
      int           index;
 
+     DirectLink   *apps;
+
      struct {
           int major;
           int minor;

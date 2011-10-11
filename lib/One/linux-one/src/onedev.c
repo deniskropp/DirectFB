@@ -219,6 +219,8 @@ static int one_open(struct inode *inode, struct file *file)
           return ret;
      }
 
+     direct_list_append( &dev->apps, &oneapp->link );
+
      dev->one_ids++;
 
      one_local_refs[dev->index]++;
@@ -242,6 +244,8 @@ static int one_release(struct inode *inode, struct file *file)
      ONE_DEBUG( "one_release( %p, f_count %ld )\n", file, atomic_long_read(&file->f_count) );
 
      one_core_lock( one_core );
+
+     direct_list_remove( &dev->apps, &oneapp->link );
 
      OneApp_Destroy( oneapp );
 

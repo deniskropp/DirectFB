@@ -20,6 +20,8 @@
 
 
 struct __One_OneApp {
+     DirectLink     link;
+
      int            magic;
 
      OneDev        *dev;
