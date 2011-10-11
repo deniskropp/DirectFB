@@ -33,6 +33,7 @@ bin_PROGRAMS = \
 	dfbtest_font	\
 	dfbtest_mirror	\
 	dfbtest_reinit	\
+	dfbtest_resize	\
 	dfbtest_scale	\
 	dfbtest_sync	\
 	dfbtest_window	\
@@ -64,6 +65,9 @@ dfbtest_mirror_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_reinit_SOURCES = dfbtest_reinit.c
 dfbtest_reinit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+dfbtest_resize_SOURCES = dfbtest_resize.c
+dfbtest_resize_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_scale_SOURCES = dfbtest_scale.c
 dfbtest_scale_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
