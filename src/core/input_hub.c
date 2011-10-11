@@ -285,7 +285,7 @@ CoreInputHub_DispatchEvent( CoreInputHub        *hub,
 {
      InputHubNotification notification;
 
-     D_DEBUG_AT( Core_InputHub, "%s( ID %u )\n", __FUNCTION__, device_id );
+     D_DEBUG_AT( Core_InputHub, "%s( ID %u, %s )\n", __FUNCTION__, device_id, dfb_input_event_type_name(event->type) );
 
      D_ASSERT( hub != NULL );
      D_ASSERT( event != NULL );
