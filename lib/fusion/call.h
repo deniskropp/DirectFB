@@ -101,6 +101,9 @@ DirectResult fusion_call_return3( FusionCall          *call,
                                   void                *ptr,
                                   unsigned int         length );
 
+DirectResult FUSION_API fusion_call_get_owner( FusionCall          *call,
+                                               FusionID            *ret_fusion_id );
+
 DirectResult fusion_call_destroy( FusionCall          *call );
 
 

@@ -407,6 +407,37 @@ fusion_call_return3( FusionCall   *call,
 }
 
 DirectResult
+fusion_call_get_owner( FusionCall *call,
+                       FusionID   *ret_fusion_id )
+{
+     FusionCallGetOwner get_owner;
+
+     D_DEBUG_AT( Fusion_Call, "%s( %p )\n", __FUNCTION__, call );
+
+     D_ASSERT( call != NULL );
+     D_ASSERT( ret_fusion_id != NULL );
+
+     get_owner.call_id = call->call_id;
+
+     while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_GET_OWNER, &get_owner)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_CALL_GET_OWNER");
+
+          return DR_FAILURE;
+     }
+
+     *ret_fusion_id = get_owner.fusion_id;
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_DEBUG_AT( Fusion_Call, "%s( %p )\n", __FUNCTION__, call );
@@ -939,6 +970,15 @@ fusion_call_return( FusionCall   *call,
                     int           val )
 {
      return DR_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_call_get_owner( FusionCall *call,
+                       FusionID   *ret_fusion_id )
+{
+     *ret_fusion_id = FUSION_ID_MASTER;
+
+     return DR_OK;
 }
 
 DirectResult
