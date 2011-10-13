@@ -361,7 +361,10 @@ ISaWManManager_Lock( ISaWManManager *thiz )
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     return DR_OK;//sawman_lock( sawman );
+     if (fusion_config->secure_fusion)
+          return sawman_lock( sawman );
+
+     return DR_OK;
 }
 
 static DirectResult
@@ -374,7 +377,10 @@ ISaWManManager_Unlock( ISaWManManager *thiz )
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     return DR_OK;//sawman_unlock( sawman );
+     if (fusion_config->secure_fusion)
+          return sawman_unlock( sawman );
+
+     return DR_OK;
 }
 
 static DirectResult
