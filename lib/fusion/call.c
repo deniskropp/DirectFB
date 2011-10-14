@@ -240,7 +240,7 @@ fusion_call_execute (FusionCall          *call,
      return DR_OK;
 }
 
-#define FUSION_CALL_RETURN_DATA_MAX          1024*1024
+#define FUSION_CALL_RETURN_DATA_MAX          32*1024*1024
 #define FUSION_CALL_RETURN_DATA_MAX_ON_STACK 1024
 
 DirectResult
