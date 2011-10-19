@@ -722,6 +722,7 @@ sawman_draw_window( SaWManTier   *tier,
 
      /* Reset blitting source. */
      state->source    = NULL;
+     state->source2   = NULL;
      state->modified |= SMF_SOURCE;
 }
 
