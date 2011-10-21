@@ -73,12 +73,11 @@ TestBandwidth( TestRequest *request )
      char        buf[512];
      size_t      received;
      long long   KperSec;
-
-     direct_clock_start( &clock );
-
      OneQID      response_qid = request->response_qid;
 
      request->response_qid = 0;
+
+     direct_clock_start( &clock );
 
      for (i=0; i<NUM_ITEMS; i++) {
           if (i == NUM_ITEMS-1)
@@ -99,7 +98,7 @@ TestBandwidth( TestRequest *request )
 }
 
 static void
-TestThroughput( TestRequest *request )
+TestThroughputSync( TestRequest *request )
 {
      int         i;
      DirectClock clock;
@@ -109,20 +108,44 @@ TestThroughput( TestRequest *request )
      direct_clock_start( &clock );
 
      for (i=0; i<NUM_ITEMS; i++) {
-#if 0
-          OneQueue_Dispatch( queue_id, request, sizeof(TestRequest) );
-
-          OneQueue_Receive( &request->response_qid, 1, buf, sizeof(buf), &received, false );
-#else
           OneQueue_DispatchReceive( queue_id, request, sizeof(TestRequest),
                                     &request->response_qid, 1, buf, sizeof(buf), &received, false, 0 );
-#endif
      }
 
      direct_clock_stop( &clock );
 
 
-     D_INFO( "OneBench/Throughput: Stopped after %lld.%03lld seconds... (%lld items/sec)\n",
+     D_INFO( "OneBench/Throughput/Sync: Stopped after %lld.%03lld seconds... (%lld items/sec)\n",
+             DIRECT_CLOCK_DIFF_SEC_MS( &clock ), NUM_ITEMS * 1000000ULL / direct_clock_diff( &clock ) );
+}
+
+static void
+TestThroughputAsync( TestRequest *request )
+{
+     int         i;
+     DirectClock clock;
+     char        buf[512];
+     size_t      received;
+     OneQID      response_qid = request->response_qid;
+
+     request->response_qid = 0;
+
+     direct_clock_start( &clock );
+
+     for (i=0; i<NUM_ITEMS; i++) {
+          if (i == NUM_ITEMS-1)
+               request->response_qid = response_qid;
+
+          OneQueue_Dispatch( queue_id, request, sizeof(TestRequest) );
+
+          if (i == NUM_ITEMS-1)
+               OneQueue_Receive( &request->response_qid, 1, buf, sizeof(buf), &received, false, 0 );
+     }
+
+     direct_clock_stop( &clock );
+
+
+     D_INFO( "OneBench/Throughput/Async: Stopped after %lld.%03lld seconds... (%lld items/sec)\n",
              DIRECT_CLOCK_DIFF_SEC_MS( &clock ), NUM_ITEMS * 1000000ULL / direct_clock_diff( &clock ) );
 }
 
@@ -140,14 +163,9 @@ TestLatency( TestRequest *request )
           for (i=0; i<100; i++) {
                direct_clock_start( &clock );
 
-#if 0
-               OneQueue_Dispatch( queue_id, request, sizeof(TestRequest) );
-
-               OneQueue_Receive( &request->response_qid, 1, buf, sizeof(buf), &received, false );
-#else
                OneQueue_DispatchReceive( queue_id, request, sizeof(TestRequest),
                                          &request->response_qid, 1, buf, sizeof(buf), &received, false, 0 );
-#endif
+
                direct_clock_stop( &clock );
 
                diff = direct_clock_diff( &clock );
@@ -190,7 +208,8 @@ main( int argc, char *argv[] )
                return ret;
 
           TestLatency( request );
-          TestThroughput( request );
+          TestThroughputSync( request );
+          TestThroughputAsync( request );
           TestBandwidth( request );
      }
      else {
@@ -204,7 +223,7 @@ main( int argc, char *argv[] )
           if (ret)
                return ret;
 
-          D_INFO( "Queue ID %u\n", queue_id );
+          D_INFO( "Server Queue ID %u, run client with '-q %u'\n", queue_id, queue_id );
 
           while (true) {
                size_t i;
