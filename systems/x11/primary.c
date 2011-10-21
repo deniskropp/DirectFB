@@ -611,6 +611,11 @@ primaryFlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
+     dfb_surface_notify_display( surface, left_lock->buffer );
+
+     if (lds->config.options & DLOP_STEREO)
+          dfb_surface_notify_display( surface, right_lock->buffer );
+
      return dfb_x11_update_screen( x11, lds, &region, &region, left_lock, right_lock );
 }
 
