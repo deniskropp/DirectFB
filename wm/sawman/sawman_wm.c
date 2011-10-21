@@ -4029,7 +4029,9 @@ wm_update_cursor( CoreWindowStack       *stack,
                          DFB_REGION_ASSERT( update );
 
                          dfb_updates_add( &tier->left.updating, update );
-                         dfb_updates_add( &tier->right.updating, update );
+
+                         if (tier->region->config.options & DLOP_STEREO)
+                              dfb_updates_add( &tier->right.updating, update );
                     }
 
                     if (!tier->left.updated.num_regions && !tier->right.updated.num_regions)
