@@ -1085,6 +1085,9 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
           return RS_REMOVE;
      }
 
+     if (flags & CSNF_DISPLAY)
+          return RS_OK;
+
      if (dfb_layer_region_lock( region ))
           return RS_OK;
 
