@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <directfb_build.h>
+#include <directfb_util.h>
 
 #include <direct/debug.h>
 #include <direct/hash.h>
