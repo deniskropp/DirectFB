@@ -28,6 +28,7 @@
 #include <direct/interface.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 
