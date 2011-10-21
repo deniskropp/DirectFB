@@ -132,6 +132,8 @@ errno2result( int erno )
                return DR_SIGNALLED;
           case ENOSYS:
                return DR_NOSUCHMETHOD;
+          case EINVAL:
+               return DR_INVARG;
           case ENODEV:
           case ENXIO:
 #ifdef ENOTSUP
