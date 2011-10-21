@@ -87,7 +87,7 @@ TestBandwidth( TestRequest *request )
           OneQueue_Dispatch( queue_id, request, sizeof(TestRequest) + data_length );
 
           if (i == NUM_ITEMS-1)
-               OneQueue_Receive( &request->response_qid, 1, buf, sizeof(buf), &received, false );
+               OneQueue_Receive( &request->response_qid, 1, buf, sizeof(buf), &received, false, 0 );
      }
 
      direct_clock_stop( &clock );
@@ -115,7 +115,7 @@ TestThroughput( TestRequest *request )
           OneQueue_Receive( &request->response_qid, 1, buf, sizeof(buf), &received, false );
 #else
           OneQueue_DispatchReceive( queue_id, request, sizeof(TestRequest),
-                                    &request->response_qid, 1, buf, sizeof(buf), &received, false );
+                                    &request->response_qid, 1, buf, sizeof(buf), &received, false, 0 );
 #endif
      }
 
@@ -146,7 +146,7 @@ TestLatency( TestRequest *request )
                OneQueue_Receive( &request->response_qid, 1, buf, sizeof(buf), &received, false );
 #else
                OneQueue_DispatchReceive( queue_id, request, sizeof(TestRequest),
-                                         &request->response_qid, 1, buf, sizeof(buf), &received, false );
+                                         &request->response_qid, 1, buf, sizeof(buf), &received, false, 0 );
 #endif
                direct_clock_stop( &clock );
 
@@ -209,7 +209,7 @@ main( int argc, char *argv[] )
           while (true) {
                size_t i;
 
-               ret = OneQueue_Receive( &queue_id, 1, buf, sizeof(buf), &received, false );
+               ret = OneQueue_Receive( &queue_id, 1, buf, sizeof(buf), &received, false, 0 );
                if (ret)
                     return ret;
 
