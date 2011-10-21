@@ -252,12 +252,45 @@ struct __DFB_CoreDFB {
      struct {
           ICoreResourceManager     *manager;
 
-          DirectHash               *clients;
+          DirectHash               *identities;
      }                        resource;
+
+     FusionCall               async_call; // used locally for async destroy etc.
 };
 
 
 extern CoreDFB *core_dfb;     // FIXME
+
+
+typedef void (*AsyncCallFunc)( void *ctx,
+                               void *ctx2 );
+
+typedef struct {
+     AsyncCallFunc  func;
+
+     void          *ctx;
+     void          *ctx2;
+} AsyncCall;
+
+/*
+ * Runs a call on the Fusion Dispatch Thread
+ *
+ * Used for asynchronous destruct, i.e. when a call needs to destroy itself
+ */
+static __inline__ DFBResult
+Core_AsyncCall( AsyncCallFunc  func,
+                void          *ctx,
+                void          *ctx2 )
+{
+     AsyncCall call;
+
+     call.func = func;
+     call.ctx  = ctx;
+     call.ctx2 = ctx2;
+
+     return (DFBResult) fusion_call_execute2( &core_dfb->async_call, (FusionCallExecFlags)(FCEF_ONEWAY | FCEF_NODIRECT), 0, &call, sizeof(call), NULL );
+}
+
 
 
 void Core_TLS__init( void );
@@ -343,10 +376,29 @@ D_DEFINE_INTERFACE( ICoreResourceClient,
  * Client instance management
  */
 
-ICoreResourceClient *Core_Resource_GetClient    ( FusionID identity );
+DFBResult            Core_Resource_AddIdentity    ( FusionID identity );
+void                 Core_Resource_DisposeIdentity( FusionID identity );
 
-DFBResult            Core_Resource_AddClient    ( FusionID identity );
-void                 Core_Resource_DisposeClient( FusionID identity );
+ICoreResourceClient *Core_Resource_GetClient      ( FusionID identity );
+
+
+/*
+ * Per client cleanup
+ */
+
+typedef struct __Core__CoreResourceCleanup CoreResourceCleanup;
+
+typedef void (*CoreResourceCleanupCallback)( void *ctx,
+                                             void *ctx2 );
+
+
+DFBResult            Core_Resource_AddCleanup     ( FusionID                      identity,
+                                                    CoreResourceCleanupCallback   callback,
+                                                    void                         *ctx,
+                                                    void                         *ctx2,
+                                                    CoreResourceCleanup         **ret_cleanup );
+
+DFBResult            Core_Resource_DisposeCleanup ( CoreResourceCleanup          *cleanup );
 
 #endif
 

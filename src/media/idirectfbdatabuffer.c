@@ -39,6 +39,8 @@
 #include <direct/mem.h>
 #include <direct/thread.h>
 
+#include <fusion/conf.h>
+
 #include <directfb.h>
 
 #include <misc/util.h>
@@ -48,6 +50,8 @@
 #include <media/idirectfbimageprovider.h>
 #include <media/idirectfbvideoprovider.h>
 
+#include <media/DataBuffer.h>
+
 
 void
 IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz )
@@ -56,6 +60,9 @@ IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz )
 
      if (data->filename)
           D_FREE( data->filename );
+
+     if (fusion_config->secure_fusion)
+          DataBuffer_Deinit_Dispatch( &data->call );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -232,6 +239,9 @@ IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz,
 
      if (filename)
           data->filename = D_STRDUP( filename );
+
+     if (fusion_config->secure_fusion)
+          DataBuffer_Init_Dispatch( core, thiz, &data->call );
 
      thiz->AddRef                 = IDirectFBDataBuffer_AddRef;
      thiz->Release                = IDirectFBDataBuffer_Release;

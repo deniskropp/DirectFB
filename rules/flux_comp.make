@@ -1,2 +1,4 @@
+FLUX_ARGS ?= -i --include-prefix=core
+
 $(builddir)/%.cpp $(builddir)/%.h: $(srcdir)/%.flux
-	fluxcomp -i --include-prefix=core $<
+	fluxcomp $(FLUX_ARGS) $<

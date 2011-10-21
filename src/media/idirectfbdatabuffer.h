@@ -29,7 +29,9 @@
 #ifndef __IDIRECTFBDATABUFFER_H__
 #define __IDIRECTFBDATABUFFER_H__
 
-#include <core/coretypes.h>
+#include <core/core.h>
+
+#include <fusion/call.h>
 
 /*
  * private data struct of IDirectFBDataBuffer
@@ -42,6 +44,8 @@ typedef struct {
      IDirectFB   *idirectfb;
 
      bool         is_memory;
+
+     FusionCall   call;       /* for remote access */
 } IDirectFBDataBuffer_data;
 
 /*
