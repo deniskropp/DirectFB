@@ -302,7 +302,8 @@ OneApp_Receive( OneApp             *oneapp,
                 size_t              ids_count,
                 const struct iovec *iov,
                 size_t              iov_count,
-                size_t             *ret_received )
+                size_t             *ret_received,
+                int                 timeout_ms )
 {
      int               ret = 0;
      size_t            i;
@@ -356,9 +357,21 @@ OneApp_Receive( OneApp             *oneapp,
            * Wait when nothing was received
            */
           if (!received && !wakeup) {
-               int timeout = 10;
+               if (timeout_ms == 0) {
+                    one_core_wq_wait( one_core, &oneapp->wait_for_packets, NULL );
+               }
+               else if (timeout_ms > 0) {
+                    one_core_wq_wait( one_core, &oneapp->wait_for_packets, &timeout_ms );
 
-               one_core_wq_wait( one_core, &oneapp->wait_for_packets, &timeout );
+                    if (!timeout_ms) {
+                         ret = -ETIMEDOUT;
+                         break;
+                    }
+               }
+               else {
+                    ret = 0;
+                    break;
+               }
           }
 
           if (signal_pending( current )) {

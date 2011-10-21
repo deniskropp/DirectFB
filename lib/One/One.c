@@ -340,7 +340,8 @@ OneQueue_Receive( const OneQID *queue_ids,
                   void         *buf,
                   size_t        length,
                   size_t       *ret_received,
-                  bool          headerless )
+                  bool          headerless,
+                  int           timeout_ms )
 {
      DirectResult    ret = DR_OK;
      OneQueueReceive queue_receive;
@@ -378,6 +379,8 @@ OneQueue_Receive( const OneQID *queue_ids,
      queue_receive.iov       = iov;
      queue_receive.iov_count = headerless ? 2 : 1;
 
+     queue_receive.timeout_ms = timeout_ms;
+
      while (ioctl( one_fd, ONE_QUEUE_RECEIVE, &queue_receive )) {
           switch (errno) {
                case EINTR:
@@ -411,7 +414,8 @@ OneQueue_ReceiveV( const OneQID  *queue_ids,
                    size_t        *length,
                    size_t         count,
                    size_t        *ret_received,
-                   bool           headerless )
+                   bool           headerless,
+                   int            timeout_ms )
 {
      DirectResult    ret = DR_OK;
      unsigned int    i;
@@ -452,6 +456,8 @@ OneQueue_ReceiveV( const OneQID  *queue_ids,
      queue_receive.iov       = iov;
      queue_receive.iov_count = headerless ? (count+1) : count;
 
+     queue_receive.timeout_ms = timeout_ms;
+
      while (ioctl( one_fd, ONE_QUEUE_RECEIVE, &queue_receive )) {
           switch (errno) {
                case EINTR:
@@ -487,7 +493,8 @@ OneQueue_DispatchReceive( OneQID          queue_id,
                           void           *buf,
                           size_t          buf_length,
                           size_t         *ret_received,
-                          bool            headerless )
+                          bool            headerless,
+                          int             timeout_ms )
 {
      DirectResult            ret = DR_OK;
      OneQueueDispatch        queue_dispatch;
@@ -542,6 +549,8 @@ OneQueue_DispatchReceive( OneQID          queue_id,
 
      queue_dispatch_receive.receive.iov       = buf_iov;
      queue_dispatch_receive.receive.iov_count = headerless ? 2 : 1;
+
+     queue_dispatch_receive.receive.timeout_ms = timeout_ms;
 
      while (ioctl( one_fd, ONE_QUEUE_DISPATCH_RECEIVE, &queue_dispatch_receive )) {
           switch (errno) {
@@ -694,7 +703,7 @@ OneThread_Dispatcher( DirectThread *thread,
 
           direct_mutex_unlock( &thread->lock );
 
-          ret = OneQueue_Receive( ids, ids_count, buf, RECEIVE_BUFFER_SIZE, &length, false );
+          ret = OneQueue_Receive( ids, ids_count, buf, RECEIVE_BUFFER_SIZE, &length, false, 0 );
           if (ret) {
                D_DERROR( ret, "IComaComponent/One: Could not receive from Component Queue!\n" );
                break;

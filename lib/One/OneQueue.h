@@ -56,7 +56,8 @@ DirectResult OneQueue_Receive  ( const OneQID   *queue_ids,
                                  void           *buf,
                                  size_t          length,
                                  size_t         *ret_received,
-                                 bool            headerless );
+                                 bool            headerless,
+                                 int             timeout_ms );
 
 DirectResult OneQueue_ReceiveV ( const OneQID   *queue_ids,
                                  unsigned int    queue_count,
@@ -64,7 +65,8 @@ DirectResult OneQueue_ReceiveV ( const OneQID   *queue_ids,
                                  size_t         *length,
                                  size_t          count,
                                  size_t         *ret_received,
-                                 bool            headerless );
+                                 bool            headerless,
+                                 int             timeout_ms );
 
 /*********************************************************************************************************************/
 
@@ -76,7 +78,8 @@ DirectResult OneQueue_DispatchReceive( OneQID          queue_id,
                                        void           *buf,
                                        size_t          buf_length,
                                        size_t         *ret_received,
-                                       bool            headerless );
+                                       bool            headerless,
+                                       int             timeout_ms );
 
 /*********************************************************************************************************************/
 

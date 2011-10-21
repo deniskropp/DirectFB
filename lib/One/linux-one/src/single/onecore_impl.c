@@ -189,6 +189,12 @@ one_core_wq_wait( OneCore      *core,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
      DEFINE_WAIT(wait);
 
+     int timeout = 0;
+
+     if (timeout_ms)
+          timeout = *timeout_ms * HZ / 1000;
+
+
      D_MAGIC_ASSERT( core, OneCore );
      D_MAGIC_ASSERT( queue, OneWaitQueue );
 
@@ -196,8 +202,16 @@ one_core_wq_wait( OneCore      *core,
 
      one_core_unlock( core );
 
-     if (timeout_ms)
-          *timeout_ms = schedule_timeout(*timeout_ms);
+     if (timeout_ms) {
+          timeout = schedule_timeout(timeout);
+          if (timeout) {
+               timeout = timeout * 1000 / HZ;
+
+               *timeout_ms = timeout ? timeout : 1;
+          }
+          else
+               *timeout_ms = 0;
+     }
      else
           schedule();
 
@@ -206,6 +220,11 @@ one_core_wq_wait( OneCore      *core,
      finish_wait( &queue->queue, &wait );
 #else
      wait_queue_t wait;
+     int          timeout = 0;
+
+     if (timeout_ms)
+          timeout = *timeout_ms * HZ / 1000;
+
 
      D_MAGIC_ASSERT( core, OneCore );
      D_MAGIC_ASSERT( queue, OneWaitQueue );
@@ -220,8 +239,16 @@ one_core_wq_wait( OneCore      *core,
 
      one_core_unlock( core );
 
-     if (timeout_ms)
-          *timeout_ms = schedule_timeout(*timeout_ms);
+     if (timeout_ms) {
+          timeout = schedule_timeout(timeout);
+          if (timeout) {
+               timeout = timeout * 1000 / HZ;
+
+               *timeout_ms = timeout ? timeout : 1;
+          }
+          else
+               *timeout_ms = 0;
+     }
      else
           schedule();
 

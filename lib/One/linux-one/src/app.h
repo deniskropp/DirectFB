@@ -51,7 +51,8 @@ int  OneApp_Receive     ( OneApp              *oneapp,
                           size_t               ids_count,
                           const struct iovec  *iov,
                           size_t               iov_count,
-                          size_t              *ret_received );
+                          size_t              *ret_received,
+                          int                  timeout_ms );
 
 #endif
 

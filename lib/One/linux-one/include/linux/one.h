@@ -122,6 +122,8 @@ typedef struct {
      const struct iovec      *iov;           /* iovec as for readv() */
      size_t                   iov_count;     /* iovec count as for readv() */
 
+     int                      timeout_ms;    /* Optional timeout, 0 = no timeout, -1 = return immediately if nothing to receive */
+
      size_t                   ret_received;  /* Number of bytes received in total (headers and data) */
 } OneQueueReceive;
 

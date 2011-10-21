@@ -463,7 +463,8 @@ one_queue_receive( OneApp          *oneapp,
      /*
       * Actual Receive implementation
       */
-     ret = OneApp_Receive( oneapp, ids, queue_receive->ids_count, iov, queue_receive->iov_count, &queue_receive->ret_received );
+     ret = OneApp_Receive( oneapp, ids, queue_receive->ids_count, iov, queue_receive->iov_count,
+                           &queue_receive->ret_received, queue_receive->timeout_ms );
 
 
 out:
