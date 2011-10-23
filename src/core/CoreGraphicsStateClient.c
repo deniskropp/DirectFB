@@ -44,7 +44,7 @@
 
 #include <fusion/conf.h>
 
-D_DEBUG_DOMAIN( Core_GraphicsState, "Core/Graphics/State", "DirectFB Core Graphics State" );
+D_DEBUG_DOMAIN( Core_GraphicsStateClient, "Core/GfxState/Client", "DirectFB Core Graphics State Client" );
 
 /**********************************************************************************************************************/
 
@@ -53,6 +53,8 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
                               CardState               *state )
 {
      DFBResult ret;
+
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p, state %p )\n", __FUNCTION__, client, state );
 
      D_ASSERT( client != NULL );
      D_MAGIC_ASSERT( state, CardState );
@@ -73,6 +75,8 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
 void
 CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
      dfb_graphics_state_unref( client->gfx_state );
@@ -86,6 +90,8 @@ CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
                                   StateModificationFlags   flags )
 {
      DFBResult ret;
+
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p, state %p, flags 0x%08x )\n", __FUNCTION__, client, state, flags );
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_MAGIC_ASSERT( state, CardState );
@@ -139,6 +145,8 @@ CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
      }
 
      if (flags & SMF_DESTINATION) {
+          D_DEBUG_AT( Core_GraphicsStateClient, "  -> DESTINATION %p [%d]\n", state->destination, state->destination->object.id );
+
           ret = CoreGraphicsState_SetDestination( client->gfx_state, state->destination );
           if (ret)
                return ret;
@@ -203,6 +211,8 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
      DFBResult              ret;
      StateModificationFlags flags = SMF_DESTINATION | SMF_CLIP | SMF_RENDER_OPTIONS;
 
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_MAGIC_ASSERT( state, CardState );
 
@@ -263,6 +273,8 @@ CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
                                         const DFBRectangle      *rects,
                                         unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
 
@@ -291,6 +303,8 @@ CoreGraphicsStateClient_DrawLines( CoreGraphicsStateClient *client,
                                    const DFBRegion         *lines,
                                    unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( lines != NULL );
 
@@ -316,6 +330,8 @@ CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
                                         const DFBRectangle      *rects,
                                         unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
 
@@ -340,6 +356,8 @@ CoreGraphicsStateClient_FillTriangles( CoreGraphicsStateClient *client,
                                        const DFBTriangle       *triangles,
                                        unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( triangles != NULL );
 
@@ -364,6 +382,8 @@ CoreGraphicsStateClient_FillTrapezoids( CoreGraphicsStateClient *client,
                                         const DFBTrapezoid      *trapezoids,
                                         unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( trapezoids != NULL );
 
@@ -389,6 +409,8 @@ CoreGraphicsStateClient_FillSpans( CoreGraphicsStateClient *client,
                                    const DFBSpan           *spans,
                                    unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( spans != NULL );
 
@@ -415,6 +437,8 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
                               const DFBPoint          *points,
                               unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
      D_ASSERT( points != NULL );
@@ -443,6 +467,8 @@ CoreGraphicsStateClient_Blit2( CoreGraphicsStateClient *client,
                                const DFBPoint          *points2,
                                unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
      D_ASSERT( points1 != NULL );
@@ -471,6 +497,8 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
                                      const DFBRectangle      *drects,
                                      unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( srects != NULL );
      D_ASSERT( drects != NULL );
@@ -505,6 +533,8 @@ CoreGraphicsStateClient_TileBlit( CoreGraphicsStateClient *client,
                                   const DFBPoint          *points2,
                                   unsigned int             num )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
      D_ASSERT( points1 != NULL );
@@ -536,6 +566,8 @@ CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
                                           int                      num,
                                           DFBTriangleFormation     formation )
 {
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( vertices != NULL );
 
