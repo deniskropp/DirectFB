@@ -1451,7 +1451,7 @@ typedef struct {
      struct {
           void                         *data;        /* data pointer of existing buffer */
           int                           pitch;       /* pitch of buffer */
-     } preallocated[2];
+     } preallocated[3];
 
      struct {
           const DFBColor               *entries;
