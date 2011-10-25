@@ -630,7 +630,8 @@ error:
 DFBResult
 dfb_surface_destroy_buffers( CoreSurface *surface )
 {
-     int i;
+     int i, num_eyes;
+     DFBSurfaceStereoEye eye;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
@@ -643,10 +644,15 @@ dfb_surface_destroy_buffers( CoreSurface *surface )
      }
 
      /* Destroy the Surface Buffers. */
-     for (i=0; i<surface->num_buffers; i++) {
-          dfb_surface_buffer_decouple( surface->buffers[i] );
-          surface->buffers[i] = NULL;
+     num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
+     for (eye = DSSE_LEFT; num_eyes > 0; num_eyes--, eye = DSSE_RIGHT) {
+          dfb_surface_set_stereo_eye(surface, eye);
+          for (i = 0; i < surface->num_buffers; i++) {
+               dfb_surface_buffer_decouple( surface->buffers[i] );
+               surface->buffers[i] = NULL;
+          }
      }
+     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      surface->num_buffers = 0;
 
