@@ -190,7 +190,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      DIRECT_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
 
      ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL, NULL,
-                                             region, DSCAPS_NONE, data->core );
+                                             region, DSCAPS_NONE, data->core, data->idirectfb );
 
      // Fix to only perform single buffered clearing using a background when 
      // configured to do so AND the display layer region is frozen.  Also 

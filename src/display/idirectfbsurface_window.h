@@ -43,6 +43,7 @@ DFBResult IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                              DFBRectangle           *clip_rect,
                                              CoreWindow             *window,
                                              DFBSurfaceCapabilities  caps,
-                                             CoreDFB                *core );
+                                             CoreDFB                *core,
+                                             IDirectFB              *idirectfb );
 
 #endif

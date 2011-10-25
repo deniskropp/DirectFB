@@ -44,6 +44,8 @@ extern "C" {
 #include <core/core.h>
 
 #include <media/idirectfbdatabuffer_client.h>
+
+#include <idirectfb.h>
 }
 
 D_DEBUG_DOMAIN( DirectFB_CoreDFB, "DirectFB/Core", "DirectFB Core" );
@@ -172,7 +174,7 @@ ICore_Real::CreateImageProvider(
      }
 
      /* Create dispatch object */
-     ret = ImageProviderDispatch_Create( buffer, provider, &dispatch );
+     ret = ImageProviderDispatch_Create( idirectfb_singleton, buffer, provider, &dispatch );
      if (ret) {
           provider->Release( provider );
           buffer->Release( buffer );

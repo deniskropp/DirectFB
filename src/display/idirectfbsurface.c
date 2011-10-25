@@ -605,7 +605,6 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                        const DFBRegion     *region,
                        DFBSurfaceFlipFlags  flags )
 {
-     DFBResult    ret;
      DFBRegion    reg;
      CoreSurface *surface;
 
@@ -2557,14 +2556,14 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
           ret = IDirectFBSurface_Construct( *surface, thiz,
                                             &wanted, &granted, &data->area.insets,
                                             data->surface,
-                                            data->caps | DSCAPS_SUBSURFACE, data->core );
+                                            data->caps | DSCAPS_SUBSURFACE, data->core, data->idirectfb );
      }
      else {
           /* Construct */
           ret = IDirectFBSurface_Construct( *surface, thiz,
                                             NULL, NULL, &data->area.insets,
                                             data->surface, 
-                                            data->caps | DSCAPS_SUBSURFACE, data->core );
+                                            data->caps | DSCAPS_SUBSURFACE, data->core, data->idirectfb );
      }
      
      return ret;
@@ -2682,7 +2681,7 @@ IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
      if (ret)
           return ret;
 
-     ret = funcs->Construct( *interface, thiz );
+     ret = funcs->Construct( *interface, thiz, data->idirectfb );
      if (ret)
           *interface = NULL;
 
@@ -2855,7 +2854,6 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                              const DFBRegion     *right_region,
                              DFBSurfaceFlipFlags  flags )
 {
-     DFBResult ret;
      DFBRegion l_reg, r_reg;
      DFBSurfaceStereoEye eye;
 
@@ -3086,7 +3084,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
                                       DFBInsets              *insets,
                                       CoreSurface            *surface,
                                       DFBSurfaceCapabilities  caps,
-                                      CoreDFB                *core )
+                                      CoreDFB                *core,
+                                      IDirectFB              *idirectfb )
 {
      DFBResult    ret;
      DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
@@ -3095,9 +3094,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
-     data->ref = 1;
-     data->caps = caps | surface->config.caps;
-     data->core = core;
+     data->ref       = 1;
+     data->caps      = caps | surface->config.caps;
+     data->core      = core;
+     data->idirectfb = idirectfb;
 
      if (dfb_surface_ref( surface )) {
           DIRECT_DEALLOCATE_INTERFACE(thiz);

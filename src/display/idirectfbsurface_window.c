@@ -222,7 +222,6 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                                     const DFBRegion     *right_region,
                                     DFBSurfaceFlipFlags  flags )
 {
-     DFBResult ret;
      DFBRegion l_reg, r_reg;
      DFBSurfaceStereoEye eye;
 
@@ -379,13 +378,13 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
           /* Construct */
           ret = IDirectFBSurface_Window_Construct( *surface, thiz, &wanted, &granted,
                                                    data->window, data->base.caps |
-                                                   DSCAPS_SUBSURFACE, data->base.core );
+                                                   DSCAPS_SUBSURFACE, data->base.core, data->base.idirectfb );
      }
      else {
           /* Construct */
           ret = IDirectFBSurface_Window_Construct( *surface, thiz, NULL, NULL,
                                                    data->window, data->base.caps |
-                                                   DSCAPS_SUBSURFACE, data->base.core );
+                                                   DSCAPS_SUBSURFACE, data->base.core, data->base.idirectfb );
      }
      
      return ret;
@@ -398,7 +397,8 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    DFBRectangle           *granted,
                                    CoreWindow             *window,
                                    DFBSurfaceCapabilities  caps,
-                                   CoreDFB                *core )
+                                   CoreDFB                *core,
+                                   IDirectFB              *dfb )
 {
      DFBResult        ret;
      DFBInsets        insets;
@@ -418,7 +418,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      if (ret)
           return ret;
 
-     ret = IDirectFBSurface_Construct( thiz, parent, wanted, granted, &insets, surface, caps, core );
+     ret = IDirectFBSurface_Construct( thiz, parent, wanted, granted, &insets, surface, caps, core, dfb );
 
      dfb_surface_unref( surface );
 

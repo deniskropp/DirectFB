@@ -127,6 +127,7 @@ typedef struct {
      Reaction               reaction;
 
      CoreDFB               *core;
+     IDirectFB             *idirectfb;
 
      IDirectFBSurface      *parent;
      DirectLink            *children_data;
@@ -145,7 +146,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface *thiz,
                                       DFBInsets    *insets,
                                       CoreSurface  *surface,
                                       DFBSurfaceCapabilities  caps,
-                                      CoreDFB                *core );
+                                      CoreDFB                *core,
+                                      IDirectFB              *idirectfb );
 
 /*
  * destroys surface(s) and frees private data

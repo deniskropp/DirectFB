@@ -744,7 +744,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
                          ret = IDirectFBSurface_Construct( iface, NULL,
-                                                           NULL, NULL, NULL, surface, caps, data->core );
+                                                           NULL, NULL, NULL, surface, caps, data->core, thiz );
                          if (ret == DFB_OK) {
                               CoreWindowStack_BackgroundSetImage( data->stack, surface );
                               CoreWindowStack_BackgroundSetMode( data->stack, DLBM_IMAGE );
@@ -834,7 +834,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          ret = IDirectFBSurface_Window_Construct( iface, NULL,
                                                                   NULL, NULL, window,
-                                                                  caps, data->core );
+                                                                  caps, data->core, thiz );
 
                          if (!ret)
                               *interface = iface;
@@ -944,7 +944,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
                     ret = IDirectFBSurface_Layer_Construct( iface, NULL,
-                                                            NULL, NULL, region, caps, data->core );
+                                                            NULL, NULL, region, caps, data->core, thiz );
 
                     dfb_surface_unref( surface );
                     dfb_layer_region_unref( region );
@@ -1038,7 +1038,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
      ret = IDirectFBSurface_Construct( iface, NULL,
-                                       NULL, NULL, NULL, surface, caps, data->core );
+                                       NULL, NULL, NULL, surface, caps, data->core, thiz );
 
      dfb_surface_unref( surface );
 

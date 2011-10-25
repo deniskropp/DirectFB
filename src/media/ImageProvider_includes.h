@@ -24,13 +24,15 @@ typedef struct {
 
      FusionCall              call;
 
+     IDirectFB              *idirectfb;
      IDirectFBDataBuffer    *buffer;
      IDirectFBImageProvider *provider;
 
      CoreResourceCleanup    *cleanup;
 } ImageProviderDispatch;
 
-DFBResult ImageProviderDispatch_Create ( IDirectFBDataBuffer     *buffer,
+DFBResult ImageProviderDispatch_Create ( IDirectFB               *idirectfb,
+                                         IDirectFBDataBuffer     *buffer,
                                          IDirectFBImageProvider  *provider,
                                          ImageProviderDispatch  **ret_dispatch );
 

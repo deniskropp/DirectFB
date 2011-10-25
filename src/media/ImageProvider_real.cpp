@@ -57,7 +57,8 @@ ImageProviderDispatch_cleanup( void *ctx,
 }
 
 DFBResult
-ImageProviderDispatch_Create( IDirectFBDataBuffer     *buffer,
+ImageProviderDispatch_Create( IDirectFB               *idirectfb,
+                              IDirectFBDataBuffer     *buffer,
                               IDirectFBImageProvider  *provider,
                               ImageProviderDispatch  **ret_dispatch )
 {
@@ -67,8 +68,9 @@ ImageProviderDispatch_Create( IDirectFBDataBuffer     *buffer,
      if (!dispatch)
           return (DFBResult) D_OOM();
 
-     dispatch->buffer   = buffer;
-     dispatch->provider = provider;
+     dispatch->idirectfb = idirectfb;
+     dispatch->buffer    = buffer;
+     dispatch->provider  = provider;
 
      ImageProvider_Init_Dispatch( core_dfb, dispatch, &dispatch->call );
 
@@ -165,7 +167,7 @@ IImageProvider_Real::RenderTo(
      if (!surface)
           return (DFBResult) D_OOM();
 
-     ret = IDirectFBSurface_Construct( surface, NULL, NULL, NULL, NULL, destination, DSCAPS_NONE, core );
+     ret = IDirectFBSurface_Construct( surface, NULL, NULL, NULL, NULL, destination, DSCAPS_NONE, core, obj->idirectfb );
      if (ret)
           return ret;
 
