@@ -152,13 +152,16 @@ void direct_dbg_interface_remove( const char *func,
 
 
 
-#define DIRECT_ALLOCATE_INTERFACE(p,i)                                               \
-     do {                                                                            \
-          (p) = (__typeof__(p))D_CALLOC( 1, sizeof(i) );                             \
-                                                                                     \
-          D_MAGIC_SET( (IAny*)(p), DirectInterface );                                \
-                                                                                     \
-          DIRECT_DBG_INTERFACE_ADD( __FUNCTION__, __FILE__, __LINE__, #p, p, #i );   \
+#define DIRECT_ALLOCATE_INTERFACE(p,i)                                                    \
+     do {                                                                                 \
+          (p) = (__typeof__(p))D_CALLOC( 1, sizeof(i) );                                  \
+          if (p) {                                                                        \
+               D_MAGIC_SET( (IAny*)(p), DirectInterface );                                \
+                                                                                          \
+               DIRECT_DBG_INTERFACE_ADD( __FUNCTION__, __FILE__, __LINE__, #p, p, #i );   \
+          }                                                                               \
+          else                                                                            \
+               D_OOM();                                                                   \
      } while (0)
 
 
