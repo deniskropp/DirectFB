@@ -66,6 +66,7 @@
 #include <core/screen.h>
 #include <core/screens.h>
 #include <core/surface.h>
+#include <core/surface_pool.h>
 #include <core/system.h>
 #include <core/windows.h>
 #include <core/windows_internal.h> /* FIXME */
@@ -530,24 +531,6 @@ init_palette( CoreSurface *surface, const DFBSurfaceDescription *desc )
 }
 
 static DFBResult
-init_preallocated( CoreSurface *surface, const DFBSurfaceDescription *desc )
-{
-     DFBResult ret;
-
-     ret = dfb_surface_write_buffer( surface, CSBR_FRONT, desc->preallocated[0].data, desc->preallocated[0].pitch, NULL );
-     if (ret)
-          return ret;
-
-     if (surface->config.caps & (DSCAPS_DOUBLE | DSCAPS_TRIPLE)) {
-          ret = dfb_surface_write_buffer( surface, CSBR_BACK, desc->preallocated[1].data, desc->preallocated[1].pitch, NULL );
-          if (ret)
-               return ret;
-     }
-
-     return DFB_OK;
-}
-
-static DFBResult
 IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          const DFBSurfaceDescription  *desc,
                          IDirectFBSurface            **interface )
@@ -605,9 +588,19 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                return DFB_INVARG;
      }
 
-     if (desc->flags & DSDESC_PALETTE)
-          if (!desc->palette.entries || !desc->palette.size)
+     if (desc->flags & DSDESC_PALETTE) {
+          D_DEBUG_AT( IDFB, "  -> PALETTE\n" );
+
+          if (!desc->palette.entries) {
+               D_DEBUG_AT( IDFB, "  -> no entries!\n" );
                return DFB_INVARG;
+          }
+
+          if (!desc->palette.size) {
+               D_DEBUG_AT( IDFB, "  -> no size!\n" );
+               return DFB_INVARG;
+          }
+     }
 
      if (desc->flags & DSDESC_CAPS) {
           D_DEBUG_AT( IDFB, "  -> caps   0x%08x\n", desc->caps );
@@ -625,8 +618,10 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      if (desc->flags & DSDESC_COLORSPACE) {
           D_DEBUG_AT( IDFB, "  -> colorspace %s\n", dfb_colorspace_name(desc->pixelformat) );
 
-          if (!DFB_COLORSPACE_IS_COMPATIBLE(desc->colorspace, format))
+          if (!DFB_COLORSPACE_IS_COMPATIBLE(desc->colorspace, format)) {
+               D_DEBUG_AT( IDFB, "  -> incompatible color space!\n" );
                return DFB_INVARG;
+          }
 
           colorspace = desc->colorspace;
      }
@@ -677,12 +672,15 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                break;
 
           default:
+               D_DEBUG_AT( IDFB, "  -> invalid pixelformat 0x%08x\n", format );
                return DFB_INVARG;
      }
 
      if (caps & DSCAPS_PRIMARY) {
-          if (desc->flags & DSDESC_PREALLOCATED)
+          if (desc->flags & DSDESC_PREALLOCATED) {
+               D_DEBUG_AT( IDFB, "  -> cannot make preallocated primary!\n" );
                return DFB_INVARG;
+          }
 
           if (desc->flags & DSDESC_PIXELFORMAT)   // FIXME COLORSPACE
                format = desc->pixelformat;
@@ -961,56 +959,50 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
           caps &= ~DSCAPS_TRIPLE;
 
-     if (caps & DSCAPS_TRIPLE)
-          return DFB_UNSUPPORTED;
-
      if (desc->flags & DSDESC_PREALLOCATED) {
-          int min_pitch;
-#if 0
+          int               min_pitch;
           CoreSurfaceConfig config;
-#endif
-
-          if (caps & DSCAPS_VIDEOONLY)
-               return DFB_INVARG;
+          int               i, num = 1;
 
           min_pitch = DFB_BYTES_PER_LINE(format, width);
 
-          if (!desc->preallocated[0].data ||
-               desc->preallocated[0].pitch < min_pitch)
-          {
-               return DFB_INVARG;
+          if (caps & DSCAPS_DOUBLE)
+               num = 2;
+          else if (caps & DSCAPS_TRIPLE)
+               num = 3;
+
+          D_DEBUG_AT( IDFB, "  -> %d buffers, min pitch %d\n", num, min_pitch );
+
+          for (i=0; i<num; i++) {
+               if (!desc->preallocated[i].data) {
+                    D_DEBUG_AT( IDFB, "  -> no data in preallocated [%d]\n", i );
+                    return DFB_INVARG;
+               }
+
+               if (desc->preallocated[i].pitch < min_pitch) {
+                    D_DEBUG_AT( IDFB, "  -> wrong pitch (%d) in preallocated [%d]\n", desc->preallocated[i].pitch, i );
+                    return DFB_INVARG;
+               }
           }
 
-          if ((caps & DSCAPS_DOUBLE) &&
-              (!desc->preallocated[1].data ||
-                desc->preallocated[1].pitch < min_pitch))
-          {
-               return DFB_INVARG;
+          config.flags      = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS | CSCONF_PREALLOCATED;
+          config.size.w     = width;
+          config.size.h     = height;
+          config.format     = format;
+          config.colorspace = colorspace;
+          config.caps       = caps;
+
+          ret = dfb_surface_pools_prealloc( desc, &config );
+          if (ret) {
+               D_DERROR( ret, "IDirectFB::CreateSurface: Preallocation failed!\n" );
+               return ret;
           }
-
-#if 0
-          config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS | CSCONF_PREALLOCATED;
-          config.size.w       = width;
-          config.size.h       = height;
-          config.format       = format;
-          config.colorspace   = colorspace;
-          config.caps         = caps;
-
-          config.preallocated[0].addr  = desc->preallocated[0].data;
-          config.preallocated[0].pitch = desc->preallocated[0].pitch;
-
-          config.preallocated[1].addr  = desc->preallocated[1].data;
-          config.preallocated[1].pitch = desc->preallocated[1].pitch;
 
           ret = CoreDFB_CreateSurface( data->core, &config, CSTF_PREALLOCATED, resource_id, NULL, &surface );
           if (ret)
                return ret;
-#endif
      }
-#if 0
-     else
-#endif
-     {
+     else {
           CoreSurfaceConfig config;
 
           config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
@@ -1023,14 +1015,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           ret = CoreDFB_CreateSurface( data->core, &config, CSTF_NONE, resource_id, NULL, &surface );
           if (ret)
                return ret;
-
-          if (desc->flags & DSDESC_PREALLOCATED) {
-               ret = init_preallocated( surface, desc );
-               if (ret) {
-                    dfb_surface_unref( surface );
-                    return ret;
-               }
-          }
      }
 
      init_palette( surface, desc );

@@ -210,6 +210,11 @@ struct __DFB_CoreSurfaceBuffer {
      unsigned long            resource_id;   /* layer id, window id, or user specified */
 };
 
+#define CORE_SURFACE_BUFFER_ASSERT(buffer)                                                     \
+     do {                                                                                      \
+          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );                                         \
+     } while (0)
+
 
 DFBResult dfb_surface_buffer_create ( CoreDFB                 *core,
                                       CoreSurface             *surface,

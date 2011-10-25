@@ -220,27 +220,27 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
 
 DFBResult
 ISurface_Real::PreLockBuffer(
-                         u32                                        buffer_index,
+                         CoreSurfaceBuffer                         *buffer,
                          CoreSurfaceAccessorID                      accessor,
                          CoreSurfaceAccessFlags                     access,
                          u32                                       *ret_allocation_index
                          )
 {
      DFBResult              ret;
-     CoreSurfaceBuffer     *buffer;
      CoreSurfaceAllocation *allocation;
      CoreSurface           *surface    = obj;
      bool                   allocated  = false;
 
      D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
 
-     if (buffer_index >= (u32)surface->num_buffers)
-          return DFB_INVARG;
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      dfb_surface_lock( surface );
 
-     buffer = surface->buffers[buffer_index];
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     if (!buffer->surface) {
+          dfb_surface_unlock( surface );
+          return DFB_BUFFEREMPTY;
+     }
 
      /* Look for allocation with proper access. */
      allocation = dfb_surface_buffer_find_allocation( buffer, accessor, access, true );
@@ -288,26 +288,26 @@ out:
 
 DFBResult
 ISurface_Real::PreReadBuffer(
-                         u32                                        buffer_index,
+                         CoreSurfaceBuffer                         *buffer,
                          const DFBRectangle                        *rect,
                          u32                                       *ret_allocation_index
                          )
 {
      DFBResult              ret;
-     CoreSurfaceBuffer     *buffer;
      CoreSurfaceAllocation *allocation;
      CoreSurface           *surface    = obj;
      bool                   allocated  = false;
 
      D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
 
-     if (buffer_index >= (u32)surface->num_buffers)
-          return DFB_INVARG;
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      dfb_surface_lock( surface );
 
-     buffer = surface->buffers[buffer_index];
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     if (!buffer->surface) {
+          dfb_surface_unlock( surface );
+          return DFB_BUFFEREMPTY;
+     }
 
      /* Use last written allocation if it's up to date... */
      if (buffer->written && direct_serial_check( &buffer->written->serial, &buffer->serial ))
@@ -360,26 +360,26 @@ out:
 
 DFBResult
 ISurface_Real::PreWriteBuffer(
-                         u32                                        buffer_index,
+                         CoreSurfaceBuffer                         *buffer,
                          const DFBRectangle                        *rect,
                          u32                                       *ret_allocation_index
                          )
 {
      DFBResult              ret;
-     CoreSurfaceBuffer     *buffer;
      CoreSurfaceAllocation *allocation;
      CoreSurface           *surface    = obj;
      bool                   allocated  = false;
 
      D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
 
-     if (buffer_index >= (u32)surface->num_buffers)
-          return DFB_INVARG;
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      dfb_surface_lock( surface );
 
-     buffer = surface->buffers[buffer_index];
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     if (!buffer->surface) {
+          dfb_surface_unlock( surface );
+          return DFB_BUFFEREMPTY;
+     }
 
      /* Use last read allocation if it's up to date... */
      if (buffer->read && direct_serial_check( &buffer->read->serial, &buffer->serial ))

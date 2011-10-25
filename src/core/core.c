@@ -61,6 +61,7 @@
 #include <core/windows_internal.h>
 
 #include <core/CoreDFB.h>
+#include <core/CoreSlave.h>
 
 #include <direct/build.h>
 #include <direct/debug.h>
@@ -1138,6 +1139,101 @@ dfb_core_font_manager( CoreDFB *core )
 
 /******************************************************************************/
 
+struct __CoreDFB_CoreMemoryPermission {
+     DirectLink                    link;
+
+     CoreMemoryPermissionFlags     flags;
+
+     void                         *data;
+     void                         *end;
+     size_t                        length;
+};
+
+DFBResult
+dfb_core_memory_permissions_add( CoreDFB                   *core,
+                                 CoreMemoryPermissionFlags  flags,
+                                 void                      *data,
+                                 size_t                     length,
+                                 CoreMemoryPermission     **ret_permission )
+{
+     CoreMemoryPermission *permission;
+
+     D_DEBUG_AT( DirectFB_Core, "%s( flags 0x%02x, data %p, length " _ZU " )\n", __FUNCTION__, flags, data, length );
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     permission = D_CALLOC( 1, sizeof(CoreMemoryPermission) );
+     if (!permission)
+          return D_OOM();
+
+     permission->flags  = flags;
+     permission->data   = data;
+     permission->end    = data + length;
+     permission->length = length;
+
+     direct_mutex_lock( &core->memory_permissions_lock );
+
+     direct_list_prepend( &core->memory_permissions, &permission->link );
+
+     direct_mutex_unlock( &core->memory_permissions_lock );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_core_memory_permissions_remove( CoreDFB                   *core,
+                                    CoreMemoryPermission      *permission )
+{
+     D_DEBUG_AT( DirectFB_Core, "%s( flags 0x%02x, data %p, length " _ZU " )\n", __FUNCTION__,
+                 permission->flags, permission->data, permission->length );
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     direct_mutex_lock( &core->memory_permissions_lock );
+
+     direct_list_remove( &core->memory_permissions, &permission->link );
+
+     direct_mutex_unlock( &core->memory_permissions_lock );
+
+     D_FREE( permission );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_core_memory_permissions_check( CoreDFB                   *core,
+                                   CoreMemoryPermissionFlags  flags,
+                                   void                      *data,
+                                   size_t                     length )
+{
+     CoreMemoryPermission *permission;
+
+     D_LOG( DirectFB_Core, DEBUG_9, "%s( flags 0x%02x, data %p, length " _ZU " )\n", __FUNCTION__, flags, data, length );
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     direct_mutex_lock( &core->memory_permissions_lock );
+
+     direct_list_foreach (permission, core->memory_permissions) {
+          if (permission->data <= data && permission->end >= data + length &&
+              D_FLAGS_ARE_SET( permission->flags, flags ))
+          {
+               D_LOG( DirectFB_Core, DEBUG_9, "  -> found flags 0x%02x, data %p, length " _ZU "\n",
+                      permission->flags, permission->data, permission->length );
+
+               direct_mutex_unlock( &core->memory_permissions_lock );
+
+               return DFB_OK;
+          }
+     }
+
+     direct_mutex_unlock( &core->memory_permissions_lock );
+
+     return DFB_ITEMNOTFOUND;
+}
+
+/******************************************************************************/
+
 static void
 dfb_core_deinit_check( void *ctx )
 {
@@ -1241,6 +1337,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      // FIXME: cleanup items
      direct_hash_destroy( core->resource.identities );
 
+     direct_mutex_deinit( &core->memory_permissions_lock );
+
      return 0;
 }
 
@@ -1253,8 +1351,11 @@ dfb_core_initialize( CoreDFB *core )
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
-     shared = core->shared;
+     direct_hash_create( 23, &core->resource.identities );
 
+     direct_mutex_init( &core->memory_permissions_lock );
+
+     shared = core->shared;
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
      ret = fusion_shm_pool_create( core->world, "DirectFB Data Pool", 0x1000000,
@@ -1276,8 +1377,6 @@ dfb_core_initialize( CoreDFB *core )
                return ret;
           }
      }
-
-     direct_hash_create( 23, &core_dfb->resource.identities );
 
      if (dfb_config->resource_manager) {
           DirectInterfaceFuncs *funcs;
@@ -1317,6 +1416,13 @@ dfb_core_leave( CoreDFB *core, bool emergency )
      for (i=D_ARRAY_SIZE(core_parts)-1; i>=0; i--)
           dfb_core_part_leave( core, core_parts[i], emergency );
 
+     CoreSlave_Deinit_Dispatch( &core->slave_call );
+
+     // FIXME: cleanup items
+     direct_hash_destroy( core->resource.identities );
+
+     direct_mutex_deinit( &core->memory_permissions_lock );
+
      return DFB_OK;
 }
 
@@ -1327,7 +1433,14 @@ dfb_core_join( CoreDFB *core )
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
-     CoreDFB_Register( core );
+     direct_hash_create( 23, &core->resource.identities );
+
+     direct_mutex_init( &core->memory_permissions_lock );
+
+     CoreSlave_Init_Dispatch( core, core, &core->slave_call );
+
+     if (fusion_config->secure_fusion)
+          CoreDFB_Register( core, core->slave_call.call_id );
 
      for (i=0; i<D_ARRAY_SIZE(core_parts); i++) {
           DFBResult ret;
@@ -1381,6 +1494,7 @@ dfb_core_arena_initialize( FusionArena *arena,
      core->master = true;
 
      shared->shmpool = pool;
+     shared->secure  = fusion_config->secure_fusion;
 
      D_MAGIC_SET( shared, CoreDFBShared );
 
@@ -1471,6 +1585,13 @@ dfb_core_arena_join( FusionArena *arena,
 
      core->shared = field;
 
+     if (fusion_config->secure_fusion != core->shared->secure) {
+          D_ERROR( "DirectFB/Core: Local secure-fusion config (%d) does not match with running session (%d)!\n",
+                   fusion_config->secure_fusion, core->shared->secure );
+
+          return DFB_UNSUPPORTED;
+     }
+
      /* Join. */
      ret = dfb_core_join( core );
      if (ret)
@@ -1559,7 +1680,7 @@ Core_PushIdentity( FusionID caller )
           core_tls->identity_count++;
 
           if (core_tls->identity_count <= CORE_TLS_IDENTITY_STACK_MAX)
-               core_tls->identity[core_tls->identity_count-1] = caller;
+               core_tls->identity[core_tls->identity_count-1] = caller ? caller : core_dfb->fusion_id;
           else
                D_WARN( "identity stack overflow" );
      }
@@ -1591,9 +1712,11 @@ Core_GetIdentity()
 
      if (core_tls) {
           if (core_tls->identity_count == 0) {
-               //D_WARN( "no identity" );
+               D_ASSERT( core_dfb != NULL );
 
-               return 0;
+               D_ASSUME( core_dfb->fusion_id != 0 );
+
+               return core_dfb->fusion_id;
           }
 
           if (core_tls->identity_count <= CORE_TLS_IDENTITY_STACK_MAX)
@@ -1728,16 +1851,20 @@ struct __Core__CoreResourceCleanup {
 typedef struct {
      ICoreResourceClient *client;
 
+     CoreSlave            slave;
+
      DirectLink          *cleanups;
 } ResourceIdentity;
 
 DFBResult
-Core_Resource_AddIdentity( FusionID fusion_id )
+Core_Resource_AddIdentity( FusionID fusion_id,
+                           u32      slave_call )
 {
      DFBResult         ret;
      ResourceIdentity *identity;
      char              buf[512] = { 0 };
      size_t            len;
+     FusionID          call_owner;
 
      D_DEBUG_AT( Core_Resource, "%s( %lu )\n", __FUNCTION__, fusion_id );
 
@@ -1754,6 +1881,20 @@ Core_Resource_AddIdentity( FusionID fusion_id )
      identity = D_CALLOC( 1, sizeof(ResourceIdentity) );
      if (!identity)
           return D_OOM();
+
+     fusion_call_init_from( &identity->slave.call, slave_call, dfb_core_world(core_dfb) );
+
+     ret = fusion_call_get_owner( &identity->slave.call, &call_owner );
+     if (ret) {
+          D_FREE( identity );
+          return ret;
+     }
+
+     if (call_owner != fusion_id) {
+          D_ERROR( "Core/Resource: Slave call owner (%lu) does not match new identity (%lu)!\n", call_owner, fusion_id );
+          D_FREE( identity );
+          return ret;
+     }
 
      if (core_dfb->resource.manager) {
           ret = core_dfb->resource.manager->CreateClient( core_dfb->resource.manager, fusion_id, &identity->client );
@@ -1821,6 +1962,20 @@ Core_Resource_GetClient( FusionID fusion_id )
      identity = direct_hash_lookup( core_dfb->resource.identities, fusion_id );
      if (identity)
           return identity->client;
+
+     return NULL;
+}
+
+CoreSlave *
+Core_Resource_GetSlave( FusionID fusion_id )
+{
+     ResourceIdentity *identity;
+
+     D_DEBUG_AT( Core_Resource, "%s( %lu )\n", __FUNCTION__, fusion_id );
+
+     identity = direct_hash_lookup( core_dfb->resource.identities, fusion_id );
+     if (identity)
+          return &identity->slave;
 
      return NULL;
 }

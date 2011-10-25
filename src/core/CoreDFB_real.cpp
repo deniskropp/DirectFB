@@ -57,14 +57,14 @@ namespace DirectFB {
 
 DFBResult
 ICore_Real::Register(
-
+     u32                       slave_call
 )
 {
     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
 
     D_MAGIC_ASSERT( obj, CoreDFB );
 
-    return Core_Resource_AddIdentity( Core_GetIdentity() );
+    return Core_Resource_AddIdentity( Core_GetIdentity(), slave_call );
 }
 
 DFBResult
@@ -83,17 +83,11 @@ ICore_Real::CreateSurface( const CoreSurfaceConfig  *config,
      D_ASSERT( config != NULL );
      D_ASSERT( ret_surface != NULL );
 
-     CoreSurfaceConfig config_copy = *config;
-
-     // FIXME: handle local / preallocated surfaces
-     if (fusion_config->secure_fusion && !dfb_core_is_master( core_dfb ))
-          config_copy.flags = (CoreSurfaceConfigFlags)(config_copy.flags & ~CSCONF_PREALLOCATED);
-
      ret = Core_Resource_CheckSurface( config, type, resource_id, palette );
      if (ret)
           return ret;
 
-     ret = dfb_surface_create( obj, &config_copy, type, resource_id, palette, &surface );
+     ret = dfb_surface_create( obj, config, type, resource_id, palette, &surface );
      if (ret)
           return ret;
 

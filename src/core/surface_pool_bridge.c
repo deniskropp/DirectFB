@@ -59,6 +59,7 @@ static const SurfacePoolBridgeFuncs *bridge_funcs[MAX_SURFACE_POOL_BRIDGES];
 static void                         *bridge_locals[MAX_SURFACE_POOL_BRIDGES];
 static int                           bridge_count;
 static CoreSurfacePoolBridge        *bridge_array[MAX_SURFACE_POOL_BRIDGES];
+static unsigned int                  bridge_order[MAX_SURFACE_POOLS];
 
 /**********************************************************************************************************************/
 
@@ -93,6 +94,11 @@ static DFBResult init_bridge( CoreDFB                      *core,
                               CoreSurfacePoolBridge        *bridge,
                               const SurfacePoolBridgeFuncs *funcs,
                               void                         *context );
+
+/**********************************************************************************************************************/
+
+static void insert_bridge_local( CoreSurfacePoolBridge   *bridge );
+static void remove_bridge_local( CoreSurfacePoolBridgeID  bridge_id );
 
 /**********************************************************************************************************************/
 
@@ -143,11 +149,16 @@ dfb_surface_pool_bridge_initialize( CoreDFB                       *core,
 
      ret = init_bridge( core, bridge, funcs, context );
      if (ret) {
+          bridge_funcs[bridge->bridge_id] = NULL;
+          bridge_array[bridge->bridge_id] = NULL;
           bridge_count--;
           D_MAGIC_CLEAR( bridge );
           SHFREE( shmpool, bridge );
           return ret;
      }
+
+     /* Insert new bridge into priority order */
+     insert_bridge_local( bridge );
 
      /* Return the new bridge. */
      *ret_bridge = bridge;
@@ -217,6 +228,9 @@ dfb_surface_pool_bridge_join( CoreDFB                      *core,
           }
      }
 
+     /* Insert new bridge into priority order */
+     insert_bridge_local( bridge );
+
      return DFB_OK;
 }
 
@@ -245,14 +259,8 @@ dfb_surface_pool_bridge_destroy( CoreSurfacePoolBridge *bridge )
      if (bridge->data)
           SHFREE( bridge->shmpool, bridge->data );
 
-     /* Free local bridge data. */
-     if (bridge_locals[bridge_id])
-          D_FREE( bridge_locals[bridge_id] );
-
-     /* Remove from arrays. */
-     bridge_array[bridge_id]  = NULL;
-     bridge_funcs[bridge_id]  = NULL;
-     bridge_locals[bridge_id] = NULL;
+     /* Free local pool data and remove from lists */
+     remove_bridge_local( bridge_id );
 
      fusion_skirmish_destroy( &bridge->lock );
 
@@ -284,14 +292,8 @@ dfb_surface_pool_bridge_leave( CoreSurfacePoolBridge *bridge )
      if (funcs->LeavePoolBridge)
           funcs->LeavePoolBridge( bridge, bridge->data, get_local(bridge) );
 
-     /* Free local bridge data. */
-     if (bridge_locals[bridge_id])
-          D_FREE( bridge_locals[bridge_id] );
-
-     /* Remove from arrays. */
-     bridge_array[bridge_id]  = NULL;
-     bridge_funcs[bridge_id]  = NULL;
-     bridge_locals[bridge_id] = NULL;
+     /* Free local pool data and remove from lists */
+     remove_bridge_local( bridge_id );
 
      return DFB_OK;
 }
@@ -420,7 +422,10 @@ dfb_surface_pool_bridges_transfer( CoreSurfaceBuffer     *buffer,
      }
 
      for (i=0; i<bridge_count; i++) {
-          bridge = bridge_array[i];
+          D_ASSERT( bridge_order[i] >= 0 );
+          D_ASSERT( bridge_order[i] < bridge_count );
+
+          bridge = bridge_array[bridge_order[i]];
           D_MAGIC_ASSERT( bridge, CoreSurfacePoolBridge );
 
           funcs = get_funcs( bridge );
@@ -512,20 +517,79 @@ init_bridge( CoreDFB                      *core,
                D_FREE( bridge_locals[bridge->bridge_id] );
                bridge_locals[bridge->bridge_id] = NULL;
           }
-
           if (bridge->data) {
                SHFREE( bridge->shmpool, bridge->data );
                bridge->data = NULL;
           }
-
-          bridge_array[bridge->bridge_id] = NULL;
-          bridge_funcs[bridge->bridge_id] = NULL;
-
           return ret;
      }
 
      fusion_skirmish_init( &bridge->lock, bridge->desc.name, dfb_core_world(core) );
 
      return DFB_OK;
+}
+
+static void
+insert_bridge_local( CoreSurfacePoolBridge *bridge )
+{
+     int i, n;
+
+     for (i=0; i<bridge_count-1; i++) {
+          D_ASSERT( bridge_order[i] >= 0 );
+          D_ASSERT( bridge_order[i] < bridge_count-1 );
+
+          D_MAGIC_ASSERT( bridge_array[bridge_order[i]], CoreSurfacePoolBridge );
+
+          if (bridge_array[bridge_order[i]]->desc.priority < bridge->desc.priority)
+               break;
+     }
+
+     for (n=bridge_count-1; n>i; n--) {
+          D_ASSERT( bridge_order[n-1] >= 0 );
+          D_ASSERT( bridge_order[n-1] < bridge_count-1 );
+
+          D_MAGIC_ASSERT( bridge_array[bridge_order[n-1]], CoreSurfacePoolBridge );
+
+          bridge_order[n] = bridge_order[n-1];
+     }
+
+     bridge_order[n] = bridge_count - 1;
+
+#if D_DEBUG_ENABLED
+     for (i=0; i<bridge_count; i++) {
+          D_DEBUG_AT( Core_SurfPoolBridge, "  %c> [%d] %p - '%s' [%d] (%d), %p\n",
+                      (i == n) ? '=' : '-', i, bridge_array[bridge_order[i]], bridge_array[bridge_order[i]]->desc.name,
+                      bridge_array[bridge_order[i]]->bridge_id, bridge_array[bridge_order[i]]->desc.priority,
+                      bridge_funcs[bridge_order[i]] );
+          D_ASSERT( bridge_order[i] == bridge_array[bridge_order[i]]->bridge_id );
+     }
+#endif
+}
+
+static void
+remove_bridge_local( CoreSurfacePoolBridgeID bridge_id )
+{
+     int i;
+
+     /* Free local bridge data. */
+     if (bridge_locals[bridge_id]) {
+          D_FREE( bridge_locals[bridge_id] );
+          bridge_locals[bridge_id] = NULL;
+     }
+
+     /* Erase entries of the bridge. */
+     bridge_array[bridge_id] = NULL;
+     bridge_funcs[bridge_id] = NULL;
+
+     while (bridge_count > 0 && !bridge_array[bridge_count-1]) {
+          bridge_count--;
+
+          for (i=0; i<bridge_count; i++) {
+               if (bridge_order[i] == bridge_count) {
+                    direct_memmove( &bridge_order[i], &bridge_order[i+1], sizeof(bridge_order[0]) * (bridge_count - i) );
+                    break;
+               }
+          }
+     }
 }
 

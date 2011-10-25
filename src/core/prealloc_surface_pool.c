@@ -42,6 +42,8 @@ typedef struct {
      int   pitch;
 } PreallocAllocationData;
 
+D_DEBUG_DOMAIN( Core_PreAlloc, "Core/PreAlloc", "Core PreAlloc Surface Pool" );
+
 /**********************************************************************************************************************/
 
 static int
@@ -58,6 +60,8 @@ preallocInitPool( CoreDFB                    *core,
                   void                       *system_data,
                   CoreSurfacePoolDescription *ret_desc )
 {
+     D_DEBUG_AT( Core_PreAlloc, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
 
@@ -78,10 +82,47 @@ preallocTestConfig( CoreSurfacePool         *pool,
                     CoreSurfaceBuffer       *buffer,
                     const CoreSurfaceConfig *config )
 {
+     D_DEBUG_AT( Core_PreAlloc, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( config != NULL );
 
-     return (config->flags & CSCONF_PREALLOCATED) ? DFB_OK : DFB_UNSUPPORTED;
+     if (!(config->flags & CSCONF_PREALLOCATED))
+          return DFB_UNSUPPORTED;
+
+     if (Core_GetIdentity() != buffer->surface->object.identity)
+          return DFB_UNSUPPORTED;
+
+     return DFB_OK;
+}
+
+static DFBResult
+preallocPrealloc( CoreSurfacePool             *pool,
+                  void                        *pool_data,
+                  void                        *pool_local,
+                  const DFBSurfaceDescription *description,
+                  CoreSurfaceConfig           *config )
+{
+     unsigned int i, num = 1;
+
+     D_DEBUG_AT( Core_PreAlloc, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     if (config->caps & DSCAPS_VIDEOONLY)
+          return DFB_UNSUPPORTED;
+
+     if (config->caps & DSCAPS_DOUBLE)
+          num = 2;
+     else if (config->caps & DSCAPS_TRIPLE)
+          num = 3;
+
+     for (i=0; i<num; i++) {
+          config->preallocated[i].addr  = description->preallocated[i].data;
+          config->preallocated[i].pitch = description->preallocated[i].pitch;
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -94,7 +135,10 @@ preallocAllocateBuffer( CoreSurfacePool       *pool,
 {
      int                     index;
      CoreSurface            *surface;
-     PreallocAllocationData *alloc = alloc_data;
+     PreallocAllocationData *alloc    = alloc_data;
+     FusionID                identity = Core_GetIdentity();
+
+     D_DEBUG_AT( Core_PreAlloc, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -102,26 +146,28 @@ preallocAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     for (index=0; index<MAX_SURFACE_BUFFERS; index++) {
-          if (surface->buffers[index] == buffer)
-               break;
-     }
-
-     if (index == MAX_SURFACE_BUFFERS)
-          return DFB_BUG;
+     D_DEBUG_AT( Core_PreAlloc, "  -> surface identity %lu\n", surface->object.identity );
+     D_DEBUG_AT( Core_PreAlloc, "  -> core identity    %lu\n", identity );
 
      if (!(surface->config.flags & CSCONF_PREALLOCATED))
           return DFB_BUG;
 
+     if (identity != surface->object.identity) {
+          D_ERROR( "DirectFB/PreAlloc: Cannot allocate buffer for other (%lu) than creator (%lu)!\n", identity, surface->object.identity );
+          return DFB_ACCESSDENIED;
+     }
+
+     index = dfb_surface_buffer_index( buffer );
+
      if (!surface->config.preallocated[index].addr ||
           surface->config.preallocated[index].pitch < DFB_BYTES_PER_LINE(surface->config.format,
                                                                          surface->config.size.w))
-          return DFB_INVARG;
+          return DFB_BUG;
 
      alloc->addr  = surface->config.preallocated[index].addr;
      alloc->pitch = surface->config.preallocated[index].pitch;
 
-     allocation->flags = CSALF_PREALLOCATED | CSALF_VOLATILE;
+     allocation->flags = CSALF_PREALLOCATED;
      allocation->size  = surface->config.preallocated[index].pitch *
                          DFB_PLANE_MULTIPLY( surface->config.format, surface->config.size.h );
 
@@ -136,6 +182,8 @@ preallocDeallocateBuffer( CoreSurfacePool       *pool,
                           CoreSurfaceAllocation *allocation,
                           void                  *alloc_data )
 {
+     D_DEBUG_AT( Core_PreAlloc, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
 
@@ -150,11 +198,23 @@ preallocLock( CoreSurfacePool       *pool,
               void                  *alloc_data,
               CoreSurfaceBufferLock *lock )
 {
-     PreallocAllocationData *alloc = alloc_data;
+     CoreSurface            *surface;
+     PreallocAllocationData *alloc    = alloc_data;
+     FusionID                identity = Core_GetIdentity();
+
+     D_DEBUG_AT( Core_PreAlloc, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
+
+     surface = allocation->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (identity != surface->object.identity) {
+          D_ERROR( "DirectFB/PreAlloc: Cannot lock buffer by other (%lu) than creator (%lu)!\n", identity, surface->object.identity );
+          return DFB_ACCESSDENIED;
+     }
 
      lock->addr  = alloc->addr;
      lock->pitch = alloc->pitch;
@@ -170,6 +230,8 @@ preallocUnlock( CoreSurfacePool       *pool,
                 void                  *alloc_data,
                 CoreSurfaceBufferLock *lock )
 {
+     D_DEBUG_AT( Core_PreAlloc, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
@@ -183,6 +245,7 @@ const SurfacePoolFuncs preallocSurfacePoolFuncs = {
 
      .TestConfig         = preallocTestConfig,
 
+     .PreAlloc           = preallocPrealloc,
      .AllocateBuffer     = preallocAllocateBuffer,
      .DeallocateBuffer   = preallocDeallocateBuffer,
 

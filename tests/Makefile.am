@@ -64,6 +64,7 @@ bin_PROGRAMS = \
 	dfbtest_init	\
 	dfbtest_input	\
 	dfbtest_mirror	\
+	dfbtest_prealloc	\
 	dfbtest_reinit	\
 	dfbtest_resize	\
 	dfbtest_scale	\
@@ -136,6 +137,9 @@ dfbtest_old_gl2_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect) 
 
 dfbtest_mirror_SOURCES = dfbtest_mirror.c
 dfbtest_mirror_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_prealloc_SOURCES = dfbtest_prealloc.c
+dfbtest_prealloc_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_reinit_SOURCES = dfbtest_reinit.c
 dfbtest_reinit_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)

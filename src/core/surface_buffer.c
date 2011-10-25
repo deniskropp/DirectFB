@@ -127,6 +127,7 @@ dfb_surface_buffer_create( CoreDFB                 *core,
                            CoreSurfaceBufferFlags   flags,
                            CoreSurfaceBuffer      **ret_buffer )
 {
+     DFBResult          ret;
      CoreSurfaceBuffer *buffer;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -169,9 +170,28 @@ dfb_surface_buffer_create( CoreDFB                 *core,
 
      D_MAGIC_SET( buffer, CoreSurfaceBuffer );
 
-     fusion_object_activate( &buffer->object );
-
      *ret_buffer = buffer;
+
+     if (surface->type & CSTF_PREALLOCATED) {
+          CoreSurfacePool       *pool;
+          CoreSurfaceAllocation *alloc;
+
+          ret = dfb_surface_pools_lookup( surface->config.preallocated_pool_id, &pool );
+          if (ret) {
+               fusion_object_destroy( &buffer->object );
+               return ret;
+          }
+
+          ret = dfb_surface_pool_allocate( pool, buffer, &alloc );
+          if (ret) {
+               fusion_object_destroy( &buffer->object );
+               return ret;
+          }
+
+          dfb_surface_allocation_update( alloc, CSAF_WRITE );
+     }
+
+     fusion_object_activate( &buffer->object );
 
      return DFB_OK;
 }
@@ -210,8 +230,47 @@ dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,
      CoreSurfaceAllocation *uptodate = NULL;
      CoreSurfaceAllocation *outdated = NULL;
 
+     D_DEBUG_AT( Core_SurfBuffer, "%s( %p )\n", __FUNCTION__, buffer );
+
+     /*
+      * For preallocated surfaces, when the client specified DSCAPS_STATIC_ALLOC,
+      * it is forced to always get the same preallocated buffer again on each Lock.
+      */
+     if (buffer->type & CSTF_PREALLOCATED && buffer->config.caps & DSCAPS_STATIC_ALLOC) {
+          D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+
+          if (buffer->surface->object.identity == Core_GetIdentity()) {
+               D_DEBUG_AT( Core_SurfBuffer, "  -> DSCAPS_STATIC_ALLOC, returning preallocated buffer\n" );
+
+               D_ASSERT( buffer->allocs.count > 0 );
+
+               alloc = buffer->allocs.elements[0];
+
+               D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
+
+               D_ASSERT( alloc->flags & CSALF_PREALLOCATED );
+
+               return alloc;
+          }
+     }
+
      /* Prefer allocations which are up to date. */
      fusion_vector_foreach (alloc, i, buffer->allocs) {
+          if (lock && alloc->flags & CSALF_PREALLOCATED) {
+               if (!(alloc->access[accessor] & CSAF_SHARED)) {
+                    D_DEBUG_AT( Core_SurfBuffer, "  -> non-shared preallocated buffer, surface identity %lu, core identity %lu\n",
+                                buffer->surface->object.identity, Core_GetIdentity() );
+
+                    /*
+                     * If this is a non-shared preallocated allocation and the lock is not
+                     * for the creator, we need to skip it and possibly allocate/update in
+                     * a different pool.
+                     */
+                    if (buffer->surface->object.identity != Core_GetIdentity())
+                         continue;
+               }
+          }
+
           if (direct_serial_check( &alloc->serial, &buffer->serial )) {
                /* Return immediately if up to date allocation has required flags. */
                if (D_FLAGS_ARE_SET( alloc->access[accessor], flags ))
@@ -309,19 +368,29 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           D_DEBUG_AT( Core_SurfBuffer, "  -> SHARED\n" );
 #endif
 
-     D_DEBUG_AT( Core_SurfBuffer, "  -> Calling PreLockBuffer...\n" );
+     D_DEBUG_AT( Core_SurfBuffer, "  -> Calling PreLockBuffer( buffer %p )...\n", buffer );
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     dfb_surface_buffer_ref( buffer );
 
      /* Run all code that modifies shared memory in master process (IPC call) */
-     ret = CoreSurface_PreLockBuffer( surface, dfb_surface_buffer_index(buffer), accessor, access, &index );
-     if (ret)
+     ret = CoreSurface_PreLockBuffer( surface, buffer, accessor, access, &index );
+     if (ret) {
+          dfb_surface_buffer_unref( buffer );
           return ret;
+     }
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> PreLockBuffer returned index %u\n", index );
 
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
      /* Lookup allocation via index returned by master process */
      allocation = fusion_vector_at( &buffer->allocs, index );
-     if (!allocation)
+     if (!allocation) {
+          dfb_surface_buffer_unref( buffer );
           return DFB_BUG;
+     }
 
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> %s\n", allocation->pool->desc.name );
@@ -329,7 +398,6 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      /* Lock the allocation. */
      dfb_surface_buffer_lock_init( lock, accessor, access );
 
-     dfb_surface_buffer_ref( buffer );
 
      ret = dfb_surface_pool_lock( allocation->pool, allocation, lock );
      if (ret) {
@@ -448,17 +516,23 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> Calling PreReadBuffer...\n" );
 
+     dfb_surface_buffer_ref( buffer );
+
      /* Run all code that modifies shared memory in master process (IPC call) */
-     ret = CoreSurface_PreReadBuffer( surface, dfb_surface_buffer_index(buffer), &rect, &index );
-     if (ret)
+     ret = CoreSurface_PreReadBuffer( surface, buffer, &rect, &index );
+     if (ret) {
+          dfb_surface_buffer_unref( buffer );
           return ret;
+     }
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> PreReadBuffer returned index %u\n", index );
 
      /* Lookup allocation via index returned by master process */
      allocation = fusion_vector_at( &buffer->allocs, index );
-     if (!allocation)
+     if (!allocation) {
+          dfb_surface_buffer_unref( buffer );
           return DFB_BUG;
+     }
 
      /* Try reading from allocation directly... */
      ret = dfb_surface_pool_read( allocation->pool, allocation, destination, pitch, &rect );
@@ -475,6 +549,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
                     D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
                               allocation->pool->desc.name );
                     dfb_surface_buffer_lock_deinit( &lock );
+                    dfb_surface_buffer_unref( buffer );
                     return ret;
                }
 
@@ -497,6 +572,8 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
                dfb_surface_buffer_lock_deinit( &lock );
           }
      }
+
+     dfb_surface_buffer_unref( buffer );
 
      return ret;
 }
@@ -547,17 +624,23 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> Calling PreWriteBuffer...\n" );
 
+     dfb_surface_buffer_ref( buffer );
+
      /* Run all code that modifies shared memory in master process (IPC call) */
-     ret = CoreSurface_PreWriteBuffer( surface, dfb_surface_buffer_index(buffer), &rect, &index );
-     if (ret)
+     ret = CoreSurface_PreWriteBuffer( surface, buffer, &rect, &index );
+     if (ret) {
+          dfb_surface_buffer_unref( buffer );
           return ret;
+     }
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> PreWriteBuffer returned index %u\n", index );
 
      /* Lookup allocation via index returned by master process */
      allocation = fusion_vector_at( &buffer->allocs, index );
-     if (!allocation)
+     if (!allocation) {
+          dfb_surface_buffer_unref( buffer );
           return DFB_BUG;
+     }
 
      /* Try writing to allocation directly... */
      ret = source ? dfb_surface_pool_write( allocation->pool, allocation, source, pitch, &rect ) : DFB_UNSUPPORTED;
@@ -581,6 +664,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                     D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
                               allocation->pool->desc.name );
                     dfb_surface_buffer_lock_deinit( &lock );
+                    dfb_surface_buffer_unref( buffer );
                     return ret;
                }
 
@@ -608,6 +692,8 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                dfb_surface_buffer_lock_deinit( &lock );
           }
      }
+
+     dfb_surface_buffer_unref( buffer );
 
      return ret;
 }

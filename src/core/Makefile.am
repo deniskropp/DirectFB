@@ -20,6 +20,8 @@ internalincludedir = $(INTERNALINCLUDEDIR)/core
 internalinclude_HEADERS = \
 	$(builddir)/CoreDFB.h		\
 	CoreDFB_includes.h	\
+	$(builddir)/CoreSlave.h		\
+	CoreSlave_includes.h	\
 	$(builddir)/CoreGraphicsState.h	\
 	CoreGraphicsState_includes.h	\
 	CoreGraphicsStateClient.h	\
@@ -84,6 +86,8 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 libdirectfb_core_la_SOURCES = \
 	$(builddir)/CoreDFB.cpp		\
 	CoreDFB_real.cpp	\
+	$(builddir)/CoreSlave.cpp		\
+	CoreSlave_real.cpp	\
 	$(builddir)/CoreGraphicsState.cpp	\
 	CoreGraphicsState_real.cpp	\
 	CoreGraphicsStateClient.c		\
@@ -121,6 +125,7 @@ libdirectfb_core_la_SOURCES = \
 	local_surface_pool.c	\
 	palette.c		\
 	prealloc_surface_pool.c	\
+	prealloc_surface_pool_bridge.c	\
 	screen.c		\
 	screens.c		\
 	shared_secure_surface_pool.c	\
@@ -139,6 +144,8 @@ libdirectfb_core_la_SOURCES = \
 distclean-local:
 	rm -f CoreDFB.cpp
 	rm -f CoreDFB.h
+	rm -f CoreSlave.cpp
+	rm -f CoreSlave.h
 	rm -f CoreGraphicsState.cpp
 	rm -f CoreGraphicsState.h
 	rm -f CoreInputDevice.cpp
@@ -162,7 +169,7 @@ distclean-local:
 
 # quirks for generated headers
 $(srcdir)/CoreGraphicsStateClient.c: CoreGraphicsState.h CoreDFB.h
-$(srcdir)/core.c: CoreDFB.h
+$(srcdir)/core.c: CoreDFB.h CoreSlave.h
 $(srcdir)/surface.c: CoreDFB.h
 $(srcdir)/graphics_state.c: CoreGraphicsState.h
 $(srcdir)/input.c: CoreInputDevice.h

@@ -38,6 +38,8 @@
 #include "coretypes.h"
 #include "coredefs.h"
 
+#include <core/CoreSlave_includes.h>
+
 #include <core/surface.h>
 
 
@@ -207,6 +209,8 @@ D_DECLARE_INTERFACE( ICoreResourceClient );
 struct __DFB_CoreDFBShared {
      int                  magic;
 
+     bool                 secure;
+
      FusionSkirmish       lock;
      bool                 active;
 
@@ -256,7 +260,35 @@ struct __DFB_CoreDFB {
      }                        resource;
 
      FusionCall               async_call; // used locally for async destroy etc.
+
+     FusionCall               slave_call;
+
+     DirectLink              *memory_permissions;
+     DirectMutex              memory_permissions_lock;
 };
+
+
+typedef enum {
+     CMPF_READ  = 0x00000001,
+     CMPF_WRITE = 0x00000002,
+} CoreMemoryPermissionFlags;
+
+typedef struct __CoreDFB_CoreMemoryPermission CoreMemoryPermission;
+
+
+DFBResult dfb_core_memory_permissions_add   ( CoreDFB                   *core,
+                                              CoreMemoryPermissionFlags  flags,
+                                              void                      *data,
+                                              size_t                     length,
+                                              CoreMemoryPermission     **ret_permission );
+
+DFBResult dfb_core_memory_permissions_remove( CoreDFB                   *core,
+                                              CoreMemoryPermission      *permission );
+
+DFBResult dfb_core_memory_permissions_check ( CoreDFB                   *core,
+                                              CoreMemoryPermissionFlags  flags,
+                                              void                      *data,
+                                              size_t                     length );
 
 
 extern CoreDFB *core_dfb;     // FIXME
@@ -376,10 +408,13 @@ D_DEFINE_INTERFACE( ICoreResourceClient,
  * Client instance management
  */
 
-DFBResult            Core_Resource_AddIdentity    ( FusionID identity );
+DFBResult            Core_Resource_AddIdentity    ( FusionID identity,
+                                                    u32      slave_call );
+
 void                 Core_Resource_DisposeIdentity( FusionID identity );
 
 ICoreResourceClient *Core_Resource_GetClient      ( FusionID identity );
+CoreSlave           *Core_Resource_GetSlave       ( FusionID identity );
 
 
 /*

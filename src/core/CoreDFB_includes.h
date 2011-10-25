@@ -499,6 +499,78 @@ CoreSurface_Throw( CoreSurface *surface,
 
 
 static __inline__ u32
+CoreSurfaceBuffer_GetID( const CoreSurfaceBuffer *buffer )
+{
+     return buffer->object.id;
+}
+
+static __inline__ DirectResult
+CoreSurfaceBuffer_Lookup( CoreDFB            *core,
+                          u32                 object_id,
+                          FusionID            caller,
+                          CoreSurfaceBuffer **ret_buffer )
+{
+     DFBResult          ret;
+     CoreSurfaceBuffer *buffer;
+
+     ret = dfb_core_get_surface_buffer( core, object_id, &buffer );
+     if (ret)
+          return (DirectResult) ret;
+
+     if (buffer->object.owner && buffer->object.owner != caller) {
+          dfb_surface_buffer_unref( buffer );
+          return DR_ACCESSDENIED;
+     }
+
+     *ret_buffer = buffer;
+
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreSurfaceBuffer_Unref( CoreSurfaceBuffer *buffer )
+{
+     return (DirectResult) dfb_surface_buffer_unref( buffer );
+}
+
+static __inline__ DirectResult
+CoreSurfaceBuffer_Catch( CoreDFB            *core,
+                         u32                 object_id,
+                         CoreSurfaceBuffer **ret_buffer )
+{
+     DirectResult ret;
+
+     ret = (DirectResult) dfb_core_get_surface_buffer( core, object_id, ret_buffer );
+     if (ret)
+          return ret;
+
+     fusion_ref_catch( &(*ret_buffer)->object.ref );
+
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreSurfaceBuffer_Throw( CoreSurfaceBuffer *buffer,
+                         FusionID           catcher,
+                         u32               *ret_object_id )
+{
+     *ret_object_id = buffer->object.id;
+
+     fusion_reactor_add_permissions( buffer->object.reactor, catcher,
+                                     (FusionReactorPermissions)(FUSION_REACTOR_PERMIT_ATTACH_DETACH) );
+     fusion_ref_add_permissions( &buffer->object.ref, catcher,
+                                 (FusionRefPermissions)(FUSION_REF_PERMIT_REF_UNREF_LOCAL | FUSION_REF_PERMIT_CATCH) );
+     //fusion_call_add_permissions( &buffer->call, catcher, FUSION_CALL_PERMIT_EXECUTE );
+
+     if (!buffer->object.owner)
+          buffer->object.owner = catcher;
+
+     return fusion_ref_throw( &buffer->object.ref, catcher );
+}
+
+
+
+static __inline__ u32
 CoreWindow_GetID( const CoreWindow *window )
 {
      return window->object.id;

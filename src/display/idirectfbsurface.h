@@ -35,6 +35,7 @@
 
 #include <fusion/reactor.h>
 
+#include <core/core.h>
 #include <core/state.h>
 
 #include <core/CoreGraphicsStateClient.h>
@@ -134,6 +135,9 @@ typedef struct {
      pthread_mutex_t        children_lock;
 
      CoreGraphicsStateClient  state_client;
+
+     CoreMemoryPermission    *memory_permissions[3];
+     unsigned int             memory_permissions_count;
 } IDirectFBSurface_data;
 
 /*

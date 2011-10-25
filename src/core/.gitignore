@@ -12,6 +12,8 @@ CoreLayerRegion.cpp
 CoreLayerRegion.h
 CorePalette.cpp
 CorePalette.h
+CoreSlave.cpp
+CoreSlave.h
 CoreSurface.cpp
 CoreSurface.h
 CoreScreen.cpp

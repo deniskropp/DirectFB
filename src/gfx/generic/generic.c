@@ -8535,10 +8535,16 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
           access |= CSAF_READ;
 
+     /*
+      * Push our own identity for buffer locking calls (locality of accessor)
+      */
+     Core_PushIdentity( 0 );
+
      /* Lock destination */
      ret = dfb_surface_lock_buffer( destination, state->to, CSAID_CPU, access, &state->dst );
      if (ret) {
           D_DERROR( ret, "DirectFB/Genefx: Could not lock destination!\n" );
+          Core_PopIdentity();
           return false;
      }
 
@@ -8597,6 +8603,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           if (ret) {
                D_DERROR( ret, "DirectFB/Genefx: Could not lock source!\n" );
                dfb_surface_unlock_buffer( destination, &state->dst );
+               Core_PopIdentity();
                return false;
           }
 
@@ -8639,7 +8646,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
           state->flags |= CSF_SOURCE_LOCKED;
      }
-
 
      /* premultiply source (color) */
      if (DFB_DRAWING_FUNCTION(accel) && (state->drawingflags & DSDRAW_SRC_PREMULTIPLY)) {
@@ -9532,6 +9538,8 @@ void gRelease( CardState *state )
           dfb_surface_unlock_buffer( state->source, &state->src );
           state->flags &= ~CSF_SOURCE_LOCKED;
      }
+
+     Core_PopIdentity();
 }
 
 /**********************************************************************************************************************/

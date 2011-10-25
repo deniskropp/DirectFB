@@ -35,6 +35,7 @@
 
 #include <core/surface.h>
 #include <core/surface_buffer.h>
+#include <core/surface_pool.h>
 
 
 typedef enum {
@@ -54,6 +55,7 @@ typedef enum {
 typedef struct {
      CoreSurfacePoolBridgeCapabilities  caps;
      char                               name[DFB_SURFACE_POOL_BRIDGE_DESC_NAME_LENGTH];
+     CoreSurfacePoolPriority            priority;
 } CoreSurfacePoolBridgeDescription;
 
 
