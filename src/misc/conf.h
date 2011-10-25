@@ -268,6 +268,8 @@ typedef struct
      char         *resource_manager;
 
      u32           input_hub_qid;
+
+     unsigned long font_resource_id;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

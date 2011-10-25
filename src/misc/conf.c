@@ -147,6 +147,7 @@ static const char *config_usage =
      "  mmio-phys=<hexaddress>         Physical start of MMIO area (devmem system)\n"
      "  mmio-length=<bytes>            Length of MMIO area (devmem system)\n"
      "  accelerator=<id>               Accelerator ID selecting graphics driver (devmem system)\n"
+     "  font-resource-id=<id>          Resource ID to use for font cache row surfaces\n"
      "  resource-manager=<impl>        Use this resource manager implementation\n"
      "\n"
      "  x11-borderless[=<x>.<y>]       Disable X11 window borders, optionally position window\n"
@@ -1531,6 +1532,25 @@ DFBResult dfb_config_set( const char *name, const char *value )
                }
 
                dfb_config->accelerator = accel;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "font-resource-id" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long resource_id;
+
+               resource_id = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->font_resource_id = resource_id;
           }
           else {
                D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );

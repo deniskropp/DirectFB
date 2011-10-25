@@ -626,7 +626,7 @@ dfb_font_cache_row_init( DFBFontCacheRow *row,
                                       cache->type.pixel_format, DFB_COLORSPACE_DEFAULT(cache->type.pixel_format),
                                       cache->type.surface_caps,
                                       CSTF_FONT,
-                                      0,
+                                      dfb_config->font_resource_id,
                                       NULL, &row->surface );
      if (ret) {
           D_DERROR( ret, "Core/Font: Could not create font surface!\n" );
