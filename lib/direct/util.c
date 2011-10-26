@@ -48,42 +48,43 @@ static const char *strings_base[150];
 void
 __D_util_init()
 {
-     STRINGS_ADD( EPERM,   "Operation not permitted" );
-     STRINGS_ADD( ENOENT,  "No such file or directory" );
-     STRINGS_ADD( ESRCH,   "No such process" );
-     STRINGS_ADD( EINTR,   "Interrupted system call" );
-     STRINGS_ADD( EIO,     "I/O error" );
-     STRINGS_ADD( ENXIO,   "No such device or address" );
-     STRINGS_ADD( E2BIG,   "Argument list too long" );
-     STRINGS_ADD( ENOEXEC, "Exec format error" );
-     STRINGS_ADD( EBADF,   "Bad file number" );
-     STRINGS_ADD( ECHILD,  "No child processes" );
-     STRINGS_ADD( EAGAIN,  "Try again" );
-     STRINGS_ADD( ENOMEM,  "Out of memory" );
-     STRINGS_ADD( EACCES,  "Permission denied" );
-     STRINGS_ADD( EFAULT,  "Bad address" );
+     STRINGS_ADD( EPERM,              "Operation not permitted" );
+     STRINGS_ADD( ENOENT,             "No such file or directory" );
+     STRINGS_ADD( ESRCH,              "No such process" );
+     STRINGS_ADD( EINTR,              "Interrupted system call" );
+     STRINGS_ADD( EIO,                "I/O error" );
+     STRINGS_ADD( ENXIO,              "No such device or address" );
+     STRINGS_ADD( E2BIG,              "Argument list too long" );
+     STRINGS_ADD( ENOEXEC,            "Exec format error" );
+     STRINGS_ADD( EBADF,              "Bad file number" );
+     STRINGS_ADD( ECHILD,             "No child processes" );
+     STRINGS_ADD( EAGAIN,             "Try again" );
+     STRINGS_ADD( ENOMEM,             "Out of memory" );
+     STRINGS_ADD( EACCES,             "Permission denied" );
+     STRINGS_ADD( EFAULT,             "Bad address" );
 #ifdef ENOTBLK
-     STRINGS_ADD( ENOTBLK, "Block device required" );
+     STRINGS_ADD( ENOTBLK,            "Block device required" );
 #endif
-     STRINGS_ADD( EBUSY,   "Device or resource busy" );
-     STRINGS_ADD( EEXIST,  "File exists" );
-     STRINGS_ADD( EXDEV,   "Cross-device link" );
-     STRINGS_ADD( ENODEV,  "No such device" );
-     STRINGS_ADD( ENOTDIR, "Not a directory" );
-     STRINGS_ADD( EISDIR,  "Is a directory" );
-     STRINGS_ADD( EINVAL,  "Invalid argument" );
-     STRINGS_ADD( ENFILE,  "File table overflow" );
-     STRINGS_ADD( EMFILE,  "Too many open files" );
-     STRINGS_ADD( ENOTTY,  "Not a typewriter" );
-     STRINGS_ADD( ETXTBSY, "Text file busy" );
-     STRINGS_ADD( EFBIG,   "File too large" );
-     STRINGS_ADD( ENOSPC,  "No space left on device" );
-     STRINGS_ADD( ESPIPE,  "Illegal seek" );
-     STRINGS_ADD( EROFS,   "Read-only file system" );
-     STRINGS_ADD( EMLINK,  "Too many links" );
-     STRINGS_ADD( EPIPE,   "Broken pipe" );
-     STRINGS_ADD( EDOM,    "Math argument out of domain of func" );
-     STRINGS_ADD( ERANGE,  "Math result not representable" );
+     STRINGS_ADD( EBUSY,              "Device or resource busy" );
+     STRINGS_ADD( EEXIST,             "File exists" );
+     STRINGS_ADD( EXDEV,              "Cross-device link" );
+     STRINGS_ADD( ENODEV,             "No such device" );
+     STRINGS_ADD( ENOTDIR,            "Not a directory" );
+     STRINGS_ADD( EISDIR,             "Is a directory" );
+     STRINGS_ADD( EINVAL,             "Invalid argument" );
+     STRINGS_ADD( ENFILE,             "File table overflow" );
+     STRINGS_ADD( EMFILE,             "Too many open files" );
+     STRINGS_ADD( ENOTTY,             "Not a typewriter" );
+     STRINGS_ADD( ETXTBSY,            "Text file busy" );
+     STRINGS_ADD( EFBIG,              "File too large" );
+     STRINGS_ADD( ENOSPC,             "No space left on device" );
+     STRINGS_ADD( ESPIPE,             "Illegal seek" );
+     STRINGS_ADD( EROFS,              "Read-only file system" );
+     STRINGS_ADD( EMLINK,             "Too many links" );
+     STRINGS_ADD( EPIPE,              "Broken pipe" );
+     STRINGS_ADD( EDOM,               "Math argument out of domain of func" );
+     STRINGS_ADD( ERANGE,             "Math result not representable" );
+     STRINGS_ADD( ETIMEDOUT,          "Timed out" );
 }
 
 void
