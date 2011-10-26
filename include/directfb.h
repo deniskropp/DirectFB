@@ -4853,6 +4853,26 @@ typedef enum {
      DIMM_HYPER     = (1 << DIMKI_HYPER)     /* Hyper key is pressed */
 } DFBInputDeviceModifierMask;
 
+/*
+ * Input device configuration flags
+ */
+typedef enum {
+     DIDCONF_NONE        = 0x00000000,
+
+     DIDCONF_SENSITIVITY = 0x00000001,
+
+     DIDCONF_ALL         = 0x00000001
+} DFBInputDeviceConfigFlags;
+
+/*
+ * Input device configuration
+ */
+typedef struct {
+     DFBInputDeviceConfigFlags     flags;
+
+     int                           sensitivity;   /* Sensitivity value for X/Y axes (8.8 fixed point), default 0x100 */
+} DFBInputDeviceConfig;
+
 
 /************************
  * IDirectFBInputDevice *
@@ -5014,6 +5034,17 @@ D_DEFINE_INTERFACE(   IDirectFBInputDevice,
           IDirectFBInputDevice          *thiz,
           int                           *ret_x,
           int                           *ret_y
+     );
+
+
+   /** Configuration **/
+
+     /*
+      * Change config values for the input device.
+      */
+     DFBResult (*SetConfiguration) (
+          IDirectFBInputDevice          *thiz,
+          const DFBInputDeviceConfig    *config
      );
 )
 

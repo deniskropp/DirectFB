@@ -342,6 +342,15 @@ IDirectFBInputDevice_GetXY( IDirectFBInputDevice *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBInputDevice_SetConfiguration( IDirectFBInputDevice       *thiz,
+                                       const DFBInputDeviceConfig *config )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
+
+     return CoreInputDevice_SetConfiguration( data->device, config );
+}
+
 DFBResult
 IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
                                 CoreInputDevice      *device )
@@ -373,6 +382,7 @@ IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      thiz->GetButtonState = IDirectFBInputDevice_GetButtonState;
      thiz->GetAxis = IDirectFBInputDevice_GetAxis;
      thiz->GetXY = IDirectFBInputDevice_GetXY;
+     thiz->SetConfiguration = IDirectFBInputDevice_SetConfiguration;
 
      return DFB_OK;
 }

@@ -24,5 +24,16 @@ interface {
         method {
                 name    ReloadKeymap
         }
+
+        method {
+                name    SetConfiguration
+
+                arg {
+                        name        config
+                        direction   input
+                        type        struct
+                        typename    DFBInputDeviceConfig
+                }
+        }
 }
 

@@ -158,7 +158,9 @@ CoreInputHub_Create( u32            queue_id,
 
      D_ASSERT( ret_hub != NULL );
 
-     One_Initialize();
+     ret = One_Initialize();
+     if (ret)
+          return ret;
 
      hub = D_CALLOC( 1, sizeof(CoreInputHub) );
      if (!hub)

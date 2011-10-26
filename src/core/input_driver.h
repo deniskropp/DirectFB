@@ -122,6 +122,13 @@ stop_hotplug( void )
 }
 #endif
 
+#ifdef DFB_INPUTDRIVER_HAS_SET_CONFIGURATION
+static DFBResult
+driver_set_configuration( CoreInputDevice              *device,
+                          void                         *driver_data,
+                          const DFBInputDeviceConfig   *config );
+#endif
+
 static const InputDriverFuncs driver_funcs = {
      .GetAvailable       = driver_get_available,
      .GetDriverInfo      = driver_get_info,
@@ -136,7 +143,11 @@ static const InputDriverFuncs driver_funcs = {
      .StopHotplug        = stop_hotplug,
 
 #ifdef DFB_INPUTDRIVER_HAS_AXIS_INFO
-     .GetAxisInfo        = driver_get_axis_info
+     .GetAxisInfo        = driver_get_axis_info,
+#endif
+
+#ifdef DFB_INPUTDRIVER_HAS_SET_CONFIGURATION
+     .SetConfiguration   = driver_set_configuration,
 #endif
 };
 

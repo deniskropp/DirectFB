@@ -70,5 +70,15 @@ IInputDevice_Real::ReloadKeymap(
     return dfb_input_device_reload_keymap( obj );
 }
 
+DFBResult
+IInputDevice_Real::SetConfiguration(
+     const DFBInputDeviceConfig           *config
+)
+{
+    D_DEBUG_AT( DirectFB_CoreInputDevice, "IInputDevice_Real::%s()\n", __FUNCTION__ );
+
+    return dfb_input_device_set_configuration( obj, config );
+}
+
 
 }

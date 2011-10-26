@@ -116,6 +116,10 @@ typedef struct {
                                   void                         *driver_data,
                                   DFBInputDeviceAxisIdentifier  axis,
                                   DFBInputDeviceAxisInfo       *ret_info);
+
+     DFBResult (*SetConfiguration)(CoreInputDevice              *device,
+                                   void                         *driver_data,
+                                   const DFBInputDeviceConfig   *config);
 } InputDriverFuncs;
 
 
@@ -181,6 +185,9 @@ DFBResult         dfb_input_device_load_keymap   ( CoreInputDevice           *de
                                                    char                      *filename );
 
 DFBResult         dfb_input_device_reload_keymap   ( CoreInputDevice           *device );
+
+DFBResult         dfb_input_device_set_configuration( CoreInputDevice            *device,
+                                                      const DFBInputDeviceConfig *config );
 
 
 

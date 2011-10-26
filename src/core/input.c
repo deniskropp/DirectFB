@@ -624,7 +624,8 @@ dfb_input_core_shutdown( DFBInputCore *data,
                device->driver_data = NULL;
                driver->funcs->CloseDevice( driver_data );
 
-               CoreInputHub_RemoveDevice( core_local->hub, device->shared->id );
+               if (data->hub)
+                    CoreInputHub_RemoveDevice( data->hub, device->shared->id );
           }
 
           if (!--driver->nr_devices) {
@@ -651,7 +652,8 @@ dfb_input_core_shutdown( DFBInputCore *data,
           D_FREE( device );
      }
 
-     CoreInputHub_Destroy( data->hub );
+     if (data->hub)
+          CoreInputHub_Destroy( data->hub );
 
      D_MAGIC_CLEAR( data );
      D_MAGIC_CLEAR( shared );
@@ -1070,7 +1072,8 @@ dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
           D_DEBUG_AT( Core_InputEvt, "  => GLOBAL\n" );
 #endif
 
-     CoreInputHub_DispatchEvent( core_local->hub, device->shared->id, event );
+     if (core_local->hub)
+          CoreInputHub_DispatchEvent( core_local->hub, device->shared->id, event );
 
      if (core_input_filter( device, event ))
           D_DEBUG_AT( Core_InputEvt, "  ****>> FILTERED\n" );
@@ -1198,6 +1201,25 @@ dfb_input_device_reload_keymap( CoreInputDevice *device )
      return reload_keymap( device );
 }
 
+DFBResult
+dfb_input_device_set_configuration( CoreInputDevice            *device,
+                                    const DFBInputDeviceConfig *config )
+{
+     InputDriver *driver;
+
+     D_DEBUG_AT( Core_Input, "%s( %p, %d )\n", __FUNCTION__, device, config );
+
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     driver = device->driver;
+     D_ASSERT( driver != NULL );
+
+     if (!driver->funcs->SetConfiguration)
+          return DFB_UNSUPPORTED;
+
+     return driver->funcs->SetConfiguration( device, device->driver_data, config );
+}
+
 /** internal **/
 
 static void
@@ -1220,7 +1242,8 @@ input_add_device( CoreInputDevice *device )
 
      core_input->devices[ core_input->num++ ] = device->shared;
 
-     CoreInputHub_AddDevice( core_local->hub, device->shared->id, &device->shared->device_info.desc );
+     if (core_local->hub)
+          CoreInputHub_AddDevice( core_local->hub, device->shared->id, &device->shared->device_info.desc );
 }
 
 static void
@@ -1762,7 +1785,8 @@ dfb_input_remove_device(int device_index, void *driver_in)
 
      device->driver->funcs->CloseDevice( device->driver_data );
 
-     CoreInputHub_RemoveDevice( core_local->hub, device->shared->id );
+     if (core_local->hub)
+          CoreInputHub_RemoveDevice( core_local->hub, device->shared->id );
 
      device->driver->nr_devices--;
 

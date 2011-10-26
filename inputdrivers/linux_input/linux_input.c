@@ -86,6 +86,7 @@ typedef unsigned long kernel_ulong_t;
 #include <stdlib.h>
 
 #define DFB_INPUTDRIVER_HAS_AXIS_INFO
+#define DFB_INPUTDRIVER_HAS_SET_CONFIGURATION
 
 #include <directfb.h>
 #include <directfb_keyboard.h>
@@ -171,6 +172,8 @@ typedef struct {
       * Used as the second parameter of the driver_open_device function.
       */
      int                      index;
+
+     int                      sensitivity;
 } LinuxInputData;
 
 
@@ -668,18 +671,19 @@ key_event( const struct input_event *levt,
  * Translates relative axis events.
  */
 static bool
-rel_event( const struct input_event *levt,
+rel_event( const LinuxInputData     *data,
+           const struct input_event *levt,
            DFBInputEvent            *devt )
 {
      switch (levt->code) {
           case REL_X:
                devt->axis = DIAI_X;
-               devt->axisrel = levt->value;
+               devt->axisrel = levt->value * data->sensitivity / 0x100;
                break;
 
           case REL_Y:
                devt->axis = DIAI_Y;
-               devt->axisrel = levt->value;
+               devt->axisrel = levt->value * data->sensitivity / 0x100;
                break;
 
           case REL_Z:
@@ -739,7 +743,8 @@ abs_event( const struct input_event *levt,
  * Translates a Linux input event into a DirectFB input event.
  */
 static bool
-translate_event( const struct input_event *levt,
+translate_event( const LinuxInputData     *data,
+                 const struct input_event *levt,
                  DFBInputEvent            *devt )
 {
      devt->flags     = DIEF_TIMESTAMP;
@@ -750,7 +755,7 @@ translate_event( const struct input_event *levt,
                return key_event( levt, devt );
 
           case EV_REL:
-               return rel_event( levt, devt );
+               return rel_event( data, levt, devt );
 
           case EV_ABS:
                return abs_event( levt, devt );
@@ -936,7 +941,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                     status = touchpad_fsm( &fsm_state, &levt[i], &temp );
                     if (status < 0) {
                          /* Not handled. Try the direct approach. */
-                         if (!translate_event( &levt[i], &temp ))
+                         if (!translate_event( data, &levt[i], &temp ))
                               continue;
                     }
                     else if (status == 0) {
@@ -945,7 +950,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                     }
                }
                else {
-                    if (!translate_event( &levt[i], &temp ))
+                    if (!translate_event( data, &levt[i], &temp ))
                          continue;
                }
 
@@ -1774,11 +1779,12 @@ driver_open_device( CoreInputDevice  *device,
           return D_OOM();
      }
 
-     data->fd       = fd;
-     data->device   = device;
-     data->has_keys = (info->desc.caps & DICAPS_KEYS) != 0;
-     data->touchpad = touchpad;
-     data->vt_fd    = -1;
+     data->fd          = fd;
+     data->device      = device;
+     data->has_keys    = (info->desc.caps & DICAPS_KEYS) != 0;
+     data->touchpad    = touchpad;
+     data->vt_fd       = -1;
+     data->sensitivity = 0x100;
 
       /* Track associated entry in device_nums and device_names array. */
       data->index = number;
@@ -1877,6 +1883,19 @@ driver_get_axis_info( CoreInputDevice              *device,
                }
           }
      }
+
+     return DFB_OK;
+}
+
+static DFBResult
+driver_set_configuration( CoreInputDevice              *device,
+                          void                         *driver_data,
+                          const DFBInputDeviceConfig   *config )
+{
+     LinuxInputData *data = (LinuxInputData*) driver_data;
+
+     if (config->flags & DIDCONF_SENSITIVITY)
+          data->sensitivity = config->sensitivity;
 
      return DFB_OK;
 }
