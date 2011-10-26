@@ -145,7 +145,7 @@ dfb_surface_buffer_lock_reset( CoreSurfaceBufferLock *lock )
 static inline void
 dfb_surface_buffer_lock_init( CoreSurfaceBufferLock *lock, CoreSurfaceAccessorID accessor, CoreSurfaceAccessFlags access )
 {
-     D_MAGIC_SET( lock, CoreSurfaceBufferLock );
+     D_MAGIC_SET_ONLY( lock, CoreSurfaceBufferLock );
 
      lock->accessor = accessor;
      lock->access   = access;
