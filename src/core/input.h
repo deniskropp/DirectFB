@@ -183,6 +183,16 @@ DFBResult         dfb_input_device_load_keymap   ( CoreInputDevice           *de
 DFBResult         dfb_input_device_reload_keymap   ( CoreInputDevice           *device );
 
 
+typedef struct {
+     DFBInputDeviceModifierMask   modifiers_l;
+     DFBInputDeviceModifierMask   modifiers_r;
+     DFBInputDeviceLockState      locks;
+     DFBInputDeviceButtonMask     buttons;
+} CoreInputDeviceState;
+
+DFBResult         dfb_input_device_get_state( CoreInputDevice      *device,
+                                              CoreInputDeviceState *ret_state );
+
 
 
 void              containers_attach_device( CoreInputDevice *device );

@@ -255,12 +255,19 @@ static DFBResult
 IDirectFBInputDevice_GetModifiers( IDirectFBInputDevice       *thiz,
                                    DFBInputDeviceModifierMask *modifiers )
 {
+     DFBResult            ret;
+     CoreInputDeviceState state;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!modifiers)
           return DFB_INVARG;
 
-     *modifiers = data->modifiers;
+     ret = dfb_input_device_get_state( data->device, &state );
+     if (ret)
+          return ret;
+
+     *modifiers = state.modifiers_l | state.modifiers_r;
 
      return DFB_OK;
 }
@@ -269,12 +276,19 @@ static DFBResult
 IDirectFBInputDevice_GetLockState( IDirectFBInputDevice    *thiz,
                                    DFBInputDeviceLockState *locks )
 {
+     DFBResult            ret;
+     CoreInputDeviceState state;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!locks)
           return DFB_INVARG;
 
-     *locks = data->locks;
+     ret = dfb_input_device_get_state( data->device, &state );
+     if (ret)
+          return ret;
+
+     *locks = state.locks;
 
      return DFB_OK;
 }
@@ -283,12 +297,19 @@ static DFBResult
 IDirectFBInputDevice_GetButtons( IDirectFBInputDevice     *thiz,
                                  DFBInputDeviceButtonMask *buttons )
 {
+     DFBResult            ret;
+     CoreInputDeviceState state;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!buttons)
           return DFB_INVARG;
 
-     *buttons = data->buttonmask;
+     ret = dfb_input_device_get_state( data->device, &state );
+     if (ret)
+          return ret;
+
+     *buttons = state.buttons;
 
      return DFB_OK;
 }
@@ -296,14 +317,21 @@ IDirectFBInputDevice_GetButtons( IDirectFBInputDevice     *thiz,
 static DFBResult
 IDirectFBInputDevice_GetButtonState( IDirectFBInputDevice           *thiz,
                                      DFBInputDeviceButtonIdentifier  button,
-                                     DFBInputDeviceButtonState      *state)
+                                     DFBInputDeviceButtonState      *ret_state)
 {
+     DFBResult            ret;
+     CoreInputDeviceState state;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     if (!state || (int)button < DIBI_FIRST || button > DIBI_LAST)
+     ret = dfb_input_device_get_state( data->device, &state );
+     if (ret)
+          return ret;
+
+     if (!ret_state || (int)button < DIBI_FIRST || button > DIBI_LAST)
           return DFB_INVARG;
 
-     *state = (data->buttonmask & (1 << button)) ? DIBS_DOWN : DIBS_UP;
+     *ret_state = (state.buttons & (1 << button)) ? DIBS_DOWN : DIBS_UP;
 
      return DFB_OK;
 }
