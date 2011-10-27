@@ -40,6 +40,9 @@ one_core_enter( OneCore **ret_core )
      if (!core)
           return -ENOMEM;
 
+     /* Initialise IDs with 1000, below is reserved for static IDs */
+     core->ids = 1000;
+
      sema_init( &core->lock, 1 );
 
      D_MAGIC_SET( core, OneCore );
