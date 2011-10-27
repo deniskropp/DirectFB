@@ -385,6 +385,10 @@ OneQueue_Receive( const OneQID *queue_ids,
           switch (errno) {
                case EINTR:
                     continue;
+               case ETIMEDOUT:
+                    D_DEBUG_AT( One_Queue, "  -> TIMEOUT\n" );
+                    ret = DR_TIMEOUT;
+                    goto error;
                default:
                     break;
           }
@@ -462,6 +466,10 @@ OneQueue_ReceiveV( const OneQID  *queue_ids,
           switch (errno) {
                case EINTR:
                     continue;
+               case ETIMEDOUT:
+                    D_DEBUG_AT( One_Queue, "  -> TIMEOUT\n" );
+                    ret = DR_TIMEOUT;
+                    goto error;
                default:
                     break;
           }
@@ -556,6 +564,10 @@ OneQueue_DispatchReceive( OneQID          queue_id,
           switch (errno) {
                case EINTR:
                     continue;
+               case ETIMEDOUT:
+                    D_DEBUG_AT( One_Queue, "  -> TIMEOUT\n" );
+                    ret = DR_TIMEOUT;
+                    goto error;
                default:
                     break;
           }
