@@ -133,10 +133,7 @@ typedef struct {
 
      InputDeviceKeymap            keymap;
 
-     DFBInputDeviceModifierMask   modifiers_l;
-     DFBInputDeviceModifierMask   modifiers_r;
-     DFBInputDeviceLockState      locks;
-     DFBInputDeviceButtonMask     buttons;
+     CoreInputDeviceState         state;
 
      DFBInputDeviceKeyIdentifier  last_key;      /* last key pressed */
      DFBInputDeviceKeySymbol      last_symbol;   /* last symbol pressed */
@@ -1199,6 +1196,22 @@ dfb_input_device_reload_keymap( CoreInputDevice *device )
              shared->device_info.desc.name, shared->id );
 
      return reload_keymap( device );
+}
+
+DFBResult
+dfb_input_device_get_state( CoreInputDevice      *device,
+                            CoreInputDeviceState *ret_state )
+{
+     InputDeviceShared *shared;
+
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     shared = device->shared;
+     D_ASSERT( shared != NULL );
+
+     *ret_state = shared->state;
+
+     return DFB_OK;
 }
 
 DFBResult
@@ -2324,10 +2337,10 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
       * Use cached values for modifiers/locks if they are missing.
       */
      if (missing & DIEF_MODIFIERS)
-          event->modifiers = shared->modifiers_l | shared->modifiers_r;
+          event->modifiers = shared->state.modifiers_l | shared->state.modifiers_r;
 
      if (missing & DIEF_LOCKS)
-          event->locks = shared->locks;
+          event->locks = shared->state.locks;
 
      /*
       * With translation table
@@ -2405,40 +2418,40 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
           if (event->type == DIET_KEYPRESS) {
                switch (event->key_id) {
                     case DIKI_SHIFT_L:
-                         shared->modifiers_l |= DIMM_SHIFT;
+                         shared->state.modifiers_l |= DIMM_SHIFT;
                          break;
                     case DIKI_SHIFT_R:
-                         shared->modifiers_r |= DIMM_SHIFT;
+                         shared->state.modifiers_r |= DIMM_SHIFT;
                          break;
                     case DIKI_CONTROL_L:
-                         shared->modifiers_l |= DIMM_CONTROL;
+                         shared->state.modifiers_l |= DIMM_CONTROL;
                          break;
                     case DIKI_CONTROL_R:
-                         shared->modifiers_r |= DIMM_CONTROL;
+                         shared->state.modifiers_r |= DIMM_CONTROL;
                          break;
                     case DIKI_ALT_L:
-                         shared->modifiers_l |= DIMM_ALT;
+                         shared->state.modifiers_l |= DIMM_ALT;
                          break;
                     case DIKI_ALT_R:
-                         shared->modifiers_r |= (event->key_symbol == DIKS_ALTGR) ? DIMM_ALTGR : DIMM_ALT;
+                         shared->state.modifiers_r |= (event->key_symbol == DIKS_ALTGR) ? DIMM_ALTGR : DIMM_ALT;
                          break;
                     case DIKI_META_L:
-                         shared->modifiers_l |= DIMM_META;
+                         shared->state.modifiers_l |= DIMM_META;
                          break;
                     case DIKI_META_R:
-                         shared->modifiers_r |= DIMM_META;
+                         shared->state.modifiers_r |= DIMM_META;
                          break;
                     case DIKI_SUPER_L:
-                         shared->modifiers_l |= DIMM_SUPER;
+                         shared->state.modifiers_l |= DIMM_SUPER;
                          break;
                     case DIKI_SUPER_R:
-                         shared->modifiers_r |= DIMM_SUPER;
+                         shared->state.modifiers_r |= DIMM_SUPER;
                          break;
                     case DIKI_HYPER_L:
-                         shared->modifiers_l |= DIMM_HYPER;
+                         shared->state.modifiers_l |= DIMM_HYPER;
                          break;
                     case DIKI_HYPER_R:
-                         shared->modifiers_r |= DIMM_HYPER;
+                         shared->state.modifiers_r |= DIMM_HYPER;
                          break;
                     default:
                          ;
@@ -2447,40 +2460,40 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
           else {
                switch (event->key_id) {
                     case DIKI_SHIFT_L:
-                         shared->modifiers_l &= ~DIMM_SHIFT;
+                         shared->state.modifiers_l &= ~DIMM_SHIFT;
                          break;
                     case DIKI_SHIFT_R:
-                         shared->modifiers_r &= ~DIMM_SHIFT;
+                         shared->state.modifiers_r &= ~DIMM_SHIFT;
                          break;
                     case DIKI_CONTROL_L:
-                         shared->modifiers_l &= ~DIMM_CONTROL;
+                         shared->state.modifiers_l &= ~DIMM_CONTROL;
                          break;
                     case DIKI_CONTROL_R:
-                         shared->modifiers_r &= ~DIMM_CONTROL;
+                         shared->state.modifiers_r &= ~DIMM_CONTROL;
                          break;
                     case DIKI_ALT_L:
-                         shared->modifiers_l &= ~DIMM_ALT;
+                         shared->state.modifiers_l &= ~DIMM_ALT;
                          break;
                     case DIKI_ALT_R:
-                         shared->modifiers_r &= (event->key_symbol == DIKS_ALTGR) ? ~DIMM_ALTGR : ~DIMM_ALT;
+                         shared->state.modifiers_r &= (event->key_symbol == DIKS_ALTGR) ? ~DIMM_ALTGR : ~DIMM_ALT;
                          break;
                     case DIKI_META_L:
-                         shared->modifiers_l &= ~DIMM_META;
+                         shared->state.modifiers_l &= ~DIMM_META;
                          break;
                     case DIKI_META_R:
-                         shared->modifiers_r &= ~DIMM_META;
+                         shared->state.modifiers_r &= ~DIMM_META;
                          break;
                     case DIKI_SUPER_L:
-                         shared->modifiers_l &= ~DIMM_SUPER;
+                         shared->state.modifiers_l &= ~DIMM_SUPER;
                          break;
                     case DIKI_SUPER_R:
-                         shared->modifiers_r &= ~DIMM_SUPER;
+                         shared->state.modifiers_r &= ~DIMM_SUPER;
                          break;
                     case DIKI_HYPER_L:
-                         shared->modifiers_l &= ~DIMM_HYPER;
+                         shared->state.modifiers_l &= ~DIMM_HYPER;
                          break;
                     case DIKI_HYPER_R:
-                         shared->modifiers_r &= ~DIMM_HYPER;
+                         shared->state.modifiers_r &= ~DIMM_HYPER;
                          break;
                     default:
                          ;
@@ -2489,7 +2502,7 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
 
           /* write back to event */
           if (missing & DIEF_MODIFIERS)
-               event->modifiers = shared->modifiers_l | shared->modifiers_r;
+               event->modifiers = shared->state.modifiers_l | shared->state.modifiers_r;
      }
 
      /*
@@ -2501,13 +2514,13 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
           if (shared->first_press || shared->last_key != event->key_id) {
               switch (event->key_id) {
                    case DIKI_CAPS_LOCK:
-                        shared->locks ^= DILS_CAPS;
+                        shared->state.locks ^= DILS_CAPS;
                         break;
                    case DIKI_NUM_LOCK:
-                        shared->locks ^= DILS_NUM;
+                        shared->state.locks ^= DILS_NUM;
                         break;
                    case DIKI_SCROLL_LOCK:
-                        shared->locks ^= DILS_SCROLL;
+                        shared->state.locks ^= DILS_SCROLL;
                         break;
                    default:
                         ;
@@ -2516,7 +2529,7 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
 
           /* write back to event */
           if (missing & DIEF_LOCKS)
-               event->locks = shared->locks;
+               event->locks = shared->state.locks;
 
           /* store last pressed key */
           shared->last_key = event->key_id;
@@ -2559,15 +2572,15 @@ fixup_mouse_event( CoreInputDevice *device, DFBInputEvent *event )
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
      if (event->flags & DIEF_BUTTONS) {
-          shared->buttons = event->buttons;
+          shared->state.buttons = event->buttons;
      }
      else {
           switch (event->type) {
                case DIET_BUTTONPRESS:
-                    shared->buttons |= (1 << event->button);
+                    shared->state.buttons |= (1 << event->button);
                     break;
                case DIET_BUTTONRELEASE:
-                    shared->buttons &= ~(1 << event->button);
+                    shared->state.buttons &= ~(1 << event->button);
                     break;
                default:
                     ;
@@ -2576,7 +2589,7 @@ fixup_mouse_event( CoreInputDevice *device, DFBInputEvent *event )
           /* Add missing flag */
           event->flags |= DIEF_BUTTONS;
 
-          event->buttons = shared->buttons;
+          event->buttons = shared->state.buttons;
      }
 
      switch (event->type) {
@@ -2906,46 +2919,46 @@ flush_keys( CoreInputDevice *device )
 {
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
-     if (device->shared->modifiers_l) {
-          if (device->shared->modifiers_l & DIMM_ALT)
+     if (device->shared->state.modifiers_l) {
+          if (device->shared->state.modifiers_l & DIMM_ALT)
                release_key( device, DIKI_ALT_L );
 
-          if (device->shared->modifiers_l & DIMM_CONTROL)
+          if (device->shared->state.modifiers_l & DIMM_CONTROL)
                release_key( device, DIKI_CONTROL_L );
 
-          if (device->shared->modifiers_l & DIMM_HYPER)
+          if (device->shared->state.modifiers_l & DIMM_HYPER)
                release_key( device, DIKI_HYPER_L );
 
-          if (device->shared->modifiers_l & DIMM_META)
+          if (device->shared->state.modifiers_l & DIMM_META)
                release_key( device, DIKI_META_L );
 
-          if (device->shared->modifiers_l & DIMM_SHIFT)
+          if (device->shared->state.modifiers_l & DIMM_SHIFT)
                release_key( device, DIKI_SHIFT_L );
 
-          if (device->shared->modifiers_l & DIMM_SUPER)
+          if (device->shared->state.modifiers_l & DIMM_SUPER)
                release_key( device, DIKI_SUPER_L );
      }
 
-     if (device->shared->modifiers_r) {
-          if (device->shared->modifiers_r & DIMM_ALTGR)
+     if (device->shared->state.modifiers_r) {
+          if (device->shared->state.modifiers_r & DIMM_ALTGR)
                release_key( device, DIKS_ALTGR );
 
-          if (device->shared->modifiers_r & DIMM_ALT)
+          if (device->shared->state.modifiers_r & DIMM_ALT)
                release_key( device, DIKI_ALT_R );
 
-          if (device->shared->modifiers_r & DIMM_CONTROL)
+          if (device->shared->state.modifiers_r & DIMM_CONTROL)
                release_key( device, DIKI_CONTROL_R );
 
-          if (device->shared->modifiers_r & DIMM_HYPER)
+          if (device->shared->state.modifiers_r & DIMM_HYPER)
                release_key( device, DIKI_HYPER_R );
 
-          if (device->shared->modifiers_r & DIMM_META)
+          if (device->shared->state.modifiers_r & DIMM_META)
                release_key( device, DIKI_META_R );
 
-          if (device->shared->modifiers_r & DIMM_SHIFT)
+          if (device->shared->state.modifiers_r & DIMM_SHIFT)
                release_key( device, DIKI_SHIFT_R );
 
-          if (device->shared->modifiers_r & DIMM_SUPER)
+          if (device->shared->state.modifiers_r & DIMM_SUPER)
                release_key( device, DIKI_SUPER_R );
      }
 }
