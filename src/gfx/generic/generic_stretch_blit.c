@@ -234,12 +234,11 @@ typedef struct {
 #undef X_FF00FF00
 #undef MASK_RGB
 
-#if 0
 /**********************************************************************************************************************/
-/*** 16 bit YUV 422 scalers *******************************************************************************************/
+/*** 8 bit scalers ****************************************************************************************************/
 /**********************************************************************************************************************/
 
-#define FUNC_NAME(UPDOWN) stretch_hvx_nv16_ ## UPDOWN
+#define FUNC_NAME(UPDOWN) stretch_hvx_8_ ## UPDOWN
 
 #include "stretch_up_down_8.h"
 
@@ -247,13 +246,12 @@ typedef struct {
 
 /**********************************************************************************************************************/
 
-#define FUNC_NAME(UPDOWN) stretch_hvx_nv16_uv_ ## UPDOWN
+#define FUNC_NAME(UPDOWN) stretch_hvx_88_ ## UPDOWN
 
 #include "stretch_up_down_88.h"
 
 #undef FUNC_NAME
 
-#endif
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
@@ -301,6 +299,70 @@ static const StretchFunctionTable *stretch_tables[DFB_NUM_PIXELFORMATS] = {
 
 __attribute__((noinline))
 static bool
+stretch_hvx_planar( CardState *state, DFBRectangle *srect, DFBRectangle *drect, bool down )
+{
+     GenefxState *gfxs;
+     void        *dst;
+     void        *src;
+     DFBRegion    clip;
+
+     D_ASSERT( state != NULL );
+     DFB_RECTANGLE_ASSERT( srect );
+     DFB_RECTANGLE_ASSERT( drect );
+
+     gfxs = state->gfxs;
+
+     if (state->blittingflags)
+          return false;
+
+     if (gfxs->dst_format != gfxs->src_format)
+          return false;
+
+     clip = state->clip;
+
+     if (!dfb_region_rectangle_intersect( &clip, drect ))
+          return false;
+
+     dfb_region_translate( &clip, - drect->x, - drect->y );
+
+     dst = gfxs->dst_org[0] + drect->y * gfxs->dst_pitch + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x );
+     src = gfxs->src_org[0] + srect->y * gfxs->src_pitch + DFB_BYTES_PER_LINE( gfxs->src_format, srect->x );
+
+     switch (gfxs->dst_format) {
+          case DSPF_NV12:
+          case DSPF_NV21:
+               if (down)
+                    stretch_hvx_8_down( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
+                                        srect->w, srect->h, drect->w, drect->h, &clip );
+               else
+                    stretch_hvx_8_up( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
+                                      srect->w, srect->h, drect->w, drect->h, &clip );
+
+               clip.x1 /= 2;
+               clip.x2 /= 2;
+               clip.y1 /= 2;
+               clip.y2 /= 2;
+
+               dst = gfxs->dst_org[1] + drect->y/2 * gfxs->dst_pitch + DFB_BYTES_PER_LINE( gfxs->dst_format, drect->x );
+               src = gfxs->src_org[1] + srect->y/2 * gfxs->src_pitch + DFB_BYTES_PER_LINE( gfxs->src_format, srect->x );
+
+               if (down)
+                    stretch_hvx_88_down( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
+                                         srect->w/2, srect->h, drect->w/2, drect->h, &clip );
+               else
+                    stretch_hvx_88_up( dst, gfxs->dst_pitch, src, gfxs->src_pitch,
+                                       srect->w/2, srect->h, drect->w/2, drect->h, &clip );
+               break;
+
+          default:
+               break;
+     }
+
+     return true;
+}
+
+__attribute__((noinline))
+static bool
 stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
      GenefxState                *gfxs;
@@ -319,6 +381,27 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      gfxs = state->gfxs;
 
+     if (srect->w > drect->w && srect->h > drect->h)
+          down = true;
+
+     if (down) {
+          if (!(state->render_options & DSRO_SMOOTH_DOWNSCALE))
+               return false;
+     }
+     else {
+          if (!(state->render_options & DSRO_SMOOTH_UPSCALE))
+               return false;
+     }
+
+     switch (gfxs->dst_format) {
+          case DSPF_NV12:
+          case DSPF_NV21:
+               return stretch_hvx_planar( state, srect, drect, down );
+
+          default:
+               break;
+     }
+
      if (state->blittingflags & ~(DSBLIT_COLORKEY_PROTECT | DSBLIT_SRC_COLORKEY | DSBLIT_SRC_PREMULTIPLY))
           return false;
 
@@ -335,27 +418,16 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      if (!table)
           return false;
 
-     if (srect->w > drect->w && srect->h > drect->h)
-          down = true;
-
      if (state->blittingflags & DSBLIT_SRC_COLORKEY)
           idx |= STRETCH_SRCKEY;
 
      if (state->blittingflags & DSBLIT_COLORKEY_PROTECT)
           idx |= STRETCH_PROTECT;
 
-     if (down) {
-          if (!(state->render_options & DSRO_SMOOTH_DOWNSCALE))
-               return false;
-
+     if (down)
           stretch = table->f[DFB_PIXELFORMAT_INDEX(gfxs->src_format)].down[idx];
-     }
-     else {
-          if (!(state->render_options & DSRO_SMOOTH_UPSCALE))
-               return false;
-
+     else
           stretch = table->f[DFB_PIXELFORMAT_INDEX(gfxs->src_format)].up[idx];
-     }
 
      if (!stretch)
           return false;
