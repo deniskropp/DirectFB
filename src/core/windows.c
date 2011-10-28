@@ -351,7 +351,7 @@ dfb_window_create( CoreWindowStack             *stack,
      surface_caps = desc->surface_caps & (DSCAPS_INTERLACED    | DSCAPS_SEPARATED  |
                                           DSCAPS_PREMULTIPLIED | DSCAPS_DEPTH      |
                                           DSCAPS_STATIC_ALLOC  | DSCAPS_SYSTEMONLY |
-                                          DSCAPS_VIDEOONLY);
+                                          DSCAPS_VIDEOONLY     | DSCAPS_TRIPLE);
      toplevel_id  = (desc->flags & DWDESC_TOPLEVEL_ID) ? desc->toplevel_id : 0;
 
      if (toplevel_id != 0)
@@ -418,8 +418,10 @@ dfb_window_create( CoreWindowStack             *stack,
 
      dfb_surface_caps_apply_policy( surface_policy, &surface_caps );
 
-     if (caps & DWCAPS_DOUBLEBUFFER)
-          surface_caps |= DSCAPS_DOUBLE;
+     if (caps & DWCAPS_DOUBLEBUFFER) {
+          if (!(surface_caps & DSCAPS_TRIPLE))
+               surface_caps |= DSCAPS_DOUBLE;
+     }
 
 
      memset( &config, 0, sizeof(CoreWindowConfig) );
