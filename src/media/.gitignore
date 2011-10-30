@@ -1,4 +1,4 @@
-DataBuffer.cpp
+DataBuffer.c
 DataBuffer.h
-ImageProvider.cpp
+ImageProvider.c
 ImageProvider.h
