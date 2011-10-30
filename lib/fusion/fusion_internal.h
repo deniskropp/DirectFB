@@ -182,7 +182,8 @@ fusion_entry_add_permissions( const FusionWorld *world,
  */
 void _fusion_call_process( FusionWorld       *world,
                            int                call_id,
-                           FusionCallMessage *call );
+                           FusionCallMessage *call,
+                           void              *ptr );
 void _fusion_call_process3( FusionWorld        *world,
                             int                 call_id,
                             FusionCallMessage3 *msg,

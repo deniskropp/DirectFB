@@ -83,6 +83,13 @@ DirectResult fusion_call_execute( FusionCall          *call,
                                   void                *call_ptr,
                                   int                 *ret_val );
 
+DirectResult fusion_call_execute2( FusionCall          *call,
+                                   FusionCallExecFlags  flags,
+                                   int                  call_arg,
+                                   void                *ptr,
+                                   unsigned int         length,
+                                   int                 *ret_val );
+
 DirectResult fusion_call_execute3( FusionCall          *call,
                                    FusionCallExecFlags  flags,
                                    int                  call_arg,
