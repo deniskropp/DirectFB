@@ -31,6 +31,8 @@
 
 #include <core/core.h>
 
+#include <fusion/call.h>
+
 /*
  * private data struct of IDirectFBDataBuffer
  */
@@ -41,6 +43,8 @@ typedef struct {
      CoreDFB     *core;
 
      bool         is_memory;
+
+     FusionCall   call;       /* for remote access */
 } IDirectFBDataBuffer_data;
 
 /*

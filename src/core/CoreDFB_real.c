@@ -31,6 +31,8 @@
 #include <core/CoreDFB.h>
 #include <core/CoreGraphicsState.h>
 
+#include <media/ImageProvider_includes.h>
+
 #include <directfb.h>
 
 #include <direct/debug.h>
@@ -39,6 +41,8 @@
 #include <fusion/conf.h>
 
 #include <core/core.h>
+
+#include <media/idirectfbdatabuffer_client.h>
 
 D_DEBUG_DOMAIN( DirectFB_CoreDFB, "DirectFB/Core", "DirectFB Core" );
 
@@ -53,7 +57,7 @@ ICore_Real__Register( CoreDFB                  *obj
 
     D_MAGIC_ASSERT( obj, CoreDFB );
 
-    return Core_Resource_AddClient( Core_GetIdentity() );;
+    return Core_Resource_AddIdentity( Core_GetIdentity() );
 }
 
 DFBResult
@@ -130,6 +134,51 @@ ICore_Real__WaitIdle( CoreDFB                                 *obj
     D_MAGIC_ASSERT( obj, CoreDFB );
 
     return dfb_gfxcard_sync();
+}
+
+DFBResult
+ICore_Real__CreateImageProvider( CoreDFB                                 *obj,
+                    u32                                        buffer_call,
+                    u32                                       *ret_call
+)
+{
+     DFBResult               ret;
+     IDirectFBDataBuffer    *buffer;
+     IDirectFBImageProvider *provider;
+     ImageProviderDispatch  *dispatch;
+
+     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( obj, CoreDFB );
+     D_ASSERT( ret_call != NULL );
+
+     DIRECT_ALLOCATE_INTERFACE( buffer, IDirectFBDataBuffer );
+     if (!buffer)
+          return (DFBResult) D_OOM();
+
+     /* Construct data buffer client */
+     ret = IDirectFBDataBuffer_Client_Construct( buffer, core_dfb, buffer_call );
+     if (ret)
+          return ret;
+
+     /* Create image provider */
+     ret = buffer->CreateImageProvider( buffer, &provider );
+     if (ret) {
+          buffer->Release( buffer );
+          return ret;
+     }
+
+     /* Create dispatch object */
+     ret = ImageProviderDispatch_Create( buffer, provider, &dispatch );
+     if (ret) {
+          provider->Release( provider );
+          buffer->Release( buffer );
+          return ret;
+     }
+
+     *ret_call = dispatch->call.call_id;
+
+     return DFB_OK;
 }
 
 

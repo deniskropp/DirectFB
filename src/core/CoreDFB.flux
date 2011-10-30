@@ -79,5 +79,23 @@ interface {
         method {
                 name    WaitIdle
         }
+
+        method {
+                name    CreateImageProvider
+
+                arg {
+                        name        buffer_call
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        call
+                        direction   output
+                        type        int
+                        typename    u32
+                }
+        }
 }
 

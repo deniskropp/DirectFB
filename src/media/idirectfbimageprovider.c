@@ -38,7 +38,10 @@
 #include <direct/interface.h>
 #include <direct/mem.h>
 
+#include <fusion/conf.h>
+
 #include <media/idirectfbimageprovider.h>
+#include <media/idirectfbimageprovider_client.h>
 #include <media/idirectfbdatabuffer.h>
 
 
@@ -152,6 +155,18 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
      if (!buffer_data)
           return DFB_DEAD;
+
+     if (fusion_config->secure_fusion && !dfb_core_is_master(core)) {
+          DIRECT_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
+
+          ret = IDirectFBImageProvider_Client_Construct( imageprovider, buffer, core );
+          if (ret)
+               return ret;
+
+          *interface = imageprovider;
+
+          return DFB_OK;
+     }
 
      /* Clear for safety, especially header data. */
      memset( &ctx, 0, sizeof(ctx) );

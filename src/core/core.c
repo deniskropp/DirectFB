@@ -206,6 +206,23 @@ static pthread_mutex_t  core_dfb_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /******************************************************************************/
 
+static FusionCallHandlerResult
+Core_AsyncCall_Handler( int           caller,   /* fusion id of the caller */
+                        int           call_arg, /* optional call parameter */
+                        void         *call_ptr, /* optional call parameter */
+                        void         *ctx,      /* optional handler context */
+                        unsigned int  serial,
+                        int          *ret_val )
+{
+     AsyncCall *call = call_ptr;
+
+     call->func( call->ctx, call->ctx2 );
+
+     return FCHR_RETURN;
+}
+
+/******************************************************************************/
+
 DFBResult
 dfb_core_create( CoreDFB **ret_core )
 {
@@ -304,6 +321,8 @@ dfb_core_create( CoreDFB **ret_core )
      if (dfb_config->core_sighandler)
           direct_signal_handler_add( DIRECT_SIGNAL_ANY, dfb_core_signal_handler, core, &core->signal_handler );
 
+     fusion_call_init( &core_dfb->async_call, Core_AsyncCall_Handler, core, core_dfb->world );
+
      if (fusion_arena_enter( core->world, "DirectFB/Core",
                              dfb_core_arena_initialize, dfb_core_arena_join,
                              core, &core->arena, &ret ) || ret)
@@ -320,7 +339,6 @@ dfb_core_create( CoreDFB **ret_core )
 
      if (dfb_config->deinit_check)
           direct_cleanup_handler_add( dfb_core_deinit_check, NULL, &core->cleanup_handler );
-
 
      fusion_skirmish_prevail( &shared->lock );
 
@@ -344,8 +362,11 @@ dfb_core_create( CoreDFB **ret_core )
 
 error:
      if (core) {
-          if (core->world)
+          if (core->world) {
+               fusion_call_destroy( &core_dfb->async_call );
+
                fusion_exit( core->world, false );
+          }
 
           if (core->init_handler)
                direct_thread_remove_init_handler( core->init_handler );
@@ -411,6 +432,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           D_ONCE( "waiting for DirectFB slaves to terminate" );
           usleep( 100000 );
      }
+
+     fusion_call_destroy( &core_dfb->async_call );
 
      fusion_exit( core->world, emergency );
 
@@ -1202,6 +1225,9 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      /* Destroy shared memory pool for surface data. */
      fusion_shm_pool_destroy( core->world, shared->shmpool_data );
 
+     // FIXME: cleanup items
+     direct_hash_destroy( core->resource.identities );
+
      return 0;
 }
 
@@ -1238,10 +1264,10 @@ dfb_core_initialize( CoreDFB *core )
           }
      }
 
+     direct_hash_create( 23, &core_dfb->resource.identities );
+
      if (dfb_config->resource_manager) {
           DirectInterfaceFuncs *funcs;
-
-          direct_hash_create( 23, &core_dfb->resource.clients );
 
           ret = DirectGetInterface( &funcs, "ICoreResourceManager", dfb_config->resource_manager, NULL, NULL );
           if (ret == DFB_OK) {
@@ -1309,7 +1335,7 @@ dfb_core_leave_callback( FusionWorld *world,
                          FusionID     fusion_id,
                          void        *ctx )
 {
-     Core_Resource_DisposeClient( fusion_id );
+     Core_Resource_DisposeIdentity( fusion_id );
 }
 
 static int
@@ -1671,64 +1697,174 @@ Core_Resource_UpdateSurface( CoreSurface             *surface,
 }
 
 
-ICoreResourceClient *
-Core_Resource_GetClient( FusionID identity )
-{
-     ICoreResourceClient *client = NULL;
+struct __Core__CoreResourceCleanup {
+     DirectLink                    link;
 
-     D_DEBUG_AT( Core_Resource, "%s( %lu )\n", __FUNCTION__, identity );
+     int                           magic;
 
-     if (core_dfb->resource.manager)
-          client = direct_hash_lookup( core_dfb->resource.clients, identity );
+     FusionID                      fusion_id;
 
-     return client;
-}
+     CoreResourceCleanupCallback   callback;
+     void                         *ctx;
+     void                         *ctx2;
+};
 
-DFBResult
-Core_Resource_AddClient( FusionID identity )
-{
-     DFBResult            ret;
+typedef struct {
      ICoreResourceClient *client;
 
-     D_DEBUG_AT( Core_Resource, "%s( %lu )\n", __FUNCTION__, identity );
+     DirectLink          *cleanups;
+} ResourceIdentity;
+
+DFBResult
+Core_Resource_AddIdentity( FusionID fusion_id )
+{
+     DFBResult         ret;
+     ResourceIdentity *identity;
+     char              buf[512] = { 0 };
+     size_t            len;
+
+     D_DEBUG_AT( Core_Resource, "%s( %lu )\n", __FUNCTION__, fusion_id );
+
+     fusion_get_fusionee_path( core_dfb->world, fusion_id, buf, 512, &len );
+
+     D_INFO( "Core/Resource: Adding ID %lu - '%s'\n", fusion_id, buf );
+
+     identity = direct_hash_lookup( core_dfb->resource.identities, fusion_id );
+     if (identity) {
+          D_BUG( "alredy registered" );
+          return DFB_BUSY;
+     }
+
+     identity = D_CALLOC( 1, sizeof(ResourceIdentity) );
+     if (!identity)
+          return D_OOM();
 
      if (core_dfb->resource.manager) {
-          client = direct_hash_lookup( core_dfb->resource.clients, identity );
-          if (client) {
-               D_BUG( "alredy registered" );
-               return DFB_BUSY;
-          }
-
-          ret = core_dfb->resource.manager->CreateClient( core_dfb->resource.manager, identity, &client );
+          ret = core_dfb->resource.manager->CreateClient( core_dfb->resource.manager, fusion_id, &identity->client );
           if (ret) {
                D_DERROR( ret, "Core/Resource: ICoreResourceManager::CreateClient() failed!\n" );
-               return ret;
-          }
-
-          ret = direct_hash_insert( core_dfb->resource.clients, identity, client );
-          if (ret) {
-               D_DERROR( ret, "Core/Resource: Could not insert client into hash table!\n" );
-               client->Release( client );
-               client = NULL;
+               D_FREE( identity );
                return ret;
           }
      }
+
+     ret = direct_hash_insert( core_dfb->resource.identities, fusion_id, identity );
+     if (ret) {
+          D_DERROR( ret, "Core/Resource: Could not insert identity into hash table!\n" );
+
+          if (identity->client)
+               identity->client->Release( identity->client );
+
+          D_FREE( identity );
+     }
+
+     return ret;
+}
+
+void
+Core_Resource_DisposeIdentity( FusionID fusion_id )
+{
+     ResourceIdentity *identity;
+
+     D_DEBUG_AT( Core_Resource, "%s( %lu )\n", __FUNCTION__, fusion_id );
+
+     identity = direct_hash_lookup( core_dfb->resource.identities, fusion_id );
+     if (identity) {
+          CoreResourceCleanup *cleanup, *next;
+
+          direct_list_foreach_safe (cleanup, next, identity->cleanups) {
+               D_MAGIC_ASSERT( cleanup, CoreResourceCleanup );
+
+               D_DEBUG_AT( Core_Resource, "  -> running cleanup callback %p\n", cleanup->callback );
+               D_DEBUG_AT( Core_Resource, "  -> '%s'\n", direct_trace_lookup_symbol_at( cleanup->callback ) );
+
+               cleanup->callback( cleanup->ctx, cleanup->ctx2 );
+
+               D_MAGIC_CLEAR( cleanup );
+
+               D_FREE( cleanup );
+          }
+
+          if (identity->client)
+               identity->client->Release( identity->client );
+
+          direct_hash_remove( core_dfb->resource.identities, fusion_id );
+
+          D_FREE( identity );
+     }
+}
+
+
+ICoreResourceClient *
+Core_Resource_GetClient( FusionID fusion_id )
+{
+     ResourceIdentity *identity;
+
+     D_DEBUG_AT( Core_Resource, "%s( %lu )\n", __FUNCTION__, fusion_id );
+
+     identity = direct_hash_lookup( core_dfb->resource.identities, fusion_id );
+     if (identity)
+          return identity->client;
+
+     return NULL;
+}
+
+DFBResult
+Core_Resource_AddCleanup( FusionID                      fusion_id,
+                          CoreResourceCleanupCallback   callback,
+                          void                         *ctx,
+                          void                         *ctx2,
+                          CoreResourceCleanup         **ret_cleanup )
+{
+     ResourceIdentity    *identity;
+     CoreResourceCleanup *cleanup;
+
+     D_DEBUG_AT( Core_Resource, "%s( %lu, %p )\n", __FUNCTION__, fusion_id, callback );
+
+     D_ASSERT( fusion_id != 0 );
+     D_ASSERT( callback != NULL );
+
+     identity = direct_hash_lookup( core_dfb->resource.identities, fusion_id );
+     if (!identity)
+          return DFB_DEAD;
+
+     cleanup = D_CALLOC( 1, sizeof(CoreResourceCleanup) );
+     if (!cleanup)
+          return D_OOM();
+
+     cleanup->fusion_id = fusion_id;
+     cleanup->callback  = callback;
+     cleanup->ctx       = ctx;
+     cleanup->ctx2      = ctx2;
+
+     D_MAGIC_SET( cleanup, CoreResourceCleanup );
+
+     direct_list_append( &identity->cleanups, &cleanup->link );
+
+     *ret_cleanup = cleanup;
 
      return DFB_OK;
 }
 
-void
-Core_Resource_DisposeClient( FusionID identity )
+DFBResult
+Core_Resource_DisposeCleanup( CoreResourceCleanup *cleanup )
 {
-     ICoreResourceClient *client;
+     ResourceIdentity *identity;
 
-     if (core_dfb->resource.manager) {
-          client = direct_hash_lookup( core_dfb->resource.clients, identity );
-          if (client) {
-               direct_hash_remove( core_dfb->resource.clients, identity );
+     D_DEBUG_AT( Core_Resource, "%s( %p )\n", __FUNCTION__, cleanup );
 
-               client->Release( client );
-          }
-     }
+     D_MAGIC_ASSERT( cleanup, CoreResourceCleanup );
+
+     identity = direct_hash_lookup( core_dfb->resource.identities, cleanup->fusion_id );
+     if (!identity)
+          return DFB_DEAD;
+
+     direct_list_remove( &identity->cleanups, &cleanup->link );
+
+     D_MAGIC_CLEAR( cleanup );
+
+     D_FREE( cleanup );
+
+     return DFB_OK;
 }
 
