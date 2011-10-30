@@ -30,7 +30,6 @@
 
 #include "ImageProvider.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -43,7 +42,6 @@ extern "C" {
 #include <core/core.h>
 
 #include <display/idirectfbsurface.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_ImageProvider, "DirectFB/ImageProvider", "DirectFB ImageProvider" );
 
@@ -111,11 +109,8 @@ ImageProviderDispatch_Destroy( ImageProviderDispatch *dispatch )
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 DFBResult
-IImageProvider_Real::Dispose(
+IImageProvider_Real__Dispose( ImageProviderDispatch *obj
 )
 {
      D_MAGIC_ASSERT( obj, ImageProviderDispatch );
@@ -129,7 +124,7 @@ IImageProvider_Real::Dispose(
 
 
 DFBResult
-IImageProvider_Real::GetSurfaceDescription(
+IImageProvider_Real__GetSurfaceDescription( ImageProviderDispatch *obj,
                     DFBSurfaceDescription                     *ret_description
 )
 {
@@ -140,7 +135,7 @@ IImageProvider_Real::GetSurfaceDescription(
 
 
 DFBResult
-IImageProvider_Real::GetImageDescription(
+IImageProvider_Real__GetImageDescription( ImageProviderDispatch *obj,
                     DFBImageDescription                       *ret_description
 )
 {
@@ -151,7 +146,7 @@ IImageProvider_Real::GetImageDescription(
 
 
 DFBResult
-IImageProvider_Real::RenderTo(
+IImageProvider_Real__RenderTo( ImageProviderDispatch *obj,
                     CoreSurface                               *destination,
                     const DFBRectangle                        *rect
 )
@@ -165,7 +160,7 @@ IImageProvider_Real::RenderTo(
      if (!surface)
           return (DFBResult) D_OOM();
 
-     ret = IDirectFBSurface_Construct( surface, NULL, NULL, NULL, NULL, destination, DSCAPS_NONE, core );
+     ret = IDirectFBSurface_Construct( surface, NULL, NULL, NULL, NULL, destination, DSCAPS_NONE, core_dfb );
      if (ret)
           return ret;
 
@@ -176,5 +171,3 @@ IImageProvider_Real::RenderTo(
      return ret;
 }
 
-
-}

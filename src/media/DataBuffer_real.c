@@ -30,7 +30,6 @@
 
 #include "DataBuffer.h"
 
-extern "C" {
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -41,18 +40,14 @@ extern "C" {
 #include <fusion/conf.h>
 
 #include <core/core.h>
-}
 
 D_DEBUG_DOMAIN( DirectFB_DataBuffer, "DirectFB/DataBuffer", "DirectFB DataBuffer" );
 
 /*********************************************************************************************************************/
 
-namespace DirectFB {
-
-
 
 DFBResult
-IDataBuffer_Real::Flush(
+IDataBuffer_Real__Flush( IDirectFBDataBuffer *obj
 
 )
 {
@@ -61,7 +56,7 @@ IDataBuffer_Real::Flush(
 
 
 DFBResult
-IDataBuffer_Real::Finish(
+IDataBuffer_Real__Finish( IDirectFBDataBuffer *obj
 
 )
 {
@@ -70,7 +65,7 @@ IDataBuffer_Real::Finish(
 
 
 DFBResult
-IDataBuffer_Real::SeekTo(
+IDataBuffer_Real__SeekTo( IDirectFBDataBuffer *obj,
                     u64                                        offset
 )
 {
@@ -79,7 +74,7 @@ IDataBuffer_Real::SeekTo(
 
 
 DFBResult
-IDataBuffer_Real::GetPosition(
+IDataBuffer_Real__GetPosition( IDirectFBDataBuffer *obj,
                     u64                                       *ret_offset
 )
 {
@@ -95,7 +90,7 @@ IDataBuffer_Real::GetPosition(
 
 
 DFBResult
-IDataBuffer_Real::GetLength(
+IDataBuffer_Real__GetLength( IDirectFBDataBuffer *obj,
                     u64                                       *ret_length
 )
 {
@@ -111,7 +106,7 @@ IDataBuffer_Real::GetLength(
 
 
 DFBResult
-IDataBuffer_Real::WaitForData(
+IDataBuffer_Real__WaitForData( IDirectFBDataBuffer *obj,
                     u64                                        length
 )
 {
@@ -120,7 +115,7 @@ IDataBuffer_Real::WaitForData(
 
 
 DFBResult
-IDataBuffer_Real::WaitForDataWithTimeout(
+IDataBuffer_Real__WaitForDataWithTimeout( IDirectFBDataBuffer *obj,
                     u64                                        length,
                     u64                                        timeout_ms
 )
@@ -130,7 +125,7 @@ IDataBuffer_Real::WaitForDataWithTimeout(
 
 
 DFBResult
-IDataBuffer_Real::GetData(
+IDataBuffer_Real__GetData( IDirectFBDataBuffer *obj,
                     u32                                        length,
                     u8                                        *ret_data,
                     u32                                       *ret_read
@@ -141,7 +136,7 @@ IDataBuffer_Real::GetData(
 
 
 DFBResult
-IDataBuffer_Real::PeekData(
+IDataBuffer_Real__PeekData( IDirectFBDataBuffer *obj,
                     u32                                        length,
                     s64                                        offset,
                     u8                                        *ret_data,
@@ -153,7 +148,7 @@ IDataBuffer_Real::PeekData(
 
 
 DFBResult
-IDataBuffer_Real::HasData(
+IDataBuffer_Real__HasData( IDirectFBDataBuffer *obj
 
 )
 {
@@ -162,7 +157,7 @@ IDataBuffer_Real::HasData(
 
 
 DFBResult
-IDataBuffer_Real::PutData(
+IDataBuffer_Real__PutData( IDirectFBDataBuffer *obj,
                     const u8                                  *data,
                     u32                                        length
 )
@@ -170,5 +165,3 @@ IDataBuffer_Real::PutData(
     return obj->PutData( obj, data, length );
 }
 
-
-}
