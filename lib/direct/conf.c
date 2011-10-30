@@ -161,9 +161,12 @@ direct_config_set( const char *name, const char *value )
           if (value) {
                DirectLogDomainConfig config = {0};
 
-               D_UNIMPLEMENTED();
+               if (value[0] && value[1] == ':') {
+                    config.level = value[0] - '0' + DIRECT_LOG_DEBUG_0;
 
-               if (config.level < DIRECT_LOG_DEBUG)
+                    value += 2;
+               }
+               else
                     config.level = DIRECT_LOG_DEBUG;
 
                direct_log_domain_configure( value, &config );
@@ -176,10 +179,7 @@ direct_config_set( const char *name, const char *value )
           if (value) {
                DirectLogDomainConfig config = {0};
 
-               D_UNIMPLEMENTED();
-
-               if (config.level > DIRECT_LOG_DEBUG_0)
-                    config.level = DIRECT_LOG_DEBUG_0;
+               config.level = DIRECT_LOG_DEBUG_0;
                     
                direct_log_domain_configure( value, &config );
           }
