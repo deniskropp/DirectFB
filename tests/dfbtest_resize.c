@@ -27,6 +27,7 @@
 
 #include <config.h>
 
+#include <alloca.h>
 #include <string.h>
 
 #include <direct/messages.h>
@@ -41,6 +42,7 @@ TestThread( DirectThread *thread,
 {
      DFBResult         ret;
      IDirectFBSurface *surface = arg;
+     DFBRectangle      rect    = { 0, 0, 500, 1 };
 
      while (true) {
           void *data;
@@ -55,6 +57,22 @@ TestThread( DirectThread *thread,
           memset( data, 0, pitch * 400 );
 
           surface->Unlock( surface );
+
+
+
+          data = alloca( pitch );
+
+          ret = surface->Read( surface, &rect, data, pitch );
+          if (ret) {
+               D_DERROR( ret, "DFBTest/Resize: Read() failed!\n" );
+               return NULL;
+          }
+
+          ret = surface->Write( surface, &rect, data, pitch );
+          if (ret) {
+               D_DERROR( ret, "DFBTest/Resize: Write() failed!\n" );
+               return NULL;
+          }
      }
 
      return NULL;

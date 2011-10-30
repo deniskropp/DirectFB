@@ -105,9 +105,15 @@ typedef struct {
      DFBSurfaceCapabilities   caps;
 
      struct {
-          void *addr;
-          int   pitch;
+          void                    *addr;               /* " */
+          unsigned long            phys;               /* " */
+          unsigned long            offset;             /* " */
+          unsigned int             pitch;              /* " */
+
+          void                    *handle;             /* " */
      }                        preallocated[MAX_SURFACE_BUFFERS];
+
+     CoreSurfacePoolID        preallocated_pool_id;
 
      DFBDimension             min_size;
 } CoreSurfaceConfig;
@@ -222,6 +228,11 @@ struct __DFB_CoreSurface
 
      FusionCall               call;
 };
+
+#define CORE_SURFACE_ASSERT(surface)                                                           \
+     do {                                                                                      \
+          D_MAGIC_ASSERT( surface, CoreSurface );                                              \
+     } while (0)
 
 
 /*

@@ -182,6 +182,19 @@ typedef struct {
                             void                   *alloc_data,
                             CoreSurfaceAccessorID   accessor,
                             CoreSurfaceAccessFlags  access );
+
+     /*
+      * Handle preallocation
+      *
+      * The surface pool checks the description and extracts/generates
+      * information for the surface configuration, to be later used in
+      * the AllocateBuffer function.
+      */
+     DFBResult (*PreAlloc)( CoreSurfacePool             *pool,
+                            void                        *pool_data,
+                            void                        *pool_local,
+                            const DFBSurfaceDescription *description,
+                            CoreSurfaceConfig           *config );
 } SurfacePoolFuncs;
 
 
@@ -216,6 +229,9 @@ typedef DFBEnumerationResult (*CoreSurfaceAllocCallback)( CoreSurfaceAllocation 
 
 
 
+DFBResult dfb_surface_pools_prealloc ( const DFBSurfaceDescription *description,
+                                       CoreSurfaceConfig           *config );
+
 DFBResult dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
                                        CoreSurfaceAccessorID    accessor,
                                        CoreSurfaceAccessFlags   access,
@@ -225,6 +241,9 @@ DFBResult dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
 
 DFBResult dfb_surface_pools_enumerate( CoreSurfacePoolCallback  callback,
                                        void                    *ctx );
+
+DFBResult dfb_surface_pools_lookup   ( CoreSurfacePoolID        pool_id,
+                                       CoreSurfacePool        **ret_pool );
 
 DFBResult dfb_surface_pools_allocate ( CoreSurfaceBuffer       *buffer,
                                        CoreSurfaceAccessorID    accessor,
@@ -236,9 +255,19 @@ DFBResult dfb_surface_pool_initialize( CoreDFB                 *core,
                                        const SurfacePoolFuncs  *funcs,
                                        CoreSurfacePool        **ret_pool );
 
+DFBResult dfb_surface_pool_initialize2( CoreDFB                 *core,
+                                        const SurfacePoolFuncs  *funcs,
+                                        void                    *ctx,
+                                        CoreSurfacePool        **ret_pool );
+
 DFBResult dfb_surface_pool_join      ( CoreDFB                 *core,
                                        CoreSurfacePool         *pool,
                                        const SurfacePoolFuncs  *funcs );
+
+DFBResult dfb_surface_pool_join2     ( CoreDFB                 *core,
+                                       CoreSurfacePool         *pool,
+                                       const SurfacePoolFuncs  *funcs,
+                                       void                    *ctx );
 
 DFBResult dfb_surface_pool_destroy   ( CoreSurfacePool         *pool );
 

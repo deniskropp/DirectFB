@@ -5,6 +5,13 @@ interface {
 
 	method {
 		name	Register
+
+                arg {
+                        name        slave_call
+                        direction   input
+                        type        int
+                        typename    u32
+                }
 	}
 
         method {

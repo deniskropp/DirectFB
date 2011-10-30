@@ -184,6 +184,8 @@ dfb_surface_create( CoreDFB                  *core,
 
                direct_memcpy( surface->config.preallocated, config->preallocated, sizeof(config->preallocated) );
 
+               surface->config.preallocated_pool_id = config->preallocated_pool_id;
+
                type |= CSTF_PREALLOCATED;
           }
      }
@@ -267,19 +269,19 @@ dfb_surface_create( CoreDFB                  *core,
 
      dfb_system_surface_data_init(surface,surface->data);
 
+     dfb_surface_lock( surface );
+
      /* Create the Surface Buffers. */
      for (i=0; i<buffers; i++) {
-          CoreSurfaceBuffer *buffer;
-
-          ret = dfb_surface_buffer_create( core, surface, CSBF_NONE, &buffer );
+          ret = dfb_surface_buffer_create( core, surface, CSBF_NONE, &surface->buffers[i] );
           if (ret) {
                D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
                goto error;
           }
 
-          dfb_surface_buffer_globalize( buffer );
+          surface->num_buffers++;
 
-          surface->buffers[surface->num_buffers++] = buffer;
+          dfb_surface_buffer_globalize( surface->buffers[i] );
 
           switch (i) {
                case 0:
@@ -290,6 +292,9 @@ dfb_surface_create( CoreDFB                  *core,
                     surface->buffer_indices[CSBR_IDLE] = i;
           }
      }
+
+     dfb_surface_unlock( surface );
+
 
      CoreSurface_Init_Dispatch( core, surface, &surface->call );
 
@@ -638,10 +643,13 @@ dfb_surface_lock_buffer( CoreSurface            *surface,
           return DFB_SUSPENDED;
      }
 
-     buffer = dfb_surface_get_buffer( surface, role );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     do {
+          buffer = dfb_surface_get_buffer( surface, role );
+          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     ret = dfb_surface_buffer_lock( buffer, accessor, access, ret_lock );
+          ret = dfb_surface_buffer_lock( buffer, accessor, access, ret_lock );
+     } while (ret == DFB_BUFFEREMPTY);  // FIXME: this will be fixed when allocations are
+                                        // objects and we get an allocation object per atomic prelock
 
      fusion_skirmish_dismiss( &surface->lock );
 
@@ -689,10 +697,13 @@ dfb_surface_read_buffer( CoreSurface            *surface,
           return DFB_SUSPENDED;
      }
 
-     buffer = dfb_surface_get_buffer( surface, role );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     do {
+          buffer = dfb_surface_get_buffer( surface, role );
+          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     ret = dfb_surface_buffer_read( buffer, destination, pitch, rect );
+          ret = dfb_surface_buffer_read( buffer, destination, pitch, rect );
+     } while (ret == DFB_BUFFEREMPTY);  // FIXME: this will be fixed when allocations are
+                                        // objects and we get an allocation object per atomic preread
 
      fusion_skirmish_dismiss( &surface->lock );
 
@@ -722,10 +733,13 @@ dfb_surface_write_buffer( CoreSurface            *surface,
           return DFB_SUSPENDED;
      }
 
-     buffer = dfb_surface_get_buffer( surface, role );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     do {
+          buffer = dfb_surface_get_buffer( surface, role );
+          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     ret = dfb_surface_buffer_write( buffer, source, pitch, rect );
+          ret = dfb_surface_buffer_write( buffer, source, pitch, rect );
+     } while (ret == DFB_BUFFEREMPTY);  // FIXME: this will be fixed when allocations are
+                                        // objects and we get an allocation object per atomic prewrite
 
      fusion_skirmish_dismiss( &surface->lock );
 

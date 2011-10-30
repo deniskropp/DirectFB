@@ -78,6 +78,57 @@ static ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx
 
 /**********************************************************************************************************************/
 
+static DFBResult
+register_prealloc( IDirectFBSurface_data *data )
+{
+     DFBResult     ret;
+     unsigned int  i;
+     CoreSurface  *surface = data->surface;
+
+     if (surface->config.caps & DSCAPS_TRIPLE)
+          data->memory_permissions_count = 3;
+     else if (surface->config.caps & DSCAPS_DOUBLE)
+          data->memory_permissions_count = 2;
+     else
+          data->memory_permissions_count = 1;
+
+     for (i=0; i<data->memory_permissions_count; i++) {
+          ret = dfb_core_memory_permissions_add( data->core, CMPF_READ | CMPF_WRITE,
+                                                 surface->config.preallocated[i].addr,
+                                                 surface->config.preallocated[i].pitch *
+                                                 DFB_PLANE_MULTIPLY( surface->config.format, surface->config.size.h ),
+                                                 &data->memory_permissions[i] );
+          if (ret)
+               goto error;
+     }
+
+     return DFB_OK;
+
+
+error:
+     for (--i; i>=0; i--)
+          dfb_core_memory_permissions_remove( data->core, data->memory_permissions[i] );
+
+     data->memory_permissions_count = 0;
+
+     return ret;
+}
+
+static DFBResult
+unregister_prealloc( IDirectFBSurface_data *data )
+{
+     unsigned int i;
+
+     for (i=0; i<data->memory_permissions_count; i++)
+          dfb_core_memory_permissions_remove( data->core, data->memory_permissions[i] );
+
+     data->memory_permissions_count = 0;
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
 void
 IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 {
@@ -92,6 +143,8 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      D_ASSERT( data != NULL );
      D_ASSERT( data->children_data == NULL );
+
+     unregister_prealloc( data );
 
      parent = data->parent;
      if (parent) {
@@ -2894,6 +2947,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->state.modified = SMF_ALL;
 
      ret = CoreGraphicsStateClient_Init( &data->state_client, &data->state );
+     if (ret)
+          return ret;    // FIXME: deinit
+
+     ret = register_prealloc( data );
      if (ret)
           return ret;    // FIXME: deinit
 

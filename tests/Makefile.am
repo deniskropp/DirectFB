@@ -32,6 +32,7 @@ bin_PROGRAMS = \
 	dfbtest_fillrect	\
 	dfbtest_font	\
 	dfbtest_mirror	\
+	dfbtest_prealloc	\
 	dfbtest_reinit	\
 	dfbtest_resize	\
 	dfbtest_scale	\
@@ -62,6 +63,9 @@ dfbtest_font_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_mirror_SOURCES = dfbtest_mirror.c
 dfbtest_mirror_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+dfbtest_prealloc_SOURCES = dfbtest_prealloc.c
+dfbtest_prealloc_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_reinit_SOURCES = dfbtest_reinit.c
 dfbtest_reinit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)

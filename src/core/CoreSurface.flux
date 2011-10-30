@@ -101,10 +101,10 @@ interface {
 		name	PreLockBuffer
 
 		arg {
-			name	    buffer_index
+			name	    buffer
 			direction   input
-			type        int
-			typename    u32
+			type        object
+			typename    CoreSurfaceBuffer
 		}
 
 		arg {
@@ -134,10 +134,10 @@ interface {
 		name	PreReadBuffer
 
 		arg {
-			name	    buffer_index
+			name	    buffer
 			direction   input
-			type        int
-			typename    u32
+			type        object
+			typename    CoreSurfaceBuffer
 		}
 
 		arg {
@@ -160,10 +160,10 @@ interface {
 		name	PreWriteBuffer
 
 		arg {
-			name	    buffer_index
+			name	    buffer
 			direction   input
-			type        int
-			typename    u32
+			type        object
+			typename    CoreSurfaceBuffer
 		}
 
 		arg {

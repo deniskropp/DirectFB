@@ -272,7 +272,6 @@ dfb_graphics_core_join( CoreDFB               *core,
           return DFB_UNSUPPORTED;
      }
 
-
      D_INFO( "DirectFB/Graphics: %s %s %d.%d (%s)\n",
              shared->device_info.vendor, shared->device_info.name,
              shared->driver_info.version.major,
@@ -734,10 +733,16 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                       state, accel, state->destination );
      }
 
+     /*
+      * Push our own identity for buffer locking calls (locality of accessor)
+      */
+     Core_PushIdentity( 0 );
+
      /* lock destination */
      ret = dfb_surface_lock_buffer( dst, state->to, CSAID_GPU, access, &state->dst );
      if (ret) {
           D_DEBUG_AT( Core_Graphics, "Could not lock destination for GPU access!\n" );
+          Core_PopIdentity();
           return false;
      }
 
@@ -748,6 +753,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           if (ret) {
                D_DEBUG_AT( Core_Graphics, "Could not lock source for GPU access!\n" );
                dfb_surface_unlock_buffer( dst, &state->dst );
+               Core_PopIdentity();
                return false;
           }
 
@@ -761,6 +767,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                     D_DEBUG_AT( Core_Graphics, "Could not lock source mask for GPU access!\n" );
                     dfb_surface_unlock_buffer( src, &state->src );
                     dfb_surface_unlock_buffer( dst, &state->dst );
+                    Core_PopIdentity();
                     return false;
                }
 
@@ -779,6 +786,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
                     dfb_surface_unlock_buffer( src, &state->src );
                     dfb_surface_unlock_buffer( dst, &state->dst );
+                    Core_PopIdentity();
                     return false;
                }
 
@@ -810,6 +818,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
                state->flags &= ~CSF_SOURCE_MASK_LOCKED;
           }
+
+          Core_PopIdentity();
 
           return false;
      }
@@ -907,6 +917,8 @@ dfb_gfxcard_state_release( CardState *state )
 
           state->flags &= ~CSF_SOURCE2_LOCKED;
      }
+
+     Core_PopIdentity();
 }
 
 /** DRAWING FUNCTIONS **/
