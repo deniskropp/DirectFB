@@ -1164,6 +1164,8 @@ dfb_core_memory_permissions_add( CoreDFB                   *core,
 
      direct_mutex_unlock( &core->memory_permissions_lock );
 
+     *ret_permission = permission;
+
      return DFB_OK;
 }
 
