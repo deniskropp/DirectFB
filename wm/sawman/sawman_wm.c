@@ -64,10 +64,12 @@
 #include <core/windowstack.h>
 #include <core/wm.h>
 
+#include <gfx/clip.h>
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
 #include <misc/conf.h>
+#include <misc/gfx_util.h>
 #include <misc/util.h>
 
 #include <core/wm_module.h>
@@ -3739,13 +3741,32 @@ update_hw_cursor( SaWMan                *sawman,
      }
 
 
+     if (flags & CCUF_OPACITY) {
+          if (stack->cursor.opacity) {
+               if (!(sawman->cursor.region->state & CLRSF_ENABLED)) {
+                    D_DEBUG_AT( SaWMan_Cursor, "  -> OPACITY  %d, enabling region\n", stack->cursor.opacity );
+
+                    flags |= CCUF_ENABLE;
+               }
+          }
+          else {
+               if (sawman->cursor.region->state & CLRSF_ENABLED) {
+                    D_DEBUG_AT( SaWMan_Cursor, "  -> OPACITY  %d, disabling region\n", stack->cursor.opacity );
+
+                    flags |= CCUF_DISABLE;
+               }
+          }
+     }
+
      if (flags & CCUF_DISABLE) {
           D_DEBUG_AT( SaWMan_Cursor, "  -> DISABLE\n" );
 
           dfb_layer_region_disable( sawman->cursor.region );
      }
 
-     if (flags & (CCUF_POSITION | CCUF_SIZE | CCUF_SHAPE)) {
+     if (flags & (CCUF_POSITION | CCUF_SIZE | CCUF_SHAPE | CLRCF_SOURCE)) {
+          DFBRegion clip = { 0, 0, mx-1, my-1 };
+
           if (flags & CCUF_POSITION)
                D_DEBUG_AT( SaWMan_Cursor, "  -> POSITION %4d,%4d (hot %d,%d)\n",
                            x, y, stack->cursor.hot.x, stack->cursor.hot.y );
@@ -3754,12 +3775,30 @@ update_hw_cursor( SaWMan                *sawman,
                D_DEBUG_AT( SaWMan_Cursor, "  -> SIZE     %4dx%4d\n",
                            stack->cursor.size.w, stack->cursor.size.h );
 
-          config_flags |= CLRCF_DEST;
+          config_flags |= CLRCF_DEST | CLRCF_SOURCE;
 
           config.dest.x = x - stack->cursor.hot.x;
           config.dest.y = y - stack->cursor.hot.y;
           config.dest.w = stack->cursor.size.w;
           config.dest.h = stack->cursor.size.h;
+
+          config.source.x = 0;
+          config.source.y = 0;
+          config.source.w = stack->cursor.surface->config.size.w;
+          config.source.h = stack->cursor.surface->config.size.h;
+
+          if (!dfb_clip_blit_precheck( &clip, config.dest.w, config.dest.h, config.dest.x, config.dest.y )) {
+               D_DEBUG_AT( SaWMan_Cursor, "  -> PRECHECK against %d,%d-%dx%d failed!\n", DFB_RECTANGLE_VALS_FROM_REGION(&clip) );
+               return DFB_INVAREA;
+          }
+
+          dfb_clip_blit( &clip, &config.source, &config.dest.x, &config.dest.y );
+
+          D_DEBUG_AT( SaWMan_Cursor, "  -> CLIPPED     %4d,%4d-%4dx%4d -> %4d,%4d\n",
+                      DFB_RECTANGLE_VALS( &config.source ), config.dest.x, config.dest.y );
+
+          config.dest.w = config.source.w;
+          config.dest.h = config.source.h;
      }
 
      if (flags & CCUF_OPACITY) {
@@ -3777,17 +3816,14 @@ update_hw_cursor( SaWMan                *sawman,
                       dfb_pixelformat_name( stack->cursor.surface->config.format ),
                       stack->cursor.surface->config.caps );
 
-          config_flags |= CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SURFACE_CAPS | CLRCF_SOURCE | CLRCF_FREEZE;
+          config_flags |= CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SURFACE_CAPS | CLRCF_FREEZE | CLRCF_OPTIONS;
 
-          config.width        = stack->cursor.surface->config.size.w;
-          config.height       = stack->cursor.surface->config.size.h;
+          config.width        = config.source.w;
+          config.height       = config.source.h;
           config.format       = stack->cursor.surface->config.format;
           config.surface_caps = stack->cursor.surface->config.caps;
-
-          config.source.x = 0;
-          config.source.y = 0;
-          config.source.w = stack->cursor.surface->config.size.w;
-          config.source.h = stack->cursor.surface->config.size.h;
+          config.options      = DLOP_OPACITY |
+               (DFB_PIXELFORMAT_HAS_ALPHA( stack->cursor.surface->config.format ) ? DLOP_ALPHACHANNEL : DLOP_NONE);
      }
 
      if (config_flags) {
@@ -3818,7 +3854,7 @@ update_hw_cursor( SaWMan                *sawman,
           dfb_layer_region_enable( sawman->cursor.region );
      }
 
-     if (flags & CCUF_SHAPE) {
+     if (flags & (CCUF_SHAPE | CCUF_ENABLE)) {
           D_DEBUG_AT( SaWMan_Cursor, "  -> updating region...\n" );
 
           dfb_layer_region_flip_update( sawman->cursor.region, NULL, DSFLIP_NONE );
@@ -3900,12 +3936,6 @@ wm_update_cursor( CoreWindowStack       *stack,
           tier->cursor_bs_valid = false;
      }
 
-     /* Optimize case of invisible cursor moving. */
-     if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled)) {
-          sawman_unlock( sawman );
-          return DFB_OK;
-     }
-
      /*
       * HW Cursor mode?
       */
@@ -3915,6 +3945,12 @@ wm_update_cursor( CoreWindowStack       *stack,
           sawman_unlock( sawman );
 
           return ret;
+     }
+
+     /* Optimize case of invisible cursor moving. */
+     if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled)) {
+          sawman_unlock( sawman );
+          return DFB_OK;
      }
 
      /*
