@@ -419,6 +419,18 @@ IWindow_Real::GetSurface(
      return DFB_OK;
 }
 
+DFBResult
+IWindow_Real::SetCursorShape(
+                    CoreSurface                               *shape,
+                    const DFBPoint                            *hotspot )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_set_cursor_shape( obj, shape, hotspot->x, hotspot->y );
+}
+
 
 }
 

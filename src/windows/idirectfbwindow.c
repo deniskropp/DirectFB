@@ -93,15 +93,7 @@ typedef struct {
 
      IDirectFBSurface  *surface;
 
-     struct {
-          IDirectFBSurface  *shape;
-          int                hot_x;
-          int                hot_y;
-     } cursor;
-
      Reaction           reaction;
-
-     bool               entered;
 
      bool               detached;
      bool               destroyed;
@@ -133,11 +125,6 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 
      if (data->surface)
           data->surface->Release( data->surface );
-
-     D_DEBUG_AT( IDirectFB_Window, "  -> releasing cursor shape...\n" );
-
-     if (data->cursor.shape)
-          data->cursor.shape->Release( data->cursor.shape );
 
      D_DEBUG_AT( IDirectFB_Window, "  -> done.\n" );
 
@@ -620,7 +607,7 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
                                 int               hot_x,
                                 int               hot_y )
 {
-     DFBResult ret;
+     DFBPoint hot;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -628,11 +615,6 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
 
      if (data->destroyed)
           return DFB_DESTROYED;
-
-     if (data->cursor.shape) {
-          data->cursor.shape->Release( data->cursor.shape );
-          data->cursor.shape = NULL;
-     }
 
      if (shape) {
           IDirectFBSurface_data *shape_data;
@@ -646,20 +628,16 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
           if (!shape_surface)
                return DFB_DESTROYED;
 
-          ret = shape->AddRef( shape );
-          if (ret)
-               return ret;
+          hot.x = hot_x;
+          hot.y = hot_y;
 
-          data->cursor.shape = shape;
-          data->cursor.hot_x = hot_x;
-          data->cursor.hot_y = hot_y;
-
-          if (data->entered)
-               return dfb_windowstack_cursor_set_shape( data->window->stack,
-                                                        shape_surface, hot_x, hot_y );
+          return CoreWindow_SetCursorShape( data->window, shape_surface, &hot );
      }
 
-     return DFB_OK;
+     hot.x = 0;
+     hot.y = 0;
+
+     return CoreWindow_SetCursorShape( data->window, NULL, &hot );
 }
 
 static DFBResult
@@ -1544,33 +1522,6 @@ IDirectFBWindow_React( const void *msg_data,
                data->destroyed = true;
                
                return RS_REMOVE;
-
-          case DWET_LEAVE:
-               data->entered = false;
-               break;
-
-          case DWET_ENTER:
-               data->entered = true;
-
-               if (data->cursor.shape) {
-                    IDirectFBSurface_data* shape_data;
-
-                    shape_data = (IDirectFBSurface_data*) data->cursor.shape->priv;
-                    if (!shape_data)
-                         break;
-
-                    if (!shape_data->surface)
-                         break;
-
-                    dfb_windowstack_cursor_set_shape( data->window->stack,
-                                                      shape_data->surface,
-                                                      data->cursor.hot_x,
-                                                      data->cursor.hot_y );
-
-                    dfb_windowstack_cursor_set_opacity( data->window->stack, 0xff );
-               }
-
-               break;
 
           case DWET_GOTFOCUS:
           case DWET_LOSTFOCUS:

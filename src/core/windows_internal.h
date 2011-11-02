@@ -112,6 +112,12 @@ struct __DFB_CoreWindow {
      unsigned long           resource_id;
 
      FusionCall              call;
+
+     struct {
+          int                hot_x;
+          int                hot_y;
+          CoreSurface       *surface;
+     } cursor;
 };
 
 typedef enum {
