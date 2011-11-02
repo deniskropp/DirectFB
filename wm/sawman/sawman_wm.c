@@ -1498,9 +1498,13 @@ wm_close_stack( CoreWindowStack *stack,
 
      D_MAGIC_ASSERT( data, StackData );
 
+     D_DEBUG_AT( SaWMan_WM, "%s( %p, %p, %p )\n", __FUNCTION__, stack, wm_data, stack_data );
+
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
+     if (!sawman->lock)
+          return DFB_OK;
 
      /* Lock SaWMan. */
      ret = sawman_lock( sawman );
@@ -1564,6 +1568,9 @@ wm_set_active( CoreWindowStack *stack,
 
      D_DEBUG_AT( SaWMan_WM, "%s( %p, %p, %p, %s )\n", __FUNCTION__,
                  stack, wm_data, stack_data, active ? "active" : "inactive" );
+
+     if (!sawman->lock)
+          return DFB_OK;
 
      /* Lock SaWMan. */
      ret = sawman_lock( sawman );
