@@ -919,16 +919,19 @@ process_single( SaWMan              *sawman,
           dfb_updates_reset( &tier->right.updates );
 
 
+          /* Lock the context. */
+          if (dfb_layer_context_lock( tier->context ))
+               return DFB_FUSION;
+
+          dfb_layer_region_lock(region);
+
           if (region->surface) {
-               if (memcmp(&region->config, &region_config, sizeof(region_config))) {
+               if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
                     dfb_layer_region_disable(region);
 
-//                    flags |= CLRCF_FREEZE;
-
-                    ret = dfb_layer_context_reallocate_surface( layer, region, &region_config );
-                    if (ret)
-                         D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
-               }
+               ret = dfb_layer_context_reallocate_surface( layer, region, &region_config );
+               if (ret)
+                    D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
           }
           else {
                ret = dfb_layer_context_allocate_surface( layer, region, &region_config );
@@ -936,14 +939,20 @@ process_single( SaWMan              *sawman,
                     D_DERROR( ret, "Core/Layers: Allocation of layer surface failed!\n" );
           }
 
-          dfb_layer_region_set_configuration( region, &region_config, //CLRCF_ALL );
-                                              CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_OPTIONS |
+          dfb_layer_region_set_configuration( region, &region_config,
+                                              CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_OPTIONS | CLRCF_FREEZE | CLRCF_SURFACE |
                                               CLRCF_BUFFERMODE | CLRCF_SURFACE_CAPS | CLRCF_SRCKEY | CLRCF_DEST | CLRCF_SOURCE );
 
           /* Enable the primary region. */
           if (! D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
                dfb_layer_region_enable( region );
 
+          dfb_layer_region_unlock(region);
+
+          tier->context->primary.config = region_config;
+
+          /* Unlock the context. */
+          dfb_layer_context_unlock( tier->context );
 
 
           sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
