@@ -141,9 +141,7 @@ send_button_event( SaWMan              *sawman,
      D_ASSERT( event != NULL );
 
      window = sawwin->window;
-
      D_ASSERT( window != NULL );
-     D_ASSERT( window->surface != NULL );
 
      we.type   = (event->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN : DWET_BUTTONUP;
      we.button = event->button;
@@ -151,6 +149,8 @@ send_button_event( SaWMan              *sawman,
      sawman_window_get_cursor_position( sawman, stack, sawwin, &we.x, &we.y, &we.cx, &we.cy );
 
      if (window->config.options & DWOP_SCALE) {
+          D_ASSERT( window->surface != NULL );
+
           we.x = we.x * window->surface->config.size.w / sawwin->bounds.w;
           we.y = we.y * window->surface->config.size.h / sawwin->bounds.h;
      }
