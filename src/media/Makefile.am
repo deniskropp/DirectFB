@@ -25,6 +25,7 @@ noinst_LTLIBRARIES = libdirectfb_media.la
 if DIRECTFB_BUILD_PURE_VOODOO
 NON_PURE_VOODOO_SOURCESs = 
 else
+BUILT_SOURCES = DataBuffer.h DataBuffer.cpp ImageProvider.h ImageProvider.cpp
 NON_PURE_VOODOO_SOURCESs = \
 	idirectfbdatabuffer_client.c	\
 	idirectfbfont.c			\
