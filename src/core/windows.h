@@ -244,6 +244,15 @@ dfb_window_set_config( CoreWindow             *window,
                        CoreWindowConfigFlags   flags );
 
 /*
+ * change window cursor
+ */
+DFBResult
+dfb_window_set_cursor_shape( CoreWindow   *window,
+                             CoreSurface  *surface,
+                             unsigned int  hot_x,
+                             unsigned int  hot_y );
+
+/*
  * sets the global alpha factor
  */
 DFBResult

@@ -436,5 +436,24 @@ interface {
 			typename    CoreSurface
 		}
 	}
+
+	method {
+		name SetCursorShape
+
+		arg {
+			name		shape
+			direction	input
+			type		object
+			typename	CoreSurface
+			optional        yes
+		}
+
+		arg {
+			name		hotspot
+			direction	input
+			type		struct
+			typename	DFBPoint
+		}
+	}
 }
 

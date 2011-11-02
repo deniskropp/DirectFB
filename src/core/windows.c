@@ -122,6 +122,9 @@ window_destructor( FusionObject *object, bool zombie, void *ctx )
      dfb_window_destroy( window );
 
 
+     if (window->cursor.surface)
+          dfb_surface_unlink( &window->cursor.surface );
+
      if (window->caps & DWCAPS_SUBWINDOW) {
           int         index;
           CoreWindow *toplevel;
@@ -942,6 +945,47 @@ dfb_window_set_config( CoreWindow             *window,
      }
 
      ret = dfb_wm_set_window_config( window, config, flags );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+
+DFBResult
+dfb_window_set_cursor_shape( CoreWindow   *window,
+                             CoreSurface  *surface,
+                             unsigned int  hot_x,
+                             unsigned int  hot_y )
+{
+     DFBResult         ret   = DFB_OK;
+     CoreWindowStack  *stack = window->stack;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     window->cursor.hot_x = hot_x;
+     window->cursor.hot_y = hot_y;
+
+     if (window->cursor.surface)
+          dfb_surface_unlink( &window->cursor.surface );
+
+     if (surface) {
+          ret = dfb_surface_link( &window->cursor.surface, surface );
+          if (ret == DFB_OK) {
+               if (window->flags & CWF_FOCUSED)
+                    dfb_windowstack_cursor_set_shape( stack, surface, hot_x, hot_y );
+          }
+     }
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
