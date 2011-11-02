@@ -2147,12 +2147,14 @@ wm_add_window( CoreWindowStack *stack,
                CoreWindow      *window,
                void            *window_data )
 {
-     DFBResult     ret;
-     WMData       *wmdata = wm_data;
-     SaWManWindow *sawwin = window_data;
-     StackData    *sdata  = stack_data;
-     SaWMan       *sawman;
-     SaWManTier   *tier;
+     DFBResult      ret;
+     WMData        *wmdata = wm_data;
+     SaWManWindow  *sawwin = window_data;
+     StackData     *sdata  = stack_data;
+     SaWMan        *sawman;
+     SaWManTier    *tier;
+     SaWManProcess *process;
+     FusionID       identity;
 
      SaWManWindowInfo *info;
 
@@ -2178,6 +2180,22 @@ wm_add_window( CoreWindowStack *stack,
           D_ERROR( "SaWMan/WM: Cannot add window to unknown stack!\n" );
           sawman_unlock( sawman );
           return DFB_UNSUPPORTED;
+     }
+
+     identity = Core_GetIdentity();
+     if (identity) {
+          direct_list_foreach (process, sawman->processes) {
+               if (process->fusion_id == identity)
+                    break;
+          }
+     }
+     else
+          process = wmdata->process;
+
+     if (!process) {
+          D_ERROR( "SaWMan/WM: Could not find SaWManProcess of calling Fusionee!\n" );
+          sawman_unlock( sawman );
+          return DFB_ITEMNOTFOUND;
      }
 
      /* Initialize window data. */
