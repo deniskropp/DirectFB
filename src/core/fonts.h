@@ -161,6 +161,9 @@ struct _CoreFont {
 
      DFBFontManager               *manager;
 
+     DFBFontDescription            description;   /* original description used to create the font */
+     char                         *url;
+
      DFBSurfaceBlittingFlags       blittingflags;
      DFBSurfacePixelFormat         pixel_format;
      DFBSurfaceCapabilities        surface_caps;
@@ -221,7 +224,10 @@ struct _CoreFont {
 /*
  * allocates and initializes a new font structure
  */
-DFBResult dfb_font_create( CoreDFB *core, CoreFont **ret_font );
+DFBResult dfb_font_create( CoreDFB                   *core,
+                           const DFBFontDescription  *description,
+                           const char                *url,
+                           CoreFont                 **ret_font );
 
 /*
  * destroy all data in the CoreFont struct

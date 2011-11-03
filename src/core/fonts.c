@@ -678,7 +678,10 @@ dfb_font_cache_row_deinit( DFBFontCacheRow *row )
 /**********************************************************************************************************************/
 
 DFBResult
-dfb_font_create( CoreDFB *core, CoreFont **ret_font )
+dfb_font_create( CoreDFB                   *core,
+                 const DFBFontDescription  *description,
+                 const char                *url,
+                 CoreFont                 **ret_font )
 {
      DFBResult  ret;
      int        i;
@@ -703,6 +706,9 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
                return ret;
           }
      }
+
+     font->description = *description;
+     font->url         = D_STRDUP( url );
 
      font->core    = core;
      font->manager = dfb_core_font_manager( core );
@@ -759,6 +765,8 @@ dfb_font_destroy( CoreFont *font )
 
      if (font->encodings)
           D_FREE( font->encodings );
+
+     D_FREE( font->url );
 
      D_MAGIC_CLEAR( font );
 

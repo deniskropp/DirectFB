@@ -799,6 +799,25 @@ IDirectFBFont_GetUnderline( IDirectFBFont *thiz,
      return DFB_OK;
 }
 
+/*
+ * Get the description of the font.
+ */
+static DFBResult
+IDirectFBFont_GetDescription( IDirectFBFont      *thiz,
+                              DFBFontDescription *ret_description )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!ret_description)
+          return DFB_INVARG;
+
+     *ret_description = data->font->description;
+
+     return DFB_OK;
+}
+
 /**********************************************************************************************************************/
 
 DFBResult
@@ -827,6 +846,7 @@ IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      thiz->GetLineSpacingVector = IDirectFBFont_GetLineSpacingVector;
      thiz->GetGlyphExtentsXY = IDirectFBFont_GetGlyphExtentsXY;
      thiz->GetUnderline = IDirectFBFont_GetUnderline;
+     thiz->GetDescription = IDirectFBFont_GetDescription;
 
      return DFB_OK;
 }

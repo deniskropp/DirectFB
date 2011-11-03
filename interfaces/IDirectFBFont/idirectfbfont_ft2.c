@@ -989,7 +989,7 @@ Construct( IDirectFBFont               *thiz,
      face->generic.data = (void *)(unsigned long) load_flags;
      face->generic.finalizer = NULL;
 
-     ret = dfb_font_create( core, &font );
+     ret = dfb_font_create( core, desc, filename, &font );
      if (ret) {
           pthread_mutex_lock ( &library_mutex );
           FT_Done_Face( face );

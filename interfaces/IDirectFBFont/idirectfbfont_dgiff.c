@@ -239,7 +239,7 @@ Construct( IDirectFBFont               *thiz,
      row    = (void*)(glyphs + face->num_glyphs);
 
      /* Create the core object. */
-     ret = dfb_font_create( core, &font );
+     ret = dfb_font_create( core, desc, filename, &font );
      if (ret)
           goto error;
 

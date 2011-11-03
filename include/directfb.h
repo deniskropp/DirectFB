@@ -6508,6 +6508,17 @@ D_DEFINE_INTERFACE(   IDirectFBFont,
           int                      *ret_underline_position,
           int                      *ret_underline_thichness
      );
+
+
+   /** Retrieving information **/
+
+     /*
+      * Get the description of the font.
+      */
+     DFBResult (*GetDescription) (
+          IDirectFBFont            *thiz,
+          DFBFontDescription       *ret_description
+     );
 )
 
 /*
