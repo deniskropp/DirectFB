@@ -103,7 +103,11 @@ voodoo_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "player-uuid" ) == 0) {
           if (value) {
-               direct_snputs( voodoo_config->play_info.uuid, value, 16 );
+               sscanf( value, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+                       (unsigned int*)&voodoo_config->play_info.uuid[0], (unsigned int*)&voodoo_config->play_info.uuid[1], (unsigned int*)&voodoo_config->play_info.uuid[2], (unsigned int*)&voodoo_config->play_info.uuid[3], (unsigned int*)&voodoo_config->play_info.uuid[4],
+                       (unsigned int*)&voodoo_config->play_info.uuid[5], (unsigned int*)&voodoo_config->play_info.uuid[6], (unsigned int*)&voodoo_config->play_info.uuid[7], (unsigned int*)&voodoo_config->play_info.uuid[8], (unsigned int*)&voodoo_config->play_info.uuid[9],
+                       (unsigned int*)&voodoo_config->play_info.uuid[10], (unsigned int*)&voodoo_config->play_info.uuid[11], (unsigned int*)&voodoo_config->play_info.uuid[12], (unsigned int*)&voodoo_config->play_info.uuid[13], (unsigned int*)&voodoo_config->play_info.uuid[14],
+                       (unsigned int*)&voodoo_config->play_info.uuid[15] );
           }
           else {
                D_ERROR( "Voodoo/Config '%s': No value specified!\n", name );
