@@ -19,3 +19,5 @@ raw15toraw24
 raw16toraw24
 raw32toraw24
 voodooplay
+voodooplay_client
+voodooplay_server

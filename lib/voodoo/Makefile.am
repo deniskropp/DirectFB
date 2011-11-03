@@ -25,6 +25,7 @@ install-exec-local:
 includedir = @INCLUDEDIR@/voodoo
 
 include_HEADERS = \
+	app.h			\
 	build.h			\
 	client.h		\
 	conf.h			\
@@ -36,12 +37,16 @@ include_HEADERS = \
 	init.h			\
 	instance.h		\
 	interface.h		\
+	ivoodooplayer.h		\
+	ivoodooplayer_dispatcher.h	\
 	link.h			\
 	manager.h		\
 	message.h		\
 	server.h		\
 	packet.h		\
 	play.h			\
+	play_internal.h		\
+	play_server.h		\
 	types.h
 
 
@@ -59,9 +64,13 @@ libvoodoo_la_SOURCES = \
 	instance.cpp		\
 	interface.c		\
 	internal.h		\
+	ivoodooplayer.c		\
+	ivoodooplayer_dispatcher.c	\
+	ivoodooplayer_requestor.c	\
 	manager.cpp		\
 	manager_c.cpp		\
 	play.c			\
+	play_server.c		\
 	server.c
 
 libvoodoo_la_LDFLAGS = \

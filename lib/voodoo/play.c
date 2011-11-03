@@ -63,6 +63,7 @@
 #include <voodoo/conf.h>
 #include <voodoo/internal.h>
 #include <voodoo/play.h>
+#include <voodoo/play_internal.h>
 
 
 D_DEBUG_DOMAIN( Voodoo_Play, "Voodoo/Play", "Voodoo Play" );
@@ -79,23 +80,6 @@ typedef struct {
 
      char                addr[64];
 } PlayerNode;
-
-struct __V_VoodooPlayer {
-     int                 magic;
-
-     int                 fd;
-
-     DirectMutex         lock;
-
-     bool                quit;
-
-     VoodooPlayVersion   version;
-     VoodooPlayInfo      info;
-
-     DirectThread       *thread;
-
-     DirectLink         *nodes;
-};
 
 /**********************************************************************************************************************/
 
@@ -120,7 +104,7 @@ static VoodooPlayer *g_VoodooPlayer;
  * FIXME
  */
 static void
-generate_uuid( char *buf )
+generate_uuid( u8 *buf )
 {
      int i;
 
@@ -217,7 +201,7 @@ voodoo_player_create( const VoodooPlayInfo  *info,
           return DR_NOLOCALMEMORY;
      }
 
-     direct_mutex_init( &player->lock );
+     direct_recursive_mutex_init( &player->lock );
 
      /* Initialize player structure. */
      player->fd = fd;
@@ -232,7 +216,7 @@ voodoo_player_create( const VoodooPlayInfo  *info,
      direct_snputs( player->info.name,   voodoo_config->play_info.name,    VOODOO_PLAYER_NAME_LENGTH );
      direct_snputs( player->info.vendor, voodoo_config->play_info.vendor,  VOODOO_PLAYER_VENDOR_LENGTH );
      direct_snputs( player->info.model,  voodoo_config->play_info.model,   VOODOO_PLAYER_MODEL_LENGTH );
-     direct_snputs( player->info.uuid,   voodoo_config->play_info.uuid,    16 );
+     direct_memcpy( player->info.uuid,   voodoo_config->play_info.uuid,    16 );
 
      if (info)
           player->info = *info;
@@ -246,6 +230,17 @@ voodoo_player_create( const VoodooPlayInfo  *info,
      player->info.flags |= VPIF_LINK;
 
      D_MAGIC_SET( player, VoodooPlayer );
+
+
+     char buf[33];
+
+     snprintf( buf, sizeof(buf), "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+               player->info.uuid[0], player->info.uuid[1], player->info.uuid[2], player->info.uuid[3], player->info.uuid[4],
+               player->info.uuid[5], player->info.uuid[6], player->info.uuid[7], player->info.uuid[8], player->info.uuid[9],
+               player->info.uuid[10], player->info.uuid[11], player->info.uuid[12], player->info.uuid[13], player->info.uuid[14],
+               player->info.uuid[15] );
+
+     D_INFO( "Running player '%s' with UUID %s!\n", player->info.name, buf );
 
      /* Start messaging thread */
      player->thread = direct_thread_create( DTT_DEFAULT, player_main_loop, player, "Voodoo/Player" );
@@ -550,12 +545,32 @@ player_main_loop( DirectThread *thread, void *arg )
                     if (memcmp( msg.info.uuid, player->info.uuid, 16 )) {
                          switch (msg.type) {
                               case VPMT_DISCOVER:
-                                   D_INFO( "Voodoo/Player: Received DISCOVER from '%s' (%s)\n", msg.info.name, buf );
+                                   D_INFO( "Voodoo/Player: Received DISCOVER from '%s' (%-15s) %s "
+                                           "=%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x= "
+                                           "(vendor: %s, model: %s)\n",
+                                           msg.info.name, buf,
+                                           (msg.info.flags & VPIF_LEVEL2) ? "*" : " ",
+                                           msg.info.uuid[0], msg.info.uuid[1], msg.info.uuid[2], msg.info.uuid[3], msg.info.uuid[4],
+                                           msg.info.uuid[5], msg.info.uuid[6], msg.info.uuid[7], msg.info.uuid[8], msg.info.uuid[9],
+                                           msg.info.uuid[10], msg.info.uuid[11], msg.info.uuid[12], msg.info.uuid[13], msg.info.uuid[14],
+                                           msg.info.uuid[15],
+                                           msg.info.vendor, msg.info.model );
+
                                    player_send_info( player, &addr.sin_addr.s_addr, false );
                                    break;
 
                               case VPMT_SENDINFO:
-                                   D_INFO( "Voodoo/Player: Received SENDINFO from '%s' (%s)\n", msg.info.name, buf );
+                                   D_INFO( "Voodoo/Player: Received SENDINFO from '%s' (%-15s) %s "
+                                           "=%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x= "
+                                           "(vendor: %s, model: %s)\n",
+                                           msg.info.name, buf,
+                                           (msg.info.flags & VPIF_LEVEL2) ? "*" : " ",
+                                           msg.info.uuid[0], msg.info.uuid[1], msg.info.uuid[2], msg.info.uuid[3], msg.info.uuid[4],
+                                           msg.info.uuid[5], msg.info.uuid[6], msg.info.uuid[7], msg.info.uuid[8], msg.info.uuid[9],
+                                           msg.info.uuid[10], msg.info.uuid[11], msg.info.uuid[12], msg.info.uuid[13], msg.info.uuid[14],
+                                           msg.info.uuid[15],
+                                           msg.info.vendor, msg.info.model );
+
                                    player_save_info( player, &msg, buf );
                                    break;
 

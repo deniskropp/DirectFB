@@ -71,7 +71,7 @@ typedef enum {
 typedef struct {
     VoodooPlayInfoFlags         flags;
 
-    char                        uuid[16];
+    u8                          uuid[16];
 
     char                        name[VOODOO_PLAYER_NAME_LENGTH];        /* "My Philips TV" */
 

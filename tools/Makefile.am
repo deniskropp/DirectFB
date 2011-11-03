@@ -8,7 +8,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
-AM_CPPFLAGS = -DDATADIR=\"@DATADIR@\"
+AM_CPPFLAGS = -DBINDIR=\"@bindir@\" -DDATADIR=\"@DATADIR@\"
 
 AM_CFLAGS = $(FREETYPE_CFLAGS) $(LIBPNG_CFLAGS)
 AM_CXXFLAGS = $(LIBPNG_CFLAGS)
@@ -31,8 +31,10 @@ endif
 
 if ENABLE_VOODOO
 VOODOO_PROGS = \
-	dfbproxy	\
-	voodooplay
+	dfbproxy			\
+	voodooplay			\
+	voodooplay_client		\
+	voodooplay_server
 endif
 
 if PNG_PROVIDER
@@ -148,6 +150,13 @@ raw32toraw24_SOURCES = raw32toraw24.c
 
 voodooplay_SOURCES = voodooplay.c
 voodooplay_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
+
+voodooplay_client_SOURCES = voodooplay_client.c
+voodooplay_client_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
+
+voodooplay_server_SOURCES = voodooplay_server.c
+voodooplay_server_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
+
 
 EXTRA_DIST = \
 	README			\

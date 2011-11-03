@@ -503,7 +503,7 @@ VoodooManager::do_super( const char       *name,
      }
 
      D_DEBUG_AT( Voodoo_Manager, "  -> Got response %llu (%s) with instance %u for request %llu "
-                 "(%d bytes).\n", (unsigned long long)response->header.serial, DirectResultString( ret ),
+                 "(%d bytes).\n", (unsigned long long)response->header.serial, DirectResultString( response->result ),
                  response->instance, (unsigned long long)response->request, response->header.size );
 
      ret = response->result;
