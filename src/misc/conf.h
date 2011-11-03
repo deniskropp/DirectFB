@@ -270,6 +270,8 @@ typedef struct
      u32           input_hub_qid;
 
      unsigned long font_resource_id;
+
+     unsigned int  flip_notify_max_latency;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

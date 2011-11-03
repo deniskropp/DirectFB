@@ -139,6 +139,7 @@ static const char *config_usage =
      "  [no-]startstop                 Issue StartDrawing/StopDrawing to driver\n"
      "  [no-]autoflip-window           Auto flip non-flipping windowed primary surfaces\n"
      "  [no-]flip-notify               Use FlipNotify for remote display\n"
+     "  flip-notify-max-latency=<ms>   Set maximum FlipNotify latency (ms from Flip to Notify, default 200)\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
      "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n"
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
@@ -451,6 +452,8 @@ static void config_allocate( void )
      dfb_config->max_font_row_width = 2048;
 
      dfb_config->core_sighandler    = true;
+
+     dfb_config->flip_notify_max_latency = 200;
 }
 
 const char *dfb_config_usage( void )
@@ -970,6 +973,25 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-flip-notify" ) == 0) {
           dfb_config->flip_notify = false;
+     } else
+     if (strcmp (name, "flip-notify-max-latency" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long latency;
+
+               latency = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->flip_notify_max_latency = latency;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
      } else
      if (strcmp (name, "vsync-none" ) == 0) {
           dfb_config->pollvsync_none = true;

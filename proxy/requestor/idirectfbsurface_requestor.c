@@ -560,7 +560,7 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
 
           direct_mutex_lock( &data->flip.lock );
 
-          while (data->flip.requested - data->flip.returned > 200)
+          while (data->flip.requested - data->flip.returned > dfb_config->flip_notify_max_latency)
                direct_waitqueue_wait( &data->flip.queue, &data->flip.lock );
 
           direct_mutex_unlock( &data->flip.lock );
@@ -593,7 +593,7 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
                     Handle_FlipReturned( thiz, event.window.key_symbol );
           }
 
-          while (data->flip.requested - data->flip.returned > 200) {
+          while (data->flip.requested - data->flip.returned > dfb_config->flip_notify_max_latency) {
                data->flip.buffer->WaitForEvent( data->flip.buffer );
 
                while (data->flip.buffer->GetEvent( data->flip.buffer, &event ) == DFB_OK) {
