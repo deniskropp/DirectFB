@@ -562,7 +562,7 @@ draw_window( SaWManTier   *tier,
           p1.y = src2->y;
           p2.x = sawwin->dst.x;
           p2.y = sawwin->dst.y;
-          dfb_gfxcard_batchblit2( &src, &p1, &p2, 1, state );
+          dfb_gfxcard_batchblit2( &src, &p2, &p1, 1, state );
      }
      else
 #endif
