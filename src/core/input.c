@@ -1633,6 +1633,9 @@ dfb_input_create_device(int device_index, CoreDFB *core_in, void *driver_in)
 
      fusion_reactor_set_lock( shared->reactor, &shared->lock );
 
+     /* init call */
+     CoreInputDevice_Init_Dispatch( device->core, device, &shared->call );
+
      /* initialize shared data */
      shared->id          = make_id(device_info.prefered_id);
      shared->num         = device_index;
@@ -1807,7 +1810,8 @@ dfb_input_remove_device(int device_index, void *driver_in)
 
      core_input->num--;
 
-     fusion_call_destroy( &shared->call );
+     CoreInputDevice_Deinit_Dispatch( &shared->call );
+
      fusion_skirmish_destroy( &shared->lock );
 
      fusion_reactor_free( shared->reactor );
