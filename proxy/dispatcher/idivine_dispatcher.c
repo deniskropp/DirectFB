@@ -197,7 +197,7 @@ Construct( IDiVine *thiz, VoodooManager *manager, VoodooInstanceID *ret_instance
           return ret;
      }
 
-     ret = voodoo_manager_register_local( manager, true, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, thiz, real, Dispatch, &instance );
      if (ret) {
           real->Release( real );
           DIRECT_DEALLOCATE_INTERFACE( thiz );
