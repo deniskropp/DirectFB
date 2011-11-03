@@ -1220,7 +1220,7 @@ dfb_input_device_set_configuration( CoreInputDevice            *device,
 {
      InputDriver *driver;
 
-     D_DEBUG_AT( Core_Input, "%s( %p, %d )\n", __FUNCTION__, device, config );
+     D_DEBUG_AT( Core_Input, "%s( %p, %p )\n", __FUNCTION__, device, config );
 
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
