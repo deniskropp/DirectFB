@@ -39,6 +39,7 @@
 #include <core/layer_region.h>
 #include <core/palette.h>
 #include <core/screen.h>
+#include <core/windowstack.h>
 #include <core/windows_internal.h>
 #include <core/wm.h>
 
@@ -134,9 +135,6 @@ sawman_switch_focus( SaWMan       *sawman,
      }
 
      if (to) {
-          CoreWindowStack *stack   = ((SaWManTier*) sawman->tiers)->stack;
-          u8               opacity = (to->window->config.cursor_flags & DWCF_INVISIBLE) ? 0x00 : 0xff;
-
 #ifndef OLD_COREWINDOWS_STRUCTURE
           CoreWindow *window = to->window;
           CoreLayer  *layer;
@@ -174,13 +172,6 @@ sawman_switch_focus( SaWMan       *sawman,
                     sawman_update_window( sawman, to, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
           }
 
-
-          if (stack->cursor.opacity != opacity) {
-               stack->cursor.opacity = opacity;
-
-               dfb_wm_update_cursor( stack, CCUF_OPACITY );
-          }
-
 #ifndef OLD_COREWINDOWS_STRUCTURE
           /* Send notification to windows watchers */
           dfb_wm_dispatch_WindowFocus( layer->core, window );
@@ -188,6 +179,26 @@ sawman_switch_focus( SaWMan       *sawman,
      }
 
      sawman->focused_window = to;
+
+     if (to) {
+          CoreWindow *window;
+
+          window = to->window;
+          D_MAGIC_ASSERT( window, CoreWindow );
+
+          if (window->config.cursor_flags & DWCF_INVISIBLE) {
+               /* Update cursor */
+               sawman_window_apply_cursor_flags( sawman, to );
+          }
+
+          if (window->cursor.surface)
+               dfb_windowstack_cursor_set_shape( window->stack, window->cursor.surface, window->cursor.hot_x, window->cursor.hot_y );
+
+          if (!(window->config.cursor_flags & DWCF_INVISIBLE)) {
+               /* Update cursor */
+               sawman_window_apply_cursor_flags( sawman, to );
+          }
+     }
 
      return DFB_OK;
 }
@@ -1482,47 +1493,76 @@ sawman_window_set_cursor_flags( SaWMan                *sawman,
      if (window->config.cursor_flags != flags) {
           window->config.cursor_flags = flags;
 
-          if (sawwin == sawman->focused_window) {
-               CoreCursorUpdateFlags update  = CCUF_NONE;
-               u8                    opacity = (flags & DWCF_INVISIBLE) ? 0x00 : 0xff;
+          if (sawwin == sawman->focused_window)
+               sawman_window_apply_cursor_flags( sawman, sawwin );
+     }
 
-               if (!(flags & DWCF_UNCLIPPED)) {
-                    int cx = stack->cursor.x;
-                    int cy = stack->cursor.y;
+     return DFB_OK;
+}
 
-                    if (cx < 0)
-                         cx = 0;
-                    else if (cx >= sawman->resolution.w)
-                         cx = sawman->resolution.w - 1;
+DirectResult
+sawman_window_apply_cursor_flags( SaWMan                *sawman,
+                                  SaWManWindow          *sawwin )
+{
+     StackData             *data;
+     CoreWindowStack       *stack;
+     CoreWindow            *window;
+     CoreCursorUpdateFlags  update = CCUF_NONE;
+     u8                     opacity;
 
-                    if (cy < 0)
-                         cy = 0;
-                    else if (cy >= sawman->resolution.h)
-                         cy = sawman->resolution.h - 1;
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( sawwin, SaWManWindow );
+     D_ASSERT( sawwin->stack_data != NULL );
+     D_ASSERT( sawwin->stack != NULL );
+     D_ASSERT( sawwin->window != NULL );
 
-                    if (cx != stack->cursor.x || cy != stack->cursor.y) {
-                         D_DEBUG_AT( SaWMan_Cursor, "  -> Cursor clipped %d,%d -> %d,%d\n",
-                                     stack->cursor.x, stack->cursor.y, cx, cy );
-                                    printf( "===JK sawman  -> Cursor clipped %d,%d -> %d,%d\n",
-                                     stack->cursor.x, stack->cursor.y, cx, cy );
+     data   = sawwin->stack_data;
+     stack  = sawwin->stack;
+     window = sawwin->window;
 
-                         stack->cursor.x = cx;
-                         stack->cursor.y = cy;
+     D_DEBUG_AT( SaWMan_Cursor, "%s( %p, flags 0x%04x )\n", __FUNCTION__, sawwin, window->config.cursor_flags );
 
-                         update |= CCUF_POSITION;
-                    }
-               }
+     opacity = (window->config.cursor_flags & DWCF_INVISIBLE) ? 0x00 : 0xff;
 
-               if (stack->cursor.opacity != opacity) {
-                    stack->cursor.opacity = opacity;
+     D_DEBUG_AT( SaWMan_Cursor, "  -> opacity %d\n", opacity );
 
-                    update |= CCUF_OPACITY;
-               }
+     if (!(window->config.cursor_flags & DWCF_UNCLIPPED)) {
+          int cx = stack->cursor.x;
+          int cy = stack->cursor.y;
 
-               if (update)
-                    dfb_wm_update_cursor( stack, update );
+          if (cx < 0)
+               cx = 0;
+          else if (cx >= sawman->resolution.w)
+               cx = sawman->resolution.w - 1;
+
+          if (cy < 0)
+               cy = 0;
+          else if (cy >= sawman->resolution.h)
+               cy = sawman->resolution.h - 1;
+
+          if (cx != stack->cursor.x || cy != stack->cursor.y) {
+               D_DEBUG_AT( SaWMan_Cursor, "  -> Cursor clipped %d,%d -> %d,%d\n",
+                           stack->cursor.x, stack->cursor.y, cx, cy );
+                          printf( "===JK sawman  -> Cursor clipped %d,%d -> %d,%d\n",
+                           stack->cursor.x, stack->cursor.y, cx, cy );
+
+               stack->cursor.x = cx;
+               stack->cursor.y = cy;
+
+               update |= CCUF_POSITION;
           }
      }
+
+     if (stack->cursor.opacity != opacity) {
+          stack->cursor.opacity = opacity;
+
+          update |= CCUF_OPACITY;
+     }
+
+     D_DEBUG_AT( SaWMan_Cursor, "  -> update 0x%04x\n", update );
+
+     if (update)
+          dfb_wm_update_cursor( stack, update );
 
      return DFB_OK;
 }

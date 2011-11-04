@@ -82,6 +82,9 @@ DirectResult  sawman_window_set_cursor_flags   ( SaWMan                *sawman,
                                                  SaWManWindow          *sawwin,
                                                  DFBWindowCursorFlags   flags );
 
+DirectResult  sawman_window_apply_cursor_flags ( SaWMan                *sawman,
+                                                 SaWManWindow          *sawwin );
+
 bool          sawman_update_focus              ( SaWMan                *sawman,
                                                  CoreWindowStack       *stack,
                                                  int                    x,
