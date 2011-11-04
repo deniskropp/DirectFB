@@ -145,6 +145,9 @@ input_device_callback( DFBInputDeviceID           id,
 
      printf( "\n" );
 
+     printf( "   Vendor  ID: 0x%04x\n", desc.vendor_id );
+     printf( "   Product ID: 0x%04x\n", desc.product_id );
+
      /* Type */
      printf( "   Type: " );
 
