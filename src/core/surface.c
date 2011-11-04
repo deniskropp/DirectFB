@@ -600,6 +600,8 @@ dfb_surface_destroy_buffers( CoreSurface *surface )
 {
      int i;
 
+     D_DEBUG_AT( Core_Surface, "%s( %p )\n", __FUNCTION__, surface );
+
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      if (fusion_skirmish_prevail( &surface->lock ))
@@ -617,6 +619,32 @@ dfb_surface_destroy_buffers( CoreSurface *surface )
      }
 
      surface->num_buffers = 0;
+
+     fusion_skirmish_dismiss( &surface->lock );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_surface_deallocate_buffers( CoreSurface *surface )
+{
+     int i;
+
+     D_DEBUG_AT( Core_Surface, "%s( %p )\n", __FUNCTION__, surface );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
+     if (surface->type & CSTF_PREALLOCATED) {
+          fusion_skirmish_dismiss( &surface->lock );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* Deallocate the Surface Buffers. */
+     for (i = 0; i < surface->num_buffers; i++)
+          dfb_surface_buffer_deallocate( surface->buffers[i] );
 
      fusion_skirmish_dismiss( &surface->lock );
 

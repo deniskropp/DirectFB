@@ -219,6 +219,28 @@ dfb_surface_buffer_decouple( CoreSurfaceBuffer *buffer )
      return DFB_OK;
 }
 
+DFBResult
+dfb_surface_buffer_deallocate( CoreSurfaceBuffer *buffer )
+{
+     CoreSurface           *surface;
+     CoreSurfaceAllocation *allocation;
+     int                    i;
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+
+     D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_deallocate( %p [%dx%d] )\n",
+                 buffer, surface->config.size.w, surface->config.size.h );
+
+     fusion_vector_foreach_reverse (allocation, i, buffer->allocs)
+          dfb_surface_pool_deallocate( allocation->pool, allocation );
+
+     return DFB_OK;
+}
+
 CoreSurfaceAllocation *
 dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,
                                     CoreSurfaceAccessorID    accessor,

@@ -1196,7 +1196,7 @@ unrealize_region( CoreLayerRegion *region )
 
      /* Destroy the surface region if it exists. */
      if (region->surface && !region->config.keep_buffers)
-         dfb_surface_destroy_buffers( region->surface );
+          dfb_surface_deallocate_buffers( region->surface );
 
      return DFB_OK;
 }
