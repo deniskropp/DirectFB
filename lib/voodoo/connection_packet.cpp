@@ -256,11 +256,7 @@ VoodooConnectionPacket::io_loop()
                          else
                               D_DERROR( ret, "Voodoo/ConnectionPacket: Could not receive data!\n" );
 
-                         closed = true;
-
-                         manager->handle_disconnect();
-
-                         return NULL;
+                         goto disconnect;
                }
 
 
@@ -285,8 +281,17 @@ VoodooConnectionPacket::io_loop()
                                      header->size, aligned, header->uncompressed, header->flags );
 
                          if (input.end - last >= sizeof(VoodooPacketHeader)) {
-                              D_ASSERT( header->uncompressed >= (int) sizeof(VoodooMessageHeader) );
-                              D_ASSERT( header->uncompressed <= VOODOO_PACKET_MAX );
+                              if (header->uncompressed < (int) sizeof(VoodooMessageHeader)) {
+                                   D_DERROR( ret, "Voodoo/ConnectionPacket: Data error, uncompressed %d < min %zu!\n", header->uncompressed, sizeof(VoodooPacketHeader) );
+
+                                   goto disconnect;
+                              }
+
+                              if (header->uncompressed > VOODOO_PACKET_MAX) {
+                                   D_DERROR( ret, "Voodoo/ConnectionPacket: Data error, uncompressed %d > max %d!\n", header->uncompressed, VOODOO_PACKET_MAX );
+
+                                   goto disconnect;
+                              }
                          }
 
                          if (sizeof(VoodooPacketHeader) + aligned > input.end - last) {
@@ -303,7 +308,6 @@ VoodooConnectionPacket::io_loop()
                     } while (last < input.end);
 
                     if (last != input.last) {
-
                          input.last = last;
 
                          D_DEBUG_AT( Voodoo_Input, "  { START "_ZD", LAST "_ZD", END "_ZD", MAX "_ZD" }\n",
@@ -314,6 +318,8 @@ VoodooConnectionPacket::io_loop()
                               VoodooPacketHeader *header = (VoodooPacketHeader *)(input.buffer + input.start);
 
                               VoodooPacket *p;
+
+                              D_ASSERT( header->uncompressed <= VOODOO_PACKET_MAX );
 
                               if (header->flags & VPHF_COMPRESSED) {
                                    size_t uncompressed = direct_fastlz_decompress( header + 1, header->size, tmp, header->uncompressed );
@@ -342,6 +348,14 @@ VoodooConnectionPacket::io_loop()
                }
           }
      }
+
+     return NULL;
+
+
+disconnect:
+     closed = true;
+
+     manager->handle_disconnect();
 
      return NULL;
 }
