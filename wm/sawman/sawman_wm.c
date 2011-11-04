@@ -125,6 +125,9 @@ send_key_event( SaWMan              *sawman,
      we.key_id     = event->key_id;
      we.key_symbol = event->key_symbol;
 
+     if (event->flags & DIEF_REPEAT)
+          we.flags |= DWEF_REPEAT;
+
      sawman_post_event( sawman, sawwin, &we );
 }
 
@@ -156,6 +159,9 @@ send_button_event( SaWMan              *sawman,
           we.x = we.x * window->surface->config.size.w / sawwin->bounds.w;
           we.y = we.y * window->surface->config.size.h / sawwin->bounds.h;
      }
+
+     if (event->flags & DIEF_REPEAT)
+          we.flags |= DWEF_REPEAT;
 
      sawman_post_event( sawman, sawwin, &we );
 }
