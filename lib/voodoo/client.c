@@ -253,7 +253,7 @@ voodoo_client_create( const char     *host,
                     /*
                      * Switch to packet mode?
                      */
-                    if (client->server_info.flags & VPIF_PACKET) {
+                    if (server_info.flags & VPIF_PACKET) {
                          D_INFO( "Voodoo/Client: Switching to packet mode!\n" );
 
                          client->vl.Close( &client->vl );
