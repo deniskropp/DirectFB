@@ -10,7 +10,9 @@ dfbtest_resize
 dfbtest_scale
 dfbtest_sync
 dfbtest_window
+dfbtest_window_cursor
 dfbtest_window_flip_once
+dfbtest_window_surface
 direct_stream
 direct_test
 fusion_call

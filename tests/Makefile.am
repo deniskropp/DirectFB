@@ -38,6 +38,7 @@ bin_PROGRAMS = \
 	dfbtest_scale	\
 	dfbtest_sync	\
 	dfbtest_window	\
+	dfbtest_window_cursor	\
 	dfbtest_window_flip_once	\
 	dfbtest_window_surface	\
 	direct_stream	\
@@ -82,6 +83,9 @@ dfbtest_sync_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_window_SOURCES = dfbtest_window.c
 dfbtest_window_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+dfbtest_window_cursor_SOURCES = dfbtest_window_cursor.c
+dfbtest_window_cursor_LDADD   = $(libdirectfb) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_window_flip_once_SOURCES = dfbtest_window_flip_once.c
 dfbtest_window_flip_once_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
