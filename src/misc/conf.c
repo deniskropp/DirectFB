@@ -1807,6 +1807,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "i8xx_overlay_pipe_b") == 0) {
           dfb_config->i8xx_overlay_pipe_b = true;
      } else
+     if (strcmp (name, "window-cursor-invisible") == 0) {
+          dfb_config->default_cursor_flags = DWCF_INVISIBLE;
+     } else
      if (strcmp (name, "max-axis-rate" ) == 0) {
           if (value) {
                unsigned int rate;
