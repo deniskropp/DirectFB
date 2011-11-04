@@ -253,6 +253,8 @@ struct __SaWMan_SaWMan {
      SaWManWindow         *pointer_window;     /* window grabbing the pointer */
      SaWManWindow         *keyboard_window;    /* window grabbing the keyboard */
      SaWManWindow         *focused_window;     /* window having the focus */
+     bool                  focused_window_switched;     /* window having the focus */
+     SaWManWindow         *focused_window_to;     /* window having the focus */
      SaWManWindow         *entered_window;     /* window under the pointer */
      SaWManWindow         *unselkeys_window;   /* window grabbing unselected keys */
 

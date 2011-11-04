@@ -62,6 +62,7 @@ D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updat
 D_DEBUG_DOMAIN( SaWMan_Geometry, "SaWMan/Geometry", "SaWMan window manager geometry" );
 D_DEBUG_DOMAIN( SaWMan_Stacking, "SaWMan/Stacking", "SaWMan window manager stacking" );
 D_DEBUG_DOMAIN( SaWMan_Cursor,   "SaWMan/Cursor",   "SaWMan window manager cursor" );
+D_DEBUG_DOMAIN( SaWMan_Focus,    "SaWMan/Focus",    "SaWMan window manager focus" );
 
 /**********************************************************************************************************************/
 
@@ -99,6 +100,8 @@ sawman_switch_focus( SaWMan       *sawman,
      SaWManWindow   *from;
      SaWManTier     *tier;
 
+     D_DEBUG_AT( SaWMan_Focus, "%s( %p, to %p )\n", __FUNCTION__, sawman, to );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT_IF( to, SaWManWindow );
 
@@ -110,16 +113,26 @@ sawman_switch_focus( SaWMan       *sawman,
      if (from == to)
           return DFB_OK;
 
-     switch (ret = sawman_call( sawman, SWMCID_SWITCH_FOCUS, &to, sizeof(to), false )) {
-          case DFB_OK:
-          case DFB_NOIMPL:
-               break;
+     if (to && to->window && to->window->caps & DWCAPS_NOFOCUS) {
+          D_DEBUG_AT( SaWMan_Focus, "  -> DWCAPS_NOFOCUS, discarding focus switch!\n" );
+          return DFB_OK;
+     }
 
-          default:
-               return ret;
+     if (to) {
+          switch (ret = sawman_call( sawman, SWMCID_SWITCH_FOCUS, &to, sizeof(to), false )) {
+               case DFB_OK:
+               case DFB_NOIMPL:
+                    break;
+
+               default:
+                    D_DEBUG_AT( SaWMan_Focus, "  -> application manager returned '%s'\n", DirectFBErrorString( ret ) );
+                    return ret;
+          }
      }
 
      if (from) {
+          D_DEBUG_AT( SaWMan_Focus, "  -> removing focus from %p\n", from );
+
           evt.type = DWET_LOSTFOCUS;
 
           sawman_post_event( sawman, from, &evt );
@@ -129,7 +142,7 @@ sawman_switch_focus( SaWMan       *sawman,
 
                tier = sawman_tier_by_class( sawman, from->window->config.stacking );
                D_ASSERT(tier->region != NULL);
-               if (tier->region->config.options & DLOP_STEREO) 
+               if (tier->region->config.options & DLOP_STEREO)
                     sawman_update_window( sawman, from, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
           }
      }
@@ -168,7 +181,7 @@ sawman_switch_focus( SaWMan       *sawman,
 
                tier = sawman_tier_by_class( sawman, to->window->config.stacking );
                D_ASSERT(tier->region != NULL);
-               if (tier->region->config.options & DLOP_STEREO) 
+               if (tier->region->config.options & DLOP_STEREO)
                     sawman_update_window( sawman, to, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
           }
 
@@ -180,25 +193,8 @@ sawman_switch_focus( SaWMan       *sawman,
 
      sawman->focused_window = to;
 
-     if (to) {
-          CoreWindow *window;
-
-          window = to->window;
-          D_MAGIC_ASSERT( window, CoreWindow );
-
-          if (window->config.cursor_flags & DWCF_INVISIBLE) {
-               /* Update cursor */
-               sawman_window_apply_cursor_flags( sawman, to );
-          }
-
-          if (window->cursor.surface)
-               dfb_windowstack_cursor_set_shape( window->stack, window->cursor.surface, window->cursor.hot_x, window->cursor.hot_y );
-
-          if (!(window->config.cursor_flags & DWCF_INVISIBLE)) {
-               /* Update cursor */
-               sawman_window_apply_cursor_flags( sawman, to );
-          }
-     }
+     sawman->focused_window_switched = true;
+     sawman->focused_window_to = to;
 
      return DFB_OK;
 }
@@ -650,12 +646,17 @@ sawman_withdraw_window( SaWMan       *sawman,
      if (sawman->entered_window == sawwin)
           sawman->entered_window = NULL;
 
+     if (sawman->focused_window_to == sawwin) {
+          sawman->focused_window_to       = NULL;
+          sawman->focused_window_switched = false;
+     }
+
      /* Remove focus from window. */
      if (sawman->focused_window == sawwin) {
           SaWManWindow *swin;
           CoreWindow   *cwin;
 
-          sawman->focused_window = NULL;
+          sawman_switch_focus( sawman, NULL );
 
           /* Always try to have a focused window */
           fusion_vector_foreach_reverse (swin, index, sawman->layout) {
@@ -1431,6 +1432,8 @@ sawman_set_opacity( SaWMan       *sawman,
      CoreWindowStack *stack;
      SaWManTier      *tier;
 
+     D_DEBUG_AT( SaWMan_Focus, "%s( %p, sawwin %p, opacity 0x%02x )\n", __FUNCTION__, sawman, sawwin, opacity );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_ASSERT( sawwin->stack_data != NULL );
@@ -1444,8 +1447,11 @@ sawman_set_opacity( SaWMan       *sawman,
      tier   = sawman_tier_by_class(sawman, window->config.stacking);
      D_ASSERT(tier->region);
 
-     if (!dfb_config->translucent_windows && opacity)
+     if (!dfb_config->translucent_windows && opacity) {
+          D_DEBUG_AT( SaWMan_Focus, "  -> forcing to 0xff\n" );
+
           opacity = 0xFF;
+     }
 
      if (old != opacity) {
           window->config.opacity = opacity;
@@ -1459,14 +1465,23 @@ sawman_set_opacity( SaWMan       *sawman,
 
                /* Ungrab pointer/keyboard, pass focus... */
                if (old && !opacity) {
+                    D_DEBUG_AT( SaWMan_Focus, "  -> hiding window... (focused %p)\n", sawman->focused_window );
+
                     /* Possibly switch focus to window now under the cursor */
-                    if (sawman->focused_window == sawwin)
-                         sawman_update_focus( sawman, data->stack, data->stack->cursor.x, data->stack->cursor.y );
+                    if (sawman->focused_window == sawwin) {
+                         D_DEBUG_AT( SaWMan_Focus, "  -> updating focus\n" );
+
+                         sawman_update_focus( data->sawman, data->stack, data->stack->cursor.x, data->stack->cursor.y );
+                    }
 
                     sawman_withdraw_window( sawman, sawwin );
                }
           }
+          else
+               D_DEBUG_AT( SaWMan_Focus, "  -> not inserted\n" );
      }
+     else
+          D_DEBUG_AT( SaWMan_Focus, "  -> no change\n" );
 
      return DFB_OK;
 }
@@ -1574,6 +1589,8 @@ sawman_update_focus( SaWMan          *sawman,
                      int              y )
 {
      D_MAGIC_ASSERT( sawman, SaWMan );
+
+     D_DEBUG_AT( SaWMan_Focus, "%s( %p, stack %p, xy %d,%d )\n", __FUNCTION__, sawman, stack, x, y );
 
      /* if pointer is not grabbed */
      if (!sawman->pointer_window) {

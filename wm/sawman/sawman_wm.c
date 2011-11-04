@@ -2499,6 +2499,8 @@ wm_set_window_config( CoreWindow             *window,
 
      DFBInputDeviceKeySymbol *shared_keys = 0;
 
+     D_DEBUG_AT( SaWMan_WM, "%s( window %p, flags 0x%08x )\n", __FUNCTION__, window, flags );
+
      D_ASSERT( window != NULL );
      D_ASSERT( window->stack != NULL );
      D_ASSERT( wm_data != NULL );

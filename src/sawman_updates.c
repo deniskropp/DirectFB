@@ -40,6 +40,8 @@
 #include <core/palette.h>
 #include <core/screen.h>
 #include <core/windows_internal.h>
+#include <core/windowstack.h>
+#include <core/wm.h>
 
 #include <gfx/clip.h>
 #include <gfx/convert.h>
@@ -62,6 +64,7 @@ D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" 
 D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
 D_DEBUG_DOMAIN( SaWMan_FlipOnce, "SaWMan/FlipOnce", "SaWMan window manager flip once" );
 D_DEBUG_DOMAIN( SaWMan_Surface,  "SaWMan/Surface",  "SaWMan window manager surface" );
+D_DEBUG_DOMAIN( SaWMan_Focus,    "SaWMan/Focus",    "SaWMan window manager focus" );
 
 /**********************************************************************************************************************/
 
@@ -1403,6 +1406,50 @@ sawman_process_updates( SaWMan              *sawman,
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, 0x%08x )\n", __FUNCTION__, sawman, flags );
+
+     if (sawman->focused_window_switched) {
+          SaWManWindow *to = sawman->focused_window_to;
+
+          if (to) {
+               CoreWindow *window;
+
+               window = to->window;
+               D_MAGIC_ASSERT( window, CoreWindow );
+
+               if (window->config.cursor_flags & DWCF_INVISIBLE) {
+                    /* Update cursor */
+                    sawman_window_apply_cursor_flags( sawman, to );
+               }
+
+               if (window->cursor.surface) {
+                    D_DEBUG_AT( SaWMan_Focus, "  -> switching to window's cursor shape\n" );
+
+                    dfb_windowstack_cursor_set_shape( window->stack, window->cursor.surface, window->cursor.hot_x, window->cursor.hot_y );
+               }
+
+               if (!(window->config.cursor_flags & DWCF_INVISIBLE)) {
+                    /* Update cursor */
+                    sawman_window_apply_cursor_flags( sawman, to );
+               }
+          }
+          else {
+               SaWManTier *tier = (SaWManTier*) sawman->tiers;
+
+               D_MAGIC_ASSERT( tier, SaWManTier );
+
+               if (tier->stack->cursor.opacity) {
+                    D_DEBUG_AT( SaWMan_Focus, "  -> hiding cursor...\n" );
+
+                    tier->stack->cursor.opacity = 0;
+
+                    dfb_wm_update_cursor( tier->stack, CCUF_OPACITY );
+               }
+               else
+                    D_DEBUG_AT( SaWMan_Focus, "  -> cursor already hidden\n" );
+          }
+
+          sawman->focused_window_switched = false;
+     }
 
      direct_list_foreach (tier, sawman->tiers) {
           bool          none = false;
