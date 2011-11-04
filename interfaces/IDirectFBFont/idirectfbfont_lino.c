@@ -406,7 +406,7 @@ render_glyph( CoreFont      *thiz,
 
           pthread_mutex_unlock ( &library_mutex );
 
-          return DFB_FAILURE;
+          return DFB_BUFFEREMPTY;
      }
      pthread_mutex_unlock ( &library_mutex );
 
@@ -641,7 +641,7 @@ get_glyph_info( CoreFont      *thiz,
 
           pthread_mutex_unlock ( &library_mutex );
 
-          return DFB_FAILURE;
+          return DFB_BUFFEREMPTY;
      }
 
      /*  if ((err = FT_Load_Glyph( face, index, load_flags ))) {
