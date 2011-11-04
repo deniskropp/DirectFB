@@ -41,6 +41,7 @@ extern "C" {
 #include <fusion/conf.h>
 
 #include <core/core.h>
+#include <core/wm.h>
 
 #include <sawman_updates.h>
 #include <sawman_window.h>
@@ -461,6 +462,9 @@ ISaWManManager_Real::SetWindowConfig(
 
      if (flags & (CWCF_POSITION | CWCF_SIZE | CWCF_OPACITY | CWCF_OPTIONS | CWCF_STEREO_DEPTH))
           sawman_update_visible( sawman );
+
+     /* Send notification to windows watchers */
+     dfb_wm_dispatch_WindowConfig( core, window, (DFBWindowConfigFlags) flags );
 
      sawman_unlock( sawman );
 

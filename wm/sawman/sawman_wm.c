@@ -2255,6 +2255,9 @@ wm_add_window( CoreWindowStack *stack,
 
      fusion_ref_up( &sawwin->process->ref, true );
 
+     /* Send notification to windows watchers */
+     dfb_wm_dispatch_WindowAdd( wmdata->core, window );
+
      info = &sawman->callback.info;
      info->handle      = (SaWManWindowHandle)sawwin;
      info->caps        = sawwin->caps;
@@ -2335,6 +2338,7 @@ wm_remove_window( CoreWindowStack *stack,
                   void            *window_data )
 {
      DFBResult     ret;
+     WMData       *wmdata = wm_data;
      SaWManWindow *sawwin = window_data;
      StackData    *sdata  = stack_data;
      SaWMan       *sawman;
@@ -2460,6 +2464,9 @@ wm_remove_window( CoreWindowStack *stack,
           config->surface_caps     &= ~DSCAPS_STEREO;
           dfb_layer_context_set_configuration( tier->context, config );
      }
+
+     /* Send notification to windows watchers */
+     dfb_wm_dispatch_WindowRemove( wmdata->core, window );
 
      sawman_process_updates( sdata->sawman, DSFLIP_NONE );
 
@@ -2921,6 +2928,9 @@ wm_set_window_config( CoreWindow             *window,
 
      if (flags & CWCF_CURSOR_RESOLUTION)
           window->config.cursor_resolution = config->cursor_resolution;
+
+     /* Send notification to windows watchers */
+     dfb_wm_dispatch_WindowConfig( wmdata->core, window, flags );
 
      sawman_process_updates( sawman, DSFLIP_NONE );
 

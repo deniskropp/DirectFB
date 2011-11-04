@@ -139,8 +139,11 @@ sawman_switch_focus( SaWMan       *sawman,
 
 #ifndef OLD_COREWINDOWS_STRUCTURE
           CoreWindow *window = to->window;
+          CoreLayer  *layer;
 
           D_MAGIC_ASSERT( window, CoreWindow );
+
+          layer = dfb_layer_at( window->stack->context->layer_id );
 
           if (window->toplevel) {
                CoreWindow *toplevel = window->toplevel;
@@ -177,6 +180,11 @@ sawman_switch_focus( SaWMan       *sawman,
 
                dfb_wm_update_cursor( stack, CCUF_OPACITY );
           }
+
+#ifndef OLD_COREWINDOWS_STRUCTURE
+          /* Send notification to windows watchers */
+          dfb_wm_dispatch_WindowFocus( layer->core, window );
+#endif
      }
 
      sawman->focused_window = to;
@@ -370,6 +378,7 @@ sawman_insert_window( SaWMan       *sawman,
      int           index = 0;
      SaWManWindow *other;
      CoreWindow   *window;
+     CoreLayer    *layer;
 
      D_DEBUG_AT( SaWMan_Stacking, "%s( %p, %p, %p, %s )\n", __FUNCTION__,
                  sawman, sawwin, relative, top ? "top" : "below" );
@@ -381,6 +390,8 @@ sawman_insert_window( SaWMan       *sawman,
 
      window = sawwin->window;
      D_MAGIC_COREWINDOW_ASSERT( window );
+
+     layer = dfb_layer_at( window->stack->context->layer_id );
 
 #ifndef OLD_COREWINDOWS_STRUCTURE
      /* In case of a sub window, the order from sub window vector is followed */
@@ -522,16 +533,25 @@ sawman_insert_window( SaWMan       *sawman,
           if (old < index)
                index--;
 
-          if (old != index)
+          if (old != index) {
                fusion_vector_move( &sawman->layout, old, index );
+
+               dfb_wm_dispatch_WindowRestack( layer->core, window, index );
+          }
      }
      else {
           ret = fusion_vector_insert( &sawman->layout, sawwin, index );
           if (ret)
                return ret;
 
+          dfb_wm_dispatch_WindowRestack( layer->core, window, index );
+
           /* Set 'inserted' flag. */
           sawwin->flags |= SWMWF_INSERTED;
+
+          window->flags |= CWF_INSERTED;
+
+          dfb_wm_dispatch_WindowState( layer->core, window );
      }
 
      sawman_update_visible( sawman );
@@ -547,6 +567,7 @@ sawman_remove_window( SaWMan       *sawman,
      CoreWindow       *window;
      SaWManGrabbedKey *key;
      DirectLink       *next;
+     CoreLayer        *layer;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
@@ -559,6 +580,8 @@ sawman_remove_window( SaWMan       *sawman,
           D_BUG( "window %d not inserted", window->id );
           return DFB_BUG;
      }
+
+     layer = dfb_layer_at( window->stack->context->layer_id );
 
      sawman_withdraw_window( sawman, sawwin );
 
@@ -589,6 +612,10 @@ sawman_remove_window( SaWMan       *sawman,
      }
 
      sawwin->flags &= ~SWMWF_INSERTED;
+
+     window->flags &= ~CWF_INSERTED;
+
+     dfb_wm_dispatch_WindowState( layer->core, window );
 
      return DFB_OK;
 }
@@ -977,6 +1004,7 @@ sawman_restack_window( SaWMan                 *sawman,
      StackData    *data;
      SaWManWindow *tmpsaw;
      CoreWindow   *window;
+     CoreLayer    *layer;
      SaWManTier   *tier;
      bool          stereo_layer;
 
@@ -998,6 +1026,8 @@ sawman_restack_window( SaWMan                 *sawman,
      data   = sawwin->stack_data;
      window = sawwin->window;
      D_ASSERT( window != NULL );
+
+     layer = dfb_layer_at( window->stack->context->layer_id );
 
      tier = sawman_tier_by_class( sawman, window->config.stacking );
      D_ASSERT( tier->region );
@@ -1238,6 +1268,8 @@ sawman_restack_window( SaWMan                 *sawman,
           fusion_vector_move( &sawman->layout, old, index );
 
           D_DEBUG_AT( SaWMan_Stacking, "  -> now index %d\n", fusion_vector_index_of( &sawman->layout, sawwin ) );
+
+          dfb_wm_dispatch_WindowRestack( layer->core, window, index );
 
 #ifndef OLD_COREWINDOWS_STRUCTURE
           /* Reinsert sub windows to ensure they're in order (above top level). */

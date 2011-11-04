@@ -30,6 +30,8 @@ extern "C"
 #endif
 
 #include <directfb.h>
+#include <directfb_windows.h>
+
 #include <direct/list.h>
 #include <fusion/ref.h>
 #include <fusion/vector.h>
@@ -117,31 +119,31 @@ typedef unsigned long SaWManWindowHandle;
 
 
 typedef enum {
-     SWMCF_NONE          = 0x00000000,
+     SWMCF_NONE          = DWCONF_NONE,
 
-     SWMCF_POSITION      = 0x00000001,
-     SWMCF_SIZE          = 0x00000002,
-     SWMCF_OPACITY       = 0x00000004,
-     SWMCF_STACKING      = 0x00000008,
+     SWMCF_POSITION      = DWCONF_POSITION,
+     SWMCF_SIZE          = DWCONF_SIZE,
+     SWMCF_OPACITY       = DWCONF_OPACITY,
+     SWMCF_STACKING      = DWCONF_STACKING,
 
-     SWMCF_OPTIONS       = 0x00000010,
-     SWMCF_EVENTS        = 0x00000020,
+     SWMCF_OPTIONS       = DWCONF_OPTIONS,
+     SWMCF_EVENTS        = DWCONF_EVENTS,
 
-     SWMCF_COLOR_KEY     = 0x00000100,
-     SWMCF_OPAQUE        = 0x00000200,
-     SWMCF_COLOR         = 0x00000400,
-     SWMCF_STEREO_DEPTH  = 0x00000800,
+     SWMCF_COLOR_KEY     = DWCONF_COLOR_KEY,
+     SWMCF_OPAQUE        = DWCONF_OPAQUE,
+     SWMCF_COLOR         = DWCONF_COLOR,
+     SWMCF_STEREO_DEPTH  = DWCONF_STEREO_DEPTH,
 
-     SWMCF_KEY_SELECTION = 0x00001000,
+     SWMCF_KEY_SELECTION = DWCONF_KEY_SELECTION,
 
-     SWMCF_ASSOCIATION   = 0x00002000,
-     SWMCF_CURSOR_FLAGS  = 0x00004000,
-     SWMCF_CURSOR_RESOLUTION = 0x00008000,
+     SWMCF_ASSOCIATION   = DWCONF_ASSOCIATION,
+     SWMCF_CURSOR_FLAGS  = DWCONF_CURSOR_FLAGS,
+     SWMCF_CURSOR_RESOLUTION = DWCONF_CURSOR_RESOLUTION,
 
-     SWMCF_SRC_GEOMETRY  = 0x00010000,
-     SWMCF_DST_GEOMETRY  = 0x00020000,
+     SWMCF_SRC_GEOMETRY  = DWCONF_SRC_GEOMETRY,
+     SWMCF_DST_GEOMETRY  = DWCONF_DST_GEOMETRY,
 
-     SWMCF_ALL           = 0x0003FF3F
+     SWMCF_ALL           = DWCONF_ALL
 } SaWManWindowConfigFlags;
 
 typedef struct {
