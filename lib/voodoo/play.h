@@ -42,7 +42,7 @@
 #define VOODOO_PLAYER_MODEL_LENGTH      96
 
 
-#define VOODOO_LINK_PORT    8676    // 'V' 'L'
+#define VOODOO_PLAY_PORT    8680    // 'V' 'P'
 
 
 typedef enum {
@@ -63,7 +63,7 @@ typedef enum {
     VPIF_NONE   = 0x00000000,
 
     VPIF_LEVEL2 = 0x00000001,
-    VPIF_LINK   = 0x00000002,   /* Supports new VoodooLink protocol */
+    VPIF_PACKET = 0x00000002,   /* Supports new packet protocol */
 
     VPIF_ALL    = 0x00000003
 } VoodooPlayInfoFlags;

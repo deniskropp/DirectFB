@@ -39,12 +39,11 @@ private:
      bool          closed;
 
 public:
-     VoodooConnectionRaw( VoodooManager *manager,
-                          VoodooLink    *link );
+     VoodooConnectionRaw( VoodooLink *link );
 
      virtual ~VoodooConnectionRaw();
 
-     virtual void Start();
+     virtual void Start( VoodooManager *manager );
      virtual void Stop();
 
 

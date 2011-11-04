@@ -45,11 +45,10 @@ D_DEBUG_DOMAIN( Voodoo_Connection, "Voodoo/Connection", "Voodoo Connection" );
 
 /**********************************************************************************************************************/
 
-VoodooConnection::VoodooConnection( VoodooManager *manager,
-                                    VoodooLink    *link )
+VoodooConnection::VoodooConnection( VoodooLink *link )
      :
      magic(0),
-     manager(manager),
+     manager(NULL),
      link(link)
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnection::%s( %p )\n", __func__, this );

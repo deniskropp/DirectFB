@@ -57,7 +57,10 @@ typedef enum {
 typedef enum {
      VMSG_SUPER,
      VMSG_REQUEST,
-     VMSG_RESPONSE
+     VMSG_RESPONSE,
+
+     VMSG_DISCOVER, // temporary solution for compatibility
+     VMSG_SENDINFO, // temporary solution for compatibility
 } VoodooMessageType;
 
 

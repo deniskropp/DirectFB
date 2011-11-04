@@ -41,6 +41,9 @@ extern "C" {
 #include <voodoo/server.h>
 }
 
+#include <voodoo/connection_packet.h>
+#include <voodoo/connection_raw.h>
+#include <voodoo/link.h>
 #include <voodoo/manager.h>
 
 
@@ -262,9 +265,26 @@ voodoo_manager_create( VoodooLink     *link,
                        VoodooServer   *server,
                        VoodooManager **ret_manager )
 {
+     VoodooConnection *connection;
+
      D_ASSERT( ret_manager != NULL );
 
-     *ret_manager = new VoodooManager( link, new VoodooContextClassic( server ) );  // FIXME: leak
+     /* Add connection */
+     if ((link->code & 0x8000ffff) == 0x80008676) {
+          D_INFO( "Voodoo/Manager: Connection mode is PACKET\n" );
+
+          connection = new VoodooConnectionPacket( link );
+     }
+     else {
+          D_INFO( "Voodoo/Manager: Connection mode is RAW\n" );
+
+          connection = new VoodooConnectionRaw( link );
+
+          // FIXME: query manager dynamically for compression instead
+          voodoo_config->compression_min = 0;
+     }
+
+     *ret_manager = new VoodooManager( connection, new VoodooContextClassic( server ) );  // FIXME: leak
 
      return DR_OK;
 }

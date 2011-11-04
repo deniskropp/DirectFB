@@ -60,10 +60,9 @@ D_DEBUG_DOMAIN( Voodoo_Output,     "Voodoo/Output",     "Voodoo Output" );
 
 /**********************************************************************************************************************/
 
-VoodooConnectionPacket::VoodooConnectionPacket( VoodooManager *manager,
-                                                VoodooLink    *link )
+VoodooConnectionPacket::VoodooConnectionPacket( VoodooLink *link )
      :
-     VoodooConnectionLink( manager, link ),
+     VoodooConnectionLink( link ),
      stop( false ),
      closed( false )
 {
@@ -78,11 +77,16 @@ VoodooConnectionPacket::~VoodooConnectionPacket()
 }
 
 void
-VoodooConnectionPacket::Start()
+VoodooConnectionPacket::Start( VoodooManager *manager )
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionPacket::%s( %p )\n", __func__, this );
 
      D_MAGIC_ASSERT( this, VoodooConnection );
+
+     D_ASSERT( manager != NULL );
+     D_ASSERT( this->manager == NULL );
+
+     this->manager = manager;
 
      io = direct_thread_create( DTT_DEFAULT, io_loop_main, this, "Voodoo IO" );
 }

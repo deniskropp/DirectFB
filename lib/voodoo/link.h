@@ -64,6 +64,9 @@ struct __V_VoodooLink {
                                   size_t       num_recv );
 
      DirectResult (*WakeUp)     ( VoodooLink  *link );
+
+     DirectResult (*WaitForData)( VoodooLink  *link,
+                                  int          timeout_ms );
 };
 
 

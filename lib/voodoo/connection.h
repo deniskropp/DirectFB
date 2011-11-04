@@ -42,13 +42,14 @@ protected:
      VoodooLink                 *link;
 
 public:
-     VoodooConnection( VoodooManager *manager,
-                       VoodooLink    *link );
+     VoodooConnection( VoodooLink *link );
 
      virtual ~VoodooConnection();
 
-     virtual void Start() = 0;
+     virtual void Start( VoodooManager *manager ) = 0;
      virtual void Stop() = 0;
+
+     virtual void WakeUp() = 0;
 
 
      virtual VoodooPacket *GetPacket( size_t        length ) = 0;

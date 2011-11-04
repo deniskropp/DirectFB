@@ -284,6 +284,33 @@ WakeUp( VoodooLink *link )
      return DR_OK;
 }
 
+static DirectResult
+WaitForData( VoodooLink *link,
+             int         timeout_ms )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+
+#if 0
+     int            ret;
+     Link          *l = link->priv;
+     struct pollfd  pfd;
+
+     pfd.events = POLL_IN;
+     pfd.fd     = l->fd[0];
+
+     ret = poll( &pfd, 1, 1000 );
+     if (ret < 0)
+          return errno2result( errno );
+
+     if (ret == 0)
+          return DR_TIMEOUT;
+
+     return DR_OK;
+#endif
+}
+
 /**********************************************************************************************************************/
 
 int
@@ -392,6 +419,7 @@ voodoo_link_init_connect( VoodooLink *link,
      link->Write       = Write;
      link->SendReceive = SendReceive;
      link->WakeUp      = WakeUp;
+     link->WaitForData = WaitForData;
 
      return DR_OK;
 }

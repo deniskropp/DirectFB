@@ -62,6 +62,7 @@
 
 #include <voodoo/conf.h>
 #include <voodoo/internal.h>
+#include <voodoo/message.h>
 #include <voodoo/play.h>
 #include <voodoo/play_internal.h>
 
@@ -97,6 +98,9 @@ static const int one = 1;
 /**********************************************************************************************************************/
 
 static VoodooPlayer *g_VoodooPlayer;
+
+VoodooPlayVersion g_VoodooPlay_version;
+VoodooPlayInfo    g_VoodooPlay_info;
 
 /**********************************************************************************************************************/
 
@@ -224,12 +228,22 @@ voodoo_player_create( const VoodooPlayInfo  *info,
      if (!player->info.name[0])
           direct_snputs( player->info.name, "Unnamed Player", VOODOO_PLAYER_NAME_LENGTH );
 
+     if (!player->info.vendor[0])
+          direct_snputs( player->info.vendor, "Unknown Vendor", VOODOO_PLAYER_VENDOR_LENGTH );
+
+     if (!player->info.model[0])
+          direct_snputs( player->info.model, "Unknown Model", VOODOO_PLAYER_MODEL_LENGTH );
+
      if (!player->info.uuid[0])
           generate_uuid( player->info.uuid );
 
-     player->info.flags |= VPIF_LINK;
+     player->info.flags |= VPIF_PACKET;
 
      D_MAGIC_SET( player, VoodooPlayer );
+
+
+     g_VoodooPlay_version = player->version;
+     g_VoodooPlay_info    = player->info;
 
 
      char buf[33];

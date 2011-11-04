@@ -40,12 +40,11 @@ private:
      bool          closed;
 
 public:
-     VoodooConnectionPacket( VoodooManager *manager,
-                             VoodooLink    *link );
+     VoodooConnectionPacket( VoodooLink *link );
 
      virtual ~VoodooConnectionPacket();
 
-     virtual void Start();
+     virtual void Start( VoodooManager *manager );
      virtual void Stop();
 
 

@@ -257,7 +257,7 @@ voodoo_player_launch_app( VoodooPlayer *player,
           return DR_ITEMNOTFOUND;
      }
 
-     D_INFO( "Voodoo/Player: Found application '%s'\n\n", buf1, buf2 );
+     D_INFO( "Voodoo/Player: Found application '%s'\n\n", app->name );
 
 
      VoodooPlayInfo info;

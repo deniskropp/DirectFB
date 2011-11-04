@@ -50,6 +50,7 @@ extern "C" {
 #include <voodoo/dispatcher.h>
 #include <voodoo/manager.h>
 #include <voodoo/packet.h>
+#include <voodoo/play_internal.h>
 
 
 //namespace Voodoo {
@@ -59,21 +60,22 @@ D_DEBUG_DOMAIN( Voodoo_Manager,  "Voodoo/Manager",  "Voodoo Manager" );
 
 /**********************************************************************************************************************/
 
-VoodooManager::VoodooManager( VoodooLink    *link,
-                              VoodooContext *context )
+VoodooManager::VoodooManager( VoodooConnection *connection,
+                              VoodooContext    *context )
      :
      magic(0),
      is_quit(false),
      msg_count(0),
      msg_serial(0)
 {
-     D_ASSERT( link != NULL );
+     D_ASSERT( connection != NULL );
+     D_ASSERT( context != NULL );
 
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
      /* Store link and context */
-     this->link    = link;
-     this->context = context;
+     this->connection = connection;
+     this->context    = context;
 
 
      instances.last   = 0;
@@ -95,22 +97,7 @@ VoodooManager::VoodooManager( VoodooLink    *link,
      dispatcher = new VoodooDispatcher( this );
 
 
-     /* Add connection */
-     if ((link->code & 0x8000ffff) == 0x80008676) {
-          D_INFO( "Voodoo/Manager: Connection mode is PACKET\n" );
-
-          connection = new VoodooConnectionPacket( this, link );
-     }
-     else {
-          D_INFO( "Voodoo/Manager: Connection mode is RAW\n" );
-
-          connection = new VoodooConnectionRaw( this, link );
-
-          // FIXME: query manager dynamically for compression instead
-          voodoo_config->compression_min = 0;
-     }
-
-     connection->Start();
+     connection->Start( this );
 }
 
 static void
@@ -375,6 +362,53 @@ VoodooManager::handle_response( VoodooResponseMessage *msg )
      direct_mutex_unlock( &response.lock );
 }
 
+void
+VoodooManager::handle_discover( VoodooMessageHeader *header )
+{
+     int                  size;
+     VoodooPacket        *packet;
+     VoodooMessageSerial  serial;
+     VoodooMessageHeader *msg;
+
+     D_MAGIC_ASSERT( this, VoodooManager );
+     D_ASSERT( header != NULL );
+     D_ASSERT( header->size >= (int) sizeof(VoodooMessageHeader) );
+     D_ASSERT( header->type == VMSG_DISCOVER );
+
+     D_DEBUG( "Voodoo/Dispatch: Handling DISCOVER message %llu (%d bytes).\n",
+              (unsigned long long)header->serial, header->size );
+
+     /* Calculate the total message size. */
+     size = sizeof(VoodooMessageHeader) + sizeof(g_VoodooPlay_version) + sizeof(g_VoodooPlay_info);
+
+     /* Lock the output buffer for direct writing. */
+     packet = connection->GetPacket( size );
+     if (!packet)
+          return;
+
+     msg = (VoodooMessageHeader*) packet->data_raw();
+
+     serial = msg_serial++;
+
+     /* Fill message header. */
+     msg->size   = size;
+     msg->serial = serial;
+     msg->type   = VMSG_SENDINFO;
+
+     /* Fill message body. */
+     direct_memcpy( (u8*) packet->data_raw() + sizeof(VoodooMessageHeader),
+                    &g_VoodooPlay_version, sizeof(g_VoodooPlay_version) );
+
+     direct_memcpy( (u8*) packet->data_raw() + sizeof(VoodooMessageHeader) + sizeof(g_VoodooPlay_version),
+                    &g_VoodooPlay_info, sizeof(g_VoodooPlay_info) );
+
+
+     D_DEBUG( "Voodoo/Manager: Sending SENDINFO message %llu (%d bytes).\n", (unsigned long long)serial, size );
+
+     /* Unlock the output buffer. */
+     connection->PutPacket( packet, true );
+}
+
 /**************************************************************************************************/
 
 DirectResult
@@ -603,7 +637,7 @@ VoodooManager::do_request( VoodooInstanceID         instance,
      /* Calculate the total message size. */
      size = sizeof(VoodooRequestMessage) + data_size;
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: %d\n", size );
+     D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: "_ZU"\n", size );
 
      /* Lock the output buffer for direct writing. */
      packet = connection->GetPacket( size );
@@ -628,7 +662,7 @@ VoodooManager::do_request( VoodooInstanceID         instance,
      write_blocks( msg + 1, blocks, num_blocks );
 
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> Sending REQUEST message %llu to %u::%u %s(%d bytes).\n",
+     D_DEBUG_AT( Voodoo_Manager, "  -> Sending REQUEST message %llu to %u::%u %s("_ZU" bytes).\n",
                  (unsigned long long)serial, instance, method, (flags & VREQ_RESPOND) ? "[RESPONDING] " : "", size );
 
      /* Unlock the output buffer. */
@@ -728,7 +762,7 @@ VoodooManager::do_respond( bool                 flush,
      /* Calculate the total message size. */
      size = sizeof(VoodooResponseMessage) + data_size;
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: %d\n", size );
+     D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: "_ZU"\n", size );
 
 
      /* Lock the output buffer for direct writing. */
@@ -754,7 +788,7 @@ VoodooManager::do_respond( bool                 flush,
      write_blocks( msg + 1, blocks, num_blocks );
 
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> Sending RESPONSE message %llu (%s) with instance %u for request %llu (%d bytes).\n",
+     D_DEBUG_AT( Voodoo_Manager, "  -> Sending RESPONSE message %llu (%s) with instance %u for request %llu ("_ZU" bytes).\n",
                  (unsigned long long)serial, DirectResultString( result ), instance, (unsigned long long)request, size );
 
      /* Unlock the output buffer. */

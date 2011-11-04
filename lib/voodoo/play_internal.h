@@ -81,4 +81,7 @@ typedef struct {
 } VoodooAppInstance;
 
 
+extern VoodooPlayVersion g_VoodooPlay_version;
+extern VoodooPlayInfo    g_VoodooPlay_info;
+
 #endif

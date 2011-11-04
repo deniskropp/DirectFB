@@ -75,7 +75,6 @@ public:
 private:
      friend class VoodooDispatcher;
 
-     VoodooLink                 *link;
      VoodooConnection           *connection;
 
      VoodooContext              *context;
@@ -103,8 +102,8 @@ private:
 
 
 public:
-     VoodooManager( VoodooLink    *link,
-                    VoodooContext *context );
+     VoodooManager( VoodooConnection *connection,
+                    VoodooContext    *context );
      ~VoodooManager();
 
 
@@ -125,6 +124,7 @@ public:
 
      void         handle_request       ( VoodooRequestMessage    *request );
      void         handle_response      ( VoodooResponseMessage   *response );
+     void         handle_discover      ( VoodooMessageHeader     *header );
 
 
 private:

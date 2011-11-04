@@ -60,8 +60,7 @@ protected:
      } output;
 
 public:
-     VoodooConnectionLink( VoodooManager *manager,
-                           VoodooLink    *link );
+     VoodooConnectionLink( VoodooLink *link );
 
      virtual ~VoodooConnectionLink();
 
@@ -71,6 +70,7 @@ public:
                                       bool          flush );
 
      virtual void          Stop     ();
+     virtual void          WakeUp   ();
 
 
 private:

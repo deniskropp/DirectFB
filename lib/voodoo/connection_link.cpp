@@ -70,10 +70,9 @@ D_DEBUG_DOMAIN( Voodoo_Output,     "Voodoo/Output",     "Voodoo Output" );
 
 /**********************************************************************************************************************/
 
-VoodooConnectionLink::VoodooConnectionLink( VoodooManager *manager,
-                                            VoodooLink    *link )
+VoodooConnectionLink::VoodooConnectionLink( VoodooLink *link )
      :
-     VoodooConnection( manager, link )
+     VoodooConnection( link )
 {
      D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::%s( %p )\n", __func__, this );
 
@@ -222,6 +221,16 @@ VoodooConnectionLink::Stop()
      direct_mutex_unlock( &output.lock );
 
      direct_waitqueue_broadcast( &output.wait );
+}
+
+void
+VoodooConnectionLink::WakeUp()
+{
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::%s( %p )\n", __func__, this );
+
+     D_MAGIC_ASSERT( this, VoodooConnection );
+
+     link->WakeUp( link );
 }
 
 void

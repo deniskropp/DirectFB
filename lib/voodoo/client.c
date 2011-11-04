@@ -46,6 +46,9 @@
 #include <voodoo/manager.h>
 #include <voodoo/play.h>
 
+
+D_DEBUG_DOMAIN( Voodoo_Client, "Voodoo/Client", "Voodoo Client" );
+
 /**********************************************************************************************************************/
 
 struct __V_VoodooClient {
@@ -64,16 +67,83 @@ static DirectLink *m_clients; // FIXME: add lock
 
 /**********************************************************************************************************************/
 
+static DirectResult
+send_discover_and_receive_info( VoodooLink        *link,
+                                VoodooPlayVersion *ret_version,
+                                VoodooPlayInfo    *ret_info )
+{
+     int                 ret;
+     VoodooMessageHeader header;
+
+     D_INFO( "Voodoo/Player: Sending VMSG_DISCOVER message via Voodoo TCP port...\n" );
+
+     header.size   = sizeof(VoodooMessageHeader);
+     header.serial = 0;
+     header.type   = VMSG_DISCOVER;
+
+     ret = link->Write( link, &header, sizeof(header) );
+     if (ret < 0) {
+          ret = errno2result( errno );
+          D_PERROR( "Voodoo/Player: Failed to send VMSG_DISCOVER message via Voodoo TCP port!\n" );
+          return ret;
+     }
+
+
+     // wait for up to one second (old server will not reply anything, so we have to timeout)
+     ret = link->WaitForData( link, 1000 );
+     if (ret) {
+          D_DERROR( ret, "Voodoo/Player: Failed to wait for reply after sending VMSG_DISCOVER message via Voodoo TCP port!\n" );
+          return ret;
+     }
+
+     D_INFO( "Voodoo/Player: New Voodoo Server with VMSG_DISCOVER support, reading version/info (SENDINFO) reply...\n" );
+
+
+     struct {
+          VoodooMessageHeader header;
+          VoodooPlayVersion   version;
+          VoodooPlayInfo      info;
+     } msg;
+
+     size_t got = 0;
+
+     while (got < sizeof(msg)) {
+          ret = link->Read( link, (void*) &msg + got, sizeof(msg) - got );
+          if (ret < 0) {
+               ret = errno2result( errno );
+               D_PERROR( "Voodoo/Player: Failed to read after sending VMSG_DISCOVER message via Voodoo TCP port!\n" );
+               return ret;
+          }
+
+          got += ret;
+     }
+
+
+     if (msg.header.type != VMSG_SENDINFO) {
+          D_ERROR( "Voodoo/Player: Received message after sending VMSG_DISCOVER message via Voodoo TCP port is no VMSG_SENDINFO!\n");
+          return DR_INVARG;
+     }
+
+     *ret_version = msg.version;
+     *ret_info    = msg.info;
+
+     D_INFO( "Voodoo/Player: Voodoo Server sent name '%s', version %d.%d.%d\n",
+             msg.info.name, msg.version.v[1], msg.version.v[2], msg.version.v[3] );
+
+     return DR_OK;
+}
+
+/**********************************************************************************************************************/
+
 DirectResult
 voodoo_client_create( const char     *host,
                       int             port,
                       VoodooClient  **ret_client )
 {
      DirectResult    ret;
+     VoodooPlayInfo  info;
      VoodooClient   *client;
      VoodooPlayer   *player;
-     int             bc_num  = 10;
-     int             bc_wait = 4000;
      char            buf[100] = { 0 };
      const char     *hostname = host;
      bool            raw = true;
@@ -85,6 +155,14 @@ voodoo_client_create( const char     *host,
 
      if (!port)
           port = 2323;
+
+     D_DEBUG_AT( Voodoo_Client, "%s( '%s', %d )\n", __FUNCTION__, host, port );
+
+     if (port != 2323) {
+          D_DEBUG_AT( Voodoo_Client, "  -> port != 2323, using PACKET mode right away\n" );
+
+          raw = false;
+     }
 
      direct_list_foreach (client, m_clients) {
           if (!strcmp( client->host, host ) && client->port == port) {
@@ -105,42 +183,28 @@ voodoo_client_create( const char     *host,
           return ret;
      }
 
-     while (bc_num--) {
-          VoodooPlayInfo info;
-
-          // FIXME: resolve first, not late in voodoo_link_init_connect
-          if (hostname && hostname[0]) {
-               ret = voodoo_player_lookup_by_address( player, hostname, &info );
-               if (ret == DR_OK) {
-                    if (info.flags & VPIF_LINK)
-                         raw = false;
-                    
-                    break;
-               }
+     // FIXME: resolve first, not late in voodoo_link_init_connect
+     if (hostname && hostname[0]) {
+          ret = voodoo_player_lookup_by_address( player, hostname, &info );
+          if (ret == DR_OK) {
+               if (info.flags & VPIF_PACKET)
+                    raw = false;
           }
-          else {
-               ret = voodoo_player_lookup( player, NULL, &info, buf, sizeof(buf) );
-               if (ret == DR_OK) {
-                    if (info.flags & VPIF_LINK)
-                         raw = false;
+     }
+     else {
+          ret = voodoo_player_lookup( player, NULL, &info, buf, sizeof(buf) );
+          if (ret == DR_OK) {
+               if (info.flags & VPIF_PACKET)
+                    raw = false;
 
-                    hostname = buf;
-
-                    break;
-               }
+               hostname = buf;
           }
-
-          voodoo_player_broadcast( player );
-
-          direct_thread_sleep( bc_wait );
-
-          bc_wait += bc_wait;
      }
 
      voodoo_player_destroy( player );
 
      if (!hostname || !hostname[0]) {
-          D_ERROR( "Voodoo/Play: Did not find any other player!\n" );
+          D_ERROR( "Voodoo/Client: Did not find any other player!\n" );
           return DR_ITEMNOTFOUND;
      }
 
@@ -151,14 +215,61 @@ voodoo_client_create( const char     *host,
           return D_OOM();
 
 
-     /* Initialize client structure. */
-     ret = voodoo_link_init_connect( &client->vl, hostname, port,
-                                     !voodoo_config->link_packet && (voodoo_config->link_raw || raw) );
+     raw = !voodoo_config->link_packet && (voodoo_config->link_raw || raw);
+
+     /* Create a link to the other player. */
+     ret = voodoo_link_init_connect( &client->vl, hostname, port, raw );
      if (ret) {
           D_DERROR( ret, "Voodoo/Client: Failed to initialize Voodoo Link!\n" );
           D_FREE( client );
           return ret;
      }
+
+     D_INFO( "Voodoo/Client: Fetching player information...\n" );
+
+     if (raw) {     // FIXME: send_discover_and_receive_info() only does RAW, but we don't need it for packet connection, yet
+          VoodooPlayVersion server_version;
+          VoodooPlayInfo    server_info;
+
+          ret = send_discover_and_receive_info( &client->vl, &server_version, &server_info );
+          if (ret) {
+               D_DEBUG_AT( Voodoo_Client, "  -> Failed to receive player info via TCP!\n" );
+
+               D_INFO( "Voodoo/Client: No player information from '%s'!\n", host );
+          }
+          else {
+               D_INFO( "Voodoo/Client: Connected to '%s' (%-15s) %s "
+                       "=%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x= "
+                       "(vendor: %s, model: %s)\n",
+                       server_info.name, host,
+                       (server_info.flags & VPIF_LEVEL2) ? "*" : " ",
+                       server_info.uuid[0], server_info.uuid[1], server_info.uuid[2], server_info.uuid[3], server_info.uuid[4],
+                       server_info.uuid[5], server_info.uuid[6], server_info.uuid[7], server_info.uuid[8], server_info.uuid[9],
+                       server_info.uuid[10], server_info.uuid[11], server_info.uuid[12], server_info.uuid[13], server_info.uuid[14],
+                       server_info.uuid[15],
+                       server_info.vendor, server_info.model );
+
+               if (raw && !voodoo_config->link_raw) {
+                    /*
+                     * Switch to packet mode?
+                     */
+                    if (client->server_info.flags & VPIF_PACKET) {
+                         D_INFO( "Voodoo/Client: Switching to packet mode!\n" );
+
+                         client->vl.Close( &client->vl );
+
+                         /* Create another link to the other player. */
+                         ret = voodoo_link_init_connect( &client->vl, hostname, port, false );
+                         if (ret) {
+                              D_DERROR( ret, "Voodoo/Client: Failed to initialize second Voodoo Link!\n" );
+                              D_FREE( client );
+                              return ret;
+                         }
+                    }
+               }
+          }
+     }
+
 
      /* Create the manager. */
      ret = voodoo_manager_create( &client->vl, client, NULL, &client->manager );
@@ -177,6 +288,8 @@ voodoo_client_create( const char     *host,
      /* Return the new client. */
      *ret_client = client;
 
+     D_DEBUG_AT( Voodoo_Client, "  => client %p\n", client );
+
      return DR_OK;
 }
 
@@ -184,6 +297,8 @@ DirectResult
 voodoo_client_destroy( VoodooClient *client )
 {
      D_ASSERT( client != NULL );
+
+     D_DEBUG_AT( Voodoo_Client, "%s( %p )\n", __FUNCTION__, client );
 
      D_INFO( "Voodoo/Client: Decreasing ref count of connection...\n" );
 

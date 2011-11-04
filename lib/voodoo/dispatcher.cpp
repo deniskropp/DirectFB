@@ -42,6 +42,7 @@ extern "C" {
 #include <voodoo/message.h>
 }
 
+#include <voodoo/connection.h>
 #include <voodoo/dispatcher.h>
 #include <voodoo/manager.h>
 #include <voodoo/packet.h>
@@ -166,6 +167,14 @@ VoodooDispatcher::ProcessMessages( VoodooMessageHeader *first,
                     manager->handle_response( (VoodooResponseMessage*) header );
                     break;
 
+               case VMSG_DISCOVER:
+                    manager->handle_discover( header );
+                    break;
+
+               case VMSG_SENDINFO: // should only be received by TCP fake player, not manager
+                    D_BUG( "received SENDINFO" );
+                    break;
+
                default:
                     D_BUG( "invalid message type %d", header->type );
                     break;
@@ -196,7 +205,7 @@ VoodooDispatcher::DispatchLoop()
 
                direct_list_remove( &packets, &packet->link );
 
-               manager->link->WakeUp( manager->link );
+               manager->connection->WakeUp();
           }
           else {
                direct_waitqueue_wait( &queue, &lock );
