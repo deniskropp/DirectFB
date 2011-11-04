@@ -110,6 +110,9 @@ struct _CoreGlyphData {
      int              magic;
 
      DFBFontCacheRow *row;
+
+     bool             inserted;
+     bool             retry;
 };
 
 #define CORE_GLYPH_DATA_DEBUG_AT(Domain, data)                                       \

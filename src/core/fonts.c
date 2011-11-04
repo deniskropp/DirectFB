@@ -822,6 +822,10 @@ dfb_font_get_glyph_data( CoreFont       *font,
 
      /* Quick Lookup in array */
      if (index < 128 && font->layers[layer].glyph_data[index]) {
+          data = font->layers[layer].glyph_data[index];
+          if (data->retry)
+               goto retry;
+
           *ret_data = font->layers[layer].glyph_data[index];
           return DFB_OK;
      }
@@ -839,6 +843,9 @@ dfb_font_get_glyph_data( CoreFont       *font,
 
                row->stamp = manager->row_stamp++;
           }
+
+          if (data->retry)
+               goto retry;
 
           *ret_data = data;
           return DFB_OK;
@@ -863,11 +870,19 @@ dfb_font_get_glyph_data( CoreFont       *font,
      data->index = index;
      data->layer = layer;
 
+retry:
+     data->retry = false;
+
      /* Get glyph data from font implementation */
      ret = font->GetGlyphData( font, index, data );
      if (ret) {
           D_DERROR( ret, "Core/Font: Could not get glyph info for index %d!\n", index );
           data->start = data->width = data->height = 0;
+
+          /* If the font module returned BUFFEREMPTY we will retry loading next time */
+          if (ret == DFB_BUFFEREMPTY)
+               data->retry = true;
+
           goto out;
      }
 
@@ -924,6 +939,11 @@ dfb_font_get_glyph_data( CoreFont       *font,
      if (ret) {
           D_DEBUG_AT( Core_Font, "  -> rendering glyph failed!\n" );
           data->start = data->width = data->height = 0;
+
+          /* If the font module returned BUFFEREMPTY we will retry loading next time */
+          if (ret == DFB_BUFFEREMPTY)
+               data->retry = true;
+
           goto out;
      }
 
@@ -933,13 +953,17 @@ dfb_font_get_glyph_data( CoreFont       *font,
 
 
 out:
-     if (row)
-          direct_list_append( &row->glyphs, &data->link );
+     if (!data->inserted) {
+          if (row)
+               direct_list_append( &row->glyphs, &data->link );
 
-     direct_hash_insert( font->layers[layer].glyph_hash, index, data );
+          direct_hash_insert( font->layers[layer].glyph_hash, index, data );
 
-     if (index < 128)
-          font->layers[layer].glyph_data[index] = data;
+          if (index < 128)
+               font->layers[layer].glyph_data[index] = data;
+
+          data->inserted = true;
+     }
 
      *ret_data = data;
 
