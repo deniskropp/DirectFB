@@ -60,6 +60,7 @@
 #include <core/windows_internal.h>
 #endif
 
+#include <misc/conf.h>
 #include <misc/util.h>
 
 #include <idirectfb.h>
@@ -845,6 +846,11 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
 
      D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p ) <- type %06x\n", __FUNCTION__, evt, data, evt->type );
 
+     if (dfb_config->discard_repeat_events && (evt->flags & DIEF_REPEAT)) {
+          D_DEBUG_AT( IDFBEvBuf, "  -> discarding repeat event!\n" );
+          return DFB_OK;
+     }
+
      item = D_CALLOC( 1, sizeof(EventBufferItem) );
 
      item->evt.input = *evt;
@@ -863,6 +869,11 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
      EventBufferItem           *item;
 
      D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p ) <- type %06x\n", __FUNCTION__, evt, data, evt->type );
+
+     if (dfb_config->discard_repeat_events && (evt->flags & DWEF_REPEAT)) {
+          D_DEBUG_AT( IDFBEvBuf, "  -> discarding repeat event!\n" );
+          return DFB_OK;
+     }
 
      item = D_CALLOC( 1, sizeof(EventBufferItem) );
 

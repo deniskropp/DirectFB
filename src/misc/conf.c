@@ -138,6 +138,7 @@ static const char *config_usage =
      "  [no-]decorations               Enable window decorations (if supported by wm)\n"
      "  [no-]startstop                 Issue StartDrawing/StopDrawing to driver\n"
      "  [no-]autoflip-window           Auto flip non-flipping windowed primary surfaces\n"
+     "  [no-]discard-repeat-events     Discard repeat events (option per application)\n"
      "  [no-]flip-notify               Use FlipNotify for remote display\n"
      "  flip-notify-max-latency=<ms>   Set maximum FlipNotify latency (ms from Flip to Notify, default 200)\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
@@ -992,6 +993,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "discard-repeat-events" ) == 0) {
+          dfb_config->discard_repeat_events = true;
+     } else
+     if (strcmp (name, "no-discard-repeat-events" ) == 0) {
+          dfb_config->discard_repeat_events = false;
      } else
      if (strcmp (name, "vsync-none" ) == 0) {
           dfb_config->pollvsync_none = true;

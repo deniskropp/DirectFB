@@ -274,6 +274,8 @@ typedef struct
      unsigned int  flip_notify_max_latency;
 
      DFBWindowCursorFlags default_cursor_flags;
+
+     bool                 discard_repeat_events;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;
