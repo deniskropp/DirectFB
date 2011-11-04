@@ -639,6 +639,8 @@ dfb_surface_destroy_buffers( CoreSurface *surface )
      int i, num_eyes;
      DFBSurfaceStereoEye eye;
 
+     D_DEBUG_AT( Core_Surface, "%s( %p )\n", __FUNCTION__, surface );
+
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      if (fusion_skirmish_prevail( &surface->lock ))
@@ -661,6 +663,38 @@ dfb_surface_destroy_buffers( CoreSurface *surface )
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      surface->num_buffers = 0;
+
+     fusion_skirmish_dismiss( &surface->lock );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_surface_deallocate_buffers( CoreSurface *surface )
+{
+     int i, num_eyes;
+     DFBSurfaceStereoEye eye;
+
+     D_DEBUG_AT( Core_Surface, "%s( %p )\n", __FUNCTION__, surface );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
+     if (surface->type & CSTF_PREALLOCATED) {
+          fusion_skirmish_dismiss( &surface->lock );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* Deallocate the Surface Buffers. */
+     num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
+     for (eye = DSSE_LEFT; num_eyes > 0; num_eyes--, eye = DSSE_RIGHT) {
+          dfb_surface_set_stereo_eye(surface, eye);
+          for (i = 0; i < surface->num_buffers; i++)
+               dfb_surface_buffer_deallocate( surface->buffers[i] );
+     }
+     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      fusion_skirmish_dismiss( &surface->lock );
 

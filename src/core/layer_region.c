@@ -1507,19 +1507,14 @@ unrealize_region( CoreLayerRegion *region )
 
      /* Unlock the region buffer if it is locked. */
      if (region->surface) { 
-          if (region->left_buffer_lock.buffer) {
+          if (region->left_buffer_lock.buffer)
                dfb_surface_unlock_buffer( region->surface, &region->left_buffer_lock );
 
-               if (!stereo && !region->config.keep_buffers)
-                    dfb_surface_destroy_buffers( region->surface );
-          }
-          if (stereo) { 
-               if (region->right_buffer_lock.buffer)
-                    dfb_surface_unlock_buffer( region->surface, &region->right_buffer_lock );
+          if (stereo && region->right_buffer_lock.buffer)
+               dfb_surface_unlock_buffer( region->surface, &region->right_buffer_lock );
 
-               if (!region->config.keep_buffers)
-                    dfb_surface_destroy_buffers( region->surface );
-          }
+          if (!region->config.keep_buffers)
+               dfb_surface_deallocate_buffers( region->surface );
      }
 
      return DFB_OK;

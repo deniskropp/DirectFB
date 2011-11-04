@@ -223,6 +223,8 @@ DFBResult dfb_surface_buffer_create ( CoreDFB                 *core,
 
 DFBResult dfb_surface_buffer_decouple( CoreSurfaceBuffer       *buffer );
 
+DFBResult dfb_surface_buffer_deallocate( CoreSurfaceBuffer    *buffer );
+
 DFBResult dfb_surface_buffer_lock   ( CoreSurfaceBuffer       *buffer,
                                       CoreSurfaceAccessorID    accessor,
                                       CoreSurfaceAccessFlags   access,
