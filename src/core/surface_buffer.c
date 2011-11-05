@@ -201,6 +201,7 @@ dfb_surface_buffer_decouple( CoreSurfaceBuffer *buffer )
 {
      CoreSurfaceAllocation *allocation;
      unsigned int           i;
+     int                    locks;
 
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_decouple( %p )\n", buffer );
 
@@ -208,10 +209,16 @@ dfb_surface_buffer_decouple( CoreSurfaceBuffer *buffer )
 
      buffer->surface = NULL;
 
+     locks = dfb_surface_buffer_locks( buffer );
+
      fusion_vector_foreach (allocation, i, buffer->allocs) {
           CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
           allocation->surface = NULL;
+
+          // FIXME: have per alloc lock count!
+          if (!locks)
+               dfb_surface_pool_deallocate( allocation->pool, allocation );
      }
 
      dfb_surface_buffer_unlink( &buffer );
