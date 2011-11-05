@@ -53,6 +53,8 @@ struct __V_VoodooPlayer {
 
      DirectLink         *nodes;
 
+     long long           broadcast;
+
 
      VoodooServer               *server;
 

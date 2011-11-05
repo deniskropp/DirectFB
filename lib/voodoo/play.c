@@ -78,6 +78,7 @@ typedef struct {
      VoodooPlayInfo      info;
 
      long long           last_seen;
+     long long           broadcast;
 
      char                addr[64];
 } PlayerNode;
@@ -297,6 +298,8 @@ voodoo_player_broadcast( VoodooPlayer *player )
 {
      DirectResult ret;
 
+     player->broadcast++;
+
      if (voodoo_config->play_broadcast) {
           in_addr_t addr = inet_addr( voodoo_config->play_broadcast );
 
@@ -412,6 +415,9 @@ voodoo_player_enumerate( VoodooPlayer          *player,
      direct_mutex_lock( &player->lock );
 
      direct_list_foreach (node, player->nodes) {
+          if (node->broadcast != player->broadcast && direct_clock_get_abs_millis() - node->last_seen > 10000)
+               continue;
+
           if (callback( ctx, &node->info, &node->version,
                         node->addr, (unsigned int) (now - node->last_seen) ) == DENUM_CANCEL)
                break;
@@ -510,6 +516,7 @@ player_save_info( VoodooPlayer            *player,
      node->info      = msg->info;
 
      node->last_seen = direct_clock_get_abs_millis();
+     node->broadcast = player->broadcast;
 
      direct_snputs( node->addr, addr, sizeof(node->addr) );
 
