@@ -6236,6 +6236,21 @@ D_DEFINE_INTERFACE(   IDirectFBWindow,
           int                            x,
           int                            y
      );
+
+
+   /** Geometry **/
+
+     /*
+      * Set area of surface to be shown in window.
+      * Set destination location of window within its bounds.
+      *
+      * Default and maximum is to show whole surface.
+      */
+     DFBResult (*SetGeometry) (
+          IDirectFBWindow               *thiz,
+          const DFBWindowGeometry       *src,
+          const DFBWindowGeometry       *dst
+     );
 )
 
 
