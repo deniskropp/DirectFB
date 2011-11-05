@@ -305,8 +305,6 @@ dfb_surface_create( CoreDFB                  *core,
      return DFB_OK;
 
 error:
-     D_MAGIC_CLEAR( surface );
-
      for (i=0; i<MAX_SURFACE_BUFFERS; i++) {
           if (surface->buffers[i])
                dfb_surface_buffer_decouple( surface->buffers[i] );
@@ -322,6 +320,8 @@ error:
      fusion_skirmish_destroy( &surface->lock );
 
      direct_serial_deinit( &surface->serial );
+
+     D_MAGIC_CLEAR( surface );
 
      fusion_object_destroy( &surface->object );
 
