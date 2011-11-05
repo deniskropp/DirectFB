@@ -362,7 +362,7 @@ ISaWManManager_Lock( ISaWManManager *thiz )
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     if (fusion_config->secure_fusion)
+     if (!fusion_config->secure_fusion)
           return sawman_lock( sawman );
 
      return DR_OK;
@@ -378,7 +378,7 @@ ISaWManManager_Unlock( ISaWManManager *thiz )
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
-     if (fusion_config->secure_fusion)
+     if (!fusion_config->secure_fusion)
           return sawman_unlock( sawman );
 
      return DR_OK;
