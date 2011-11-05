@@ -70,7 +70,11 @@ typedef struct {
 static void
 IDiVine_Dispatcher_Destruct( IDiVine *thiz )
 {
+     IDiVine_Dispatcher_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data->real->Release( data->real );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -108,6 +112,15 @@ IDiVine_Dispatcher_SendEvent( IDiVine             *thiz,
 }
 
 /**************************************************************************************************/
+
+static DirectResult
+Dispatch_Release( IDiVine *thiz, IDiVine *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDiVine_Dispatcher)
+
+     return voodoo_manager_unregister_local( manager, data->self );
+}
 
 static DirectResult
 Dispatch_SendEvent( IDiVine *thiz, IDiVine *real,
@@ -158,6 +171,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIVINE_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case IDIVINE_METHOD_ID_SendEvent:
                return Dispatch_SendEvent( dispatcher, real, manager, msg );
 

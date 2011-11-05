@@ -71,7 +71,15 @@ typedef struct {
 static void
 IDiVine_Requestor_Destruct( IDiVine *thiz )
 {
+     IDiVine_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     voodoo_manager_request( data->manager, data->instance,
+                             IDIVINE_METHOD_ID_Release, VREQ_NONE, NULL,
+                             VMBT_NONE );
+
+     voodoo_client_destroy( data->client );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
