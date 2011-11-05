@@ -321,8 +321,6 @@ dfb_surface_create( CoreDFB                  *core,
      return DFB_OK;
 
 error:
-     D_MAGIC_CLEAR( surface );
-
      num_eyes = config->caps & DSCAPS_STEREO ? 2 : 1;
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
@@ -343,6 +341,8 @@ error:
      fusion_skirmish_destroy( &surface->lock );
 
      direct_serial_deinit( &surface->serial );
+
+     D_MAGIC_CLEAR( surface );
 
      fusion_object_destroy( &surface->object );
 
