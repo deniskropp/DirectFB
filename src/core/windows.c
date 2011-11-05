@@ -466,6 +466,10 @@ dfb_window_create( CoreWindowStack             *stack,
 
      /* Create the window object. */
      window = dfb_core_create_window( layer->core );
+     if (!window) {
+          dfb_windowstack_unlock( stack );
+          return DFB_FUSION;
+     }
 
      window->id                  = ++stack->id_pool;
      window->caps                = caps;
