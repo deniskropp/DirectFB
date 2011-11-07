@@ -408,7 +408,7 @@ static inline void dfb_state_set_colorkey( CardState *state, const DFBColorKey *
 
      if (! DFB_COLORKEY_EQUAL( state->colorkey, *key )) {
           state->colorkey = *key;
-          state->modified = (StateModificationFlags)( state->modified | SMF_COLOR );
+          state->modified = (StateModificationFlags)( state->modified | SMF_COLORKEY );
      }
 }
 
