@@ -130,6 +130,11 @@ fd_core_create( CoreDale **ret_core )
           return DR_OK;
      }
 
+     if (fusion_config->secure_fusion) {
+          D_ERROR( "FusionDale: Cannot run in secure fusion mode, will be fixed!\n" );
+          return DR_UNSUPPORTED;
+     }
+
      /* Allocate local core structure. */
      core = D_CALLOC( 1, sizeof(CoreDale) );
      if (!core) {
