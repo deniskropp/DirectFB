@@ -638,7 +638,11 @@ __shmalloc_init_heap( FusionSHM  *shm,
      }
 
      fchmod( fd, fusion_config->secure_fusion ? 0640 : 0660 );
-     ftruncate( fd, size );
+
+     if (fusion_config->madv_remove)
+          ftruncate( fd, size + space );
+     else
+          ftruncate( fd, size );
 
      D_DEBUG_AT( Fusion_SHMHeap, "  -> mmaping shared memory file... (%d bytes)\n", size );
 
@@ -782,7 +786,7 @@ __shmalloc_brk( shmalloc_heap *heap, int increment )
                return NULL;
           }
 
-          if (truncate( heap->filename, new_size ) < 0) {
+          if (!fusion_config->madv_remove && truncate( heap->filename, new_size ) < 0) {
                D_PERROR( "Fusion/SHM: ftruncating shared memory file failed!\n" );
                return NULL;
           }
