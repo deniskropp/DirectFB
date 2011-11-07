@@ -65,6 +65,12 @@ static const char *config_usage =
      "\n";
      
 
+static void
+print_config_usage( void )
+{
+     fprintf( stderr, "%s%s%s", config_usage, fusion_config_usage, direct_config_usage );
+}
+
 static DirectResult
 parse_args( const char *args )
 {
@@ -81,7 +87,7 @@ parse_args( const char *args )
                *next++ = '\0';
 
           if (strcmp (buf, "help") == 0) {
-               fprintf( stderr, config_usage );
+               print_config_usage();
                exit(1);
           }
 
@@ -106,6 +112,32 @@ parse_args( const char *args )
      free( buf );
 
      return DR_OK;
+}
+
+static int config_read_cmdline( char *cmdbuf, int size, FILE *f )
+{
+     int ret = 0;
+     int len = 0;
+
+     ret = fread( cmdbuf, 1, 1, f );
+
+     /* empty dividing 0 */
+     if( ret==1 && *cmdbuf==0 ) {
+          ret = fread( cmdbuf, 1, 1, f );
+     }
+
+     while(ret==1 && len<(size-1)) {
+          len++;
+          ret = fread( ++cmdbuf, 1, 1, f );
+          if( *cmdbuf == 0 )
+               break;
+     }
+
+     if( len ) {
+          cmdbuf[len]=0;
+     }
+
+     return  len != 0;
 }
 
 static void 
@@ -275,6 +307,9 @@ fd_config_init( int *argc, char **argv[] )
      char         *home   = direct_getenv( "HOME" );
      char         *prog   = NULL;
      char         *fdargs;
+#ifndef WIN32
+     char          cmdbuf[1024];
+#endif
      
      if (fusiondale_config)
           return DR_OK;
@@ -310,6 +345,34 @@ fd_config_init( int *argc, char **argv[] )
                prog++;
           else
                prog = (*argv)[0];
+     }
+#ifndef WIN32
+     else {
+          /* if we didn't receive argc/argv we try the proc system */
+          FILE *f;
+          int   len;
+
+          f = fopen( "/proc/self/cmdline", "r" );
+          if (f) {
+               len = fread( cmdbuf, 1, 1023, f );
+               if (len) {
+                    cmdbuf[len] = 0; /* in case of no arguments, or long program name */
+                    prog = strrchr( cmdbuf, '/' );
+                    if (prog)
+                         prog++;
+                    else
+                         prog = cmdbuf;
+               }
+               fprintf(stderr,"commandline read: %s\n", prog );
+               fclose( f );
+          }
+     }
+#endif
+
+     /* Strip lt- prefix. */
+     if (prog) {
+          if (prog[0] == 'l' && prog[1] == 't' && prog[2] == '-')
+            prog += 3;
      }
 
      /* Read global application settings. */
@@ -359,7 +422,7 @@ fd_config_init( int *argc, char **argv[] )
           for (i = 1; i < *argc; i++) {
 
                if (!strcmp( (*argv)[i], "--fd-help" )) {
-                    fprintf( stderr, config_usage );
+                    print_config_usage();
                     exit(1);
                }
 
@@ -391,6 +454,35 @@ fd_config_init( int *argc, char **argv[] )
                }
           }
      }
+#ifndef WIN32
+     else if (prog) {
+          /* we have prog, so we try again the proc filesystem */
+          FILE *f;
+          int   len;
+
+          len = strlen( cmdbuf );
+          f = fopen( "/proc/self/cmdline", "r" );
+          if (f) {
+               len = fread( cmdbuf, 1, len, f ); /* skip arg 0 */
+               while( config_read_cmdline( cmdbuf, 1024, f ) ) {
+                    fprintf(stderr,"commandline read: %s\n", cmdbuf );
+                    if (strcmp (cmdbuf, "--dfb-help") == 0) {
+                         print_config_usage();
+                         exit(1);
+                    }
+
+                    if (strncmp (cmdbuf, "--dfb:", 6) == 0) {
+                         ret = parse_args( cmdbuf + 6 );
+                         if (ret) {
+                              fclose( f );
+                              return ret;
+                         }
+                    }
+               }
+               fclose( f );
+          }
+     }
+#endif
 
      return DR_OK;
 }
