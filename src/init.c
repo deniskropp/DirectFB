@@ -45,12 +45,16 @@ typedef void (*Func)( void );
 
 static Func init_funcs[] = {
       DFBResult__init,
+#if !DIRECTFB_BUILD_PURE_VOODOO
       Core_TLS__init,
+#endif
 };
 
 static Func deinit_funcs[] = {
+#if !DIRECTFB_BUILD_PURE_VOODOO
       Core_TLS__deinit,
-	 DFBResult__deinit,
+#endif
+      DFBResult__deinit,
 };
 
 /**********************************************************************************************************************/
