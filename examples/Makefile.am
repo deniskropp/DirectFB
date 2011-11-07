@@ -25,6 +25,7 @@ noinst_PROGRAMS = \
 	ce_tune			\
 	ce_tuner		\
 	ce_tuning_monitor	\
+	coma_test		\
 	$(VOODOO_TESTS)
 
 simple_SOURCES = simple.c
@@ -50,6 +51,9 @@ ce_tuner_LDADD   = $(LIBADDS)
 
 ce_tuning_monitor_SOURCES = ce_tuning_monitor.c
 ce_tuning_monitor_LDADD   = $(LIBADDS)
+
+coma_test_SOURCES = coma_test.c
+coma_test_LDADD   = $(LIBADDS)
 
 fd_client_SOURCES = fd_client.c
 fd_client_LDADD   = $(LIBADDS) $(VOODOO_LIBS)
