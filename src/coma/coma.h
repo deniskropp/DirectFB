@@ -108,4 +108,11 @@ struct __COMA_Coma {
 };
 
 
+typedef struct {
+     int                  magic;
+
+     unsigned int         length;
+} ComaAllocation;
+
+
 #endif

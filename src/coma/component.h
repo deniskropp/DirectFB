@@ -34,6 +34,8 @@
 struct __COMA_ComaComponent {
      FusionObject         object;
 
+     Coma                *coma;
+
      int                  magic;
 
      FusionSHMPoolShared *shmpool;

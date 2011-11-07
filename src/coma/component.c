@@ -144,7 +144,7 @@ notify_call_handler( int           caller,
           notification->notify_func( notification->notify_ctx, call_arg, call_ptr );
 
      if (call_ptr && (notification->flags & CNF_DEALLOC_ARG))
-          SHFREE( component->shmpool, call_ptr );
+          coma_deallocate( component->coma, call_ptr );
 
      return FCHR_RETURN;
 }
@@ -214,6 +214,7 @@ coma_component_init( ComaComponent   *component,
      /* Setup method invocation handler. */
      component->method_func = func;
      component->method_ctx  = ctx;
+     component->coma        = coma;
 
      D_MAGIC_SET( component, ComaComponent );
 

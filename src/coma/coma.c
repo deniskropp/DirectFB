@@ -68,8 +68,6 @@ struct __COMA_ComaShared {
      FusionObjectPool    *thread_pool;
 
      FusionCall           thread_mem_call;
-
-     FusionHash          *allocations;
 };
 
 /**********************************************************************************************************************/
@@ -302,15 +300,22 @@ coma_allocate( Coma          *coma,
                unsigned int   bytes,
                void         **ret_ptr )
 {
-     void *ptr;
+     ComaAllocation *allocation;
 
-     ptr = SHCALLOC( coma->shared->shmpool, 1, bytes );
-     if (!ptr)
-          return D_OOSHM();
+     D_DEBUG_AT( Coma_Core, "%s( %u )\n", __FUNCTION__, bytes );
 
-     fusion_hash_insert( coma->shared->allocations, ptr, (void*) (unsigned long) bytes );
+     D_ASSERT( ret_ptr != NULL );
 
-     *ret_ptr = ptr;
+     allocation = SHCALLOC( coma->shared->shmpool, 1, sizeof(ComaAllocation) + bytes );
+     if (!allocation)
+          return D_OOM();
+
+     allocation->magic  = D_MAGIC( "ComaAllocation" );
+     allocation->length = bytes;
+
+     *ret_ptr = allocation + 1;
+
+     D_DEBUG_AT( Coma_Core, "  -> ptr %p\n", *ret_ptr );
 
      return DR_OK;
 }
@@ -319,12 +324,20 @@ DirectResult
 coma_deallocate( Coma *coma,
                  void *ptr )
 {
-     if (!fusion_hash_lookup( coma->shared->allocations, ptr ))
-          return DR_ITEMNOTFOUND;
+     ComaAllocation *allocation;
 
-     fusion_hash_remove( coma->shared->allocations, ptr, NULL, NULL );
+     D_DEBUG_AT( Coma_Core, "%s( %p )\n", __FUNCTION__, ptr );
 
-     SHFREE( coma->shared->shmpool, ptr );
+     D_ASSERT( ptr != NULL );
+
+     allocation = ptr - sizeof(ComaAllocation);
+
+     if (allocation->magic != D_MAGIC( "ComaAllocation" ))
+          return DR_INVARG;
+
+     D_DEBUG_AT( Coma_Core, "  -> length %u\n", allocation->length );
+
+     SHFREE( coma->shared->shmpool, allocation );
 
      return DR_OK;
 }
@@ -334,15 +347,20 @@ coma_allocation_size ( Coma            *coma,
                        void            *ptr,
                        int             *ret_size )
 {
-     int size;
+     ComaAllocation *allocation;
 
-     size = (unsigned long) fusion_hash_lookup( coma->shared->allocations, ptr );
-     if (!size) {
-          D_WARN( "zero length from lookup of %p", ptr );
-          return DR_ITEMNOTFOUND;
-     }
+     D_DEBUG_AT( Coma_Core, "%s( %p )\n", __FUNCTION__, ptr );
 
-     *ret_size = size;
+     D_ASSERT( ptr != NULL );
+
+     allocation = ptr - sizeof(ComaAllocation);
+
+     if (allocation->magic != D_MAGIC( "ComaAllocation" ))
+          return DR_INVARG;
+
+     D_DEBUG_AT( Coma_Core, "  -> length %u\n", allocation->length );
+
+     *ret_size = allocation->length;
 
      return DR_OK;
 }
@@ -563,8 +581,6 @@ coma_initialize( Coma *coma )
 
      fusion_call_init( &shared->thread_mem_call, thread_mem_call_handler, coma, coma->world );
 
-     fusion_hash_create( shared->shmpool, HASH_PTR, HASH_INT, 23, &shared->allocations );
-
      return DR_OK;
 }
 
@@ -612,8 +628,6 @@ coma_shutdown( Coma *coma )
      fusion_hash_destroy( shared->components );
 
      fusion_call_destroy( &shared->thread_mem_call );
-
-     fusion_hash_destroy( shared->allocations );
 
      return DR_OK;
 }
