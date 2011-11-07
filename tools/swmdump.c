@@ -53,6 +53,7 @@
 
 static DFBBoolean show_geometry = DFB_FALSE;
 static DFBBoolean m_listen      = DFB_FALSE;
+static DFBBoolean m_performance = DFB_FALSE;
 
 static DFBBoolean parse_command_line( int argc, char *argv[] );
 
@@ -459,6 +460,50 @@ main( int argc, char *argv[] )
           pause();
      }
 
+     fflush( stdout );
+
+     if (m_performance) {
+          unsigned int       updates;
+          unsigned long long pixels;
+          long long          duration;
+
+          saw->GetPerformance( saw, DWSC_LOWER, DFB_TRUE, &updates, &pixels, &duration );
+          saw->GetPerformance( saw, DWSC_UPPER, DFB_TRUE, &updates, &pixels, &duration );
+
+          while (true) {
+               unsigned int mpixels;
+
+               sleep( 2 );
+
+
+               ret = saw->GetPerformance( saw, DWSC_LOWER, DFB_TRUE, &updates, &pixels, &duration );
+               if (ret) {
+                    DirectFBError( "ISaWMan::GetPerformance", ret );
+                    return -6;
+               }
+
+               mpixels = pixels / 1000000;
+
+               D_INFO( "Performance [LOWER]: %u updates (%u /sec), %u Mpixels (%u /sec)\n",
+                       updates, updates * 1000 / (int)duration, mpixels, mpixels * 1000 / (int)duration );
+
+
+               ret = saw->GetPerformance( saw, DWSC_UPPER, DFB_TRUE, &updates, &pixels, &duration );
+               if (ret) {
+                    DirectFBError( "ISaWMan::GetPerformance", ret );
+                    return -6;
+               }
+
+               // FIXME: need to know if different hw layers
+               if (duration > 1000) {
+                    mpixels = pixels / 1000000;
+
+                    D_INFO( "Performance [UPPER]: %u updates (%u /sec), %u Mpixels (%u /sec)\n",
+                            updates, updates * 1000 / (int)duration, mpixels, mpixels * 1000 / (int)duration );
+               }
+          }
+     }
+
      /* SaWMan deinitialization. */
      saw->Release( saw );
 
@@ -476,10 +521,11 @@ print_usage (const char *prg_name)
      fprintf (stderr, "\nSaWMan Dump (version %s)\n\n", SAWMAN_VERSION);
      fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
      fprintf (stderr, "Options:\n");
-     fprintf (stderr, "   -g, --geometry  Show advanced geometry settings\n");
-     fprintf (stderr, "   -l, --listen    Register listener and print events\n");
-     fprintf (stderr, "   -h, --help      Show this help message\n");
-     fprintf (stderr, "   -v, --version   Print version information\n");
+     fprintf (stderr, "   -g, --geometry     Show advanced geometry settings\n");
+     fprintf (stderr, "   -l, --listen       Register listener and print events\n");
+     fprintf (stderr, "   -p, --performance  Show performance counters\n");
+     fprintf (stderr, "   -h, --help         Show this help message\n");
+     fprintf (stderr, "   -v, --version      Print version information\n");
      fprintf (stderr, "\n");
 }
 
@@ -508,6 +554,11 @@ parse_command_line( int argc, char *argv[] )
 
           if (strcmp (arg, "-l") == 0 || strcmp (arg, "--listen") == 0) {
                m_listen = true;
+               continue;
+          }
+
+          if (strcmp (arg, "-p") == 0 || strcmp (arg, "--performance") == 0) {
+               m_performance = true;
                continue;
           }
 
