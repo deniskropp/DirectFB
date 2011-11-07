@@ -75,6 +75,8 @@ main( int argc, char *argv[] )
                else
                     direct_log_printf( NULL, "AV/Tune: ...SetFrequency( %d ) returned %d.\n", frequency, result );
           }
+
+          sleep(5);
      }
 
      sleep( 2 );
