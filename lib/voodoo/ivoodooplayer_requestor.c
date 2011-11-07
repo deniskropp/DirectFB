@@ -110,10 +110,10 @@ IVoodooPlayer_Requestor_GetApps( IVoodooPlayer        *thiz,
      DirectResult           ret;
      VoodooResponseMessage *response;
 
+     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
+
      if (!max_num || !ret_num || !ret_applications)
           return DR_INVARG;
-
-     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IVOODOOPLAYER_METHOD_ID_GetApps, VREQ_RESPOND, &response,
@@ -155,10 +155,10 @@ IVoodooPlayer_Requestor_LaunchApp( IVoodooPlayer *thiz,
      DirectResult           ret;
      VoodooResponseMessage *response;
 
+     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
+
      if (!app_uuid || !player_uuid || !ret_instance_uuid)
           return DR_INVARG;
-
-     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IVOODOOPLAYER_METHOD_ID_LaunchApp, VREQ_RESPOND, &response,
@@ -189,10 +189,10 @@ IVoodooPlayer_Requestor_StopInstance( IVoodooPlayer *thiz,
      DirectResult           ret;
      VoodooResponseMessage *response;
 
+     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
+
      if (!instance_uuid)
           return DR_INVARG;
-
-     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IVOODOOPLAYER_METHOD_ID_StopInstance, VREQ_RESPOND, &response,
@@ -215,10 +215,10 @@ IVoodooPlayer_Requestor_WaitInstance( IVoodooPlayer *thiz,
      DirectResult           ret;
      VoodooResponseMessage *response;
 
+     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
+
      if (!instance_uuid)
           return DR_INVARG;
-
-     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IVOODOOPLAYER_METHOD_ID_WaitInstance, VREQ_RESPOND, &response,
@@ -243,10 +243,10 @@ IVoodooPlayer_Requestor_GetInstances( IVoodooPlayer                *thiz,
      DirectResult           ret;
      VoodooResponseMessage *response;
 
+     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
+
      if (!max_num || !ret_num || !ret_instances)
           return DR_INVARG;
-
-     DIRECT_INTERFACE_GET_DATA(IVoodooPlayer_Requestor)
 
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IVOODOOPLAYER_METHOD_ID_GetInstances, VREQ_RESPOND, &response,

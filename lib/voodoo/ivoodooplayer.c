@@ -28,29 +28,6 @@
 
 #include <config.h>
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/un.h>
-#include <sys/wait.h>
-
-#include <semaphore.h>
-
-#include <net/if.h>
-
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
 #include <directfb_version.h>
 
 #include <direct/clock.h>
@@ -225,7 +202,7 @@ CreateRemote( const char *host, int session, IVoodooPlayer **ret_interface )
 {
      DirectResult          ret;
      DirectInterfaceFuncs *funcs;
-     void                 *interface;
+     void                 *interface_ptr;
 
      D_ASSERT( host != NULL );
      D_ASSERT( ret_interface != NULL );
@@ -234,15 +211,15 @@ CreateRemote( const char *host, int session, IVoodooPlayer **ret_interface )
      if (ret)
           return ret;
 
-     ret = funcs->Allocate( &interface );
+     ret = funcs->Allocate( &interface_ptr );
      if (ret)
           return ret;
 
-     ret = funcs->Construct( interface, host, session );
+     ret = funcs->Construct( interface_ptr, host, session );
      if (ret)
           return ret;
 
-     *ret_interface = interface;
+     *ret_interface = interface_ptr;
 
      return DR_OK;
 }
