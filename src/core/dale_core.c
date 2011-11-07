@@ -266,7 +266,7 @@ fd_core_create_messenger( CoreDale *core )
      D_ASSERT( core->shared->messenger_pool != NULL );
 
      /* Create a new object in the messenger pool. */
-     return (CoreMessenger*) fusion_object_create( core->shared->messenger_pool, core->world );
+     return (CoreMessenger*) fusion_object_create( core->shared->messenger_pool, core->world, 0 );
 }
 
 CoreMessengerPort *
@@ -279,7 +279,7 @@ fd_core_create_messenger_port( CoreDale *core )
      D_ASSERT( core->shared->messenger_port_pool != NULL );
 
      /* Create a new object in the messenger port pool. */
-     return (CoreMessengerPort*) fusion_object_create( core->shared->messenger_port_pool, core->world );
+     return (CoreMessengerPort*) fusion_object_create( core->shared->messenger_port_pool, core->world, 0 );
 }
 
 /**********************************************************************************************************************/

@@ -188,7 +188,7 @@ coma_create_component( Coma           *coma,
      }
 
      /* Create component object. */
-     component = (ComaComponent*) fusion_object_create( shared->component_pool, coma->world );
+     component = (ComaComponent*) fusion_object_create( shared->component_pool, coma->world, 0 );
      if (!component) {
           fusion_skirmish_dismiss( &shared->lock );
           return DR_FUSION;
@@ -439,7 +439,7 @@ coma_get_local( Coma          *coma,
      thread = pthread_getspecific( coma->tlshm_key );
      if (!thread) {
           /* Create thread object. */
-          thread = (ComaThread*) fusion_object_create( shared->thread_pool, coma->world );
+          thread = (ComaThread*) fusion_object_create( shared->thread_pool, coma->world, 0 );
           if (!thread)
                return DR_FUSION;
 
