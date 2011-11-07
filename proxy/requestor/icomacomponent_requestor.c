@@ -228,7 +228,7 @@ IComaComponent_Requestor_Listen( IComaComponent     *thiz,
      dispatcher->func = func;
      dispatcher->ctx  = ctx;
 
-     ret = voodoo_manager_register_local( data->manager, false, dispatcher, NULL,
+     ret = voodoo_manager_register_local( data->manager, VOODOO_INSTANCE_NONE, dispatcher, NULL,
                                           Listener_Dispatch, &dispatcher->instance );
      if (ret)
           goto error;
