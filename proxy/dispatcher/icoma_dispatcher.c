@@ -90,8 +90,6 @@ IComa_Dispatcher_Destruct( IComa *thiz )
 
      D_FREE( data->name );
 
-     voodoo_manager_unregister_local( data->manager, data->self );
-
      data->real->Release( data->real );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -121,6 +119,15 @@ IComa_Dispatcher_Release( IComa *thiz )
 }
 
 /**************************************************************************************************/
+
+static DirectResult
+Dispatch_Release( IComa *thiz, IComa *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IComa_Dispatcher)
+
+     return voodoo_manager_unregister_local( manager, data->self );
+}
 
 static DirectResult
 Dispatch_GetComponent( IComa *thiz, IComa *real,
@@ -171,6 +178,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case ICOMA_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case ICOMA_METHOD_ID_GetComponent:
                return Dispatch_GetComponent( dispatcher, real, manager, msg );
      }
