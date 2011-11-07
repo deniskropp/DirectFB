@@ -72,8 +72,15 @@ send_discover_and_receive_info( VoodooLink        *link,
                                 VoodooPlayVersion *ret_version,
                                 VoodooPlayInfo    *ret_info )
 {
+     struct {
+          VoodooMessageHeader header;
+          VoodooPlayVersion   version;
+          VoodooPlayInfo      info;
+     } msg;
+
      int                 ret;
      VoodooMessageHeader header;
+     size_t              got;
 
      D_INFO( "Voodoo/Player: Sending VMSG_DISCOVER message via Voodoo TCP port...\n" );
 
@@ -99,16 +106,10 @@ send_discover_and_receive_info( VoodooLink        *link,
      D_INFO( "Voodoo/Player: New Voodoo Server with VMSG_DISCOVER support, reading version/info (SENDINFO) reply...\n" );
 
 
-     struct {
-          VoodooMessageHeader header;
-          VoodooPlayVersion   version;
-          VoodooPlayInfo      info;
-     } msg;
-
-     size_t got = 0;
+     got = 0;
 
      while (got < sizeof(msg)) {
-          ret = link->Read( link, (void*) &msg + got, sizeof(msg) - got );
+          ret = link->Read( link, (u8*) &msg + got, sizeof(msg) - got );
           if (ret < 0) {
                ret = errno2result( errno );
                D_PERROR( "Voodoo/Player: Failed to read after sending VMSG_DISCOVER message via Voodoo TCP port!\n" );
@@ -192,12 +193,25 @@ voodoo_client_create( const char     *host,
           }
      }
      else {
-          ret = voodoo_player_lookup( player, NULL, &info, buf, sizeof(buf) );
-          if (ret == DR_OK) {
-               if (info.flags & VPIF_PACKET)
-                    raw = false;
+          int bc_num  = 10;
+          int bc_wait = 4000;
 
-               hostname = buf;
+          while (bc_num--) {
+               ret = voodoo_player_lookup( player, NULL, &info, buf, sizeof(buf) );
+               if (ret == DR_OK) {
+                    if (info.flags & VPIF_PACKET)
+                         raw = false;
+
+                    hostname = buf;
+
+                    break;
+               }
+
+               voodoo_player_broadcast( player );
+
+               direct_thread_sleep( bc_wait );
+
+               bc_wait += bc_wait;
           }
      }
 
