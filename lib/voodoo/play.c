@@ -161,6 +161,7 @@ voodoo_player_create( const VoodooPlayInfo  *info,
      SOCKET                 fd;
      struct sockaddr_in  addr;
      VoodooPlayer       *player;
+     char                buf[33];
 
      D_ASSERT( ret_player != NULL );
 
@@ -247,13 +248,11 @@ voodoo_player_create( const VoodooPlayInfo  *info,
      g_VoodooPlay_info    = player->info;
 
 
-     char buf[33];
-
-     snprintf( buf, sizeof(buf), "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-               player->info.uuid[0], player->info.uuid[1], player->info.uuid[2], player->info.uuid[3], player->info.uuid[4],
-               player->info.uuid[5], player->info.uuid[6], player->info.uuid[7], player->info.uuid[8], player->info.uuid[9],
-               player->info.uuid[10], player->info.uuid[11], player->info.uuid[12], player->info.uuid[13], player->info.uuid[14],
-               player->info.uuid[15] );
+     direct_snprintf( buf, sizeof(buf), "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+                      player->info.uuid[0], player->info.uuid[1], player->info.uuid[2], player->info.uuid[3], player->info.uuid[4],
+                      player->info.uuid[5], player->info.uuid[6], player->info.uuid[7], player->info.uuid[8], player->info.uuid[9],
+                      player->info.uuid[10], player->info.uuid[11], player->info.uuid[12], player->info.uuid[13], player->info.uuid[14],
+                      player->info.uuid[15] );
 
      D_INFO( "Running player '%s' with UUID %s!\n", player->info.name, buf );
 
