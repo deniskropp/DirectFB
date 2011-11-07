@@ -3393,6 +3393,8 @@ update_single( SaWMan              *sawman,
      dfb_surface_set_stereo_eye( window->surface, right_eye ? DSSE_RIGHT : DSSE_LEFT );
      dfb_surface_set_stereo_eye( tier->region->surface, right_eye ? DSSE_RIGHT : DSSE_LEFT );
 
+     sawman_dispatch_tier_update( sawman, tier, right_eye, regions, num );
+
      for (i=0; i<num; i++) {
           DFBRectangle tmp = tier->single_src;
 
