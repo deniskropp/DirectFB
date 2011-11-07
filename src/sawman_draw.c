@@ -56,6 +56,75 @@ D_DEBUG_DOMAIN( SaWMan_Draw, "SaWMan/Draw", "SaWMan window manager drawing" );
 
 /**********************************************************************************************************************/
 
+DFBResult
+sawman_get_performance( SaWMan                 *sawman,
+                        DFBWindowStackingClass  stacking,
+                        bool                    reset,
+                        unsigned int           *ret_updates,
+                        unsigned long long     *ret_pixels,
+                        long long              *ret_duration )
+{
+     SaWManTier *tier;
+     long long   now = direct_clock_get_millis();
+
+     sawman_lock( sawman );
+
+     tier = sawman_tier_by_class( sawman, stacking );
+     if (!tier) {
+          sawman_unlock( sawman );
+          return DFB_BUG;
+     }
+
+     if (ret_updates)
+          *ret_updates = tier->performance.updates;
+
+     if (ret_pixels)
+          *ret_pixels = tier->performance.pixels;
+
+     if (ret_duration)
+          *ret_duration = now - tier->performance.stamp;
+
+     if (reset) {
+          tier->performance.stamp   = now;
+          tier->performance.updates = 0;
+          tier->performance.pixels  = 0;
+     }
+
+     sawman_unlock( sawman );
+
+     return DFB_OK;
+}
+
+void
+sawman_dispatch_tier_update( SaWMan             *sawman,
+                             SaWManTier         *tier,
+                             bool                right_eye,
+                             const DFBRegion    *updates,
+                             unsigned int        num_updates )
+{
+     SaWManListenerCallData data;
+
+     data.call        = SWMLC_TIER_UPDATE;
+     data.stereo_eye  = right_eye ? DSSE_RIGHT : DSSE_LEFT;
+     data.layer_id    = tier->layer_id;
+     data.num_updates = num_updates;
+
+     D_ASSERT( num_updates <= D_ARRAY_SIZE(data.updates) );
+
+     direct_memcpy( data.updates, updates, num_updates * sizeof(DFBRegion) );
+
+     fusion_reactor_dispatch( sawman->reactor, &data, true, NULL );
+
+     if (!right_eye) {
+          unsigned int i;
+
+          for (i=0; i<num_updates; i++)
+               tier->performance.pixels += (updates[i].x2 - updates[i].x1 + 1) * (updates[i].y2 - updates[i].y1 + 1);
+
+          tier->performance.updates++;
+     }
+}
+
 void
 sawman_dispatch_blit( SaWMan             *sawman,
                       SaWManWindow       *sawwin,

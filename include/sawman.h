@@ -380,6 +380,21 @@ DEFINE_INTERFACE(   ISaWMan,
           ISaWMan                  *thiz,
           void                     *context
      );
+
+
+   /** Performance **/
+
+     /*
+      * Read performance counters.
+      */
+     DirectResult (*GetPerformance) (
+          ISaWMan                  *thiz,
+          DFBWindowStackingClass    stacking,
+          DFBBoolean                reset,
+          unsigned int             *ret_updates,
+          unsigned long long       *ret_pixels,
+          long long                *ret_duration
+     );
 )
 
 

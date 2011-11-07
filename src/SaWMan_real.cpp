@@ -110,6 +110,31 @@ ISaWManWM_Real::RegisterProcess(
     return (DFBResult) sawman_register_process( obj, flags, pid, fusion_id, dfb_core_world(core), ret_process );
 }
 
+DFBResult
+ISaWManWM_Real::GetPerformance(
+                    DFBWindowStackingClass                     stacking,
+                    DFBBoolean                                 reset,
+                    u32                                       *ret_updates,
+                    u64                                       *ret_pixels,
+                    s64                                       *ret_duration
+)
+{
+     DFBResult          ret;
+     unsigned long long pixels;
+     long long          duration;
+
+     D_DEBUG_AT( DirectFB_SaWMan, "%s()", __FUNCTION__ );
+
+     ret = sawman_get_performance( obj, stacking, reset, ret_updates, &pixels, &duration );
+     if (ret)
+          return ret;
+
+     *ret_pixels   = pixels;
+     *ret_duration = duration;
+
+     return DFB_OK;
+}
+
 
 }
 

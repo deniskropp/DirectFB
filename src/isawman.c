@@ -242,6 +242,33 @@ ISaWMan_GetUpdates( ISaWMan                *thiz,
      return DFB_OK;
 }
 
+static DirectResult
+ISaWMan_GetPerformance( ISaWMan                *thiz,
+                        DFBWindowStackingClass  stacking,
+                        DFBBoolean              reset,
+                        unsigned int           *ret_updates,
+                        unsigned long long     *ret_pixels,
+                        long long              *ret_duration )
+{
+     DFBResult ret;
+     u64       pixels;
+     s64       duration;
+
+     DIRECT_INTERFACE_GET_DATA( ISaWMan )
+
+     ret = SaWMan_GetPerformance( data->sawman, stacking, reset, ret_updates, &pixels, &duration );
+     if (ret)
+          return ret;
+
+     if (ret_pixels)
+          *ret_pixels = pixels;
+
+     if (ret_duration)
+          *ret_duration = duration;
+
+     return DR_OK;
+}
+
 typedef struct {
      DirectLink          link;
 
@@ -372,6 +399,7 @@ ISaWMan_Construct( ISaWMan       *thiz,
      thiz->GetUpdates          = ISaWMan_GetUpdates;
      thiz->RegisterListeners   = ISaWMan_RegisterListeners;
      thiz->UnregisterListeners = ISaWMan_UnregisterListeners;
+     thiz->GetPerformance      = ISaWMan_GetPerformance;
 
      return DFB_OK;
 }

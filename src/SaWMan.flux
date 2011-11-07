@@ -71,5 +71,44 @@ interface {
                         typename    s32
                 }
         }
+
+        method {
+                name    GetPerformance
+
+                arg {
+                        name        stacking
+                        direction   input
+                        type        enum
+                        typename    DFBWindowStackingClass
+                }
+
+                arg {
+                        name        reset
+                        direction   input
+                        type        enum
+                        typename    DFBBoolean
+                }
+
+                arg {
+                        name        updates
+                        direction   output
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        pixels
+                        direction   output
+                        type        int
+                        typename    u64
+                }
+
+                arg {
+                        name        duration
+                        direction   output
+                        type        int
+                        typename    s64
+                }
+        }
 }
 

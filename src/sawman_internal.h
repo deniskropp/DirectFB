@@ -387,6 +387,12 @@ struct __SaWMan_SaWManTier {
 
      SaWManTierLR            left;
      SaWManTierLR            right;
+
+     struct {
+          long long               stamp;
+          unsigned int            updates;
+          unsigned long long      pixels;
+     } performance;
 };
 
 /*
@@ -495,6 +501,19 @@ DirectResult sawman_register_process( SaWMan                *sawman,
                                       SaWManProcess        **ret_process );
 
 /**********************************************************************************************************************/
+
+DFBResult sawman_get_performance( SaWMan                 *sawman,
+                                  DFBWindowStackingClass  clazz,
+                                  bool                    reset,
+                                  unsigned int           *ret_updates,
+                                  unsigned long long     *ret_pixels,
+                                  long long              *ret_duration );
+
+void sawman_dispatch_tier_update( SaWMan             *sawman,
+                                  SaWManTier         *tier,
+                                  bool                right_eye,
+                                  const DFBRegion    *updates,
+                                  unsigned int        num_updates );
 
 void sawman_dispatch_blit( SaWMan             *sawman,
                            SaWManWindow       *sawwin,

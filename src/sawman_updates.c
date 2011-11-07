@@ -535,20 +535,7 @@ repaint_tier( SaWMan              *sawman,
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, %p )\n", __FUNCTION__, sawman, tier );
 
-     {
-          SaWManListenerCallData data;
-
-          data.call        = SWMLC_TIER_UPDATE;
-          data.stereo_eye  = right_eye ? DSSE_RIGHT : DSSE_LEFT;
-          data.layer_id    = tier->layer_id;
-          data.num_updates = num_updates;
-
-          D_ASSERT( num_updates <= D_ARRAY_SIZE(data.updates) );
-
-          direct_memcpy( data.updates, updates, num_updates * sizeof(DFBRegion) );
-
-          fusion_reactor_dispatch( sawman->reactor, &data, true, NULL );
-     }
+     sawman_dispatch_tier_update( sawman, tier, right_eye, updates, num_updates );
 
      /* Set stereo eye */
      old_eye = dfb_surface_get_stereo_eye( surface );
