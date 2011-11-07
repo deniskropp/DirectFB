@@ -365,10 +365,12 @@ VoodooManager::handle_response( VoodooResponseMessage *msg )
 void
 VoodooManager::handle_discover( VoodooMessageHeader *header )
 {
+     DirectResult         ret;
      int                  size;
      VoodooPacket        *packet;
      VoodooMessageSerial  serial;
      VoodooMessageHeader *msg;
+     VoodooPlayer        *player;
 
      D_MAGIC_ASSERT( this, VoodooManager );
      D_ASSERT( header != NULL );
@@ -378,8 +380,15 @@ VoodooManager::handle_discover( VoodooMessageHeader *header )
      D_DEBUG( "Voodoo/Dispatch: Handling DISCOVER message %llu (%d bytes).\n",
               (unsigned long long)header->serial, header->size );
 
+     /* Get player singleton. */
+     ret = voodoo_player_create( NULL, &player );
+     if (ret) {
+          D_DERROR( ret, "Voodoo/Manager: Error creating player singleton!\n" );
+          return;
+     }
+
      /* Calculate the total message size. */
-     size = sizeof(VoodooMessageHeader) + sizeof(g_VoodooPlay_version) + sizeof(g_VoodooPlay_info);
+     size = sizeof(VoodooMessageHeader) + sizeof(VoodooPlayVersion) + sizeof(VoodooPlayInfo);
 
      /* Lock the output buffer for direct writing. */
      packet = connection->GetPacket( size );
@@ -397,10 +406,10 @@ VoodooManager::handle_discover( VoodooMessageHeader *header )
 
      /* Fill message body. */
      direct_memcpy( (u8*) packet->data_raw() + sizeof(VoodooMessageHeader),
-                    &g_VoodooPlay_version, sizeof(g_VoodooPlay_version) );
+                    &player->version, sizeof(VoodooPlayVersion) );
 
-     direct_memcpy( (u8*) packet->data_raw() + sizeof(VoodooMessageHeader) + sizeof(g_VoodooPlay_version),
-                    &g_VoodooPlay_info, sizeof(g_VoodooPlay_info) );
+     direct_memcpy( (u8*) packet->data_raw() + sizeof(VoodooMessageHeader) + sizeof(VoodooPlayVersion),
+                    &player->info, sizeof(VoodooPlayInfo) );
 
 
      D_DEBUG( "Voodoo/Manager: Sending SENDINFO message %llu (%d bytes).\n", (unsigned long long)serial, size );
