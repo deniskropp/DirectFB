@@ -79,6 +79,8 @@ IFusionDale_Requestor_Destruct( IFusionDale *thiz )
                              IFUSIONDALE_METHOD_ID_Release, VREQ_NONE, NULL,
                              VMBT_NONE );
 
+     voodoo_client_destroy( data->client );
+
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
