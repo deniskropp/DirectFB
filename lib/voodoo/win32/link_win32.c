@@ -288,27 +288,24 @@ static DirectResult
 WaitForData( VoodooLink *link,
              int         timeout_ms )
 {
-     D_UNIMPLEMENTED();
+     Link  *l = link->priv;
+     DWORD  wait_result;
 
-     return DR_UNIMPLEMENTED;
+     WSAEventSelect( l->socket, l->event, FD_READ );
 
-#if 0
-     int            ret;
-     Link          *l = link->priv;
-     struct pollfd  pfd;
+     wait_result = WSAWaitForMultipleEvents( 1, &l->event, FALSE, timeout_ms, FALSE );
+     switch (wait_result) {
+          case WSA_WAIT_EVENT_0:
+               return DR_OK;
 
-     pfd.events = POLL_IN;
-     pfd.fd     = l->fd[0];
+          case WSA_WAIT_TIMEOUT:
+               return DR_TIMEOUT;
 
-     ret = poll( &pfd, 1, 1000 );
-     if (ret < 0)
-          return errno2result( errno );
+          default:
+               D_ERROR( "Voodoo/Link: WaitForMultipleObjects() failed!\n" );
+     }
 
-     if (ret == 0)
-          return DR_TIMEOUT;
-
-     return DR_OK;
-#endif
+     return DR_FAILURE;
 }
 
 /**********************************************************************************************************************/
