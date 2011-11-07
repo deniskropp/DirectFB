@@ -44,6 +44,7 @@
 #include <coma/icoma.h>
 
 #include "icoma_dispatcher.h"
+#include "icomacomponent_dispatcher.h"
 
 static DirectResult Probe( void );
 static DirectResult Construct( IComa            *thiz,
@@ -125,12 +126,13 @@ static DirectResult
 Dispatch_GetComponent( IComa *thiz, IComa *real,
                        VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DirectResult         ret;
-     const char          *name;
-     unsigned int         timeout;
-     VoodooMessageParser  parser;
-     IComaComponent      *component;
-     VoodooInstanceID     instance;
+     DirectResult                    ret;
+     const char                     *name;
+     unsigned int                    timeout;
+     VoodooMessageParser             parser;
+     IComaComponent                 *component;
+     VoodooInstanceID                instance;
+     IComaComponent_Dispatcher_args  args;
 
      DIRECT_INTERFACE_GET_DATA(IComa_Dispatcher)
 
@@ -146,8 +148,12 @@ Dispatch_GetComponent( IComa *thiz, IComa *real,
      if (ret)
           return ret;
 
+     args.coma           = real;
+     args.manager_name   = data->name;
+     args.component_name = name;
+
      ret = voodoo_construct_dispatcher( manager, "IComaComponent",
-                                        component, data->self, real, &instance, NULL );
+                                        component, data->self, &args, &instance, NULL );
      if (ret) {
           component->Release( component );
           return ret;
@@ -194,25 +200,24 @@ Construct( IComa            *thiz,
            void             *arg,      /* Optional arguments to constructor */
            VoodooInstanceID *ret_instance )
 {
-     DirectResult     ret;
-     VoodooInstanceID instance;
+     DirectResult      ret;
+     const char       *name = arg;
+     VoodooInstanceID  instance;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IComa_Dispatcher)
 
-     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, super, thiz, real, Dispatch, &instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
      }
-
-     IComa_data *real_data = real->priv;
 
      data->ref     = 1;
      data->real    = real;
      data->super   = super;
      data->self    = instance;
      data->manager = manager;
-     data->name    = D_STRDUP( real_data->coma->name );
+     data->name    = D_STRDUP( name );
 
      thiz->AddRef  = IComa_Dispatcher_AddRef;
      thiz->Release = IComa_Dispatcher_Release;

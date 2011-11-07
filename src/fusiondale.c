@@ -137,8 +137,12 @@ FusionDaleCreate( IFusionDale **ret_interface )
      }
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
-     if (fusiondale_config->remote.host)
-          return CreateRemote( fusiondale_config->remote.host, fusiondale_config->remote.session, ret_interface );
+     if (fusiondale_config->remote.host) {
+          ret = CreateRemote( fusiondale_config->remote.host, fusiondale_config->remote.session, ret_interface );
+          if (ret == DR_OK)
+               ifusiondale_singleton = *ret_interface;
+          return ret;
+     }
 
      if (!(direct_config->quiet & DMT_BANNER) && fusiondale_config->banner) {
           direct_log_printf( NULL,
@@ -201,17 +205,32 @@ CreateRemote( const char *host, int session, IFusionDale **ret_interface )
      D_ASSERT( host != NULL );
      D_ASSERT( ret_interface != NULL );
 
-     ret = DirectGetInterface( &funcs, "IFusionDale", "Requestor", NULL, NULL );
-     if (ret)
-          return ret;
+     if (host[0] == '%') {
+          ret = DirectGetInterface( &funcs, "IFusionDale", "One", NULL, NULL );
+          if (ret)
+               return ret;
 
-     ret = funcs->Allocate( &interface_ptr );
-     if (ret)
-          return ret;
+          ret = funcs->Allocate( &interface_ptr );
+          if (ret)
+               return ret;
 
-     ret = funcs->Construct( interface_ptr, host, session );
-     if (ret)
-          return ret;
+          ret = funcs->Construct( interface_ptr, host, session );
+          if (ret)
+               return ret;
+     }
+     else {
+          ret = DirectGetInterface( &funcs, "IFusionDale", "Requestor", NULL, NULL );
+          if (ret)
+               return ret;
+
+          ret = funcs->Allocate( &interface_ptr );
+          if (ret)
+               return ret;
+
+          ret = funcs->Construct( interface_ptr, host, session );
+          if (ret)
+               return ret;
+     }
 
      *ret_interface = interface_ptr;
 

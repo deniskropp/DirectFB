@@ -39,6 +39,7 @@ typedef struct {
 
 
 DirectResult IFusionDale_Construct( IFusionDale *thiz );
+void         IFusionDale_Destruct ( IFusionDale *thiz );
 
 extern IFusionDale *ifusiondale_singleton;
 

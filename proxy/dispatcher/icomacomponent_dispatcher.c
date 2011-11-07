@@ -38,9 +38,13 @@
 #include <voodoo/manager.h>
 #include <voodoo/message.h>
 
+#include <misc/dale_config.h>
+
 #include <coma/coma.h>
 #include <coma/component.h>
 #include <coma/policy.h>
+
+#include "../../one/icoma_one.h" // FIXME
 
 #include <coma/icoma.h>
 #include <coma/icomacomponent.h>
@@ -59,6 +63,8 @@ static DirectResult Construct( IComaComponent   *thiz,
 
 DIRECT_INTERFACE_IMPLEMENTATION( IComaComponent, Dispatcher )
 
+
+D_DEBUG_DOMAIN( IComaComponent_Dispatcher, "IComaComponent/Dispatcher", "IComaComponent Dispatcher" );
 
 /**************************************************************************************************/
 
@@ -145,6 +151,8 @@ Dispatch_Call( IComaComponent *thiz, IComaComponent *real,
 
      DIRECT_INTERFACE_GET_DATA(IComaComponent_Dispatcher)
 
+     D_DEBUG_AT( IComaComponent_Dispatcher, "%s()\n", __FUNCTION__ );
+
      coma = data->coma;
 
      VOODOO_PARSER_BEGIN( parser, msg );
@@ -204,16 +212,30 @@ Listener_Request( void *ctx,
 {
      DirectResult        ret;
      Listener_Requestor *requestor = ctx;
-     IComa_data         *coma_data;
      int                 size;
 
-     coma_data = (IComa_data *) requestor->coma->priv;
+     D_DEBUG_AT( IComaComponent_Dispatcher, "%s()\n", __FUNCTION__ );
 
-     ret = coma_allocation_size( coma_data->coma, arg, &size );
-     if (ret) {
-          D_DERROR( ret, "IComaComponent_Dispatcher/Listener_Request: Could not lookup allocation size!\n" );
-          return;
+     if (fusiondale_config->remote.host) {
+          unsigned int length;
+
+          ret = ComaTLS_GetNotificationLength( requestor->coma, &length );
+          if (ret)
+               return;
+
+          size = length;
      }
+     else {
+          IComa_data *coma_data = (IComa_data *) requestor->coma->priv;
+
+          ret = coma_allocation_size( coma_data->coma, arg, &size );
+          if (ret) {
+               D_DERROR( ret, "IComaComponent_Dispatcher/Listener_Request: Could not lookup allocation size!\n" );
+               return;
+          }
+     }
+
+     D_DEBUG_AT( IComaComponent_Dispatcher, "  -> size %d\n", size );
 
      ret = voodoo_manager_request( requestor->manager, requestor->instance, 0, VREQ_NONE, NULL,
                                    VMBT_DATA, size, arg,
@@ -233,6 +255,8 @@ Dispatch_Listen( IComaComponent *thiz, IComaComponent *real,
      Listener_Requestor  *requestor;
 
      DIRECT_INTERFACE_GET_DATA(IComaComponent_Dispatcher)
+
+     D_DEBUG_AT( IComaComponent_Dispatcher, "%s()\n", __FUNCTION__ );
 
      VOODOO_PARSER_BEGIN( parser, msg );
      VOODOO_PARSER_GET_UINT( parser, notification );
@@ -273,6 +297,8 @@ Dispatch_Unlisten( IComaComponent *thiz, IComaComponent *real,
      Listener_Requestor  *requestor;
 
      DIRECT_INTERFACE_GET_DATA(IComaComponent_Dispatcher)
+
+     D_DEBUG_AT( IComaComponent_Dispatcher, "%s()\n", __FUNCTION__ );
 
      VOODOO_PARSER_BEGIN( parser, msg );
      VOODOO_PARSER_GET_UINT( parser, notification );
@@ -341,28 +367,27 @@ Construct( IComaComponent   *thiz,
            void             *arg,      /* Optional arguments to constructor */
            VoodooInstanceID *ret_instance )
 {
-     DirectResult     ret;
-     VoodooInstanceID instance;
+     DirectResult                    ret;
+     VoodooInstanceID                instance;
+     IComaComponent_Dispatcher_args *args = arg;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IComaComponent_Dispatcher)
 
-     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, super, thiz, real, Dispatch, &instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
      }
-
-     IComaComponent_data *real_data = real->priv;
 
      data->ref     = 1;
      data->real    = real;
      data->super   = super;
      data->self    = instance;
      data->manager = manager;
-     data->coma    = arg;
+     data->coma    = args->coma;
 
-     data->coma_name      = D_STRDUP( real_data->coma->name );
-     data->component_name = D_STRDUP( real_data->component->name );
+     data->coma_name      = D_STRDUP( args->manager_name );
+     data->component_name = D_STRDUP( args->component_name );
 
      ret = direct_hash_create( 17, &data->listeners );
      if (ret) {

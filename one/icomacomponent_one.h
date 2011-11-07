@@ -26,28 +26,44 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __ICOMACOMPONENT_DISPATCHER_H__
-#define __ICOMACOMPONENT_DISPATCHER_H__
+#ifndef __ICOMACOMPONENT_ONE_H__
+#define __ICOMACOMPONENT_ONE_H__
 
-#define ICOMACOMPONENT_METHOD_ID_AddRef                1
-#define ICOMACOMPONENT_METHOD_ID_Release               2
-#define ICOMACOMPONENT_METHOD_ID_InitNotification      3
-#define ICOMACOMPONENT_METHOD_ID_InitNotifications     4
-#define ICOMACOMPONENT_METHOD_ID_Call                  5
-#define ICOMACOMPONENT_METHOD_ID_Return                6
-#define ICOMACOMPONENT_METHOD_ID_Notify                7
-#define ICOMACOMPONENT_METHOD_ID_Listen                8
-#define ICOMACOMPONENT_METHOD_ID_InitListeners         9
-#define ICOMACOMPONENT_METHOD_ID_Unlisten             10
-#define ICOMACOMPONENT_METHOD_ID_Activate             11
+#include <One/One.h>
+
+#include <direct/thread.h>
+
+
+typedef enum {
+     COMA_COMPONENT_CALL = 1,
+} ComaComponentRequestType;
 
 
 typedef struct {
-     IComa      *coma;
-     const char *manager_name;
-     const char *component_name;
-} IComaComponent_Dispatcher_args;
+     OneQID               response_qid;
 
+     ComaMethodID         method_id;
+
+     unsigned int         length;
+
+     /* data follows */
+} ComaComponentCallRequest;
+
+typedef struct {
+     DirectResult         result;
+
+     int                  ret_val;
+
+     /* data follows */
+} ComaComponentCallResponse;
+
+
+
+
+
+typedef union {
+     ComaComponentCallRequest      call;
+} ComaComponentRequestUnion;
 
 #endif
 

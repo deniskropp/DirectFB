@@ -146,7 +146,7 @@ Dispatch_EnterComa( IFusionDale *thiz, IFusionDale *real,
           return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IComa",
-                                        coma, data->self, NULL, &instance, NULL );
+                                        coma, data->self, name, &instance, NULL );
      if (ret) {
           coma->Release( coma );
           return ret;
@@ -202,7 +202,7 @@ Construct( IFusionDale *thiz, VoodooManager *manager, VoodooInstanceID *ret_inst
           return ret;
      }
 
-     ret = voodoo_manager_register_local( manager, true, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, thiz, real, Dispatch, &instance );
      if (ret) {
           real->Release( real );
           DIRECT_DEALLOCATE_INTERFACE( thiz );

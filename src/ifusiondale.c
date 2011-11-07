@@ -44,7 +44,7 @@
 
 
 
-static void
+void
 IFusionDale_Destruct( IFusionDale *thiz )
 {
      IFusionDale_data *data = (IFusionDale_data*)thiz->priv;
