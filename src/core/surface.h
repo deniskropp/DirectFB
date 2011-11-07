@@ -325,7 +325,7 @@ DFBResult dfb_surface_set_alpha_ramp( CoreSurface                  *surface,
                                       u8                            a3 );
 
 
-static inline DirectResult
+static __inline__ DirectResult
 dfb_surface_lock( CoreSurface *surface )
 {
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -333,7 +333,7 @@ dfb_surface_lock( CoreSurface *surface )
      return fusion_skirmish_prevail( &surface->lock );
 }
 
-static inline DirectResult
+static __inline__ DirectResult
 dfb_surface_trylock( CoreSurface *surface )
 {
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -341,7 +341,7 @@ dfb_surface_trylock( CoreSurface *surface )
      return fusion_skirmish_swoop( &surface->lock );
 }
 
-static inline DirectResult
+static __inline__ DirectResult
 dfb_surface_unlock( CoreSurface *surface )
 {
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -349,7 +349,7 @@ dfb_surface_unlock( CoreSurface *surface )
      return fusion_skirmish_dismiss( &surface->lock );
 }
 
-static inline CoreSurfaceBuffer *
+static __inline__ CoreSurfaceBuffer *
 dfb_surface_get_buffer( CoreSurface           *surface,
                         CoreSurfaceBufferRole  role )
 {
@@ -361,7 +361,7 @@ dfb_surface_get_buffer( CoreSurface           *surface,
      return surface->buffers[ surface->buffer_indices[(surface->flips + role) % surface->num_buffers] ];
 }
 
-static inline void *
+static __inline__ void *
 dfb_surface_data_offset( const CoreSurface *surface,
                          void              *data,
                          int                pitch,
@@ -386,7 +386,7 @@ dfb_surface_data_offset( const CoreSurface *surface,
      return (u8*)data + pitch * y + DFB_BYTES_PER_LINE( surface->config.format, x );
 }
 
-static inline void
+static __inline__ void
 dfb_surface_calc_buffer_size( CoreSurface *surface,
                               int          byte_align,
                               int          pixel_align,
@@ -411,7 +411,7 @@ dfb_surface_calc_buffer_size( CoreSurface *surface,
           *ret_size = pitch * DFB_PLANE_MULTIPLY( format, surface->config.size.h );
 }
 
-static inline void
+static __inline__ void
 dfb_surface_caps_apply_policy( CoreSurfacePolicy       policy,
                                DFBSurfaceCapabilities *caps )
 {
@@ -430,7 +430,7 @@ dfb_surface_caps_apply_policy( CoreSurfacePolicy       policy,
      }
 }
 
-static inline DFBResult
+static __inline__ DFBResult
 dfb_surface_resize( CoreSurface *surface,
                     int          width,
                     int          height )
@@ -448,7 +448,7 @@ dfb_surface_resize( CoreSurface *surface,
      return dfb_surface_reconfig( surface, &config );
 }
 
-static inline DFBResult
+static __inline__ DFBResult
 dfb_surface_reformat( CoreSurface           *surface,
                       int                    width,
                       int                    height,
@@ -477,7 +477,7 @@ typedef enum {
      DFB_WINDOWSTACK_BACKGROUND_IMAGE_LISTENER
 } DFB_SURFACE_GLOBALS;
 
-static inline void 
+static __inline__ void 
 dfb_surface_set_stereo_eye( CoreSurface          *surface,
                             DFBSurfaceStereoEye   eye )
 {
@@ -491,7 +491,7 @@ dfb_surface_set_stereo_eye( CoreSurface          *surface,
           surface->buffers = surface->right_buffers;
 }
 
-static inline  DFBSurfaceStereoEye
+static __inline__ DFBSurfaceStereoEye
 dfb_surface_get_stereo_eye( CoreSurface *surface )
 {
      D_ASSERT( surface != NULL );
