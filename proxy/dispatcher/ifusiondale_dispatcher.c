@@ -74,13 +74,9 @@ typedef struct {
 static void
 IFusionDale_Dispatcher_Destruct( IFusionDale *thiz )
 {
-     IFusionDale_Dispatcher_data *data;
+     IFusionDale_Dispatcher_data *data = thiz->priv;
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
-
-     data = thiz->priv;
-
-     voodoo_manager_unregister_local( data->manager, data->self );
 
      data->real->Release( data->real );
 
@@ -121,6 +117,15 @@ IFusionDale_Dispatcher_EnterComa( IFusionDale  *thiz,
 }
 
 /**************************************************************************************************/
+
+static DirectResult
+Dispatch_Release( IFusionDale *thiz, IFusionDale *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionDale_Dispatcher)
+
+     return voodoo_manager_unregister_local( manager, data->self );
+}
 
 static DirectResult
 Dispatch_EnterComa( IFusionDale *thiz, IFusionDale *real,
@@ -164,6 +169,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IFUSIONDALE_METHOD_ID_Release:
+               return Dispatch_Release( dispatcher, real, manager, msg );
+
           case IFUSIONDALE_METHOD_ID_EnterComa:
                return Dispatch_EnterComa( dispatcher, real, manager, msg );
      }
