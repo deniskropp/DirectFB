@@ -52,12 +52,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;DIVINE_EXPORTS;_DEBUG;_WINDOWS;_USRDLL;DIVINE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>P:\DirectFBWin32\src;P:\DirectFBWin32\Win32\DiVine\proxy\dispatcher;P:\DirectFBWin32\Win32\DiVine\lib;P:\DirectFBWin32\Win32;P:\DirectFBWin32\Win32\DiVine\include;P:\DirectFBWin32\lib;P:\DirectFBWin32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\DirectFB\src;F:\DirectFB\Win32\DiVine\proxy\dispatcher;F:\DirectFB\Win32\DiVine\lib;F:\DirectFB\Win32;F:\DirectFB\Win32\DiVine\include;F:\DirectFB\lib;F:\DirectFB\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>P:\DirectFBWin32\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>F:\DirectFB\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libdirectfb.lib;libvoodoo.lib;libfusion.lib;libdirect.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -70,14 +70,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;DIVINE_EXPORTS;NDEBUG;_WINDOWS;_USRDLL;DIVINE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>P:\DirectFBWin32\src;P:\DirectFBWin32\Win32\DiVine\proxy\dispatcher;P:\DirectFBWin32\Win32\DiVine\lib;P:\DirectFBWin32\Win32;P:\DirectFBWin32\Win32\DiVine\include;P:\DirectFBWin32\lib;P:\DirectFBWin32\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>F:\DirectFB\src;F:\DirectFB\Win32\DiVine\proxy\dispatcher;F:\DirectFB\Win32\DiVine\lib;F:\DirectFB\Win32;F:\DirectFB\Win32\DiVine\include;F:\DirectFB\lib;F:\DirectFB\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>P:\DirectFBWin32\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>F:\DirectFB\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libdirectfb.lib;libvoodoo.lib;libfusion.lib;libdirect.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
