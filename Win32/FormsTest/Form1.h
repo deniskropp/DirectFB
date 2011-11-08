@@ -3,8 +3,6 @@
 
 extern "C" {
 #include <directfb.h>
-#include <divine.h>
-#include <fusiondale.h>
 
 #include <direct/thread.h>
 
@@ -241,16 +239,11 @@ namespace FormsTest {
 			if (!surface) {
 				 DFBResult    ret;
 				 IDirectFB   *dfb;
-				 IDiVine     *divine;
-				 IFusionDale *dale;
 
 				 DirectFBInit( NULL, NULL );
-				 DiVineInit( NULL, NULL );
-				 FusionDaleInit( NULL, NULL );
 
 				 IntPtr str = Marshal::StringToHGlobalAnsi( player_list->GetItemText( player_list->SelectedItem ) );
 				 DirectFBSetOption( "remote", (char*) str.ToPointer() );
-				 FusionDaleSetOption( "remote", (char*) str.ToPointer() );
 				 Marshal::FreeHGlobal( str );
 
 				 ret = DirectFBCreate( &dfb );
@@ -258,19 +251,6 @@ namespace FormsTest {
 					 addressTextLine->Text = gcnew String(DirectFBErrorString(ret));
 					 return;
 				 }
-
-				 ret = DiVineCreate( &divine );
-				 if (ret) {
-					 addressTextLine->Text = gcnew String(DirectFBErrorString(ret));
-					 return;
-				 }
-
-				 ret = (DFBResult) FusionDaleCreate( &dale );
-				 if (ret) {
-					 addressTextLine->Text = gcnew String(FusionDaleErrorString((DirectResult)ret));
-					 return;
-				 }
-
 
 				 IDirectFBSurface *s = NULL;
 				 DFBSurfaceDescription desc;
