@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{4C78FA21-D818-4815-A42F-F69BEEFEE5B2}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>FusionDale</RootNamespace>
+    <RootNamespace>libfusiondale</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -52,12 +52,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;FUSIONDALE_EXPORTS;SYSCONFDIR="c:\\";_DEBUG;_WINDOWS;_USRDLL;FUSIONDALE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>F:\DirectFB\Win32\FusionDale\proxy\dispatcher;F:\DirectFB\Win32\FusionDale\src;F:\DirectFB\Win32\FusionDale\include;F:\DirectFB\Win32;F:\DirectFB\include;F:\DirectFB\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\proxy\dispatcher;..\..\src;..\..\include;..\..\..\DirectFB\Win32;..\..\..\DirectFB\include;..\..\..\DirectFB\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>F:\DirectFB\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libdirect.lib;libfusion.lib;libvoodoo.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -70,28 +70,28 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;FUSIONDALE_EXPORTS;SYSCONFDIR="c:\\";NDEBUG;_WINDOWS;_USRDLL;FUSIONDALE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>F:\DirectFB\Win32\FusionDale\proxy\dispatcher;F:\DirectFB\Win32\FusionDale\src;F:\DirectFB\Win32\FusionDale\include;F:\DirectFB\Win32;F:\DirectFB\include;F:\DirectFB\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\proxy\dispatcher;..\..\src;..\..\include;..\..\..\DirectFB\Win32;..\..\..\DirectFB\include;..\..\..\DirectFB\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>F:\DirectFB\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libdirect.lib;libfusion.lib;libvoodoo.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\fusiondale.h" />
-    <ClInclude Include="include\fusiondale_util.h" />
+    <ClInclude Include="..\..\include\fusiondale.h" />
+    <ClInclude Include="..\..\include\fusiondale_util.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.c" />
-    <ClCompile Include="proxy\requestor\icomacomponent_requestor.c" />
-    <ClCompile Include="proxy\requestor\icoma_requestor.c" />
-    <ClCompile Include="proxy\requestor\ifusiondale_requestor.c" />
-    <ClCompile Include="src\fusiondale.c" />
-    <ClCompile Include="src\misc\dale_config.c" />
+    <ClCompile Include="..\..\proxy\requestor\icomacomponent_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\icoma_requestor.c" />
+    <ClCompile Include="..\..\proxy\requestor\ifusiondale_requestor.c" />
+    <ClCompile Include="..\..\src\fusiondale.c" />
+    <ClCompile Include="..\..\src\misc\dale_config.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
