@@ -98,7 +98,7 @@
     <ClCompile Include="..\..\proxy\requestor\idirectfbwindow_requestor.c" />
     <ClCompile Include="..\..\proxy\requestor\idirectfb_requestor.c" />
     <ClCompile Include="..\..\src\directfb.c" />
-    <ClCompile Include="..\..\src\directfb_result.c" />
+    <ClCompile Include="directfb_result.c" />
     <ClCompile Include="..\..\src\init.c" />
     <ClCompile Include="..\..\src\input\idirectfbinputbuffer.c" />
     <ClCompile Include="..\..\src\media\idirectfbdatabuffer.c" />

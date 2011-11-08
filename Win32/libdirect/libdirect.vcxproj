@@ -136,7 +136,7 @@
     <ClCompile Include="..\..\lib\direct\conf.c" />
     <ClCompile Include="..\..\lib\direct\debug.c" />
     <ClCompile Include="..\..\lib\direct\direct.c" />
-    <ClCompile Include="..\..\lib\direct\direct_result.c" />
+    <ClCompile Include="direct_result.c" />
     <ClCompile Include="..\..\lib\direct\fastlz.c" />
     <ClCompile Include="..\..\lib\direct\flz.c" />
     <ClCompile Include="..\..\lib\direct\hash.c" />
