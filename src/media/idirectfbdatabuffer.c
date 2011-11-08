@@ -50,7 +50,9 @@
 #include <media/idirectfbimageprovider.h>
 #include <media/idirectfbvideoprovider.h>
 
+#if !DIRECTFB_BUILD_PURE_VOODOO
 #include <media/DataBuffer.h>
+#endif
 
 
 void
