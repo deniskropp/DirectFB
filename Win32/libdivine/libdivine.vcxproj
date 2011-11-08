@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8FD788EF-058C-4D49-92B5-3A66A7ABBBCB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>DiVine</RootNamespace>
+    <RootNamespace>libdivine</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -52,12 +52,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;DIVINE_EXPORTS;_DEBUG;_WINDOWS;_USRDLL;DIVINE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>F:\DirectFB\src;F:\DirectFB\Win32\DiVine\proxy\dispatcher;F:\DirectFB\Win32\DiVine\lib;F:\DirectFB\Win32;F:\DirectFB\Win32\DiVine\include;F:\DirectFB\lib;F:\DirectFB\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\DirectFB\src;..\..\proxy\dispatcher;..\..\lib;..\..\..\DirectFB\Win32;..\..\include;..\..\..\DirectFB\lib;..\..\..\DirectFB\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>F:\DirectFB\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libdirectfb.lib;libvoodoo.lib;libfusion.lib;libdirect.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -70,22 +70,22 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;DIVINE_EXPORTS;NDEBUG;_WINDOWS;_USRDLL;DIVINE_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>F:\DirectFB\src;F:\DirectFB\Win32\DiVine\proxy\dispatcher;F:\DirectFB\Win32\DiVine\lib;F:\DirectFB\Win32;F:\DirectFB\Win32\DiVine\include;F:\DirectFB\lib;F:\DirectFB\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\DirectFB\src;..\..\proxy\dispatcher;..\..\lib;..\..\..\DirectFB\Win32;..\..\include;..\..\..\DirectFB\lib;..\..\..\DirectFB\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>F:\DirectFB\Win32\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\..\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libdirectfb.lib;libvoodoo.lib;libfusion.lib;libdirect.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.c" />
-    <ClCompile Include="lib\divine.c" />
-    <ClCompile Include="proxy\dispatcher\idivine_dispatcher.c" />
-    <ClCompile Include="proxy\requestor\idivine_requestor.c" />
+    <ClCompile Include="..\..\lib\divine.c" />
+    <ClCompile Include="..\..\proxy\dispatcher\idivine_dispatcher.c" />
+    <ClCompile Include="..\..\proxy\requestor\idivine_requestor.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
