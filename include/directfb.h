@@ -2606,6 +2606,8 @@ typedef struct {
      DFBScreenOutputResolution     all_resolutions;    /* Supported Resolutions*/
 
      char name[DFB_SCREEN_ENCODER_DESC_NAME_LENGTH];   /* Encoder name */
+
+     DFBScreenEncoderPictureFraming all_framing;       /* Supported HDMI signaling modes */
 } DFBScreenEncoderDescription;
 
 /*
