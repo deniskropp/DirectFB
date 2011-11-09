@@ -380,7 +380,7 @@ voodoo_player_lookup_by_address( VoodooPlayer   *player,
      direct_mutex_lock( &player->lock );
 
      direct_list_foreach (node, player->nodes) {
-          if (!addr || !strcmp( node->addr, addr )) {
+          if (!addr || !addr[0] || !strcmp( node->addr, addr )) {
                direct_memcpy( ret_info, &node->info, sizeof(VoodooPlayInfo) );
 
                direct_mutex_unlock( &player->lock );

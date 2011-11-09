@@ -136,6 +136,38 @@ send_discover_and_receive_info( VoodooLink        *link,
 
 /**********************************************************************************************************************/
 
+static DirectResult
+discover_host( VoodooPlayer   *player,
+               const char     *address,
+               VoodooPlayInfo *ret_info,
+               char           *ret_addr,
+               int             max_addr )
+{
+     DirectResult ret;
+     int          bc_num  = 5;
+     int          bc_wait = 30000;
+
+     voodoo_player_broadcast( player );
+
+     while (bc_num--) {
+          direct_thread_sleep( bc_wait );
+
+          bc_wait += bc_wait;
+
+          if (address)
+               ret = voodoo_player_lookup_by_address( player, address, ret_info );
+          else
+               ret = voodoo_player_lookup( player, NULL, ret_info, ret_addr, max_addr );
+
+          if (ret == DR_OK)
+               break;
+
+          voodoo_player_broadcast( player );
+     }
+
+     return ret;
+}
+
 DirectResult
 voodoo_client_create( const char     *host,
                       int             port,
@@ -177,13 +209,18 @@ voodoo_client_create( const char     *host,
           }
      }
 
-
+     /*
+      * Get the player singleton
+      */
      ret = voodoo_player_create( NULL, &player );
      if (ret) {
           D_DERROR( ret, "Voodoo/Client: Could not create the player!\n" );
           return ret;
      }
 
+     /*
+      * If we got a hostname or address try to lookup the player info
+      */
      // FIXME: resolve first, not late in voodoo_link_init_connect
      if (hostname && hostname[0]) {
           ret = voodoo_player_lookup_by_address( player, hostname, &info );
@@ -193,29 +230,17 @@ voodoo_client_create( const char     *host,
           }
      }
      else {
-          int bc_num  = 10;
-          int bc_wait = 4000;
+          /*
+           * Start discovery and use first host visible
+           */
+          ret = discover_host( player, NULL, &info, buf, sizeof(buf) );
+          if (ret == DR_OK) {
+               if (info.flags & VPIF_PACKET)
+                    raw = false;
 
-          while (bc_num--) {
-               ret = voodoo_player_lookup( player, NULL, &info, buf, sizeof(buf) );
-               if (ret == DR_OK) {
-                    if (info.flags & VPIF_PACKET)
-                         raw = false;
-
-                    hostname = buf;
-
-                    break;
-               }
-
-               voodoo_player_broadcast( player );
-
-               direct_thread_sleep( bc_wait );
-
-               bc_wait += bc_wait;
+               hostname = buf;
           }
      }
-
-     voodoo_player_destroy( player );
 
      if (!hostname || !hostname[0]) {
           D_ERROR( "Voodoo/Client: Did not find any other player!\n" );
@@ -242,44 +267,59 @@ voodoo_client_create( const char     *host,
      D_INFO( "Voodoo/Client: Fetching player information...\n" );
 
      if (raw) {     // FIXME: send_discover_and_receive_info() only does RAW, but we don't need it for packet connection, yet
-          VoodooPlayVersion server_version;
-          VoodooPlayInfo    server_info;
+          VoodooPlayVersion version;
+          VoodooPlayInfo    info;
 
-          ret = send_discover_and_receive_info( &client->vl, &server_version, &server_info );
+          ret = send_discover_and_receive_info( &client->vl, &version, &info );
           if (ret) {
                D_DEBUG_AT( Voodoo_Client, "  -> Failed to receive player info via TCP!\n" );
 
-               D_INFO( "Voodoo/Client: No player information from '%s'!\n", host );
+               D_INFO( "Voodoo/Client: No player information from '%s', trying to discover via UDP!\n", host );
+
+               /*
+                * Fallback to UDP discovery
+                */
+               ret = discover_host( player, hostname, &info, buf, sizeof(buf) );
+               if (ret == DR_OK) {
+                    if (info.flags & VPIF_PACKET)
+                         raw = false;
+               }
           }
           else {
                D_INFO( "Voodoo/Client: Connected to '%s' (%-15s) %s "
                        "=%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x= "
                        "(vendor: %s, model: %s)\n",
-                       server_info.name, host,
-                       (server_info.flags & VPIF_LEVEL2) ? "*" : " ",
-                       server_info.uuid[0], server_info.uuid[1], server_info.uuid[2], server_info.uuid[3], server_info.uuid[4],
-                       server_info.uuid[5], server_info.uuid[6], server_info.uuid[7], server_info.uuid[8], server_info.uuid[9],
-                       server_info.uuid[10], server_info.uuid[11], server_info.uuid[12], server_info.uuid[13], server_info.uuid[14],
-                       server_info.uuid[15],
-                       server_info.vendor, server_info.model );
+                       info.name, host,
+                       (info.flags & VPIF_LEVEL2) ? "*" : " ",
+                       info.uuid[0], info.uuid[1], info.uuid[2], info.uuid[3], info.uuid[4],
+                       info.uuid[5], info.uuid[6], info.uuid[7], info.uuid[8], info.uuid[9],
+                       info.uuid[10], info.uuid[11], info.uuid[12], info.uuid[13], info.uuid[14],
+                       info.uuid[15],
+                       info.vendor, info.model );
 
                if (raw && !voodoo_config->link_raw) {
                     /*
                      * Switch to packet mode?
                      */
-                    if (server_info.flags & VPIF_PACKET) {
-                         D_INFO( "Voodoo/Client: Switching to packet mode!\n" );
+                    if (info.flags & VPIF_PACKET)
+                         raw = false;
+               }
+          }
 
-                         client->vl.Close( &client->vl );
+          /*
+           * Switch to packet mode?
+           */
+          if (!raw) {
+               D_INFO( "Voodoo/Client: Switching to packet mode!\n" );
 
-                         /* Create another link to the other player. */
-                         ret = voodoo_link_init_connect( &client->vl, hostname, port, false );
-                         if (ret) {
-                              D_DERROR( ret, "Voodoo/Client: Failed to initialize second Voodoo Link!\n" );
-                              D_FREE( client );
-                              return ret;
-                         }
-                    }
+               client->vl.Close( &client->vl );
+
+               /* Create another link to the other player. */
+               ret = voodoo_link_init_connect( &client->vl, hostname, port, false );
+               if (ret) {
+                    D_DERROR( ret, "Voodoo/Client: Failed to initialize second Voodoo Link!\n" );
+                    D_FREE( client );
+                    return ret;
                }
           }
      }
