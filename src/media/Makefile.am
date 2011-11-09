@@ -32,19 +32,19 @@ NON_PURE_VOODOO_SOURCESs = \
 	idirectfbimageprovider.c	\
 	idirectfbimageprovider_client.c	\
 	idirectfbvideoprovider.c	\
-	DataBuffer.cpp			\
+	DataBuffer.c			\
 	DataBuffer.h			\
 	DataBuffer_includes.h		\
-	DataBuffer_real.cpp		\
-	ImageProvider.cpp		\
+	DataBuffer_real.c		\
+	ImageProvider.c			\
 	ImageProvider.h			\
 	ImageProvider_includes.h	\
-	ImageProvider_real.cpp
+	ImageProvider_real.c
 endif
 
 distclean-local::
-	rm -f DataBuffer.cpp DataBuffer.h
-	rm -f ImageProvider.cpp ImageProvider.h
+	rm -f DataBuffer.c DataBuffer.h
+	rm -f ImageProvider.c ImageProvider.h
 
 libdirectfb_media_la_SOURCES = \
 	$(NON_PURE_VOODOO_SOURCESs)	\
