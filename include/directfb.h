@@ -2591,6 +2591,43 @@ typedef enum {
      DSEF_23_976HZ       = 0x00000100, /* 23.976 Hz Output. */
 } DFBScreenEncoderFrequency;
 
+/*
+ * Encoder picture delivery method.
+ * See HDMI Specification 1.4a - Extraction of 3D signaling portion for more details
+ */
+typedef enum {
+     DSEPF_UNKNOWN                      = 0,
+     DSEPF_MONO                         = 0x00000001,  /* Normal output to non-stereoscopic (3D) TV. No
+                                                          L/R content provided to TV. Frame is output on
+                                                          each vsync. */
+     DSEPF_STEREO_SIDE_BY_SIDE_HALF     = 0x00000002,  /* L/R frames are downscaled horizontally by 2 and
+                                                          packed side-by-side into a single frame, left on left
+                                                          half of frame. The packed frame is output on each
+                                                          vsync. Some stereoscopic TV's support this mode
+                                                          using HDMI v1.3 and a special menu configuration. */
+     DSEPF_STEREO_TOP_AND_BOTTOM        = 0x00000004,  /* L/R frames are downscaled vertically by 2 and
+                                                          packed into a single frame, left on top. The packed
+                                                          frame is output on each vsync. Some stereoscopic TV's
+                                                          support this mode using HDMI v1.3 and a special
+                                                          menu configuration. */
+     DSEPF_STEREO_FRAME_PACKING         = 0x00000008,  /* Full resolution L/R frames or fields are delivered sequentially
+                                                          to the TV, alternating left & right with an active
+                                                          space between each video frame. Vsync occurs
+                                                          after each sequence of: vblank, left eye video frame,
+                                                          active space, right eye video frame. Requires HDMI v1.4a. */
+
+     DSEPF_STEREO_SIDE_BY_SIDE_FULL     = 0x00000010,  /* L/R frames are packed side-by-side into a double width
+                                                          single frame, left on left half of frame. The packed
+                                                          frame is output on each vsync. Requires HDMI v1.4a. */
+     DSEPF_ALL                          = 0x0000001f
+} DFBScreenEncoderPictureFraming;
+
+#ifndef DIRECTFB_DISABLE_DEPRECATED
+#define DSEPF_STEREO_PACKED_HORIZ  DSEPF_STEREO_SIDE_BY_SIDE_HALF
+#define DSEPF_STEREO_PACKED_VERT   DSEPF_STEREO_TOP_AND_BOTTOM
+#define DSEPF_STEREO_SEQUENTIAL    DSEPF_STEREO_FRAME_PACKING
+#endif
+
 #define DFB_SCREEN_ENCODER_DESC_NAME_LENGTH    24
 
 /*
@@ -2652,43 +2689,6 @@ typedef enum {
      DSETP_BLUE     = 0x00000070,  /* Whole screen (00, 00, ff). */
      DSETP_BLACK    = 0x00000080   /* Whole screen (00, 00, 00). */
 } DFBScreenEncoderTestPicture;
-
-/*
- * Encoder picture delivery method.
- * See HDMI Specification 1.4a - Extraction of 3D signaling portion for more details
- */
-typedef enum {
-     DSEPF_UNKNOWN                      = 0,
-     DSEPF_MONO                         = 0x00000001,  /* Normal output to non-stereoscopic (3D) TV. No
-                                                          L/R content provided to TV. Frame is output on
-                                                          each vsync. */
-     DSEPF_STEREO_SIDE_BY_SIDE_HALF     = 0x00000002,  /* L/R frames are downscaled horizontally by 2 and
-                                                          packed side-by-side into a single frame, left on left
-                                                          half of frame. The packed frame is output on each
-                                                          vsync. Some stereoscopic TV's support this mode
-                                                          using HDMI v1.3 and a special menu configuration. */
-     DSEPF_STEREO_TOP_AND_BOTTOM        = 0x00000004,  /* L/R frames are downscaled vertically by 2 and
-                                                          packed into a single frame, left on top. The packed
-                                                          frame is output on each vsync. Some stereoscopic TV's
-                                                          support this mode using HDMI v1.3 and a special
-                                                          menu configuration. */
-     DSEPF_STEREO_FRAME_PACKING         = 0x00000008,  /* Full resolution L/R frames or fields are delivered sequentially
-                                                          to the TV, alternating left & right with an active
-                                                          space between each video frame. Vsync occurs
-                                                          after each sequence of: vblank, left eye video frame,
-                                                          active space, right eye video frame. Requires HDMI v1.4a. */
-
-     DSEPF_STEREO_SIDE_BY_SIDE_FULL     = 0x00000010,  /* L/R frames are packed side-by-side into a double width
-                                                          single frame, left on left half of frame. The packed
-                                                          frame is output on each vsync. Requires HDMI v1.4a. */
-     DSEPF_ALL                          = 0x0000001f
-} DFBScreenEncoderPictureFraming;
-
-#ifndef DIRECTFB_DISABLE_DEPRECATED
-#define DSEPF_STEREO_PACKED_HORIZ  DSEPF_STEREO_SIDE_BY_SIDE_HALF
-#define DSEPF_STEREO_PACKED_VERT   DSEPF_STEREO_TOP_AND_BOTTOM
-#define DSEPF_STEREO_SEQUENTIAL    DSEPF_STEREO_FRAME_PACKING
-#endif
 
 
 /*
