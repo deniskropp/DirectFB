@@ -60,5 +60,33 @@ typedef struct {
 
 
 
+
+/*
+
+  New QID for global messaging
+
+
+  16-byte
+
+  2 byte  reserved
+  2 byte  name space
+  8 byte  system within name space (one kernel module instance for example)
+  4 byte  queue id within system
+
+
+  Public name space "MAC" with system IDs
+
+  6 byte  MAC address
+  2 byte  sub address (e.g. multiple systems on a board with one ethernet connection)
+
+
+  Public name space "random" ??
+
+  8 byte  random
+
+
+  Private name spaces could be defined, e.g. for systems without a MAC address.
+*/
+
 #endif
 
