@@ -3504,9 +3504,6 @@ dfb_gfxcard_calc_buffer_size( CoreGraphicsDevice *device,
      length = DFB_PLANE_MULTIPLY( buffer->format,
                                   MAX( surface->config.size.h, surface->config.min_size.h ) * pitch );
 
-     /* Add extra space for optimized routines which are now allowed to overrun, e.g. prefetching. */
-     length += 16;
-
      if (device->limits.surface_byteoffset_alignment > 1) {
           length += device->limits.surface_byteoffset_alignment - 1;
           length -= length % device->limits.surface_byteoffset_alignment;
