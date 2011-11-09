@@ -867,7 +867,7 @@ IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     return CoreWindow_Restack( data->window, NULL, -1 );
+     return CoreWindow_Restack( data->window, NULL, 0 );
 }
 
 static DFBResult
