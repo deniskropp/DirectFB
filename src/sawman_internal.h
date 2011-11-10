@@ -328,7 +328,7 @@ typedef struct {
      DFBRegion               update_regions[SAWMAN_MAX_UPDATE_REGIONS];
 
      DFBUpdates              updating;
-     DFBRegion               updating_regions[SAWMAN_MAX_UPDATED_REGIONS];
+     DFBRegion               updating_regions[SAWMAN_MAX_UPDATING_REGIONS];
 
      DFBUpdates              updated;
      DFBRegion               updated_regions[SAWMAN_MAX_UPDATED_REGIONS];
