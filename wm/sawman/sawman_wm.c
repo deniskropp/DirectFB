@@ -2214,7 +2214,7 @@ wm_add_window( CoreWindowStack *stack,
      /* Initialize window data. */
      sawwin->sawman     = sawman;
      sawwin->shmpool    = sawman->shmpool;
-     sawwin->process    = wmdata->process;
+     sawwin->process    = process;
      sawwin->id         = window->id;
      sawwin->caps       = window->caps;
      sawwin->window     = window;
@@ -4011,11 +4011,11 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           /* Create the cursor backing store surface. */
           ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
-                                           context->config.pixelformat, DSCAPS_NONE,
+                                           context->config.pixelformat,
 #if DIRECTFB_VERSION_CODE >= VERSION_CODE(1,5,0)
                                            context->config.colorspace,
 #endif
-                                           CSTF_SHARED | CSTF_CURSOR, 0, NULL, &cursor_bs );
+                                           DSCAPS_NONE, CSTF_SHARED | CSTF_CURSOR, 0, NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
                sawman_unlock( sawman );
