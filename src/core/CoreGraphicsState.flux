@@ -6,6 +6,7 @@ interface {
 	method {
 		name      SetDrawingFlags
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      flags
@@ -18,6 +19,7 @@ interface {
 	method {
 		name      SetBlittingFlags
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      flags
@@ -30,6 +32,7 @@ interface {
 	method {
 		name      SetClip
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      region
@@ -42,6 +45,7 @@ interface {
 	method {
 		name      SetColor
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      color
@@ -54,6 +58,7 @@ interface {
 	method {
 		name      SetSrcBlend
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      function
@@ -66,6 +71,7 @@ interface {
 	method {
 		name      SetDstBlend
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      function
@@ -78,6 +84,7 @@ interface {
 	method {
 		name      SetSrcColorKey
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      key
@@ -90,6 +97,7 @@ interface {
 	method {
 		name      SetDstColorKey
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      key
@@ -138,6 +146,7 @@ interface {
 	method {
 		name      SetSourceMaskVals
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      offset
@@ -157,6 +166,7 @@ interface {
 	method {
 		name      SetIndexTranslation
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      indices
@@ -177,6 +187,7 @@ interface {
 	method {
 		name      SetColorKey
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      key
@@ -189,6 +200,7 @@ interface {
 	method {
 		name      SetRenderOptions
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      options
@@ -201,6 +213,7 @@ interface {
 	method {
 		name      SetMatrix
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      values
@@ -229,6 +242,7 @@ interface {
 	method {
 		name      DrawRectangles
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      rects
@@ -249,6 +263,7 @@ interface {
 	method {
 		name      DrawLines
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      lines
@@ -269,6 +284,7 @@ interface {
 	method {
 		name      FillRectangles
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      rects
@@ -289,6 +305,7 @@ interface {
 	method {
 		name      FillTriangles
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      triangles
@@ -309,6 +326,7 @@ interface {
 	method {
 		name      FillTrapezoids
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      trapezoids
@@ -329,6 +347,7 @@ interface {
 	method {
 		name      FillSpans
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      y
@@ -356,6 +375,7 @@ interface {
 	method {
 		name      Blit
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      rects
@@ -384,6 +404,7 @@ interface {
 	method {
 		name      Blit2
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      rects
@@ -420,6 +441,7 @@ interface {
 	method {
 		name      StretchBlit
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      srects
@@ -448,6 +470,7 @@ interface {
 	method {
 		name      TileBlit
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      rects
@@ -484,6 +507,7 @@ interface {
 	method {
 		name      TextureTriangles
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      vertices
