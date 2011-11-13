@@ -841,7 +841,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           shared->holder = state->fusion_id;
      }
 
-     dfb_state_update( state, state->flags & (CSF_SOURCE_LOCKED | CSF_SOURCE_MASK_LOCKED) );
+     dfb_state_update( state, state->flags & (CSF_SOURCE_LOCKED | CSF_SOURCE2_LOCKED | CSF_SOURCE_MASK_LOCKED) );
 
      D_DEBUG_AT( Core_GfxState, "  -> mod_hw 0x%08x, modified 0x%08x\n", state->mod_hw, state->modified );
 
