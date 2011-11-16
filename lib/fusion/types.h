@@ -56,7 +56,8 @@ typedef unsigned long FusionID;
 typedef enum {
      FCEF_NONE     = 0x00000000,
      FCEF_ONEWAY   = 0x00000001,
-     FCEF_ALL      = 0x00000001
+     FCEF_QUEUE    = 0x00000002,
+     FCEF_ALL      = 0x00000003
 } FusionCallExecFlags;
 
 #endif
