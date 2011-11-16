@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -657,12 +657,14 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      state->modified  = 0;
 
      /*
-      * If back_buffer policy is 'system only' there's no acceleration
-      * available.
+      * If back_buffer policy is 'system only' and the GPU does not fully
+      * support system memory surfaces there's no acceleration available.
       */
-     if (dst_buffer->policy == CSP_SYSTEMONLY || /* Special check required if driver does not check itself. */
-                                                 ( !(card->caps.flags & CCF_RENDEROPTS) &&
-                                                    (state->render_options & DSRO_MATRIX) ))
+     if ((dst_buffer->policy == CSP_SYSTEMONLY &&
+          !(card->caps.flags & CCF_READSYSMEM &&
+            card->caps.flags & CCF_WRITESYSMEM)) || /* Special check required if driver does not check itself. */
+                                                    ( !(card->caps.flags & CCF_RENDEROPTS) &&
+                                                       (state->render_options & DSRO_MATRIX) ))
      {
           /* Clear 'accelerated functions'. */
           state->accel   = DFXL_NONE;
