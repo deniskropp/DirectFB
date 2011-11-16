@@ -490,13 +490,19 @@ handle_expose( const XExposeEvent *expose )
                dfb_layer_region_lock( region );
 
                /* Get the surface of the region. */
-               if (region->surface && region->left_buffer_lock.buffer) {
-                    DFBRegion update = { expose->x, expose->y,
-                                         expose->x + expose->width  - 1,
-                                         expose->y + expose->height - 1 };
+               if (region->surface) {
+                    dfb_surface_lock_buffer( region->surface, CSBR_FRONT, region->surface_accessor, CSAF_READ, &region->left_buffer_lock );
 
-                    funcs->UpdateRegion( layer, layer->driver_data, layer->layer_data,
-                                         region->region_data, region->surface, &update, &region->left_buffer_lock, NULL, NULL );
+                    if (region->left_buffer_lock.buffer) {
+                         DFBRegion update = { expose->x, expose->y,
+                                              expose->x + expose->width  - 1,
+                                              expose->y + expose->height - 1 };
+
+                         funcs->UpdateRegion( layer, layer->driver_data, layer->layer_data,
+                                              region->region_data, region->surface, &update, &region->left_buffer_lock, NULL, NULL );
+                    }
+
+                    dfb_surface_unlock_buffer(region->surface, &region->left_buffer_lock );
                }
 
                /* Unlock the region. */
