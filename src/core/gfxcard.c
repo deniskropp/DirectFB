@@ -36,10 +36,10 @@
 #include <direct/debug.h>
 #include <direct/memcpy.h>
 
+#include <fusion/conf.h>
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 #include <fusion/arena.h>
-#include <fusion/property.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -212,7 +212,7 @@ dfb_graphics_core_initialize( CoreDFB               *core,
           data->limits = shared->device_info.limits;
      }
 
-     fusion_property_init( &shared->lock, dfb_core_world(core) );
+     fusion_skirmish_init2( &shared->lock, "GfxCard", dfb_core_world(core), fusion_config->secure_fusion );
 
      if (__DFB_CoreRegisterHook)
          __DFB_CoreRegisterHook( core, card, __DFB_CoreRegisterHookCtx );
@@ -322,7 +322,7 @@ dfb_graphics_core_shutdown( DFBGraphicsCore *data,
           D_FREE( card->driver_data );
      }
 
-     fusion_property_destroy( &shared->lock );
+     fusion_skirmish_destroy( &shared->lock );
 
      if (shared->module_name)
           SHFREE( pool, shared->module_name );
@@ -410,10 +410,9 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
      shared = card->shared;
      funcs  = &card->funcs;
 
-     if ( ((flags & GDLF_WAIT) ?
-           fusion_property_purchase( &shared->lock ) :
-           fusion_property_lease( &shared->lock )) )
-          return DFB_FAILURE;
+     ret = fusion_skirmish_prevail( &shared->lock );
+     if (ret)
+          return ret;
 
      if ((flags & GDLF_SYNC) && funcs->EngineSync) {
           ret = funcs->EngineSync( card->driver_data, card->device_data );
@@ -423,7 +422,7 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
 
                shared->state = NULL;
 
-               fusion_property_cede( &shared->lock );
+               fusion_skirmish_dismiss( &shared->lock );
 
                return ret;
           }
@@ -449,16 +448,7 @@ dfb_gfxcard_unlock( void )
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
 
-     fusion_property_cede( &card->shared->lock );
-}
-
-void
-dfb_gfxcard_holdup( void )
-{
-     D_ASSERT( card != NULL );
-     D_ASSERT( card->shared != NULL );
-
-     fusion_property_holdup( &card->shared->lock );
+     fusion_skirmish_dismiss( &card->shared->lock );
 }
 
 /*

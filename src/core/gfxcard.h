@@ -312,7 +312,6 @@ typedef enum {
 
 DFBResult dfb_gfxcard_lock( GraphicsDeviceLockFlags flags );
 void dfb_gfxcard_unlock( void );
-void dfb_gfxcard_holdup( void );
 
 bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
 
@@ -513,7 +512,7 @@ typedef struct {
      GraphicsDeviceInfo       device_info;
      void                    *device_data;
 
-     FusionProperty           lock;
+     FusionSkirmish           lock;
      GraphicsDeviceLockFlags  lock_flags;
 
      /*
