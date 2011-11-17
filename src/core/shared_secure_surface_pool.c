@@ -55,6 +55,8 @@ typedef struct {
      int          size;
 
      DFBSurfaceID surface_id;
+
+     void         *master_map;
 } SharedAllocationData;
 
 /**********************************************************************************************************************/
@@ -199,7 +201,18 @@ sharedSecureAllocateBuffer( CoreSurfacePool       *pool,
           return DFB_IO;
      }
 
+     alloc->master_map = mmap( NULL, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+
      close( fd );
+
+     if (alloc->master_map == MAP_FAILED) {
+          D_PERROR( "Core/Surface/SHM: Could not mmap '%s'!\n", buf );
+
+          if (unlink( buf ) < 0)
+               D_PERROR( "Core/Surface/SHM: Could not remove '%s'!\n", buf );
+
+          return DFB_IO;
+     }
 
      allocation->flags = CSALF_VOLATILE;
      allocation->size  = alloc->size;
@@ -220,9 +233,11 @@ sharedSecureDeallocateBuffer( CoreSurfacePool       *pool,
      char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+//     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%p", data->tmpfs_dir, alloc->surface_id, alloc );
+
+     munmap( alloc->master_map, alloc->size );
 
      if (unlink( buf ) < 0) {
           D_PERROR( "Core/Surface/SHM: Could not remove '%s'!\n", buf );
@@ -240,8 +255,6 @@ sharedSecureLock( CoreSurfacePool       *pool,
                   void                  *alloc_data,
                   CoreSurfaceBufferLock *lock )
 {
-     CoreSurface          *surface;
-     CoreSurfaceBuffer    *buffer;
      SharedPoolData       *data  = pool_data;
      SharedAllocationData *alloc = alloc_data;
      char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
@@ -251,28 +264,27 @@ sharedSecureLock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     buffer = lock->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%p", data->tmpfs_dir, alloc->surface_id, alloc );
-
-     fd = open( buf, O_RDWR );
-     if (fd < 0) {
-          D_PERROR( "Core/Surface/SHM: Could not open '%s'!\n", buf );
-          return DFB_IO;
+     if (dfb_core_is_master( core_dfb )) {
+          lock->addr = alloc->master_map;
      }
+     else {
+          snprintf( buf, sizeof(buf), "%s/surface_0x%08x_shared_allocation_%p", data->tmpfs_dir, alloc->surface_id, alloc );
+
+          fd = open( buf, O_RDWR );
+          if (fd < 0) {
+               D_PERROR( "Core/Surface/SHM: Could not open '%s'!\n", buf );
+               return DFB_IO;
+          }
 
 
-     lock->addr = mmap( NULL, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+          lock->addr = mmap( NULL, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
 
-     close( fd );
+          close( fd );
 
-     if (lock->addr == MAP_FAILED) {
-          D_PERROR( "Core/Surface/SHM: Could not mmap '%s'!\n", buf );
-          return DFB_IO;
+          if (lock->addr == MAP_FAILED) {
+               D_PERROR( "Core/Surface/SHM: Could not mmap '%s'!\n", buf );
+               return DFB_IO;
+          }
      }
 
 
@@ -295,7 +307,8 @@ sharedSecureUnlock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     munmap( lock->addr, alloc->size );
+     if (!dfb_core_is_master( core_dfb ))
+          munmap( lock->addr, alloc->size );
 
      return DFB_OK;
 }
