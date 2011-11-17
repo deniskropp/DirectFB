@@ -43,7 +43,7 @@ typedef struct {
      char                    *name;
 } FusionSkirmishSingle;
 
-typedef union {
+typedef struct {
      /* multi app */
      struct {
           int                      id;
@@ -69,6 +69,11 @@ typedef union {
 DirectResult fusion_skirmish_init   ( FusionSkirmish    *skirmish,
                                       const char        *name,
                                       const FusionWorld *world );
+
+DirectResult fusion_skirmish_init2  ( FusionSkirmish    *skirmish,
+                                      const char        *name,
+                                      const FusionWorld *world,
+                                      bool               local );
 
 /*
  * Lock.

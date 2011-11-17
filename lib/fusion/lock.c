@@ -94,9 +94,50 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
 }
 
 DirectResult
+fusion_skirmish_init2( FusionSkirmish    *skirmish,
+                       const char        *name,
+                       const FusionWorld *world,
+                       bool               local )
+{
+     D_ASSERT( skirmish != NULL );
+     D_ASSERT( name != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_init2( %p, '%s', %s )\n", skirmish, name ? : "", local ? "local" : "shared" );
+
+     if (!local)
+          return fusion_skirmish_init( skirmish, name, world );
+
+
+     skirmish->single = D_CALLOC( 1, sizeof(FusionSkirmishSingle) + strlen(name) + 1 );
+     if (skirmish->single == 0)
+          return DR_NOLOCALMEMORY;
+
+     skirmish->single->name = (char*)(skirmish->single + 1);
+     strcpy( skirmish->single->name, name );
+
+     direct_util_recursive_pthread_mutex_init( &skirmish->single->lock );
+     pthread_cond_init( &skirmish->single->cond, NULL );
+
+     /* Keep back pointer to shared world data. */
+     skirmish->multi.shared = world->shared;
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_skirmish_prevail( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
+
+     if (skirmish->single) {
+          if (pthread_mutex_lock( &skirmish->single->lock ))
+               return errno2result( errno );
+
+          skirmish->single->count++;
+
+          return DR_OK;
+     }
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_PREVAIL, &skirmish->multi.id)) {
           switch (errno) {
@@ -119,6 +160,15 @@ DirectResult
 fusion_skirmish_swoop( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
+
+     if (skirmish->single) {
+          if (pthread_mutex_trylock( &skirmish->single->lock ))
+               return errno2result( errno );
+
+          skirmish->single->count++;
+
+          return DR_OK;
+     }
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_SWOOP, &skirmish->multi.id)) {
           switch (errno) {
@@ -147,6 +197,19 @@ fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 
      D_ASSERT( skirmish != NULL );
 
+     if (skirmish->single) {
+          if (pthread_mutex_trylock( &skirmish->single->lock )) {
+               *lock_count = 0;
+               return errno2result( errno );
+          }
+
+          *lock_count = skirmish->single->count;
+
+          pthread_mutex_unlock( &skirmish->single->lock );
+
+          return DR_OK;
+     }
+
      data[0] = skirmish->multi.id;
      data[1] = 0;
 
@@ -173,6 +236,15 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
+     if (skirmish->single) {
+          skirmish->single->count--;
+
+          if (pthread_mutex_unlock( &skirmish->single->lock ))
+               return errno2result( errno );
+
+          return DR_OK;
+     }
+
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_DISMISS, &skirmish->multi.id)) {
           switch (errno) {
                case EINTR:
@@ -197,6 +269,18 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 
      D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_destroy( %p [%d] )\n", skirmish, skirmish->multi.id );
      
+     if (skirmish->single) {
+          int retval;
+
+          pthread_cond_broadcast( &skirmish->single->cond );
+          pthread_cond_destroy( &skirmish->single->cond );
+
+          retval = pthread_mutex_destroy( &skirmish->single->lock );
+          D_FREE( skirmish->single );
+
+          return errno2result( retval );
+     }
+
      while (ioctl( _fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_DESTROY, &skirmish->multi.id )) {
           switch (errno) {
                case EINTR:
@@ -220,6 +304,27 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      FusionSkirmishWait wait;
 
      D_ASSERT( skirmish != NULL );
+
+     if (skirmish->single) {
+          if (timeout) {
+               struct timespec ts;
+               struct timeval  tv;
+               int             ret;
+
+               gettimeofday( &tv, NULL );
+
+               ts.tv_nsec = tv.tv_usec*1000 + (timeout%1000)*1000000;
+               ts.tv_sec  = tv.tv_sec + timeout/1000 + ts.tv_nsec/1000000000;
+               ts.tv_nsec = ts.tv_nsec % 1000000000;
+
+               ret = pthread_cond_timedwait( &skirmish->single->cond, 
+                                             &skirmish->single->lock, &ts );
+
+               return (ret == ETIMEDOUT) ? DR_TIMEOUT : DR_OK;
+          }
+
+          return pthread_cond_wait( &skirmish->single->cond, &skirmish->single->lock );
+     }
 
      wait.id         = skirmish->multi.id;
      wait.timeout    = timeout;
@@ -250,6 +355,12 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
 
+     if (skirmish->single) {
+          pthread_cond_broadcast( &skirmish->single->cond );
+
+          return DR_OK;
+     }
+
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_NOTIFY, &skirmish->multi.id)) {
           switch (errno) {
                case EINTR:
@@ -273,6 +384,9 @@ fusion_skirmish_add_permissions( FusionSkirmish            *skirmish,
                                  FusionSkirmishPermissions  skirmish_permissions )
 {
      FusionEntryPermissions permissions;
+
+     if (skirmish->single)
+          return DR_OK;
 
      permissions.type        = FT_SKIRMISH;
      permissions.id          = skirmish->multi.id;
