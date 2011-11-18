@@ -755,7 +755,7 @@ fusion_skirmish_init2( FusionSkirmish    *skirmish,
                        const FusionWorld *world,
                        bool               local )
 {
-     /* By definition we are local. */
+     /* In !FUSION_BUILD_MULTI everything is local. */
      return fusion_skirmish_init( skirmish, name, world );
 }
 
