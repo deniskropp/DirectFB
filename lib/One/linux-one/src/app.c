@@ -38,19 +38,6 @@
 
 /******************************************************************************/
 
-typedef struct {
-     DirectLink     link;
-
-     OneApp        *app;
-
-     OneQID         queue_id;
-
-     OneFifo        packets;
-     OneFifo        free_packets;
-
-     bool           wakeup;
-} OneAppTargetData;
-
 static void
 OneAppTarget_Destroy( OneTarget *target )
 {

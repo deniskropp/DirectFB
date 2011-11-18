@@ -122,15 +122,33 @@ one_queue_destruct(OneEntry * entry, void *ctx)
 static void
 one_queue_print(OneEntry * entry, void *ctx, struct seq_file *p)
 {
-     int         num   = 0;
-     OneQueue   *queue = (OneQueue *) entry;
-     DirectLink *node  = queue->nodes;
+     int        num   = 0;
+     OneQueue  *queue = (OneQueue *) entry;
+     QueueNode *node;
+     char       node_string[900];
+     int        offset  = 0;
+     int        pending = 0;
 
-     direct_list_foreach (node, queue->nodes)
+     node_string[0] = 0;
+
+     direct_list_foreach (node, queue->nodes) {
+          int result;
+
           num++;
 
-     seq_printf( p, "%5dx dispatch, %d nodes%s\n", queue->dispatch_count,
-                 num, queue->destroyed ? "  DESTROYED" : "" );
+          result = snprintf( node_string + offset, sizeof(node_string) - offset, " 0x%x", node->target_id );
+          if (result > 0)
+               offset += result;
+     }
+
+     if (queue->target) {
+          OneAppTargetData *data = queue->target->data;
+
+          pending = data->packets.count;
+     }
+
+     seq_printf( p, "%5dx dispatch, %5dx packets, %d nodes%s%s\n", queue->dispatch_count,
+                 pending, num, queue->destroyed ? "  DESTROYED" : "", node_string );
 }
 
 ONE_ENTRY_CLASS( OneQueue, queue, one_queue_construct,
@@ -386,8 +404,10 @@ one_queue_dispatch( OneApp           *oneapp,
                ONE_DEBUG( "  -> dispatching to queue target\n" );
 
                ret = queue->target->Dispatch( queue->target, &queue_dispatch->header, iov, queue_dispatch->iov_count );
-               if (ret)
+               if (ret) {
+                    printk( KERN_ERR "One/Queue: Queue target dispatch failed (id %u, ret %d)!\n", queue->entry.id, ret );
                     goto out;
+               }
           }
 
           /*
@@ -401,8 +421,10 @@ one_queue_dispatch( OneApp           *oneapp,
                header.queue_id = node->target_id;
 
                ret = node->target->Dispatch( node->target, &header, iov, queue_dispatch->iov_count );
-               if (ret)
+               if (ret) {
+                    printk( KERN_ERR "One/Queue: Node target dispatch failed (id %u, ret %d)!\n", node->target_id, ret );
                     goto out;
+               }
           }
      }
      else {

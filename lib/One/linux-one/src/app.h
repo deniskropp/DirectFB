@@ -15,6 +15,7 @@
 #include <linux/one.h>
 
 #include "types.h"
+#include "fifo.h"
 #include "list.h"
 #include "onecore.h"
 
@@ -33,6 +34,21 @@ struct __One_OneApp {
 
      DirectLink    *recv_data;
 };
+
+
+typedef struct {
+     DirectLink     link;
+
+     OneApp        *app;
+
+     OneQID         queue_id;
+
+     OneFifo        packets;
+     OneFifo        free_packets;
+
+     bool           wakeup;
+} OneAppTargetData;
+
 
 
 int  OneApp_New    ( OneDev  *dev,
