@@ -1627,6 +1627,8 @@ dfb_core_arena_leave( FusionArena *arena,
 #define CORE_TLS_IDENTITY_STACK_MAX     8
 
 typedef struct {
+     int          magic;
+
      FusionID     identity[CORE_TLS_IDENTITY_STACK_MAX];
      unsigned int identity_count;
 } CoreTLS;
@@ -1637,6 +1639,10 @@ static void
 core_tls_destroy( void *arg )
 {
      CoreTLS *core_tls = arg;
+
+     D_MAGIC_ASSERT( core_tls, CoreTLS );
+
+     D_MAGIC_CLEAR( core_tls );
 
      D_FREE( core_tls );
 }
@@ -1667,8 +1673,12 @@ Core_GetTLS( void )
                return NULL;
           }
 
+          D_MAGIC_SET( core_tls, CoreTLS );
+
           direct_tls_set( core_tls_key, core_tls );
      }
+
+     D_MAGIC_ASSERT( core_tls, CoreTLS );
 
      return core_tls;
 }
