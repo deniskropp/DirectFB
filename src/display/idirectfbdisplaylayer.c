@@ -282,7 +282,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
                     return ret;
 
                if (data->switch_exclusive) {
-                    ret = dfb_layer_activate_context( data->layer, context );
+                    ret = CoreLayer_ActivateContext( data->layer, context );
                     if (ret) {
                          dfb_layer_context_unref( context );
                          return ret;
