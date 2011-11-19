@@ -43,24 +43,22 @@ TestThread( DirectThread *thread,
      DFBResult         ret;
      IDirectFBSurface *surface = arg;
      DFBRectangle      rect    = { 0, 0, 500, 1 };
+     u32               data[ 500 ];
 
      while (true) {
-          void *data;
           int   pitch;
+          void *ptr;
 
-          ret = surface->Lock( surface, DSLF_WRITE, &data, &pitch );
+          ret = surface->Lock( surface, DSLF_WRITE, &ptr, &pitch );
           if (ret) {
                D_DERROR( ret, "DFBTest/Resize: Lock() failed!\n" );
                return NULL;
           }
 
-          memset( data, 0, pitch * 400 );
+          memset( ptr, 0, pitch * 400 );
 
           surface->Unlock( surface );
 
-
-
-          data = alloca( pitch );
 
           ret = surface->Read( surface, &rect, data, pitch );
           if (ret) {
