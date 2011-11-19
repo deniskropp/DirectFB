@@ -35,3 +35,4 @@ voodoo_bench_client_unix
 voodoo_bench_server
 voodoo_bench_server_unix
 OneBench
+OneTest
