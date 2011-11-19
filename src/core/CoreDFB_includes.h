@@ -499,6 +499,78 @@ CoreSurface_Throw( CoreSurface *surface,
 
 
 static __inline__ u32
+CoreSurfaceAllocation_GetID( const CoreSurfaceAllocation *allocation )
+{
+     return allocation->object.id;
+}
+
+static __inline__ DirectResult
+CoreSurfaceAllocation_Lookup( CoreDFB                *core,
+                              u32                     object_id,
+                              FusionID                caller,
+                              CoreSurfaceAllocation **ret_allocation )
+{
+     DFBResult          ret;
+     CoreSurfaceAllocation *allocation;
+
+     ret = dfb_core_get_surface_allocation( core, object_id, &allocation );
+     if (ret)
+          return (DirectResult) ret;
+
+     if (allocation->object.owner && allocation->object.owner != caller) {
+          dfb_surface_allocation_unref( allocation );
+          return DR_ACCESSDENIED;
+     }
+
+     *ret_allocation = allocation;
+
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreSurfaceAllocation_Unref( CoreSurfaceAllocation *allocation )
+{
+     return (DirectResult) dfb_surface_allocation_unref( allocation );
+}
+
+static __inline__ DirectResult
+CoreSurfaceAllocation_Catch( CoreDFB                *core,
+                             u32                     object_id,
+                             CoreSurfaceAllocation **ret_allocation )
+{
+     DirectResult ret;
+
+     ret = (DirectResult) dfb_core_get_surface_allocation( core, object_id, ret_allocation );
+     if (ret)
+          return ret;
+
+     fusion_ref_catch( &(*ret_allocation)->object.ref );
+
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreSurfaceAllocation_Throw( CoreSurfaceAllocation *allocation,
+                             FusionID               catcher,
+                             u32                   *ret_object_id )
+{
+     *ret_object_id = allocation->object.id;
+
+     fusion_reactor_add_permissions( allocation->object.reactor, catcher,
+                                     (FusionReactorPermissions)(FUSION_REACTOR_PERMIT_ATTACH_DETACH) );
+     fusion_ref_add_permissions( &allocation->object.ref, catcher,
+                                 (FusionRefPermissions)(FUSION_REF_PERMIT_REF_UNREF_LOCAL | FUSION_REF_PERMIT_CATCH) );
+     //fusion_call_add_permissions( &allocation->call, catcher, FUSION_CALL_PERMIT_EXECUTE );
+
+     if (!allocation->object.owner)
+          allocation->object.owner = catcher;
+
+     return fusion_ref_throw( &allocation->object.ref, catcher );
+}
+
+
+
+static __inline__ u32
 CoreSurfaceBuffer_GetID( const CoreSurfaceBuffer *buffer )
 {
      return buffer->object.id;

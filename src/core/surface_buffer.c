@@ -91,7 +91,7 @@ surface_buffer_destructor( FusionObject *object, bool zombie, void *ctx )
      fusion_vector_foreach_reverse (allocation, i, buffer->allocs) {
           CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
-          dfb_surface_pool_deallocate( allocation->pool, allocation );
+          dfb_surface_allocation_decouple( allocation );
      }
 
      if (buffer->surface)
@@ -199,27 +199,13 @@ dfb_surface_buffer_create( CoreDFB                 *core,
 DFBResult
 dfb_surface_buffer_decouple( CoreSurfaceBuffer *buffer )
 {
-     CoreSurfaceAllocation *allocation;
-     unsigned int           i;
-     int                    locks;
-
-     D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_decouple( %p )\n", buffer );
+     D_DEBUG_AT( Core_SurfBuffer, "%s( %p )\n", __FUNCTION__, buffer );
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
+     dfb_surface_buffer_deallocate( buffer );
+
      buffer->surface = NULL;
-
-     locks = dfb_surface_buffer_locks( buffer );
-
-     fusion_vector_foreach (allocation, i, buffer->allocs) {
-          CORE_SURFACE_ALLOCATION_ASSERT( allocation );
-
-          allocation->surface = NULL;
-
-          // FIXME: have per alloc lock count!
-          if (!locks)
-               dfb_surface_pool_deallocate( allocation->pool, allocation );
-     }
 
      dfb_surface_buffer_unlink( &buffer );
 
@@ -229,21 +215,21 @@ dfb_surface_buffer_decouple( CoreSurfaceBuffer *buffer )
 DFBResult
 dfb_surface_buffer_deallocate( CoreSurfaceBuffer *buffer )
 {
-     CoreSurface           *surface;
      CoreSurfaceAllocation *allocation;
      int                    i;
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
+     D_DEBUG_AT( Core_SurfBuffer, "%s( %p [%dx%d] )\n", __FUNCTION__,
+                 buffer, buffer->config.size.w, buffer->config.size.h );
 
-     D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_deallocate( %p [%dx%d] )\n",
-                 buffer, surface->config.size.w, surface->config.size.h );
+     fusion_vector_foreach_reverse (allocation, i, buffer->allocs) {
+           CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
-     fusion_vector_foreach_reverse (allocation, i, buffer->allocs)
-          dfb_surface_pool_deallocate( allocation->pool, allocation );
+           dfb_surface_allocation_decouple( allocation );
+     }
+
+     buffer->allocs.count = 0;
 
      return DFB_OK;
 }
@@ -331,7 +317,6 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      DFBResult              ret;
      CoreSurface           *surface;
      CoreSurfaceAllocation *allocation = NULL;
-     u32                    index;
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_FLAGS_ASSERT( access, CSAF_ALL );
@@ -353,7 +338,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           return DFB_INVARG;
 
 #if DIRECT_BUILD_DEBUG
-     D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_lock( %p, 0x%02x, %p ) <- %dx%d %s [%d]\n", buffer, access, lock,
+     D_DEBUG_AT( Core_SurfBuffer, "%s( %p, 0x%02x, %p ) <- %dx%d %s [%d]\n", __FUNCTION__, buffer, access, lock,
                  surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(buffer->format),
                  dfb_surface_buffer_index(buffer) );
 
@@ -401,28 +386,16 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     dfb_surface_buffer_ref( buffer );
-
      /* Run all code that modifies shared memory in master process (IPC call) */
-     ret = CoreSurface_PreLockBuffer( surface, buffer, accessor, access, &index );
-     if (ret) {
-          dfb_surface_buffer_unref( buffer );
+     ret = CoreSurface_PreLockBuffer( surface, buffer, accessor, access, &allocation );
+     if (ret)
           return ret;
-     }
 
-     D_DEBUG_AT( Core_SurfBuffer, "  -> PreLockBuffer returned index %u\n", index );
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     D_DEBUG_AT( Core_SurfBuffer, "  -> PreLockBuffer returned allocation %p (%s)\n", allocation, allocation->pool->desc.name );
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     /* Lookup allocation via index returned by master process */
-     allocation = fusion_vector_at( &buffer->allocs, index );
-     if (!allocation) {
-          dfb_surface_buffer_unref( buffer );
-          return DFB_BUG;
-     }
-
-
-     D_DEBUG_AT( Core_SurfBuffer, "  -> %s\n", allocation->pool->desc.name );
 
      /* Lock the allocation. */
      dfb_surface_buffer_lock_init( lock, accessor, access );
@@ -434,12 +407,7 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                     allocation->pool->desc.name );
           dfb_surface_buffer_lock_deinit( lock );
 
-          /* Destroy if newly created. */
-//FIXME          if (allocated)
-//               dfb_surface_pool_deallocate( allocation->pool, allocation );
-
-          dfb_surface_buffer_unref( buffer );
-
+          dfb_surface_allocation_unref( allocation );
           return ret;
      }
 
@@ -451,20 +419,14 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
 {
      DFBResult              ret;
      CoreSurfacePool       *pool;
-     CoreSurfaceBuffer     *buffer;
      CoreSurfaceAllocation *allocation;
 
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_unlock( %p )\n", lock );
 
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     D_MAGIC_ASSERT( lock->buffer, CoreSurfaceBuffer );
-
      allocation = lock->allocation;
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
-
-     buffer = lock->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      pool = allocation->pool;
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
@@ -484,7 +446,7 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
 
      dfb_surface_buffer_lock_deinit( lock );
 
-     dfb_surface_buffer_unref( buffer );
+     dfb_surface_allocation_unref( allocation );
 
      return DFB_OK;
 }
@@ -502,7 +464,6 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
      CoreSurface           *surface;
      CoreSurfaceAllocation *allocation = NULL;
      DFBSurfacePixelFormat  format;
-     u32                    index;
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p [%d] )\n", __FUNCTION__, buffer, destination, pitch );
 
@@ -545,23 +506,12 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> Calling PreReadBuffer...\n" );
 
-     dfb_surface_buffer_ref( buffer );
-
      /* Run all code that modifies shared memory in master process (IPC call) */
-     ret = CoreSurface_PreReadBuffer( surface, buffer, &rect, &index );
-     if (ret) {
-          dfb_surface_buffer_unref( buffer );
+     ret = CoreSurface_PreReadBuffer( surface, buffer, &rect, &allocation );
+     if (ret)
           return ret;
-     }
 
-     D_DEBUG_AT( Core_SurfBuffer, "  -> PreReadBuffer returned index %u\n", index );
-
-     /* Lookup allocation via index returned by master process */
-     allocation = fusion_vector_at( &buffer->allocs, index );
-     if (!allocation) {
-          dfb_surface_buffer_unref( buffer );
-          return DFB_BUG;
-     }
+     D_DEBUG_AT( Core_SurfBuffer, "  -> PreReadBuffer returned allocation %p (%s)\n", allocation, allocation->pool->desc.name );
 
      /* Try reading from allocation directly... */
      ret = dfb_surface_pool_read( allocation->pool, allocation, destination, pitch, &rect );
@@ -578,7 +528,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
                     D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
                               allocation->pool->desc.name );
                     dfb_surface_buffer_lock_deinit( &lock );
-                    dfb_surface_buffer_unref( buffer );
+                    dfb_surface_allocation_unref( allocation );
                     return ret;
                }
 
@@ -602,7 +552,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
           }
      }
 
-     dfb_surface_buffer_unref( buffer );
+     dfb_surface_allocation_unref( allocation );
 
      return ret;
 }
@@ -617,7 +567,6 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      DFBRectangle           rect;
      CoreSurface           *surface;
      CoreSurfaceAllocation *allocation = NULL;
-     u32                    index;
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p [%d] )\n", __FUNCTION__, buffer, source, pitch );
 
@@ -653,23 +602,12 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
 
      D_DEBUG_AT( Core_SurfBuffer, "  -> Calling PreWriteBuffer...\n" );
 
-     dfb_surface_buffer_ref( buffer );
-
      /* Run all code that modifies shared memory in master process (IPC call) */
-     ret = CoreSurface_PreWriteBuffer( surface, buffer, &rect, &index );
-     if (ret) {
-          dfb_surface_buffer_unref( buffer );
+     ret = CoreSurface_PreWriteBuffer( surface, buffer, &rect, &allocation );
+     if (ret)
           return ret;
-     }
 
-     D_DEBUG_AT( Core_SurfBuffer, "  -> PreWriteBuffer returned index %u\n", index );
-
-     /* Lookup allocation via index returned by master process */
-     allocation = fusion_vector_at( &buffer->allocs, index );
-     if (!allocation) {
-          dfb_surface_buffer_unref( buffer );
-          return DFB_BUG;
-     }
+     D_DEBUG_AT( Core_SurfBuffer, "  -> PreWriteBuffer returned allocation %p (%s)\n", allocation, allocation->pool->desc.name );
 
      /* Try writing to allocation directly... */
      ret = source ? dfb_surface_pool_write( allocation->pool, allocation, source, pitch, &rect ) : DFB_UNSUPPORTED;
@@ -693,7 +631,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                     D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
                               allocation->pool->desc.name );
                     dfb_surface_buffer_lock_deinit( &lock );
-                    dfb_surface_buffer_unref( buffer );
+                    dfb_surface_allocation_unref( allocation );
                     return ret;
                }
 
@@ -722,7 +660,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
           }
      }
 
-     dfb_surface_buffer_unref( buffer );
+     dfb_surface_allocation_unref( allocation );
 
      return ret;
 }
@@ -998,320 +936,6 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
      /* Close graymap file. */
      if (alpha)
           close( fd_g );
-
-     return DFB_OK;
-}
-
-/**********************************************************************************************************************/
-
-static void
-transfer_buffer( CoreSurfaceBuffer *buffer,
-                 const void        *src,
-                 void              *dst,
-                 int                srcpitch,
-                 int                dstpitch )
-{
-     int          i;
-     CoreSurface *surface;
-
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p [%d] -> %p [%d] ) * %d\n",
-                 __FUNCTION__, buffer, src, srcpitch, dst, dstpitch, surface->config.size.h );
-
-     D_ASSERT( src != NULL );
-     D_ASSERT( dst != NULL );
-     D_ASSERT( srcpitch > 0 );
-     D_ASSERT( dstpitch > 0 );
-
-     D_ASSERT( srcpitch >= DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
-     D_ASSERT( dstpitch >= DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
-
-     for (i=0; i<surface->config.size.h; i++) {
-          direct_memcpy( dst, src, DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
-
-          src += srcpitch;
-          dst += dstpitch;
-     }
-
-     switch (buffer->format) {
-          case DSPF_YV12:
-          case DSPF_I420:
-               for (i=0; i<surface->config.size.h; i++) {
-                    direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w / 2 ) );
-                    src += srcpitch / 2;
-                    dst += dstpitch / 2;
-               }
-               break;
-
-          case DSPF_YV16:
-               for (i=0; i<surface->config.size.h*2; i++) {
-                    direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w / 2 ) );
-                    src += srcpitch / 2;
-                    dst += dstpitch / 2;
-               }
-               break;
-
-          case DSPF_NV12:
-          case DSPF_NV21:
-               for (i=0; i<surface->config.size.h/2; i++) {
-                    direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
-                    src += srcpitch;
-                    dst += dstpitch;
-               }
-               break;
-
-          case DSPF_NV16:
-               for (i=0; i<surface->config.size.h; i++) {
-                    direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
-                    src += srcpitch;
-                    dst += dstpitch;
-               }
-               break;
-
-          case DSPF_YUV444P:
-               for (i=0; i<surface->config.size.h*2; i++) {
-                    direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
-                    src += srcpitch;
-                    dst += dstpitch;
-               }
-               break;
-
-          default:
-               break;
-     }
-}
-
-static DFBResult
-allocation_update_copy( CoreSurfaceAllocation *allocation,
-                        CoreSurfaceAllocation *source )
-{
-     DFBResult              ret;
-     CoreSurfaceBufferLock  src;
-     CoreSurfaceBufferLock  dst;
-     CoreSurfaceBuffer     *buffer;
-
-     D_DEBUG_AT( Core_SurfBuffer, "%s()\n", __FUNCTION__ );
-
-     D_ASSERT( allocation != source );
-
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
-
-     D_ASSERT( source->buffer == allocation->buffer );
-
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     /* Lock the source allocation. */
-     dfb_surface_buffer_lock_init( &src, CSAID_CPU, CSAF_READ );
-
-     ret = dfb_surface_pool_lock( source->pool, source, &src );
-     if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Could not lock source for transfer!\n" );
-          dfb_surface_buffer_lock_deinit( &src );
-          return ret;
-     }
-
-     /* Lock the destination allocation. */
-     dfb_surface_buffer_lock_init( &dst, CSAID_CPU, CSAF_WRITE );
-
-     ret = dfb_surface_pool_lock( allocation->pool, allocation, &dst );
-     if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Could not lock destination for transfer!\n" );
-          dfb_surface_pool_unlock( source->pool, source, &src );
-          dfb_surface_buffer_lock_deinit( &dst );
-          dfb_surface_buffer_lock_deinit( &src );
-          return ret;
-     }
-
-     transfer_buffer( buffer, src.addr, dst.addr, src.pitch, dst.pitch );
-
-     dfb_surface_pool_unlock( allocation->pool, allocation, &dst );
-     dfb_surface_pool_unlock( source->pool, source, &src );
-
-     dfb_surface_buffer_lock_deinit( &dst );
-     dfb_surface_buffer_lock_deinit( &src );
-
-     return DFB_OK;
-}
-
-static DFBResult
-allocation_update_write( CoreSurfaceAllocation *allocation,
-                         CoreSurfaceAllocation *source )
-{
-     DFBResult              ret;
-     CoreSurfaceBufferLock  src;
-     CoreSurfaceBuffer     *buffer;
-
-     D_DEBUG_AT( Core_SurfBuffer, "%s()\n", __FUNCTION__ );
-
-     D_ASSERT( allocation != source );
-
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
-
-     D_ASSERT( source->buffer == allocation->buffer );
-
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     /* Lock the source allocation. */
-     dfb_surface_buffer_lock_init( &src, CSAID_CPU, CSAF_READ );
-
-     ret = dfb_surface_pool_lock( source->pool, source, &src );
-     if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Could not lock source for transfer!\n" );
-          dfb_surface_buffer_lock_deinit( &src );
-          return ret;
-     }
-
-     /* Write to the destination allocation. */
-     ret = dfb_surface_pool_write( allocation->pool, allocation, src.addr, src.pitch, NULL );
-     if (ret)
-          D_DERROR( ret, "Core/SurfBuffer: Could not write from destination allocation!\n" );
-
-     dfb_surface_pool_unlock( source->pool, source, &src );
-
-     dfb_surface_buffer_lock_deinit( &src );
-
-     return ret;
-}
-
-static DFBResult
-allocation_update_read( CoreSurfaceAllocation *allocation,
-                        CoreSurfaceAllocation *source )
-{
-     DFBResult              ret;
-     CoreSurfaceBufferLock  dst;
-     CoreSurfaceBuffer     *buffer;
-
-     D_DEBUG_AT( Core_SurfBuffer, "%s()\n", __FUNCTION__ );
-
-     D_ASSERT( allocation != source );
-
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
-
-     D_ASSERT( source->buffer == allocation->buffer );
-
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     /* Lock the destination allocation. */
-     dfb_surface_buffer_lock_init( &dst, CSAID_CPU, CSAF_WRITE );
-
-     ret = dfb_surface_pool_lock( allocation->pool, allocation, &dst );
-     if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Could not lock destination for transfer!\n" );
-          dfb_surface_buffer_lock_deinit( &dst );
-          return ret;
-     }
-
-     /* Read from the source allocation. */
-     ret = dfb_surface_pool_read( source->pool, source, dst.addr, dst.pitch, NULL );
-     if (ret)
-          D_DERROR( ret, "Core/SurfBuffer: Could not read from source allocation!\n" );
-
-     dfb_surface_pool_unlock( allocation->pool, allocation, &dst );
-
-     dfb_surface_buffer_lock_deinit( &dst );
-
-     return ret;
-}
-
-DFBResult
-dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
-                               CoreSurfaceAccessFlags  access )
-{
-     DFBResult              ret;
-     int                    i;
-     CoreSurfaceAllocation *alloc;
-     CoreSurfaceBuffer     *buffer;
-
-     D_DEBUG_AT( Core_SurfBuffer, "%s()\n", __FUNCTION__ );
-
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_FLAGS_ASSERT( access, CSAF_ALL );
-
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     if (direct_serial_update( &allocation->serial, &buffer->serial ) && buffer->written) {
-          CoreSurfaceAllocation *source = buffer->written;
-
-          D_ASSUME( allocation != source );
-
-          D_DEBUG_AT( Core_SurfBuffer, "  -> updating allocation...\n" );
-
-          D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
-          D_ASSERT( source->buffer == allocation->buffer );
-
-          ret = dfb_surface_pool_bridges_transfer( buffer, source, allocation, NULL, 0 );
-          if (ret) {
-               if ((source->access[CSAID_CPU] & CSAF_READ) && (allocation->access[CSAID_CPU] & CSAF_WRITE))
-                    ret = allocation_update_copy( allocation, source );
-               else if (source->access[CSAID_CPU] & CSAF_READ)
-                    ret = allocation_update_write( allocation, source );
-               else if (allocation->access[CSAID_CPU] & CSAF_WRITE)
-                    ret = allocation_update_read( allocation, source );
-               else {
-                    D_UNIMPLEMENTED();
-                    ret = DFB_UNSUPPORTED;
-               }
-          }
-
-          if (ret) {
-               D_DERROR( ret, "Core/SurfaceBuffer: Updating allocation failed!\n" );
-               return ret;
-          }
-     }
-
-     if (access & CSAF_WRITE) {
-          D_DEBUG_AT( Core_SurfBuffer, "  -> increasing serial...\n" );
-
-          direct_serial_increase( &buffer->serial );
-
-          direct_serial_copy( &allocation->serial, &buffer->serial );
-
-          buffer->written = allocation;
-          buffer->read    = NULL;
-
-          /* Zap volatile allocations (freed when no longer up to date). */
-          fusion_vector_foreach (alloc, i, buffer->allocs) {
-               D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
-
-               if (alloc != allocation && (alloc->flags & CSALF_VOLATILE)) {
-                    dfb_surface_pool_deallocate( alloc->pool, alloc );
-                    i--;
-               }
-          }
-     }
-     else
-          buffer->read = allocation;
-
-     /* Zap all other allocations? */
-     if (dfb_config->thrifty_surface_buffers) {
-          buffer->written = buffer->read = allocation;
-
-          fusion_vector_foreach (alloc, i, buffer->allocs) {
-               D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
-
-               /* Don't zap preallocated which would not really free up memory, but just loose the handle. */
-               if (alloc != allocation && !(alloc->flags & (CSALF_PREALLOCATED | CSALF_MUCKOUT))) {
-                    dfb_surface_pool_deallocate( alloc->pool, alloc );
-                    i--;
-               }
-          }
-     }
 
      return DFB_OK;
 }

@@ -251,7 +251,6 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
      D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
@@ -285,20 +284,12 @@ x11Lock( CoreSurfacePool       *pool,
      x11AllocationData *alloc  = alloc_data;
      DFBX11            *x11    = local->x11;
      DFBX11Shared      *shared = x11->shared;
-     CoreSurfaceBuffer *buffer;
-     CoreSurface       *surface;
 
      D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
-
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
 
      D_ASSERT( local->hash != NULL );
 

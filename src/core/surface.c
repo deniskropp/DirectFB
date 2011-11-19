@@ -33,8 +33,11 @@
 #include <core/core.h>
 #include <core/palette.h>
 #include <core/surface.h>
+#include <core/surface_pool.h>
 
 #include <core/system.h>
+
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 
 #include <core/layers_internal.h>
@@ -241,9 +244,9 @@ dfb_surface_create( CoreDFB                  *core,
 
      fusion_ref_set_name( &surface->object.ref, buf );
 
-     fusion_skirmish_init( &surface->lock, buf, dfb_core_world(core) );
+     fusion_skirmish_init2( &surface->lock, buf, dfb_core_world(core), fusion_config->secure_fusion );
 
-     fusion_skirmish_add_permissions( &surface->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+//     fusion_skirmish_add_permissions( &surface->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
 
      D_MAGIC_SET( surface, CoreSurface );
 
@@ -708,30 +711,39 @@ dfb_surface_lock_buffer( CoreSurface            *surface,
                          CoreSurfaceAccessFlags  access,
                          CoreSurfaceBufferLock  *ret_lock )
 {
-     DFBResult          ret;
-     CoreSurfaceBuffer *buffer;
+     DFBResult              ret;
+     CoreSurfaceAllocation *allocation;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (fusion_skirmish_prevail( &surface->lock ))
-          return DFB_FUSION;
+     D_DEBUG_AT( Core_Surface, "%s( 0x%02x 0x%02x ) <- %dx%d %s [%d]\n", __FUNCTION__, accessor, access,
+                 surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(surface->config.format),
+                 role );
 
-     if (surface->num_buffers == 0) {
-          fusion_skirmish_dismiss( &surface->lock );
-          return DFB_SUSPENDED;
+     ret = CoreSurface_PreLockBuffer2( surface, role,
+                                       dfb_surface_get_stereo_eye(surface), // FIXME: make argument to dfb_surface_lock_buffer
+                                       accessor, access, true, &allocation );
+     if (ret)
+          return ret;
+
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     D_DEBUG_AT( Core_Surface, "  -> PreLockBuffer returned allocation %p (%s)\n", allocation, allocation->pool->desc.name );
+
+     /* Lock the allocation. */
+     dfb_surface_buffer_lock_init( ret_lock, accessor, access );
+
+     ret = dfb_surface_pool_lock( allocation->pool, allocation, ret_lock );
+     if (ret) {
+          D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
+                    allocation->pool->desc.name );
+          dfb_surface_buffer_lock_deinit( ret_lock );
+
+          dfb_surface_allocation_unref( allocation );
+          return ret;
      }
 
-     do {
-          buffer = dfb_surface_get_buffer( surface, role );
-          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-          ret = dfb_surface_buffer_lock( buffer, accessor, access, ret_lock );
-     } while (ret == DFB_BUFFEREMPTY);  // FIXME: this will be fixed when allocations are
-                                        // objects and we get an allocation object per atomic prelock
-
-     fusion_skirmish_dismiss( &surface->lock );
-
-     return ret;
+     return DFB_OK;
 }
 
 DFBResult
@@ -742,12 +754,7 @@ dfb_surface_unlock_buffer( CoreSurface           *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (fusion_skirmish_prevail( &surface->lock ))
-          return DFB_FUSION;
-
      ret = dfb_surface_buffer_unlock( lock );
-
-     fusion_skirmish_dismiss( &surface->lock );
 
      return ret;
 }
@@ -757,35 +764,99 @@ dfb_surface_read_buffer( CoreSurface            *surface,
                          CoreSurfaceBufferRole   role,
                          void                   *destination,
                          int                     pitch,
-                         const DFBRectangle     *rect )
+                         const DFBRectangle     *prect )
 {
-     DFBResult          ret;
-     CoreSurfaceBuffer *buffer;
+     DFBResult              ret;
+     int                    y;
+     int                    bytes;
+     DFBRectangle           rect;
+     DFBSurfacePixelFormat  format;
+     CoreSurfaceAllocation *allocation;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( destination != NULL );
      D_ASSERT( pitch > 0 );
-     DFB_RECTANGLE_ASSERT_IF( rect );
+     DFB_RECTANGLE_ASSERT_IF( prect );
 
-     if (fusion_skirmish_prevail( &surface->lock ))
-          return DFB_FUSION;
+     D_DEBUG_AT( Core_Surface, "%s( %p, %p [%d] )\n", __FUNCTION__, surface, destination, pitch );
 
-     if (surface->num_buffers == 0) {
-          fusion_skirmish_dismiss( &surface->lock );
-          return DFB_SUSPENDED;
+     /* Determine area. */
+     rect.x = 0;
+     rect.y = 0;
+     rect.w = surface->config.size.w;
+     rect.h = surface->config.size.h;
+
+     if (prect && (!dfb_rectangle_intersect( &rect, prect ) || !DFB_RECTANGLE_EQUAL( rect, *prect )))
+          return DFB_INVAREA;
+
+     /* Calculate bytes per read line. */
+     format = surface->config.format;
+     bytes  = DFB_BYTES_PER_LINE( format, rect.w );
+
+     D_DEBUG_AT( Core_Surface, "  -> %d,%d - %dx%d (%s)\n", DFB_RECTANGLE_VALS(&rect),
+                 dfb_pixelformat_name( format ) );
+
+     ret = CoreSurface_PreLockBuffer2( surface, role,
+                                       dfb_surface_get_stereo_eye(surface), // FIXME: make argument to dfb_surface_read_buffer
+                                       CSAID_CPU, CSAF_READ, false, &allocation );
+     if (ret == DFB_NOALLOCATION) {
+          for (y=0; y<rect.h; y++) {
+               memset( destination, 0, bytes );
+
+               destination += pitch;
+          }
+
+          return DFB_OK;
+     }
+     if (ret)
+          return ret;
+
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     D_DEBUG_AT( Core_Surface, "  -> PreLockBuffer returned allocation %p (%s)\n", allocation, allocation->pool->desc.name );
+
+     /* Try reading from allocation directly... */
+     ret = dfb_surface_pool_read( allocation->pool, allocation, destination, pitch, &rect );
+     if (ret) {
+          /* ...otherwise use fallback method via locking if possible. */
+          if (allocation->access[CSAID_CPU] & CSAF_READ) {
+               CoreSurfaceBufferLock lock;
+
+               /* Lock the allocation. */
+               dfb_surface_buffer_lock_init( &lock, CSAID_CPU, CSAF_READ );
+
+               ret = dfb_surface_pool_lock( allocation->pool, allocation, &lock );
+               if (ret) {
+                    D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
+                              allocation->pool->desc.name );
+                    dfb_surface_buffer_lock_deinit( &lock );
+                    dfb_surface_allocation_unref( allocation );
+                    return ret;
+               }
+
+               /* Move to start of read. */
+               lock.addr += DFB_BYTES_PER_LINE( format, rect.x ) + rect.y * lock.pitch;
+
+               /* Copy the data. */
+               for (y=0; y<rect.h; y++) {
+                    direct_memcpy( destination, lock.addr, bytes );
+
+                    destination += pitch;
+                    lock.addr   += lock.pitch;
+               }
+
+               /* Unlock the allocation. */
+               ret = dfb_surface_pool_unlock( allocation->pool, allocation, &lock );
+               if (ret)
+                    D_DERROR( ret, "Core/SurfBuffer: Unlocking allocation failed! [%s]\n", allocation->pool->desc.name );
+
+               dfb_surface_buffer_lock_deinit( &lock );
+          }
      }
 
-     do {
-          buffer = dfb_surface_get_buffer( surface, role );
-          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     dfb_surface_allocation_unref( allocation );
 
-          ret = dfb_surface_buffer_read( buffer, destination, pitch, rect );
-     } while (ret == DFB_BUFFEREMPTY);  // FIXME: this will be fixed when allocations are
-                                        // objects and we get an allocation object per atomic preread
-
-     fusion_skirmish_dismiss( &surface->lock );
-
-     return ret;
+     return DFB_OK;
 }
 
 DFBResult
@@ -793,35 +864,109 @@ dfb_surface_write_buffer( CoreSurface            *surface,
                           CoreSurfaceBufferRole   role,
                           const void             *source,
                           int                     pitch,
-                          const DFBRectangle     *rect )
+                          const DFBRectangle     *prect )
 {
-     DFBResult          ret;
-     CoreSurfaceBuffer *buffer;
+     DFBResult              ret;
+     int                    bytes;
+     DFBRectangle           rect;
+     DFBSurfacePixelFormat  format;
+     CoreSurfaceAllocation *allocation;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
-     D_ASSERT( source != NULL );
-     D_ASSERT( pitch > 0 );
-     DFB_RECTANGLE_ASSERT_IF( rect );
+     D_ASSERT( pitch > 0 || source == NULL );
+     DFB_RECTANGLE_ASSERT_IF( prect );
 
-     if (fusion_skirmish_prevail( &surface->lock ))
-          return DFB_FUSION;
+     D_DEBUG_AT( Core_Surface, "%s( %p, %p [%d] )\n", __FUNCTION__, surface, source, pitch );
 
-     if (surface->num_buffers == 0) {
-          fusion_skirmish_dismiss( &surface->lock );
-          return DFB_SUSPENDED;
+     /* Determine area. */
+     rect.x = 0;
+     rect.y = 0;
+     rect.w = surface->config.size.w;
+     rect.h = surface->config.size.h;
+
+     if (prect) {
+          if (!dfb_rectangle_intersect( &rect, prect )) {
+               D_DEBUG_AT( Core_Surface, "  -> no intersection!\n" );
+               return DFB_INVAREA;
+          }
+
+          if (!DFB_RECTANGLE_EQUAL( rect, *prect )) {
+               D_DEBUG_AT( Core_Surface, "  -> got clipped to %d,%d-%dx%d!\n", DFB_RECTANGLE_VALS(&rect) );
+               return DFB_INVAREA;
+          }
      }
 
-     do {
-          buffer = dfb_surface_get_buffer( surface, role );
-          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     /* Calculate bytes per read line. */
+     format = surface->config.format;
+     bytes  = DFB_BYTES_PER_LINE( format, rect.w );
 
-          ret = dfb_surface_buffer_write( buffer, source, pitch, rect );
-     } while (ret == DFB_BUFFEREMPTY);  // FIXME: this will be fixed when allocations are
-                                        // objects and we get an allocation object per atomic prewrite
+     D_DEBUG_AT( Core_Surface, "  -> %d,%d - %dx%d (%s)\n", DFB_RECTANGLE_VALS(&rect),
+                 dfb_pixelformat_name( format ) );
 
-     fusion_skirmish_dismiss( &surface->lock );
+     ret = CoreSurface_PreLockBuffer2( surface, role,
+                                       dfb_surface_get_stereo_eye(surface), // FIXME: make argument to dfb_surface_read_buffer
+                                       CSAID_CPU, CSAF_WRITE, false, &allocation );
+     if (ret)
+          return ret;
 
-     return ret;
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     D_DEBUG_AT( Core_Surface, "  -> PreLockBuffer returned allocation %p (%s)\n", allocation, allocation->pool->desc.name );
+
+     /* Try writing to allocation directly... */
+     ret = source ? dfb_surface_pool_write( allocation->pool, allocation, source, pitch, &rect ) : DFB_UNSUPPORTED;
+     if (ret) {
+          /* ...otherwise use fallback method via locking if possible. */
+          if (allocation->access[CSAID_CPU] & CSAF_WRITE) {
+               int                   y;
+               int                   bytes;
+               DFBSurfacePixelFormat format;
+               CoreSurfaceBufferLock lock;
+
+               /* Calculate bytes per written line. */
+               format = surface->config.format;
+               bytes  = DFB_BYTES_PER_LINE( format, rect.w );
+
+               /* Lock the allocation. */
+               dfb_surface_buffer_lock_init( &lock, CSAID_CPU, CSAF_WRITE );
+
+               ret = dfb_surface_pool_lock( allocation->pool, allocation, &lock );
+               if (ret) {
+                    D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
+                              allocation->pool->desc.name );
+                    dfb_surface_buffer_lock_deinit( &lock );
+                    dfb_surface_allocation_unref( allocation );
+                    return ret;
+               }
+
+               /* Move to start of write. */
+               lock.addr += DFB_BYTES_PER_LINE( format, rect.x ) + rect.y * lock.pitch;
+
+               /* Copy the data. */
+               for (y=0; y<rect.h; y++) {
+                    if (source) {
+                         direct_memcpy( lock.addr, source, bytes );
+
+                         source += pitch;
+                    }
+                    else
+                         memset( lock.addr, 0, bytes );
+
+                    lock.addr += lock.pitch;
+               }
+
+               /* Unlock the allocation. */
+               ret = dfb_surface_pool_unlock( allocation->pool, allocation, &lock );
+               if (ret)
+                    D_DERROR( ret, "Core/SurfBuffer: Unlocking allocation failed! [%s]\n", allocation->pool->desc.name );
+
+               dfb_surface_buffer_lock_deinit( &lock );
+          }
+     }
+
+     dfb_surface_allocation_unref( allocation );
+
+     return DFB_OK;
 }
 
 DFBResult

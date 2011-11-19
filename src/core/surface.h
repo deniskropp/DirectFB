@@ -361,6 +361,23 @@ dfb_surface_get_buffer( CoreSurface           *surface,
      return surface->buffers[ surface->buffer_indices[(surface->flips + role) % surface->num_buffers] ];
 }
 
+static __inline__ CoreSurfaceBuffer *
+dfb_surface_get_buffer2( CoreSurface           *surface,
+                         CoreSurfaceBufferRole  role,
+                         DFBSurfaceStereoEye    eye )
+{
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( role == CSBR_FRONT || role == CSBR_BACK || role == CSBR_IDLE );
+     D_ASSERT( eye == DSSE_LEFT || eye == DSSE_RIGHT );
+
+     D_ASSERT( surface->num_buffers > 0 );
+
+     if (eye == DSSE_LEFT)
+          return surface->left_buffers[ surface->buffer_indices[(surface->flips + role) % surface->num_buffers] ];
+
+     return surface->right_buffers[ surface->buffer_indices[(surface->flips + role) % surface->num_buffers] ];
+}
+
 static __inline__ void *
 dfb_surface_data_offset( const CoreSurface *surface,
                          void              *data,
