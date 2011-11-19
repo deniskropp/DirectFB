@@ -64,6 +64,12 @@
 #endif
 #endif
 
+
+#if FUSION_API_MAJOR_PROVIDED == 8 && FUSION_API_MINOR_PROVIDED == 8 && FUSION_API_MICRO_PROVIDED == 0
+#define FCEF_QUEUE (0)
+#endif
+
+
 #else
 typedef unsigned long FusionID;
 
