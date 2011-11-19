@@ -722,7 +722,7 @@ fusion_enter( int               world_index,
           fusion_skirmish_add_permissions( &shared->reactor_globals, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
 
           /* Create the main pool. */
-          ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x100000,
+          ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x1000000,
                                         fusion_config->debugshm, &shared->main_pool );
           if (ret)
                goto error3;
