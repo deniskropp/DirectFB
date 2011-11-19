@@ -452,6 +452,14 @@ void                  dfb_pixel_to_color  ( DFBSurfacePixelFormat  format,
 unsigned long         dfb_pixel_from_color( DFBSurfacePixelFormat  format,
                                             const DFBColor        *color );
 
+void
+dfb_pixel_to_components( DFBSurfacePixelFormat  format,
+                         unsigned long          pixel,
+                         u8                     *a,
+                         u8                     *c2,    /* Either Y or R */
+                         u8                     *c1,    /* Either U or G */
+                         u8                     *c0 );  /* Either V or B */
+
 
 static __inline__ u32
 dfb_color_to_pixel( DFBSurfacePixelFormat format,

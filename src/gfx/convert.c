@@ -259,6 +259,131 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
 }
 
 void
+dfb_pixel_to_components( DFBSurfacePixelFormat  format,
+                         unsigned long          pixel,
+                         u8                     *a,
+                         u8                     *c2,    /* Either Y or R */
+                         u8                     *c1,    /* Either U or G */
+                         u8                     *c0 )   /* Either V or B */
+{
+     *a = 0xff;
+
+     switch (format) {
+          case DSPF_RGB332:
+               *c2 = EXPAND_3to8( (pixel & 0xe0) >> 5 );
+               *c1 = EXPAND_3to8( (pixel & 0x1c) >> 2 );
+               *c0 = EXPAND_2to8( (pixel & 0x03)      );
+               break;
+
+          case DSPF_ARGB1555:
+               *a  = EXPAND_1to8(  pixel >> 15 );
+          case DSPF_RGB555:
+               *c2 = EXPAND_5to8( (pixel & 0x7c00) >> 10 );
+               *c1 = EXPAND_5to8( (pixel & 0x03e0) >>  5 );
+               *c0 = EXPAND_5to8( (pixel & 0x001f)       );
+               break;
+
+          case DSPF_BGR555:
+               *c2 = EXPAND_5to8( (pixel & 0x001f)       );
+               *c1 = EXPAND_5to8( (pixel & 0x03e0) >>  5 );
+               *c0 = EXPAND_5to8( (pixel & 0x7c00) >> 10 );
+               break;
+
+          case DSPF_ARGB2554:
+               *a  = EXPAND_2to8(  pixel >> 14 );
+               *c2 = EXPAND_5to8( (pixel & 0x3e00) >>  9 );
+               *c1 = EXPAND_5to8( (pixel & 0x01f0) >>  4 );
+               *c0 = EXPAND_4to8( (pixel & 0x000f)       );
+               break;
+
+          case DSPF_ARGB4444:
+               *a  = EXPAND_4to8(  pixel >> 12 );
+          case DSPF_RGB444:
+               *c2 = EXPAND_4to8( (pixel & 0x0f00) >>  8 );
+               *c1 = EXPAND_4to8( (pixel & 0x00f0) >>  4 );
+               *c0 = EXPAND_4to8( (pixel & 0x000f)       );
+               break;
+
+          case DSPF_RGBA4444:
+               *c2 = EXPAND_4to8( (pixel         ) >> 12 );
+               *c1 = EXPAND_4to8( (pixel & 0x0f00) >>  8 );
+               *c0 = EXPAND_4to8( (pixel & 0x00f0) >>  4 );
+               *a  = EXPAND_4to8( (pixel & 0x000f)       );
+               break;
+
+          case DSPF_RGB16:
+               *c2 = EXPAND_5to8( (pixel & 0xf800) >> 11 );
+               *c1 = EXPAND_6to8( (pixel & 0x07e0) >>  5 );
+               *c0 = EXPAND_5to8( (pixel & 0x001f)       );
+               break;
+
+          case DSPF_ARGB:
+               *a  = pixel >> 24;
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+               *c2 = (pixel & 0xff0000) >> 16;
+               *c1 = (pixel & 0x00ff00) >>  8;
+               *c0 = (pixel & 0x0000ff);
+               break;
+
+          case DSPF_ABGR:
+               *a  = pixel >> 24;
+               *c0 = (pixel & 0xff0000) >> 16;
+               *c1 = (pixel & 0x00ff00) >>  8;
+               *c2 = (pixel & 0x0000ff);
+
+          case DSPF_AiRGB:
+               *a  = (pixel >> 24) ^ 0xff;
+               *c2 = (pixel & 0xff0000) >> 16;
+               *c1 = (pixel & 0x00ff00) >>  8;
+               *c0 = (pixel & 0x0000ff);
+               break;
+
+          case DSPF_AYUV:
+              *a  = pixel >> 24;
+              *c2 = (pixel & 0xff0000) >> 16;
+              *c1 = (pixel & 0x00ff00) >>  8;
+              *c0 = (pixel & 0x0000ff);
+              break;
+
+          case DSPF_YUY2:
+#ifdef WORDS_BIGENDIAN
+              *c2 = (pixel & 0xff);
+              *c1 = pixel >>  24;
+              *c0 = (pixel & 0xff00) >> 8;
+#else
+              *c2 = (pixel & 0xff);
+              *c1 = (pixel & 0xff00) >> 8;
+              *c0 = pixel >> 24;
+#endif
+              break;
+
+          case DSPF_UYVY:
+#ifdef WORDS_BIGENDIAN
+              *c2 = (pixel & 0xff00) >> 8;
+              *c1 = (pixel & 0xff0000) >> 16;
+              *c0 = (pixel & 0xff);
+#else
+              *c2 = (pixel & 0xff00) >> 8;
+              *c1 = (pixel & 0xff);
+              *c0 = (pixel & 0xff0000) >> 16;
+#endif
+              break;
+
+          case DSPF_I420:
+          case DSPF_YV12:
+              *c2 = (pixel & 0xff);
+              *c1 = (pixel & 0xff00) >> 8;
+              *c0 = (pixel & 0xff0000) >> 16;
+
+          default:
+               *c2 = 0;
+               *c1 = 0;
+               *c0 = 0;
+     }
+}
+
+void
 dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                       const void            *src,
                       int                    spitch,
