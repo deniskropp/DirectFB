@@ -737,6 +737,16 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
 }
 
 DirectResult
+fusion_skirmish_init2( FusionSkirmish    *skirmish,
+                       const char        *name,
+                       const FusionWorld *world,
+                       bool               local )
+{
+     /* In !FUSION_BUILD_MULTI everything is local. */
+     return fusion_skirmish_init( skirmish, name, world );
+}
+
+DirectResult
 fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
