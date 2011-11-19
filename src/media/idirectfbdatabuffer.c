@@ -64,7 +64,7 @@ IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz )
           D_FREE( data->filename );
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
-     if (fusion_config->secure_fusion)
+     if (fusion_config->secure_fusion && core_dfb)
           DataBuffer_Deinit_Dispatch( &data->call );
 #endif
 
@@ -245,7 +245,7 @@ IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz,
           data->filename = D_STRDUP( filename );
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
-     if (fusion_config->secure_fusion)
+     if (fusion_config->secure_fusion && core)
           DataBuffer_Init_Dispatch( core, thiz, &data->call );
 #endif
 
