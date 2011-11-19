@@ -150,13 +150,9 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                    CoreSurfaceAccessorID   accessor,
                    CoreSurfaceAccessFlags  access )
 {
-     CoreSurfaceBuffer *buffer;
-     int                locks;
+     int locks;
 
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     locks = dfb_surface_buffer_locks( buffer );
+     locks = dfb_surface_allocation_locks( allocation );
 
 #if 1
      /*
@@ -225,7 +221,7 @@ ISurface_Real__PreLockBuffer(
                          CoreSurfaceBuffer                         *buffer,
                          CoreSurfaceAccessorID                      accessor,
                          CoreSurfaceAccessFlags                     access,
-                         u32                                       *ret_allocation_index
+                         CoreSurfaceAllocation                    **ret_allocation
                          )
 {
      DFBResult              ret;
@@ -266,7 +262,7 @@ ISurface_Real__PreLockBuffer(
      if (ret) {
           /* Destroy if newly created. */
           if (allocated)
-               dfb_surface_pool_deallocate( allocation->pool, allocation );
+               dfb_surface_allocation_decouple( allocation );
           goto out;
      }
 
@@ -274,13 +270,111 @@ ISurface_Real__PreLockBuffer(
      if (ret) {
           /* Destroy if newly created. */
           if (allocated)
-               dfb_surface_pool_deallocate( allocation->pool, allocation );
+               dfb_surface_allocation_decouple( allocation );
           goto out;
      }
 
      manage_interlocks( allocation, accessor, access );
 
-     *ret_allocation_index = fusion_vector_index_of( &buffer->allocs, allocation );
+     dfb_surface_allocation_ref( allocation );
+
+     *ret_allocation = allocation;
+
+out:
+     dfb_surface_unlock( surface );
+
+     return ret;
+}
+
+DFBResult
+ISurface_Real__PreLockBuffer2(
+                         CoreSurface                               *obj,
+                         CoreSurfaceBufferRole                      role,
+                         CoreSurfaceAccessorID                      accessor,
+                         CoreSurfaceAccessFlags                     access,
+                         bool                                       lock,
+                         CoreSurfaceAllocation                    **ret_allocation
+                         )
+{
+     DFBResult              ret;
+     CoreSurfaceBuffer     *buffer;
+     CoreSurfaceAllocation *allocation;
+     CoreSurface           *surface    = obj;
+     bool                   allocated  = false;
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
+
+     ret = (DFBResult) dfb_surface_lock( surface );
+     if (ret)
+          return ret;
+
+     if (surface->num_buffers < 1) {
+          dfb_surface_unlock( surface );
+          return DFB_BUFFEREMPTY;
+     }
+
+     buffer = dfb_surface_get_buffer( surface, role );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     if (!lock && access & CSAF_READ) {
+          if (fusion_vector_is_empty( &buffer->allocs )) {
+               dfb_surface_unlock( surface );
+               return DFB_NOALLOCATION;
+          }
+     }
+
+     /* Look for allocation with proper access. */
+     allocation = dfb_surface_buffer_find_allocation( buffer, accessor, access, lock );
+     if (!allocation) {
+          /* If no allocation exists, create one. */
+          ret = dfb_surface_pools_allocate( buffer, accessor, access, &allocation );
+          if (ret) {
+               if (ret != DFB_NOVIDEOMEMORY && ret != DFB_UNSUPPORTED)
+                    D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
+
+               goto out;
+          }
+
+          allocated = true;
+     }
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     /* Synchronize with other allocations. */
+     ret = dfb_surface_allocation_update( allocation, access );
+     if (ret) {
+          /* Destroy if newly created. */
+          if (allocated)
+               dfb_surface_allocation_decouple( allocation );
+          goto out;
+     }
+
+     if (!lock) {
+          if (access & CSAF_WRITE) {
+               if (!(allocation->pool->desc.caps & CSPCAPS_WRITE))
+                    lock = true;
+          }
+          else if (access & CSAF_READ) {
+               if (!(allocation->pool->desc.caps & CSPCAPS_READ))
+                    lock = true;
+          }
+     }
+
+     if (lock) {
+          ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
+          if (ret) {
+               /* Destroy if newly created. */
+               if (allocated)
+                    dfb_surface_allocation_decouple( allocation );
+               goto out;
+          }
+
+          manage_interlocks( allocation, accessor, access );
+     }
+
+     dfb_surface_allocation_ref( allocation );
+
+     *ret_allocation = allocation;
 
 out:
      dfb_surface_unlock( surface );
@@ -293,7 +387,7 @@ ISurface_Real__PreReadBuffer(
                          CoreSurface                               *obj,
                          CoreSurfaceBuffer                         *buffer,
                          const DFBRectangle                        *rect,
-                         u32                                       *ret_allocation_index
+                         CoreSurfaceAllocation                    **ret_allocation
                          )
 {
      DFBResult              ret;
@@ -337,7 +431,7 @@ ISurface_Real__PreReadBuffer(
      if (ret) {
           /* Destroy if newly created. */
           if (allocated)
-               dfb_surface_pool_deallocate( allocation->pool, allocation );
+               dfb_surface_allocation_decouple( allocation );
           goto out;
      }
 
@@ -346,14 +440,16 @@ ISurface_Real__PreReadBuffer(
           if (ret) {
                /* Destroy if newly created. */
                if (allocated)
-                    dfb_surface_pool_deallocate( allocation->pool, allocation );
+                    dfb_surface_allocation_decouple( allocation );
                goto out;
           }
 
           manage_interlocks( allocation, CSAID_CPU, CSAF_READ );
      }
 
-     *ret_allocation_index = fusion_vector_index_of( &buffer->allocs, allocation );
+     dfb_surface_allocation_ref( allocation );
+
+     *ret_allocation = allocation;
 
 out:
      dfb_surface_unlock( surface );
@@ -366,7 +462,7 @@ ISurface_Real__PreWriteBuffer(
                          CoreSurface                               *obj,
                          CoreSurfaceBuffer                         *buffer,
                          const DFBRectangle                        *rect,
-                         u32                                       *ret_allocation_index
+                         CoreSurfaceAllocation                    **ret_allocation
                          )
 {
      DFBResult              ret;
@@ -410,7 +506,7 @@ ISurface_Real__PreWriteBuffer(
      if (ret) {
           /* Destroy if newly created. */
           if (allocated)
-               dfb_surface_pool_deallocate( allocation->pool, allocation );
+               dfb_surface_allocation_decouple( allocation );
           goto out;
      }
 
@@ -419,14 +515,16 @@ ISurface_Real__PreWriteBuffer(
           if (ret) {
                /* Destroy if newly created. */
                if (allocated)
-                    dfb_surface_pool_deallocate( allocation->pool, allocation );
+                    dfb_surface_allocation_decouple( allocation );
                goto out;
           }
 
           manage_interlocks( allocation, CSAID_CPU, CSAF_WRITE );
      }
 
-     *ret_allocation_index = fusion_vector_index_of( &buffer->allocs, allocation );
+     dfb_surface_allocation_ref( allocation );
+
+     *ret_allocation = allocation;
 
 out:
      dfb_surface_unlock( surface );

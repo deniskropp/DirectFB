@@ -35,6 +35,7 @@
 #include <fusion/vector.h>
 
 #include <core/surface.h>
+#include <core/surface_allocation.h>
 
 #include <directfb.h>
 
@@ -50,21 +51,6 @@ typedef enum {
      CSBF_ALL       = 0x00000001   /* All of these. */
 } CoreSurfaceBufferFlags;
 
-/*
- * Configuration and State flags of a Surface Buffer Allocation
- */
-typedef enum {
-     CSALF_NONE          = 0x00000000,  /* None of these. */
-
-     CSALF_ONEFORALL     = 0x00000001,  /* Only one allocation in pool for all buffers. */
-     CSALF_VOLATILE      = 0x00000002,  /* Allocation should be freed when no longer up to date. */
-     CSALF_PREALLOCATED  = 0x00000004,  /* Preallocated memory, don't zap when "thrifty-surface-buffers" is active. */
-
-     CSALF_MUCKOUT       = 0x00001000,  /* Indicates surface pool being in the progress of mucking out this and possibly
-                                           other allocations to have enough space for a new allocation to be made. */
-
-     CSALF_ALL           = 0x00001007   /* All of these. */
-} CoreSurfaceAllocationFlags;
 
 typedef enum {
      CSBNF_NONE     = 0x00000000
@@ -74,39 +60,6 @@ typedef struct {
      CoreSurfaceBufferNotificationFlags  flags;
 } CoreSurfaceBufferNotification;
 
-/*
- * An Allocation of a Surface Buffer
- */
-struct __DFB_CoreSurfaceAllocation {
-     int                            magic;
-
-     DirectSerial                   serial;       /* Equals serial of buffer if content is up to date. */
-
-     CoreSurfaceBuffer             *buffer;       /* Surface Buffer owning this allocation. */
-     CoreSurface                   *surface;      /* Surface owning the Buffer of this allocation. */
-     CoreSurfacePool               *pool;         /* Surface Pool providing the allocation. */
-     void                          *data;         /* Pool's private data for this allocation. */
-     int                            size;         /* Amount of data used by this allocation. */
-     unsigned long                  offset;       /* Offset within address range of pool if contiguous. */
-
-     CoreSurfaceAllocationFlags     flags;        /* Pool can return CSALF_ONEFORALL upon allocation of first buffer. */
-
-     const CoreSurfaceAccessFlags  *access;                 /* Possible access flags (pointer to pool description). */
-     CoreSurfaceAccessFlags         accessed[_CSAID_NUM];   /* Access since last synchronization. */
-};
-
-#define CORE_SURFACE_ALLOCATION_ASSERT(alloc)                                                  \
-     do {                                                                                      \
-          D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );                                      \
-          D_ASSUME( (alloc)->size > 0 );                                                       \
-          D_ASSERT( (alloc)->size >= 0 );                                                      \
-          D_ASSERT( (alloc)->offset + (alloc)->size <= ((alloc)->pool->desc.size ?:~0UL) );    \
-          D_FLAGS_ASSERT( (alloc)->access[CSAID_CPU], CSAF_ALL );                              \
-          D_FLAGS_ASSERT( (alloc)->access[CSAID_GPU], CSAF_ALL );                              \
-          D_FLAGS_ASSERT( (alloc)->flags, CSALF_ALL );                                         \
-          D_FLAGS_ASSERT( (alloc)->accessed[CSAID_CPU], CSAF_ALL );                            \
-          D_FLAGS_ASSERT( (alloc)->accessed[CSAID_GPU], CSAF_ALL );                            \
-     } while (0)
 
 /*
  * A Lock on a Surface Buffer
@@ -168,15 +121,14 @@ dfb_surface_buffer_lock_deinit( CoreSurfaceBufferLock *lock )
      do {                                                                                           \
           D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );                                            \
           D_FLAGS_ASSERT( (lock)->access, CSAF_ALL );                                               \
-          if ((lock)->buffer) {                                                                     \
-               D_ASSERT( (lock)->allocation != NULL );                                              \
-               D_ASSERT( (lock)->buffer == (lock)->allocation->buffer );                            \
+          if ((lock)->allocation) {                                                                 \
+               /*D_ASSERT( (lock)->buffer == (lock)->allocation->buffer );*/                            \
                D_ASSUME( (lock)->addr != NULL || (lock)->phys != 0 || (lock)->offset != ~0 || (lock)->handle != NULL );\
                D_ASSUME( (lock)->offset == (lock)->allocation->offset || (lock)->offset == ~0 );    \
                D_ASSERT( (lock)->pitch > 0 || ((lock)->addr == NULL && (lock)->phys == 0) );        \
           }                                                                                         \
           else {                                                                                    \
-               D_ASSERT( (lock)->allocation == NULL );                                              \
+               D_ASSERT( (lock)->buffer == NULL );                                                  \
                D_ASSERT( (lock)->addr == NULL );                                                    \
                D_ASSERT( (lock)->phys == 0 );                                                       \
                D_ASSERT( (lock)->offset == ~0 );                                                    \
@@ -272,21 +224,6 @@ dfb_surface_buffer_index( CoreSurfaceBuffer *buffer )
 
      return 0;
 }
-
-static inline int
-dfb_surface_buffer_locks( CoreSurfaceBuffer *buffer )
-{
-     int refs;
-
-     fusion_ref_stat( &buffer->object.ref, &refs );
-
-     D_ASSERT( refs > 0 );
-
-     return refs - 1;
-}
-
-DFBResult dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
-                                         CoreSurfaceAccessFlags  access );
 
 
 FUSION_OBJECT_METHODS( CoreSurfaceBuffer, dfb_surface_buffer );

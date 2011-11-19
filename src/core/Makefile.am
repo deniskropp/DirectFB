@@ -68,6 +68,7 @@ internalinclude_HEADERS = \
 	screens_internal.h	\
 	state.h			\
 	surface.h		\
+	surface_allocation.h	\
 	surface_buffer.h	\
 	surface_core.h		\
 	surface_pool.h		\
@@ -131,6 +132,7 @@ libdirectfb_core_la_SOURCES = \
 	shared_surface_pool.c	\
 	state.c			\
 	surface.c		\
+	surface_allocation.c	\
 	surface_buffer.c	\
 	surface_core.c		\
 	surface_pool.c		\

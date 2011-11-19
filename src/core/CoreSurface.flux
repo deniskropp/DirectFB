@@ -122,10 +122,50 @@ interface {
 		}
 
 		arg {
-			name	    allocation_index
+			name	    allocation
 			direction   output
+			type        object
+			typename    CoreSurfaceAllocation
+		}
+	}
+
+
+	method {
+		name	PreLockBuffer2
+
+		arg {
+			name	    role
+			direction   input
+			type        enum
+			typename    CoreSurfaceBufferRole
+		}
+
+		arg {
+			name	    accessor
+			direction   input
+			type        enum
+			typename    CoreSurfaceAccessorID
+		}
+
+		arg {
+			name	    access
+			direction   input
+			type        enum
+			typename    CoreSurfaceAccessFlags
+		}
+
+		arg {
+			name	    lock
+			direction   input
 			type        int
-			typename    u32
+			typename    bool
+		}
+
+		arg {
+			name	    allocation
+			direction   output
+			type        object
+			typename    CoreSurfaceAllocation
 		}
 	}
 
@@ -148,10 +188,10 @@ interface {
 		}
 
 		arg {
-			name	    allocation_index
+			name	    allocation
 			direction   output
-			type        int
-			typename    u32
+			type        object
+			typename    CoreSurfaceAllocation
 		}
 	}
 
@@ -174,10 +214,10 @@ interface {
 		}
 
 		arg {
-			name	    allocation_index
+			name	    allocation
 			direction   output
-			type        int
-			typename    u32
+			type        object
+			typename    CoreSurfaceAllocation
 		}
 	}
 }

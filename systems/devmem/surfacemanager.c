@@ -290,7 +290,7 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
                other = allocation->buffer;
                D_MAGIC_ASSERT( other, CoreSurfaceBuffer );
 
-               locks = dfb_surface_buffer_locks( other );
+               locks = dfb_surface_allocation_locks( allocation );
                if (locks) {
                     D_DEBUG_AT( SurfMan, "  ++ %7d locked %dx\n", allocation->size, locks );
                     goto next_reset;
