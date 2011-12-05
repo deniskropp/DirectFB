@@ -237,7 +237,7 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
 }
 
 #define D_SYNC_ADD_AND_FETCH( ptr, value )                                           \
-     (_D__atomic_add_return( (int) (value), (void*) (ptr) ))
+     (_D__atomic_add_return( (int) (value), (volatile int*) (ptr) ))
 
 #endif
 
