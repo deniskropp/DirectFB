@@ -185,7 +185,7 @@
 
 #if defined(ARCH_ARM) && !defined(ARCH_IWMMXT)
 
-static inline int _D__atomic_cmpxchg(volatile int *ptr, int old, int new)
+static inline int _D__atomic_cmpxchg(volatile int *ptr, int old, int _new)
 {
 	unsigned long oldval, res;
 
@@ -196,7 +196,7 @@ static inline int _D__atomic_cmpxchg(volatile int *ptr, int old, int new)
 		"teq	%1, %3\n"
 		"strexeq %0, %4, [%2]\n"
 		    : "=&r" (res), "=&r" (oldval)
-		    : "r" (ptr), "Ir" (old), "r" (new)
+		    : "r" (ptr), "Ir" (old), "r" (_new)
 		    : "cc");
 	} while (res);
 
