@@ -118,6 +118,8 @@ struct __DFB_CoreWindow {
           int                hot_y;
           CoreSurface       *surface;
      } cursor;
+
+     DFBWindowCapabilities   requested_caps; /* original caps from application upon window creation */
 };
 
 typedef enum {
