@@ -5,7 +5,7 @@ INCLUDES = \
 	-I$(top_builddir)/src		\
 	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/src		\
-	$(DFB_CFLAGS)
+	$(DIRECTFB_CFLAGS)
 
 
 wmdir = $(MODULEDIR)/wm
@@ -26,7 +26,7 @@ libdirectfbwm_sawman_la_SOURCES = \
 
 libdirectfbwm_sawman_la_LIBADD = \
 	../../src/libsawman.la	\
-	$(DFB_LIBS)
+	$(DIRECTFB_LIBS)
 
 
 include $(top_srcdir)/rules/libobject.make
