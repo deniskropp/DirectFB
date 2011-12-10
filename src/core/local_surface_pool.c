@@ -168,7 +168,6 @@ localDeallocateBuffer( CoreSurfacePool       *pool,
      LocalAllocationData *alloc = alloc_data;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( alloc, LocalAllocationData );
 
      D_FREE( alloc->addr );
