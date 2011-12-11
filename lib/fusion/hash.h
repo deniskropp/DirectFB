@@ -131,5 +131,59 @@ fusion_hash_size (FusionHash *hash);
 bool fusion_hash_should_resize ( FusionHash    *hash);
 
 
+
+typedef struct {
+     FusionHash     *hash;
+     int             index;
+     FusionHashNode *next;
+} FusionHashIterator;
+
+static inline void *
+fusion_hash_iterator_next( FusionHashIterator *iterator )
+{
+     FusionHashNode *node = NULL;
+
+     if (iterator->next) {
+          node           = iterator->next;
+          iterator->next = node->next;
+     }
+     else {
+          FusionHash *hash = iterator->hash;
+
+          D_MAGIC_ASSERT( hash, FusionHash );
+
+          for (iterator->index++; iterator->index < hash->size; iterator->index++) {
+               node = hash->nodes[iterator->index];
+               if (node) {
+                    iterator->next = node->next;
+
+                    break;
+               }
+          }
+     }
+
+     return node ? node->value : NULL;
+}
+
+static inline void *
+fusion_hash_iterator_init( FusionHashIterator *iterator,
+                           FusionHash         *hash )
+{
+     D_MAGIC_ASSERT( hash, FusionHash );
+
+     iterator->hash  = hash;
+     iterator->index = -1;
+     iterator->next  = NULL;
+
+     return fusion_hash_iterator_next( iterator );
+}
+
+
+#define fusion_hash_foreach( elem, iterator, hash )                                       \
+     for ((elem) = (__typeof__(elem)) fusion_hash_iterator_init( &iterator, hash );       \
+          (elem) != NULL;                                                                 \
+          (elem) = (__typeof__(elem)) fusion_hash_iterator_next( &iterator ))
+
+
 #endif /*__FUSION_HASH_H__*/
 
