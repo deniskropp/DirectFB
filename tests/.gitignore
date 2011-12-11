@@ -10,9 +10,11 @@ dfbtest_old_gl2
 dfbtest_init
 dfbtest_input
 dfbtest_mirror
+dfbtest_prealloc
 dfbtest_reinit
 dfbtest_resize
 dfbtest_scale
+dfbtest_scale_nv21
 dfbtest_stereo_window
 dfbtest_sync
 dfbtest_water

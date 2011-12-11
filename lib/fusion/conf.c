@@ -63,7 +63,8 @@ const char   *fusion_config_usage =
 void
 __Fusion_conf_init()
 {
-     fusion_config->shmfile_gid = -1;
+     fusion_config->secure_fusion = true;
+     fusion_config->shmfile_gid   = -1;
 }
 
 void

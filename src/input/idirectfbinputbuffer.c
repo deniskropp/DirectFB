@@ -55,6 +55,8 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/CoreWindow.h>
+
 #include <core/input.h>
 #include <core/windows.h>
 #include <core/windows_internal.h>
@@ -779,6 +781,8 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
 
      dfb_window_attach( window, IDirectFBEventBuffer_WindowReact,
                         data, &attached->reaction );
+
+     CoreWindow_AllowFocus( window );
 
      return DFB_OK;
 }

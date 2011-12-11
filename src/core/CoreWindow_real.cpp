@@ -431,6 +431,21 @@ IWindow_Real::SetCursorShape(
      return dfb_window_set_cursor_shape( obj, shape, hotspot->x, hotspot->y );
 }
 
+DFBResult
+IWindow_Real::AllowFocus()
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     /*
+      * Remove DWCAPS_NOFOCUS, unless requested by the application itself.
+      */
+     obj->caps = (DFBWindowCapabilities)((obj->caps & ~DWCAPS_NOFOCUS) | (obj->requested_caps & DWCAPS_NOFOCUS));
+
+     return DFB_OK;
+}
+
 
 }
 

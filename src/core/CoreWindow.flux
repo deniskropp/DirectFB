@@ -455,5 +455,10 @@ interface {
 			typename	DFBPoint
 		}
 	}
+
+
+	method {
+		name	AllowFocus
+	}
 }
 
