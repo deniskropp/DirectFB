@@ -82,8 +82,11 @@ print_usage( const char *prg )
      fprintf (stderr, "Usage: %s [options] <file>\n", prg);
      fprintf (stderr, "\n");
      fprintf (stderr, "Options:\n");
-     fprintf (stderr, "  -h, --help                        Show this help message\n");
-     fprintf (stderr, "  -v, --version                     Print version information\n");
+     fprintf (stderr, "  -h,  --help                        Show this help message\n");
+     fprintf (stderr, "  -v,  --version                     Print version information\n");
+     fprintf (stderr, "  -o,  --outline                     Render outlined fonts\n");
+     fprintf (stderr, "  -ow, --outline-width   <width>     Change outline width (default 1)\n");
+     fprintf (stderr, "  -oo, --outline-opacity <opacity>   Change outline opacity (default 255)\n");
 
      return -1;
 }
@@ -91,15 +94,18 @@ print_usage( const char *prg )
 /**********************************************************************************************************************/
 
 static IDirectFBFont *
-CreateFont( IDirectFB *dfb, const char *url, int size )
+CreateFont( IDirectFB *dfb, const char *url, int size, DFBFontAttributes attributes, int outline_width, int outline_opacity )
 {
      DFBResult           ret;
      DFBFontDescription  fdesc;
      IDirectFBFont      *font;
 
      /* Create the font. */
-     fdesc.flags  = DFDESC_HEIGHT;
-     fdesc.height = size;
+     fdesc.flags           = DFDESC_HEIGHT | DFDESC_ATTRIBUTES | DFDESC_OUTLINE_WIDTH | DFDESC_OUTLINE_OPACITY;
+     fdesc.height          = size;
+     fdesc.attributes      = attributes;
+     fdesc.outline_width   = outline_width;
+     fdesc.outline_opacity = outline_opacity;
 
      ret = dfb->CreateFont( dfb, url, &fdesc, &font );
      if (ret) {
@@ -110,15 +116,42 @@ CreateFont( IDirectFB *dfb, const char *url, int size )
      return font;
 }
 
+static void
+RenderChecker( IDirectFBSurface *surface, int tile_width, int tile_height )
+{
+     int width, height;
+     int x, y;
+
+     surface->GetSize( surface, &width, &height );
+
+     for (y=0; y<height; y+=tile_height) {
+          for (x=0; x<width; x+=tile_width) {
+               if ((x/tile_width + y/tile_height) & 1)
+                    surface->SetColor( surface, 0x55, 0x55, 0x55, 0xff );
+               else
+                    surface->SetColor( surface, 0x99, 0x99, 0x99, 0xff );
+
+               surface->FillRectangle( surface, x, y, tile_width, tile_height );
+          }
+     }
+}
+
 int
 main( int argc, char *argv[] )
 {
-     int                     i;
-     DFBResult               ret;
-     DFBSurfaceDescription   desc;
-     IDirectFB              *dfb;
-     IDirectFBSurface       *dest = NULL;
-     const char             *url  = NULL;
+     int                    i;
+     DFBResult              ret;
+     DFBSurfaceDescription  desc;
+     IDirectFB             *dfb;
+     IDirectFBSurface      *dest            = NULL;
+     const char            *url             = NULL;
+     DFBFontAttributes      attributes      = DFFA_NONE;
+     DFBSurfaceTextFlags    text_flags      = DSTF_TOPLEFT;
+     int                    outline_width   = 0x10000;
+     int                    outline_opacity = 255;
+     const DFBColorID       color_ids[2]    = { DCID_PRIMARY, DCID_OUTLINE };
+     const DFBColor         colors[2]       = { { 0xff, 0xff, 0xff, 0xff },
+                                                { 0xff, 0x00, 0x80, 0xff } };
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
@@ -137,6 +170,26 @@ main( int argc, char *argv[] )
                fprintf (stderr, "dfbtest_blit version %s\n", DIRECTFB_VERSION);
                return false;
           }
+          else if (strcmp (arg, "-o") == 0 || strcmp (arg, "--outline") == 0) {
+               attributes |= DFFA_OUTLINED;
+               text_flags |= DSTF_OUTLINE;
+          }
+          else if (strcmp (arg, "-ow") == 0 || strcmp (arg, "--outline-width") == 0) {
+               if (++i == argc)
+                    return print_usage( argv[0] );
+
+               if (sscanf( argv[i], "%d", &outline_width ) != 1)
+                    return print_usage( argv[0] );
+
+               outline_width <<= 16;
+          }
+          else if (strcmp (arg, "-oo") == 0 || strcmp (arg, "--outline-opacity") == 0) {
+               if (++i == argc)
+                    return print_usage( argv[0] );
+
+               if (sscanf( argv[i], "%d", &outline_opacity ) != 1)
+                    return print_usage( argv[0] );
+          }
           else if (!url)
                url = arg;
           else
@@ -146,7 +199,7 @@ main( int argc, char *argv[] )
      /* Check if we got an URL. */
      if (!url)
           return print_usage( argv[0] );
-          
+
      /* Create super interface. */
      ret = DirectFBCreate( &dfb );
      if (ret) {
@@ -173,23 +226,23 @@ main( int argc, char *argv[] )
      D_INFO( "DFBTest/Font: Destination is %dx%d using %s\n",
              desc.width, desc.height, dfb_pixelformat_name(desc.pixelformat) );
 
-     dest->SetColor( dest, 0xff, 0xff, 0xff, 0xff );
-
      for (i=10; i<50; i++) {
           IDirectFBFont *font;
 
-          font = CreateFont( dfb, url, i );
+          font = CreateFont( dfb, url, i, attributes, outline_width, outline_opacity );
 
-          dest->Clear( dest, 0, 0, 0, 0 );
+          RenderChecker( dest, 64, 64 );
+
+          dest->SetColors( dest, color_ids, colors, 2 );
 
           dest->SetFont( dest, font );
-          dest->DrawString( dest, "Test String", -1, 100, 100, DSTF_TOPLEFT );
+          dest->DrawString( dest, "Test String", -1, 100, 100, text_flags );
 
           dest->Flip( dest, NULL, DSFLIP_NONE );
 
           font->Release( font );
 
-          sleep( 1 );
+          usleep( 500000 );
      }
 
 
