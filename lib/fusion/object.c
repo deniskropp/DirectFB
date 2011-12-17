@@ -205,10 +205,10 @@ DirectResult
 fusion_object_pool_destroy( FusionObjectPool  *pool,
                             const FusionWorld *world )
 {
-     DirectResult       ret;
-     DirectLink        *n;
-     FusionObject      *object;
-     FusionWorldShared *shared;
+     DirectResult        ret;
+     FusionObject       *object;
+     FusionWorldShared  *shared;
+     FusionHashIterator  it;
 
      D_ASSERT( pool != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
@@ -241,7 +241,7 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
           D_WARN( "still objects in '%s'", pool->name );
 
      /* Destroy zombies */
-     direct_list_foreach_safe (object, n, pool->objects) {
+     fusion_hash_foreach (object, it, pool->objects) {
           int refs;
 
           fusion_ref_stat( &object->ref, &refs );
