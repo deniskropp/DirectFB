@@ -66,7 +66,7 @@ dfb_clip_needed( const DFBRegion *clip, DFBRectangle *rect )
      return ((clip->x1 > rect->x) ||
              (clip->y1 > rect->y) ||
              (clip->x2 < rect->x + rect->w - 1) ||
-             (clip->y2 < rect->y + rect->h - 1));
+             (clip->y2 < rect->y + rect->h - 1)) ? DFB_TRUE : DFB_FALSE;
 }
 
 /*
