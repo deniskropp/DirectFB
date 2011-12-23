@@ -1050,6 +1050,53 @@ defer_message( FusionWorld       *world,
      return DR_OK;
 }
 
+DirectResult
+fusion_dispatch_cleanup_add( FusionWorld                  *world,
+                             FusionDispatchCleanupFunc     func,
+                             void                         *ctx,
+                             FusionDispatchCleanup       **ret_cleanup )
+{
+     FusionDispatchCleanup *cleanup;
+
+     cleanup = D_CALLOC( 1, sizeof(FusionDispatchCleanup) );
+     if (!cleanup)
+          return D_OOM();
+
+     cleanup->func = func;
+     cleanup->ctx  = ctx;
+
+     direct_list_append( &world->dispatch_cleanups, &cleanup->link );
+
+     *ret_cleanup = cleanup;
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_dispatch_cleanup_remove( FusionWorld                  *world,
+                                FusionDispatchCleanup        *cleanup )
+{
+     direct_list_remove( &world->dispatch_cleanups, &cleanup->link );
+
+     D_FREE( cleanup );
+
+     return DR_OK;
+}
+
+static void
+handle_dispatch_cleanups( FusionWorld *world )
+{
+     FusionDispatchCleanup *cleanup, *next;
+
+     direct_list_foreach_safe (cleanup, next, world->dispatch_cleanups) {
+          cleanup->func( cleanup->ctx );
+
+          D_FREE( cleanup );
+     }
+
+     world->dispatch_cleanups = NULL;
+}
+
 static void *
 fusion_dispatch_loop( DirectThread *thread, void *arg )
 {
@@ -1100,6 +1147,9 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                          case FMT_CALL:
                               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
 
+                              if (((FusionCallMessage*) data)->caller == 0)
+                                   handle_dispatch_cleanups( world );
+
                               /* If the call comes from kernel space it is most likely a destructor call, defer it */
                               if (fusion_config->defer_destructors && ((FusionCallMessage*) data)->caller == 0) {
                                    defer_message( world, header, data );
@@ -1141,6 +1191,8 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                     buf_p = data + ((header->msg_size + 3) & ~3);
                }
           }
+
+          handle_dispatch_cleanups( world );
 
           direct_thread_unlock( world->dispatch_loop );
 
@@ -2778,6 +2830,22 @@ error:
      direct_shutdown();
 
      return ret;
+}
+
+DirectResult
+fusion_dispatch_cleanup_add( FusionWorld                  *world,
+                             FusionDispatchCleanupFunc     func,
+                             void                         *ctx,
+                             FusionDispatchCleanup       **ret_cleanup )
+{
+     return DR_OK;
+}
+
+DirectResult
+fusion_dispatch_cleanup_remove( FusionWorld                  *world,
+                                FusionDispatchCleanup        *cleanup )
+{
+     return DR_OK;
 }
 
 DirectResult
