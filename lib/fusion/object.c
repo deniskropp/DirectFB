@@ -262,8 +262,6 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
           pool->destructor( object, refs > 0, pool->ctx );
 
           D_DEBUG_AT( Fusion_Object, "  -> destructor done.\n" );
-
-          D_ASSERT( ! direct_list_contains_element_EXPENSIVE( pool->objects, (DirectLink*) object ) );
      }
 
      fusion_hash_destroy( pool->objects );
