@@ -4691,6 +4691,17 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface              *thiz,
           const DFBConvolutionFilter    *filter
      );
+
+
+   /** Retrieving information **/
+
+     /*
+      * Get the unique surface ID.
+      */
+     DFBResult (*GetID) (
+          IDirectFBSurface              *thiz,
+          DFBSurfaceID                  *ret_surface_id
+     );
 )
 
 

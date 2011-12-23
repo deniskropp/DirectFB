@@ -3133,6 +3133,22 @@ IDirectFBSurface_SetSrcConvolution( IDirectFBSurface           *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_GetID( IDirectFBSurface *thiz,
+                        DFBSurfaceID     *ret_id )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     *ret_id = data->surface->object.id;
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -3322,6 +3338,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->SetSrcColorMatrix = IDirectFBSurface_SetSrcColorMatrix;
      thiz->SetSrcConvolution = IDirectFBSurface_SetSrcConvolution;
+
+     thiz->GetID = IDirectFBSurface_GetID;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );
