@@ -49,6 +49,7 @@
 #include <core/windows_internal.h> /* FIXME */
 #include <core/wm.h>
 
+#include <core/CoreGraphicsState.h>
 #include <core/CoreLayerRegion.h>
 #include <core/CoreSurface.h>
 #include <core/CoreWindow.h>
@@ -189,6 +190,8 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      }
 
 
+     CoreGraphicsState_Flush( data->base.state_client.gfx_state );
+
      if (data->window->region) {
           CoreLayerRegion_FlipUpdate( data->window->region, &reg, flags );
      }
@@ -288,6 +291,8 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
           dfb_state_get_serial( &data->base.state, &data->window->serial1 );
      }
+
+     CoreGraphicsState_Flush( data->base.state_client.gfx_state );
 
      if (data->window->region) {
           /* TODO STEREO: Add support for hardware windows. */

@@ -37,12 +37,22 @@
 
 
 struct __DFB_CoreGraphicsState {
-     FusionObject   object;
-     int            magic;
+     FusionObject             object;
+     int                      magic;
 
-     FusionCall     call;
+     FusionCall               call;
 
-     CardState      state;
+     CardState                state;
+
+     /*
+      * New state logic
+      */
+     StateModificationFlags   modified;
+
+     bool                     hw;
+     DFBAccelerationMask      sw;
+
+     StateModificationFlags   mod_sw;
 };
 
 typedef enum {

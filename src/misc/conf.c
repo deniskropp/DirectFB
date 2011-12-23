@@ -1845,6 +1845,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+     if (strcmp (name, "accel1" ) == 0) {
+          dfb_config->accel1 = true;
+     } else
+     if (strcmp (name, "no-accel1" ) == 0) {
+          dfb_config->accel1 = false;
+     } else
      if (
 #if DIRECTFB_BUILD_VOODOO
          voodoo_config_set( name, value ) &&

@@ -93,7 +93,7 @@ DFB_CORE_PART( graphics_core, GraphicsCore );
 
 /**********************************************************************************************************************/
 
-static CoreGraphicsDevice *card;   /* FIXME */
+CoreGraphicsDevice *card;   /* FIXME */
 
 /* Hook for registering additional screen(s) and layer(s) in app or lib initializing DirectFB. */
 void (*__DFB_CoreRegisterHook)( CoreDFB *core, CoreGraphicsDevice *device, void *ctx ) = NULL;

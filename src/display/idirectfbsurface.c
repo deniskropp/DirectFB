@@ -50,6 +50,7 @@
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 
+#include <core/CoreGraphicsState.h>
 #include <core/CoreSurface.h>
 
 #include <media/idirectfbfont.h>
@@ -705,6 +706,8 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      }
 
      D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
+
+     CoreGraphicsState_Flush( data->state_client.gfx_state );
 
      if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
          reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
@@ -2965,6 +2968,8 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
      D_DEBUG_AT( Surface, "  -> FLIP Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n", 
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
+
+     CoreGraphicsState_Flush( data->state_client.gfx_state );
 
      if (data->surface->config.caps & DSCAPS_FLIPPING) {
           if (!(flags & DSFLIP_BLIT)) {
