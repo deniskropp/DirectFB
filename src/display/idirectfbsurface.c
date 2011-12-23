@@ -3144,6 +3144,9 @@ IDirectFBSurface_GetID( IDirectFBSurface *thiz,
      if (!data->surface)
           return DFB_DESTROYED;
 
+     if (!ret_id)
+          return DFB_INVARG;
+
      *ret_id = data->surface->object.id;
 
      return DFB_OK;
