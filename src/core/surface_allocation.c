@@ -190,6 +190,8 @@ dfb_surface_allocation_decouple( CoreSurfaceAllocation *allocation )
      allocation->buffer  = NULL;
      allocation->surface = NULL;
 
+     fusion_vector_remove( &buffer->allocs, fusion_vector_index_of( &buffer->allocs, allocation ) );
+
      locks = dfb_surface_allocation_locks( allocation );
      if (!locks)
           dfb_surface_pool_deallocate( allocation->pool, allocation );
@@ -468,7 +470,7 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
 
           D_ASSUME( allocation != source );
 
-          D_DEBUG_AT( Core_SurfAllocation, "  -> updating allocation...\n" );
+          D_DEBUG_AT( Core_SurfAllocation, "  -> updating allocation %p from %p...\n", allocation, source );
 
           D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
           D_ASSERT( source->buffer == allocation->buffer );

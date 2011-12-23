@@ -841,7 +841,6 @@ fixme_retry:
 
                /* Deallocate mucked out allocation */
                dfb_surface_allocation_decouple( allocation );
-               fusion_vector_remove( &buffer->allocs, i );
                i--;
 
                dfb_surface_unlock( alloc_surface );
