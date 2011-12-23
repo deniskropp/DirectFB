@@ -229,8 +229,6 @@ dfb_surface_buffer_deallocate( CoreSurfaceBuffer *buffer )
            dfb_surface_allocation_decouple( allocation );
      }
 
-     buffer->allocs.count = 0;
-
      return DFB_OK;
 }
 
