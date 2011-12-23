@@ -302,7 +302,8 @@ ISurface_Real__PreLockBuffer2(
      CoreSurface           *surface    = obj;
      bool                   allocated  = false;
 
-     D_DEBUG_AT( DirectFB_CoreSurface, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "%s( surface %p, role %d, accessor 0x%02x, access 0x%02x, %slock )\n",
+                 __FUNCTION__, surface, role, accessor, access, lock ? "" : "no " );
 
      ret = (DFBResult) dfb_surface_lock( surface );
      if (ret)
@@ -315,6 +316,8 @@ ISurface_Real__PreLockBuffer2(
 
      buffer = dfb_surface_get_buffer( surface, role );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "  -> buffer %p\n", buffer );
 
      if (!lock && access & CSAF_READ) {
           if (fusion_vector_is_empty( &buffer->allocs )) {
