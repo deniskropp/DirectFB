@@ -406,7 +406,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           }
      }
 
-     dfb_font_manager_destroy( core->font_manager );
+     if (core->font_manager)
+          dfb_font_manager_destroy( core->font_manager );
 
      if (core->signal_handler)
           direct_signal_handler_remove( core->signal_handler );
