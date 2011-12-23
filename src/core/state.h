@@ -49,6 +49,8 @@
 
 
 typedef enum {
+     SMF_NONE              = 0x00000000,
+
      SMF_DRAWING_FLAGS     = 0x00000001,
      SMF_BLITTING_FLAGS    = 0x00000002,
      SMF_CLIP              = 0x00000004,
@@ -98,10 +100,12 @@ typedef enum {
      CSF_SOURCE2              = 0x00000100,  /* source2 is set using dfb_state_set_source2() */
      CSF_SOURCE2_LOCKED       = 0x00000200,  /* source2 surface is locked */
 
+     CSF_DESTINATION_LOCKED   = 0x00001000,  /* destination surface is locked */
+
      CSF_DRAWING              = 0x00010000,  /* something has been rendered with this state,
                                                 this is cleared by flushing the state, e.g. upon flip */
 
-     CSF_ALL                  = 0x0001033B
+     CSF_ALL                  = 0x0001133B
 } CardStateFlags;
 
 struct _CardState {
