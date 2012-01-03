@@ -69,6 +69,7 @@ internalinclude_HEADERS = \
 	state.h			\
 	surface.h		\
 	surface_buffer.h	\
+	surface_core.h		\
 	surface_pool.h		\
 	surface_pool_bridge.h	\
 	system.h		\
