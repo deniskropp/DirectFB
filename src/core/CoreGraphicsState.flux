@@ -110,6 +110,7 @@ interface {
 	method {
 		name      SetDestination
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      surface
@@ -122,6 +123,7 @@ interface {
 	method {
 		name      SetSource
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      surface
@@ -134,6 +136,7 @@ interface {
 	method {
 		name      SetSourceMask
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      surface
@@ -227,6 +230,7 @@ interface {
 	method {
 		name      SetSource2
 		async  	  yes
+		queue     yes
 
 		arg {
 			name      surface
@@ -530,6 +534,12 @@ interface {
 			type      enum
 			typename  DFBTriangleFormation
 		}
+	}
+
+	method {
+		name      Flush
+		async  	  yes
+		queue     yes
 	}
 }
 

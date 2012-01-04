@@ -99,7 +99,6 @@ static void remove_pool_local( CoreSurfacePoolID  pool_id );
 /**********************************************************************************************************************/
 
 static void      remove_allocation( CoreSurfacePool       *pool,
-                                    CoreSurfaceBuffer     *buffer,
                                     CoreSurfaceAllocation *allocation );
 
 static DFBResult backup_allocation( CoreSurfaceAllocation *allocation );
@@ -693,7 +692,6 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
                            CoreSurfaceAllocation **ret_allocation )
 {
      DFBResult               ret;
-     int                     i;
      CoreSurface            *surface;
      CoreSurfaceAllocation  *allocation = NULL;
      const SurfacePoolFuncs *funcs;
@@ -713,24 +711,10 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
 
      D_ASSERT( funcs->AllocateBuffer != NULL );
 
-     allocation = SHCALLOC( pool->shmpool, 1, sizeof(CoreSurfaceAllocation) );
-     if (!allocation)
-          return D_OOSHM();
+     ret = dfb_surface_allocation_create( core_dfb, buffer, pool, &allocation );
+     if (ret)
+          return ret;
 
-     allocation->buffer  = buffer;
-     allocation->surface = surface;
-     allocation->pool    = pool;
-     allocation->access  = pool->desc.access;
-
-     if (pool->alloc_data_size) {
-          allocation->data = SHCALLOC( pool->shmpool, 1, pool->alloc_data_size );
-          if (!allocation->data) {
-               ret = D_OOSHM();
-               goto error;
-          }
-     }
-
-     D_MAGIC_SET( allocation, CoreSurfaceAllocation );
 
      if (fusion_skirmish_prevail( &pool->lock )) {
           ret = DFB_FUSION;
@@ -754,24 +738,11 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
 
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
 
-     if (allocation->flags & CSALF_ONEFORALL) {
-          for (i=0; i<surface->num_buffers; i++) {
-               buffer = surface->buffers[i];
+     D_DEBUG_AT( Core_SurfacePool, "  -> %p\n", allocation );
+     fusion_vector_add( &buffer->allocs, allocation );
+     fusion_vector_add( &pool->allocs, allocation );
 
-               D_ASSUME( fusion_vector_is_empty( &buffer->allocs ) );
-
-               D_DEBUG_AT( Core_SurfacePool, "  -> %p (%d)\n", allocation, i );
-               fusion_vector_add( &buffer->allocs, allocation );
-               fusion_vector_add( &pool->allocs, allocation );
-          }
-     }
-     else {
-          D_DEBUG_AT( Core_SurfacePool, "  -> %p\n", allocation );
-          fusion_vector_add( &buffer->allocs, allocation );
-          fusion_vector_add( &pool->allocs, allocation );
-     }
-
-     direct_serial_init( &allocation->serial );
+     dfb_surface_allocation_globalize( allocation );
 
      fusion_skirmish_dismiss( &pool->lock );
 
@@ -781,11 +752,9 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
 
      return DFB_OK;
 
-error:
-     if (allocation->data)
-          SHFREE( pool->shmpool, allocation->data );
 
-     SHFREE( pool->shmpool, allocation );
+error:
+     dfb_surface_allocation_unref( allocation );
 
      return ret;
 }
@@ -795,9 +764,7 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
                              CoreSurfaceAllocation *allocation )
 {
      DFBResult               ret;
-     int                     i;
      const SurfacePoolFuncs *funcs;
-     CoreSurfaceBuffer      *buffer;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
@@ -806,11 +773,12 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
 
      D_ASSERT( pool == allocation->pool );
 
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     if (allocation->flags & CSALF_DEALLOCATED) {
+          D_DEBUG_AT( Core_SurfacePool, "  -> already deallocated\n" );
+          return DFB_OK;
+     }
 
      funcs = get_funcs( pool );
-
      D_ASSERT( funcs->DeallocateBuffer != NULL );
 
      if (fusion_skirmish_prevail( &pool->lock ))
@@ -823,29 +791,11 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
           return ret;
      }
 
-     if (allocation->flags & CSALF_ONEFORALL) {
-          CoreSurface *surface;
+     remove_allocation( pool, allocation );
 
-          surface = buffer->surface;
-          D_MAGIC_ASSERT( surface, CoreSurface );
-          FUSION_SKIRMISH_ASSERT( &surface->lock );
-
-          for (i=0; i<surface->num_buffers; i++)
-               remove_allocation( pool, surface->buffers[i], allocation );
-     }
-     else
-          remove_allocation( pool, buffer, allocation );
+     allocation->flags |= CSALF_DEALLOCATED;
 
      fusion_skirmish_dismiss( &pool->lock );
-
-     if (allocation->data)
-          SHFREE( pool->shmpool, allocation->data );
-
-     direct_serial_deinit( &allocation->serial );
-
-     D_MAGIC_CLEAR( allocation );
-
-     SHFREE( pool->shmpool, allocation );
 
      return DFB_OK;
 }
@@ -925,7 +875,7 @@ fixme_retry:
                }
 
                /* Deallocate mucked out allocation */
-               dfb_surface_pool_deallocate( pool, allocation );
+               dfb_surface_allocation_decouple( allocation );
                i--;
 
                dfb_surface_unlock( alloc_surface );
@@ -1024,7 +974,7 @@ dfb_surface_pool_lock( CoreSurfacePool       *pool,
      }
 
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
-     D_ASSERT( lock->buffer != NULL );
+     D_ASSERT( lock->allocation != NULL );
 
      return DFB_OK;
 }
@@ -1043,7 +993,7 @@ dfb_surface_pool_unlock( CoreSurfacePool       *pool,
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
-     D_ASSERT( lock->buffer != NULL );
+     D_ASSERT( lock->allocation == allocation );
 
      D_ASSERT( pool == allocation->pool );
 
@@ -1058,7 +1008,7 @@ dfb_surface_pool_unlock( CoreSurfacePool       *pool,
      }
 
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
-     D_ASSERT( lock->buffer != NULL );
+     D_ASSERT( lock->allocation != NULL );
 
      dfb_surface_buffer_lock_reset( lock );
 
@@ -1318,53 +1268,22 @@ remove_pool_local( CoreSurfacePoolID pool_id )
 
 static void
 remove_allocation( CoreSurfacePool       *pool,
-                   CoreSurfaceBuffer     *buffer,
                    CoreSurfaceAllocation *allocation )
 {
-     int index_buffer;
      int index_pool;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
-     if (buffer->surface) {
-          D_MAGIC_ASSERT( buffer->surface, CoreSurface );
-          FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
-     }
      FUSION_SKIRMISH_ASSERT( &pool->lock );
      D_ASSERT( pool == allocation->pool );
 
      /* Lookup indices within vectors */
-     index_buffer = fusion_vector_index_of( &buffer->allocs, allocation );
-     index_pool   = fusion_vector_index_of( &pool->allocs,   allocation );
+     index_pool = fusion_vector_index_of( &pool->allocs, allocation );
 
-     D_ASSERT( index_buffer >= 0 );
      D_ASSERT( index_pool >= 0 );
 
      /* Remove allocation from buffer and pool */
-     fusion_vector_remove( &buffer->allocs, index_buffer );
-     fusion_vector_remove( &pool->allocs,   index_pool );
-
-     /* Reset 'read' allocation pointer of buffer */
-     if (buffer->read == allocation)
-          buffer->read = NULL;
-
-     /* Update 'written' allocation pointer of buffer */
-     if (buffer->written == allocation) {
-          /* Reset pointer first */
-          buffer->written = NULL;
-
-          /* Iterate through remaining allocations */
-          fusion_vector_foreach (allocation, index_buffer, buffer->allocs) {
-               CORE_SURFACE_ALLOCATION_ASSERT( allocation );
-
-               /* Check if allocation is up to date and set it as 'written' allocation */
-               if (direct_serial_check( &allocation->serial, &buffer->serial )) {
-                    buffer->written = allocation;
-                    break;
-               }
-          }
-     }
+     fusion_vector_remove( &pool->allocs, index_pool );
 }
 
 static DFBResult
@@ -1429,7 +1348,7 @@ backup_allocation( CoreSurfaceAllocation *allocation )
                     ret = dfb_surface_allocation_update( backup, CSAF_NONE );
                     if (ret) {
                          D_DEBUG_AT( Core_SurfacePool, "  -> update failed! (%s)\n", DirectFBErrorString(ret) );
-                         dfb_surface_pool_deallocate( backup_pool, backup );
+                         dfb_surface_allocation_decouple( backup );
                          backup = NULL;
                     }
                     else

@@ -50,6 +50,7 @@
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 
+#include <core/CoreGraphicsState.h>
 #include <core/CoreSurface.h>
 
 #include <media/idirectfbfont.h>
@@ -705,6 +706,8 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      }
 
      D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
+
+     CoreGraphicsState_Flush( data->state_client.gfx_state );
 
      if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
          reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
@@ -2966,6 +2969,8 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
 
+     CoreGraphicsState_Flush( data->state_client.gfx_state );
+
      if (data->surface->config.caps & DSCAPS_FLIPPING) {
           if (!(flags & DSFLIP_BLIT)) {
                if (l_reg.x1 == 0 && l_reg.y1 == 0 &&
@@ -3124,6 +3129,25 @@ IDirectFBSurface_SetSrcConvolution( IDirectFBSurface           *thiz,
           return DFB_INVARG;
 
      dfb_state_set_src_convolution( &data->state, filter );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_GetID( IDirectFBSurface *thiz,
+                        DFBSurfaceID     *ret_id )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!ret_id)
+          return DFB_INVARG;
+
+     *ret_id = data->surface->object.id;
 
      return DFB_OK;
 }
@@ -3317,6 +3341,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->SetSrcColorMatrix = IDirectFBSurface_SetSrcColorMatrix;
      thiz->SetSrcConvolution = IDirectFBSurface_SetSrcConvolution;
+
+     thiz->GetID = IDirectFBSurface_GetID;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

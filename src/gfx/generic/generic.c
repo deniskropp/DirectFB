@@ -8466,20 +8466,12 @@ Bop_rgb32_to_Aop_rgb16_LE( GenefxState *gfxs )
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
-bool gAcquire( CardState *state, DFBAccelerationMask accel )
+static bool
+gAcquireCheck( CardState *state, DFBAccelerationMask accel )
 {
-     DFBResult    ret;
      GenefxState *gfxs;
-     GenefxFunc  *funcs;
-     int          dst_pfi;
-     int          src_pfi     = 0;
      CoreSurface *destination = state->destination;
      CoreSurface *source      = state->source;
-     DFBColor     color       = state->color;
-     bool         src_ycbcr   = false;
-     bool         dst_ycbcr   = false;
-
-     CoreSurfaceAccessFlags access = CSAF_WRITE;
 
      if (dfb_config->hardware_only) {
           if (dfb_config->software_warn) {
@@ -8507,8 +8499,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           state->gfxs = gfxs;
      }
 
-     gfxs  = state->gfxs;
-     funcs = gfxs->funcs;
+     gfxs = state->gfxs;
 
      /* Destination may have been destroyed. */
      if (!destination)
@@ -8521,6 +8512,18 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      /* Source may have been destroyed. */
      if (DFB_BLITTING_FUNCTION( accel ) && !source)
           return false;
+
+     return true;
+}
+
+static DFBResult
+gAcquireLockBuffers( CardState *state, DFBAccelerationMask accel )
+{
+     DFBResult    ret;
+     CoreSurface *destination = state->destination;
+     CoreSurface *source      = state->source;
+
+     CoreSurfaceAccessFlags access = CSAF_WRITE;
 
      /*
       * Destination setup
@@ -8535,19 +8538,83 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
           access |= CSAF_READ;
 
-     /*
-      * Push our own identity for buffer locking calls (locality of accessor)
-      */
-     Core_PushIdentity( 0 );
-
      /* Lock destination */
      ret = dfb_surface_lock_buffer( destination, state->to, CSAID_CPU, access, &state->dst );
      if (ret) {
           D_DERROR( ret, "DirectFB/Genefx: Could not lock destination!\n" );
-          Core_PopIdentity();
-          return false;
+          return ret;
      }
 
+     /*
+      * Source setup
+      */
+
+     if (DFB_BLITTING_FUNCTION( accel )) {
+#if FIXME_SC_3
+          DFBSurfaceLockFlags flags = DSLF_READ;
+
+          if (accel == DFXL_STRETCHBLIT)
+               flags |= CSLF_FORCE;
+#endif
+
+          /* Lock source */
+          ret = dfb_surface_lock_buffer( source, state->from, CSAID_CPU, CSAF_READ, &state->src );
+          if (ret) {
+               D_DERROR( ret, "DirectFB/Genefx: Could not lock source!\n" );
+               dfb_surface_unlock_buffer( destination, &state->dst );
+               return ret;
+          }
+
+          state->flags |= CSF_SOURCE_LOCKED;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+gAcquireUnlockBuffers( CardState *state )
+{
+     dfb_surface_unlock_buffer( state->destination, &state->dst );
+
+     if (state->flags & CSF_SOURCE_LOCKED) {
+          dfb_surface_unlock_buffer( state->source, &state->src );
+
+          state->flags &= ~CSF_SOURCE_LOCKED;
+     }
+
+     return DFB_OK;
+}
+
+static bool
+gAcquireSetup( CardState *state, DFBAccelerationMask accel )
+{
+     GenefxState *gfxs;
+     GenefxFunc  *funcs;
+     int          dst_pfi;
+     int          src_pfi     = 0;
+     CoreSurface *destination = state->destination;
+     CoreSurface *source      = state->source;
+     DFBColor     color       = state->color;
+     bool         src_ycbcr   = false;
+     bool         dst_ycbcr   = false;
+
+     if (!state->gfxs) {
+          gfxs = D_CALLOC( 1, sizeof(GenefxState) );
+          if (!gfxs) {
+               D_ERROR( "DirectFB/Genefx: Couldn't allocate state struct!\n" );
+               return false;
+          }
+
+          state->gfxs = gfxs;
+     }
+
+     gfxs  = state->gfxs;
+     funcs = gfxs->funcs;
+
+
+     /*
+      * Destination setup
+      */
      gfxs->dst_caps   = destination->config.caps;
      gfxs->dst_height = destination->config.size.h;
      gfxs->dst_format = destination->config.format;
@@ -8591,22 +8658,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
       */
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-#if FIXME_SC_3
-          DFBSurfaceLockFlags flags = DSLF_READ;
-
-          if (accel == DFXL_STRETCHBLIT)
-               flags |= CSLF_FORCE;
-#endif
-
-          /* Lock source */
-          ret = dfb_surface_lock_buffer( source, state->from, CSAID_CPU, CSAF_READ, &state->src );
-          if (ret) {
-               D_DERROR( ret, "DirectFB/Genefx: Could not lock source!\n" );
-               dfb_surface_unlock_buffer( destination, &state->dst );
-               Core_PopIdentity();
-               return false;
-          }
-
           gfxs->src_caps   = source->config.caps;
           gfxs->src_height = source->config.size.h;
           gfxs->src_format = source->config.format;
@@ -8643,8 +8694,6 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           }
 
           gfxs->src_field_offset = gfxs->src_height/2 * gfxs->src_pitch;
-
-          state->flags |= CSF_SOURCE_LOCKED;
      }
 
      /* premultiply source (color) */
@@ -8784,7 +8833,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                break;
           default:
                D_ONCE("unsupported destination format");
-               goto error;
+               return false;
      }
 
      dst_ycbcr = is_ycbcr[DFB_PIXELFORMAT_INDEX(gfxs->dst_format)];
@@ -8818,7 +8867,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     if (dst_ycbcr &&
                         state->blittingflags & (DSBLIT_COLORIZE |
                                                 DSBLIT_SRC_PREMULTCOLOR))
-                         goto error;
+                         return false;
                case DSPF_A1:
                case DSPF_A1_LSB:
                case DSPF_A4:
@@ -8826,7 +8875,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                         gfxs->dst_format != DSPF_YUV444P &&
                         state->blittingflags & DSBLIT_DST_COLORKEY)
-                         goto error;
+                         return false;
                     break;
                case DSPF_I420:
                case DSPF_YV12:
@@ -8835,19 +8884,19 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_NV21:
                case DSPF_NV16:
                     if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                         goto error;
+                         return false;
                case DSPF_YUY2:
                case DSPF_UYVY:
                case DSPF_AYUV:
                     if (dst_ycbcr) {
                          if (state->blittingflags & (DSBLIT_COLORIZE     |
                                                      DSBLIT_SRC_PREMULTCOLOR))
-                              goto error;
+                              return false;
 
                          if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                              gfxs->dst_format != DSPF_YUV444P &&
                              state->blittingflags & DSBLIT_DST_COLORKEY)
-                              goto error;
+                              return false;
                     }
                     break;
                case DSPF_YUV444P:
@@ -8855,17 +8904,17 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_VYU:
                     if (dst_ycbcr) {
                          if (state->blittingflags & (DSBLIT_SRC_PREMULTCOLOR))
-                              goto error;
+                              return false;
 
                          if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                              gfxs->dst_format != DSPF_YUV444P &&
                              state->blittingflags & DSBLIT_DST_COLORKEY)
-                              goto error;
+                              return false;
                     }
                     break;
                default:
                     D_ONCE("unsupported source format");
-                    goto error;
+                    return false;
           }
      }
 
@@ -9515,31 +9564,67 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                }
           default:
                D_ONCE("unimplemented drawing/blitting function");
-               gRelease( state );
                return false;
      }
 
      *funcs = NULL;
 
+     // FIXME
      dfb_state_update( state, state->flags & CSF_SOURCE_LOCKED );
 
      return true;
-
- error:
-     gRelease( state );
-     return false;
 }
 
-void gRelease( CardState *state )
-{
-     dfb_surface_unlock_buffer( state->destination, &state->dst );
+/**********************************************************************************************************************/
 
-     if (state->flags & CSF_SOURCE_LOCKED) {
-          dfb_surface_unlock_buffer( state->source, &state->src );
-          state->flags &= ~CSF_SOURCE_LOCKED;
+bool
+gAcquire( CardState *state, DFBAccelerationMask accel )
+{
+     DFBResult ret;
+
+     if (!gAcquireCheck( state, accel ))
+          return false;
+
+     /*
+      * Push our own identity for buffer locking calls (locality of accessor)
+      */
+     Core_PushIdentity( 0 );
+
+     ret = gAcquireLockBuffers( state, accel );
+     if (ret) {
+          Core_PopIdentity();
+          return false;
      }
 
+     if (!gAcquireSetup( state, accel )) {
+          gAcquireUnlockBuffers( state );
+          Core_PopIdentity();
+          return false;
+     }
+
+     return true;
+}
+
+void
+gRelease( CardState *state )
+{
+     gAcquireUnlockBuffers( state );
+
      Core_PopIdentity();
+}
+
+/**********************************************************************************************************************/
+
+bool
+gAcquire2( CardState *state, DFBAccelerationMask accel )
+{
+     if (!gAcquireCheck( state, accel ))
+          return false;
+
+     if (!gAcquireSetup( state, accel ))
+          return false;
+
+     return true;
 }
 
 /**********************************************************************************************************************/

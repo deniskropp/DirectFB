@@ -104,8 +104,7 @@ buffer_size( CoreSurface *surface, CoreSurfaceBuffer *buffer, bool video )
 
      fusion_vector_foreach (allocation, i, buffer->allocs) {
           int size = allocation->size;
-          if (allocation->flags & CSALF_ONEFORALL)
-               size /= surface->num_buffers;
+
           if (video) {
                if (allocation->access[CSAID_GPU])
                     mem += size;
@@ -134,12 +133,16 @@ buffer_sizes( CoreSurface *surface, bool video )
 static int
 buffer_locks( CoreSurface *surface, bool video )
 {
-     int i, locks = 0;
+     int i, j, locks = 0;
 
      for (i=0; i<surface->num_buffers; i++) {
           CoreSurfaceBuffer *buffer = surface->buffers[i];
 
-          locks += dfb_surface_buffer_locks( buffer );
+          for (j=0; j<buffer->allocs.count; j++) {
+               CoreSurfaceAllocation *allocation = fusion_vector_at( &buffer->allocs, j );
+
+               locks += dfb_surface_allocation_locks( allocation );
+          }
      }
 
      return locks;

@@ -276,6 +276,8 @@ typedef struct
      DFBWindowCursorFlags default_cursor_flags;
 
      bool                 discard_repeat_events;
+
+     bool                 accel1;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

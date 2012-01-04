@@ -406,7 +406,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           }
      }
 
-     dfb_font_manager_destroy( core->font_manager );
+     if (core->font_manager)
+          dfb_font_manager_destroy( core->font_manager );
 
      if (core->signal_handler)
           direct_signal_handler_remove( core->signal_handler );
@@ -555,6 +556,26 @@ dfb_core_create_surface( CoreDFB *core )
      return (CoreSurface*) fusion_object_create( core->shared->surface_pool, core->world, Core_GetIdentity() );
 }
 
+CoreSurfaceAllocation *
+dfb_core_create_surface_allocation( CoreDFB *core )
+{
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->surface_allocation_pool != NULL );
+
+     return (CoreSurfaceAllocation*) fusion_object_create( core->shared->surface_allocation_pool, core->world, Core_GetIdentity() );
+}
+
 CoreSurfaceBuffer *
 dfb_core_create_surface_buffer( CoreDFB *core )
 {
@@ -570,7 +591,7 @@ dfb_core_create_surface_buffer( CoreDFB *core )
      shared = core->shared;
 
      D_MAGIC_ASSERT( shared, CoreDFBShared );
-     D_ASSERT( core->shared->surface_pool != NULL );
+     D_ASSERT( core->shared->surface_buffer_pool != NULL );
 
      return (CoreSurfaceBuffer*) fusion_object_create( core->shared->surface_buffer_pool, core->world, Core_GetIdentity() );
 }
@@ -751,6 +772,38 @@ dfb_core_get_surface( CoreDFB      *core,
           return ret;
 
      *ret_surface = (CoreSurface*) object;
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_core_get_surface_allocation( CoreDFB                *core,
+                                 u32                     object_id,
+                                 CoreSurfaceAllocation **ret_allocation )
+{
+     DFBResult     ret;
+     FusionObject *object;
+
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+     D_ASSERT( ret_allocation != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( core->shared->surface_allocation_pool != NULL );
+
+     ret = fusion_object_get( core->shared->surface_allocation_pool, object_id, &object );
+     if (ret)
+          return ret;
+
+     *ret_allocation = (CoreSurfaceAllocation*) object;
 
      return DFB_OK;
 }
@@ -1323,6 +1376,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      fusion_object_pool_destroy( shared->graphics_state_pool, core->world );
      fusion_object_pool_destroy( shared->surface_pool, core->world );
      fusion_object_pool_destroy( shared->surface_buffer_pool, core->world );
+     fusion_object_pool_destroy( shared->surface_allocation_pool, core->world );
      fusion_object_pool_destroy( shared->palette_pool, core->world );
 
      /* Destroy remaining core parts. */
@@ -1370,6 +1424,7 @@ dfb_core_initialize( CoreDFB *core )
      shared->layer_region_pool   = dfb_layer_region_pool_create( core->world );
      shared->palette_pool        = dfb_palette_pool_create( core->world );
      shared->surface_pool        = dfb_surface_pool_create( core->world );
+     shared->surface_allocation_pool = dfb_surface_allocation_pool_create( core->world );
      shared->surface_buffer_pool = dfb_surface_buffer_pool_create( core->world );
      shared->window_pool         = dfb_window_pool_create( core->world );
 

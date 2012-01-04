@@ -1,1 +1,1 @@
-EXTRA_DIST = libobject.make nmfile.make
+EXTRA_DIST = flux_comp.make libobject.make nmfile.make

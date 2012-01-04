@@ -3536,11 +3536,12 @@ typedef enum {
 
 /*
  * Available Porter/Duff rules.
+ *
+ * pixel = (source * fs + destination * fd),
+ * sa = source alpha,
+ * da = destination alpha
  */
 typedef enum {
-                               /* pixel = (source * fs + destination * fd),
-                                  sa = source alpha,
-                                  da = destination alpha */
      DSPD_NONE           =  0, /* fs: sa      fd: 1.0-sa (defaults) */
      DSPD_CLEAR          =  1, /* fs: 0.0     fd: 0.0    */
      DSPD_SRC            =  2, /* fs: 1.0     fd: 0.0    */
@@ -4689,6 +4690,17 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*SetSrcConvolution) (
           IDirectFBSurface              *thiz,
           const DFBConvolutionFilter    *filter
+     );
+
+
+   /** Retrieving information **/
+
+     /*
+      * Get the unique surface ID.
+      */
+     DFBResult (*GetID) (
+          IDirectFBSurface              *thiz,
+          DFBSurfaceID                  *ret_surface_id
      );
 )
 

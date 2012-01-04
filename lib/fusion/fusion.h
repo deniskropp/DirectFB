@@ -31,6 +31,8 @@
 
 #include <sys/types.h>
 
+#include <direct/list.h>
+
 #include <fusion/types.h>
 
 typedef enum {
@@ -55,6 +57,23 @@ typedef void (*FusionForkCallback) ( FusionForkAction action, FusionForkState st
 typedef void (*FusionLeaveCallback)( FusionWorld *world,
                                      FusionID     fusion_id,
                                      void        *ctx );
+
+typedef void (*FusionDispatchCleanupFunc)( void *ctx );
+
+typedef struct {
+     DirectLink                    link;
+
+     FusionDispatchCleanupFunc     func;
+     void                         *ctx;
+} FusionDispatchCleanup;
+
+DirectResult FUSION_API fusion_dispatch_cleanup_add   ( FusionWorld                  *world,
+                                                        FusionDispatchCleanupFunc     func,
+                                                        void                         *ctx,
+                                                        FusionDispatchCleanup       **ret_cleanup );
+
+DirectResult FUSION_API fusion_dispatch_cleanup_remove( FusionWorld                  *world,
+                                                        FusionDispatchCleanup        *cleanup );
 
 /*
  * Enters a fusion world by joining or creating it.

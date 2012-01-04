@@ -472,7 +472,8 @@ dfb_window_create( CoreWindowStack             *stack,
      }
 
      window->id                  = ++stack->id_pool;
-     window->caps                = caps;
+     window->caps                = caps | DWCAPS_NOFOCUS;
+     window->requested_caps      = caps;
      window->stack               = stack;
      window->config              = config;
      window->config.association  = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
