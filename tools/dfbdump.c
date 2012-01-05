@@ -84,6 +84,7 @@ static IDirectFB *dfb;
 
 static MemoryUsage mem;
 
+static bool loop_mode;
 static bool show_shm;
 static bool show_pools;
 static bool show_allocs;
@@ -195,6 +196,8 @@ surface_callback( FusionObjectPool *pool,
                printf( "%8s ", format_names[i].name );
      }
 
+     printf( "%5d  ", surface->object.id );
+
      vmem = buffer_sizes( surface, true );
      smem = buffer_sizes( surface, false );
 
@@ -246,14 +249,14 @@ static void
 dump_surfaces( void )
 {
      printf( "\n"
-             "-----------------------------[ Surfaces ]-------------------------------------\n" );
-     printf( "Reference   FID  . Refs  Width Height  Format     Video   System  Capabilities\n" );
-     printf( "------------------------------------------------------------------------------\n" );
+             "-----------------------------[ Surfaces ]--------------------------------------------\n" );
+     printf( "Reference   FID  . Refs  Width Height  Format     ID     Video   System  Capabilities\n" );
+     printf( "-------------------------------------------------------------------------------------\n" );
 
      dfb_core_enum_surfaces( NULL, surface_callback, &mem );
 
-     printf( "                                                ------   ------\n" );
-     printf( "                                               %6dk  %6dk   -> %dk total\n",
+     printf( "                                                       ------   ------\n" );
+     printf( "                                                      %6dk  %6dk   -> %dk total\n",
              mem.video >> 10, (mem.system + mem.presys) >> 10,
              (mem.video + mem.system + mem.presys) >> 10);
 }
@@ -788,64 +791,76 @@ main( int argc, char *argv[] )
           return -3;
      }
 
-     millis = direct_clock_get_millis();
+     while (true) {
+          millis = direct_clock_get_millis();
 
-     seconds  = millis / 1000;
-     millis  %= 1000;
+          seconds  = millis / 1000;
+          millis  %= 1000;
 
-     minutes  = seconds / 60;
-     seconds %= 60;
+          minutes  = seconds / 60;
+          seconds %= 60;
 
-     hours    = minutes / 60;
-     minutes %= 60;
+          hours    = minutes / 60;
+          minutes %= 60;
 
-     days     = hours / 24;
-     hours   %= 24;
+          days     = hours / 24;
+          hours   %= 24;
 
-     switch (days) {
-          case 0:
-               printf( "\nDirectFB uptime: %02ld:%02ld:%02ld\n",
-                       hours, minutes, seconds );
-               break;
+          switch (days) {
+               case 0:
+                    printf( "\nDirectFB uptime: %02ld:%02ld:%02ld\n",
+                            hours, minutes, seconds );
+                    break;
 
-          case 1:
-               printf( "\nDirectFB uptime: %ld day, %02ld:%02ld:%02ld\n",
-                       days, hours, minutes, seconds );
-               break;
+               case 1:
+                    printf( "\nDirectFB uptime: %ld day, %02ld:%02ld:%02ld\n",
+                            days, hours, minutes, seconds );
+                    break;
 
-          default:
-               printf( "\nDirectFB uptime: %ld days, %02ld:%02ld:%02ld\n",
-                       days, hours, minutes, seconds );
-               break;
-     }
+               default:
+                    printf( "\nDirectFB uptime: %ld days, %02ld:%02ld:%02ld\n",
+                            days, hours, minutes, seconds );
+                    break;
+          }
 
-     dump_surfaces();
-     fflush( stdout );
-
-     dump_layers();
-     fflush( stdout );
-
-#if FUSION_BUILD_MULTI
-     if (show_shm) {
-          printf( "\n" );
-          dump_shmpools();
+          dump_surfaces();
           fflush( stdout );
-     }
-#endif
 
-     if (show_pools) {
-          printf( "\n" );
-          dump_surface_pool_info();
+          dump_layers();
           fflush( stdout );
-     }
 
-     if (show_allocs) {
+     #if FUSION_BUILD_MULTI
+          if (show_shm) {
+               printf( "\n" );
+               dump_shmpools();
+               fflush( stdout );
+          }
+     #endif
+
+          if (show_pools) {
+               printf( "\n" );
+               dump_surface_pool_info();
+               fflush( stdout );
+          }
+
+          if (show_allocs) {
+               printf( "\n" );
+               dump_surface_pools();
+               fflush( stdout );
+          }
+
           printf( "\n" );
-          dump_surface_pools();
-          fflush( stdout );
-     }
 
-     printf( "\n" );
+
+          if (loop_mode) {
+               usleep( 2000000 );
+
+               /* Clear surface memory totals */
+               memset( &mem, 0, sizeof(mem) );
+          }
+          else
+               break;
+     }
 
      /* DirectFB deinitialization. */
      if (dfb)
@@ -862,6 +877,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "\nDirectFB Dump (version %s)\n\n", DIRECTFB_VERSION);
      fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
      fprintf (stderr, "Options:\n");
+     fprintf (stderr, "   -l,  --loop         Run in loop mode, periodically dumping status (useful as secure master for debug)\n");
      fprintf (stderr, "   -s,  --shm          Show shared memory pool content (if debug enabled)\n");
      fprintf (stderr, "   -p,  --pools        Show information about surface pools\n");
      fprintf (stderr, "   -a,  --allocs       Show surface buffer allocations in surface pools\n");
@@ -888,6 +904,11 @@ parse_command_line( int argc, char *argv[] )
           if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0) {
                fprintf (stderr, "dfbdump version %s\n", DIRECTFB_VERSION);
                return DFB_FALSE;
+          }
+
+          if (strcmp (arg, "-l") == 0 || strcmp (arg, "--loop") == 0) {
+               loop_mode = true;
+               continue;
           }
 
           if (strcmp (arg, "-s") == 0 || strcmp (arg, "--shm") == 0) {
