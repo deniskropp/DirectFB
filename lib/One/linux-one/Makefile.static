@@ -54,6 +54,12 @@ ifeq ($(shell test -e $(KERNEL_BUILD)/include/linux/config.h && echo yes),yes)
   CPPFLAGS += -DHAVE_LINUX_CONFIG_H
 endif
 
+ifeq ($(K_VERSION),3)
+  KMAKEFILE = Makefile-2.6
+else
+  KMAKEFILE = Makefile-2.$(K_PATCHLEVEL)
+endif
+
 check-version = $(shell expr \( $(K_VERSION) \* 65536 + $(K_PATCHLEVEL) \* 256 + $(K_SUBLEVEL) \) \>= \( $(1) \* 65536 + $(2) \* 256 + $(3) \))
 
 .PHONY: all modules modules_install install clean
@@ -63,7 +69,7 @@ install: modules_install headers_install
 
 modules:
 	rm -f $(SUB)/Makefile
-	cp $(SUB)/Makefile-2.$(K_PATCHLEVEL) $(SUB)/Makefile
+	cp $(SUB)/$(KMAKEFILE) $(SUB)/Makefile
 	echo kernel is in $(KERNEL_SOURCE) and version is $(K_SUBLEVEL)
 ifeq ($(call check-version,2,6,24),1)
 	$(MAKE) -C $(KERNEL_BUILD) \
