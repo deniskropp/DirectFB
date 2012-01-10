@@ -50,6 +50,7 @@
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 
+#include <core/CoreDFB.h>
 #include <core/CoreGraphicsState.h>
 #include <core/CoreSurface.h>
 
@@ -144,6 +145,8 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      D_ASSERT( data != NULL );
      D_ASSERT( data->children_data == NULL );
+
+     CoreDFB_WaitIdle( data->core );
 
      unregister_prealloc( data );
 
@@ -536,7 +539,7 @@ IDirectFBSurface_GetFramebufferOffset( IDirectFBSurface *thiz,
 {
      /*
       * Previously returned the framebuffer offset of a locked surface.
-      * However, it is not a safe API to use at all, since it is not 
+      * However, it is not a safe API to use at all, since it is not
       * guaranteed that the offset actually belongs to fbmem (e.g. could be AGP memory).
       */
 
@@ -1470,7 +1473,7 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
      /* Use real line drawing? */
      if (i < num_lines) {
           DFBRegion *local_lines = alloca(sizeof(DFBRegion) * num_lines);
-          
+
           if (data->area.wanted.x || data->area.wanted.y) {
                for (i=0; i<num_lines; i++) {
                     local_lines[i].x1 = lines[i].x1 + data->area.wanted.x;
@@ -1488,7 +1491,7 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
      /* Optimized rectangle drawing */
      else {
           DFBRectangle *local_rects = alloca(sizeof(DFBRectangle) * num_lines);
-          
+
           for (i=0; i<num_lines; i++) {
                /* Vertical line? */
                if (lines[i].x1 == lines[i].x2) {
@@ -2098,13 +2101,13 @@ IDirectFBSurface_BatchBlit2( IDirectFBSurface   *thiz,
                points[i].y += rects[i].y - (source_rects[i].y + sy);
                points2[i].x += rects[i].x - (source_rects[i].x + sx);
                points2[i].y += rects[i].y - (source_rects[i].y + sy);
-     
-     
+
+
                rect2.x = points2[i].x;
                rect2.y = points2[i].y;
                rect2.w = rects[i].w;
                rect2.h = rects[i].h;
-     
+
                if (!dfb_rectangle_intersect( &rect2, &src2_data->area.current ))
                     rects[i].w = rects[i].h = 0;
 
@@ -2580,13 +2583,13 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
 
      if (!surface)
           return DFB_INVARG;
-          
+
      /* Allocate interface */
      DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
      if (rect || data->limit_set) {
           DFBRectangle wanted, granted;
-          
+
           /* Compute wanted rectangle */
           if (rect) {
                wanted = *rect;
@@ -2602,12 +2605,12 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
           else {
                wanted = data->area.wanted;
           }
-          
+
           /* Compute granted rectangle */
           granted = wanted;
 
           dfb_rectangle_intersect( &granted, &data->area.granted );
-          
+
           /* Construct */
           ret = IDirectFBSurface_Construct( *surface, thiz,
                                             &wanted, &granted, &data->area.insets,
@@ -2618,10 +2621,10 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
           /* Construct */
           ret = IDirectFBSurface_Construct( *surface, thiz,
                                             NULL, NULL, &data->area.insets,
-                                            data->surface, 
+                                            data->surface,
                                             data->caps | DSCAPS_SUBSURFACE, data->core, data->idirectfb );
      }
-     
+
      return ret;
 }
 
@@ -2675,7 +2678,7 @@ IDirectFBSurface_MakeSubSurface( IDirectFBSurface   *thiz,
           else {
                wanted = from_data->area.wanted;
           }
-          
+
           /* Compute granted rectangle */
           granted = wanted;
 
@@ -2965,7 +2968,7 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                return DFB_INVAREA;
      }
 
-     D_DEBUG_AT( Surface, "  -> FLIP Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n", 
+     D_DEBUG_AT( Surface, "  -> FLIP Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n",
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
 
@@ -3224,7 +3227,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      /* The currently accessible rectangle */
      data->area.current = data->area.granted;
      dfb_rectangle_intersect( &data->area.current, &rect );
-     
+
      /* Whether granted rectangle is meaningful */
      data->limit_set = (granted != NULL);
 
@@ -3244,9 +3247,13 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      if (ret)
           return ret;    // FIXME: deinit
 
-     ret = register_prealloc( data );
-     if (ret)
-          return ret;    // FIXME: deinit
+     if (data->surface->config.flags & CSCONF_PREALLOCATED) {
+
+          ret = register_prealloc( data );
+
+          if (ret)
+               return ret;    // FIXME: deinit
+     }
 
      thiz->AddRef = IDirectFBSurface_AddRef;
      thiz->Release = IDirectFBSurface_Release;
@@ -3373,7 +3380,7 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
 
      if (notification->flags & CSNF_SIZEFORMAT) {
           DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
-          
+
           dfb_rectangle_subtract( &rect, &data->area.insets );
 
           if (data->limit_set) {
