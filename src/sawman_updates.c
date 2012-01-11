@@ -84,6 +84,7 @@ update_region3( SaWMan          *sawman,
 
      int winNum;
      int u;
+     int windows_to_optimize = 2;
 
      DFBRegion updateRegion = {x1,y1,x2,y2};
 
@@ -143,7 +144,7 @@ update_region3( SaWMan          *sawman,
 
           updatesBlend[winNum]   = 0;
           updatesNoBlend[winNum] = 0;
-
+          
           if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
                DFBRectangle bounds = window->config.bounds;
 
@@ -163,10 +164,11 @@ update_region3( SaWMan          *sawman,
                      &&  (window->config.options & DWOP_ALPHACHANNEL)
                      && !(window->config.options & DWOP_COLORKEYING)
                      &&  (window->config.dst_geometry.mode == DWGM_DEFAULT)
-                     &&   blackBackground )
+                     &&   blackBackground
+                     &&   windows_to_optimize--)
                {
                     DirectLink *updates    = 0;
-
+                    
                     D_DEBUG_AT( SaWMan_Update, " ---> window optimized\n" );
 
                     /* copy all applicable updates in a separate structure */
