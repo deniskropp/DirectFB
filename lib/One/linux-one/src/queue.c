@@ -305,6 +305,8 @@ one_queue_attach( OneApp         *oneapp,
           node->target    = target_queue->target;
           node->count     = 1;
 
+          node->link.magic = 0;
+
           direct_list_prepend(&queue->nodes, &node->link);
      }
      else {
@@ -683,6 +685,8 @@ one_queue_add_target( OneQID     queue_id,
           node->target_id = target_id;
           node->target    = target;
           node->count     = 1;
+
+          node->link.magic = 0;
 
           direct_list_prepend(&queue->nodes, &node->link);
      }
