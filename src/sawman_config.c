@@ -65,6 +65,7 @@ static const char *config_usage =
      "  hw-cursor=<layer-id>               Set HW Cursor mode\n"
      "  resolution=<width>x<height>        Set virtual SaWMan resolution\n"
      "  [no-]static-layer                  Disable layer reconfiguration\n"
+     "  update-region-mode=<num>           Set internal update region mode (1-3, default 2)\n"
      "\n";
 
 
@@ -136,6 +137,8 @@ config_allocate()
           sawman_config->borders[0].focused_index[i]   = -1;
           sawman_config->borders[0].unfocused_index[i] = -1;
      }
+
+     sawman_config->update_region_mode = 2;
 
      return DFB_OK;
 }
@@ -361,6 +364,25 @@ sawman_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-static-layer") == 0) {
           sawman_config->static_layer = false;
+     } else
+     if (strcmp (name, "update-region-mode" ) == 0) {
+          if (value) {
+               int mode;
+
+               if (sscanf( value, "%d", &mode ) < 1) {
+                    D_ERROR("SaWMan/Config '%s': Could not parse value!\n", name);
+                    return DFB_INVARG;
+               }
+               if (mode < 1 || mode > 3) {
+                    D_ERROR("SaWMan/Config '%s': Value %d out of bounds!\n", name, mode);
+                    return DFB_INVARG;
+               }
+               sawman_config->update_region_mode = mode;
+          }
+          else {
+               D_ERROR("SaWMan/Config '%s': No value specified!\n", name);
+               return DFB_INVARG;
+          }
      } else
           return DFB_UNSUPPORTED;
 

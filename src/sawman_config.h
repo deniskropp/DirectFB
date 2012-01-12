@@ -53,6 +53,8 @@ typedef struct {
      DFBDimension          resolution;
 
      bool                  static_layer;
+
+     int                   update_region_mode;
 } SaWManConfig;
 
 

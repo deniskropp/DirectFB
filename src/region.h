@@ -111,12 +111,6 @@ typedef enum {
 /*
  * regions
  */
-typedef struct {
-     int x1;
-     int y1;
-     int x2;
-     int y2;
-} DFBBox;
 
 typedef DFBBox                   misc_box_t;
 typedef DFBRectangle             misc_rectangle_t;
@@ -143,8 +137,6 @@ struct misc_region {
 
 #if D_DEBUG_ENABLED
 
-#define DFB_RECTANGLE_VALS_FROM_BOX(b)  \
-     (b)->x1, (b)->y1, (b)->x2 - (b)->x1, (b)->y2 - (b)->y1
 
 #define MISC_REGION_ASSERT( reg )                                                                                  \
      do {                                                                                                          \

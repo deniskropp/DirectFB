@@ -224,7 +224,8 @@ update_region( SaWMan          *sawman,
                int              x1,
                int              y1,
                int              x2,
-               int              y2 )
+               int              y2,
+               bool             right_eye )
 {
      int           i      = start;
      DFBRegion     region = { x1, y1, x2, y2 };
@@ -271,65 +272,65 @@ update_region( SaWMan          *sawman,
                                                               sawwin->bounds.y );
 
                if (!dfb_region_region_intersect( &opaque, &region )) {
-                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
+                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2, right_eye );
 
-                    sawman_draw_window( tier, sawwin, state, &region, true );
+                    sawman_draw_window( tier, sawwin, state, &region, true, right_eye );
                }
                else {
                     if ((window->config.opacity < 0xff) || (window->config.options & DWOP_COLORKEYING)) {
                          /* draw everything below */
-                         update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
+                         update_region( sawman, tier, state, i-1, x1, y1, x2, y2, right_eye );
                     }
                     else {
                          /* left */
                          if (opaque.x1 != x1)
-                              update_region( sawman, tier, state, i-1, x1, opaque.y1, opaque.x1-1, opaque.y2 );
+                              update_region( sawman, tier, state, i-1, x1, opaque.y1, opaque.x1-1, opaque.y2, right_eye );
 
                          /* upper */
                          if (opaque.y1 != y1)
-                              update_region( sawman, tier, state, i-1, x1, y1, x2, opaque.y1-1 );
+                              update_region( sawman, tier, state, i-1, x1, y1, x2, opaque.y1-1, right_eye );
 
                          /* right */
                          if (opaque.x2 != x2)
-                              update_region( sawman, tier, state, i-1, opaque.x2+1, opaque.y1, x2, opaque.y2 );
+                              update_region( sawman, tier, state, i-1, opaque.x2+1, opaque.y1, x2, opaque.y2, right_eye );
 
                          /* lower */
                          if (opaque.y2 != y2)
-                              update_region( sawman, tier, state, i-1, x1, opaque.y2+1, x2, y2 );
+                              update_region( sawman, tier, state, i-1, x1, opaque.y2+1, x2, y2, right_eye );
                     }
 
                     /* left */
                     if (opaque.x1 != region.x1) {
                          DFBRegion r = { region.x1, opaque.y1, opaque.x1 - 1, opaque.y2 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
+                         sawman_draw_window( tier, sawwin, state, &r, true, right_eye );
                     }
 
                     /* upper */
                     if (opaque.y1 != region.y1) {
                          DFBRegion r = { region.x1, region.y1, region.x2, opaque.y1 - 1 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
+                         sawman_draw_window( tier, sawwin, state, &r, true, right_eye );
                     }
 
                     /* right */
                     if (opaque.x2 != region.x2) {
                          DFBRegion r = { opaque.x2 + 1, opaque.y1, region.x2, opaque.y2 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
+                         sawman_draw_window( tier, sawwin, state, &r, true, right_eye );
                     }
 
                     /* lower */
                     if (opaque.y2 != region.y2) {
                          DFBRegion r = { region.x1, opaque.y2 + 1, region.x2, region.y2 };
-                         sawman_draw_window( tier, sawwin, state, &r, true );
+                         sawman_draw_window( tier, sawwin, state, &r, true, right_eye );
                     }
 
                     /* inner */
-                    sawman_draw_window( tier, sawwin, state, &opaque, false );
+                    sawman_draw_window( tier, sawwin, state, &opaque, false, right_eye );
                }
           }
           else {
                if (SAWMAN_TRANSLUCENT_WINDOW( window )) {
                     /* draw everything below */
-                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2 );
+                    update_region( sawman, tier, state, i-1, x1, y1, x2, y2, right_eye );
                }
                else {
                     DFBRegion dst = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->dst );
@@ -338,22 +339,22 @@ update_region( SaWMan          *sawman,
 
                     /* left */
                     if (dst.x1 != x1)
-                         update_region( sawman, tier, state, i-1, x1, dst.y1, dst.x1-1, dst.y2 );
+                         update_region( sawman, tier, state, i-1, x1, dst.y1, dst.x1-1, dst.y2, right_eye );
 
                     /* upper */
                     if (dst.y1 != y1)
-                         update_region( sawman, tier, state, i-1, x1, y1, x2, dst.y1-1 );
+                         update_region( sawman, tier, state, i-1, x1, y1, x2, dst.y1-1, right_eye );
 
                     /* right */
                     if (dst.x2 != x2)
-                         update_region( sawman, tier, state, i-1, dst.x2+1, dst.y1, x2, dst.y2 );
+                         update_region( sawman, tier, state, i-1, dst.x2+1, dst.y1, x2, dst.y2, right_eye );
 
                     /* lower */
                     if (dst.y2 != y2)
-                         update_region( sawman, tier, state, i-1, x1, dst.y2+1, x2, y2 );
+                         update_region( sawman, tier, state, i-1, x1, dst.y2+1, x2, y2, right_eye );
                }
 
-               sawman_draw_window( tier, sawwin, state, &region, true );
+               sawman_draw_window( tier, sawwin, state, &region, true, right_eye  );
           }
      }
      else
@@ -368,7 +369,8 @@ update_region2( SaWMan          *sawman,
                int              x1,
                int              y1,
                int              x2,
-               int              y2 )
+               int              y2,
+               bool             right_eye )
 {
      int              i;
      SaWManWindow    *sawwin;
@@ -413,7 +415,10 @@ update_region2( SaWMan          *sawman,
                MISC_REGION_DEBUG_AT( SaWMan_Update, &dirty, "dirty" );
      
                /* visible (window) */
-               misc_region_init_updates( &visible, NULL, &sawwin->visible );
+               if (right_eye)
+                    misc_region_init_updates( &visible, NULL, &sawwin->right.visible );
+               else
+                    misc_region_init_updates( &visible, NULL, &sawwin->left.visible );
      
                /* render (extents) */
                misc_region_init_with_extents( &render, NULL, &extents );
@@ -454,7 +459,7 @@ update_region2( SaWMan          *sawman,
                     for (n=0; n<num; n++) {
                          DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
      
-                         sawman_draw_window( tier, sawwin, state, &draw, false );
+                         sawman_draw_window( tier, sawwin, state, &draw, false, right_eye );
                     }
      
      
@@ -468,7 +473,7 @@ update_region2( SaWMan          *sawman,
                     for (n=0; n<num; n++) {
                          DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
      
-                         sawman_draw_window( tier, sawwin, state, &draw, true );
+                         sawman_draw_window( tier, sawwin, state, &draw, true, right_eye );
                     }
      
      
@@ -503,7 +508,7 @@ update_region2( SaWMan          *sawman,
                     for (n=0; n<num; n++) {
                          DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
      
-                         sawman_draw_window( tier, sawwin, state, &draw, true );
+                         sawman_draw_window( tier, sawwin, state, &draw, true, right_eye );
                     }
      
                }
@@ -1039,10 +1044,28 @@ repaint_tier( SaWMan              *sawman,
           dfb_state_set_clip( state, update );
 
           /* Compose updated region. */
-          update_region3( sawman, tier, state,
-                          fusion_vector_size( &sawman->layout ) - 1,
-                          update->x1, update->y1, update->x2, update->y2, 
-                          right_eye );
+          switch (sawman_config->update_region_mode) {
+               case 1:
+                    update_region( sawman, tier, state,
+                                   fusion_vector_size( &sawman->layout ) - 1,
+                                   update->x1, update->y1, update->x2, update->y2,
+                                   right_eye );
+
+                    break;
+               case 3:
+                    update_region3( sawman, tier, state,
+                                    fusion_vector_size( &sawman->layout ) - 1,
+                                    update->x1, update->y1, update->x2, update->y2,
+                                    right_eye );
+
+                    break;
+               case 2:
+               default:
+                    update_region2( sawman, tier, state,
+                                    fusion_vector_size( &sawman->layout ) - 1,
+                                    update->x1, update->y1, update->x2, update->y2,
+                                    right_eye );
+          }
 
           /* Update cursor? */
           cursor_inter = tier->cursor_region;
