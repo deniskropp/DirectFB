@@ -37,6 +37,10 @@
 
 #include <netdb.h>
 
+#ifdef ANDROID_NDK
+#include <android/log.h>
+#endif
+
 /**********************************************************************************************************************/
 
 static DirectResult init_stderr( DirectLog  *log );
@@ -89,6 +93,9 @@ common_log_write( DirectLog  *log,
 {
      write( (long) log->data, buffer, bytes );
 
+#ifdef ANDROID_NDK
+__android_log_print( ANDROID_LOG_INFO, "%s", buffer );
+#endif
      return DR_OK;
 }
 
