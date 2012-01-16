@@ -2546,28 +2546,30 @@ void dfb_gfxcard_batchblit2( DFBRectangle *rects, DFBPoint *points, DFBPoint *po
      }
 
      if (i < num) {
-          if (state->render_options & DSRO_MATRIX) {
-               D_UNIMPLEMENTED();
-          }
-          else {
-               D_UNIMPLEMENTED();
-/*
-               if (gAcquire( state, DFXL_BLIT2 )) {
-                    for (; i<num; i++) {
-                         if (dfb_clip_blit_precheck( &state->clip,
-                                                     rects[i].w, rects[i].h,
-                                                     points[i].x, points[i].y ))
-                         {
-                              dfb_clip_blit( &state->clip, &rects[i],
-                                             &points[i].x, &points[i].y );
+          D_UNIMPLEMENTED();
 
-                              gBlit( state, &rects[i], points[i].x, points[i].y );
-                         }
-                    }
+          for (; i<num; i++) {
+               D_DEBUG_AT( Core_GraphicsOps, "  -> rects[%d]   " DFB_RECT_FORMAT "\n", i, DFB_RECTANGLE_VALS( &rects[i] ) );
+               D_DEBUG_AT( Core_GraphicsOps, "  -> points[%d]   %4d,%4d\n", i, points[i].x, points[i].y );
+               D_DEBUG_AT( Core_GraphicsOps, "  -> points2[%d]  %4d,%4d\n", i, points2[i].x, points2[i].y );
 
-                    gRelease( state );
+               if ((state->render_options & DSRO_MATRIX) ||
+                   dfb_clip_blit_precheck( &state->clip,
+                                           rects[i].w, rects[i].h,
+                                           points[i].x, points[i].y ))
+               {
+                    int dx = points[i].x;
+                    int dy = points[i].y;
+
+                    dfb_clip_blit( &state->clip, &rects[i], &dx, &dy );
+
+                    points2[i].x += dx - points[i].x;
+                    points2[i].y += dy - points[i].y;
+
+                    D_DEBUG_AT( Core_GraphicsOps, "  => rects[%d]   " DFB_RECT_FORMAT "\n", i, DFB_RECTANGLE_VALS( &rects[i] ) );
+                    D_DEBUG_AT( Core_GraphicsOps, "  => points[%d]   %4d,%4d\n", i, dx, dy );
+                    D_DEBUG_AT( Core_GraphicsOps, "  => points2[%d]  %4d,%4d\n", i, points2[i].x, points2[i].y );
                }
-*/
           }
      }
 
