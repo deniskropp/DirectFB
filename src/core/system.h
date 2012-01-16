@@ -50,6 +50,7 @@ typedef enum {
      CORE_X11VDPAU,
      CORE_PVR2D,
      CORE_CARE1,
+     CORE_ANDROID,
 } CoreSystemType;
 
 typedef enum {
