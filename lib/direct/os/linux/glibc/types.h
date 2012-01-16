@@ -78,7 +78,10 @@ typedef int64_t s64;
 #define __constructor__                 __attribute__((constructor))
 #define __destructor__                  __attribute__((destructor))
 #define __typeof__(x)                   typeof(x)
+
+#ifndef __func__
 #define __func__                        __FUNCTION__
+#endif
 
 #define _ZD "%zd"
 #define _ZU "%zu"
