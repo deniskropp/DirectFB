@@ -216,8 +216,10 @@ parse_host_addr( const char       *hostport,
                case EAI_SERVICE:
                     D_ERROR( "Direct/Log: Port %s is unreachable!\n", portstr );
                     return DR_FAILURE;
-               
+
+#ifdef EAI_ADDRFAMILY
                case EAI_ADDRFAMILY:
+#endif
                case EAI_NODATA:
                     D_ERROR( "Direct/Log: Host found, but has no address!\n" );
                     return DR_FAILURE;

@@ -172,7 +172,9 @@ direct_signal_handler_remove( DirectSignalHandler *handler )
 }
 
 /**************************************************************************************************/
-
+#ifdef DIRECT_BUILD_NO_SA_SIGINFO
+#undef SA_SIGINFO
+#endif
 #ifdef SA_SIGINFO
 
 #include <ucontext.h>

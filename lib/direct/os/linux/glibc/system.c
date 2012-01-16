@@ -113,7 +113,9 @@ direct_trap( const char *domain, int sig )
 
      val.sival_int = direct_gettid();
 
+#ifndef DIRECT_BUILD_NO_SIGQUEUE
      sigqueue( direct_gettid(), sig, val );
+#endif
 //     direct_tgkill( direct_getpid(), direct_gettid(), sig );
 
      D_LOG( Direct_Trap, VERBOSE, "...tgkill(%d) on ourself returned, maybe blocked, calling %s()!\n", sig,

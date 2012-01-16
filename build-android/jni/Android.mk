@@ -31,6 +31,8 @@ CPPFLAGS += \
         -DHAVE_SIGNAL_H \
         -DDIRECT_BUILD_NO_PTHREAD_CANCEL=1 \
         -DDIRECT_BUILD_NO_PTHREAD_CONDATTR=1 \
+	-DDIRECT_BUILD_NO_SA_SIGINFO=1 \
+	-DDIRECT_BUILD_NO_SIGQUEUE=1 \
         -DPTHREADMINIT \
 	-DDATADIR=\"/mnt/sdcard/directfb\"	\
 	-DSYSCONFDIR=\"/mnt/sdcard/directfb\"

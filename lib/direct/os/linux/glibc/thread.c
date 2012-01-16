@@ -82,7 +82,9 @@ direct_thread_init( DirectThread *thread )
      /* Initialize scheduling and other parameters. */
      pthread_attr_init( &attr );
 
+#ifdef PTHREAD_EXPLICIT_SCHED
      pthread_attr_setinheritsched( &attr, PTHREAD_EXPLICIT_SCHED );
+#endif
 
      /* Select scheduler. */
      switch (direct_config->thread_scheduler) {
@@ -184,7 +186,9 @@ direct_thread_deinit( DirectThread *thread )
                else
                     D_ERROR( "Direct/Thread: Canceling %d!\n", thread->tid );
 
+#ifndef DIRECT_BUILD_NO_PTHREAD_CANCEL
                pthread_cancel( thread->handle.thread );
+#endif
           }
 
           pthread_join( thread->handle.thread, NULL );
@@ -286,8 +290,11 @@ direct_thread_cancel( DirectThread *thread )
      D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
 
      thread->canceled = true;
-
+#ifndef DIRECT_BUILD_NO_PTHREAD_CANCEL
      pthread_cancel( thread->handle.thread );
+#else
+     D_UNIMPLEMENTED();
+#endif
 }
 
 void
@@ -314,8 +321,12 @@ direct_thread_testcancel( DirectThread *thread )
      D_ASSERT( pthread_equal( thread->handle.thread, pthread_self() ) );
 
      /* Quick check before calling the pthread function. */
+#ifndef DIRECT_BUILD_NO_PTHREAD_CANCEL
      if (thread->canceled)
           pthread_testcancel();
+#else
+     D_UNIMPLEMENTED();
+#endif
 }
 
 void
