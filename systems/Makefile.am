@@ -56,6 +56,7 @@ endif
   
 
 SUBDIRS = \
+	android \
 	dummy \
 	$(PVR2D_DIR) \
 	$(DEVMEM_DIR) \

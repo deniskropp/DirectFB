@@ -12,6 +12,8 @@ KERNEL = $(LOCAL_PATH)/Kernel
 
 LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/.. $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums
 
+LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid
+
 #
 # Version definition
 MAJOR   = 1
@@ -295,6 +297,18 @@ DIRECTFB_SOURCES += \
 	$(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_requestor.c
 
 
+#
+# DirectFB System
+DIRECTFB_SOURCES += \
+	$(DFB_SOURCE)/systems/android/android_layer.c \
+	$(DFB_SOURCE)/systems/android/android_main.c \
+	$(DFB_SOURCE)/systems/android/android_screen.c \
+	$(DFB_SOURCE)/systems/android/android_surface_pool.c \
+	$(DFB_SOURCE)/systems/android/android_system.c
+
+# Test
+DIRECTFB_SOURCES += \
+	$(DFB_SOURCE)/tests/dfbtest_fillrect.c
 
 #
 # DirectFB header files
@@ -401,6 +415,9 @@ INCLUDES += \
 	$(SAWMAN_INCLUDES)						\
 	$(FUSIONDALE_INCLUDES)
 
+
+
+LOCAL_STATIC_LIBRARIES := android_native_app_glue
 
 
 include $(BUILD_SHARED_LIBRARY)

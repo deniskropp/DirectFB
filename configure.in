@@ -2085,6 +2085,7 @@ src/misc/Makefile
 src/windows/Makefile
 
 systems/Makefile
+systems/android/Makefile
 systems/devmem/Makefile
 systems/dummy/Makefile
 systems/fbdev/Makefile
