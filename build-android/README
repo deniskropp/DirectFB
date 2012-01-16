@@ -1,0 +1,21 @@
+Android Build
+=============
+
+
+Quick info
+
+	Run
+		./generate.sh
+	to generate Android specific project files, then run
+
+		ndk-build
+
+	and
+
+		ant debug
+
+	to get an .apk in bin/.
+
+
+This is at the very first stage, the apk will include dfbtest_fillrect,
+nothing on screen so far, to be continued coming days...
