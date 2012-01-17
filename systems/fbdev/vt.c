@@ -665,7 +665,7 @@ vt_flush_thread( DirectThread *thread, void *arg )
           if (ret < 0 && errno == EINTR)
                continue;
 
-          if (ret < 0)
+          if (ret < 0 || !dfb_vt->flush)
                break;
 
           tcflush( dfb_vt->fd, TCIFLUSH );
