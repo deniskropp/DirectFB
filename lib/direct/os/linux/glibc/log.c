@@ -94,7 +94,7 @@ common_log_write( DirectLog  *log,
      write( (long) log->data, buffer, bytes );
 
 #ifdef ANDROID_NDK
-__android_log_print( ANDROID_LOG_INFO, "%s", buffer );
+__android_log_print( ANDROID_LOG_INFO, "android-dfb", "%s", buffer );
 #endif
      return DR_OK;
 }
