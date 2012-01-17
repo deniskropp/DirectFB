@@ -54,6 +54,7 @@ driver_probe(CoreGraphicsDevice *device)
      switch (dfb_system_type()) {
           case CORE_MESA:
           case CORE_PVR2D:
+          case CORE_ANDROID:
                return 1;
 
           default:
@@ -118,7 +119,7 @@ driver_init_driver(CoreGraphicsDevice  *device,
 
 #ifdef GLES2_USE_FBO
      glGenFramebuffers( 1, &drv->fbo );
-     glBindFramebuffer( GL_FRAMEBUFFER_EXT, drv->fbo );
+     glBindFramebuffer( GL_FRAMEBUFFER, drv->fbo );
 #endif
 
      return DFB_OK;

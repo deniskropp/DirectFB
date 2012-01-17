@@ -156,15 +156,16 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
      CoreSurface *surface  = state->destination;
      GLuint       color_rb = state->dst.handle;
 
+
      D_DEBUG_AT( GLES2__2D, "%s( color_rb %u )\n", __FUNCTION__, color_rb );
 //     D_MAGIC_ASSERT(buffer, GLES2BufferData);
 #ifdef GLES2_USE_FBO
-     glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT,
-                                   GL_COLOR_ATTACHMENT0_EXT,
-                                   GL_RENDERBUFFER_EXT,
+     glFramebufferRenderbufferEXT( GL_FRAMEBUFFER,
+                                   GL_COLOR_ATTACHMENT0,
+                                   GL_RENDERBUFFER,
                                    color_rb );
 
-     if (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE) {
+     if (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
           D_ERROR( "DirectFB/GLES2: Framebuffer not complete\n" );
      }
 #endif
@@ -317,6 +318,10 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
                       GLES2DeviceData *gdev,
                       CardState       *state)
 {
+     #ifdef ANDROID_NDK
+     return;
+     #endif
+
      CoreSurface      *surface = state->source;
 //     GLES2BufferData  *buffer = state->src.handle;
      GLuint            texture = state->src.handle;

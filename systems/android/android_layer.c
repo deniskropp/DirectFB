@@ -107,6 +107,8 @@ androidFlipRegion( CoreLayer                  *layer,
 {
      AndroidData *android = driver_data;
 
+     eglSwapBuffers(android->dpy, android->surface);
+
      dfb_surface_flip( surface, false );
 
      return DFB_OK;

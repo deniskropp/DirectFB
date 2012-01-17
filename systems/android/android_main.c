@@ -49,7 +49,7 @@ dfb_main_thread( DirectThread *thread,
 
      LOGI( "Running main()..." );
 
-     ret = main( 2, argv );
+     ret = main( 1, argv );
 
      LOGI( "main() has returned %d!", ret );
 

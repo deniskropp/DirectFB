@@ -296,6 +296,13 @@ DIRECTFB_SOURCES += \
 	$(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_dispatcher.c	\
 	$(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_requestor.c
 
+WM_SOURCES = \
+	$(DFB_SOURCE)/wm/default/default.c
+
+GFXDRIVER_SOURCES = \
+	$(DFB_SOURCE)/gfxdrivers/gles2/gles2_2d.c	\
+	$(DFB_SOURCE)/gfxdrivers/gles2/gles2_gfxdriver.c	\
+	$(DFB_SOURCE)/gfxdrivers/gles2/gles2_shaders.c
 
 #
 # DirectFB System
@@ -401,7 +408,9 @@ LOCAL_SRC_FILES := \
 	$(LIB_DIRECT_SOURCES)						\
 	$(LIB_FUSION_SOURCES)						\
 	$(LIB_FUSION_SOURCES_SINGLE)					\
-	$(DIRECTFB_SOURCES)
+	$(DIRECTFB_SOURCES)						\
+	$(WM_SOURCES)							\
+	$(GFXDRIVER_SOURCES)
 #	$(DIVINE_SOURCES)						\
 #	$(SAWMAN_SOURCES)						\
 #	$(FUSIONDALE_SOURCES)

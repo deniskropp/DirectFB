@@ -73,8 +73,15 @@ InitLocal( AndroidData *android )
              EGL_BLUE_SIZE, 8,
              EGL_GREEN_SIZE, 8,
              EGL_RED_SIZE, 8,
+             EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
              EGL_NONE
      };
+
+     static const EGLint ctx_attribs[] = {
+          EGL_CONTEXT_CLIENT_VERSION, 2,
+          EGL_NONE
+     };
+
      EGLint w, h, dummy, format;
      EGLint numConfigs;
      EGLConfig config;
@@ -99,7 +106,7 @@ InitLocal( AndroidData *android )
      ANativeWindow_setBuffersGeometry(native_data.app->window, 0, 0, format);
 
      surface = eglCreateWindowSurface(display, config, native_data.app->window, NULL);
-     context = eglCreateContext(display, config, NULL, NULL);
+     context = eglCreateContext(display, config, NULL, ctx_attribs);
 
      if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
          LOGW("Unable to eglMakeCurrent");
@@ -179,7 +186,7 @@ system_initialize( CoreDFB *core, void **ret_data )
 
      *ret_data = m_data;
 
-//     dfb_surface_pool_initialize( core, &androidSurfacePoolFuncs, &shared->pool );
+     dfb_surface_pool_initialize( core, &androidSurfacePoolFuncs, &shared->pool );
 
      android->screen = dfb_screens_register( NULL, android, androidScreenFuncs );
      android->layer  = dfb_layers_register( android->screen, android, androidLayerFuncs );

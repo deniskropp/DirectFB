@@ -272,6 +272,8 @@ androidAllocateBuffer( CoreSurfacePool       *pool,
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
+// !!!! FIXME !!!!
+     return DFB_OK;
 
      EGLContext context = eglGetCurrentContext();
 
@@ -360,6 +362,8 @@ androidDeallocateBuffer( CoreSurfacePool       *pool,
                       CoreSurfaceAllocation *allocation,
                       void                  *alloc_data )
 {
+          // !!!!! FIXME !!!!!
+     return DFB_OK;
      AndroidPoolData       *data  = pool_data;
      AndroidAllocationData *alloc = alloc_data;
      AndroidPoolLocalData  *local = pool_local;
@@ -391,6 +395,8 @@ androidLock( CoreSurfacePool       *pool,
      AndroidAllocationData *alloc = alloc_data;
      AndroidData           *android;
 
+     // !!!!! FIXME !!!!!
+     return DFB_OK;
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, AndroidAllocationData );
@@ -459,6 +465,9 @@ androidUnlock( CoreSurfacePool       *pool,
             CoreSurfaceBufferLock *lock )
 {
      AndroidAllocationData *alloc = alloc_data;
+
+     // !!!!! FIXME !!!!!
+     return DFB_OK;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
