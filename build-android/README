@@ -4,6 +4,11 @@ Android Build
 
 Quick info
 
+	First compile DirectFB for the host (to be sure that all headers
+	and flux generated files are created)
+
+	Then in this directory:
+
 	Run
 		./generate.sh
 	to generate Android specific project files, then run
@@ -16,6 +21,9 @@ Quick info
 
 	to get an .apk in bin/.
 
+	You can install it on the device by doing
+
+		ant debug install
 
 This is at the very first stage, the apk will include dfbtest_fillrect,
 nothing on screen so far, to be continued coming days...

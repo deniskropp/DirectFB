@@ -45,11 +45,11 @@ dfb_main_thread( DirectThread *thread,
                  void         *arg )
 {
      int   ret;
-     char *argv[] = { "android-native-dfb-app" };
+     char *argv[] = { "android-native-dfb-app", "--dfb:debug" };
 
      LOGI( "Running main()..." );
 
-     ret = main( 1, argv );
+     ret = main( 2, argv );
 
      LOGI( "main() has returned %d!", ret );
 
