@@ -60,6 +60,7 @@ mesaInitLayer( CoreLayer                  *layer,
      config->width       = dfb_config->mode.width  ?: mesa->mode.hdisplay;
      config->height      = dfb_config->mode.height ?: mesa->mode.vdisplay;
      config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
+     config->buffermode  = DLBM_FRONTONLY;
 
      return DFB_OK;
 }
