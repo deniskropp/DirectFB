@@ -141,7 +141,7 @@ buffer_fill_input_buffer (j_decompress_ptr cinfo)
      else {
           ret = buffer->GetData( buffer, JPEG_PROG_BUF_SIZE, src->data, &nbytes );
      }
-     
+
      if (ret || nbytes <= 0) {
           /* Insert a fake EOI marker */
           src->data[0] = (JOCTET) 0xFF;
@@ -309,7 +309,7 @@ Construct( IDirectFBImageProvider *thiz,
 {
      struct jpeg_decompress_struct cinfo;
      struct my_error_mgr jerr;
-     
+
      IDirectFBDataBuffer *buffer;
      CoreDFB             *core;
      va_list              tag;
@@ -343,10 +343,10 @@ Construct( IDirectFBImageProvider *thiz,
      jpeg_buffer_src(&cinfo, buffer, 1);
      jpeg_read_header(&cinfo, TRUE);
      jpeg_start_decompress(&cinfo);
-     
+
      data->width = cinfo.output_width;
      data->height = cinfo.output_height;
-     
+
      jpeg_abort_decompress(&cinfo);
      jpeg_destroy_decompress(&cinfo);
 
@@ -360,12 +360,13 @@ Construct( IDirectFBImageProvider *thiz,
      return DFB_OK;
 }
 
-static int wrap_setjmp(struct my_error_mgr *jerr)
+static int
+wrap_setjmp( struct my_error_mgr *jerr )
 {
-    if (setjmp(jerr->setjmp_buffer))
-        return 1;
-    else
-        return 0;
+     if (setjmp( jerr->setjmp_buffer ))
+          return 1;
+     else
+          return 0;
 }
 
 static DFBResult
@@ -402,7 +403,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (dest_rect) {
           if (dest_rect->w < 1 || dest_rect->h < 1)
                return DFB_INVARG;
-          
+
           rect = *dest_rect;
           rect.x += dst_data->area.wanted.x;
           rect.y += dst_data->area.wanted.y;
@@ -439,10 +440,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           cinfo.err = jpeg_std_error(&jerr.pub);
           jerr.pub.error_exit = jpeglib_panic;
 
-          if (wrap_setjmp(&jerr)) {
+          if (wrap_setjmp( &jerr )) {
                D_ERROR( "ImageProvider/JPEG: Error during decoding!\n" );
 
-               jpeg_destroy_decompress(&cinfo);
+               jpeg_destroy_decompress( &cinfo );
 
                if (data->image) {
                     dfb_scale_linear_32( data->image, data->image_width, data->image_height,
@@ -464,9 +465,9 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                return DFB_FAILURE;
           }
 
-          jpeg_create_decompress(&cinfo);
-          jpeg_buffer_src(&cinfo, data->base.buffer, 0);
-          jpeg_read_header(&cinfo, TRUE);
+          jpeg_create_decompress( &cinfo );
+          jpeg_buffer_src( &cinfo, data->base.buffer, 0 );
+          jpeg_read_header( &cinfo, TRUE );
 
 #if JPEG_LIB_VERSION >= 70
           cinfo.scale_num = 8;
@@ -475,7 +476,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           cinfo.scale_num = 1;
           cinfo.scale_denom = 1;
 #endif
-          jpeg_calc_output_dimensions(&cinfo);
+          jpeg_calc_output_dimensions( &cinfo );
 
           if (cinfo.output_width == (unsigned)rect.w && cinfo.output_height == (unsigned)rect.h) {
                direct = true;
@@ -486,12 +487,12 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                 *  are N/8 with all N from 1 to 16.
                 */
                cinfo.scale_num = 1;
-               jpeg_calc_output_dimensions (&cinfo);
+               jpeg_calc_output_dimensions( &cinfo );
                while (cinfo.scale_num < 16
                       && cinfo.output_width < (unsigned)rect.w
                       && cinfo.output_height < (unsigned)rect.h) {
                     ++cinfo.scale_num;
-                    jpeg_calc_output_dimensions (&cinfo);
+                    jpeg_calc_output_dimensions( &cinfo );
                }
 #else
                /*  The supported scaling ratios in libjpeg 6
@@ -501,7 +502,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                       && ((cinfo.output_width >> 1) >= (unsigned)rect.w)
                       && ((cinfo.output_height >> 1) >= (unsigned)rect.h)) {
                     cinfo.scale_denom <<= 1;
-                    jpeg_calc_output_dimensions (&cinfo);
+                    jpeg_calc_output_dimensions( &cinfo );
                }
 #endif
           }
@@ -520,21 +521,21 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     }
                     D_INFO( "JPEG: Going through RGB color space! (%dx%d -> %dx%d @%d,%d)\n",
                             cinfo.output_width, cinfo.output_height, rect.w, rect.h, rect.x, rect.y );
-               
+
                default:
                     cinfo.out_color_space = JCS_RGB;
                     break;
           }
 
-          jpeg_start_decompress(&cinfo);
+          jpeg_start_decompress( &cinfo );
 
           data->image_width = cinfo.output_width;
           data->image_height = cinfo.output_height;
 
           row_stride = cinfo.output_width * 3;
 
-          buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo,
-                                              JPOOL_IMAGE, row_stride, 1);
+          buffer = (*cinfo.mem->alloc_sarray)( (j_common_ptr) &cinfo,
+                                               JPOOL_IMAGE, row_stride, 1 );
 
           data->image = D_CALLOC( data->image_height, data->image_width * 4 );
           if (!data->image) {
@@ -544,7 +545,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           row_ptr = data->image;
 
           while (cinfo.output_scanline < cinfo.output_height && cb_result == DIRCR_OK) {
-               jpeg_read_scanlines(&cinfo, buffer, 1);
+               jpeg_read_scanlines( &cinfo, buffer, 1 );
 
                switch (dst_surface->config.format) {
                     case DSPF_NV16:
@@ -593,14 +594,14 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           }
 
           if (cb_result != DIRCR_OK) {
-               jpeg_abort_decompress(&cinfo);
+               jpeg_abort_decompress( &cinfo );
                D_FREE( data->image );
                data->image = NULL;
           }
           else {
-               jpeg_finish_decompress(&cinfo);
+               jpeg_finish_decompress( &cinfo );
           }
-          jpeg_destroy_decompress(&cinfo);
+          jpeg_destroy_decompress( &cinfo );
      }
      else {
           dfb_scale_linear_32( data->image, data->image_width, data->image_height,
@@ -611,11 +612,11 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                            data->base.render_callback_context );
           }
      }
-     
+
      dfb_surface_unlock_buffer( dst_surface, &lock );
 
      if (cb_result != DIRCR_OK)
-         return DFB_INTERRUPTED;
+          return DFB_INTERRUPTED;
 
      return DFB_OK;
 }
@@ -625,7 +626,7 @@ IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                    DFBSurfaceDescription  *dsc )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
-     
+
      dsc->flags  = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc->height = data->height;
      dsc->width  = data->width;
