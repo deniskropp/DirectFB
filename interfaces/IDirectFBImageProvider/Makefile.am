@@ -8,25 +8,25 @@ idirectfbimageproviderdir = $(MODULEDIR)/interfaces/IDirectFBImageProvider
 if GIF_PROVIDER
 GIF_PROVIDER_LTLIB = libidirectfbimageprovider_gif.la
 else
-GIF_PROVIDER_LTLIB = 
+GIF_PROVIDER_LTLIB =
 endif
 
 if JPEG_PROVIDER
 JPEG_PROVIDER_LTLIB = libidirectfbimageprovider_jpeg.la
 else
-JPEG_PROVIDER_LTLIB = 
+JPEG_PROVIDER_LTLIB =
 endif
 
 if PNG_PROVIDER
 PNG_PROVIDER_LTLIB = libidirectfbimageprovider_png.la
 else
-PNG_PROVIDER_LTLIB = 
+PNG_PROVIDER_LTLIB =
 endif
 
 if IMLIB2
 IMLIB2_PROVIDER = libidirectfbimageprovider_imlib2.la
 else
-IMLIB2_PROVIDER = 
+IMLIB2_PROVIDER =
 endif
 
 if PNM
@@ -50,13 +50,13 @@ endif
 if JPEG2000
 JPEG2000_PROVIDER = libidirectfbimageprovider_jpeg2000.la
 else
-JPEG2000_PROVIDER = 
+JPEG2000_PROVIDER =
 endif
 
 if MPEG2
 MPEG2_PROVIDER = libidirectfbimageprovider_mpeg2.la
 else
-MPEG2_PROVIDER = 
+MPEG2_PROVIDER =
 endif
 
 INCLUDES = \
@@ -140,7 +140,7 @@ libidirectfbimageprovider_pnm_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/src/libdirectfb.la
 
-libidirectfbimageprovider_pnm_la_LDFLAGS = -avoid-version -module 
+libidirectfbimageprovider_pnm_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbimageprovider_svg_la_SOURCES = idirectfbimageprovider_svg.c
