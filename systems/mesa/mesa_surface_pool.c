@@ -382,7 +382,6 @@ mesaDeallocateBuffer( CoreSurfacePool       *pool,
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, MesaPoolData );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( alloc, MesaAllocationData );
 
      drmModeRmFB( local->mesa->fd,  alloc->fb_id );
@@ -578,6 +577,7 @@ mesaWrite( CoreSurfacePool       *pool,
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
+     glPixelStorei( GL_UNPACK_ROW_LENGTH, pitch/4);
      glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_BGRA, GL_UNSIGNED_BYTE, source );
 
 
