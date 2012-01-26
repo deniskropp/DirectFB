@@ -616,8 +616,8 @@ draw_window( SaWManTier   *tier,
      if (sawwin2) {
           CoreWindow   *window2;
           DFBRectangle *src2;
-          DFBPoint      p1,p2;
-     
+          DFBPoint      p1,p2,p;
+
           D_MAGIC_ASSERT( sawwin2, SaWManWindow );
           window2 = sawwin2->window;
           D_ASSERT( window2 != NULL );
@@ -627,10 +627,20 @@ draw_window( SaWManTier   *tier,
           state->source2  = window2->surface;
           state->modified = SMF_SOURCE2;
 
-          p1.x = src2->x;
-          p1.y = src2->y;
+          p1.x = src2->x + (sawwin->dst.x - sawwin2->dst.x);
+          p1.y = src2->y + (sawwin->dst.y - sawwin2->dst.y);
           p2.x = sawwin->dst.x;
           p2.y = sawwin->dst.y;
+
+          p.x = p1.x;
+          p.y = p1.y;
+
+          p1.x = src.x;
+          p1.y = src.y;
+
+          src.x = p.x;
+          src.y = p.y;
+
           dfb_gfxcard_batchblit2( &src, &p2, &p1, 1, state );
      }
      else
