@@ -2214,12 +2214,15 @@ wm_add_window( CoreWindowStack *stack,
      /* Initialize window data. */
      sawwin->sawman     = sawman;
      sawwin->shmpool    = sawman->shmpool;
-     sawwin->process    = process;
      sawwin->id         = window->id;
      sawwin->caps       = window->caps;
      sawwin->window     = window;
      sawwin->stack      = stack;
      sawwin->stack_data = stack_data;
+
+     sawwin->process.pid       = process->pid;
+     sawwin->process.fusion_id = process->fusion_id;
+     sawwin->process.flags     = process->flags;
 
      D_MAGIC_SET( sawwin, SaWManWindow );
 
@@ -2258,8 +2261,6 @@ wm_add_window( CoreWindowStack *stack,
      sawwin->priority   = sawman_window_priority( sawwin );
 
      direct_list_append( &sawman->windows, &sawwin->link );
-
-     fusion_ref_up( &sawwin->process->ref, true );
 
      /* Send notification to windows watchers */
      dfb_wm_dispatch_WindowAdd( wmdata->core, window );
@@ -2426,8 +2427,6 @@ wm_remove_window( CoreWindowStack *stack,
 
                     dfb_window_unlink( &sawwin->parent_window );
                }
-
-               fusion_ref_down( &sawwin->process->ref, true );
 
                D_MAGIC_CLEAR( sawwin );
                break;

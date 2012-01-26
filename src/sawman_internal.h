@@ -423,7 +423,11 @@ struct __SaWMan_SaWManWindow {
      DFBRectangle           src;
      DFBRectangle           dst;
 
-     SaWManProcess         *process;
+     struct {
+          pid_t                  pid;
+          FusionID               fusion_id;
+          SaWManProcessFlags     flags;
+     }                      process;
 
      SaWManWindowFlags      flags;
 
