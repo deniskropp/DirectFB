@@ -370,6 +370,9 @@ DFBResult Core_Resource_RemoveSurface     ( CoreSurface              *surface );
 DFBResult Core_Resource_UpdateSurface     ( CoreSurface              *surface,
                                             const CoreSurfaceConfig  *config );
 
+DFBResult Core_Resource_AllowSurface      ( CoreSurface              *surface,
+                                            const char               *executable );
+
 
 /*
  * Resource manager main interface

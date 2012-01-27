@@ -74,6 +74,7 @@ static const char *config_usage =
      "  scaled=<width>x<height>        Scale the window to this size for 'force-windowed' apps\n"
      "  depth=<pixeldepth>             Set the default pixel depth\n"
      "  pixelformat=<pixelformat>      Set the default pixel format\n"
+     "  primary-id=<surface-id>        Set ID of primary surface to use\n"
      "  surface-shmpool-size=<kb>      Set the size of the shared memory pool used\n"
      "                                 for shared system memory surfaces.\n"
      "  session=<num>                  Select multi app world (zero based, -1 = new)\n"
@@ -536,6 +537,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("DirectFB/Config 'scaled': No size specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "primary-id" ) == 0) {
+          if (value) {
+               unsigned int id;
+
+               if (sscanf( value, "%u", &id ) < 1) {
+                    D_ERROR("DirectFB/Config '%s': Could not parse id!\n", name);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->primary_id = id;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No id specified!\n", name);
                return DFB_INVARG;
           }
      } else

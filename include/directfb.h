@@ -4702,6 +4702,17 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface              *thiz,
           DFBSurfaceID                  *ret_surface_id
      );
+
+
+   /** Process security **/
+
+     /*
+      * Allow access.
+      */
+     DFBResult (*AllowAccess) (
+          IDirectFBSurface              *thiz,
+          const char                    *executable
+     );
 )
 
 

@@ -278,6 +278,8 @@ typedef struct
      bool                 discard_repeat_events;
 
      bool                 accel1;
+
+     DFBSurfaceID         primary_id;              /* id for primary surface */
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

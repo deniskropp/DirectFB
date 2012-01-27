@@ -359,6 +359,9 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
 
           case DFSCL_FULLSCREEN:
           case DFSCL_EXCLUSIVE:
+               if (dfb_config->primary_id)
+                    return DFB_ACCESSDENIED;
+
                if (dfb_config->force_windowed || dfb_config->force_desktop)
                     return DFB_ACCESSDENIED;
 
@@ -677,6 +680,28 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      }
 
      if (caps & DSCAPS_PRIMARY) {
+          if (dfb_config->primary_id) {
+               ret = CoreDFB_GetSurface( data->core, dfb_config->primary_id, &surface );
+               if (ret)
+                    return ret;
+
+               DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
+
+               ret = IDirectFBSurface_Construct( iface, NULL, NULL, NULL, NULL, surface, DSCAPS_PRIMARY, data->core, thiz );
+               if (ret) {
+                    dfb_surface_unref( surface );
+                    return ret;
+               }
+
+               init_palette( surface, desc );
+
+               dfb_surface_unref( surface );
+
+               *interface = iface;
+
+               return ret;
+          }
+
           if (desc->flags & DSDESC_PREALLOCATED) {
                D_DEBUG_AT( IDFB, "  -> cannot make preallocated primary!\n" );
                return DFB_INVARG;

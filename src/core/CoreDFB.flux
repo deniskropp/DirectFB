@@ -104,5 +104,49 @@ interface {
                         typename    u32
                 }
         }
+
+        method {
+                name    AllowSurface
+
+                arg {
+                        name        surface
+                        direction   input
+                        type        object
+                        typename    CoreSurface
+                }
+
+                arg {
+                        name        executable
+                        direction   input
+                        type        int
+                        typename    char
+			count       executable_length
+                }
+
+                arg {
+                        name        executable_length
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+        }
+
+        method {
+                name    GetSurface
+
+                arg {
+                        name        surface_id
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        surface
+                        direction   output
+                        type        object
+                        typename    CoreSurface
+                }
+        }
 }
 

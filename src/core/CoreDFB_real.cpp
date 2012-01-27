@@ -40,6 +40,7 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <fusion/conf.h>
+#include <fusion/fusion.h>
 
 #include <core/core.h>
 
@@ -176,6 +177,59 @@ ICore_Real::CreateImageProvider(
      }
 
      *ret_call = dispatch->call.call_id;
+
+     return DFB_OK;
+}
+
+DFBResult
+ICore_Real::AllowSurface( CoreSurface *surface,
+                          const char  *executable,
+                          u32          executable_length )
+{
+     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %p, %p, '%s' )\n", __FUNCTION__, core, surface, executable );
+
+     D_MAGIC_ASSERT( obj, CoreDFB );
+     D_ASSERT( surface != NULL );
+     D_ASSERT( executable != NULL );
+
+     return (DFBResult) fusion_object_add_access( &surface->object, executable );
+}
+
+DFBResult
+ICore_Real::GetSurface( u32           surface_id,
+                        CoreSurface **ret_surface )
+{
+     DFBResult    ret;
+     CoreSurface *surface;
+     char         path[1000];
+     size_t       path_length;
+
+     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %u )\n", __FUNCTION__, surface_id );
+
+     D_MAGIC_ASSERT( obj, CoreDFB );
+
+     if (fusion_config->secure_fusion) {
+          ret = (DFBResult) fusion_get_fusionee_path( dfb_core_world(core), Core_GetIdentity(), path, sizeof(path), &path_length );
+          if (ret)
+               return ret;
+
+          D_DEBUG_AT( DirectFB_CoreDFB, "  -> '%s'\n", path );
+     }
+
+     ret = dfb_core_get_surface( core, surface_id, &surface );
+     if (ret)
+          return ret;
+
+     if (fusion_config->secure_fusion) {
+          ret = (DFBResult) fusion_object_has_access( &surface->object, path );
+          if (ret) {
+               D_DEBUG_AT( DirectFB_CoreDFB, "  -> NO ACCESS!\n" );
+               dfb_surface_unref( surface );
+               return ret;
+          }
+     }
+
+     *ret_surface = surface;
 
      return DFB_OK;
 }
