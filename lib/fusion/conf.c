@@ -35,6 +35,7 @@
 #include <direct/conf.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/conf.h>
 
@@ -53,6 +54,7 @@ const char   *fusion_config_usage =
      "  [no-]debugshm                  Enable shared memory allocation tracking\n"
      "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
      "  [no-]secure-fusion             Use secure fusion, e.g. read-only shm (default=no)\n"
+     "  trace-ref=<hexid>              Trace FusionRef up/down\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -111,6 +113,18 @@ fusion_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-secure-fusion" ) == 0) {
           fusion_config->secure_fusion = false;
+     } else
+     if (strcmp (name, "trace-ref" ) == 0) {
+          if (value) {
+               if (sscanf( value, "%x", &fusion_config->trace_ref ) != 1) {
+                    D_ERROR( "Fusion/Config '%s': Invalid value!\n", name );
+                    return DR_INVARG;
+               }
+          }
+          else {
+               D_ERROR( "Fusion/Config '%s': No ID specified!\n", name );
+               return DR_INVARG;
+          }
      } else
      if (direct_config_set( name, value ))
           return DR_UNSUPPORTED;
