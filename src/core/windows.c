@@ -697,6 +697,7 @@ dfb_window_destroy( CoreWindow *window )
 
      /* Unlink the window's surface. */
      if (window->surface) {
+          dfb_surface_deallocate_buffers( window->surface );
           dfb_surface_unlink( &window->surface );
      }
 
