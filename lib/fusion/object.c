@@ -391,6 +391,8 @@ fusion_object_create( FusionObjectPool  *pool,
 
      fusion_reactor_set_lock( object->reactor, &pool->lock );
 
+     fusion_vector_init( &object->access, 1, shared->main_pool );
+
      /* Set pool/world back pointer. */
      object->pool   = pool;
      object->shared = shared;
@@ -471,6 +473,8 @@ fusion_object_destroy( FusionObject *object )
 {
      FusionObjectPool  *pool;
      FusionWorldShared *shared;
+     char              *access;
+     int                index;
 
      D_MAGIC_ASSERT( object, FusionObject );
      D_ASSERT( object->state != FOS_ACTIVE );
@@ -510,6 +514,12 @@ fusion_object_destroy( FusionObject *object )
           /* Unlock the pool. */
           fusion_skirmish_dismiss( &pool->lock );
      }
+
+     fusion_vector_foreach (access, index, object->access) {
+          SHFREE( object->shared->main_pool, access );
+     }
+
+     fusion_vector_destroy( &object->access );
 
      fusion_ref_destroy( &object->ref );
 
@@ -651,5 +661,47 @@ fusion_object_remove_property( FusionObject  *object,
 
      if (fusion_hash_should_resize( object->properties ))
           fusion_hash_resize( object->properties );
+}
+
+DirectResult
+fusion_object_add_access( FusionObject *object,
+                          const char   *executable )
+{
+     DirectResult  ret;
+     char         *copy;
+
+     D_DEBUG_AT( Fusion_Object, "%s( %p, '%s' )\n", __FUNCTION__, object, executable );
+
+     D_MAGIC_ASSERT( object, FusionObject );
+     D_ASSERT( executable != NULL );
+
+     copy = SHSTRDUP( object->shared->main_pool, executable );
+     if (!copy)
+          return D_OOM();
+
+     ret = fusion_vector_add( &object->access, copy );
+     if (ret) {
+          SHFREE( object->shared->main_pool, copy );
+          return ret;
+     }
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_object_has_access( FusionObject *object,
+                          const char   *executable )
+{
+     char *access;
+     int   index;
+
+     D_DEBUG_AT( Fusion_Object, "%s( %p, '%s' )\n", __FUNCTION__, object, executable );
+
+     fusion_vector_foreach (access, index, object->access) {
+          if (!strcmp( access, executable ))
+               return DR_OK;
+     }
+
+     return DR_ACCESSDENIED;
 }
 

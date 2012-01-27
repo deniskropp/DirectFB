@@ -32,6 +32,7 @@
 #include <fusion/types.h>
 
 #include <fusion/lock.h>
+#include <fusion/vector.h>
 #include <direct/list.h>
 #include <fusion/ref.h>
 #include <fusion/reactor.h>
@@ -71,6 +72,8 @@ struct __Fusion_FusionObject {
      FusionHash        *properties;
 
      FusionID           owner;
+
+     FusionVector       access;
 };
 
 
@@ -129,6 +132,12 @@ void             FUSION_API *fusion_object_get_property       ( FusionObject    
 void             FUSION_API  fusion_object_remove_property    ( FusionObject           *object,
                                                                 const char             *key,
                                                                 void                  **ret_val );
+
+DirectResult     FUSION_API  fusion_object_add_access         ( FusionObject           *object,
+                                                                const char             *exectuable );
+
+DirectResult     FUSION_API  fusion_object_has_access         ( FusionObject           *object,
+                                                                const char             *executable );
 
 
 #define FUSION_OBJECT_METHODS(type, prefix)                                    \
