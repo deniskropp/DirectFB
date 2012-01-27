@@ -36,6 +36,7 @@
 #include <sys/types.h>
 
 #include <fusion/build.h>
+#include <fusion/conf.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
@@ -135,6 +136,11 @@ fusion_ref_up (FusionRef *ref, bool global)
 
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_up( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
 
+     if (ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x up (%s)\n", ref->multi.id, global ? "global" : "local" );
+          direct_trace_print_stack( NULL );
+     }
+
      while (ioctl (_fusion_fd( ref->multi.shared ), global ?
                    FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->multi.id))
      {
@@ -170,6 +176,11 @@ fusion_ref_down (FusionRef *ref, bool global)
      D_ASSERT( ref != NULL );
 
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_down( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
+
+     if (ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x down (%s)\n", ref->multi.id, global ? "global" : "local" );
+          direct_trace_print_stack( NULL );
+     }
 
      while (ioctl (_fusion_fd( ref->multi.shared ), global ?
                    FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->multi.id))

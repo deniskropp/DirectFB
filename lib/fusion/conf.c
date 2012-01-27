@@ -34,6 +34,7 @@
 #include <direct/conf.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/conf.h>
 
@@ -56,6 +57,7 @@ const char   *fusion_config_usage =
      "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
      "  [no-]secure-fusion             Use secure fusion, e.g. read-only shm (default=no)\n"
      "  [no-]defer-destructors         Handle destructor calls in separate thread\n"
+     "  trace-ref=<hexid>              Trace FusionRef up/down\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -136,6 +138,18 @@ fusion_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-defer-destructors" ) == 0) {
           fusion_config->defer_destructors = false;
+     } else
+     if (strcmp (name, "trace-ref" ) == 0) {
+          if (value) {
+               if (direct_sscanf( value, "%x", &fusion_config->trace_ref ) != 1) {
+                    D_ERROR( "Fusion/Config '%s': Invalid value!\n", name );
+                    return DR_INVARG;
+               }
+          }
+          else {
+               D_ERROR( "Fusion/Config '%s': No ID specified!\n", name );
+               return DR_INVARG;
+          }
      } else
      if (direct_config_set( name, value ))
           return DR_UNSUPPORTED;

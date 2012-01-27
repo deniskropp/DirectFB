@@ -45,6 +45,8 @@ struct __Fusion_FusionConfig {
      bool  secure_fusion;
 
      bool  defer_destructors;
+
+     int   trace_ref;
 };
 
 extern FusionConfig FUSION_API *fusion_config;
