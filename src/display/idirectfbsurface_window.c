@@ -326,11 +326,15 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                     }
                }
           }
-          dfb_window_repaint( data->window, &l_reg, &r_reg, flags );
+
+          CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags );
      }
 
-     if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY)
-          dfb_window_set_opacity( data->window, 0xff );
+     if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY) {
+          CoreWindowConfig config = { .opacity = 0xff };
+
+          CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_OPACITY );
+     }
 
      return DFB_OK;
 }
