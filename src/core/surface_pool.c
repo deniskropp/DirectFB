@@ -731,6 +731,7 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
      ret = funcs->AllocateBuffer( pool, pool->data, get_local(pool), buffer, allocation, allocation->data );
      if (ret) {
           D_DEBUG_AT( Core_SurfacePool, "  -> %s\n", DirectFBErrorString( ret ) );
+          allocation->flags |= CSALF_DEALLOCATED;
           D_MAGIC_CLEAR( allocation );
           fusion_skirmish_dismiss( &pool->lock );
           goto error;
