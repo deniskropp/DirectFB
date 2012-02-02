@@ -987,12 +987,12 @@ IDirectFBDisplayLayer_SwitchContext( IDirectFBDisplayLayer *thiz,
           if (ret)
                return ret;
 
-          dfb_layer_activate_context( data->layer, context );
+          CoreLayer_ActivateContext( data->layer, context );
 
           dfb_layer_context_unref( context );
      }
      else
-         dfb_layer_activate_context( data->layer, data->context );
+          CoreLayer_ActivateContext( data->layer, data->context );
 
      data->switch_exclusive = exclusive;
 
