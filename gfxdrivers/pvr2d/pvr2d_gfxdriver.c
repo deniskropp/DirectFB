@@ -156,7 +156,7 @@ driver_init_device(CoreGraphicsDevice *device,
      device_info->limits.surface_byteoffset_alignment = 8;
      device_info->limits.surface_bytepitch_alignment  = 8;
 
-     device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS;
+     device_info->caps.flags    = /*CCF_CLIPPING |*/ CCF_RENDEROPTS;
      device_info->caps.accel    = PVR2D_SUPPORTED_DRAWINGFUNCTIONS |
                                   PVR2D_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = PVR2D_SUPPORTED_DRAWINGFLAGS;
