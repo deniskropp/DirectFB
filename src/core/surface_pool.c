@@ -697,7 +697,6 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
      if (ret) {
           D_DEBUG_AT( Core_SurfacePool, "  -> %s\n", DirectFBErrorString( ret ) );
           allocation->flags |= CSALF_DEALLOCATED;
-          D_MAGIC_CLEAR( allocation );
           fusion_skirmish_dismiss( &pool->lock );
           goto error;
      }
@@ -705,6 +704,9 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
 
      D_DEBUG_AT( Core_SurfacePool, "  -> %p\n", allocation );
+
+     allocation->flags &= ~CSALF_INITIALIZING;
+
      fusion_vector_add( &buffer->allocs, allocation );
      fusion_vector_add( &pool->allocs, allocation );
 

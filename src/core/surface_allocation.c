@@ -73,17 +73,19 @@ surface_allocation_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_DEBUG_AT( Core_SurfAllocation, "destroying %p (size %d)\n", allocation, allocation->size );
 
-     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
-
-     if (allocation->surface)
-          dfb_surface_lock( allocation->surface );
-
-
-     dfb_surface_pool_deallocate( allocation->pool, allocation );
+     if (!D_FLAGS_IS_SET(allocation->flags, CSALF_INITIALIZING)) {
+          if (allocation->surface)
+               dfb_surface_lock( allocation->surface );
 
 
-     if (allocation->surface)
-          dfb_surface_unlock( allocation->surface );
+          CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+          dfb_surface_pool_deallocate( allocation->pool, allocation );
+
+
+          if (allocation->surface)
+               dfb_surface_unlock( allocation->surface );
+     }
 
 
      if (allocation->data)
@@ -142,6 +144,7 @@ dfb_surface_allocation_create( CoreDFB                *core,
      allocation->config      = buffer->config;
      allocation->type        = buffer->type;
      allocation->resource_id = buffer->resource_id;
+     allocation->flags       = CSALF_INITIALIZING;
 
      if (pool->alloc_data_size) {
           allocation->data = SHCALLOC( pool->shmpool, 1, pool->alloc_data_size );
