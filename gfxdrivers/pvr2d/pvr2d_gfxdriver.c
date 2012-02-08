@@ -54,6 +54,7 @@ driver_probe(CoreGraphicsDevice *device)
 
      switch (dfb_system_type()) {
           case CORE_PVR2D:
+          case CORE_CARE1:
                return 1;
 
           default:
@@ -93,10 +94,9 @@ driver_init_driver(CoreGraphicsDevice  *device,
                    CoreDFB             *core)
 {
      PVR2DDriverData *drv = driver_data;
+     PVR2DERROR       ePVR2DStatus;
 
      D_DEBUG_AT(PVR2D__2D, "%s()\n", __FUNCTION__);
-
-     drv->pvr2d = dfb_system_data();
 
      // initialize function pointers
      funcs->EngineSync    = pvr2dEngineSync;
@@ -117,6 +117,23 @@ driver_init_driver(CoreGraphicsDevice  *device,
           dfb_config->font_premult = true;
      }
 
+     drv->nDevices = PVR2DEnumerateDevices(0);
+     if (drv->nDevices < 1) {
+          D_ERROR( "DirectFB/CarE1: PVR2DEnumerateDevices(0) returned %d!\n", drv->nDevices );
+          return DFB_INIT;
+     }
+
+     drv->pDevInfo = (PVR2DDEVICEINFO *) malloc(drv->nDevices * sizeof(PVR2DDEVICEINFO));
+
+     PVR2DEnumerateDevices(drv->pDevInfo);
+
+     drv->nDeviceNum = drv->pDevInfo[0].ulDevID;
+
+     ePVR2DStatus = PVR2DCreateDeviceContext (drv->nDeviceNum, &drv->hPVR2DContext, 0);
+     if (ePVR2DStatus) {
+          D_ERROR( "DirectFB/CarE1: PVR2DCreateDeviceContext() failed! (status %d)\n", ePVR2DStatus );
+          return DFB_INIT;
+     }
 
      return DFB_OK;
 }
@@ -139,7 +156,7 @@ driver_init_device(CoreGraphicsDevice *device,
      device_info->limits.surface_byteoffset_alignment = 8;
      device_info->limits.surface_bytepitch_alignment  = 8;
 
-     device_info->caps.flags    = CCF_CLIPPING | CCF_RENDEROPTS;
+     device_info->caps.flags    = /*CCF_CLIPPING |*/ CCF_RENDEROPTS;
      device_info->caps.accel    = PVR2D_SUPPORTED_DRAWINGFUNCTIONS |
                                   PVR2D_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = PVR2D_SUPPORTED_DRAWINGFLAGS;

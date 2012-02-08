@@ -29,21 +29,21 @@
 #define PVR2D_SUPPORTED_DRAWINGFLAGS      (DSDRAW_NOFX)//BLEND | \
                                            //DSDRAW_SRC_PREMULTIPLY)
 
-#define PVR2D_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_NONE)//FILLRECTANGLE | \
+#define PVR2D_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_FILLRECTANGLE)// | \
                                            //DFXL_DRAWRECTANGLE | \
                                            //DFXL_DRAWLINE      | \
                                            //DFXL_FILLTRIANGLE)
 
 #define PVR2D_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL)// | \
+                                           //DSBLIT_SRC_COLORKEY)
+                                           //DSBLIT_COLORIZE           )// \
                                            //DSBLIT_BLEND_COLORALPHA   | \
-                                           //DSBLIT_COLORIZE           | \
                                            //DSBLIT_ROTATE180          | \
-                                           //DSBLIT_SRC_COLORKEY       | \
                                            //DSBLIT_SRC_PREMULTIPLY    | \
                                            //DSBLIT_SRC_PREMULTCOLOR)
 
-#define PVR2D_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT)// | \
-                                           //DFXL_STRETCHBLIT)
+#define PVR2D_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | \
+                                           DFXL_STRETCHBLIT)
 
 
 DFBResult pvr2dEngineSync   (void                *drv,

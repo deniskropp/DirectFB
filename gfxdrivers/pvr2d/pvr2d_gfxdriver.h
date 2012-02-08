@@ -23,7 +23,7 @@
 #ifndef __PVR2D_GFXDRIVER_H__
 #define __PVR2D_GFXDRIVER_H__
 
-#include <pvr2d/pvr2d_system.h>
+#include <pvr2d.h>
 
 
 typedef struct {
@@ -33,9 +33,12 @@ typedef struct {
 typedef struct {
      int                 v_flags;      // validation flags
 
-     PVR2DData          *pvr2d;
-
      PVR2DBLTINFO        bltinfo;
+
+     int                 nDevices;
+     PVR2DDEVICEINFO    *pDevInfo;
+     PVR2DCONTEXTHANDLE  hPVR2DContext;
+     int                 nDeviceNum;
 } PVR2DDriverData;
 
 

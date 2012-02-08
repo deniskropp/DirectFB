@@ -67,7 +67,7 @@ enum {
 
 /*
  * State handling macros.  Shader uniform variables are shader program state
- * and some of them are duplicated across programs.  
+ * and some of them are duplicated across programs.
  */
 #define PVR2D_VALIDATE(flags)        \
      do {                            \
@@ -132,16 +132,27 @@ pvr2d_validate_DESTINATION(PVR2DDriverData *gdrv,
                            PVR2DDeviceData *gdev,
                            CardState       *state)
 {
-//     CoreSurface *surface = state->destination;
-
-//     D_DEBUG_AT( PVR2D__2D, "%s( color_rb %u )\n", __FUNCTION__, color_rb );
+     D_DEBUG_AT(PVR2D__2D, "%s( format 0x%08x )\n", __FUNCTION__, state->destination->config.format);
 
      gdrv->bltinfo.pDstMemInfo   = state->dst.handle;
      gdrv->bltinfo.DstOffset     = 0;
      gdrv->bltinfo.DstStride     = state->dst.pitch;
-     gdrv->bltinfo.DstFormat     = PVR2D_RGB565;
      gdrv->bltinfo.DstSurfWidth  = state->destination->config.size.w;
      gdrv->bltinfo.DstSurfHeight = state->destination->config.size.h;
+
+     switch (state->destination->config.format) {
+          case DSPF_ARGB:
+          case DSPF_RGB32:
+               gdrv->bltinfo.DstFormat = PVR2D_ARGB8888;
+               break;
+
+          case DSPF_RGB16:
+               gdrv->bltinfo.DstFormat = PVR2D_RGB565;
+               break;
+
+          default:
+               D_BUG( "unexpected pixelformat %d", state->destination->config.format );
+     }
 
 
      // Set the flag.
@@ -177,6 +188,7 @@ pvr2d_validate_COLOR_DRAW(PVR2DDriverData *gdrv,
 {
      D_DEBUG_AT(PVR2D__2D, "%s()\n", __FUNCTION__);
 
+     gdrv->bltinfo.Colour = PIXEL_ARGB( state->color.a, state->color.r, state->color.g, state->color.b );
 
      // Set the flag.
      PVR2D_VALIDATE(COLOR_DRAW);
@@ -191,9 +203,7 @@ pvr2d_validate_SOURCE(PVR2DDriverData *gdrv,
                       PVR2DDeviceData *gdev,
                       CardState       *state)
 {
-//     CoreSurface      *surface = state->source;
-
-//     D_DEBUG_AT(PVR2D__2D, "%s( texture %u )\n", __FUNCTION__, texture);
+     D_DEBUG_AT(PVR2D__2D, "%s( format 0x%08x )\n", __FUNCTION__, state->source->config.format);
 
      gdrv->bltinfo.pSrcMemInfo   = state->src.handle;
      gdrv->bltinfo.SrcOffset     = 0;
@@ -202,7 +212,12 @@ pvr2d_validate_SOURCE(PVR2DDriverData *gdrv,
      gdrv->bltinfo.SrcSurfHeight = state->source->config.size.h;
 
      switch (state->source->config.format) {
+          case DSPF_A8:
+               gdrv->bltinfo.SrcFormat = PVR2D_ALPHA8;
+               break;
+
           case DSPF_ARGB:
+          case DSPF_RGB32:
                gdrv->bltinfo.SrcFormat = PVR2D_ARGB8888;
                break;
 
@@ -229,6 +244,7 @@ pvr2d_validate_COLOR_BLIT(PVR2DDriverData *gdrv,
 {
      D_DEBUG_AT(PVR2D__2D, "%s()\n", __FUNCTION__);
 
+     gdrv->bltinfo.Colour = PIXEL_ARGB( state->color.a, state->color.r, state->color.g, state->color.b );
 
      // Set the flag.
      PVR2D_VALIDATE(COLOR_BLIT);
@@ -261,7 +277,7 @@ pvr2d_validate_BLENDFUNC(PVR2DDriverData *gdrv,
 {
      D_DEBUG_AT(PVR2D__2D, "%s()\n", __FUNCTION__);
 
-     gdrv->bltinfo.AlphaBlendingFunc = PVR2D_ALPHA_OP_SRC_DSTINV;
+     gdrv->bltinfo.AlphaBlendingFunc = (state->src_blend != DSBF_SRCALPHA) ? PVR2D_ALPHA_OP_SRC_DSTINV : PVR2D_ALPHA_OP_SRCP_DSTINV;
 
      // Set the flag.
      PVR2D_VALIDATE(BLENDFUNC);
@@ -302,14 +318,13 @@ DFBResult
 pvr2dEngineSync(void *drv, void *dev)
 {
      PVR2DDriverData *gdrv  = drv;
-     PVR2DData       *pvr2d = gdrv->pvr2d;
 
      D_DEBUG_AT(PVR2D__2D, "%s()\n", __FUNCTION__);
 
      if (gdrv->bltinfo.pDstMemInfo) {
           PVR2DERROR ePVR2DStatus;
 
-          ePVR2DStatus = PVR2DQueryBlitsComplete( pvr2d->hPVR2DContext, gdrv->bltinfo.pDstMemInfo, PVR2D_TRUE );
+          ePVR2DStatus = PVR2DQueryBlitsComplete( gdrv->hPVR2DContext, gdrv->bltinfo.pDstMemInfo, PVR2D_TRUE );
           if (ePVR2DStatus) {
                D_ERROR( "DirectFB/PVR2D: PVR2DQueryBlitsComplete() failed! (status %d)\n", ePVR2DStatus );
                return false;
@@ -370,8 +385,8 @@ pvr2dCheckState(void                *drv,
 
      // Return if the destination format is not supported.
      switch (state->destination->config.format) {
-          //case DSPF_ARGB:
-          //case DSPF_RGB32:
+          case DSPF_ARGB:
+          case DSPF_RGB32:
           case DSPF_RGB16:
                break;
           default:
@@ -393,8 +408,9 @@ pvr2dCheckState(void                *drv,
      else {
           // Return if the source format is not supported.
           switch (state->source->config.format) {
+               case DSPF_A8:
                case DSPF_ARGB:
-               //case DSPF_RGB32:
+               case DSPF_RGB32:
                case DSPF_RGB16:
                     break;
                default:
@@ -409,6 +425,16 @@ pvr2dCheckState(void                *drv,
                D_DEBUG_AT(PVR2D__2D, "  -> unsupported blit flags 0x%08x\n",
                           state->blittingflags);
                return;
+          }
+
+          if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) {
+               if (state->dst_blend != DSBF_INVSRCALPHA ||
+                   (state->src_blend != DSBF_SRCALPHA && state->src_blend != DSBF_ONE))
+               {
+                    D_DEBUG_AT(PVR2D__2D, "  -> unsupported blend functions 0x%02x 0x%02x\n",
+                               state->src_blend, state->dst_blend);
+                    return;
+               }
           }
      }
 
@@ -509,6 +535,17 @@ pvr2dSetState(void                *drv,
                // Check for valid drawing color.
                PVR2D_CHECK_VALIDATE(COLOR_DRAW);
 
+/*
+               gdrv->bltinfo.pSrcMemInfo   = gdrv->bltinfo.pDstMemInfo;
+               gdrv->bltinfo.SrcOffset     = gdrv->bltinfo.DstOffset;
+               gdrv->bltinfo.SrcStride     = gdrv->bltinfo.DstStride;
+               gdrv->bltinfo.SrcSurfWidth  = gdrv->bltinfo.DstSurfWidth;
+               gdrv->bltinfo.SrcSurfHeight = gdrv->bltinfo.DstSurfHeight;
+               gdrv->bltinfo.SrcFormat     = gdrv->bltinfo.DstFormat;
+//               gdrv->bltinfo.pMaskMemInfo = gdrv->bltinfo.pDstMemInfo;
+*/
+//               PVR2D_INVALIDATE(SOURCE);
+
                /*
                 * 3) Tell which functions can be called without further
                 * validation, i.e. SetState()
@@ -549,14 +586,14 @@ pvr2dSetState(void                *drv,
                }
 
                /*
-             * To reduce the number of shader programs, the blit fragment
-             * shader always modulates by a color.  Validate that color.
-             */
+                * To reduce the number of shader programs, the blit fragment
+                * shader always modulates by a color.  Validate that color.
+                */
                PVR2D_CHECK_VALIDATE(COLOR_BLIT);
 
                /*
-          * 3) Tell which functions can be called without further
-          * validation, i.e. SetState().
+                * 3) Tell which functions can be called without further
+                * validation, i.e. SetState().
                 *
                 * When the hw independent state is changed, this collection is
                 * reset.
@@ -588,24 +625,32 @@ pvr2dSetState(void                *drv,
 bool
 pvr2dFillRectangle(void *drv, void *dev, DFBRectangle *rect)
 {
-/*
-     PVR2DDriverData *gdrv  = drv;
-     PVR2DData       *pvr2d = gdrv->pvr2d;
+     PVR2DDriverData *gdrv = drv;
 
      D_DEBUG_AT(PVR2D__2D, "%s(%4d,%4d-%4dx%4d)\n",
                 __FUNCTION__, DFB_RECTANGLE_VALS(rect));
 
+
      PVR2DERROR ePVR2DStatus;
 
-     gdrv->bltinfo.DstX          = 0;
-     gdrv->bltinfo.DstY          = 0;
-     gdrv->bltinfo.DstSizeX      = ;
-     ePVR2DStatus = PVR2DBlt( pvr2d->hPVR2DContext, &gdrv->bltinfo );
+     gdrv->bltinfo.DstX   = rect->x;
+     gdrv->bltinfo.DstY   = rect->y;
+     gdrv->bltinfo.DSizeX = rect->w;
+     gdrv->bltinfo.DSizeY = rect->h;
+
+     gdrv->bltinfo.SrcX   = rect->x;
+     gdrv->bltinfo.SrcY   = rect->y;
+     gdrv->bltinfo.SizeX  = rect->w;
+     gdrv->bltinfo.SizeY  = rect->h;
+
+     gdrv->bltinfo.CopyCode = 0xF0;
+
+     ePVR2DStatus = PVR2DBlt( gdrv->hPVR2DContext, &gdrv->bltinfo );
      if (ePVR2DStatus) {
           D_ERROR( "DirectFB/PVR2D: PVR2DBlt() failed! (status %d)\n", ePVR2DStatus );
           return false;
      }
-*/
+
      return true;
 }
 
@@ -658,7 +703,6 @@ bool
 pvr2dBlit(void *drv, void *dev, DFBRectangle *srect, int dx, int dy)
 {
      PVR2DDriverData *gdrv  = drv;
-     PVR2DData       *pvr2d = gdrv->pvr2d;
 
      D_DEBUG_AT(PVR2D__2D, "%s(%4d,%4d-%4dx%4d <- %4d,%4d)\n",
                 __FUNCTION__, dx, dy, srect->w, srect->h, srect->x, srect->y);
@@ -678,7 +722,7 @@ pvr2dBlit(void *drv, void *dev, DFBRectangle *srect, int dx, int dy)
 
      gdrv->bltinfo.CopyCode = 0xcc;
 
-     ePVR2DStatus = PVR2DBlt( pvr2d->hPVR2DContext, &gdrv->bltinfo );
+     ePVR2DStatus = PVR2DBlt( gdrv->hPVR2DContext, &gdrv->bltinfo );
      if (ePVR2DStatus) {
           D_ERROR( "DirectFB/PVR2D: PVR2DBlt() failed! (status %d)\n", ePVR2DStatus );
           return false;
@@ -694,12 +738,32 @@ bool
 pvr2dStretchBlit(void *drv, void *dev,
                  DFBRectangle *srect, DFBRectangle *drect)
 {
-     //PVR2DDriverData *gdrv = drv;
+     PVR2DDriverData *gdrv = drv;
 
      D_DEBUG_AT(PVR2D__2D, "%s(%4d,%4d-%4dx%4d <- %4d,%4d-%4dx%4d)\n",
                 __FUNCTION__, DFB_RECTANGLE_VALS(drect),
                 DFB_RECTANGLE_VALS(srect));
 
+
+     PVR2DERROR ePVR2DStatus;
+
+     gdrv->bltinfo.DstX   = drect->x;
+     gdrv->bltinfo.DstY   = drect->y;
+     gdrv->bltinfo.DSizeX = drect->w;
+     gdrv->bltinfo.DSizeY = drect->h;
+
+     gdrv->bltinfo.SrcX   = srect->x;
+     gdrv->bltinfo.SrcY   = srect->y;
+     gdrv->bltinfo.SizeX  = srect->w;
+     gdrv->bltinfo.SizeY  = srect->h;
+
+     gdrv->bltinfo.CopyCode = 0xcc;
+
+     ePVR2DStatus = PVR2DBlt( gdrv->hPVR2DContext, &gdrv->bltinfo );
+     if (ePVR2DStatus) {
+          D_ERROR( "DirectFB/PVR2D: PVR2DBlt() failed! (status %d)\n", ePVR2DStatus );
+          return false;
+     }
 
      return true;
 }
