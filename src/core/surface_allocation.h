@@ -44,6 +44,7 @@
  */
 typedef enum {
      CSALF_NONE          = 0x00000000,  /* None of these. */
+     CSALF_INITIALIZING  = 0x00000001,  /* Allocation is being initialized */
 
      CSALF_VOLATILE      = 0x00000002,  /* Allocation should be freed when no longer up to date. */
      CSALF_PREALLOCATED  = 0x00000004,  /* Preallocated memory, don't zap when "thrifty-surface-buffers" is active. */
