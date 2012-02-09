@@ -9098,6 +9098,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
                               if (state->blittingflags & DSBLIT_DST_PREMULTIPLY)
                                    *funcs++ = Dacc_premultiply;
+
+                              if (dst_ycbcr)
+                                   *funcs++ = Dacc_YCbCr_to_RGB;
                          }
                          else if (scale_from_accumulator) {
                               *funcs++ = Len_is_Slen;
@@ -9134,16 +9137,8 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               }
                          }
 
-                         if (!src_ycbcr && dst_ycbcr) {
-                              if (DFB_COLOR_BITS_PER_PIXEL(gfxs->src_format))
-                                   *funcs++ = Dacc_RGB_to_YCbCr;
-                              /*else
-                                   *funcs++ = Dacc_Alpha_to_YCbCr;*/
-                         }
-                         else if (src_ycbcr && !dst_ycbcr) {
-                              if (DFB_COLOR_BITS_PER_PIXEL(gfxs->dst_format))
-                                   *funcs++ = Dacc_YCbCr_to_RGB;
-                         }
+                         if (src_ycbcr)
+                              *funcs++ = Dacc_YCbCr_to_RGB;
 
                          /* Premultiply color alpha? */
                          if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
@@ -9157,15 +9152,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                                            | DSBLIT_BLEND_COLORALPHA)]) {
                               /* modulation source */
                               gfxs->Cacc.RGB.a = color.a + 1;
-                              if (!dst_ycbcr) {
-                                   gfxs->Cacc.RGB.r = color.r + 1;
-                                   gfxs->Cacc.RGB.g = color.g + 1;
-                                   gfxs->Cacc.RGB.b = color.b + 1;
-                              } else {
-                                   gfxs->Cacc.YUV.y = gfxs->YCop  + 1;
-                                   gfxs->Cacc.YUV.u = gfxs->CbCop + 1;
-                                   gfxs->Cacc.YUV.v = gfxs->CrCop + 1;
-                              }
+                              gfxs->Cacc.RGB.r = color.r + 1;
+                              gfxs->Cacc.RGB.g = color.g + 1;
+                              gfxs->Cacc.RGB.b = color.b + 1;
 
                               *funcs++ = Dacc_modulation[modulation & (DSBLIT_COLORIZE
                                                                        | DSBLIT_BLEND_ALPHACHANNEL
@@ -9230,6 +9219,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Dacc_clamp;
                               *funcs++ = Sacc_xor_Dacc;
                          }
+
+                         if (dst_ycbcr)
+                              *funcs++ = Dacc_RGB_to_YCbCr;
 
                          /* write source to destination */
                          *funcs++ = Sacc_is_Bacc;
