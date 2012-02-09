@@ -9652,8 +9652,8 @@ static void gInit_MMX( void )
 /********************************* misc accumulator operations ****************/
      SCacc_add_to_Dacc = SCacc_add_to_Dacc_MMX;
      Sacc_add_to_Dacc  = Sacc_add_to_Dacc_MMX;
-     Dacc_YCbCr_to_RGB = Dacc_YCbCr_to_RGB_MMX;
-     Dacc_RGB_to_YCbCr = Dacc_RGB_to_YCbCr_MMX;
+     //Dacc_YCbCr_to_RGB = Dacc_YCbCr_to_RGB_MMX;
+     //Dacc_RGB_to_YCbCr = Dacc_RGB_to_YCbCr_MMX;
 }
 
 #endif
