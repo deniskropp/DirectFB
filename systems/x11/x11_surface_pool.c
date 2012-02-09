@@ -308,8 +308,10 @@ x11Lock( CoreSurfacePool       *pool,
      else {
           if (!alloc->ptr) {
                alloc->ptr = SHCALLOC( shared->data_shmpool, 1, allocation->size );
-               if (!alloc->ptr)
+               if (!alloc->ptr) {
+                    pthread_mutex_unlock( &local->lock );
                     return D_OOSHM();
+               }
           }
 
           lock->addr = alloc->ptr;
