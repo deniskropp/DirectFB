@@ -651,6 +651,9 @@ IGraphicsState_Real::DrawRectangles(
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
 
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
+
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
     }
@@ -672,6 +675,9 @@ IGraphicsState_Real::DrawLines(
     DFBResult ret;
 
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
 
     if (dfb_config->accel1) {
          ret = State_Enter( obj, DFXL_DRAWLINE );
@@ -713,6 +719,9 @@ IGraphicsState_Real::FillRectangles(
 
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
 
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
+
     if (dfb_config->accel1) {
          ret = State_Enter( obj, DFXL_FILLRECTANGLE );
          if (ret)
@@ -751,6 +760,9 @@ IGraphicsState_Real::FillTriangles(
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
 
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
+
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
     }
@@ -769,6 +781,9 @@ IGraphicsState_Real::FillTrapezoids(
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
 
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
@@ -789,6 +804,9 @@ IGraphicsState_Real::FillSpans(
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
 
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
@@ -811,6 +829,12 @@ IGraphicsState_Real::Blit(
     DFBResult ret;
 
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination || !obj->state.source)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
 
     D_ASSERT( rects != NULL );
     D_ASSERT( points != NULL );
@@ -864,6 +888,12 @@ IGraphicsState_Real::Blit2(
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
 
+    if (!obj->state.destination || !obj->state.source || !obj->state.source2)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
+
     D_ASSERT( rects != NULL );
     D_ASSERT( points1 != NULL );
     D_ASSERT( points2 != NULL );
@@ -890,6 +920,12 @@ IGraphicsState_Real::StretchBlit(
     DFBResult ret;
 
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination || !obj->state.source)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
 
     D_ASSERT( srects != NULL );
     D_ASSERT( drects != NULL );
@@ -947,6 +983,12 @@ IGraphicsState_Real::TileBlit(
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
 
+    if (!obj->state.destination || !obj->state.source)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
+
     D_ASSERT( rects != NULL );
     D_ASSERT( points1 != NULL );
     D_ASSERT( points2 != NULL );
@@ -972,6 +1014,12 @@ IGraphicsState_Real::TextureTriangles(
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination || !obj->state.source)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
 
     D_ASSERT( vertices != NULL );
 
