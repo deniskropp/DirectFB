@@ -73,20 +73,19 @@ surface_allocation_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_DEBUG_AT( Core_SurfAllocation, "destroying %p (size %d)\n", allocation, allocation->size );
 
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
      if (!D_FLAGS_IS_SET(allocation->flags, CSALF_INITIALIZING)) {
           if (allocation->surface)
                dfb_surface_lock( allocation->surface );
-
 
           CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
           dfb_surface_pool_deallocate( allocation->pool, allocation );
 
-
           if (allocation->surface)
                dfb_surface_unlock( allocation->surface );
      }
-
 
      if (allocation->data)
           SHFREE( allocation->pool->shmpool, allocation->data );
@@ -164,6 +163,8 @@ dfb_surface_allocation_create( CoreDFB                *core,
 
      *ret_allocation = allocation;
 
+     D_DEBUG_AT( Core_SurfAllocation, "%s(): allocation=%p\n", __FUNCTION__, (void *)allocation );
+
      return DFB_OK;
 
 
@@ -179,9 +180,10 @@ error:
 DFBResult
 dfb_surface_allocation_decouple( CoreSurfaceAllocation *allocation )
 {
-     int                i;
-     int                locks;
-     CoreSurfaceBuffer *buffer;
+     int                    i;
+     int                    locks;
+     CoreSurfaceBuffer     *buffer;
+     CoreSurfaceAllocation *alloc;
 
      D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, allocation );
 
@@ -209,12 +211,12 @@ dfb_surface_allocation_decouple( CoreSurfaceAllocation *allocation )
           buffer->written = NULL;
 
           /* Iterate through remaining allocations */
-          fusion_vector_foreach (allocation, i, buffer->allocs) {
-               CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+          fusion_vector_foreach (alloc, i, buffer->allocs) {
+               CORE_SURFACE_ALLOCATION_ASSERT( alloc );
 
                /* Check if allocation is up to date and set it as 'written' allocation */
-               if (direct_serial_check( &allocation->serial, &buffer->serial )) {
-                    buffer->written = allocation;
+               if (direct_serial_check( &alloc->serial, &buffer->serial )) {
+                    buffer->written = alloc;
                     break;
                }
           }
@@ -322,7 +324,7 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
      CoreSurfaceBufferLock  dst;
      CoreSurfaceBuffer     *buffer;
 
-     D_DEBUG_AT( Core_SurfAllocation, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, (void *)allocation);
 
      D_ASSERT( allocation != source );
 
@@ -375,7 +377,7 @@ allocation_update_write( CoreSurfaceAllocation *allocation,
      CoreSurfaceBufferLock  src;
      CoreSurfaceBuffer     *buffer;
 
-     D_DEBUG_AT( Core_SurfAllocation, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, (void *)allocation );
 
      D_ASSERT( allocation != source );
 
@@ -417,7 +419,7 @@ allocation_update_read( CoreSurfaceAllocation *allocation,
      CoreSurfaceBufferLock  dst;
      CoreSurfaceBuffer     *buffer;
 
-     D_DEBUG_AT( Core_SurfAllocation, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, (void *)allocation );
 
      D_ASSERT( allocation != source );
 
@@ -460,7 +462,7 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
      CoreSurfaceAllocation *alloc;
      CoreSurfaceBuffer     *buffer;
 
-     D_DEBUG_AT( Core_SurfAllocation, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, (void *)allocation );
 
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_FLAGS_ASSERT( access, CSAF_ALL );
