@@ -705,7 +705,7 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
 
      D_DEBUG_AT( Core_SurfacePool, "  -> %p\n", allocation );
 
-     allocation->flags &= ~CSALF_INITIALIZING;
+     D_FLAGS_CLEAR(allocation->flags, CSALF_INITIALIZING);
 
      fusion_vector_add( &buffer->allocs, allocation );
      fusion_vector_add( &pool->allocs, allocation );
