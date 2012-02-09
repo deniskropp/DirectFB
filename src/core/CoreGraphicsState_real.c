@@ -308,6 +308,9 @@ IGraphicsState_Real__DrawRectangles(
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
+
     for (u32 i=0; i<num; i++)
          dfb_gfxcard_drawrectangle( (DFBRectangle*) &rects[i], &obj->state );
 
@@ -324,6 +327,9 @@ IGraphicsState_Real__DrawLines(
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
+
     dfb_gfxcard_drawlines( (DFBRegion*) lines, num, &obj->state );
 
     return DFB_OK;
@@ -338,6 +344,9 @@ IGraphicsState_Real__FillRectangles(
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
 
     dfb_gfxcard_fillrectangles( rects, num, &obj->state );
 
@@ -354,6 +363,9 @@ IGraphicsState_Real__FillTriangles(
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
 
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
+
     dfb_gfxcard_filltriangles( triangles, num, &obj->state );
 
     return DFB_OK;
@@ -368,6 +380,9 @@ IGraphicsState_Real__FillTrapezoids(
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
 
     dfb_gfxcard_filltrapezoids( trapezoids, num, &obj->state );
 
@@ -384,6 +399,9 @@ IGraphicsState_Real__FillSpans(
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination)
+         return DFB_NOCONTEXT;
 
     dfb_gfxcard_fillspans( y, (DFBSpan*) spans, num, &obj->state );
 
@@ -403,6 +421,12 @@ IGraphicsState_Real__Blit(
 
     D_ASSERT( rects != NULL );
     D_ASSERT( points != NULL );
+
+    if (!obj->state.destination || !obj->state.source)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
 
     // FIXME: remove casts
     if (num > 1)
@@ -429,6 +453,12 @@ IGraphicsState_Real__Blit2(
     D_ASSERT( points1 != NULL );
     D_ASSERT( points2 != NULL );
 
+    if (!obj->state.destination || !obj->state.source || !obj->state.source2)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
+
     // FIXME: remove casts
     dfb_gfxcard_batchblit2( (DFBRectangle*) rects, (DFBPoint*) points1, (DFBPoint*) points2, num, &obj->state );
 
@@ -449,6 +479,12 @@ IGraphicsState_Real__StretchBlit(
     D_ASSERT( srects != NULL );
     D_ASSERT( drects != NULL );
 
+    if (!obj->state.destination || !obj->state.source)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
+
     for (u32 i=0; i<num; i++)
          dfb_gfxcard_stretchblit( (DFBRectangle*) &srects[i], (DFBRectangle*) &drects[i], &obj->state );
 
@@ -466,6 +502,12 @@ IGraphicsState_Real__TileBlit(
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination || !obj->state.source)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
 
     D_ASSERT( rects != NULL );
     D_ASSERT( points1 != NULL );
@@ -488,6 +530,12 @@ IGraphicsState_Real__TextureTriangles(
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
+
+    if (!obj->state.destination || !obj->state.source)
+         return DFB_NOCONTEXT;
+
+    if ((obj->state.blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && !obj->state.source_mask)
+         return DFB_NOCONTEXT;
 
     D_ASSERT( vertices != NULL );
 
