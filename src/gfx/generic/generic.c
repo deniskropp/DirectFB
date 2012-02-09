@@ -8812,21 +8812,18 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     *funcs++ = Dacc_is_Aacc;
                     *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
 
+                    if (dst_ycbcr)
+                         *funcs++ = Dacc_YCbCr_to_RGB;
+
                     /* premultiply destination */
                     if (state->drawingflags & DSDRAW_DST_PREMULTIPLY)
                          *funcs++ = Dacc_premultiply;
 
                     /* load source (color) */
                     Cacc.RGB.a = color.a;
-                    if (!dst_ycbcr) {
-                         Cacc.RGB.r = color.r;
-                         Cacc.RGB.g = color.g;
-                         Cacc.RGB.b = color.b;
-                    } else {
-                         Cacc.YUV.y = gfxs->YCop;
-                         Cacc.YUV.u = gfxs->CbCop;
-                         Cacc.YUV.v = gfxs->CrCop;
-                    }
+                    Cacc.RGB.r = color.r;
+                    Cacc.RGB.g = color.g;
+                    Cacc.RGB.b = color.b;
 
                     /* premultiply source (color) */
                     /*if (state->drawingflags & DSDRAW_SRC_PREMULTIPLY) {
@@ -8947,16 +8944,33 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Sacc_xor_Dacc;
 
                               *funcs++ = Sacc_is_Tacc;
+
+                              if (dst_ycbcr)
+                                   *funcs++ = Dacc_is_Tacc;
                          }
                          else {
                               *funcs++ = Dacc_xor;
                               *funcs++ = Sacc_is_Aacc;
+
+                              if (dst_ycbcr)
+                                   *funcs++ = Dacc_is_Aacc;
                          }
                     }
-                    else if (state->drawingflags & DSDRAW_BLEND)
+                    else if (state->drawingflags & DSDRAW_BLEND) {
                          *funcs++ = Sacc_is_Tacc;
-                    else
+
+                         if (dst_ycbcr)
+                              *funcs++ = Dacc_is_Tacc;
+                    }
+                    else {
                          *funcs++ = Sacc_is_Aacc;
+
+                         if (dst_ycbcr)
+                              *funcs++ = Dacc_is_Aacc;
+                    }
+
+                    if (dst_ycbcr)
+                         *funcs++ = Dacc_RGB_to_YCbCr;
 
                     /* write to destination */
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
@@ -9096,11 +9110,11 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Dacc_is_Aacc;
                               *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
 
-                              if (state->blittingflags & DSBLIT_DST_PREMULTIPLY)
-                                   *funcs++ = Dacc_premultiply;
-
                               if (dst_ycbcr)
                                    *funcs++ = Dacc_YCbCr_to_RGB;
+
+                              if (state->blittingflags & DSBLIT_DST_PREMULTIPLY)
+                                   *funcs++ = Dacc_premultiply;
                          }
                          else if (scale_from_accumulator) {
                               *funcs++ = Len_is_Slen;
@@ -9220,8 +9234,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Sacc_xor_Dacc;
                          }
 
-                         if (dst_ycbcr)
+                         if (dst_ycbcr) {
+                              *funcs++ = Dacc_is_Bacc;
                               *funcs++ = Dacc_RGB_to_YCbCr;
+                         }
 
                          /* write source to destination */
                          *funcs++ = Sacc_is_Bacc;
