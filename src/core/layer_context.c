@@ -1953,6 +1953,9 @@ dfb_layer_context_deallocate_surface( CoreLayer *layer, CoreLayerRegion *region 
           /* Detach the global listener. */
           dfb_surface_detach_global( surface, &region->surface_reaction );
 
+
+          dfb_surface_deallocate_buffers( region->surface );
+
           /* Unlink from structure. */
           dfb_surface_unlink( &region->surface );
      }
