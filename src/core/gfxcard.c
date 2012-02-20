@@ -2802,10 +2802,11 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
      dfb_state_unlock( state );
 }
 
-void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
-                              CardState *state )
+void dfb_gfxcard_batchstretchblit( DFBRectangle *srects, DFBRectangle *drects,
+                                   unsigned int num, CardState *state )
 {
-     bool hw = false;
+     int i;
+     bool need_clip, acquired = false;
 
      DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
      dfb_simplify_blittingflags( &blittingflags );
@@ -2813,24 +2814,16 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
-     D_ASSERT( srect != NULL );
-     D_ASSERT( drect != NULL );
+     D_ASSERT( srects != NULL );
+     D_ASSERT( drects != NULL );
+     D_ASSERT( num > 0 );
 
-     D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %dx%d -> %d,%d - %dx%d, %p )\n",
-                 __FUNCTION__, DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect), state );
-
-     if (state->blittingflags & DSBLIT_ROTATE90) {
-          if (srect->w == drect->h && srect->h == drect->w) {
-               dfb_gfxcard_blit( srect, drect->x, drect->y, state );
-               return;
-          }
-     }
-     else {
-          if (srect->w == drect->w && srect->h == drect->h) {
-               dfb_gfxcard_blit( srect, drect->x, drect->y, state );
-               return;
-          }
-     }
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p )\n", __FUNCTION__, state );
+     for (i = 0; i < num; ++i)
+          D_DEBUG_AT( Core_GraphicsOps,
+                      "  -> %d,%d - %dx%d -> %d,%d - %dx%d\n",
+                      DFB_RECTANGLE_VALS(&srects[i]),
+                      DFB_RECTANGLE_VALS(&drects[i]) );
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -2838,35 +2831,58 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (!(state->render_options & DSRO_MATRIX) &&
-         !dfb_clip_blit_precheck( &state->clip, drect->w, drect->h,
-                                  drect->x, drect->y ))
-     {
-          dfb_state_unlock( state );
-          return;
-     }
+     need_clip = (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING )
+                  && !D_FLAGS_IS_SET( card->caps.clip, DFXL_STRETCHBLIT ));
+     for (i = 0; i < num; ++i) {
+          DFBRectangle *srect = &srects[i];
+          DFBRectangle *drect = &drects[i];
 
-     if (dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_STRETCHBLIT ))
-     {
-          if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
-              !D_FLAGS_IS_SET( card->caps.clip, DFXL_STRETCHBLIT ))
+          if (!acquired) {
+               if (!dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT )
+                   || !dfb_gfxcard_state_acquire( state, DFXL_STRETCHBLIT ))
+                    break;
+
+               acquired = true;
+          }
+
+          if ((srect->w == drect->w && srect->h == drect->h)
+              || ((state->blittingflags & DSBLIT_ROTATE90)
+                  && (srect->w == drect->h && srect->h == drect->w))) {
+               dfb_gfxcard_state_release( state );
+               acquired = false;
+               dfb_gfxcard_blit_locked( srect, drect->x, drect->y, state );
+               continue;
+          }
+
+          if (!(state->render_options & DSRO_MATRIX) &&
+              !dfb_clip_blit_precheck( &state->clip, drect->w, drect->h,
+                                       drect->x, drect->y ))
+          {
+               continue;
+          }
+
+          if (need_clip)
                dfb_clip_stretchblit( &state->clip, srect, drect );
 
-          hw = card->funcs.StretchBlit( card->driver_data, card->device_data, srect, drect );
-
-          dfb_gfxcard_state_release( state );
+          if (!card->funcs.StretchBlit( card->driver_data, card->device_data,
+                                        srect, drect ))
+               break;
      }
 
-     if (!hw) {
-          if (state->render_options & DSRO_MATRIX) {
-               int x1, y1, x2, y2;
+     if (acquired)
+          dfb_gfxcard_state_release( state );
 
-               if (state->matrix[0] < 0  || state->matrix[1] != 0 ||
-                   state->matrix[3] != 0 || state->matrix[4] < 0  ||
-                   state->matrix[6] != 0 || state->matrix[7] != 0)
-               {
-                    if (gAcquire( state, DFXL_TEXTRIANGLES )) {
+     if (i < num) {
+          if ((state->render_options & DSRO_MATRIX) &&
+              (state->matrix[0] < 0  || state->matrix[1] != 0 ||
+               state->matrix[3] != 0 || state->matrix[4] < 0  ||
+               state->matrix[6] != 0 || state->matrix[7] != 0))
+          {
+               if (gAcquire( state, DFXL_TEXTRIANGLES )) {
+                    for (; i < num; ++i) {
+                         DFBRectangle *srect = &srects[i];
+                         DFBRectangle *drect = &drects[i];
+
                          GenefxVertexAffine v[4];
 
                          v[0].x = drect->x;
@@ -2892,36 +2908,46 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                          GenefxVertexAffine_Transform( v, 4, state->matrix, state->affine_matrix );
 
                          Genefx_TextureTrianglesAffine( state, v, 4, DTTF_FAN, &state->clip );
-
-                         gRelease( state );
                     }
-
-                    dfb_state_unlock( state );
-                    return;
-               }
-
-               x1 = drect->x;    y1 = drect->y;
-               x2 = x1+drect->w; y2 = y1+drect->h;
-               DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
-               DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
-               drect->x = x1;    drect->y = y1;
-               drect->w = x2-x1; drect->h = y2-y1;
-
-               if (!dfb_clip_blit_precheck( &state->clip,
-                                            drect->w, drect->h, drect->x, drect->y )) {
-                    dfb_state_unlock( state );
-                    return;
+                    gRelease( state );
                }
           }
+          else if (gAcquire( state, DFXL_STRETCHBLIT )) {
+               for (; i < num; ++i) {
+                    DFBRectangle *srect = &srects[i];
+                    DFBRectangle *drect = &drects[i];
 
-          if (gAcquire( state, DFXL_STRETCHBLIT )) {
-               /* Clipping is performed in the following function. */
-               gStretchBlit( state, srect, drect );
+                    if (state->render_options & DSRO_MATRIX) {
+                         int x1, y1, x2, y2;
+
+                         x1 = drect->x;    y1 = drect->y;
+                         x2 = x1+drect->w; y2 = y1+drect->h;
+                         DFB_TRANSFORM(x1, y1, state->matrix, state->affine_matrix);
+                         DFB_TRANSFORM(x2, y2, state->matrix, state->affine_matrix);
+                         drect->x = x1;    drect->y = y1;
+                         drect->w = x2-x1; drect->h = y2-y1;
+                    }
+
+                    if (!dfb_clip_blit_precheck( &state->clip,
+                                                 drect->w, drect->h, drect->x, drect->y ))
+                         continue;
+
+                    gStretchBlit( state, srect, drect );
+               }
+
                gRelease( state );
           }
      }
 
      dfb_state_unlock( state );
+}
+
+void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
+                              CardState *state )
+{
+     D_ONCE ("dfb_gfxcard_batchstretchblit() should be used!");
+
+     dfb_gfxcard_batchstretchblit( srect, drect, 1, state);
 }
 
 void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,

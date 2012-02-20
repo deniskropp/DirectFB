@@ -1057,6 +1057,31 @@ IDirectFBSurface_Requestor_StretchBlit( IDirectFBSurface   *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Requestor_BatchStretchBlit( IDirectFBSurface   *thiz,
+                                             IDirectFBSurface   *source,
+                                             const DFBRectangle *source_rects,
+                                             const DFBRectangle *dest_rects,
+                                             int                 num )
+{
+     IDirectFBSurface_Requestor_data *source_data;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     if (!source || !source_rects || !dest_rects || num < 1)
+          return DFB_INVARG;
+
+     DIRECT_INTERFACE_GET_DATA_FROM( source, source_data, IDirectFBSurface_Requestor );
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_BatchStretchBlit, VREQ_QUEUE, NULL,
+                                    VMBT_ID, source_data->instance,
+                                    VMBT_UINT, num,
+                                    VMBT_DATA, num * sizeof(DFBRectangle), source_rects,
+                                    VMBT_DATA, num * sizeof(DFBRectangle), dest_rects,
+                                    VMBT_NONE );
+}
+
+static DFBResult
 IDirectFBSurface_Requestor_TextureTriangles( IDirectFBSurface     *thiz,
                                              IDirectFBSurface     *source,
                                              const DFBVertex      *vertices,
@@ -1884,6 +1909,7 @@ Construct( IDirectFBSurface *thiz,
      thiz->TileBlit = IDirectFBSurface_Requestor_TileBlit;
      thiz->BatchBlit = IDirectFBSurface_Requestor_BatchBlit;
      thiz->StretchBlit = IDirectFBSurface_Requestor_StretchBlit;
+     thiz->BatchStretchBlit = IDirectFBSurface_Requestor_BatchStretchBlit;
      thiz->TextureTriangles = IDirectFBSurface_Requestor_TextureTriangles;
 
      thiz->SetDrawingFlags = IDirectFBSurface_Requestor_SetDrawingFlags;

@@ -4755,6 +4755,23 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface             *thiz,
           IDirectFBEventBuffer         *buffer
      );
+
+
+   /** Blitting functions **/
+     /*
+      * Blit a bunch of areas scaled from the source to the destination
+      * rectangles.
+      *
+      * <b>source_rects</b> and <b>dest_rects</b> will be modified!
+      */
+     DFBResult (*BatchStretchBlit) (
+          IDirectFBSurface         *thiz,
+          IDirectFBSurface         *source,
+          const DFBRectangle       *source_rects,
+          const DFBRectangle       *dest_rects,
+          int                       num
+     );
+
 )
 
 

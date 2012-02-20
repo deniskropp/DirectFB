@@ -2138,17 +2138,19 @@ IDirectFBSurface_BatchBlit2( IDirectFBSurface   *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
-                              IDirectFBSurface   *source,
-                              const DFBRectangle *source_rect,
-                              const DFBRectangle *destination_rect )
+IDirectFBSurface_BatchStretchBlit( IDirectFBSurface   *thiz,
+                                   IDirectFBSurface   *source,
+                                   const DFBRectangle *source_rects,
+                                   const DFBRectangle *dest_rects,
+                                   int                 num )
 {
-     DFBRectangle srect, drect;
+     int i, dx, dy, sx, sy;
+     DFBRectangle *srects, *drects;
      IDirectFBSurface_data *src_data;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, %d )\n", __FUNCTION__, thiz, num );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -2160,7 +2162,7 @@ IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     if (!source)
+     if (!source || !source_rects || !dest_rects || num < 1)
           return DFB_INVARG;
 
 
@@ -2169,53 +2171,59 @@ IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
      if (!src_data->area.current.w || !src_data->area.current.h)
           return DFB_INVAREA;
 
+     dx = data->area.wanted.x;
+     dy = data->area.wanted.y;
 
-     /* do destination rectangle */
-     if (destination_rect) {
-          if (destination_rect->w < 1  ||  destination_rect->h < 1)
+     sx = src_data->area.wanted.x;
+     sy = src_data->area.wanted.y;
+
+     srects = alloca( sizeof(DFBRectangle) * num );
+     drects = alloca( sizeof(DFBRectangle) * num );
+
+     direct_memcpy( srects, source_rects, sizeof(DFBRectangle) * num );
+     direct_memcpy( drects, dest_rects, sizeof(DFBRectangle) * num );
+
+     for (i=0; i<num; ++i) {
+          DFBRectangle orig_src;
+
+          if (drects[i].w < 1 || drects[i].h < 1) {
+               drects[i].w = 0;
+               drects[i].h = 0;
+               continue;
+          }
+          drects[i].x += dx;
+          drects[i].y += dy;
+
+          if (srects[i].w < 1 || srects[i].h < 1)
                return DFB_INVARG;
+          srects[i].x += sx;
+          srects[i].y += sy;
 
-          drect = *destination_rect;
+          /* clipping of the source rectangle must be applied to the destination */
+          orig_src = srects[i];
 
-          drect.x += data->area.wanted.x;
-          drect.y += data->area.wanted.y;
-     }
-     else
-          drect = data->area.wanted;
+          if (!dfb_rectangle_intersect( &srects[i], &src_data->area.current )) {
+               srects[i].w = srects[i].h = 0;
+               drects[i].w = drects[i].h = 0;
+               continue;
+          }
 
-     /* do source rectangle */
-     if (source_rect) {
-          if (source_rect->w < 1  ||  source_rect->h < 1)
-               return DFB_INVARG;
+          if (srects[i].x != orig_src.x)
+               drects[i].x += (int)( (srects[i].x - orig_src.x) *
+                                     (drects[i].w / (float)orig_src.w) + 0.5f);
 
-          srect = *source_rect;
+          if (srects[i].y != orig_src.y)
+               drects[i].y += (int)( (srects[i].y - orig_src.y) *
+                                     (drects[i].h / (float)orig_src.h) + 0.5f);
 
-          srect.x += src_data->area.wanted.x;
-          srect.y += src_data->area.wanted.y;
-     }
-     else
-          srect = src_data->area.wanted;
+          if (srects[i].w != orig_src.w)
+               drects[i].w = D_ICEIL(drects[i].w * (srects[i].w / (float)orig_src.w));
+          if (srects[i].h != orig_src.h)
+               drects[i].h = D_ICEIL(drects[i].h * (srects[i].h / (float)orig_src.h));
 
-
-     /* clipping of the source rectangle must be applied to the destination */
-     {
-          DFBRectangle orig_src = srect;
-
-          if (!dfb_rectangle_intersect( &srect, &src_data->area.current ))
-               return DFB_INVAREA;
-
-          if (srect.x != orig_src.x)
-               drect.x += (int)( (srect.x - orig_src.x) *
-                                 (drect.w / (float)orig_src.w) + 0.5f);
-
-          if (srect.y != orig_src.y)
-               drect.y += (int)( (srect.y - orig_src.y) *
-                                 (drect.h / (float)orig_src.h) + 0.5f);
-
-          if (srect.w != orig_src.w)
-               drect.w = D_ICEIL(drect.w * (srect.w / (float)orig_src.w));
-          if (srect.h != orig_src.h)
-               drect.h = D_ICEIL(drect.h * (srect.h / (float)orig_src.h));
+          D_DEBUG_AT( Surface, "  -> [%2d] %4d,%4d-%4dx%4d <- %4d,%4d-%4dx%4d\n",
+                      i, drects[i].x, drects[i].y, drects[i].w, drects[i].h,
+                      srects[i].x, srects[i].y, srects[i].w, srects[i].h );
      }
 
      dfb_state_set_source( &data->state, src_data->surface );
@@ -2224,9 +2232,39 @@ IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
-     CoreGraphicsStateClient_StretchBlit( &data->state_client, &srect, &drect, 1 );
+     CoreGraphicsStateClient_StretchBlit( &data->state_client, srects, drects, num );
 
      return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
+                              IDirectFBSurface   *source,
+                              const DFBRectangle *source_rect,
+                              const DFBRectangle *destination_rect )
+{
+     DFBRectangle srect, drect;
+
+     if (!source)
+          return DFB_INVARG;
+
+     if (destination_rect)
+          drect = *destination_rect;
+     else {
+          DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+          drect = (DFBRectangle) { 0, 0, data->area.wanted.w, data->area.wanted.h };
+     }
+
+     if (source_rect)
+          srect = *source_rect;
+     else {
+          IDirectFBSurface_data *sd = (IDirectFBSurface_data*)source->priv;
+
+          srect = (DFBRectangle) { 0, 0, sd->area.wanted.w, sd->area.wanted.h };
+     }
+
+     return IDirectFBSurface_BatchStretchBlit( thiz, source, &srect, &drect, 1 );
 }
 
 #define SET_VERTEX(v,X,Y,Z,W,S,T)  \
@@ -3367,6 +3405,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->BatchBlit = IDirectFBSurface_BatchBlit;
      thiz->BatchBlit2 = IDirectFBSurface_BatchBlit2;
      thiz->StretchBlit = IDirectFBSurface_StretchBlit;
+     thiz->BatchStretchBlit = IDirectFBSurface_BatchStretchBlit;
      thiz->TextureTriangles = IDirectFBSurface_TextureTriangles;
 
      thiz->SetDrawingFlags = IDirectFBSurface_SetDrawingFlags;
