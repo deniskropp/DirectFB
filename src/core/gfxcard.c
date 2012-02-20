@@ -2162,19 +2162,13 @@ GenefxVertexAffine_Transform( GenefxVertexAffine *v,
 }
 
 
-void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
+static void dfb_gfxcard_blit_locked( DFBRectangle *rect,
+                                     int dx, int dy, CardState *state )
 {
      bool         hw    = false;
      DFBRectangle drect = { dx, dy, rect->w, rect->h };
 
-     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
-     dfb_simplify_blittingflags( &blittingflags );
-
-     if (blittingflags & DSBLIT_ROTATE90)
-          D_UTIL_SWAP( drect.w, drect.h );
-
-     D_DEBUG_AT( Core_GraphicsOps, "%s( %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d, %p )\n",
-                 __FUNCTION__, DFB_RECTANGLE_VALS(rect), DFB_RECTANGLE_VALS(&drect), state );
+     DFBSurfaceBlittingFlags blittingflags;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -2188,8 +2182,14 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      D_ASSERT( rect->x + rect->w - 1 < state->source->config.size.w );
      D_ASSERT( rect->y + rect->h - 1 < state->source->config.size.h );
 
-     /* The state is locked during graphics operations. */
-     dfb_state_lock( state );
+     blittingflags = state->blittingflags;
+     dfb_simplify_blittingflags( &blittingflags );
+
+     if (blittingflags & DSBLIT_ROTATE90)
+          D_UTIL_SWAP( drect.w, drect.h );
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d, %p )\n",
+                 __FUNCTION__, DFB_RECTANGLE_VALS(rect), DFB_RECTANGLE_VALS(&drect), state );
 
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
@@ -2198,7 +2198,6 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
          !dfb_clip_blit_precheck( &state->clip, drect.w, drect.h, drect.x, drect.y ))
      {
           /* no work at all */
-          dfb_state_unlock( state );
           return;
      }
 
@@ -2291,7 +2290,13 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
                }
           }
      }
+}
 
+void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
+{
+     /* The state is locked during graphics operations. */
+     dfb_state_lock( state );
+     dfb_gfxcard_blit_locked( rect, dx, dy, state );
      dfb_state_unlock( state );
 }
 
