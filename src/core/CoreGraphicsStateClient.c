@@ -516,12 +516,9 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
      if (num == 0)
           return DFB_OK;
 
-     if (num != 1)
-          D_UNIMPLEMENTED();
-
      if (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion) {
           // FIXME: will overwrite rects
-          dfb_gfxcard_stretchblit( (DFBRectangle*) srects, (DFBRectangle*) drects, client->state );
+          dfb_gfxcard_batchstretchblit( (DFBRectangle*) srects, (DFBRectangle*) drects, num, client->state );
      }
      else {
           DFBResult ret;

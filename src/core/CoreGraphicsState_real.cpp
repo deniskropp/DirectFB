@@ -967,8 +967,7 @@ IGraphicsState_Real::StretchBlit(
          }
     }
     else {
-         for (u32 i=0; i<num; i++)
-              dfb_gfxcard_stretchblit( (DFBRectangle*) &srects[i], (DFBRectangle*) &drects[i], &obj->state );
+         dfb_gfxcard_batchstretchblit( (DFBRectangle*) srects, (DFBRectangle*) drects, num, &obj->state );
     }
 
     return DFB_OK;
