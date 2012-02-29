@@ -732,7 +732,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
-     ret = IDirectFBWindow_Construct( *window, w, data->layer, data->core, data->idirectfb );
+     ret = IDirectFBWindow_Construct( *window, w, data->layer, data->core, data->idirectfb, true );
 
 out:
      if (toplevel)
@@ -764,7 +764,7 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
-     return IDirectFBWindow_Construct( *window, w, data->layer, data->core, data->idirectfb );
+     return IDirectFBWindow_Construct( *window, w, data->layer, data->core, data->idirectfb, false );
 }
 
 static DFBResult
@@ -1058,7 +1058,7 @@ IDirectFBDisplayLayer_GetWindowByResourceID( IDirectFBDisplayLayer  *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *ret_window, IDirectFBWindow );
 
-     return IDirectFBWindow_Construct( *ret_window, w, data->layer, data->core, data->idirectfb );
+     return IDirectFBWindow_Construct( *ret_window, w, data->layer, data->core, data->idirectfb, false );
 }
 
 DFBResult

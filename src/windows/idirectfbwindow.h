@@ -40,6 +40,7 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                                      CoreWindow      *window,
                                      CoreLayer       *layer,
                                      CoreDFB         *core,
-                                     IDirectFB       *idirectfb );
+                                     IDirectFB       *idirectfb,
+                                     bool             created );
 
 #endif
