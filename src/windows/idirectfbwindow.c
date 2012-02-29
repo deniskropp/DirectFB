@@ -99,6 +99,8 @@ typedef struct {
      bool               destroyed;
 
      CoreDFB           *core;
+
+     bool               created;
 } IDirectFBWindow_data;
 
 
@@ -113,6 +115,12 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           D_DEBUG_AT( IDirectFB_Window, "  -> detaching...\n" );
 
           dfb_window_detach( data->window, &data->reaction );
+     }
+
+     if (data->created) {
+          D_DEBUG_AT( IDirectFB_Window, "  -> destroying...\n" );
+
+          CoreWindow_Destroy( data->window );
      }
 
      /* this will destroy the fusion object and (eventually) the window */
@@ -1369,17 +1377,19 @@ DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
                            CoreLayer       *layer,
-                           CoreDFB         *core )
+                           CoreDFB         *core,
+                           bool             created )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_Construct() <- %d, %d - %dx%d\n",
                  DFB_RECTANGLE_VALS( &window->config.bounds ) );
 
-     data->ref    = 1;
-     data->window = window;
-     data->layer  = layer;
-     data->core   = core;
+     data->ref       = 1;
+     data->window    = window;
+     data->layer     = layer;
+     data->core      = core;
+     data->created   = created;
 
      dfb_window_attach( window, IDirectFBWindow_React, data, &data->reaction );
 
