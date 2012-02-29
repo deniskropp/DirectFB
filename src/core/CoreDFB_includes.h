@@ -490,7 +490,7 @@ CoreSurface_Throw( CoreSurface *surface,
                                  (FusionRefPermissions)(FUSION_REF_PERMIT_REF_UNREF_LOCAL | FUSION_REF_PERMIT_CATCH) );
      fusion_call_add_permissions( &surface->call, catcher, FUSION_CALL_PERMIT_EXECUTE );
 
-     if (!surface->object.owner)
+     if (!surface->object.owner && !(surface->type & CSTF_LAYER))
           surface->object.owner = catcher;
 
      return fusion_ref_throw( &surface->object.ref, catcher );
