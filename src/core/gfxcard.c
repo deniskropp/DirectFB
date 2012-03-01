@@ -32,6 +32,7 @@
 #include <string.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <direct/debug.h>
 #include <direct/memcpy.h>
@@ -1883,81 +1884,6 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
 
 }
 
-static void
-clip_blit_rotated( DFBRectangle *srect, DFBRectangle *drect, const DFBRegion *clip, DFBSurfaceBlittingFlags flags )
-{
-     DFBRegion dest    = DFB_REGION_INIT_FROM_RECTANGLE( drect );
-     DFBRegion clipped = dest;
-
-     if (flags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) {
-          D_ASSERT( srect->w == drect->h );
-          D_ASSERT( srect->h == drect->w );
-     }
-     else {
-          D_ASSERT( srect->w == drect->w );
-          D_ASSERT( srect->h == drect->h );
-     }
-
-     dfb_region_region_intersect( &clipped, clip );
-     dfb_rectangle_from_region( drect, &clipped );
-
-     if (flags & DSBLIT_ROTATE90) {
-          srect->x += dest.y2 - clipped.y2;
-          srect->y += clipped.x1 - dest.x1;
-          srect->w  = drect->h;
-          srect->h  = drect->w;
-
-          D_DEBUG_AT( Core_GraphicsOps, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (90°)\n",
-                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
-     }
-     else if (flags & DSBLIT_ROTATE180) {
-          srect->x += dest.x2 - clipped.x2;
-          srect->y += dest.y2 - clipped.y2;
-          srect->w  = drect->w;
-          srect->h  = drect->h;
-
-          D_DEBUG_AT( Core_GraphicsOps, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (180°)\n",
-                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
-     }
-     else if (flags & DSBLIT_ROTATE270) {
-          srect->x += clipped.y1 - dest.y1;
-          srect->y += dest.x2 - clipped.x2;
-          srect->w  = drect->h;
-          srect->h  = drect->w;
-
-          D_DEBUG_AT( Core_GraphicsOps, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d (270°)\n",
-                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
-     }
-     else if (flags & (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL)) {
-          // FIXME: rotation and FLIP_ should be supported together, it is not the case in the software driver,
-          // so dont support it here either for now
-          int xfixup, yfixup;
-
-          if (flags & DSBLIT_FLIP_HORIZONTAL)
-              xfixup = dest.x2 - clipped.x2;
-          else
-              xfixup = clipped.x1 - dest.x1;
-
-          if (flags & DSBLIT_FLIP_VERTICAL)
-              yfixup = dest.y2 - clipped.y2;
-          else
-              yfixup = clipped.y1 - dest.y1;
-
-          srect->x += xfixup;
-          srect->y += yfixup;
-          srect->w = drect->w;
-          srect->h = drect->h;
-
-     } else {
-          srect->x += clipped.x1 - dest.x1;
-          srect->y += clipped.y1 - dest.y1;
-          srect->w  = drect->w;
-          srect->h  = drect->h;
-
-          D_DEBUG_AT( Core_GraphicsOps, "  => %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d\n",
-                      DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect) );
-     }
-}
 
 D_UNUSED
 static void
@@ -2048,7 +1974,10 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      bool         hw    = false;
      DFBRectangle drect = { dx, dy, rect->w, rect->h };
 
-     if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
+     dfb_simplify_blittingflags( &blittingflags );
+
+     if (blittingflags & DSBLIT_ROTATE90)
           D_UTIL_SWAP( drect.w, drect.h );
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d, %p )\n",
@@ -2085,7 +2014,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
               !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
-               clip_blit_rotated( rect, &drect, &state->clip, state->blittingflags );
+               dfb_clip_blit_flipped_rotated( &state->clip, rect, &drect, blittingflags );
 
           hw = card->funcs.Blit( card->driver_data, card->device_data, rect, drect.x, drect.y );
 
@@ -2096,7 +2025,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
           /* Use software fallback. */
           if (!(state->render_options & DSRO_MATRIX)) {
                if (gAcquire( state, DFXL_BLIT )) {
-                    clip_blit_rotated( rect, &drect, &state->clip, state->blittingflags );
+                    dfb_clip_blit_flipped_rotated( &state->clip, rect, &drect, blittingflags );
 
                     gBlit( state, rect, drect.x, drect.y );
 
@@ -2176,7 +2105,10 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                             int num, CardState *state )
 {
-     int i = 0;
+     unsigned int i = 0;
+
+     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
+     dfb_simplify_blittingflags( &blittingflags );
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %p, %p [%d], %p )\n", __FUNCTION__, rects, points, num, state );
 
@@ -2199,7 +2131,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
           for (; i<num; i++) {
                DFBRectangle drect = { points[i].x, points[i].y, rects[i].w, rects[i].h };
 
-               if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+               if (blittingflags & DSBLIT_ROTATE90)
                     D_UTIL_SWAP( drect.w, drect.h );
 
                if ((state->render_options & DSRO_MATRIX) ||
@@ -2211,7 +2143,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
 
                     if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
                         !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
-                         clip_blit_rotated( &srect, &drect, &state->clip, state->blittingflags );
+                         dfb_clip_blit_flipped_rotated( &state->clip, &srect, &drect, blittingflags );
 
                     if (!card->funcs.Blit( card->driver_data, card->device_data,
                                            &srect, drect.x, drect.y ))
@@ -2284,7 +2216,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                     for (; i<num; i++) {
                          DFBRectangle drect = { points[i].x, points[i].y, rects[i].w, rects[i].h };
 
-                         if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270))
+                         if (blittingflags & DSBLIT_ROTATE90)
                               D_UTIL_SWAP( drect.w, drect.h );
 
                          if (dfb_clip_blit_precheck( &state->clip,
@@ -2293,7 +2225,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                          {
                               DFBRectangle srect = rects[i];
 
-                              clip_blit_rotated( &srect, &drect, &state->clip, state->blittingflags );
+                              dfb_clip_blit_flipped_rotated( &state->clip, &srect, &drect, blittingflags );
                               gBlit( state, &srect, drect.x, drect.y );
                          }
                     }
@@ -2578,6 +2510,9 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 {
      bool hw = false;
 
+     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
+     dfb_simplify_blittingflags( &blittingflags );
+
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
@@ -2587,7 +2522,7 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %dx%d -> %d,%d - %dx%d, %p )\n",
                  __FUNCTION__, DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect), state );
 
-     if (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) {
+     if (state->blittingflags & DSBLIT_ROTATE90) {
           if (srect->w == drect->h && srect->h == drect->w) {
                dfb_gfxcard_blit( srect, drect->x, drect->y, state );
                return;

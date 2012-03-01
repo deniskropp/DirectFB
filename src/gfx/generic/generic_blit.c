@@ -75,6 +75,11 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      int             Bop_X;
      int             Bop_Y;
 
+     DFBSurfaceBlittingFlags rotflip_blittingflags = state->blittingflags;
+
+     dfb_simplify_blittingflags( &rotflip_blittingflags );
+     rotflip_blittingflags &= (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL | DSBLIT_ROTATE90 );
+
      D_ASSERT( gfxs != NULL );
 
      if (dfb_config->software_warn) {
@@ -87,10 +92,10 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
      D_ASSERT( state->clip.x1 <= dx );
      D_ASSERT( state->clip.y1 <= dy );
-     D_ASSERT( (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) || state->clip.x2 >= (dx + rect->w - 1) );
-     D_ASSERT( (state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) || state->clip.y2 >= (dy + rect->h - 1) );
-     D_ASSERT( !(state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) || state->clip.x2 >= (dx + rect->h - 1) );
-     D_ASSERT( !(state->blittingflags & (DSBLIT_ROTATE90 | DSBLIT_ROTATE270)) || state->clip.y2 >= (dy + rect->w - 1) );
+     D_ASSERT( (rotflip_blittingflags & DSBLIT_ROTATE90) || state->clip.x2 >= (dx + rect->w - 1) );
+     D_ASSERT( (rotflip_blittingflags & DSBLIT_ROTATE90) || state->clip.y2 >= (dy + rect->h - 1) );
+     D_ASSERT( !(rotflip_blittingflags & DSBLIT_ROTATE90) || state->clip.x2 >= (dx + rect->h - 1) );
+     D_ASSERT( !(rotflip_blittingflags & DSBLIT_ROTATE90) || state->clip.y2 >= (dy + rect->w - 1) );
 
      CHECK_PIPELINE();
 
@@ -129,10 +134,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           gfxs->Astep = gfxs->Bstep = 1;
 
 
-
-     if ((state->blittingflags & DSBLIT_ROTATE180)
-         || D_FLAGS_ARE_SET (state->blittingflags, (DSBLIT_FLIP_HORIZONTAL
-                                                    | DSBLIT_FLIP_VERTICAL))) {
+     if (rotflip_blittingflags == (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL)) { // 180 deg
           gfxs->Astep *= -1;
 
           Aop_X = dx + rect->w - 1;
@@ -144,7 +146,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           Aop_advance = Genefx_Aop_next;
           Bop_advance = Genefx_Bop_prev;
      }
-     else if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
+     else if (rotflip_blittingflags == DSBLIT_FLIP_HORIZONTAL) {
           gfxs->Astep *= -1;
 
           Aop_X = dx + rect->w - 1;
@@ -156,7 +158,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           Aop_advance = Genefx_Aop_next;
           Bop_advance = Genefx_Bop_next;
      }
-     else if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
+     else if (rotflip_blittingflags == DSBLIT_FLIP_VERTICAL) {
           Aop_X = dx;
           Aop_Y = dy + rect->h - 1;
 
@@ -166,7 +168,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           Aop_advance = Genefx_Aop_prev;
           Bop_advance = Genefx_Bop_next;
      }
-     else if (state->blittingflags & DSBLIT_ROTATE270) {
+     else if (rotflip_blittingflags == (DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL)) { // 270 deg ccw
           gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
 
           Aop_X = dx;
@@ -178,11 +180,35 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           Aop_advance = Genefx_Aop_crab;
           Bop_advance = Genefx_Bop_prev;
      }
-     else if (state->blittingflags & DSBLIT_ROTATE90) {
+     else if (rotflip_blittingflags == DSBLIT_ROTATE90) { // 90 deg ccw
           gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
 
           Aop_X = dx;
           Aop_Y = dy + rect->w - 1;
+
+          Bop_X = rect->x;
+          Bop_Y = rect->y;
+
+          Aop_advance = Genefx_Aop_crab;
+          Bop_advance = Genefx_Bop_next;
+     }
+     else if (rotflip_blittingflags == (DSBLIT_ROTATE90 | DSBLIT_FLIP_VERTICAL)) {
+          gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
+
+          Aop_X = dx + rect->h - 1;
+          Aop_Y = dy + rect->w - 1;
+
+          Bop_X = rect->x;
+          Bop_Y = rect->y;
+
+          Aop_advance = Genefx_Aop_prev_crab;
+          Bop_advance = Genefx_Bop_next;
+     }
+     else if (rotflip_blittingflags == (DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL)) {
+          gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
+
+          Aop_X = dx;
+          Aop_Y = dy;
 
           Bop_X = rect->x;
           Bop_Y = rect->y;

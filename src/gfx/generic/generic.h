@@ -253,6 +253,8 @@ void Genefx_Aop_xy( GenefxState *gfxs, int x, int y );
 
 void Genefx_Aop_crab( GenefxState *gfxs );
 
+void Genefx_Aop_prev_crab( GenefxState *gfxs );
+
 void Genefx_Aop_next( GenefxState *gfxs );
 
 void Genefx_Aop_prev( GenefxState *gfxs );

@@ -294,6 +294,68 @@ static void Sacc_OP_Aop_PFI(StoK)( GenefxState *gfxs )
      }
 }
 
+/********************************* Sop_PFI_TEX_to_Dacc ***************************/
+
+static void Sop_PFI_OP_Dacc(TEX_to)( GenefxState *gfxs )
+{
+     int                w     = gfxs->length + 1;
+     int                s     = gfxs->s;
+     int                t     = gfxs->t;
+     int                SperD = gfxs->SperD;
+     int                TperD = gfxs->TperD;
+     u8                *S     = gfxs->Sop[0];
+     int                Ostep = gfxs->Ostep * 3;
+     GenefxAccumulator *D     = gfxs->Dacc;
+     int                sp3   = gfxs->src_pitch / 3;
+
+     if (Ostep != 1)
+          D_UNIMPLEMENTED();
+
+     while (--w) {
+          int pixelstart = ((s>>16) + (t>>16) * sp3) * 3;
+          u32 p = READ_PIXEL( &S[pixelstart] );
+
+          EXPAND( *D, p );
+
+          D++;
+          s += SperD;
+          t += TperD;
+     }
+}
+
+/********************************* Sop_PFI_TEX_Kto_Dacc ***************************/
+
+static void Sop_PFI_OP_Dacc(TEX_Kto)( GenefxState *gfxs )
+{
+     int                w     = gfxs->length + 1;
+     int                s     = gfxs->s;
+     int                t     = gfxs->t;
+     int                SperD = gfxs->SperD;
+     int                TperD = gfxs->TperD;
+     const u8          *S     = gfxs->Sop[0];
+     u32                Skey  = gfxs->Skey;
+     int                Ostep = gfxs->Ostep * 3;
+     GenefxAccumulator *D     = gfxs->Dacc;
+     int                sp3   = gfxs->src_pitch / 3;
+
+     if (Ostep != 1)
+          D_UNIMPLEMENTED();
+
+     while (--w) {
+          int pixelstart = ((s>>16) + (t>>16) * sp3) * 3;
+          u32 p = READ_PIXEL( &S[pixelstart] );
+
+          if (MASK_RGB( p ) != Skey)
+               EXPAND( *D, p );
+          else
+               D->RGB.a = 0xF000;
+
+          D++;
+          s += SperD;
+          t += TperD;
+     }
+}
+
 /******************************************************************************/
 
 #undef RGB_MASK
