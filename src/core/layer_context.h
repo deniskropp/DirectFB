@@ -56,7 +56,8 @@ FUSION_OBJECT_METHODS( CoreLayerContext, dfb_layer_context )
 
 
 DFBResult dfb_layer_context_init( CoreLayerContext *context,
-                                  CoreLayer        *layer );
+                                  CoreLayer        *layer,
+                                  bool              stack );
 
 /*
  * Locking

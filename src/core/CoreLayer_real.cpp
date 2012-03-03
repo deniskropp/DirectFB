@@ -58,7 +58,7 @@ ILayer_Real::CreateContext(
 
     D_ASSERT( ret_context != NULL );
 
-    return dfb_layer_create_context( obj, ret_context );
+    return dfb_layer_create_context( obj, false, ret_context );
 }
 
 DFBResult

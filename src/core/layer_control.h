@@ -35,6 +35,7 @@
 
 
 DFBResult dfb_layer_create_context          ( CoreLayer          *layer,
+                                              bool                stack,
                                               CoreLayerContext  **ret_context );
 
 DFBResult dfb_layer_get_active_context      ( CoreLayer          *layer,
