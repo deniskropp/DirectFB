@@ -220,6 +220,11 @@ fusion_ref_catch (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
+     if (ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x catch\n", ref->multi.id );
+          direct_trace_print_stack( NULL );
+     }
+
      while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_CATCH, &ref->multi.id)) {
           switch (errno) {
                case EINTR:
@@ -245,6 +250,11 @@ fusion_ref_throw (FusionRef *ref, FusionID catcher)
      FusionRefThrow throw_;
 
      D_ASSERT( ref != NULL );
+
+     if (ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x throw\n", ref->multi.id );
+          direct_trace_print_stack( NULL );
+     }
 
      throw_.id      = ref->multi.id;
      throw_.catcher = catcher;
