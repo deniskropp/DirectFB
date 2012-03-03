@@ -166,6 +166,7 @@ dfb_layer_resume( CoreLayer *layer )
 
 DFBResult
 dfb_layer_create_context( CoreLayer         *layer,
+                          bool               stack,
                           CoreLayerContext **ret_context )
 {
      DFBResult          ret;
@@ -194,7 +195,7 @@ dfb_layer_create_context( CoreLayer         *layer,
      }
 
      /* Initialize the new context. */
-     ret = dfb_layer_context_init( context, layer );
+     ret = dfb_layer_context_init( context, layer, stack );
      if (ret) {
           fusion_skirmish_dismiss( &shared->lock );
           return ret;
@@ -304,7 +305,7 @@ dfb_layer_get_primary_context( CoreLayer         *layer,
           fusion_skirmish_dismiss( &shared->lock );
 
           /* Create the primary (shared) context. */
-          ret = dfb_layer_create_context( layer, &primary );
+          ret = dfb_layer_create_context( layer, true, &primary );
           if (ret)
                return ret;
 

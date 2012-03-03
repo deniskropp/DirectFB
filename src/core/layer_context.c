@@ -192,7 +192,8 @@ update_stack_geometry( CoreLayerContext *context )
 
 DFBResult
 dfb_layer_context_init( CoreLayerContext *context,
-                        CoreLayer        *layer )
+                        CoreLayer        *layer,
+                        bool              stack )
 {
      CoreLayerShared *shared;
 
@@ -247,7 +248,7 @@ dfb_layer_context_init( CoreLayerContext *context,
      dfb_layer_context_lock( context );
 
      /* Create the window stack. */
-     if (layer->shared->description.caps & DLCAPS_SURFACE) {
+     if (stack && layer->shared->description.caps & DLCAPS_SURFACE) {
           context->stack = dfb_windowstack_create( context );
           if (!context->stack) {
                dfb_layer_context_unlock( context );
@@ -1425,7 +1426,8 @@ dfb_layer_context_create_window( CoreDFB                     *core,
      if ((layer->shared->description.caps & DLCAPS_SURFACE) == 0)
           return DFB_UNSUPPORTED;
 
-     D_ASSERT( context->stack != NULL );
+     if (!context->stack)
+          return DFB_UNSUPPORTED;
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
