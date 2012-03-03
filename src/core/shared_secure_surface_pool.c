@@ -39,6 +39,8 @@
 
 #include <misc/conf.h>
 
+D_DEBUG_DOMAIN( Core_SharedSecure, "Core/SharedSecure", "Core Shared Secure Surface Pool" );
+
 /**********************************************************************************************************************/
 
 typedef struct {
@@ -90,6 +92,8 @@ sharedSecureInitPool( CoreDFB                    *core,
      SharedPoolData      *data  = pool_data;
      SharedPoolLocalData *local = pool_local;
 
+     D_DEBUG_AT( Core_SharedSecure, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
 
@@ -98,7 +102,7 @@ sharedSecureInitPool( CoreDFB                    *core,
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_INTERNAL;
      ret_desc->priority          = CSPP_DEFAULT;
 
-     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Shared Memory" );
+     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Shared Secure Memory" );
 
      local->core  = core;
      local->world = dfb_core_world( core );
@@ -153,6 +157,8 @@ sharedSecureDestroyPool( CoreSurfacePool *pool,
 {
      SharedPoolData *data = pool_data;
 
+     D_DEBUG_AT( Core_SharedSecure, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
      if (rmdir( data->tmpfs_dir ) < 0)
@@ -174,6 +180,8 @@ sharedSecureAllocateBuffer( CoreSurfacePool       *pool,
      SharedAllocationData *alloc = alloc_data;
      char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
      int                   fd;
+
+     D_DEBUG_AT( Core_SharedSecure, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -232,6 +240,8 @@ sharedSecureDeallocateBuffer( CoreSurfacePool       *pool,
      SharedAllocationData *alloc = alloc_data;
      char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
 
+     D_DEBUG_AT( Core_SharedSecure, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 //     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
@@ -260,6 +270,8 @@ sharedSecureLock( CoreSurfacePool       *pool,
      char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
      int                   fd;
 
+     D_DEBUG_AT( Core_SharedSecure, "%s() <- size %d\n", __FUNCTION__, alloc->size );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
@@ -277,7 +289,9 @@ sharedSecureLock( CoreSurfacePool       *pool,
           }
 
 
-          lock->addr = mmap( NULL, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+          lock->addr = lock->handle = mmap( NULL, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+
+          D_DEBUG_AT( Core_SharedSecure, "  -> mapped to %p\n", lock->addr );
 
           close( fd );
 
@@ -303,12 +317,14 @@ sharedSecureUnlock( CoreSurfacePool       *pool,
 {
      SharedAllocationData *alloc = alloc_data;
 
+     D_DEBUG_AT( Core_SharedSecure, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
      if (!dfb_core_is_master( core_dfb ))
-          munmap( lock->addr, alloc->size );
+          munmap( lock->handle, alloc->size );
 
      return DFB_OK;
 }
