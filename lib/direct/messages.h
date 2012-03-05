@@ -93,38 +93,39 @@ void direct_messages_warn         ( const char *func,
                                     const char *format, ... )  D_FORMAT_PRINTF(4);
 
 
-#define D_INFO(x...)     do {                                                                  \
+#define D_INFO(...)     do {                                                                   \
                               if (!(direct_config->quiet & DMT_INFO))                          \
-                                   direct_messages_info( x );                                  \
+                                   direct_messages_info( __VA_ARGS__ );                        \
                          } while (0)
 
-#define D_ERROR(x...)    do {                                                                  \
+#define D_ERROR(...)    do {                                                                   \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_error( x );                                 \
+                                   direct_messages_error( __VA_ARGS__ );                       \
                          } while (0)
 
-#define D_DERROR(r,x...) do {                                                                  \
+#define D_DERROR(r,...) do {                                                                   \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_derror( (DirectResult) r, x );              \
+                                  direct_messages_derror( (DirectResult)(r), __VA_ARGS__ ); \
                          } while (0)
 
-#define D_PERROR(x...)   do {                                                                  \
+#define D_PERROR(...)   do {                                                                   \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_perror( errno, x );                         \
+                                   direct_messages_perror( errno, __VA_ARGS__ );               \
                          } while (0)
 
-#define D_DLERROR(x...)  do {                                                                  \
+#define D_DLERROR(...)  do {                                                                   \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_dlerror( dlerror(), x );                    \
+                                   direct_messages_dlerror( dlerror(), __VA_ARGS__ );          \
                          } while (0)
 
 
-#define D_ONCE(x...)     do {                                                                  \
+#define D_ONCE(...)     do {                                                                   \
                               if (!(direct_config->quiet & DMT_ONCE)) {                        \
                                    static bool first = true;                                   \
                                    if (first) {                                                \
                                         direct_messages_once( __FUNCTION__,                    \
-                                                              __FILE__, __LINE__, x );         \
+                                                              __FILE__, __LINE__,              \
+                                                              __VA_ARGS__  );                  \
                                         first = false;                                         \
                                    }                                                           \
                               }                                                                \
@@ -141,14 +142,16 @@ void direct_messages_warn         ( const char *func,
                               }                                                                \
                          } while (0)
 
-#define D_BUG(x...)      do {                                                                  \
+#define D_BUG(...)      do {                                                                   \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_bug( __FUNCTION__, __FILE__, __LINE__, x ); \
+                                   direct_messages_bug( __FUNCTION__, __FILE__,                \
+                                                        __LINE__, __VA_ARGS__ );               \
                          } while (0)
 
-#define D_WARN(x...)     do {                                                                  \
+#define D_WARN(...)     do {                                                                   \
                               if (!(direct_config->quiet & DMT_WARNING))                       \
-                                   direct_messages_warn( __FUNCTION__, __FILE__, __LINE__, x );\
+                                   direct_messages_warn( __FUNCTION__, __FILE__,               \
+                                                         __LINE__, __VA_ARGS__ );              \
                          } while (0)
 
 #define D_OOM()          (direct_messages_warn( __FUNCTION__, __FILE__, __LINE__,              \
@@ -156,15 +159,15 @@ void direct_messages_warn         ( const char *func,
 
 
 #else
-     #define D_INFO(x...)          do { } while (0)
-     #define D_ERROR(x...)         do { } while (0)
-     #define D_DERROR(x...)        do { } while (0)
-     #define D_PERROR(x...)        do { } while (0)
-     #define D_DLERROR(x...)       do { } while (0)
-     #define D_ONCE(x...)          do { } while (0)
+     #define D_INFO(...)           do { } while (0)
+     #define D_ERROR(...)          do { } while (0)
+     #define D_DERROR(...)         do { } while (0)
+     #define D_PERROR(...)         do { } while (0)
+     #define D_DLERROR(...)        do { } while (0)
+     #define D_ONCE(...)           do { } while (0)
      #define D_UNIMPLEMENTED()     do { } while (0)
-     #define D_BUG(x...)           do { } while (0)
-     #define D_WARN(x...)          do { } while (0)
+     #define D_BUG(...)            do { } while (0)
+     #define D_WARN(...)           do { } while (0)
      #define D_OOM()               (printf("out of memory\n"), DR_NOLOCALMEMORY)
 #endif
 

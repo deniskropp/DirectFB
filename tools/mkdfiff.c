@@ -97,7 +97,7 @@ load_image (const char            *filename,
      if (!png_ptr)
           goto cleanup;
 
-     if (setjmp (png_ptr->jmpbuf)) {
+     if (setjmp (png_jmpbuf(png_ptr))) {
           if (desc->preallocated[0].data) {
                free (desc->preallocated[0].data);
                desc->preallocated[0].data = NULL;
@@ -182,7 +182,7 @@ load_image (const char            *filename,
 
      data  = malloc (height * pitch);
      if (!data) {
-          fprintf (stderr, "Failed to allocate %ld bytes.\n", height * pitch);
+          fprintf (stderr, "Failed to allocate %ud bytes.\n", height * pitch);
           goto cleanup;
      }
 
@@ -209,7 +209,7 @@ load_image (const char            *filename,
 
           dest = malloc (height * d_pitch);
           if (!dest) {
-               fprintf (stderr, "Failed to allocate %ld bytes.\n",
+               fprintf (stderr, "Failed to allocate %ud bytes.\n",
                         height * d_pitch);
                goto cleanup;
           }

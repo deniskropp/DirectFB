@@ -69,7 +69,7 @@ bool direct_debug_check_domain( DirectDebugDomain *domain );
 void direct_debug_at_always( DirectDebugDomain *domain,
                              const char        *format, ... )  D_FORMAT_PRINTF(2);
 
-#define d_debug_at( domain, x... )      direct_debug_at_always( &domain, x )
+#define d_debug_at( domain, ... )      direct_debug_at_always( &domain, __VA_ARGS__ )
 
 
 #if DIRECT_BUILD_DEBUGS
@@ -80,13 +80,13 @@ void direct_debug_at( DirectDebugDomain *domain,
                       const char        *format, ... )  D_FORMAT_PRINTF(2);
 
 void direct_debug_enter( DirectDebugDomain *domain,
-	      	         const char *func,
+                         const char *func,
                          const char *file,
                          int         line,
                          const char *format, ... )  D_FORMAT_PRINTF(5);
 
 void direct_debug_exit( DirectDebugDomain *domain,
-	      	        const char *func,
+                        const char *func,
                         const char *file,
                         int         line,
                         const char *format, ... )  D_FORMAT_PRINTF(5);
@@ -111,26 +111,26 @@ void direct_assumption( const char *exp,
 
 #define D_DEBUG_ENABLED  (1)
 
-#define D_DEBUG(x...)                                                                \
+#define D_DEBUG(...)                                                                \
      do {                                                                            \
           if (!direct_config || direct_config->debug)                                \
-               direct_debug( x );                                                    \
+               direct_debug( __VA_ARGS__ );                                          \
      } while (0)
 
 
-#define D_DEBUG_AT(d,x...)                                                           \
+#define D_DEBUG_AT(d,...)                                                            \
      do {                                                                            \
-          direct_debug_at( &d, x );                                                  \
+          direct_debug_at( &d, __VA_ARGS__ );                                        \
      } while (0)
 
-#define D_DEBUG_ENTER(d,x...)                                                        \
+#define D_DEBUG_ENTER(d,...)                                                         \
      do {                                                                            \
-          direct_debug_enter( &d, __FUNCTION__, __FILE__, __LINE__, x );             \
+          direct_debug_enter( &d, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ );   \
      } while (0)
 
-#define D_DEBUG_EXIT(d,x...)                                                         \
+#define D_DEBUG_EXIT(d,...)                                                          \
      do {                                                                            \
-          direct_debug_exit( &d, __FUNCTION__, __FILE__, __LINE__, x );              \
+          direct_debug_exit( &d, __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ );    \
      } while (0)
 
 #define D_ASSERT(exp)                                                                \
@@ -147,9 +147,9 @@ void direct_assumption( const char *exp,
      } while (0)
 
 
-#define D_BREAK(x...)                                                                \
+#define D_BREAK(...)                                                                 \
      do {                                                                            \
-          direct_break( __FUNCTION__, __FILE__, __LINE__, x );                       \
+          direct_break( __FUNCTION__, __FILE__, __LINE__, __VA_ARGS__ );             \
      } while (0)
 
 #define D_DEBUG_CHECK(d)                                                             \
@@ -163,9 +163,9 @@ void direct_assumption( const char *exp,
 
 #define D_DEBUG_ENABLED  (2)
 
-#define D_DEBUG_AT(d,x...)                                                           \
+#define D_DEBUG_AT(d,...)                                                            \
      do {                                                                            \
-          if (direct_config->debug) direct_debug_at_always( &d, x );                 \
+          if (direct_config->debug) direct_debug_at_always( &d, __VA_ARGS__ );       \
      } while (0)
 
 #define D_CHECK(exp, aa)                                                             \
@@ -203,19 +203,19 @@ void direct_assumption( const char *exp,
 #endif
 
 #ifndef D_DEBUG
-#define D_DEBUG(x...)              do {} while (0)
+#define D_DEBUG(...)               do {} while (0)
 #endif
 
 #ifndef D_DEBUG_AT
-#define D_DEBUG_AT(d,x...)         do {} while (0)
+#define D_DEBUG_AT(d,...)          do {} while (0)
 #endif
 
 #ifndef D_DEBUG_ENTER
-#define D_DEBUG_ENTER(d,x...)      do {} while (0)
+#define D_DEBUG_ENTER(d,...)       do {} while (0)
 #endif
 
 #ifndef D_DEBUG_EXIT
-#define D_DEBUG_EXIT(d,x...)       do {} while (0)
+#define D_DEBUG_EXIT(d,...)        do {} while (0)
 #endif
 
 #ifndef D_ASSERT
@@ -231,11 +231,11 @@ void direct_assumption( const char *exp,
 #endif
 
 #ifndef D_BREAK
-#define D_BREAK(x...)              do {} while (0)
+#define D_BREAK(...)               do {} while (0)
 #endif
 
 #ifndef d_debug_at
-#define d_debug_at( domain, x... ) do {} while (0)
+#define d_debug_at( domain, ... )  do {} while (0)
 #endif
 
 #ifndef D_DEBUG_DOMAIN

@@ -107,6 +107,16 @@ DEFINE_INTERFACE(   IDirectFBGL,
           const char               *name,
           void                    **ret_address
      );
+
+     /*
+      * Set a surface to be used by the current texture object.
+      */
+     DFBResult (*TextureSurface) (
+          IDirectFBGL              *thiz,
+          int                       target,
+          int                       level,
+          IDirectFBSurface         *surface
+     );
 )
 
 

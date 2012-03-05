@@ -45,7 +45,7 @@ direct_mutex_init( DirectMutex *mutex )
 DirectResult
 direct_recursive_mutex_init( DirectMutex *mutex )
 {
-     DirectResult        ret;
+     DirectResult        ret = DR_OK;
      int                 result;
      pthread_mutexattr_t attr;
 

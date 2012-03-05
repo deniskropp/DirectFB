@@ -41,7 +41,7 @@
 /*
  * Macro for an interface definition.
  */
-#define DEFINE_INTERFACE( IFACE, IDATA... )       \
+#define DEFINE_INTERFACE( IFACE, ... )            \
      struct _##IFACE {                            \
           void          *priv;                    \
           int            magic;                   \
@@ -49,7 +49,7 @@
           DirectResult (*AddRef)( IFACE *thiz );  \
           DirectResult (*Release)( IFACE *thiz ); \
                                                   \
-          IDATA                                   \
+          __VA_ARGS__                             \
      };
 
 /*

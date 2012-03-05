@@ -171,6 +171,8 @@ IGraphicsState_Real__SetDestination(
 
     dfb_state_set_destination( &obj->state, surface );
 
+    obj->state.modified    |= SMF_DESTINATION;
+
     return DFB_OK;
 }
 

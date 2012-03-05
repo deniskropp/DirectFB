@@ -662,7 +662,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                        const DFBRegion     *region,
                        DFBSurfaceFlipFlags  flags )
 {
-     DFBResult    ret;
+     DFBResult    ret = DFB_OK;
      DFBRegion    reg;
      CoreSurface *surface;
 
@@ -714,12 +714,12 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
          reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
      {
-          CoreSurface_Flip( data->surface, false );
+          ret = CoreSurface_Flip( data->surface, false );
      }
      else
           dfb_back_to_front_copy( data->surface, &reg );    // FIXME secure-fusion
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
