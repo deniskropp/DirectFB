@@ -206,8 +206,8 @@ DFBFontManager *dfb_core_font_manager( CoreDFB *core );
 
 
 
-D_DECLARE_INTERFACE( ICoreResourceManager );
-D_DECLARE_INTERFACE( ICoreResourceClient );
+D_DECLARE_INTERFACE( ICoreResourceManager )
+D_DECLARE_INTERFACE( ICoreResourceClient )
 
 
 

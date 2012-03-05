@@ -277,8 +277,19 @@ static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
      if (ctx->header[0] == 0xff && ctx->header[1] == 0xd8) {
+          /* Look for JFIF or Exif strings, also could look at header[3:2] for APP0(0xFFE0),
+           * APP1(0xFFE1) or even other APPx markers.
+           */
           if (strncmp ((char*) ctx->header + 6, "JFIF", 4) == 0 ||
-              strncmp ((char*) ctx->header + 6, "Exif", 4) == 0)
+              strncmp ((char*) ctx->header + 6, "Exif", 4) == 0 ||
+              strncmp ((char*) ctx->header + 6, "VVL", 3) == 0 ||
+              strncmp ((char*) ctx->header + 6, "WANG", 4) == 0)
+               return DFB_OK;
+
+          /* Else look for Quantization table marker or Define Huffman table marker,
+           * useful for EXIF thumbnails that have no APPx markers.
+           */
+          if (ctx->header[2] == 0xff && (ctx->header[3] == 0xdb || ctx->header[3] == 0xc4))
                return DFB_OK;
 
           if (ctx->filename && strchr (ctx->filename, '.' ) &&

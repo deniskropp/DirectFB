@@ -338,7 +338,7 @@ static DFBResult load_image (const char            *filename,
      if (!png_ptr)
           goto cleanup;
 
-     if (setjmp (png_ptr->jmpbuf)) {
+     if (setjmp (png_jmpbuf(png_ptr))) {
           if (desc->preallocated[0].data) {
                free (desc->preallocated[0].data);
                desc->preallocated[0].data = NULL;
@@ -406,16 +406,22 @@ static DFBResult load_image (const char            *filename,
 
      switch (src_format) {
           case DSPF_LUT8:
-               if (info_ptr->num_palette) {
+          {
+               png_colorp *info_palette;
+               int num_palette;
+
+               png_get_PLTE(png_ptr,info_ptr,info_palette,&num_palette);
+
+               if (num_palette) {
                     png_byte *alpha;
                     int       i, num;
 
-                    *palette_size = MIN (info_ptr->num_palette, 256);
+                    *palette_size = MIN (num_palette, 256);
                     for (i = 0; i < *palette_size; i++) {
                          palette[i].a = 0xFF;
-                         palette[i].r = info_ptr->palette[i].red;
-                         palette[i].g = info_ptr->palette[i].green;
-                         palette[i].b = info_ptr->palette[i].blue;
+                         palette[i].r = info_palette[i]->red;
+                         palette[i].g = info_palette[i]->green;
+                         palette[i].b = info_palette[i]->blue;
                     }
                     if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS)) {
                          png_get_tRNS (png_ptr, info_ptr, &alpha, &num, NULL);
@@ -424,6 +430,7 @@ static DFBResult load_image (const char            *filename,
                     }
                }
                break;
+          }
           case DSPF_RGB32:
                 png_set_filler (png_ptr, 0xFF,
 #ifdef WORDS_BIGENDIAN

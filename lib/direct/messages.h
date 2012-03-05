@@ -158,15 +158,15 @@ void DIRECT_API direct_messages_warn         ( const char *func,
 
 
 #else
-     #define D_INFO(x...)          do { } while (0)
-     #define D_ERROR(x...)         do { } while (0)
-     #define D_DERROR(x...)        do { } while (0)
-     #define D_PERROR(x...)        do { } while (0)
-     #define D_DLERROR(x...)       do { } while (0)
-     #define D_ONCE(x...)          do { } while (0)
+     #define D_INFO(...)           do { } while (0)
+     #define D_ERROR(...)          do { } while (0)
+     #define D_DERROR(...)         do { } while (0)
+     #define D_PERROR(...)         do { } while (0)
+     #define D_DLERROR(...)        do { } while (0)
+     #define D_ONCE(...)           do { } while (0)
      #define D_UNIMPLEMENTED()     do { } while (0)
-     #define D_BUG(x...)           do { } while (0)
-     #define D_WARN(x...)          do { } while (0)
+     #define D_BUG(...)            do { } while (0)
+     #define D_WARN(...)           do { } while (0)
      #define D_OOM()               (printf("out of memory\n"), DR_NOLOCALMEMORY)
 #endif
 

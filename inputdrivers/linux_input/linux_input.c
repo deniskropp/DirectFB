@@ -188,6 +188,8 @@ static char *device_names[MAX_LINUX_INPUT_DEVICES];
 static int               device_nums[MAX_LINUX_INPUT_DEVICES] = { 0 };
 /* Socket file descriptor for getting udev events. */
 static int               socket_fd = 0;
+/* Pipe file descriptor for terminating the hotplug thread. */
+static int               hotplug_quitpipe[2];
 /* The hot-plug thread that is launched by the launch_hotplug() function. */
 static DirectThread     *hotplug_thread = NULL;
 /* The driver suspended lock mutex. */
@@ -1471,8 +1473,9 @@ udev_hotplug_EventThread(DirectThread *thread, void * hotplug_data)
      CoreDFB           *core;
      void              *driver;
      HotplugThreadData *data = (HotplugThreadData *)hotplug_data;
-     int                rt, option;
+     int                rt;
      struct sockaddr_un sock_addr;
+     int                fdmax;
 
      D_ASSERT( data != NULL );
      D_ASSERT( data->core != NULL );
@@ -1492,6 +1495,8 @@ udev_hotplug_EventThread(DirectThread *thread, void * hotplug_data)
                     strerror(errno) );
           goto errorExit;
      }
+
+     fdmax = MAX( socket_fd, hotplug_quitpipe[0] );
 
      memset(&sock_addr, 0, sizeof(sock_addr));
      sock_addr.sun_family = AF_UNIX;
@@ -1518,10 +1523,14 @@ udev_hotplug_EventThread(DirectThread *thread, void * hotplug_data)
           /* get udev event */
           FD_ZERO(&rset);
           FD_SET(socket_fd, &rset);
+          FD_SET(hotplug_quitpipe[0], &rset);
 
-          number_file = select(socket_fd+1, &rset, NULL, NULL, NULL);
+          number_file = select(fdmax+1, &rset, NULL, NULL, NULL);
 
           if (number_file < 0 && errno != EINTR)
+               break;
+
+          if (FD_ISSET( hotplug_quitpipe[0], &rset ))
                break;
 
           /* check cancel thread */
@@ -1644,10 +1653,14 @@ stop_hotplug( void )
      if (!hotplug_thread)
           goto exit;
 
+     /* Write to the hotplug quit pipe to cause the thread to terminate */
+     (void)write( hotplug_quitpipe[1], " ", 1 );
      /* Shutdown the hotplug detection thread. */
-     direct_thread_cancel(hotplug_thread);
      direct_thread_join(hotplug_thread);
      direct_thread_destroy(hotplug_thread);
+     close( hotplug_quitpipe[0] );
+     close( hotplug_quitpipe[1] );
+
      hotplug_thread = NULL;
 
      /* Destroy the suspended mutex. */
@@ -1679,6 +1692,8 @@ static DFBResult
 launch_hotplug(CoreDFB         *core,
                void            *input_driver)
 {
+     int ret;
+
      D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
 
      HotplugThreadData  *data;
@@ -1699,6 +1714,14 @@ launch_hotplug(CoreDFB         *core,
      data->core        = core;
      data->driver      = input_driver;
 
+     /* open a pipe to awake the reader thread when we want to quit */
+     ret = pipe( hotplug_quitpipe );
+     if (ret < 0) {
+          D_PERROR( "DirectFB/linux_input: could not open quitpipe for hotplug" );
+          D_FREE( data );
+          result = DFB_INIT;
+          goto errorExit;
+     }
      socket_fd = 0;
 
      /* Initialize a mutex used to communicate to the hotplug handling thread
@@ -1973,7 +1996,6 @@ driver_close_device( void *driver_data )
      D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
 
      /* stop input thread */
-     direct_thread_cancel( data->thread );
      (void)write( data->quitpipe[1], " ", 1 );
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );
