@@ -38,16 +38,16 @@
 
 static void Cop_OP_Aop_PFI(toK)( GenefxState *gfxs )
 {
-     int  l    = gfxs->length;
+     int  l    = gfxs->length+1;
      u32 *D    = gfxs->Aop[0];
      u32  Dkey = gfxs->Dkey;
      u32  Cop  = gfxs->Cop;
 
-     while (l--) {
+     while (--l) {
           if ((*D & RGB_MASK) == Dkey)
                *D = Cop;
 
-          D++;
+          ++D;
      }
 }
 
@@ -55,7 +55,7 @@ static void Cop_OP_Aop_PFI(toK)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  Sstep = gfxs->Bstep;
      int  Dstep = gfxs->Astep;
      u32 *S     = gfxs->Bop[0];
@@ -67,7 +67,7 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
           D += (gfxs->length - 1) * gfxs->Astep;
      }
 
-     while (l--) {
+     while (--l) {
           u32 s = *S;
 
           if ((s & RGB_MASK) != Skey)
@@ -82,7 +82,7 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  Sstep = gfxs->Bstep;
      int  Dstep = gfxs->Astep;
      u32 *S     = gfxs->Bop[0];
@@ -94,7 +94,7 @@ static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
           D += (gfxs->length - 1) * gfxs->Astep;
      }
 
-     while (l--) {
+     while (--l) {
           if ((*D & RGB_MASK) == Dkey)
                *D = *S;
 
@@ -107,7 +107,7 @@ static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(KtoK)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  Sstep = gfxs->Bstep;
      int  Dstep = gfxs->Astep;
      u32 *S     = gfxs->Bop[0];
@@ -120,7 +120,7 @@ static void Bop_PFI_OP_Aop_PFI(KtoK)( GenefxState *gfxs )
           D += (gfxs->length - 1) * gfxs->Astep;
      }
 
-     while (l--) {
+     while (--l) {
           u32 s = *S;
 
           if ((s & RGB_MASK) != Skey && (*D & RGB_MASK) == Dkey)
@@ -135,7 +135,7 @@ static void Bop_PFI_OP_Aop_PFI(KtoK)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(SKto)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  i     = gfxs->Xphase;
      int  SperD = gfxs->SperD;
      u32 *S     = gfxs->Bop[0];
@@ -143,7 +143,7 @@ static void Bop_PFI_OP_Aop_PFI(SKto)( GenefxState *gfxs )
      int  Dstep = gfxs->Astep;
      u32  Skey  = gfxs->Skey;
 
-     while (l--) {
+     while (--l) {
           u32 s = S[i>>16];
 
           if ((s & RGB_MASK) != Skey)
@@ -158,7 +158,7 @@ static void Bop_PFI_OP_Aop_PFI(SKto)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(StoK)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  i     = gfxs->Xphase;
      int  SperD = gfxs->SperD;
      u32 *S     = gfxs->Bop[0];
@@ -166,7 +166,7 @@ static void Bop_PFI_OP_Aop_PFI(StoK)( GenefxState *gfxs )
      u32  Dkey  = gfxs->Dkey;
      int  Dstep = gfxs->Astep;
 
-     while (l--) {
+     while (--l) {
           if ((*D & RGB_MASK) == Dkey)
                *D = S[i>>16];
 
@@ -179,7 +179,7 @@ static void Bop_PFI_OP_Aop_PFI(StoK)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(SKtoK)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  i     = gfxs->Xphase;
      int  SperD = gfxs->SperD;
      u32 *S     = gfxs->Bop[0];
@@ -188,7 +188,7 @@ static void Bop_PFI_OP_Aop_PFI(SKtoK)( GenefxState *gfxs )
      u32  Dkey  = gfxs->Dkey;
      int  Dstep = gfxs->Astep;
 
-     while (l--) {
+     while (--l) {
           u32 s = S[i>>16];
 
           if ((s & RGB_MASK) != Skey && (*D & RGB_MASK) == Dkey)
