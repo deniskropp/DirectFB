@@ -305,7 +305,7 @@ direct_dbg_strdup( const char* file, int line, const char *func, const char *str
 {
      void          *mem;
      unsigned long *val;
-     size_t         bytes = direct_strlen( string ) + 1;
+     size_t         bytes = string ? direct_strlen( string ) + 1 : 1;
 
      D_DEBUG_AT( Direct_Mem, "  +"_ZUn(6)" bytes [%s:%d in %s()] <- \"%30s\"\n", bytes, file, line, func, string );
 
@@ -327,7 +327,10 @@ direct_dbg_strdup( const char* file, int line, const char *func, const char *str
 
           direct_mutex_unlock( &alloc_lock );
 
-          direct_memcpy( desc->mem, string, bytes );
+          if (string)
+               direct_memcpy( desc->mem, string, bytes );
+          else
+               *(u8*)desc->mem = 0;
 
           return desc->mem;
      }
@@ -343,7 +346,10 @@ direct_dbg_strdup( const char* file, int line, const char *func, const char *str
      val    = mem;
      val[0] = ~0;
 
-     direct_memcpy( (char*) mem + DISABLED_OFFSET, string, bytes );
+     if (string)
+          direct_memcpy( (char*) mem + DISABLED_OFFSET, string, bytes );
+     else
+          *((u8*)mem + DISABLED_OFFSET) = 0;
 
      return (char*) mem + DISABLED_OFFSET;
 }
