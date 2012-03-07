@@ -1,0 +1,8 @@
+bin
+build.xml
+gen
+libs
+local.properties
+obj
+proguard.cfg
+project.properties
