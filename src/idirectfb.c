@@ -802,7 +802,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          wd.height       = height;
                          wd.pixelformat  = format;
                          wd.colorspace   = colorspace;
-                         wd.surface_caps = caps & ~DSCAPS_FLIPPING;
+                         wd.surface_caps = caps;
                          wd.resource_id  = resource_id;
 
                          switch (format) {
