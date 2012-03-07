@@ -261,7 +261,7 @@ static void Sacc_OP_Aop_PFI(toK)( GenefxState *gfxs )
                }
           }
 
-          S++;
+          ++S;
           D += Dstep;
      }
 }

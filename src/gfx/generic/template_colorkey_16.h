@@ -48,16 +48,16 @@
 
 static void Cop_OP_Aop_PFI(toK)( GenefxState *gfxs )
 {
-     int  l    = gfxs->length;
+     int  l    = gfxs->length+1;
      u16 *D    = gfxs->Aop[0];
      u16  Dkey = gfxs->Dkey;
      u16  Cop  = gfxs->Cop;
 
-     while (l--) {
+     while (--l) {
           if (MASK_RGB( *D ) == Dkey)
                *D = Cop;
 
-          D++;
+          ++D;
      }
 }
 
@@ -65,7 +65,7 @@ static void Cop_OP_Aop_PFI(toK)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
 {
-     int  w, l  = gfxs->length;
+     int  w, l  = gfxs->length+1;
      int  Ostep = gfxs->Ostep;
      u16 *S     = gfxs->Bop[0];
      u16 *D     = gfxs->Aop[0];
@@ -80,7 +80,7 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
 
      if (((long)S & 2) != ((long)D & 2)) {
           /* source and destination misaligned */
-          while (l--) {
+          while (--l) {
                u16 s = *S;
 
                if (MASK_RGB( s ) != Skey)
@@ -102,15 +102,15 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
                if (MASK_RGB( s ) != Skey)
                     *D = s;
 
-               S++;
-               D++;
-               l--;
+               ++S;
+               ++D;
+               --l;
           }
      } else { /* Ostep < 0 */
           if ((long)D & 2) {
                /* align */
-               S--;
-               D--;
+               --S;
+               --D;
           } else {
                /* rightmost pixel */
                u16 s = *S;
@@ -120,14 +120,14 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
 
                S -= 2;
                D -= 2;
-               l--;
+               --l;
           }
      }
 
      /* blit */
      Ostep <<= 1;
-     w = l >> 1;
-     while (w--) {
+     w = (l >> 1) +1;
+     while (--w) {
           u32 s = *(u32 *) S;
 
           if (MASK_RGB_L( s ) != Skey) {
@@ -157,8 +157,8 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
           u16 s;
 
           if (Ostep < 0) {
-               S++;
-               D++;
+               ++S;
+               ++D;
           }
 
           s = *S;
@@ -171,7 +171,7 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
 {
-     int  w, l  = gfxs->length;
+     int  w, l  = gfxs->length+1;
      int  Ostep = gfxs->Ostep;
      u16 *S     = gfxs->Bop[0];
      u16 *D     = gfxs->Aop[0];
@@ -186,7 +186,7 @@ static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
 
      if (((long)S & 2) != ((long)D & 2)) {
           /* source and destination misaligned */
-          while (l--) {
+          while (--l) {
                if (MASK_RGB( *D ) == Dkey)
                     *D = *S;
 
@@ -204,15 +204,15 @@ static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
                if (MASK_RGB( *D ) == Dkey)
                     *D = *S;
 
-               S++;
-               D++;
-               l--;
+               ++S;
+               ++D;
+               --l;
           }
      } else { /* Ostep < 0 */
           if ((long)D & 2) {
                /* align */
-               S--;
-               D--;
+               --S;
+               --D;
           } else {
                /* rightmost pixel */
                if (MASK_RGB( *D ) == Dkey)
@@ -220,14 +220,14 @@ static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
 
                S -= 2;
                D -= 2;
-               l--;
+               --l;
           }
      }
 
      /* blit */
      Ostep <<= 1;
-     w = l >> 1;
-     while (w--) {
+     w = (l >> 1) + 1;
+     while (--w) {
           u32 d = *(u32 *) D;
 
           if (MASK_RGB_32( d ) == (DkeyH | Dkey)) {
@@ -256,8 +256,8 @@ static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
      /* last potential pixel */
      if (l & 1) {
           if (Ostep < 0) {
-               S++;
-               D++;
+               ++S;
+               ++D;
           }
 
           if (MASK_RGB( *D ) == Dkey)
@@ -269,7 +269,7 @@ static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(KtoK)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  Ostep = gfxs->Ostep;
      u16 *S     = gfxs->Bop[0];
      u16 *D     = gfxs->Aop[0];
@@ -281,7 +281,7 @@ static void Bop_PFI_OP_Aop_PFI(KtoK)( GenefxState *gfxs )
           D += gfxs->length - 1;
      }
 
-     while (l--) {
+     while (--l) {
           u16 s = *S;
 
           if (MASK_RGB( s ) != Skey && MASK_RGB( *D ) == Dkey)
@@ -296,20 +296,20 @@ static void Bop_PFI_OP_Aop_PFI(KtoK)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(SKto)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  i     = gfxs->Xphase;
      int  SperD = gfxs->SperD;
      u16 *S     = gfxs->Bop[0];
      u16 *D     = gfxs->Aop[0];
      u16  Skey  = gfxs->Skey;
 
-     while (l--) {
+     while (--l) {
           u16 s = S[i>>16];
 
           if (MASK_RGB( s ) != Skey)
                *D = s;
 
-          D++;
+          ++D;
           i += SperD;
      }
 }
@@ -318,18 +318,18 @@ static void Bop_PFI_OP_Aop_PFI(SKto)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(StoK)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  i     = gfxs->Xphase;
      int  SperD = gfxs->SperD;
      u16 *S     = gfxs->Bop[0];
      u16 *D     = gfxs->Aop[0];
      u16  Dkey  = gfxs->Dkey;
 
-     while (l--) {
+     while (--l) {
           if (MASK_RGB( *D ) == Dkey)
                *D = S[i>>16];
 
-          D++;
+          ++D;
           i += SperD;
      }
 }
@@ -338,7 +338,7 @@ static void Bop_PFI_OP_Aop_PFI(StoK)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(SKtoK)( GenefxState *gfxs )
 {
-     int  l     = gfxs->length;
+     int  l     = gfxs->length+1;
      int  i     = gfxs->Xphase;
      int  SperD = gfxs->SperD;
      u16 *S     = gfxs->Bop[0];
@@ -346,13 +346,13 @@ static void Bop_PFI_OP_Aop_PFI(SKtoK)( GenefxState *gfxs )
      u16  Skey  = gfxs->Skey;
      u16  Dkey  = gfxs->Dkey;
 
-     while (l--) {
+     while (--l) {
           u16 s = S[i>>16];
 
           if (MASK_RGB( s ) != Skey && MASK_RGB( *D ) == Dkey)
                *D = s;
 
-          D++;
+          ++D;
           i += SperD;
      }
 }

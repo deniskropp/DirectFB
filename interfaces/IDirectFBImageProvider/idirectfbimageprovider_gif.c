@@ -64,10 +64,10 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, GIF )
 
 
 #ifndef NODEBUG
-#define GIFERRORMSG(x...)     { fprintf( stderr, "(GIFLOADER) "x ); \
+#define GIFERRORMSG(...)     { fprintf( stderr, "(GIFLOADER) " __VA_ARGS__ ); \
                                 fprintf( stderr, "\n" ); }
 #else
-#define GIFERRORMSG(x...)
+#define GIFERRORMSG(...)
 #endif
 
 #define MAXCOLORMAPSIZE 256

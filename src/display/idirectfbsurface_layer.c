@@ -47,6 +47,7 @@
 #include <core/system.h>
 
 #include <core/CoreLayerRegion.h>
+#include <core/CoreSurface.h>
 
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_layer.h"
@@ -156,13 +157,13 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
 
      if (!surface)
           return DFB_INVARG;
-          
+
      /* Allocate interface */
      DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
      if (rect || data->base.limit_set) {
           DFBRectangle wanted, granted;
-          
+
           /* Compute wanted rectangle */
           if (rect) {
                wanted = *rect;
@@ -178,12 +179,12 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
           else {
                wanted = data->base.area.wanted;
           }
-          
+
           /* Compute granted rectangle */
           granted = wanted;
 
           dfb_rectangle_intersect( &granted, &data->base.area.granted );
-          
+
           /* Construct */
           ret = IDirectFBSurface_Layer_Construct( *surface, thiz, &wanted, &granted,
                                                   data->region, data->base.caps |
@@ -195,7 +196,7 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
                                                   data->region, data->base.caps |
                                                   DSCAPS_SUBSURFACE, data->base.core );
      }
-     
+
      return ret;
 }
 

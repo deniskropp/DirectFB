@@ -1497,7 +1497,7 @@ typedef struct {
      DFBSurfacePixelFormat              pixelformat;  /* pixel format */
      int                                posx;         /* distance from left layer border */
      int                                posy;         /* distance from upper layer border */
-     DFBSurfaceCapabilities             surface_caps; /* pixel format */
+     DFBSurfaceCapabilities             surface_caps; /* surface capabilities */
      DFBWindowID                        parent_id;    /* window id of parent window */
      DFBWindowOptions                   options;      /* initial window options */
      DFBWindowStackingClass             stacking;     /* initial stacking class */

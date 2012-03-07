@@ -135,6 +135,7 @@ dfb_gfx_stretch_to( CoreSurface *source, CoreSurface *destination,
      copy_state.source      = source;
      copy_state.destination = destination;
      copy_state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
+     copy_state.to          = CSBR_BACK;
 
      dfb_gfxcard_stretchblit( &sourcerect, &destrect, &copy_state );
 

@@ -443,7 +443,42 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
                break;
      }
 
+#if D_DEBUG_ENABLED
      D_DEBUG_AT( Core_SurfacePool, "  ->     0x%02x 0x%03x required\n", access, type );
+
+     if (access & CSAF_READ)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     READ\n" );
+
+     if (access & CSAF_WRITE)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     WRITE\n" );
+
+     if (access & CSAF_SHARED)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     SHARED\n" );
+
+     if (type & CSTF_LAYER)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     LAYER\n" );
+
+     if (type & CSTF_WINDOW)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     WINDOW\n" );
+
+     if (type & CSTF_CURSOR)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     CURSOR\n" );
+
+     if (type & CSTF_FONT)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     FONT\n" );
+
+     if (type & CSTF_SHARED)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     SHARED\n" );
+
+     if (type & CSTF_INTERNAL)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     INTERNAL\n" );
+
+     if (type & CSTF_EXTERNAL)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     EXTERNAL\n" );
+
+     if (type & CSTF_PREALLOCATED)
+          D_DEBUG_AT( Core_SurfacePool, "  ->     PREALLOCATED\n" );
+#endif
 
      for (i=0; i<pool_count; i++) {
           CoreSurfacePool *pool;
