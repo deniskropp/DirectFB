@@ -784,9 +784,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          CoreWindow           *window;
                          DFBWindowDescription  wd;
 
-                         if ((caps & DSCAPS_FLIPPING) == DSCAPS_TRIPLE)
-                              return DFB_UNSUPPORTED;
-
                          memset( &wd, 0, sizeof(wd) );
 
                          wd.flags = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT |
