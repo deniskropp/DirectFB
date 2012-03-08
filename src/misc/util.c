@@ -52,8 +52,8 @@ D_DEBUG_DOMAIN( DFB_Updates, "DirectFB/Updates", "DirectFB Updates" );
 
 /**********************************************************************************************************************/
 
-const DirectFBPixelFormatNames( dfb_pixelformat_names );
-const DirectFBColorSpaceNames( dfb_colorspace_names );
+const DirectFBPixelFormatNames( dfb_pixelformat_names )
+const DirectFBColorSpaceNames( dfb_colorspace_names )
 
 /**********************************************************************************************************************/
 
@@ -294,7 +294,7 @@ dfb_updates_add( DFBUpdates      *updates,
      D_ASSERT( updates->num_regions >= 0 );
      D_ASSERT( updates->num_regions <= updates->max_regions );
 
-     D_DEBUG_AT( DFB_Updates, "%s( %p, %4d,%4d-%4dx%4d )\n", __FUNCTION__, updates,
+     D_DEBUG_AT( DFB_Updates, "%s( %p, %4d,%4d-%4dx%4d )\n", __FUNCTION__, (void*)updates,
                  DFB_RECTANGLE_VALS_FROM_REGION(region) );
 
      if (updates->num_regions == 0) {
