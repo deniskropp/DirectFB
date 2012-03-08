@@ -139,11 +139,11 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
      header = data->ptr;
 
      if (DFB_RECTANGLE_EQUAL( rect, clipped ) &&
-         rect.w == header->width && rect.h == header->height &&
+         (unsigned)rect.w == header->width && (unsigned)rect.h == header->height &&
          dst_surface->config.format == header->format)
      {
           ret = dfb_surface_write_buffer( dst_surface, CSBR_BACK,
-                                          data->ptr + sizeof(DFIFFHeader), header->pitch, &rect );
+                                          (u8*)data->ptr + sizeof(DFIFFHeader), header->pitch, &rect );
           if (ret)
                return ret;
      }
@@ -157,7 +157,7 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
           thiz->GetSurfaceDescription( thiz, &desc );
 
           desc.flags |= DSDESC_PREALLOCATED;   
-          desc.preallocated[0].data  = data->ptr + sizeof(DFIFFHeader);
+          desc.preallocated[0].data  = (u8*)data->ptr + sizeof(DFIFFHeader);
           desc.preallocated[0].pitch = header->pitch;
 
           ret = data->base.idirectfb->CreateSurface( data->base.idirectfb, &desc, &source );
