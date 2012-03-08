@@ -969,7 +969,7 @@ init_hw_cursor( SaWMan *sawman )
      sawman->cursor.layer = dfb_layer_at( sawman_config->cursor.layer_id );
      D_ASSERT( sawman->cursor.layer != NULL );
 
-     ret = dfb_layer_create_context( sawman->cursor.layer, &sawman->cursor.context );
+     ret = dfb_layer_create_context( sawman->cursor.layer, false, &sawman->cursor.context );
      if (ret) {
           D_DERROR( ret, "SaWMan/Cursor: Could not create context at layer (id %u)!\n", sawman_config->cursor.layer_id );
           return ret;
