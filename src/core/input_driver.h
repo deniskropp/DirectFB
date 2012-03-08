@@ -99,6 +99,9 @@ driver_resume( void )
 static DFBResult
 is_created( int event_num, void *data)
 {
+     D_UNUSED_P( event_num );
+     D_UNUSED_P( data );
+
      return DFB_UNSUPPORTED;
 }
 
@@ -112,6 +115,9 @@ static DFBResult
 launch_hotplug(CoreDFB         *core,
                void            *input_driver)
 {
+     D_UNUSED_P( core );
+     D_UNUSED_P( input_driver );
+
      return DFB_UNSUPPORTED;
 }
 

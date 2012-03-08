@@ -152,6 +152,9 @@ CoreLayer_Lookup( CoreDFB    *core,
                   FusionID    caller,
                   CoreLayer **ret_layer )
 {
+     D_UNUSED_P( core );
+     D_UNUSED_P( caller );
+
      if (object_id >= (u32) dfb_layer_num())
           return DR_IDNOTFOUND;
 
@@ -163,6 +166,8 @@ CoreLayer_Lookup( CoreDFB    *core,
 static __inline__ DirectResult
 CoreLayer_Unref( CoreLayer *layer )
 {
+     D_UNUSED_P( layer );
+
      return DR_OK;
 }
 
@@ -171,6 +176,8 @@ CoreLayer_Catch( CoreDFB    *core,
                  u32         object_id,
                  CoreLayer **ret_layer )
 {
+     D_UNUSED_P( core );
+
      if (object_id >= (u32) dfb_layer_num())
           return DR_IDNOTFOUND;
 
@@ -184,6 +191,9 @@ CoreLayer_Throw( CoreLayer *layer,
                  FusionID   catcher,
                  u32       *ret_object_id )
 {
+
+     D_UNUSED_P( catcher );
+
      *ret_object_id = layer->shared->layer_id;
 
      return DR_OK;
@@ -415,6 +425,10 @@ CoreScreen_Lookup( CoreDFB     *core,
                    FusionID     caller,
                    CoreScreen **ret_screen )
 {
+
+     D_UNUSED_P( core );
+     D_UNUSED_P( caller );
+
      if (object_id >= (u32) dfb_screens_num())
           return DR_IDNOTFOUND;
 
@@ -426,6 +440,8 @@ CoreScreen_Lookup( CoreDFB     *core,
 static __inline__ DirectResult
 CoreScreen_Unref( CoreScreen *screen )
 {
+     D_UNUSED_P( screen );
+
      return DR_OK;
 }
 
@@ -434,6 +450,9 @@ CoreScreen_Catch( CoreDFB     *core,
                   u32          object_id,
                   CoreScreen **ret_screen )
 {
+
+     D_UNUSED_P( core );
+
      if (object_id >= (u32) dfb_screens_num())
           return DR_IDNOTFOUND;
 
@@ -447,6 +466,8 @@ CoreScreen_Throw( CoreScreen *screen,
                   FusionID    catcher,
                   u32        *ret_object_id )
 {
+     D_UNUSED_P( catcher );
+
      *ret_object_id = dfb_screen_id( screen );
 
      return DR_OK;
