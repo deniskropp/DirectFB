@@ -105,6 +105,39 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectang
 }
 
 void
+dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role )
+{
+     DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
+
+     pthread_mutex_lock( &copy_lock );
+
+     if (!copy_state_inited) {
+          dfb_state_init( &copy_state, NULL );
+          copy_state_inited = true;
+     }
+
+     copy_state.modified   |= SMF_CLIP | SMF_COLOR | SMF_DESTINATION;
+
+     copy_state.clip.x2     = surface->config.size.w - 1;
+     copy_state.clip.y2     = surface->config.size.h - 1;
+     copy_state.destination = surface;
+     copy_state.source      = surface;
+     copy_state.to          = role;
+     copy_state.color.a     = 0;
+     copy_state.color.r     = 0;
+     copy_state.color.g     = 0;
+     copy_state.color.b     = 0;
+     copy_state.color_index = 0;
+
+     dfb_gfxcard_fillrectangles( &rect, 1, &copy_state );
+
+     /* Signal end of sequence. */
+     dfb_state_stop_drawing( &copy_state );
+
+     pthread_mutex_unlock( &copy_lock );
+}
+
+void
 dfb_gfx_stretch_to( CoreSurface *source, CoreSurface *destination,
                     const DFBRectangle *srect, const DFBRectangle *drect, bool from_back )
 {
