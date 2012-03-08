@@ -59,14 +59,17 @@ D_DEBUG_DOMAIN( DirectFB_Config, "DirectFB/Config", "Runtime configuration optio
 
 DFBConfig *dfb_config = NULL;
 
-static const char *config_usage =
+/* C99 States that a string cannot be longer than 4095 chars so we have to split the usage up */
+
+static char *config_usage;
+static const char *config_usage_strings[]  = {
      "DirectFB version " DIRECTFB_VERSION "\n"
      "\n"
      " --dfb-help                      Output DirectFB usage information and exit\n"
      " --dfb:<option>[,<option>]...    Pass options to DirectFB (see below)\n"
      "\n"
      "DirectFB options:\n"
-     "\n"
+     "\n",
      "  system=<system>                Specify the system (FBDev, SDL, etc.)\n"
      "  fbdev=<device>                 Open <device> instead of /dev/fb0\n"
      "  busid=<id>                     Specify the bus location of the graphics card (default 1:0:0)\n"
@@ -91,7 +94,7 @@ static const char *config_usage =
      "  [no-]software-warn             Show warnings when doing/dropping software operations\n"
      "  [no-]software-trace            Show every stage of the software rendering pipeline\n"
      "  [no-]dma                       Enable DMA acceleration\n"
-     "  [no-]sync                      Do `sync()' (default=no)\n"
+     "  [no-]sync                      Do `sync()' (default=no)\n",
 #ifdef USE_MMX
      "  [no-]mmx                       Enable mmx support\n"
 #endif
@@ -152,7 +155,7 @@ static const char *config_usage =
      "  accelerator=<id>               Accelerator ID selecting graphics driver (devmem system)\n"
      "  font-resource-id=<id>          Resource ID to use for font cache row surfaces\n"
      "  resource-manager=<impl>        Use this resource manager implementation\n"
-     "\n"
+     "\n",
      "  x11-borderless[=<x>.<y>]       Disable X11 window borders, optionally position window\n"
      "  [no-]matrox-sgram              Use Matrox SGRAM features\n"
      "  [no-]matrox-crtc2              Experimental Matrox CRTC2 support\n"
@@ -175,7 +178,7 @@ static const char *config_usage =
      "\n"
      "  max-font-rows=<number>         Maximum number of glyph cache rows (total for all fonts)\n"
      "  max-font-row-width=<pixels>    Maximum width of glyph cache row surface\n"
-     "\n"
+     "\n",
      " Window surface swapping policy:\n"
      "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
      "     auto:       DirectFB decides depending on hardware.\n"
@@ -196,7 +199,7 @@ static const char *config_usage =
      " Force synchronization of vertical retrace:\n"
      "  vsync-after:   Wait for the vertical retrace after flipping.\n"
      "  vsync-none:    disable polling for vertical retrace.\n"
-     "\n";
+     "\n"};
 
 /**********************************************************************************************************************/
 
@@ -230,7 +233,12 @@ dfb_config_parse_pixelformat( const char *format )
 static void
 print_config_usage( void )
 {
-     fprintf( stderr, "%s%s%s", config_usage, fusion_config_usage, direct_config_usage );
+    int i;
+
+    for (i=0; i<D_ARRAY_SIZE(config_usage_strings); ++i)
+        fprintf(stderr,"%s",(config_usage_strings[i]));
+
+    fprintf( stderr, "%s%s", fusion_config_usage, direct_config_usage );
 }
 
 static DFBResult
@@ -382,12 +390,25 @@ static void config_cleanup( void )
  */
 static void config_allocate( void )
 {
-     int i;
+    int i, usage_length = 0;
 
      if (dfb_config)
           return;
 
      dfb_config = (DFBConfig*) calloc( 1, sizeof(DFBConfig) );
+
+
+     for (i=0; i<D_ARRAY_SIZE(config_usage_strings); ++i)
+         usage_length += strlen(config_usage_strings[i]);
+
+     config_usage = (char*) malloc( usage_length );
+
+     for (i=0; i<D_ARRAY_SIZE(config_usage_strings); ++i)
+     {
+         usage_length = strlen(config_usage_strings[i]);
+         strncpy(config_usage,config_usage_strings[i],usage_length);
+         config_usage += usage_length;
+     }
 
      for (i=0; i<D_ARRAY_SIZE(dfb_config->layers); i++) {
           dfb_config->layers[i].src_key_index          = -1;
