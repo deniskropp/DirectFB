@@ -131,7 +131,7 @@ dfb_surface_allocation_locks( CoreSurfaceAllocation *allocation )
 }
 
 
-FUSION_OBJECT_METHODS( CoreSurfaceAllocation, dfb_surface_allocation );
+FUSION_OBJECT_METHODS( CoreSurfaceAllocation, dfb_surface_allocation )
 
 FusionObjectPool *dfb_surface_allocation_pool_create( const FusionWorld *world );
 

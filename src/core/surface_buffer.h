@@ -230,7 +230,7 @@ dfb_surface_buffer_index( CoreSurfaceBuffer *buffer )
 }
 
 
-FUSION_OBJECT_METHODS( CoreSurfaceBuffer, dfb_surface_buffer );
+FUSION_OBJECT_METHODS( CoreSurfaceBuffer, dfb_surface_buffer )
 
 FusionObjectPool *dfb_surface_buffer_pool_create( const FusionWorld *world );
 
