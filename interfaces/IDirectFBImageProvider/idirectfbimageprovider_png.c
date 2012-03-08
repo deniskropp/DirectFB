@@ -360,8 +360,8 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                              rect.h == data->height)
                          {
                               for (y=0; y<data->height; y++)
-                                   direct_memcpy( lock.addr + lock.pitch * y,
-                                                  data->image + data->pitch * y,
+                                 direct_memcpy( (u8*)lock.addr + lock.pitch * y,
+                                                (u8*)data->image + data->pitch * y,
                                                   data->width );
 
                               break;
@@ -411,8 +411,8 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                          switch (bit_depth) {
                               case 8:
                                    for (y=0; y<data->height; y++) {
-                                        u8  *S = data->image + data->pitch * y;
-                                        u32 *D = image_argb  + data->width * y * 4;
+                                      u8  *S = (u8*)data->image + data->pitch * y;
+                                      u32 *D = (u32*)((u8*)image_argb  + data->width * y * 4);
 
                                         for (x=0; x<data->width; x++)
                                              D[x] = data->palette[ S[x] ];
@@ -421,8 +421,8 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
                               case 4:
                                    for (y=0; y<data->height; y++) {
-                                        u8  *S = data->image + data->pitch * y;
-                                        u32 *D = image_argb  + data->width * y * 4;
+                                       u8  *S = (u8*)data->image + data->pitch * y;
+                                       u32 *D = (u32*)((u8*)image_argb  + data->width * y * 4);
 
                                         for (x=0; x<data->width; x++) {
                                              if (x & 1)
@@ -436,8 +436,8 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                               case 2:
                                    for (y=0; y<data->height; y++) {
                                         int  n = 6;
-                                        u8  *S = data->image + data->pitch * y;
-                                        u32 *D = image_argb  + data->width * y * 4;
+                                        u8  *S = (u8*)data->image + data->pitch * y;
+                                        u32 *D = (u32*)((u8*)image_argb  + data->width * y * 4);
 
                                         for (x=0; x<data->width; x++) {
                                              D[x] = data->palette[ (S[x>>2] >> n) & 3 ];
@@ -450,8 +450,8 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                               case 1:
                                    for (y=0; y<data->height; y++) {
                                         int  n = 7;
-                                        u8  *S = data->image + data->pitch * y;
-                                        u32 *D = image_argb  + data->width * y * 4;
+                                        u8  *S = (u8*)data->image + data->pitch * y;
+                                        u32 *D = (u32*)((u8*)image_argb  + data->width * y * 4);
 
                                         for (x=0; x<data->width; x++) {
                                              D[x] = data->palette[ (S[x>>3] >> n) & 1 ];
@@ -606,6 +606,7 @@ png_info_callback( png_structp png_read_ptr,
      u32 bpp2[4] = {0, 0x55, 0xaa, 0xff};
      u32 bpp4[16] = {0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
 
+     D_UNUSED_P( png_info_ptr );
 
      D_DEBUG_AT(imageProviderPNG,"%s(%d)\n",__FUNCTION__,__LINE__);
 
@@ -619,7 +620,7 @@ png_info_callback( png_structp png_read_ptr,
      data->stage = STAGE_INFO;
 
      png_get_IHDR( data->png_ptr, data->info_ptr,
-                   &data->width, &data->height, &data->bpp, &data->color_type,
+                   (png_uint_32 *)&data->width, (png_uint_32 *)&data->height, &data->bpp, &data->color_type,
                    NULL, NULL, NULL );
 
      if (png_get_valid( data->png_ptr, data->info_ptr, PNG_INFO_tRNS )) {
@@ -832,6 +833,8 @@ png_row_callback( png_structp png_read_ptr,
      if (data->stage < 0)
           return;
 
+     D_UNUSED_P( pass_num );
+
      /* set image decoding stage */
      data->stage = STAGE_IMAGE;
 
@@ -857,7 +860,7 @@ png_row_callback( png_structp png_read_ptr,
 
      /* write to image data */
      if (data->bpp == 16 && data->color_keyed) {
-          u8  *dst = (u8*)(data->image + row_num * data->pitch);
+         u8  *dst = (u8*)((u8*)data->image + row_num * data->pitch);
           u8  *src = (u8*)new_row;
 
           if (src) {
@@ -946,7 +949,7 @@ png_row_callback( png_structp png_read_ptr,
           }
      }
      else
-          png_progressive_combine_row( data->png_ptr, (png_bytep)(data->image + row_num * data->pitch), new_row );
+         png_progressive_combine_row( data->png_ptr, (png_bytep)((u8*)data->image + row_num * data->pitch), new_row );
 
      /* increase row counter, FIXME: interlaced? */
      data->rows++;
@@ -968,6 +971,8 @@ png_end_callback   (png_structp png_read_ptr,
                     png_infop   png_info_ptr)
 {
      IDirectFBImageProvider_PNG_data *data;
+
+     D_UNUSED_P( png_info_ptr );
 
      D_DEBUG_AT(imageProviderPNG,"%s(%d)\n",__FUNCTION__,__LINE__);
 
