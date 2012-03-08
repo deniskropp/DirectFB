@@ -47,6 +47,7 @@
 #include <core/CoreSurface.h>
 
 #include <gfx/convert.h>
+#include <gfx/util.h>
 
 
 D_DEBUG_DOMAIN( Core_Surface, "Core/Surface", "DirectFB Core Surface" );
@@ -379,7 +380,6 @@ dfb_surface_create_simple ( CoreDFB                 *core,
      config.colorspace   = colorspace;
      config.caps         = caps;
 
-     //return dfb_surface_create( core, &config, type, resource_id, palette, ret_surface );
      return CoreDFB_CreateSurface( core, &config, type, resource_id, palette, ret_surface );
 }
 
@@ -968,6 +968,33 @@ dfb_surface_write_buffer( CoreSurface            *surface,
 
      return DFB_OK;
 }
+
+DFBResult
+dfb_surface_clear_buffers( CoreSurface *surface )
+{
+     DFBResult          ret = DFB_OK;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (surface->num_buffers == 0)
+          return DFB_SUSPENDED;
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
+     dfb_gfx_clear( surface, CSBR_FRONT );
+
+     if (surface->config.caps & DSCAPS_FLIPPING)
+          dfb_gfx_clear( surface, CSBR_BACK );
+
+     if (surface->config.caps & DSCAPS_TRIPLE)
+          dfb_gfx_clear( surface, CSBR_IDLE );
+
+     fusion_skirmish_dismiss( &surface->lock );
+
+     return ret;
+}
+
 
 DFBResult
 dfb_surface_dump_buffer( CoreSurface           *surface,
