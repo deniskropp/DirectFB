@@ -176,6 +176,7 @@ buffer_skip_input_data (j_decompress_ptr cinfo, long num_bytes)
 static void
 buffer_term_source (j_decompress_ptr cinfo)
 {
+     D_UNUSED_P( cinfo );
 }
 
 static void
@@ -276,6 +277,7 @@ IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
+     /* Look of the Jpeg SOI marker */
      if (ctx->header[0] == 0xff && ctx->header[1] == 0xd8) {
           /* Look for JFIF or Exif strings, also could look at header[3:2] for APP0(0xFFE0),
            * APP1(0xFFE1) or even other APPx markers.
@@ -358,6 +360,14 @@ Construct( IDirectFBImageProvider *thiz,
      return DFB_OK;
 }
 
+static int wrap_setjmp(struct my_error_mgr *jerr)
+{
+    if (setjmp(jerr->setjmp_buffer))
+        return 1;
+    else
+        return 0;
+}
+
 static DFBResult
 IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                       IDirectFBSurface       *destination,
@@ -429,7 +439,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           cinfo.err = jpeg_std_error(&jerr.pub);
           jerr.pub.error_exit = jpeglib_panic;
 
-          if (setjmp(jerr.setjmp_buffer)) {
+          if (wrap_setjmp(&jerr)) {
                D_ERROR( "ImageProvider/JPEG: Error during decoding!\n" );
 
                jpeg_destroy_decompress(&cinfo);
@@ -467,7 +477,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 #endif
           jpeg_calc_output_dimensions(&cinfo);
 
-          if (cinfo.output_width == rect.w && cinfo.output_height == rect.h) {
+          if (cinfo.output_width == (unsigned)rect.w && cinfo.output_height == (unsigned)rect.h) {
                direct = true;
           }
           else if (rect.x == 0 && rect.y == 0) {
@@ -478,8 +488,8 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                cinfo.scale_num = 1;
                jpeg_calc_output_dimensions (&cinfo);
                while (cinfo.scale_num < 16
-                      && cinfo.output_width < rect.w
-                      && cinfo.output_height < rect.h) {
+                      && cinfo.output_width < (unsigned)rect.w
+                      && cinfo.output_height < (unsigned)rect.h) {
                     ++cinfo.scale_num;
                     jpeg_calc_output_dimensions (&cinfo);
                }
@@ -488,8 +498,8 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                 *  are 1/1, 1/2, 1/4, and 1/8.
                 */
                while (cinfo.scale_denom < 8
-                      && ((cinfo.output_width >> 1) >= rect.w)
-                      && ((cinfo.output_height >> 1) >= rect.h)) {
+                      && ((cinfo.output_width >> 1) >= (unsigned)rect.w)
+                      && ((cinfo.output_height >> 1) >= (unsigned)rect.h)) {
                     cinfo.scale_denom <<= 1;
                     jpeg_calc_output_dimensions (&cinfo);
                }
@@ -539,9 +549,9 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                switch (dst_surface->config.format) {
                     case DSPF_NV16:
                          if (direct) {
-                              copy_line_nv16( lock.addr, lock.addr + uv_offset, *buffer, rect.w );
+                              copy_line_nv16( lock.addr, (u16*)lock.addr + uv_offset, *buffer, rect.w );
 
-                              lock.addr += lock.pitch;
+                              lock.addr = (u8*)lock.addr + lock.pitch;
 
                               if (data->base.render_callback) {
                                    DFBRectangle r = { 0, y, data->image_width, 1 };
