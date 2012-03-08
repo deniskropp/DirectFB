@@ -124,6 +124,7 @@ static const char *config_usage_strings[]  = {
      "  [no-]cursor-updates            Never show a cursor, but still handle it\n"
      "  wm=<wm>                        Window manager module ('default' or 'unique')\n"
      "  init-layer=<id>                Initialize layer with ID (following layer- options apply)\n"
+     "  [no-]layers-clear              Clear layer surface buffers after creation\n"
      "  layer-size=<width>x<height>    Set the pixel resolution\n"
      "  layer-format=<pixelformat>     Set the pixel format\n"
      "  layer-depth=<pixeldepth>       Set the pixel depth\n"
@@ -459,6 +460,7 @@ static void config_allocate( void )
      dfb_config->keep_accumulators        = 1024;
      dfb_config->font_format              = DSPF_A8;
      dfb_config->cursor_automation        = true;
+     dfb_config->layers_clear             = true;
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -1490,6 +1492,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR("DirectFB/Config '%s': No value specified!\n", name);
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "layers-clear" ) == 0) {
+          dfb_config->layers_clear = true;
+     } else
+     if (strcmp (name, "no-layers-clear" ) == 0) {
+          dfb_config->layers_clear = false;
      } else
      if (strcmp (name, "input-hub" ) == 0) {
           if (value) {

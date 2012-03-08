@@ -280,6 +280,8 @@ typedef struct
      bool                 accel1;
 
      DFBSurfaceID         primary_id;              /* id for primary surface */
+
+     bool                 layers_clear;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;
