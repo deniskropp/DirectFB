@@ -264,33 +264,37 @@ sawman_update_window( SaWMan              *sawman,
 
      if (region) {
           if ((update_flags & SWMUF_SCALE_REGION) && (window->config.options & DWOP_SCALE)) {
+               DFBRegion r = *region;
+
                int sw = sawwin->src.w;
                int sh = sawwin->src.h;
                int dw = sawwin->dst.w;
                int dh = sawwin->dst.h;
 
+               dfb_region_translate( &r, -sawwin->src.x, -sawwin->src.y );
+
                /* horizontal */
                if (dw > sw) {
                     /* upscaling */
-                    area.x1 = (region->x1 - 1) * dw / sw;
-                    area.x2 = (region->x2 + 1) * dw / sw;
+                    area.x1 = (r.x1 - 1) * dw / sw;
+                    area.x2 = (r.x2 + 1) * dw / sw;
                }
                else {
                     /* downscaling */
-                    area.x1 = region->x1 * dw / sw - 1;
-                    area.x2 = region->x2 * dw / sw + 1;
+                    area.x1 = r.x1 * dw / sw - 1;
+                    area.x2 = r.x2 * dw / sw + 1;
                }
 
                /* vertical */
                if (dh > sh) {
                     /* upscaling */
-                    area.y1 = (region->y1 - 1) * dh / sh;
-                    area.y2 = (region->y2 + 1) * dh / sh;
+                    area.y1 = (r.y1 - 1) * dh / sh;
+                    area.y2 = (r.y2 + 1) * dh / sh;
                }
                else {
                     /* downscaling */
-                    area.y1 = region->y1 * dh / sh - 1;
-                    area.y2 = region->y2 * dh / sh + 1;
+                    area.y1 = r.y1 * dh / sh - 1;
+                    area.y2 = r.y2 * dh / sh + 1;
                }
 
                /* limit to window area */
