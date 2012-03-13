@@ -629,6 +629,40 @@ OneQueue_WakeUp( const OneQID *queue_ids,
      return ret;
 }
 
+DirectResult
+OneQueue_SetName( OneQID      queue_id,
+                  const char *name )
+{
+     DirectResult ret = DR_OK;
+     OneEntryInfo info;
+
+     D_DEBUG_AT( One_Queue, "%s( id %u, name '%s' )\n", __FUNCTION__, queue_id, name );
+
+     D_ASSERT( name != NULL );
+
+     info.type = ONE_QUEUE;
+     info.id   = queue_id;
+
+     direct_snputs( info.name, name, ONE_ENTRY_INFO_NAME_LENGTH );
+     
+     while (ioctl( one_fd, ONE_ENTRY_SET_INFO, &info )) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               default:
+                    break;
+          }
+
+          ret = errno2result( errno );
+
+          D_PERROR( "One/Queue: ONE_ENTRY_SET_INFO failed!\n" );
+
+          break;
+     }
+
+     return ret;
+}
+
 /*********************************************************************************************************************/
 
 #define RECEIVE_BUFFER_SIZE   65536

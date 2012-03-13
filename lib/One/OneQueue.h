@@ -86,6 +86,11 @@ DirectResult OneQueue_DispatchReceive( OneQID          queue_id,
 DirectResult OneQueue_WakeUp   ( const OneQID   *queue_ids,
                                  unsigned int    queue_count );
 
+/*********************************************************************************************************************/
+
+DirectResult OneQueue_SetName  ( OneQID          queue_id,
+                                 const char     *name );
+
 
 #endif
 
