@@ -172,9 +172,13 @@ CoreInputHub_Create( u32            queue_id,
      if (ret)
           goto error;
 
+     OneQueue_SetName( hub->method_qid, "InputHub/Method" );
+
      ret = OneQueue_New( ONE_QUEUE_VIRTUAL, ONE_QID_NONE, &hub->notify_qid );
      if (ret)
           goto error;
+
+     OneQueue_SetName( hub->method_qid, "InputHub/Notify" );
 
      ret = OneThread_Create( "Input Hub", &hub->thread );
      if (ret)
@@ -399,6 +403,8 @@ CoreInputHubClient_Create( u32                                 remote_qid,
      ret = OneQueue_New( ONE_QUEUE_NO_FLAGS, ONE_QID_NONE, &client->listen_qid );
      if (ret)
           goto error;
+
+     OneQueue_SetName( client->listen_qid, "InputHub/Listener" );
 
      ret = OneThread_Create( "Input Hub Client", &client->thread );
      if (ret)
