@@ -99,9 +99,15 @@ ComaTLS_GetResponseQID( IComa  *thiz,
           return ret;
 
      if (!coma_tls->response_qid) {
+          char buf[99];
+
           ret = OneQueue_New( ONE_QUEUE_NO_FLAGS, ONE_QID_NONE, &coma_tls->response_qid );
           if (ret)
                return ret;
+
+          direct_snprintf( buf, sizeof(buf), "Coma/TLS %d of %d", direct_gettid(), getpid() );
+
+          OneQueue_SetName( coma_tls->response_qid, buf );
      }
 
      *ret_qid = coma_tls->response_qid;

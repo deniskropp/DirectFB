@@ -130,10 +130,18 @@ IComa_One_CreateComponent( IComa           *thiz,
      if (ret)
           return ret;
 
+     OneQueue_SetName( request.method_qid, request.name );
+
      for (i=0; i<num_notifications; i++) {
+          char qname[99];
+
           ret = OneQueue_New( ONE_QUEUE_VIRTUAL, ONE_QID_NONE, &notification_qids[i] );
           if (ret)
                goto error;
+
+          direct_snprintf( qname, sizeof(qname), "%s/%d", request.name, i );
+
+          OneQueue_SetName( notification_qids[i], qname );
      }
 
      request.notifications = num_notifications;

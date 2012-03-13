@@ -553,6 +553,8 @@ InitialiseNS( IFusionDale *thiz,
      if (ret)
           return ret;
 
+     OneQueue_SetName( data->ns_qid, "Coma/NS" );
+
      D_DEBUG_AT( IFusionDale_One, "  -> QID %u\n", data->ns_qid );
 
      D_INFO( "ComaOne/NameService: QID %u\n", data->ns_qid );
@@ -643,6 +645,8 @@ WaitForNS( IFusionDale *thiz )
      ret = OneQueue_New( ONE_QUEUE_NO_FLAGS, ONE_QID_NONE, &request.response_qid );
      if (ret)
           return ret;
+
+     OneQueue_SetName( request.response_qid, "Coma/NS Waiter" );
 
      /* Wait til NS is up and running... */
      while (loops--) {

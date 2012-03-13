@@ -929,6 +929,8 @@ Construct( IComaComponent   *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IComaComponent_One)
 
+     D_DEBUG_AT( IComaComponent_One, "%s( '%s' )\n", __FUNCTION__, name );
+
      ret = One_Initialize();
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -966,9 +968,11 @@ Construct( IComaComponent   *thiz,
      if (ret)
           goto error;
 
-     direct_hash_create( 7, &data->calls );
-
      direct_snprintf( buf, sizeof(buf), "%s/N", data->name );
+
+     OneQueue_SetName( data->notify_qid, buf );
+
+     direct_hash_create( 7, &data->calls );
 
      if (thread)
           OneThread_AddQueue( thread, data->notify_qid, DispatchNotify, data );
