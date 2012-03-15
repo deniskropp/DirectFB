@@ -1523,7 +1523,13 @@ Dispatch_MakeSubSurface( IDirectFBSurface *thiz, IDirectFBSurface *real,
      if (ret)
           return ret;
 
-     return real->MakeSubSurface( real, real, rect );
+     ret = real->MakeSubSurface( real, real, rect );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, true, msg->header.serial,
+                                    DFB_OK, instance,
+                                    VMBT_NONE );
 }
 
 static DirectResult
