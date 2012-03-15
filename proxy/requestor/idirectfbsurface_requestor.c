@@ -1184,14 +1184,46 @@ IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
 
      instance_id = response->instance;
 
+     ret = response->result;
+
      voodoo_manager_finish_request( data->manager, response );
 
-     ret = response->result;
      if (ret == DR_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
                                             instance_id, data->idirectfb, &interface_ptr );
 
      *ret_interface = interface_ptr;
+
+     return ret;
+}
+
+static DFBResult
+IDirectFBSurface_Requestor_MakeSubSurface( IDirectFBSurface   *thiz,
+                                           IDirectFBSurface   *surface,
+                                           const DFBRectangle *rect )
+{
+     DirectResult                     ret;
+     VoodooResponseMessage           *response;
+     IDirectFBSurface_Requestor_data *surface_data;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     if (!surface)
+          return DFB_INVARG;
+
+     DIRECT_INTERFACE_GET_DATA_FROM( surface, surface_data, IDirectFBSurface_Requestor );
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBSURFACE_METHOD_ID_MakeSubSurface, VREQ_RESPOND, &response,
+                                   VMBT_ID, surface_data->instance,
+                                   VMBT_ODATA, sizeof(DFBRectangle), rect,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+
+     voodoo_manager_finish_request( data->manager, response );
 
      return ret;
 }
@@ -1871,6 +1903,7 @@ Construct( IDirectFBSurface *thiz,
      thiz->SetEncoding = IDirectFBSurface_Requestor_SetEncoding;
 
      thiz->GetSubSurface = IDirectFBSurface_Requestor_GetSubSurface;
+     thiz->MakeSubSurface = IDirectFBSurface_Requestor_MakeSubSurface;
 
      thiz->GetGL = IDirectFBSurface_Requestor_GetGL;
 

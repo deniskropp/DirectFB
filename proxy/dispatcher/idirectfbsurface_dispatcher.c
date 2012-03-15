@@ -1503,6 +1503,30 @@ Dispatch_GetSubSurface( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_MakeSubSurface( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                         VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     VoodooMessageParser  parser;
+     VoodooInstanceID     instance;
+     const DFBRectangle  *rect;
+     void                *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, instance );
+     VOODOO_PARSER_GET_ODATA( parser, rect );
+     VOODOO_PARSER_END( parser );
+
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &surface );
+     if (ret)
+          return ret;
+
+     return real->MakeSubSurface( real, real, rect );
+}
+
+static DirectResult
 Dispatch_DisableAcceleration( IDirectFBSurface *thiz, IDirectFBSurface *real,
                               VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -2081,6 +2105,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBSURFACE_METHOD_ID_SetMatrix:
                return Dispatch_SetMatrix( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_MakeSubSurface:
+               return Dispatch_MakeSubSurface( dispatcher, real, manager, msg );
 
           case IDIRECTFBSURFACE_METHOD_ID_SetRemoteInstance:
                return Dispatch_SetRemoteInstance( dispatcher, real, manager, msg );
