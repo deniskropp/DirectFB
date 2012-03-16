@@ -93,6 +93,62 @@ unsigned int           one_local_refs[NUM_MINORS] = { 0 };
 /******************************************************************************/
 
 static int
+onedev_apps_read_proc(char *buf, char **start, off_t offset,
+                      int len, int *eof, void *private)
+{
+     OneDev *dev = private;
+     int     written = 0;
+     OneApp *app;
+
+     written += snprintf(buf + written, offset + len - written,
+                         "  pid   OneID       status         queues\n");
+     if (written < offset) {
+          offset -= written;
+          written = 0;
+     }
+
+     direct_list_foreach (app, dev->apps) {
+          OneAppTargetData *recv_data;
+
+          if (written >= len)
+               break;
+
+          written += snprintf(buf + written, offset + len - written,
+                              "(%5d) 0x%08x  %s  ", current->pid,
+                              app->one_id, app->recv_data ? "RECEIVING" : "not receiving");
+          if (written < offset) {
+               offset -= written;
+               written = 0;
+          }
+
+          direct_list_foreach (recv_data, app->recv_data) {
+               written += snprintf(buf + written, offset + len - written,
+                                   " 0x%08x", recv_data->queue_id);
+               if (written < offset) {
+                    offset -= written;
+                    written = 0;
+               }
+          }
+
+          written += snprintf(buf + written, offset + len - written, "\n");
+          if (written < offset) {
+               offset -= written;
+               written = 0;
+          }
+     }
+
+     *start = buf + offset;
+     written -= offset;
+     if (written > len) {
+          *eof = 0;
+          return len;
+     }
+
+     *eof = 1;
+     return(written < 0) ? 0 : written;
+}
+
+static int
 onedev_stat_read_proc(char *buf, char **start, off_t offset,
                       int len, int *eof, void *private)
 {
@@ -144,6 +200,9 @@ static int onedev_init(OneDev * dev)
      if (ret)
           goto error_queue;
 
+     create_proc_read_entry("apps", 0, one_proc_dir[dev->index],
+                            onedev_apps_read_proc, dev);
+
      create_proc_read_entry("stat", 0, one_proc_dir[dev->index],
                             onedev_stat_read_proc, dev);
 
@@ -155,6 +214,7 @@ error_queue:
 
 static void onedev_deinit(OneDev * dev)
 {
+     remove_proc_entry("apps", one_proc_dir[dev->index]);
      remove_proc_entry("stat", one_proc_dir[dev->index]);
 
      one_queue_deinit(dev);

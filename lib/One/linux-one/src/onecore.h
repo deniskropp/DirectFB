@@ -31,6 +31,8 @@ void              one_core_exit       ( OneCore         *core );
 
 pid_t             one_core_pid        ( OneCore         *core );
 
+long long         one_core_stamp      ( OneCore         *core );
+
 
 /*
  * Returns a new ID

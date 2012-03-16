@@ -326,6 +326,8 @@ OneApp_Receive( OneApp             *oneapp,
                               wakeup = true;
                          }
 
+                         one_queue_stamp_receive( oneapp, data->queue_id );
+
                          /*
                           * Receive from matching target
                           */

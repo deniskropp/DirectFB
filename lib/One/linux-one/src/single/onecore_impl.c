@@ -273,3 +273,9 @@ one_core_wq_wake( OneCore      *core,
      wake_up_all( &queue->queue );
 }
 
+long long
+one_core_stamp( OneCore *core )
+{
+     return direct_clock_get_micros();
+}
+

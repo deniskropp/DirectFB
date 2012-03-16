@@ -34,7 +34,7 @@
 
 
 
-static unsigned long
+unsigned long
 direct_clock_get_micros( void )
 {
      unsigned long       micros;

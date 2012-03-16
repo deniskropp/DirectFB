@@ -147,8 +147,11 @@ one_queue_print(OneEntry * entry, void *ctx, struct seq_file *p)
           pending = data->packets.count;
      }
 
-     seq_printf( p, "%5dx dispatch, %5dx packets, %d nodes%s%s\n", queue->dispatch_count,
-                 pending, num, queue->destroyed ? "  DESTROYED" : "", node_string );
+     seq_printf( p, "%5dx dispatch, %5dx packets, %d nodes, D %llu/%d, R %llu/%d, %s%s\n", queue->dispatch_count,
+                 pending, num,
+                 queue->dispatch_us, queue->dispatch_tid,
+                 queue->receive_us, queue->receive_tid,
+                 queue->destroyed ? "  DESTROYED" : "", node_string );
 }
 
 ONE_ENTRY_CLASS( OneQueue, queue, one_queue_construct,
@@ -395,6 +398,9 @@ one_queue_dispatch( OneApp           *oneapp,
                goto out;
           }
 
+          queue->dispatch_us  = one_core_stamp( one_core );
+          queue->dispatch_tid = direct_gettid();
+
           queue->dispatch_count++;
 
           dev->stat.queue_dispatch++;
@@ -599,6 +605,42 @@ out:
      if (ids != ids_static)
           kfree( ids );
 
+     return ret;
+}
+
+int
+one_queue_stamp_receive( OneApp *oneapp,
+                         OneQID  queue_id )
+{
+     int     ret = 0;
+     OneDev *dev = &one_devs[0];
+
+     ONE_DEBUG( "%s( QID %u )\n", __FUNCTION__, queue_id );
+
+     if (one_core_is_local( one_core, queue_id )) {
+          OneQueue *queue;
+
+          ONE_DEBUG( "  -> local\n" );
+
+          ret = one_queue_lookup( &dev->queue, queue_id, &queue );
+          if (ret)
+               goto out;
+
+          if (queue->destroyed) {
+               ret = -EIDRM;
+               goto out;
+          }
+
+          queue->receive_us  = one_core_stamp( one_core );
+          queue->receive_tid = direct_gettid();
+     }
+     else {
+          ONE_DEBUG( "  -> remote\n" );
+
+          ret = -EINVAL;
+     }
+
+out:
      return ret;
 }
 

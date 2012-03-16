@@ -29,6 +29,12 @@ void one_debug_printk( const char *format, ... );
 #define D_ASSERT ONE_ASSERT
 #define D_ASSUME ONE_ASSUME
 
+unsigned long
+direct_clock_get_micros( void );
+
+__attribute__((no_instrument_function))
+pid_t
+direct_gettid( void );
 
 /*
  * Magic Assertions & Utilities

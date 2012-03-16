@@ -31,6 +31,12 @@ struct __One_OneQueue {
      bool           destroyed;
 
      OneTarget     *target;
+
+     long long      receive_us;
+     int            receive_tid;
+
+     long long      dispatch_us;
+     int            dispatch_tid;
 };
 
 
@@ -65,6 +71,9 @@ int  one_queue_dispatch_receive( OneApp                  *oneapp,
 
 int  one_queue_wakeup          ( OneApp                  *oneapp,
                                  OneQueueWakeUp          *queue_wakeup );
+
+int  one_queue_stamp_receive   ( OneApp                  *oneapp,
+                                 OneQID                   queue_id );
 
 
 /* internal functions */
