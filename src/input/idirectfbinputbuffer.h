@@ -57,6 +57,11 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
                                              CoreWindow           *window );
 DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
                                              CoreWindow           *window );
+
+DFBResult IDirectFBEventBuffer_AttachSurface( IDirectFBEventBuffer *thiz,
+                                              CoreSurface          *surface );
+DFBResult IDirectFBEventBuffer_DetachSurface( IDirectFBEventBuffer *thiz,
+                                              CoreSurface          *surface );
 #endif
 
 

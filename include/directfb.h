@@ -4725,6 +4725,35 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface              *thiz,
           const char                    *executable
      );
+
+
+  /** Event buffers **/
+
+     /*
+      * Create an event buffer for this surface and attach it.
+      */
+     DFBResult (*CreateEventBuffer) (
+          IDirectFBSurface             *thiz,
+          IDirectFBEventBuffer        **ret_buffer
+     );
+
+     /*
+      * Attach an existing event buffer to this surface.
+      *
+      * NOTE: Attaching multiple times generates multiple events.
+      */
+     DFBResult (*AttachEventBuffer) (
+          IDirectFBSurface             *thiz,
+          IDirectFBEventBuffer         *buffer
+     );
+
+     /*
+      * Detach an event buffer from this surface.
+      */
+     DFBResult (*DetachEventBuffer) (
+          IDirectFBSurface             *thiz,
+          IDirectFBEventBuffer         *buffer
+     );
 )
 
 
@@ -5097,7 +5126,8 @@ typedef enum {
      DFEC_WINDOW         = 0x02,   /* windowing event */
      DFEC_USER           = 0x03,   /* custom event for the user of this library */
      DFEC_UNIVERSAL      = 0x04,   /* universal event for custom usage with variable size */
-     DFEC_VIDEOPROVIDER  = 0x05    /* video provider event */
+     DFEC_VIDEOPROVIDER  = 0x05,   /* video provider event */
+     DFEC_SURFACE        = 0x06,   /* surface event */
 } DFBEventClass;
 
 /*
@@ -5280,6 +5310,16 @@ typedef enum {
 } DFBVideoProviderEventType;
 
 /*
+ * Surface Event Types - can also be used as flags for event filters.
+ */
+typedef enum {
+     DSEVT_NONE           = 0x00000000,
+     DSEVT_DESTROYED      = 0x00000001,  /* surface got destroyed by global deinitialization function or the application itself */
+     DSEVT_UPDATE         = 0x00000002,  /*  */
+     DSEVT_ALL            = 0x00000003   /* All event types */
+} DFBSurfaceEventType;
+
+/*
  * Event from the windowing system.
  */
 typedef struct {
@@ -5362,6 +5402,19 @@ typedef struct {
 } DFBVideoProviderEvent;
 
 /*
+ * Event from surface
+ */
+typedef struct {
+     DFBEventClass                    clazz;      /* clazz of event */
+
+     DFBSurfaceEventType              type;       /* type of event */
+
+     DFBSurfaceID                     surface_id; /* source of event */
+     DFBRegion                        update;
+     DFBRegion                        update_right;
+} DFBSurfaceEvent;
+
+/*
  * Event for usage by the user of this library.
  */
 typedef struct {
@@ -5393,6 +5446,7 @@ typedef union {
      DFBUserEvent                    user;          /* field for user-defined events */
      DFBUniversalEvent               universal;     /* field for universal events */
      DFBVideoProviderEvent           videoprovider; /* field for video provider */
+     DFBSurfaceEvent                 surface;       /* field for surface events */
 } DFBEvent;
 
 #define DFB_EVENT(e)          ((DFBEvent *) (e))

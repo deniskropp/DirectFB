@@ -210,6 +210,8 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                     dfb_back_to_front_copy( data->base.surface, &reg );
           }
 
+          dfb_surface_dispatch_update( data->base.surface, &reg, &reg );
+
           ret = CoreWindow_Repaint( data->window, &reg, &reg, flags );
           if (ret)
               return ret;
@@ -331,6 +333,8 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                     }
                }
           }
+
+          dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg );
 
           CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags );
      }

@@ -68,6 +68,12 @@ typedef struct {
 
 
 typedef enum {
+     CSCH_NOTIFICATION,
+     CSCH_EVENT,
+} CoreSurfaceChannel;
+
+
+typedef enum {
      CSCONF_NONE         = 0x00000000,
 
      CSCONF_SIZE         = 0x00000001,
@@ -278,6 +284,13 @@ DFBResult dfb_surface_notify_display( CoreSurface                  *surface,
 
 DFBResult dfb_surface_flip          ( CoreSurface                  *surface,
                                       bool                          swap );
+
+DFBResult dfb_surface_dispatch_event( CoreSurface                  *surface,
+                                      DFBSurfaceEventType           type );
+
+DFBResult dfb_surface_dispatch_update( CoreSurface                  *surface,
+                                       const DFBRegion              *update,
+                                       const DFBRegion              *update_right );
 
 DFBResult dfb_surface_reconfig      ( CoreSurface                  *surface,
                                       const CoreSurfaceConfig      *config );

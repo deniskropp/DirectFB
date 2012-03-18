@@ -59,6 +59,8 @@
 #include <display/idirectfbsurface.h>
 #include <display/idirectfbpalette.h>
 
+#include <input/idirectfbinputbuffer.h>
+
 #include <misc/util.h>
 
 #include <direct/debug.h>
@@ -677,9 +679,6 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     if (!(surface->config.caps & DSCAPS_FLIPPING))
-          return DFB_UNSUPPORTED;
-
      if (!data->area.current.w || !data->area.current.h ||
          (region && (region->x1 > region->x2 || region->y1 > region->y2)))
           return DFB_INVAREA;
@@ -713,13 +712,17 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsState_Flush( data->state_client.gfx_state );
 
-     if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
-         reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
-     {
-          ret = CoreSurface_Flip( data->surface, false );
+     if (surface->config.caps & DSCAPS_FLIPPING) {
+          if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
+              reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
+          {
+               ret = CoreSurface_Flip( data->surface, false );
+          }
+          else
+               dfb_back_to_front_copy( data->surface, &reg );    // FIXME secure-fusion
      }
-     else
-          dfb_back_to_front_copy( data->surface, &reg );    // FIXME secure-fusion
+
+     dfb_surface_dispatch_update( data->surface, &reg, &reg );
 
      return ret;
 }
@@ -3002,6 +3005,8 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
           }
      }
 
+     dfb_surface_dispatch_update( data->surface, &l_reg, &r_reg );
+
      return DFB_OK;
 }
 
@@ -3168,6 +3173,57 @@ IDirectFBSurface_AllowAccess( IDirectFBSurface *thiz,
           return DFB_DESTROYED;
 
      return CoreDFB_AllowSurface( data->core, data->surface, executable, strlen(executable)+1 );
+}
+
+static DFBResult
+IDirectFBSurface_CreateEventBuffer( IDirectFBSurface      *thiz,
+                                    IDirectFBEventBuffer **ret_buffer )
+{
+     IDirectFBEventBuffer *buffer;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s()\n", __FUNCTION__ );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     DIRECT_ALLOCATE_INTERFACE( buffer, IDirectFBEventBuffer );
+
+     IDirectFBEventBuffer_Construct( buffer, NULL, NULL );
+
+     IDirectFBEventBuffer_AttachSurface( buffer, data->surface );
+
+     *ret_buffer = buffer;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_AttachEventBuffer( IDirectFBSurface     *thiz,
+                                    IDirectFBEventBuffer *buffer )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s()\n", __FUNCTION__ );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     IDirectFBEventBuffer_AttachSurface( buffer, data->surface );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_DetachEventBuffer( IDirectFBSurface     *thiz,
+                                    IDirectFBEventBuffer *buffer )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s()\n", __FUNCTION__ );
+
+     return IDirectFBEventBuffer_DetachSurface( buffer, data->surface );
 }
 
 /******/
@@ -3366,6 +3422,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->GetID       = IDirectFBSurface_GetID;
      thiz->AllowAccess = IDirectFBSurface_AllowAccess;
+
+     thiz->CreateEventBuffer = IDirectFBSurface_CreateEventBuffer;
+     thiz->AttachEventBuffer = IDirectFBSurface_AttachEventBuffer;
+     thiz->DetachEventBuffer = IDirectFBSurface_DetachEventBuffer;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

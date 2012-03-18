@@ -82,6 +82,8 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      /* announce surface destruction */
      dfb_surface_notify( surface, CSNF_DESTROY );
 
+     dfb_surface_dispatch_event( surface, DSEVT_DESTROYED );
+
      /* unlink palette */
      if (surface->palette) {
           dfb_palette_detach_global( surface->palette, &surface->palette_reaction );
@@ -494,6 +496,57 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
      dfb_surface_notify( surface, CSNF_FLIP );
 
      return DFB_OK;
+}
+
+DFBResult
+dfb_surface_dispatch_event( CoreSurface         *surface,
+                            DFBSurfaceEventType  type )
+{
+     DFBSurfaceEvent event;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     event.clazz      = DFEC_SURFACE;
+     event.type       = type;
+     event.surface_id = surface->object.id;
+
+     return dfb_surface_dispatch_channel( surface, CSCH_EVENT, &event, sizeof(DFBSurfaceEvent), NULL );
+}
+
+DFBResult
+dfb_surface_dispatch_update( CoreSurface     *surface,
+                             const DFBRegion *update,
+                             const DFBRegion *update_right )
+{
+     DFBSurfaceEvent event;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     event.clazz      = DFEC_SURFACE;
+     event.type       = DSEVT_UPDATE;
+     event.surface_id = surface->object.id;
+
+     if (update) {
+          event.update = *update;
+     }
+     else {
+          event.update.x1 = 0;
+          event.update.y1 = 0;
+          event.update.x2 = surface->config.size.w - 1;
+          event.update.y2 = surface->config.size.h - 1;
+     }
+
+     if (update_right) {
+          event.update_right = *update_right;
+     }
+     else {
+          event.update_right.x1 = 0;
+          event.update_right.y1 = 0;
+          event.update_right.x2 = surface->config.size.w - 1;
+          event.update_right.y2 = surface->config.size.h - 1;
+     }
+
+     return dfb_surface_dispatch_channel( surface, CSCH_EVENT, &event, sizeof(DFBSurfaceEvent), NULL );
 }
 
 DFBResult

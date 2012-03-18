@@ -94,6 +94,13 @@ typedef struct {
      CoreWindow  *window;       /* pointer to core window struct */
      Reaction     reaction;
 } AttachedWindow;
+
+typedef struct {
+     DirectLink   link;
+
+     CoreSurface *surface;      /* pointer to core window struct */
+     Reaction     reaction;
+} AttachedSurface;
 #endif
 
 /*
@@ -108,6 +115,7 @@ typedef struct {
      DirectLink                   *devices;        /* attached devices */
 
      DirectLink                   *windows;        /* attached windows */
+     DirectLink                   *surfaces;       /* attached surfaces */
 
      DirectLink                   *events;         /* linked list containing events */
 
@@ -136,6 +144,9 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
 
 static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
                                                         void       *ctx );
+
+static ReactionResult IDirectFBEventBuffer_SurfaceReact( const void *msg_data,
+                                                         void       *ctx );
 #endif
 
 #ifndef WIN32
@@ -385,6 +396,10 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
                direct_memcpy( event, &item->evt, item->evt.universal.size );
                break;
 
+          case DFEC_SURFACE:
+               event->surface = item->evt.surface;
+               break;
+
           default:
                D_BUG("unknown event class");
      }
@@ -446,6 +461,10 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
                direct_memcpy( event, &item->evt, item->evt.universal.size );
                break;
 
+          case DFEC_SURFACE:
+               event->surface = item->evt.surface;
+               break;
+
           default:
                D_BUG("unknown event class");
      }
@@ -487,6 +506,7 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
           case DFEC_WINDOW:
           case DFEC_USER:
           case DFEC_VIDEOPROVIDER:
+          case DFEC_SURFACE:
                size = sizeof(EventBufferItem);
                break;
 
@@ -528,6 +548,10 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
 
           case DFEC_UNIVERSAL:
                direct_memcpy( &item->evt, event, event->universal.size );
+               break;
+
+          case DFEC_SURFACE:
+               item->evt.surface = event->surface;
                break;
 
           default:
@@ -816,6 +840,60 @@ DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
 
      return DFB_OK;
 }
+
+DFBResult IDirectFBEventBuffer_AttachSurface( IDirectFBEventBuffer *thiz,
+                                              CoreSurface          *surface )
+{
+     AttachedSurface *attached;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_ASSERT( surface != NULL );
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02u - %dx%d] )\n", __FUNCTION__, thiz,
+                 surface, surface->object.id, surface->config.size.w, surface->config.size.h );
+
+     attached = D_CALLOC( 1, sizeof(AttachedSurface) );
+     attached->surface = surface;
+
+     dfb_surface_ref( surface );
+
+     direct_list_prepend( &data->surfaces, &attached->link );
+
+     dfb_surface_attach_channel( surface, CSCH_EVENT, IDirectFBEventBuffer_SurfaceReact,
+                                 data, &attached->reaction );
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBEventBuffer_DetachSurface( IDirectFBEventBuffer *thiz,
+                                              CoreSurface          *surface )
+{
+     AttachedSurface *attached;
+     DirectLink      *link;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     D_ASSERT( surface != NULL );
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [%02u - %dx%d] )\n", __FUNCTION__, thiz,
+                 surface, surface->object.id, surface->config.size.w, surface->config.size.h );
+
+     direct_list_foreach_safe (attached, link, data->surfaces) {
+          if (!attached->surface || attached->surface == surface) {
+               direct_list_remove( &data->surfaces, &attached->link );
+
+               if (attached->surface) {
+                    dfb_surface_detach( attached->surface, &attached->reaction );
+                    dfb_surface_unref( attached->surface );
+               }
+
+               D_FREE( attached );
+          }
+     }
+
+     return DFB_OK;
+}
 #endif
 
 /* file internals */
@@ -898,6 +976,43 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
                        after we return RS_REMOVE */
                     dfb_window_unref( window->window );
                     window->window = NULL;
+               }
+          }
+
+          return RS_REMOVE;
+     }
+
+     return RS_OK;
+}
+
+static ReactionResult IDirectFBEventBuffer_SurfaceReact( const void *msg_data,
+                                                         void       *ctx )
+{
+     const DFBSurfaceEvent     *evt  = msg_data;
+     IDirectFBEventBuffer_data *data = ctx;
+     EventBufferItem           *item;
+
+     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p ) <- type %06x\n", __FUNCTION__, evt, data, evt->type );
+
+     item = D_CALLOC( 1, sizeof(EventBufferItem) );
+
+     item->evt.surface = *evt;
+     item->evt.clazz   = DFEC_SURFACE;
+
+     IDirectFBEventBuffer_AddItem( data, item );
+
+     if (evt->type == DSEVT_DESTROYED) {
+          AttachedSurface *surface;
+
+          direct_list_foreach (surface, data->surfaces) {
+               if (!surface->surface)
+                    continue;
+
+               if (surface->surface->object.id == evt->surface_id) {
+                    /* FIXME: free memory later, because reactor writes to it
+                       after we return RS_REMOVE */
+                    dfb_surface_unref( surface->surface );
+                    surface->surface = NULL;
                }
           }
 

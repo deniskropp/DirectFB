@@ -94,6 +94,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
                              const DFBRegion     *region,
                              DFBSurfaceFlipFlags  flags )
 {
+     DFBResult ret;
      DFBRegion reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
@@ -143,7 +144,13 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsState_Flush( data->base.state_client.gfx_state );
 
-     return CoreLayerRegion_FlipUpdate( data->region, &reg, flags );
+     ret = CoreLayerRegion_FlipUpdate( data->region, &reg, flags );
+     if (ret)
+          return ret;
+
+     dfb_surface_dispatch_update( data->base.surface, &reg, &reg );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -152,6 +159,7 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
                                    const DFBRegion     *right_region,
                                    DFBSurfaceFlipFlags  flags )
 {
+     DFBResult ret;
      DFBRegion l_reg, r_reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
@@ -211,7 +219,13 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
 
      CoreGraphicsState_Flush( data->base.state_client.gfx_state );
 
-     return CoreLayerRegion_FlipUpdateStereo( data->region, &l_reg, &r_reg, flags );
+     ret = CoreLayerRegion_FlipUpdateStereo( data->region, &l_reg, &r_reg, flags );
+     if (ret)
+          return ret;
+
+     dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg );
+
+     return DFB_OK;
 }
 
 static DFBResult
