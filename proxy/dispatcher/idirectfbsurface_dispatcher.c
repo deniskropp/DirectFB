@@ -1523,7 +1523,7 @@ Dispatch_MakeSubSurface( IDirectFBSurface *thiz, IDirectFBSurface *real,
      if (ret)
           return ret;
 
-     ret = real->MakeSubSurface( real, real, rect );
+     ret = real->MakeSubSurface( real, surface, rect );
      if (ret)
           return ret;
 
