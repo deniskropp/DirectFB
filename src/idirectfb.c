@@ -1638,6 +1638,35 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
      return ret;
 }
 
+static DFBResult
+IDirectFB_GetSurface( IDirectFB         *thiz,
+                      DFBSurfaceID       surface_id,
+                      IDirectFBSurface **ret_interface )
+{
+     DFBResult         ret;
+     CoreSurface      *surface;
+     IDirectFBSurface *iface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
+
+     D_DEBUG_AT( IDFB, "%s( %p, %u )\n", __FUNCTION__, thiz, surface_id );
+
+     ret = CoreDFB_GetSurface( data->core, surface_id, &surface );
+     if (ret)
+          return ret;
+
+     DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
+
+     ret = IDirectFBSurface_Construct( iface, NULL, NULL, NULL, NULL, surface, surface->config.caps, data->core, thiz );
+
+     dfb_surface_unref( surface );
+
+     if (!ret)
+          *ret_interface = iface;
+
+     return ret;
+}
+
 static void
 LoadBackgroundImage( IDirectFB       *dfb,
                      CoreWindowStack *stack,
@@ -1947,6 +1976,7 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      thiz->WaitIdle = IDirectFB_WaitIdle;
      thiz->WaitForSync = IDirectFB_WaitForSync;
      thiz->GetInterface = IDirectFB_GetInterface;
+     thiz->GetSurface = IDirectFB_GetSurface;
 
      return DFB_OK;
 }

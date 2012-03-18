@@ -2216,6 +2216,18 @@ D_DEFINE_INTERFACE(   IDirectFB,
           void                     *arg,
           void                    **ret_interface
      );
+
+
+   /** Surfaces **/
+
+     /*
+      * Get a surface by ID.
+      */
+     DFBResult (*GetSurface) (
+          IDirectFB                *thiz,
+          DFBSurfaceID              surface_id,
+          IDirectFBSurface        **ret_interface
+     );
 )
 
 /* predefined layer ids */
