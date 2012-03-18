@@ -405,7 +405,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                  reactor, reactor->id, msg_data, self ? "true" : "false", globals );
 
      /* Handle global reactions first. */
-     if (reactor->globals) {
+     if (channel == 0 && reactor->globals) {
           if (globals)
                process_globals( reactor, msg_data, globals );
           else
