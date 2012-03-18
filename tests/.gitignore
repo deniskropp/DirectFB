@@ -16,6 +16,7 @@ dfbtest_resize
 dfbtest_scale
 dfbtest_scale_nv21
 dfbtest_stereo_window
+dfbtest_surface_updates
 dfbtest_sync
 dfbtest_water
 dfbtest_window
