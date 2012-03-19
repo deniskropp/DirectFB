@@ -71,6 +71,7 @@ bin_PROGRAMS = \
 	dfbtest_scale	\
 	dfbtest_scale_nv21	\
 	dfbtest_stereo_window	\
+	dfbtest_surface_compositor	\
 	dfbtest_surface_updates	\
 	dfbtest_sync	\
 	dfbtest_water	\
@@ -159,6 +160,9 @@ dfbtest_scale_nv21_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) 
 
 dfbtest_stereo_window_SOURCES = dfbtest_stereo_window.c
 dfbtest_stereo_window_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_surface_compositor_SOURCES = dfbtest_surface_compositor.c
+dfbtest_surface_compositor_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_surface_updates_SOURCES = dfbtest_surface_updates.c
 dfbtest_surface_updates_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
