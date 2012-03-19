@@ -534,12 +534,13 @@ CoreSurface_Throw( CoreSurface *surface,
      *ret_object_id = surface->object.id;
 
      fusion_reactor_add_permissions( surface->object.reactor, catcher,
-                                     (FusionReactorPermissions)(FUSION_REACTOR_PERMIT_ATTACH_DETACH) );
+                                     (FusionReactorPermissions)(FUSION_REACTOR_PERMIT_ATTACH_DETACH |
+                                                                FUSION_REACTOR_PERMIT_DISPATCH) );
      fusion_ref_add_permissions( &surface->object.ref, catcher,
                                  (FusionRefPermissions)(FUSION_REF_PERMIT_REF_UNREF_LOCAL | FUSION_REF_PERMIT_CATCH) );
      fusion_call_add_permissions( &surface->call, catcher, FUSION_CALL_PERMIT_EXECUTE );
 
-     if (!surface->object.owner && !(surface->type & CSTF_LAYER))
+     if (!surface->object.owner && !(surface->type & CSTF_LAYER) && !(surface->config.caps & DSCAPS_SHARED))
           surface->object.owner = catcher;
 
      return fusion_ref_throw( &surface->object.ref, catcher );
