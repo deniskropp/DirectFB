@@ -1378,7 +1378,7 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
 
                          if (rects[real_num].w > card->limits.dst_max.w ||
                              rects[real_num].h > card->limits.dst_max.h) {
-                              if (!dfb_clip_rectangle( &state->clip, &rects[real_num]))
+                              if (!dfb_clip_rectangle( &state->clip, &rects[real_num] ))
                                    continue;
 
                               if (rects[real_num].w > card->limits.dst_max.w ||
