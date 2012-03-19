@@ -698,8 +698,15 @@ fusion_object_has_access( FusionObject *object,
      D_DEBUG_AT( Fusion_Object, "%s( %p, '%s' )\n", __FUNCTION__, object, executable );
 
      fusion_vector_foreach (access, index, object->access) {
-          if (!strcmp( access, executable ))
-               return DR_OK;
+          int len = strlen( access );
+
+          if (access[len-1] == '*') {
+               if (!strncmp( access, executable, len-1 ))
+                    return DR_OK;
+          }
+          else
+               if (!strcmp( access, executable ))
+                    return DR_OK;
      }
 
      return DR_ACCESSDENIED;
