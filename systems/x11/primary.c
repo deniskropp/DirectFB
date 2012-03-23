@@ -410,7 +410,7 @@ primaryInitLayer( CoreLayer                  *layer,
      }
 
      /* set capabilities and type */
-     description->caps = DLCAPS_SURFACE | DLCAPS_STEREO;
+     description->caps = DLCAPS_SURFACE | DLCAPS_LR_MONO | DLCAPS_STEREO;
      description->type = DLTF_GRAPHICS;
 
      /* set name */
@@ -514,7 +514,7 @@ primaryTestRegion( CoreLayer                  *layer,
                break;
      }
 
-     if (config->options & ~(DLOP_ALPHACHANNEL | DLOP_STEREO))
+     if (config->options & ~(DLOP_ALPHACHANNEL | DLOP_LR_MONO | DLOP_STEREO))
           fail |= CLRCF_OPTIONS;
 
      if (failed)
@@ -567,6 +567,16 @@ primarySetRegion( CoreLayer                  *layer,
      if (palette)
           dfb_x11_set_palette( x11, lds, palette );
 
+     return DFB_OK;
+}
+
+static DFBResult
+primarySetStereoDepth( CoreLayer              *layer,
+                       void                   *driver_data,
+                       void                   *layer_data,
+                       bool                    follow_video,
+                       int                     z )
+{
      return DFB_OK;
 }
 
@@ -658,6 +668,7 @@ static DisplayLayerFuncs primaryLayerFuncs = {
      .TestRegion     = primaryTestRegion,
      .AddRegion      = primaryAddRegion,
      .SetRegion      = primarySetRegion,
+     .SetStereoDepth = primarySetStereoDepth,
      .RemoveRegion   = primaryRemoveRegion,
      .FlipRegion     = primaryFlipRegion,
      .UpdateRegion   = primaryUpdateRegion,

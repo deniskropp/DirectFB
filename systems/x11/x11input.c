@@ -491,7 +491,15 @@ handle_expose( const XExposeEvent *expose )
 
                /* Get the surface of the region. */
                if (region->surface) {
+                    DFBSurfaceStereoEye eye = dfb_surface_get_stereo_eye( region->surface );
+
+                    dfb_surface_set_stereo_eye( region->surface, DSSE_LEFT );
                     dfb_surface_lock_buffer( region->surface, CSBR_FRONT, region->surface_accessor, CSAF_READ, &region->left_buffer_lock );
+
+                    if (region->surface->config.caps & DSCAPS_STEREO) {
+                         dfb_surface_set_stereo_eye( region->surface, DSSE_RIGHT );
+                         dfb_surface_lock_buffer( region->surface, CSBR_FRONT, region->surface_accessor, CSAF_READ, &region->right_buffer_lock );
+                    }
 
                     if (region->left_buffer_lock.buffer) {
                          DFBRegion update = { expose->x, expose->y,
@@ -499,10 +507,19 @@ handle_expose( const XExposeEvent *expose )
                                               expose->y + expose->height - 1 };
 
                          funcs->UpdateRegion( layer, layer->driver_data, layer->layer_data,
-                                              region->region_data, region->surface, &update, &region->left_buffer_lock, NULL, NULL );
+                                              region->region_data, region->surface, &update,
+                                              &region->left_buffer_lock, &update, &region->right_buffer_lock );
                     }
 
+                    dfb_surface_set_stereo_eye( region->surface, DSSE_LEFT );
                     dfb_surface_unlock_buffer(region->surface, &region->left_buffer_lock );
+
+                    if (region->surface->config.caps & DSCAPS_STEREO) {
+                         dfb_surface_set_stereo_eye( region->surface, DSSE_RIGHT );
+                         dfb_surface_unlock_buffer(region->surface, &region->right_buffer_lock );
+                    }
+
+                    dfb_surface_set_stereo_eye( region->surface, eye );
                }
 
                /* Unlock the region. */
