@@ -2472,7 +2472,8 @@ typedef enum {
     DSOR_1600_1200 = 0x00000800, /* 1600x1200 Resolution */
     DSOR_1920_1080 = 0x00001000, /* 1920x1080 Resolution */
     DSOR_960_540   = 0x00002000, /* 960x540 Resolution */
-    DSOR_ALL       = 0x00003FFF  /* All Resolution */
+    DSOR_1440_540  = 0x00004000, /* 1440x540 Resolution */
+    DSOR_ALL       = 0x00007FFF  /* All Resolution */
 } DFBScreenOutputResolution;
 
 
