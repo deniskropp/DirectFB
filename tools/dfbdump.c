@@ -267,7 +267,7 @@ static DFBEnumerationResult
 alloc_callback( CoreSurfaceAllocation *alloc,
                 void                  *ctx )
 {
-     int                i, index;
+     int                i;
      CoreSurface       *surface;
      CoreSurfaceBuffer *buffer;
 
@@ -287,8 +287,6 @@ alloc_callback( CoreSurfaceAllocation *alloc,
           if (surface->config.format == format_names[i].format)
                printf( "%8s ", format_names[i].name );
      }
-
-     index = dfb_surface_buffer_index( alloc->buffer );
 
      printf( " %-5s ",
              (dfb_surface_get_buffer( surface, CSBR_FRONT ) == buffer) ? "front" :

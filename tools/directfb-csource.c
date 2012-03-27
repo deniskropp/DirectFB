@@ -455,7 +455,7 @@ static DFBResult load_image (const char            *filename,
 
      data  = malloc (height * pitch);
      if (!data) {
-          fprintf (stderr, "Failed to allocate %ld bytes.\n", height * pitch);
+          fprintf (stderr, "Failed to allocate %u bytes.\n", height * pitch);
           goto cleanup;
      }
 
@@ -500,7 +500,7 @@ static DFBResult load_image (const char            *filename,
 
           dest = malloc (height * d_pitch);
           if (!dest) {
-               fprintf (stderr, "Failed to allocate %ld bytes.\n",
+               fprintf (stderr, "Failed to allocate %u bytes.\n",
                         height * d_pitch);
                goto cleanup;
           }
