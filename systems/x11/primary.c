@@ -218,7 +218,7 @@ primaryInitEncoder( CoreScreen                  *screen,
      description->all_resolutions = DSOR_640_480  | DSOR_720_480   | DSOR_720_576   | DSOR_800_600 |
                                     DSOR_1024_768 | DSOR_1152_864  | DSOR_1280_720  | DSOR_1280_768 |
                                     DSOR_1280_960 | DSOR_1280_1024 | DSOR_1400_1050 | DSOR_1600_1200 |
-                                    DSOR_1920_1080 | DSOR_960_540;
+                                    DSOR_1920_1080 | DSOR_960_540 | DSOR_1440_540;
 
      config->flags          = DSECONF_TV_STANDARD | DSECONF_SCANMODE   | DSECONF_FREQUENCY |
                               DSECONF_CONNECTORS  | DSECONF_RESOLUTION | DSECONF_FRAMING;
