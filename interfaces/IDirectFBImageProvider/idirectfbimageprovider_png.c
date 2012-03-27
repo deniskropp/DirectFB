@@ -270,15 +270,12 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      CoreSurface           *dst_surface;
      DFBRegion              clip;
      DFBRectangle           rect;
-     png_infop              info;
      int                    x, y;
      DFBRectangle           clipped;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      D_DEBUG_AT( imageProviderPNG, "%s(%d)\n", __FUNCTION__, __LINE__ );
-
-     info = data->info_ptr;
 
      dst_data = (IDirectFBSurface_data*) destination->priv;
      if (!dst_data)
