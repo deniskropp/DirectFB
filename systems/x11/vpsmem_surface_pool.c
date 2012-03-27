@@ -239,6 +239,7 @@ vpsmemTestConfig( CoreSurfacePool         *pool,
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
+     D_UNUSED_P( surface );
 
      ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, NULL, NULL );
 
@@ -343,6 +344,7 @@ vpsmemMuckOut( CoreSurfacePool   *pool,
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
+     D_UNUSED_P( surface );
 
      return dfb_surfacemanager_displace( local->core, data->manager, buffer );
 }
