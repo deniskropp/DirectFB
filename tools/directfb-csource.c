@@ -407,10 +407,10 @@ static DFBResult load_image (const char            *filename,
      switch (src_format) {
           case DSPF_LUT8:
           {
-               png_colorp *info_palette;
+               png_colorp info_palette;
                int num_palette;
 
-               png_get_PLTE(png_ptr,info_ptr,info_palette,&num_palette);
+               png_get_PLTE(png_ptr,info_ptr,&info_palette,&num_palette);
 
                if (num_palette) {
                     png_byte *alpha;
@@ -419,9 +419,9 @@ static DFBResult load_image (const char            *filename,
                     *palette_size = MIN (num_palette, 256);
                     for (i = 0; i < *palette_size; i++) {
                          palette[i].a = 0xFF;
-                         palette[i].r = info_palette[i]->red;
-                         palette[i].g = info_palette[i]->green;
-                         palette[i].b = info_palette[i]->blue;
+                         palette[i].r = info_palette[i].red;
+                         palette[i].g = info_palette[i].green;
+                         palette[i].b = info_palette[i].blue;
                     }
                     if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS)) {
                          png_get_tRNS (png_ptr, info_ptr, &alpha, &num, NULL);
