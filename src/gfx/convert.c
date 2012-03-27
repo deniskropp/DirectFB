@@ -251,14 +251,11 @@ dfb_pixel_from_color( DFBSurfacePixelFormat  format,
                RGB_TO_YCBCR( color->r, color->g, color->b, y, cb, cr );
                return y << 16 | (cb << 8) | cr;
 
-          case DSPF_LUT8:
-          case DSPF_ALUT44:
-          case DSPF_LUT2:
-               D_ONCE("Palette format, returning bogus.");
-               break;
-
           default:
-               D_WARN( "unknown format 0x%08x", format );
+               if (DFB_PIXELFORMAT_IS_INDEXED( format ))
+                    D_ONCE( "Palette format, returning bogus." );
+               else
+                    D_WARN( "unknown format 0x%08x", format );
      }
 
      return 0x55555555;
