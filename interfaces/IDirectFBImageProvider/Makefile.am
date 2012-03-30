@@ -86,8 +86,8 @@ idirectfbimageprovider_DATA = $(idirectfbimageprovider_LTLIBRARIES:.la=.o)
 endif
 
 
-libdirect := $(top_builddir)/lib/direct/libdirect.la
-libdirectfb := $(top_builddir)/src/libdirectfb.la
+libdirect = $(top_builddir)/lib/direct/libdirect.la
+libdirectfb = $(top_builddir)/src/libdirectfb.la
 
 
 libidirectfbimageprovider_png_la_SOURCES = idirectfbimageprovider_png.c
