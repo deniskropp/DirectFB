@@ -464,7 +464,7 @@ dump_encoders( IDirectFBScreen *screen,
                printf( "\n" );
           }
 
-          /* Output connectors */
+          /* Picture Framing */
           if (descs[i].caps & DSECAPS_FRAMING) {
                printf( "     Framing:        " );
 
