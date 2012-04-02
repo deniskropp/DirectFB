@@ -445,6 +445,10 @@ $(DFBINC)/directfb_strings.h: $(DFBINC)/directfb.h $(MKNAMES) Makefile
 	$(MKNAMES) DFBAccelerationMask DFXL NONE AccelerationMask mask $(DFBINC)/directfb.h \
 	   | grep -v DFXL_ALL >> $@
 
+	$(MKNAMES) DFBScreenEncoderPictureFraming DSEPF UNKNOWN ScreenEncoderPictureFraming framing $(DFBINC)/directfb.h \
+	   | grep -v DSEPF_ALL >> $@
+
+
 	@echo '' >> $@
 	@echo '#endif' >> $@
 
