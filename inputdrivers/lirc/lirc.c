@@ -242,8 +242,15 @@ driver_get_available( void )
           return 0;
 
      if (connect( fd, (struct sockaddr*)&addr, sizeof(addr) ) < 0) {
-          close( fd );
-          return 0;
+          /*
+           *  for LIRC version >= 0.8.6 the Unix socket is no more created
+           *  under /dev/lircd but under /var/run/lirc/lircd
+           */
+          direct_snputs( addr.sun_path, "/var/run/lirc/lircd", sizeof(addr.sun_path) );
+          if (connect( fd, (struct sockaddr*)&addr, sizeof(addr) ) < 0) {
+               close( fd );
+               return 0;
+          }
      }
 
      close( fd );
@@ -287,9 +294,16 @@ driver_open_device( CoreInputDevice      *device,
 
      /* initiate connection */
      if (connect( fd, (struct sockaddr*)&sa, sizeof(sa) ) < 0) {
-          D_PERROR( "DirectFB/LIRC: connect" );
-          close( fd );
-          return DFB_INIT;
+          /*
+           * try "/var/run/lirc/lircd"
+           */
+          direct_snputs( sa.sun_path, "/var/run/lirc/lircd", sizeof(sa.sun_path) );
+
+          if (connect( fd, (struct sockaddr*)&sa, sizeof(sa) ) < 0) {
+               D_PERROR( "DirectFB/LIRC: connect" );
+               close( fd );
+               return DFB_INIT;
+          }
      }
 
      /* fill driver info structure */

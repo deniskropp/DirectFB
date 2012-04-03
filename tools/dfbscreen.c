@@ -49,6 +49,7 @@ static const DirectFBScreenEncoderScanModeNames( scan_mode_names );
 static const DirectFBScreenEncoderTestPictureNames( test_picture_names );
 static const DirectFBScreenEncoderTVStandardsNames( tv_standard_names );
 static const DirectFBScreenEncoderFrequencyNames( frequency_names );
+static const DirectFBScreenEncoderPictureFramingNames( framing_names );
 static const DirectFBScreenOutputSignalsNames( signal_names );
 static const DirectFBScreenOutputResolutionNames( resolution_names );
 
@@ -303,6 +304,10 @@ static const AnyOption options[] = {
      { "-ef", "--frequency",    "<frequency>", "Set frequency",
        &encoder_config.frequency, &encoder_config.flags,
        DSECONF_FREQUENCY, parse_enum, frequency_names },
+
+     { "-ea", "--framing",    "<framing>", "Set picture framing",
+       &encoder_config.framing, &encoder_config.flags,
+       DSECONF_FRAMING, parse_enum, framing_names },
 
 
      { "-o",  "--output",       "<index>",    "Index of output to use",
@@ -653,6 +658,19 @@ frequency_name( DFBScreenEncoderFrequency frequency )
      return "<invalid>";
 }
 
+static const char *
+framing_name( DFBScreenEncoderPictureFraming framing )
+{
+     int i;
+
+     for (i=0; i<D_ARRAY_SIZE(framing_names); i++) {
+          if (framing_names[i].framing == framing)
+               return framing_names[i].name;
+     }
+
+     return "<invalid>";
+}
+
 static void
 dump_encoder_config( const DFBScreenEncoderConfig *config )
 {
@@ -696,6 +714,9 @@ dump_encoder_config( const DFBScreenEncoderConfig *config )
 
      if (config->flags & DSECONF_FREQUENCY)
           printf( "Frequency:     %s\n", frequency_name( config->frequency ) );
+
+     if (config->flags & DSECONF_FRAMING)
+          printf( "Framing:       %s\n", framing_name( config->framing ) );
 
      printf( "\n" );
 }

@@ -204,7 +204,7 @@ case "$target_or_host" in
     have_x86=yes
     AC_DEFINE(ARCH_X86,1,[Define to 1 if you are compiling for ix86.])
     ;;
-    
+
   x86_64-*)
     have_x86=yes
     have_x86_64=yes
@@ -290,7 +290,7 @@ case "$target_or_host" in
 	want_armasm=yes
     CPPFLAGS="$CPPFLAGS -I/usr/pkg/include"
     LDFLAGS="$LDFLAGS -L/usr/pkg/lib"
-    ;;    
+    ;;
 
   *-darwin*)
     need_libc_r=no
@@ -310,7 +310,7 @@ case "$target_or_host" in
     ;;
 esac
 
-AM_CONDITIONAL(HAVE_LINUX, test "$have_linux" = "yes")    
+AM_CONDITIONAL(HAVE_LINUX, test "$have_linux" = "yes")
 
 AM_CONDITIONAL(BUILDPPCASM, test "$have_ppc" = "yes" && test "$want_ppcasm" = "yes")
 
@@ -403,7 +403,7 @@ if test "$have_x86" = "yes"; then
   AC_DEFINE(HAVE_INB_OUTB_IOPL,1,
             [Define to 1 if inb, outb and iopl are available.])
   AC_MSG_CHECKING([for sys/io.h])
-  AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0); (void)x;], 
+  AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0); (void)x;],
     AC_DEFINE(HAVE_SYSIO,1,
               [Define to 1 if you have the <sys/io.h> header file.])
     have_sysio=yes
@@ -545,7 +545,7 @@ fi
 AC_SUBST(DIRECT_BUILD_MULTICORE)
 
 
-DIRECT_BUILD_OSTYPE=DIRECT_OS_LINUX_GNU_LIBC  
+DIRECT_BUILD_OSTYPE=DIRECT_OS_LINUX_GNU_LIBC
 AC_SUBST(DIRECT_BUILD_OSTYPE)
 
 
@@ -814,7 +814,7 @@ if test "$enable_vnc" = "yes"; then
     VNC_LIBS=`$VNC_CONFIG --libs`
   fi
 fi
-                                                                     
+
 AM_CONDITIONAL(VNC_CORE, test "$enable_vnc" = "yes")
 AC_SUBST(VNC_LIBS)
 AC_SUBST(VNC_CFLAGS)
@@ -1003,7 +1003,7 @@ AC_ARG_ENABLE(gif,
               AC_HELP_STRING([--enable-gif],
                              [build GIF image/video provider @<:@default=yes@:>@]),
               [], [enable_gif=yes])
- 
+
 AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
 
 
@@ -1243,7 +1243,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_vmware=no
 
   AC_MSG_RESULT(all)
-else 
+else
   if test "$gfxdrivers" != "none"; then
     gfxdrivers=`echo $gfxdrivers | sed 's/,/ /g'`
     for gfxdriver in $gfxdrivers
@@ -1526,7 +1526,7 @@ if test "$inputdrivers" = "all"; then
   checkfor_ucb1x00="$have_arm"
   checkfor_wm97xx=yes
   AC_MSG_RESULT(all)
-else 
+else
   if test "$inputdrivers" != "none"; then
     inputdrivers=`echo $inputdrivers | sed 's/,/ /g'`
     for inputdriver in $inputdrivers
@@ -1637,7 +1637,7 @@ fi
 enable_h3600_ts=no
 if test "$checkfor_h3600ts" = "yes"; then
   dnl Test for H3600 Touchscreen support
-  AC_CHECK_HEADER( [linux/h3600_ts.h], enable_h3600_ts=yes, enable_h3600_ts=no  
+  AC_CHECK_HEADER( [linux/h3600_ts.h], enable_h3600_ts=yes, enable_h3600_ts=no
     AC_MSG_WARN([*** H3600 Touchscreen driver will not be built.]))
 fi
 
@@ -1649,8 +1649,8 @@ fi
 enable_joystick=no
 if test "$checkfor_joystick" = "yes"; then
   dnl Test for linux/joystick.h in the kernel
-  
-  AC_CHECK_HEADER([linux/joystick.h], enable_joystick=yes, enable_joystick=no 
+
+  AC_CHECK_HEADER([linux/joystick.h], enable_joystick=yes, enable_joystick=no
      AC_MSG_WARN([*** no linux/joystick.h -- Joystick driver will not be built.]))
 fi
 
@@ -1658,7 +1658,7 @@ enable_keyboard=no
 if test "$checkfor_keyboard" = "yes"; then
     enable_keyboard=yes
 fi
-    
+
 enable_linux_input=no
 if test "$checkfor_linux_input" = "yes"; then
   AC_CHECK_HEADER([linux/input.h], enable_linux_input=yes, enable_linux_input=no
@@ -1680,7 +1680,7 @@ if test "$checkfor_lirc" = "yes"; then
 fi
 
 enable_mutouch=no
-if test "$checkfor_mutouch" = "yes"; then  
+if test "$checkfor_mutouch" = "yes"; then
   dnl Allow to enable driver for Microtouch serial touchscreen
   dnl This driver is not built by default since it needs to be configured
   dnl by changing some defines in the source.
@@ -1705,14 +1705,14 @@ fi
 enable_serial_mouse=no
 if test "$checkfor_serialmouse" = "yes"; then
   dnl Test for linux/serial.h in the kernel
-  AC_CHECK_HEADER([linux/serial.h], enable_serial_mouse=yes, enable_serial_mouse=no 
+  AC_CHECK_HEADER([linux/serial.h], enable_serial_mouse=yes, enable_serial_mouse=no
      AC_MSG_WARN([*** no linux/serial.h -- serial mouse driver will not be built.]))
 fi
 
 enable_sonypi_jogdial=no
 if test "$checkfor_sonypijogdial" = "yes"; then
   dnl Test for SonyPI Jogdial support
-  AC_CHECK_HEADER([linux/sonypi.h], enable_sonypi_jogdial=yes, enable_sonypi_jogdial=no 
+  AC_CHECK_HEADER([linux/sonypi.h], enable_sonypi_jogdial=yes, enable_sonypi_jogdial=no
     AC_MSG_WARN([*** no linux/sonypi.h -- SonyPI Jogdial driver will not be built.]))
 fi
 
@@ -1736,7 +1736,7 @@ if test "$checkfor_wm97xx" = "yes"; then
   dnl Test for WM97xx Touchscreen support
   enable_wm97xx_ts=yes
 fi
- 
+
  dnl *** end of if $testlinux ***
 fi
 
@@ -2238,7 +2238,7 @@ Building Window Manager Modules:
   UniQuE                    $enable_unique
 
 Building Image Provider Modules:
-  GIF                       $enable_gif 
+  GIF                       $enable_gif
   JPEG                      $JPEG                 $LIBJPEG
   PNG                       $PNG                  $LIBPNG_CFLAGS $LIBPNG_LIBS
   Imlib2                    $imlib2               $IMLIB2_CFLAGS $IMLIB2_LIBS
@@ -2263,7 +2263,7 @@ if test "$have_linux" = "yes"; then
 AC_MSG_RESULT([
 Building Graphics Drivers:
   3Dfx Voodoo               $tdfx
-  ATI Mach64                $mach64 
+  ATI Mach64                $mach64
   ATI Rage 128              $ati128
   ATI Radeon                $radeon
   Cirrus EP9X               $ep9x

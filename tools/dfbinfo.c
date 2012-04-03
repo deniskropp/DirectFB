@@ -51,6 +51,7 @@ static const DirectFBScreenCapabilitiesNames(screen_caps);
 static const DirectFBScreenEncoderCapabilitiesNames(encoder_caps);
 static const DirectFBScreenEncoderTypeNames(encoder_type);
 static const DirectFBScreenEncoderTVStandardsNames(tv_standards);
+static const DirectFBScreenEncoderPictureFramingNames(framings);
 static const DirectFBScreenOutputCapabilitiesNames(output_caps);
 static const DirectFBScreenOutputConnectorsNames(connectors);
 static const DirectFBScreenOutputResolutionNames(resolutions);
@@ -458,6 +459,18 @@ dump_encoders( IDirectFBScreen *screen,
                for (n=0; connectors[n].connector; n++) {
                     if (descs[i].all_connectors & connectors[n].connector)
                          printf( "%s ", connectors[n].name );
+               }
+
+               printf( "\n" );
+          }
+
+          /* Picture Framing */
+          if (descs[i].caps & DSECAPS_FRAMING) {
+               printf( "     Framing:        " );
+
+               for (n=0; framings[n].framing; n++) {
+                    if (descs[i].all_framing & framings[n].framing)
+                         printf( "%s ", framings[n].name );
                }
 
                printf( "\n" );

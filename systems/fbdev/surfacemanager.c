@@ -307,6 +307,7 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
      /* FIXME: Only one global device at the moment. */
      device = dfb_core_get_part( core, DFCP_GRAPHICS );
      D_ASSERT( device != NULL );
+     D_UNUSED_P( device );
 
      dfb_gfxcard_calc_buffer_size( dfb_core_get_part( core, DFCP_GRAPHICS ), buffer, NULL, &length );
 
@@ -485,6 +486,7 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
      buffer = chunk->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+     D_UNUSED_P( buffer );
 
      D_DEBUG_AT( SurfMan, "%s( %p ) <- %dx%d %s\n", __FUNCTION__, buffer,
                  buffer->surface->config.size.w, buffer->surface->config.size.h,

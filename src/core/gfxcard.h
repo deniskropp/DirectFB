@@ -304,6 +304,11 @@ typedef struct _GraphicsDeviceFuncs {
      bool (*BatchFill)( void *driver_data, void *device_data,
                         const DFBRectangle *rects,
                         unsigned int num, unsigned int *ret_num );
+
+     /* callbacks when a state is created or destroyed. This allows a graphics
+        driver to hold additional state. */
+     void (*StateInit)   ( void *driver_data, void *device_data, CardState *state );
+     void (*StateDestroy)( void *driver_data, void *device_data, CardState *state );
 } GraphicsDeviceFuncs;
 
 typedef struct {
@@ -342,6 +347,9 @@ DFBResult dfb_gfxcard_lock( GraphicsDeviceLockFlags flags );
 void dfb_gfxcard_unlock( void );
 
 bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
+
+void dfb_gfxcard_state_init( CardState *state );
+void dfb_gfxcard_state_destroy( CardState *state );
 
 /*
  * Signal beginning of a sequence of operations using this state.
@@ -419,6 +427,11 @@ void dfb_gfxcard_tileblit               ( DFBRectangle         *rect,
 
 void dfb_gfxcard_stretchblit            ( DFBRectangle         *srect,
                                           DFBRectangle         *drect,
+                                          CardState            *state );
+
+void dfb_gfxcard_batchstretchblit       ( DFBRectangle         *srects,
+                                          DFBRectangle         *drects,
+                                          unsigned int          num,
                                           CardState            *state );
 
 void dfb_gfxcard_texture_triangles      ( DFBVertex            *vertices,
