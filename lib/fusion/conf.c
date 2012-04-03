@@ -55,7 +55,7 @@ const char   *fusion_config_usage =
 #endif
      "  [no-]debugshm                  Enable shared memory allocation tracking\n"
      "  [no-]madv-remove               Enable usage of MADV_REMOVE (default = auto)\n"
-     "  [no-]secure-fusion             Use secure fusion, e.g. read-only shm (default=no)\n"
+     "  [no-]secure-fusion             Use secure fusion, e.g. read-only shm (default=yes)\n"
      "  [no-]defer-destructors         Handle destructor calls in separate thread\n"
      "  trace-ref=<hexid>              Trace FusionRef up/down\n"
      "\n";
