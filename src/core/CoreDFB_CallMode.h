@@ -39,7 +39,7 @@ typedef enum {
 static __inline__ CoreDFBCallMode
 CoreDFB_CallMode( CoreDFB *core )
 {
-     if (core->shutdown_tid && core->shutdown_tid != direct_gettid() && core->shutdown_tid != fusion_dispatcher_tid(core->world)) {
+     if (core->shutdown_tid && core->shutdown_tid != direct_gettid() && core->shutdown_tid != fusion_dispatcher_tid(core->world) && !Core_GetCalling()) {
           while (core_dfb)
                direct_thread_sleep(10000);
 

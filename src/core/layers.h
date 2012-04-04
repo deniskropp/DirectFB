@@ -75,6 +75,7 @@ struct __DFB_CoreLayerRegionConfig {
                                                                                                                    \
           D_DEBUG_AT( domain, "  -> size       %dx%d\n", _config->width, _config->height );                        \
           D_DEBUG_AT( domain, "  -> format     %s\n", dfb_pixelformat_name( _config->format ) );                   \
+          D_DEBUG_AT( domain, "  -> color spc  %d\n", _config->colorspace );                                       \
           D_DEBUG_AT( domain, "  -> surf caps  0x%08x\n", _config->surface_caps );                                 \
           D_DEBUG_AT( domain, "  -> buffermode %d\n", _config->buffermode );                                       \
           D_DEBUG_AT( domain, "  -> options    0x%08x\n", _config->options );                                      \

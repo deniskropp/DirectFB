@@ -349,6 +349,10 @@ void      Core_PopIdentity ( void );
 
 FusionID  Core_GetIdentity ( void );
 
+void      Core_PushCalling ( void );
+void      Core_PopCalling  ( void );
+int       Core_GetCalling  ( void );
+
 /*
  * Resource management
  *
