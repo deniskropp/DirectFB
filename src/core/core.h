@@ -271,6 +271,8 @@ struct __DFB_CoreDFB {
 
      DirectLink              *memory_permissions;
      DirectMutex              memory_permissions_lock;
+
+     int                      shutdown_tid;
 };
 
 
