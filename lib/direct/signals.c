@@ -42,6 +42,7 @@
 
 D_LOG_DOMAIN( Direct_Signals, "Direct/Signals", "Signal handling" );
 
+#define SIG_CLOSE_SIGHANDLER 123
 
 struct __D_DirectSignalHandler {
      DirectLink               link;
@@ -69,26 +70,34 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
 
 #define NUM_SIGS_TO_HANDLE ((int)D_ARRAY_SIZE( sigs_to_handle ))
 
-static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
-
 static DirectLink  *handlers = NULL;
 static DirectMutex  handlers_lock;
 
+static pthread_t sighandler_thread = -1;
+
 /**************************************************************************************************/
 
-static void install_handlers( void );
-static void remove_handlers( void );
+static void *handle_signals( void *ptr );
 
 /**************************************************************************************************/
 
 DirectResult
 direct_signals_initialize( void )
 {
+     sigset_t mask;
+     int ret;
+
      D_DEBUG_AT( Direct_Signals, "Initializing...\n" );
 
      direct_recursive_mutex_init( &handlers_lock );
 
-     install_handlers();
+     sigfillset( &mask );
+     pthread_sigmask( SIG_BLOCK, &mask, NULL );
+
+     ret = pthread_create( &sighandler_thread, NULL, handle_signals, NULL );
+     (void)ret;
+     D_ASSERT( ret == 0 );
+     D_ASSERT( sighandler_thread >= 0 );
 
      return DR_OK;
 }
@@ -96,9 +105,11 @@ direct_signals_initialize( void )
 DirectResult
 direct_signals_shutdown( void )
 {
+     D_ASSERT( sighandler_thread >= 0 );
      D_DEBUG_AT( Direct_Signals, "Shutting down...\n" );
 
-     remove_handlers();
+     pthread_kill( sighandler_thread, SIG_CLOSE_SIGHANDLER );
+     sighandler_thread = -1;
 
      direct_mutex_deinit( &handlers_lock );
 
@@ -327,31 +338,9 @@ static void
 signal_handler( int num )
 {
 #endif
-     DirectResult  ret;
-     int           i;
      DirectLink   *l, *n;
-     SigHandled   *sig  = NULL;
      void         *addr = NULL;
-
-//     fflush(stdout);
-//     fflush(stderr);
-
-     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
-          if (sigs_handled[i].signum == num) {
-               sig = &sigs_handled[i];
-
-               /* Using SA_RESETHAND, so... */
-               sig->signum = -1;
-               break;
-          }
-     }
-
-/*     ret = direct_sigaction( num, &sig->old_action, NULL );
-     if (ret) {
-          D_DERROR( ret, "Direct/Signals: Unable to restore previous handler for signal %d!\n", num );
-          sig = NULL;
-     }
-*/
+     sigset_t      mask;
 
 #ifndef SA_SIGINFO
      D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d <--\n", num );
@@ -398,9 +387,9 @@ signal_handler( int num )
 #endif
 
      direct_log_lock( NULL );
+
      direct_trace_print_stacks();
      direct_log_unlock( NULL );
-
 
      /* Loop through all handlers. */
      direct_mutex_lock( &handlers_lock );
@@ -426,13 +415,6 @@ signal_handler( int num )
 
                     direct_mutex_unlock( &handlers_lock );
 
-                    if (sig) {
-                         ret = direct_sigaction( num, &sig->new_action, NULL );
-                         if (ret)
-                              D_DERROR( ret, "Direct/Signals: Unable to reinstall handler for signal %d!\n", num );
-                         else
-                              sig->signum = num;
-                    }
                     return;
 
                default:
@@ -443,80 +425,53 @@ signal_handler( int num )
 
      direct_mutex_unlock( &handlers_lock );
 
-     remove_handlers();
+     sigemptyset( &mask );
+     sigaddset( &mask, num );
+     pthread_sigmask( SIG_UNBLOCK, &mask, NULL );
 
      direct_trap( "SigHandler", num );
+
+     pthread_sigmask( SIG_BLOCK, &mask, NULL );
 }
 
 /**************************************************************************************************/
 
-static void
-install_handlers( void )
+static void *
+handle_signals( void *ptr )
 {
-     DirectResult  ret;
-     int           i;
+     int       i;
+     int       res;
+     siginfo_t info;
+     sigset_t  mask;
+
+     sigemptyset( &mask );
 
      for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
-          sigs_handled[i].signum = -1;
+          if (direct_config->sighandler && !sigismember( &direct_config->dont_catch, sigs_to_handle[i] ))
+               sigaddset( &mask, sigs_to_handle[i] );
+     }
 
-          if (direct_config->sighandler && !sigismember( &direct_config->dont_catch, sigs_to_handle[i] )) {
-               struct sigaction action;
-               int              signum = sigs_to_handle[i];
+     pthread_sigmask( SIG_BLOCK, &mask, NULL );
 
+     while (1) {
+          res = sigwaitinfo( &mask, &info );
+
+          if ( -1 == res ) {
+               //error
+          }
+          else {
+               if (SIG_CLOSE_SIGHANDLER == info.si_signo) {
+                    break;
+               }
+               else {
 #ifdef SA_SIGINFO
-               action.sa_sigaction = signal_handler;
-               action.sa_flags     = SA_SIGINFO;
+                    signal_handler( info.si_signo, &info, NULL );
 #else
-               action.sa_handler   = signal_handler;
-               action.sa_flags     = 0;
+                    signal_handler( info.si_signo );
 #endif
-
-#ifdef SA_NODEFER
-               if (signum != SIGSEGV)
-                    action.sa_flags |= SA_NODEFER;
-#endif
-
-#ifdef SA_RESETHAND
-               action.sa_flags |= SA_RESETHAND;
-#endif
-
-#ifdef SA_RESTART
-               action.sa_flags |= SA_RESTART;
-#endif
-
-               sigemptyset( &action.sa_mask );
-
-               ret = direct_sigaction( signum, &action, &sigs_handled[i].old_action );
-               if (ret) {
-                    D_DERROR( ret, "Direct/Signals: "
-                              "Unable to install signal handler for signal %d!\n", signum );
-                    continue;
                }
-
-               sigs_handled[i].new_action = action;
-               sigs_handled[i].signum     = signum;
           }
      }
+
+     return NULL;
 }
-
-static void
-remove_handlers( void )
-{
-     DirectResult  ret;
-     int           i;
-
-     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
-          if (sigs_handled[i].signum != -1) {
-               int signum = sigs_handled[i].signum;
-
-               ret = direct_sigaction( signum, &sigs_handled[i].old_action, NULL );
-               if (ret) {
-                    D_DERROR( ret, "Direct/Signals: "
-                              "Unable to restore previous handler for signal %d!\n", signum );
-               }
-
-               sigs_handled[i].signum = -1;
-          }
-     }
-}
-
