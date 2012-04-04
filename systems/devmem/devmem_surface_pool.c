@@ -320,7 +320,6 @@ devmemDeallocateBuffer( CoreSurfacePool       *pool,
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, DevMemPoolData );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( alloc, DevMemAllocationData );
 
      if (alloc->chunk)
@@ -371,7 +370,6 @@ devmemUnlock( CoreSurfacePool       *pool,
      DevMemAllocationData *alloc = alloc_data;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, DevMemAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
