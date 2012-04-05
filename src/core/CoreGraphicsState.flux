@@ -541,5 +541,11 @@ interface {
 		async  	  yes
 		queue     yes
 	}
+
+	method {
+		name      ReleaseSource
+		async  	  yes
+		queue     yes
+	}
 }
 

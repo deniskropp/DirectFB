@@ -2845,6 +2845,8 @@ IDirectFBSurface_ReleaseSource( IDirectFBSurface *thiz )
      dfb_state_set_source_mask( &data->state, NULL );
      dfb_state_set_source2( &data->state, NULL );
 
+     CoreGraphicsState_ReleaseSource( data->state_client.gfx_state );
+
      return DFB_OK;
 }
 

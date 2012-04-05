@@ -1057,6 +1057,19 @@ IGraphicsState_Real::Flush(
     return DFB_OK;
 }
 
+DFBResult
+IGraphicsState_Real::ReleaseSource(
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    dfb_state_set_source( &obj->state, NULL );
+    dfb_state_set_source_mask( &obj->state, NULL );
+    dfb_state_set_source2( &obj->state, NULL );
+
+    return DFB_OK;
+}
+
 
 }
 
