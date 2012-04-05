@@ -844,6 +844,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          CoreWindow_ChangeOptions( window, DWOP_NONE, DWOP_SCALE );
 
+                         CoreWindow_AllowFocus( window );
+
                          if (dfb_config->scaled.width && dfb_config->scaled.height)
                               CoreWindow_Resize( window, dfb_config->scaled.width,
                                                          dfb_config->scaled.height );
