@@ -1777,7 +1777,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
      D_ASSERT( reactor != NULL );
      D_ASSERT( msg_data != NULL );
 
-     if (reactor->globals) {
+     if (channel == 0 && reactor->globals) {
           if (globals)
                process_globals( reactor, msg_data, globals );
           else
