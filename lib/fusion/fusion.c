@@ -2989,6 +2989,17 @@ fusion_is_multi( const FusionWorld *world )
 }
 
 /*
+ * Return the thread ID of the Fusion Dispatcher within the specified world.
+ */
+pid_t
+fusion_dispatcher_tid( const FusionWorld *world )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     return direct_gettid();
+}
+
+/*
  * Wait until all pending messages are processed.
  */
 DirectResult
