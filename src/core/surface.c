@@ -63,8 +63,10 @@ static const ReactionFunc dfb_surface_globals[] = {
 static void
 surface_destructor( FusionObject *object, bool zombie, void *ctx )
 {
-     int          i;
-     CoreSurface *surface = (CoreSurface*) object;
+     int                  i;
+     int                  num_eyes;
+     DFBSurfaceStereoEye  eye;
+     CoreSurface         *surface = (CoreSurface*) object;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
@@ -90,11 +92,16 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
           dfb_palette_unlink( &surface->palette );
      }
 
-     /* destroy buffers */
-     for (i=0; i<MAX_SURFACE_BUFFERS; i++) {
-          if (surface->buffers[i])
+     /* Destroy the Surface Buffers. */
+     num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
+     for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
+          dfb_surface_set_stereo_eye(surface, eye);
+          for (i=0; i<surface->num_buffers; i++) {
                dfb_surface_buffer_decouple( surface->buffers[i] );
+               surface->buffers[i] = NULL;
+          }
      }
+     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      /* release the system driver specific surface data */
      if (surface->data) {
