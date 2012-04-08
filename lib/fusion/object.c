@@ -163,7 +163,6 @@ fusion_object_pool_create( const char             *name,
 
      D_ASSERT( name != NULL );
      D_ASSERT( object_size >= sizeof(FusionObject) );
-     D_ASSERT( message_size > 0 );
      D_ASSERT( destructor != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
 
