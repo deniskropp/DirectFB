@@ -108,7 +108,7 @@ dfb_screen_core_initialize( CoreDFB             *core,
           char                  buf[24];
           CoreScreenShared     *sshared;
           CoreScreen           *screen = screens[i];
-          ScreenFuncs          *funcs  = screen->funcs;
+          const ScreenFuncs    *funcs  = screen->funcs;
           DFBScreenDescription  desc   = { .caps = DSCCAPS_NONE };
 
           /* Allocate shared data. */
@@ -325,9 +325,9 @@ dfb_screen_core_shutdown( DFBScreenCore *data,
 
      /* Begin with the most recently added screen. */
      for (i=num_screens-1; i>=0; i--) {
-          CoreScreen       *screen = screens[i];
-          ScreenFuncs      *funcs  = screen->funcs;
-          CoreScreenShared *shared = screen->shared;
+          CoreScreen        *screen = screens[i];
+          const ScreenFuncs *funcs  = screen->funcs;
+          CoreScreenShared  *shared = screen->shared;
 
           /* Shut the screen down. */
           if (funcs->ShutdownScreen)
