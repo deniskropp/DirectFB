@@ -2996,7 +2996,8 @@ fusion_dispatcher_tid( const FusionWorld *world )
 {
      D_MAGIC_ASSERT( world, FusionWorld );
 
-     return direct_gettid();
+     // must return 0 here to not let the dispatcher thread sleep in CoreDFB_CallMode()
+     return 0;
 }
 
 /*
