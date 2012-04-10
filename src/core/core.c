@@ -1830,7 +1830,7 @@ Core_PopCalling( void )
                return;
           }
 
-          core_tls->calling++;
+          core_tls->calling--;
      }
      else
           D_WARN( "TLS error" );

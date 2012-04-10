@@ -86,12 +86,16 @@ direct_signals_initialize( void )
 {
      sigset_t mask;
      int ret;
+     int i;
 
      D_DEBUG_AT( Direct_Signals, "Initializing...\n" );
 
      direct_recursive_mutex_init( &handlers_lock );
 
-     sigfillset( &mask );
+     sigemptyset( &mask );
+     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
+          sigaddset( &mask, sigs_to_handle[i] );
+     }
      pthread_sigmask( SIG_BLOCK, &mask, NULL );
 
      ret = pthread_create( &sighandler_thread, NULL, handle_signals, NULL );
