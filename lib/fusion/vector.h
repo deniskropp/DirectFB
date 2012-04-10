@@ -152,14 +152,14 @@ fusion_vector_index_of( const FusionVector *vector, const void *element )
 
 #define fusion_vector_foreach(element, index, vector)                         \
      for ((index) = 0;                                                        \
-          (index) < (vector).count && (element = (vector).elements[index]);   \
+          (index) < (vector).count && (element = (__typeof__(element))(vector).elements[index]);   \
           (index)++)
 
 #define fusion_vector_foreach_reverse(element, index, vector)                 \
      for ((index) = (vector).count - 1;                                       \
           (index) >= 0 && (vector).count &&                                   \
                (vector).elements &&                                           \
-               (element = (vector).elements[index]);                          \
+               (element = (__typeof__(element))(vector).elements[index]);     \
           (index)--)
 
 #endif
