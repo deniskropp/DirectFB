@@ -65,7 +65,7 @@ static void Cop_OP_Aop_PFI(toK)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
 {
-     int  w, l  = gfxs->length+1;
+     int  w, l  = gfxs->length;
      int  Ostep = gfxs->Ostep;
      u16 *S     = gfxs->Bop[0];
      u16 *D     = gfxs->Aop[0];
@@ -80,6 +80,7 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
 
      if (((long)S & 2) != ((long)D & 2)) {
           /* source and destination misaligned */
+          l++;
           while (--l) {
                u16 s = *S;
 
@@ -171,7 +172,7 @@ static void Bop_PFI_OP_Aop_PFI(Kto)( GenefxState *gfxs )
 
 static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
 {
-     int  w, l  = gfxs->length+1;
+     int  w, l  = gfxs->length;
      int  Ostep = gfxs->Ostep;
      u16 *S     = gfxs->Bop[0];
      u16 *D     = gfxs->Aop[0];
@@ -186,6 +187,7 @@ static void Bop_PFI_OP_Aop_PFI(toK)( GenefxState *gfxs )
 
      if (((long)S & 2) != ((long)D & 2)) {
           /* source and destination misaligned */
+          l++;
           while (--l) {
                if (MASK_RGB( *D ) == Dkey)
                     *D = *S;
