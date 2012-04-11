@@ -74,6 +74,7 @@ bin_PROGRAMS = \
 	dfbtest_surface_compositor	\
 	dfbtest_surface_updates	\
 	dfbtest_sync	\
+	dfbtest_video	\
 	dfbtest_water	\
 	dfbtest_window	\
 	dfbtest_window_cursor	\
@@ -169,6 +170,9 @@ dfbtest_surface_updates_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfus
 
 dfbtest_sync_SOURCES = dfbtest_sync.c
 dfbtest_sync_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_video_SOURCES = dfbtest_video.c
+dfbtest_video_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_water_SOURCES = dfbtest_water.c
 dfbtest_water_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
