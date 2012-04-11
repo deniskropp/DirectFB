@@ -314,7 +314,7 @@ fs_core_create_buffer( CoreSound *core )
      D_ASSERT( core->shared->buffer_pool != NULL );
 
      /* Create a new object in the buffer pool. */
-     return (CoreSoundBuffer*) fusion_object_create( core->shared->buffer_pool, core->world );
+     return (CoreSoundBuffer*) fusion_object_create( core->shared->buffer_pool, core->world, 1 );
 }
 
 CorePlayback *
@@ -325,7 +325,7 @@ fs_core_create_playback( CoreSound *core )
      D_ASSERT( core->shared->playback_pool != NULL );
 
      /* Create a new object in the playback pool. */
-     return (CorePlayback*) fusion_object_create( core->shared->playback_pool, core->world );
+     return (CorePlayback*) fusion_object_create( core->shared->playback_pool, core->world, 1 );
 }
 
 DirectResult
