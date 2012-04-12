@@ -2834,7 +2834,7 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     return dfb_surface_dump_buffer( surface, CSBR_FRONT, directory, prefix );
+     return dfb_surface_dump_buffer2( surface, CSBR_FRONT, DSSE_LEFT, directory, prefix );
 }
 
 static DFBResult

@@ -1154,6 +1154,300 @@ dfb_surface_dump_buffer( CoreSurface           *surface,
 }
 
 DFBResult
+dfb_surface_dump_buffer2( CoreSurface           *surface,
+                          CoreSurfaceBufferRole  role,
+                          DFBSurfaceStereoEye    eye,
+                          const char            *path,
+                          const char            *prefix )
+{
+     DFBResult              ret;
+     int                    num  = -1;
+     int                    fd_p = -1;
+     int                    fd_g = -1;
+     int                    i, n;
+     int                    len = (path ? strlen(path) : 0) + (prefix ? strlen(prefix) : 0) + 40;
+     char                   filename[len];
+     char                   head[30];
+     bool                   rgb   = false;
+     bool                   alpha = false;
+#ifdef USE_ZLIB
+     gzFile                 gz_p = NULL, gz_g = NULL;
+     static const char     *gz_ext = ".gz";
+#else
+     static const char     *gz_ext = "";
+#endif
+     CorePalette           *palette = NULL;
+     CoreSurfaceAllocation *allocation;
+     CoreSurfaceBufferLock  lock;
+
+     D_DEBUG_AT( Core_Surface, "%s( %p, %p, %p )\n", __FUNCTION__, surface, path, prefix );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( path != NULL );
+     D_ASSERT( prefix != NULL );
+
+     D_DEBUG_AT( Core_Surface, "%s( 0x%02x 0x%02x ) <- %dx%d %s [%d]\n", __FUNCTION__, CSAID_CPU, CSAF_READ,
+                 surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(surface->config.format),
+                 role );
+
+     ret = CoreSurface_PreLockBuffer2( surface, role, eye, CSAID_CPU, CSAF_READ, true, &allocation );
+     if (ret)
+          return ret;
+
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     D_DEBUG_AT( Core_Surface, "  -> PreLockBuffer returned allocation %p (%s)\n", allocation, allocation->pool->desc.name );
+
+     /* Lock the allocation. */
+     dfb_surface_buffer_lock_init( &lock, CSAID_CPU, CSAF_READ );
+
+     ret = dfb_surface_pool_lock( allocation->pool, allocation, &lock );
+     if (ret) {
+          D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
+                    allocation->pool->desc.name );
+          dfb_surface_buffer_lock_deinit( &lock );
+
+          dfb_surface_allocation_unref( allocation );
+          return ret;
+     }     
+
+     /* Check pixel format. */
+     switch (lock.buffer->format) {
+          case DSPF_LUT8:
+               palette = surface->palette;
+
+               if (!palette) {
+                    D_BUG( "no palette" );
+                    dfb_surface_buffer_unlock( &lock );
+                    return DFB_BUG;
+               }
+
+               if (dfb_palette_ref( palette )) {
+                    dfb_surface_buffer_unlock( &lock );
+                    return DFB_FUSION;
+               }
+
+               rgb = true;
+
+               /* fall through */
+
+          case DSPF_A8:
+               alpha = true;
+               break;
+
+          case DSPF_ARGB:
+          case DSPF_ABGR:
+          case DSPF_ARGB1555:
+          case DSPF_RGBA5551:
+          case DSPF_ARGB2554:
+          case DSPF_ARGB4444:
+          case DSPF_AiRGB:
+          case DSPF_ARGB8565:
+          case DSPF_AYUV:
+          case DSPF_AVYU:
+               alpha = true;
+
+               /* fall through */
+
+          case DSPF_RGB332:
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+          case DSPF_NV16:
+          case DSPF_YV16:
+          case DSPF_RGB444:
+          case DSPF_RGB555:
+          case DSPF_BGR555:
+          case DSPF_YUV444P:
+          case DSPF_VYU:
+               rgb   = true;
+               break;
+
+
+          default:
+               D_ERROR( "DirectFB/core/surfaces: surface dump for format "
+                         "'%s' is not implemented!\n",
+                        dfb_pixelformat_name( lock.buffer->format ) );
+               dfb_surface_buffer_unlock( &lock );
+               return DFB_UNSUPPORTED;
+     }
+
+     if (prefix) {
+          /* Find the lowest unused index. */
+          while (++num < 10000) {
+               snprintf( filename, len, "%s/%s_%04d.ppm%s",
+                         path, prefix, num, gz_ext );
+
+               if (access( filename, F_OK ) != 0) {
+                    snprintf( filename, len, "%s/%s_%04d.pgm%s",
+                              path, prefix, num, gz_ext );
+
+                    if (access( filename, F_OK ) != 0)
+                         break;
+               }
+          }
+
+          if (num == 10000) {
+               D_ERROR( "DirectFB/core/surfaces: "
+                        "couldn't find an unused index for surface dump!\n" );
+               dfb_surface_buffer_unlock( &lock );
+               if (palette)
+                    dfb_palette_unref( palette );
+               return DFB_FAILURE;
+          }
+     }
+
+     /* Create a file with the found index. */
+     if (rgb) {
+          if (prefix)
+               snprintf( filename, len, "%s/%s_%04d.ppm%s", path, prefix, num, gz_ext );
+          else
+               snprintf( filename, len, "%s.ppm%s", path, gz_ext );
+
+          fd_p = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
+          if (fd_p < 0) {
+               D_PERROR("DirectFB/core/surfaces: "
+                        "could not open %s!\n", filename);
+               dfb_surface_buffer_unlock( &lock );
+               if (palette)
+                    dfb_palette_unref( palette );
+               return DFB_IO;
+          }
+     }
+
+     /* Create a graymap for the alpha channel using the found index. */
+     if (alpha) {
+          if (prefix)
+               snprintf( filename, len, "%s/%s_%04d.pgm%s", path, prefix, num, gz_ext );
+          else
+               snprintf( filename, len, "%s.pgm%s", path, gz_ext );
+
+          fd_g = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
+          if (fd_g < 0) {
+               D_PERROR("DirectFB/core/surfaces: "
+                         "could not open %s!\n", filename);
+
+               dfb_surface_buffer_unlock( &lock );
+               if (palette)
+                    dfb_palette_unref( palette );
+
+               if (rgb) {
+                    close( fd_p );
+                    snprintf( filename, len, "%s/%s_%04d.ppm%s",
+                              path, prefix, num, gz_ext );
+                    unlink( filename );
+               }
+
+               return DFB_IO;
+          }
+     }
+
+#ifdef USE_ZLIB
+     if (rgb)
+          gz_p = gzdopen( fd_p, "wb" );
+
+     if (alpha)
+          gz_g = gzdopen( fd_g, "wb" );
+#endif
+
+     if (rgb) {
+          /* Write the pixmap header. */
+          snprintf( head, 30,
+                    "P6\n%d %d\n255\n", surface->config.size.w, surface->config.size.h );
+#ifdef USE_ZLIB
+          gzwrite( gz_p, head, strlen(head) );
+#else
+          write( fd_p, head, strlen(head) );
+#endif
+     }
+
+     /* Write the graymap header. */
+     if (alpha) {
+          snprintf( head, 30,
+                    "P5\n%d %d\n255\n", surface->config.size.w, surface->config.size.h );
+#ifdef USE_ZLIB
+          gzwrite( gz_g, head, strlen(head) );
+#else
+          write( fd_g, head, strlen(head) );
+#endif
+     }
+
+     /* Write the pixmap (and graymap) data. */
+     for (i=0; i<surface->config.size.h; i++) {
+          int n3;
+
+          /* Prepare one row. */
+          u8 *src8 = dfb_surface_data_offset( surface, lock.addr, lock.pitch, 0, i );
+
+          /* Write color buffer to pixmap file. */
+          if (rgb) {
+               u8 buf_p[surface->config.size.w * 3];
+
+               if (lock.buffer->format == DSPF_LUT8) {
+                    for (n=0, n3=0; n<surface->config.size.w; n++, n3+=3) {
+                         buf_p[n3+0] = palette->entries[src8[n]].r;
+                         buf_p[n3+1] = palette->entries[src8[n]].g;
+                         buf_p[n3+2] = palette->entries[src8[n]].b;
+                    }
+               }
+               else
+                    dfb_convert_to_rgb24( lock.buffer->format, src8, lock.pitch, surface->config.size.h,
+                                          buf_p, surface->config.size.w * 3, surface->config.size.w, 1 );
+#ifdef USE_ZLIB
+               gzwrite( gz_p, buf_p, surface->config.size.w * 3 );
+#else
+               write( fd_p, buf_p, surface->config.size.w * 3 );
+#endif
+          }
+
+          /* Write alpha buffer to graymap file. */
+          if (alpha) {
+               u8 buf_g[surface->config.size.w];
+
+               if (lock.buffer->format == DSPF_LUT8) {
+                    for (n=0; n<surface->config.size.w; n++)
+                         buf_g[n] = palette->entries[src8[n]].a;
+               }
+               else
+                    dfb_convert_to_a8( lock.buffer->format, src8, lock.pitch, surface->config.size.h,
+                                       buf_g, surface->config.size.w, surface->config.size.w, 1 );
+#ifdef USE_ZLIB
+               gzwrite( gz_g, buf_g, surface->config.size.w );
+#else
+               write( fd_g, buf_g, surface->config.size.w );
+#endif
+          }
+     }
+
+     /* Unlock the surface buffer. */
+     dfb_surface_buffer_unlock( &lock );
+
+     /* Release the palette. */
+     if (palette)
+          dfb_palette_unref( palette );
+
+#ifdef USE_ZLIB
+     if (rgb)
+          gzclose( gz_p );
+
+     if (alpha)
+          gzclose( gz_g );
+#endif
+
+     /* Close pixmap file. */
+     if (rgb)
+          close( fd_p );
+
+     /* Close graymap file. */
+     if (alpha)
+          close( fd_g );
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_surface_set_palette( CoreSurface *surface,
                          CorePalette *palette )
 {
