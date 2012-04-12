@@ -91,17 +91,18 @@ direct_signals_initialize( void )
      D_DEBUG_AT( Direct_Signals, "Initializing...\n" );
 
      direct_recursive_mutex_init( &handlers_lock );
+     if (direct_config->sighandler) {
+          sigemptyset( &mask );
+          for (i=0; i<NUM_SIGS_TO_HANDLE; i++)
+               sigaddset( &mask, sigs_to_handle[i] );
 
-     sigemptyset( &mask );
-     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
-          sigaddset( &mask, sigs_to_handle[i] );
+          pthread_sigmask( SIG_BLOCK, &mask, NULL );
+
+          ret = pthread_create( &sighandler_thread, NULL, handle_signals, NULL );
+          (void)ret;
+          D_ASSERT( ret == 0 );
+          D_ASSERT( sighandler_thread >= 0 );
      }
-     pthread_sigmask( SIG_BLOCK, &mask, NULL );
-
-     ret = pthread_create( &sighandler_thread, NULL, handle_signals, NULL );
-     (void)ret;
-     D_ASSERT( ret == 0 );
-     D_ASSERT( sighandler_thread >= 0 );
 
      return DR_OK;
 }
