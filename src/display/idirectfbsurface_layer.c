@@ -150,6 +150,8 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      dfb_surface_dispatch_update( data->base.surface, &reg, &reg );
 
+     IDirectFBSurface_WaitForBackBuffer( &data->base );
+
      return DFB_OK;
 }
 
@@ -224,6 +226,8 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
           return ret;
 
      dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg );
+
+     IDirectFBSurface_WaitForBackBuffer( &data->base );
 
      return DFB_OK;
 }

@@ -53,6 +53,7 @@
 #include <core/CoreDFB.h>
 #include <core/CoreGraphicsState.h>
 #include <core/CoreSurface.h>
+#include <core/CoreSurfaceClient.h>
 
 #include <media/idirectfbfont.h>
 
@@ -148,6 +149,9 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      D_ASSERT( data != NULL );
      D_ASSERT( data->children_data == NULL );
 
+     if (data->surface_client)
+          dfb_surface_client_unref( data->surface_client );
+
      CoreDFB_WaitIdle( data->core );
 
      unregister_prealloc( data );
@@ -193,6 +197,11 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      }
 
      pthread_mutex_destroy( &data->children_lock );
+
+     direct_waitqueue_deinit( &data->back_buffer_wq );
+     direct_mutex_deinit( &data->back_buffer_lock );
+
+     direct_mutex_deinit( &data->surface_client_lock );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 
@@ -723,6 +732,8 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      }
 
      dfb_surface_dispatch_update( data->surface, &reg, &reg );
+
+     IDirectFBSurface_WaitForBackBuffer( data );
 
      return ret;
 }
@@ -1854,7 +1865,12 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
           dy += srect.y - src_data->area.wanted.y;
      }
 
-     dfb_state_set_source( &data->state, src_data->surface );
+     if (src_data->surface_client) {
+          direct_mutex_lock( &data->surface_client_lock );
+          dfb_state_set_source_2( &data->state, src_data->surface, src_data->surface_client_flip_count );
+     }
+     else
+          dfb_state_set_source( &data->state, src_data->surface );
 
      /* fetch the source color key from the source if necessary */
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
@@ -1863,6 +1879,9 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
      DFBPoint p = { data->area.wanted.x + dx, data->area.wanted.y + dy };
 
      CoreGraphicsStateClient_Blit( &data->state_client, &srect, &p, 1 );
+
+     if (src_data->surface_client)
+          direct_mutex_unlock( &data->surface_client_lock );
 
      return DFB_OK;
 }
@@ -3047,6 +3066,8 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
 
      dfb_surface_dispatch_update( data->surface, &l_reg, &r_reg );
 
+     IDirectFBSurface_WaitForBackBuffer( data );
+
      return DFB_OK;
 }
 
@@ -3266,6 +3287,49 @@ IDirectFBSurface_DetachEventBuffer( IDirectFBSurface     *thiz,
      return IDirectFBEventBuffer_DetachSurface( buffer, data->surface );
 }
 
+static DFBResult
+IDirectFBSurface_MakeClient( IDirectFBSurface *thiz )
+{
+     DFBResult ret;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s()\n", __FUNCTION__ );
+
+     if (data->surface_client)
+          return DFB_BUSY;
+
+     ret = CoreSurface_CreateClient( data->surface, &data->surface_client );
+     if (ret)
+          return ret;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_FrameAck( IDirectFBSurface *thiz,
+                           u32               flip_count )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s()\n", __FUNCTION__ );
+
+     if (!data->surface_client)
+          return DFB_UNSUPPORTED;
+
+     direct_mutex_lock( &data->surface_client_lock );
+
+     D_DEBUG_AT( Surface, "  -> flip count %d\n", flip_count );
+
+     data->surface_client_flip_count = flip_count;
+
+     CoreSurfaceClient_FrameAck( data->surface_client, flip_count );
+
+     direct_mutex_unlock( &data->surface_client_lock );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -3316,6 +3380,11 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      }
 
      pthread_mutex_init( &data->children_lock, NULL );
+
+     direct_waitqueue_init( &data->back_buffer_wq );
+     direct_mutex_init( &data->back_buffer_lock );
+
+     direct_mutex_init( &data->surface_client_lock );
 
      /* The area insets */
      if (insets) {
@@ -3468,6 +3537,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->AttachEventBuffer = IDirectFBSurface_AttachEventBuffer;
      thiz->DetachEventBuffer = IDirectFBSurface_DetachEventBuffer;
 
+     thiz->MakeClient = IDirectFBSurface_MakeClient;
+     thiz->FrameAck   = IDirectFBSurface_FrameAck;
+
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );
 
@@ -3515,6 +3587,18 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
                thiz->SetClip( thiz, NULL );
      }
 
+     if (notification->flags & CSNF_FRAME) {
+          direct_mutex_lock( &data->back_buffer_lock );
+
+          D_DEBUG_AT( Surface, "  -> frame ack %d\n", notification->flip_count );
+
+          data->frame_ack = notification->flip_count;
+
+          direct_waitqueue_broadcast( &data->back_buffer_wq );
+
+          direct_mutex_unlock( &data->back_buffer_lock );
+     }
+
      return RS_OK;
 }
 
@@ -3539,5 +3623,33 @@ IDirectFBSurface_StopAll( IDirectFBSurface_data *data )
      dfb_state_lock( &data->state );
      dfb_state_stop_drawing( &data->state );
      dfb_state_unlock( &data->state );
+}
+
+void
+IDirectFBSurface_WaitForBackBuffer( IDirectFBSurface_data *data )
+{
+     CoreSurface *surface;
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, data );
+
+     surface = data->surface;
+     CORE_SURFACE_ASSERT( surface );
+
+     direct_mutex_lock( &data->back_buffer_lock );
+
+     if (data->frame_ack) {
+          while (surface->flips - data->frame_ack >= surface->num_buffers-1) {
+               D_DEBUG_AT( Surface, "  -> waiting for back buffer... (surface %d, notify %d)\n",
+                           surface->flips, data->frame_ack );
+
+               direct_waitqueue_wait( &data->back_buffer_wq, &data->back_buffer_lock );
+          }
+     }
+     else
+          D_DEBUG_AT( Surface, "  -> no display notify received yet\n" );
+
+     D_DEBUG_AT( Surface, "  -> OK\n" );
+
+     direct_mutex_unlock( &data->back_buffer_lock );
 }
 

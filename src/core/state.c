@@ -272,6 +272,49 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
 }
 
 DFBResult
+dfb_state_set_source_2( CardState   *state,
+                        CoreSurface *source,
+                        u32          flip_count )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     dfb_state_lock( state );
+
+     if (state->source != source || state->source_flip_count != flip_count || !state->source_flip_count_used) {
+          if (source && dfb_surface_ref( source )) {
+               D_WARN( "could not ref() source" );
+               dfb_state_unlock( state );
+               return DFB_DEAD;
+          }
+
+          if (state->source) {
+               D_ASSERT( D_FLAGS_IS_SET( state->flags, CSF_SOURCE ) );
+               dfb_surface_unref( state->source );
+          }
+
+          state->source    = source;
+          state->modified |= SMF_SOURCE;
+
+
+          state->source_flip_count      = flip_count;
+          state->source_flip_count_used = true;
+
+
+          if (source) {
+               direct_serial_copy( &state->src_serial, &source->serial );
+
+               D_FLAGS_SET( state->flags, CSF_SOURCE );
+          }
+          else
+               D_FLAGS_CLEAR( state->flags, CSF_SOURCE );
+     }
+
+     dfb_state_unlock( state );
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_state_set_source2( CardState *state, CoreSurface *source2 )
 {
      D_MAGIC_ASSERT( state, CardState );

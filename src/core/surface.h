@@ -55,8 +55,9 @@ typedef enum {
      CSNF_PALETTE_UPDATE = 0x00000080,  /* current palette has been altered */
      CSNF_ALPHA_RAMP     = 0x00000100,  /* alpha ramp was modified */
      CSNF_DISPLAY        = 0x00000200,  /* surface buffer displayed */
+     CSNF_FRAME          = 0x00000400,  /* flip count ack */
 
-     CSNF_ALL            = 0x000003FF
+     CSNF_ALL            = 0x000007FF
 } CoreSurfaceNotificationFlags;
 
 typedef struct {
@@ -64,6 +65,7 @@ typedef struct {
      CoreSurface                  *surface;
 
      int                           index;
+     unsigned int                  flip_count;
 } CoreSurfaceNotification;
 
 
@@ -226,7 +228,7 @@ struct __DFB_CoreSurface
      int                      num_buffers;
      int                      buffer_indices[MAX_SURFACE_BUFFERS];
 
-     unsigned int             flips;
+     u32                      flips;
 
      CorePalette             *palette;
      GlobalReaction           palette_reaction;
@@ -236,6 +238,9 @@ struct __DFB_CoreSurface
      void                    *data;         /* Shared system driver-specific data for this surface. */
 
      FusionCall               call;
+
+     FusionVector             clients;
+     u32                      flips_acked;
 };
 
 #define CORE_SURFACE_ASSERT(surface)                                                           \
@@ -282,6 +287,9 @@ DFBResult dfb_surface_notify        ( CoreSurface                  *surface,
 DFBResult dfb_surface_notify_display( CoreSurface                  *surface,
                                       CoreSurfaceBuffer            *buffer);
 
+DFBResult dfb_surface_notify_frame  ( CoreSurface                  *surface,
+                                      unsigned int                  flip_count );
+
 DFBResult dfb_surface_flip          ( CoreSurface                  *surface,
                                       bool                          swap );
 
@@ -301,6 +309,14 @@ DFBResult dfb_surface_deallocate_buffers( CoreSurface              *surface );
 
 DFBResult dfb_surface_lock_buffer   ( CoreSurface                  *surface,
                                       CoreSurfaceBufferRole         role,
+                                      CoreSurfaceAccessorID         accessor,
+                                      CoreSurfaceAccessFlags        access,
+                                      CoreSurfaceBufferLock        *ret_lock );
+
+DFBResult dfb_surface_lock_buffer2  ( CoreSurface                  *surface,
+                                      CoreSurfaceBufferRole         role,
+                                      u32                           flip_count,
+                                      DFBSurfaceStereoEye           eye,
                                       CoreSurfaceAccessorID         accessor,
                                       CoreSurfaceAccessFlags        access,
                                       CoreSurfaceBufferLock        *ret_lock );
@@ -391,6 +407,24 @@ dfb_surface_get_buffer2( CoreSurface           *surface,
           return surface->left_buffers[ surface->buffer_indices[(surface->flips + role) % surface->num_buffers] ];
 
      return surface->right_buffers[ surface->buffer_indices[(surface->flips + role) % surface->num_buffers] ];
+}
+
+static __inline__ CoreSurfaceBuffer *
+dfb_surface_get_buffer3( CoreSurface           *surface,
+                         CoreSurfaceBufferRole  role,
+                         DFBSurfaceStereoEye    eye,
+                         u32                    flip_count )
+{
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( role == CSBR_FRONT || role == CSBR_BACK || role == CSBR_IDLE );
+     D_ASSERT( eye == DSSE_LEFT || eye == DSSE_RIGHT );
+
+     D_ASSERT( surface->num_buffers > 0 );
+
+     if (eye == DSSE_LEFT)
+          return surface->left_buffers[ surface->buffer_indices[(flip_count + role) % surface->num_buffers] ];
+
+     return surface->right_buffers[ surface->buffer_indices[(flip_count + role) % surface->num_buffers] ];
 }
 
 static __inline__ void *

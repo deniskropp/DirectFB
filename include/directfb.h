@@ -4772,6 +4772,23 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           int                       num
      );
 
+
+   /** Client **/
+
+     /*
+      * Put in client mode for frame synchronization.
+      */
+     DFBResult (*MakeClient) (
+          IDirectFBSurface              *thiz
+     );
+
+     /*
+      * Put in client mode for frame synchronization.
+      */
+     DFBResult (*FrameAck) (
+          IDirectFBSurface              *thiz,
+          u32                            flip_count
+     );
 )
 
 
@@ -5430,6 +5447,8 @@ typedef struct {
      DFBSurfaceID                     surface_id; /* source of event */
      DFBRegion                        update;
      DFBRegion                        update_right;
+
+     unsigned int                     flip_count; /* Serial number of frame, modulo number of buffers = buffer index */
 } DFBSurfaceEvent;
 
 /*

@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <direct/hash.h>
 #include <direct/messages.h>
 
 #include <directfb.h>
@@ -70,6 +71,7 @@ main( int argc, char *argv[] )
      IDirectFBSurface       *primary  = NULL;
      IDirectFBSurface      **surfaces = NULL;
      bool                    update   = true;
+     DirectHash              surface_map;
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
@@ -121,6 +123,8 @@ main( int argc, char *argv[] )
           goto out;
      }
 
+     direct_hash_init( &surface_map, 17 );
+
      dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
 
      /* Fill description for a primary surface. */
@@ -138,7 +142,7 @@ main( int argc, char *argv[] )
 
      /* Fill description for a shared offscreen surface. */
      desc.flags  = DSDESC_CAPS | DSDESC_WIDTH | DSDESC_HEIGHT;
-     desc.caps   = DSCAPS_SHARED | DSCAPS_DOUBLE;
+     desc.caps   = DSCAPS_SHARED | DSCAPS_TRIPLE;
      desc.width  = width  - 20 * (m_num + 1);
      desc.height = height - 20 * (m_num + 1);
 
@@ -152,6 +156,8 @@ main( int argc, char *argv[] )
                goto out;
           }
 
+          surfaces[i]->MakeClient( surfaces[i] );
+
           /* Create event buffer */
           ret = surfaces[i]->AttachEventBuffer( surfaces[i], events );
           if (ret) {
@@ -161,14 +167,16 @@ main( int argc, char *argv[] )
 
           surfaces[i]->GetID( surfaces[i], &surface_id );
 
-          surfaces[i]->AllowAccess( surfaces[i], "*" );
+          surfaces[i]->AllowAccess( surfaces[i], "/opt/dfb/bin/df_andi" );
 
           D_INFO( "DFBTest/SurfaceCompositor: Surface %d has ID %d\n", i+1, surface_id );
+
+          direct_hash_insert( &surface_map, surface_id, surfaces[i] );
      }
 
-
      while (true) {
-          DFBEvent event;
+          DFBEvent          event;
+          IDirectFBSurface *surface;
 
           while (events->GetEvent( events, &event ) == DFB_OK) {
                switch (event.clazz) {
@@ -176,6 +184,12 @@ main( int argc, char *argv[] )
                          switch (event.surface.type) {
                               case DSEVT_UPDATE:
                                    update = true;
+
+                                   surface = direct_hash_lookup( &surface_map, event.surface.surface_id );
+                                   if (surface)
+                                        surface->FrameAck( surface, event.surface.flip_count );
+                                   else
+                                        D_BUG( "Surface with ID %u not found", event.surface.surface_id );
                                    break;
 
                               default:

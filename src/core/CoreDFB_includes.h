@@ -49,6 +49,7 @@ extern "C" {
 #include <core/screens.h>
 #include <core/state.h>
 #include <core/surface.h>
+#include <core/surface_client.h>
 #include <core/windows.h>
 #include <core/windows_internal.h>
 
@@ -688,6 +689,78 @@ CoreSurfaceBuffer_Throw( CoreSurfaceBuffer *buffer,
           buffer->object.owner = catcher;
 
      return fusion_ref_throw( &buffer->object.ref, catcher );
+}
+
+
+
+static __inline__ u32
+CoreSurfaceClient_GetID( const CoreSurfaceClient *client )
+{
+     return client->object.id;
+}
+
+static __inline__ DirectResult
+CoreSurfaceClient_Lookup( CoreDFB            *core,
+                          u32                 object_id,
+                          FusionID            caller,
+                          CoreSurfaceClient **ret_client )
+{
+     DFBResult          ret;
+     CoreSurfaceClient *client;
+
+     ret = dfb_core_get_surface_client( core, object_id, &client );
+     if (ret)
+          return (DirectResult) ret;
+
+     if (client->object.owner && client->object.owner != caller) {
+          dfb_surface_client_unref( client );
+          return DR_ACCESSDENIED;
+     }
+
+     *ret_client = client;
+
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreSurfaceClient_Unref( CoreSurfaceClient *client )
+{
+     return (DirectResult) dfb_surface_client_unref( client );
+}
+
+static __inline__ DirectResult
+CoreSurfaceClient_Catch( CoreDFB            *core,
+                         u32                 object_id,
+                         CoreSurfaceClient **ret_client )
+{
+     DirectResult ret;
+
+     ret = (DirectResult) dfb_core_get_surface_client( core, object_id, ret_client );
+     if (ret)
+          return ret;
+
+     fusion_ref_catch( &(*ret_client)->object.ref );
+
+     return DR_OK;
+}
+
+static __inline__ DirectResult
+CoreSurfaceClient_Throw( CoreSurfaceClient *client,
+                         FusionID           catcher,
+                         u32               *ret_object_id )
+{
+     *ret_object_id = client->object.id;
+
+     fusion_reactor_add_permissions( client->object.reactor, catcher,
+                                     (FusionReactorPermissions)(FUSION_REACTOR_PERMIT_ATTACH_DETACH) );
+     fusion_ref_add_permissions( &client->object.ref, catcher,
+                                 (FusionRefPermissions)(FUSION_REF_PERMIT_REF_UNREF_LOCAL | FUSION_REF_PERMIT_CATCH) );
+     fusion_call_add_permissions( &client->call, catcher, FUSION_CALL_PERMIT_EXECUTE );
+
+     if (!client->object.owner)
+          client->object.owner = catcher;
+
+     return fusion_ref_throw( &client->object.ref, catcher );
 }
 
 

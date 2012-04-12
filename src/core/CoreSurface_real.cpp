@@ -531,6 +531,119 @@ out:
      return ret;
 }
 
+DFBResult
+ISurface_Real::PreLockBuffer3(
+                         CoreSurfaceBufferRole                      role,
+                         u32                                        flip_count,
+                         DFBSurfaceStereoEye                        eye,
+                         CoreSurfaceAccessorID                      accessor,
+                         CoreSurfaceAccessFlags                     access,
+                         bool                                       lock,
+                         CoreSurfaceAllocation                    **ret_allocation
+                         )
+{
+     DFBResult              ret;
+     CoreSurfaceBuffer     *buffer;
+     CoreSurfaceAllocation *allocation;
+     CoreSurface           *surface    = obj;
+     bool                   allocated  = false;
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( surface %p, role %d, count %u, eye %d, accessor 0x%02x, access 0x%02x, %slock )\n",
+                 __FUNCTION__, surface, role, flip_count, eye, accessor, access, lock ? "" : "no " );
+
+     ret = (DFBResult) dfb_surface_lock( surface );
+     if (ret)
+          return ret;
+
+     if (surface->num_buffers < 1) {
+          dfb_surface_unlock( surface );
+          return DFB_BUFFEREMPTY;
+     }
+
+     buffer = dfb_surface_get_buffer3( surface, role, eye, flip_count );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "  -> buffer %p\n", buffer );
+
+     if (!lock && access & CSAF_READ) {
+          if (fusion_vector_is_empty( &buffer->allocs )) {
+               dfb_surface_unlock( surface );
+               return DFB_NOALLOCATION;
+          }
+     }
+
+     /* Look for allocation with proper access. */
+     allocation = dfb_surface_buffer_find_allocation( buffer, accessor, access, lock );
+     if (!allocation) {
+          /* If no allocation exists, create one. */
+          ret = dfb_surface_pools_allocate( buffer, accessor, access, &allocation );
+          if (ret) {
+               if (ret != DFB_NOVIDEOMEMORY && ret != DFB_UNSUPPORTED)
+                    D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
+
+               goto out;
+          }
+
+          allocated = true;
+     }
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     /* Synchronize with other allocations. */
+     ret = dfb_surface_allocation_update( allocation, access );
+     if (ret) {
+          /* Destroy if newly created. */
+          if (allocated)
+               dfb_surface_allocation_decouple( allocation );
+          goto out;
+     }
+
+     if (!lock) {
+          if (access & CSAF_WRITE) {
+               if (!(allocation->pool->desc.caps & CSPCAPS_WRITE))
+                    lock = true;
+          }
+          else if (access & CSAF_READ) {
+               if (!(allocation->pool->desc.caps & CSPCAPS_READ))
+                    lock = true;
+          }
+     }
+
+     if (lock) {
+          ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
+          if (ret) {
+               /* Destroy if newly created. */
+               if (allocated)
+                    dfb_surface_allocation_decouple( allocation );
+               goto out;
+          }
+
+          manage_interlocks( allocation, accessor, access );
+     }
+
+     dfb_surface_allocation_ref( allocation );
+
+     *ret_allocation = allocation;
+
+out:
+     dfb_surface_unlock( surface );
+
+     return ret;
+}
+
+
+DFBResult
+ISurface_Real::CreateClient(
+                         CoreSurfaceClient                           **ret_client
+                         )
+{
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+
+     D_ASSERT( ret_client != NULL );
+
+     return dfb_surface_client_create( core, obj, ret_client );
+}
+
 
 }
 

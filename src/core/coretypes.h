@@ -81,6 +81,7 @@ typedef struct __DFB_CoreSurfaceAccessor     CoreSurfaceAccessor;
 typedef struct __DFB_CoreSurfaceAllocation   CoreSurfaceAllocation;
 typedef struct __DFB_CoreSurfaceBuffer       CoreSurfaceBuffer;
 typedef struct __DFB_CoreSurfaceBufferLock   CoreSurfaceBufferLock;
+typedef struct __DFB_CoreSurfaceClient       CoreSurfaceClient;
 typedef struct __DFB_CoreSurfacePool         CoreSurfacePool;
 typedef struct __DFB_CoreSurfacePoolBridge   CoreSurfacePoolBridge;
 typedef struct __DFB_CoreSurfacePoolTransfer CoreSurfacePoolTransfer;

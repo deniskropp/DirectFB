@@ -746,7 +746,12 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
-          ret = dfb_surface_lock_buffer( src, state->from, CSAID_GPU, CSAF_READ, &state->src );
+          if (state->source_flip_count_used)
+               ret = dfb_surface_lock_buffer2( src, state->from, state->source_flip_count,
+                                               dfb_surface_get_stereo_eye( src ),
+                                               CSAID_GPU, CSAF_READ, &state->src );
+          else
+               ret = dfb_surface_lock_buffer( src, state->from, CSAID_GPU, CSAF_READ, &state->src );
           if (ret) {
                D_DEBUG_AT( Core_Graphics, "Could not lock source for GPU access!\n" );
                dfb_surface_unlock_buffer( dst, &state->dst );

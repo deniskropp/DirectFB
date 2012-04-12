@@ -223,6 +223,8 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
           ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_OPACITY );
      }
 
+     IDirectFBSurface_WaitForBackBuffer( &data->base );
+
      return ret;
 }
 
@@ -344,6 +346,8 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
           CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_OPACITY );
      }
+
+     IDirectFBSurface_WaitForBackBuffer( &data->base );
 
      return DFB_OK;
 }

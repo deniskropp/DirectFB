@@ -227,5 +227,71 @@ interface {
 			typename    CoreSurfaceAllocation
 		}
 	}
+
+
+	method {
+		name	PreLockBuffer3
+
+		arg {
+			name	    role
+			direction   input
+			type        enum
+			typename    CoreSurfaceBufferRole
+		}
+
+		arg {
+			name	    flip_count
+			direction   input
+			type        int
+			typename    u32
+		}
+
+		arg {
+			name	    eye
+			direction   input
+			type        enum
+			typename    DFBSurfaceStereoEye
+		}
+
+		arg {
+			name	    accessor
+			direction   input
+			type        enum
+			typename    CoreSurfaceAccessorID
+		}
+
+		arg {
+			name	    access
+			direction   input
+			type        enum
+			typename    CoreSurfaceAccessFlags
+		}
+
+		arg {
+			name	    lock
+			direction   input
+			type        int
+			typename    bool
+		}
+
+		arg {
+			name	    allocation
+			direction   output
+			type        object
+			typename    CoreSurfaceAllocation
+		}
+	}
+
+
+	method {
+		name	CreateClient
+
+		arg {
+			name	    client
+			direction   output
+			type        object
+			typename    CoreSurfaceClient
+		}
+	}
 }
 

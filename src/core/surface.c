@@ -114,6 +114,8 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
 
      dfb_surface_unlock( surface );
 
+     fusion_vector_destroy( &surface->clients );
+
      fusion_skirmish_destroy( &surface->lock );
 
      D_MAGIC_CLEAR( surface );
@@ -247,6 +249,8 @@ dfb_surface_create( CoreDFB                  *core,
      surface->shmpool = dfb_core_shmpool( core );
 
      direct_serial_init( &surface->serial );
+
+     fusion_vector_init( &surface->clients, 2, surface->shmpool );
 
      snprintf( buf, sizeof(buf), "Surface %dx%d %s %s", surface->config.size.w,
                surface->config.size.h, dfb_pixelformat_name(surface->config.format),
@@ -471,6 +475,24 @@ dfb_surface_notify_display( CoreSurface       *surface,
 }
 
 DFBResult
+dfb_surface_notify_frame( CoreSurface  *surface,
+                          unsigned int  flip_count )
+{
+     CoreSurfaceNotification notification;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+
+     direct_serial_increase( &surface->serial );
+
+     notification.flags      = CSNF_FRAME;
+     notification.surface    = surface;
+     notification.flip_count = flip_count;
+
+     return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
+}
+
+DFBResult
 dfb_surface_flip( CoreSurface *surface, bool swap )
 {
      unsigned int back, front;
@@ -532,6 +554,7 @@ dfb_surface_dispatch_update( CoreSurface     *surface,
      event.clazz      = DFEC_SURFACE;
      event.type       = DSEVT_UPDATE;
      event.surface_id = surface->object.id;
+     event.flip_count = surface->flips;
 
      if (update) {
           event.update = *update;
@@ -782,6 +805,49 @@ dfb_surface_lock_buffer( CoreSurface            *surface,
 
      ret = CoreSurface_PreLockBuffer2( surface, role,
                                        dfb_surface_get_stereo_eye(surface), // FIXME: make argument to dfb_surface_lock_buffer
+                                       accessor, access, true, &allocation );
+     if (ret)
+          return ret;
+
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     D_DEBUG_AT( Core_Surface, "  -> PreLockBuffer returned allocation %p (%s)\n", allocation, allocation->pool->desc.name );
+
+     /* Lock the allocation. */
+     dfb_surface_buffer_lock_init( ret_lock, accessor, access );
+
+     ret = dfb_surface_pool_lock( allocation->pool, allocation, ret_lock );
+     if (ret) {
+          D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
+                    allocation->pool->desc.name );
+          dfb_surface_buffer_lock_deinit( ret_lock );
+
+          dfb_surface_allocation_unref( allocation );
+          return ret;
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_surface_lock_buffer2( CoreSurface            *surface,
+                          CoreSurfaceBufferRole   role,
+                          u32                     flip_count,
+                          DFBSurfaceStereoEye     eye,
+                          CoreSurfaceAccessorID   accessor,
+                          CoreSurfaceAccessFlags  access,
+                          CoreSurfaceBufferLock  *ret_lock )
+{
+     DFBResult              ret;
+     CoreSurfaceAllocation *allocation;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     D_DEBUG_AT( Core_Surface, "%s( accessor 0x%x, access 0x%x, role %d, count %u, eye %d ) <- %dx%d %s\n",
+                 __FUNCTION__, accessor, access, role, flip_count, eye, surface->config.size.w, surface->config.size.h,
+                 dfb_pixelformat_name(surface->config.format) );
+
+     ret = CoreSurface_PreLockBuffer3( surface, role, flip_count, eye,
                                        accessor, access, true, &allocation );
      if (ret)
           return ret;

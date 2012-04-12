@@ -138,6 +138,15 @@ typedef struct {
 
      CoreMemoryPermission    *memory_permissions[3];
      unsigned int             memory_permissions_count;
+
+     DirectWaitQueue          back_buffer_wq;
+     DirectMutex              back_buffer_lock;
+
+     unsigned int             frame_ack;
+
+     CoreSurfaceClient       *surface_client;
+     unsigned int             surface_client_flip_count;
+     DirectMutex              surface_client_lock;
 } IDirectFBSurface_data;
 
 /*
@@ -162,5 +171,7 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz );
  * internal
  */
 void IDirectFBSurface_StopAll( IDirectFBSurface_data *data );
+
+void IDirectFBSurface_WaitForBackBuffer( IDirectFBSurface_data *data );
 
 #endif
