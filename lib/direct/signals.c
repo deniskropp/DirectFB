@@ -113,8 +113,10 @@ direct_signals_shutdown( void )
      D_ASSERT( sighandler_thread >= 0 );
      D_DEBUG_AT( Direct_Signals, "Shutting down...\n" );
 
-     pthread_kill( sighandler_thread, SIG_CLOSE_SIGHANDLER );
-     sighandler_thread = -1;
+     if (direct_config->sighandler) {
+          pthread_kill( sighandler_thread, SIG_CLOSE_SIGHANDLER );
+          sighandler_thread = -1;
+     }
 
      direct_mutex_deinit( &handlers_lock );
 
