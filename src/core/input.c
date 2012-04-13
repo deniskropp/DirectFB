@@ -1506,6 +1506,8 @@ init_devices( CoreDFB *core )
                /* create reactor */
                shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent), buf, dfb_core_world(core) );
 
+               fusion_reactor_direct( shared->reactor, false );
+
                fusion_reactor_add_permissions( shared->reactor, 0, FUSION_REACTOR_PERMIT_ATTACH_DETACH );
 
                fusion_reactor_set_lock( shared->reactor, &shared->lock );
@@ -1664,6 +1666,8 @@ dfb_input_create_device(int device_index, CoreDFB *core_in, void *driver_in)
                   __FUNCTION__, __LINE__, __FILE__);
           goto errorExit;
      }
+
+     fusion_reactor_direct( shared->reactor, false );
 
      fusion_reactor_add_permissions( shared->reactor, 0, FUSION_REACTOR_PERMIT_ATTACH_DETACH );
 
