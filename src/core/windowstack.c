@@ -68,7 +68,7 @@ typedef struct {
      DirectLink       link;
 
      DFBInputDeviceID id;
-     GlobalReaction   reaction;
+     Reaction         reaction;
 } StackDevice;
 
 typedef struct {
@@ -275,8 +275,7 @@ dfb_windowstack_detach_devices( CoreWindowStack *stack )
           DirectLink  *next   = l->next;
           StackDevice *device = (StackDevice*) l;
 
-          dfb_input_detach_global( dfb_input_device_at( device->id ),
-                                   &device->reaction );
+          dfb_input_detach( dfb_input_device_at( device->id ), &device->reaction );
 
           SHFREE( stack->shmpool, device );
 
@@ -806,10 +805,114 @@ dfb_windowstack_get_cursor_position( CoreWindowStack *stack, int *ret_x, int *re
 
 /**********************************************************************************************************************/
 
+static void
+WindowStack_Input_Flush( CoreWindowStack *stack )
+{
+     if (!stack->motion_x.type && !stack->motion_y.type)
+          return;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return;
+
+     /* Call the window manager to dispatch the event. */
+     if (dfb_layer_context_active( stack->context )) {
+          if (stack->motion_x.type && stack->motion_y.type)
+               stack->motion_x.flags |= DIEF_FOLLOW;
+
+          if (stack->motion_x.type)
+               dfb_wm_process_input( stack, &stack->motion_x );
+
+          if (stack->motion_y.type)
+               dfb_wm_process_input( stack, &stack->motion_y );
+     }
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     stack->motion_x.type = DIET_UNKNOWN;
+     stack->motion_y.type = DIET_UNKNOWN;
+
+     stack->motion_cleanup = NULL;
+}
+
+static void
+WindowStack_Input_AddAbsolute( CoreWindowStack     *stack,
+                               DFBInputEvent       *target,
+                               const DFBInputEvent *event )
+{
+     *target = *event;
+
+     target->flags &= ~DIEF_FOLLOW;
+}
+
+static void
+WindowStack_Input_AddRelative( CoreWindowStack     *stack,
+                               DFBInputEvent       *target,
+                               const DFBInputEvent *event )
+{
+     int axisrel = 0;
+
+     if (target->type)
+          axisrel = target->axisrel;
+
+     *target = *event;
+
+     target->axisrel += axisrel;
+     target->flags   &= ~DIEF_FOLLOW;
+}
+
+static void
+WindowStack_Input_Add( CoreWindowStack     *stack,
+                       const DFBInputEvent *event )
+{
+     if ((stack->motion_x.type && stack->motion_x.device_id != event->device_id) ||
+         (stack->motion_y.type && stack->motion_y.device_id != event->device_id))
+          WindowStack_Input_Flush( stack );
+
+     switch (event->type) {
+          case DIET_AXISMOTION:
+               switch (event->axis) {
+                    case DIAI_X:
+                         if (event->flags & DIEF_AXISABS)
+                              WindowStack_Input_AddAbsolute( stack, &stack->motion_x, event );
+                         else
+                              WindowStack_Input_AddRelative( stack, &stack->motion_x, event );
+                         break;
+
+                    case DIAI_Y:
+                         if (event->flags & DIEF_AXISABS)
+                              WindowStack_Input_AddAbsolute( stack, &stack->motion_y, event );
+                         else
+                              WindowStack_Input_AddRelative( stack, &stack->motion_y, event );
+                         break;
+
+                    default:
+                         break;
+               }
+               break;
+
+          default:
+               break;
+     }
+}
+
+static void
+WindowStack_Input_DispatchCleanup( void *ctx )
+{
+     CoreWindowStack *stack = ctx;
+
+     WindowStack_Input_Flush( stack );
+
+     // Decrease the layer context's reference count.
+     dfb_layer_context_unref( stack->context );
+}
+
 ReactionResult
 _dfb_windowstack_inputdevice_listener( const void *msg_data,
                                        void       *ctx )
 {
+     DFBResult            ret;
      const DFBInputEvent *event = msg_data;
      CoreWindowStack     *stack = ctx;
 
@@ -836,6 +939,36 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
      if (dfb_layer_context_ref( stack->context ))
           return RS_REMOVE;
 
+     switch (event->type) {
+          case DIET_AXISMOTION:
+               switch (event->axis) {
+                    case DIAI_X:
+                    case DIAI_Y:
+                         WindowStack_Input_Add( stack, event );
+
+                         if (!stack->motion_cleanup) {
+                              ret = (DFBResult) fusion_dispatch_cleanup_add( dfb_core_world(core_dfb),
+                                                                             WindowStack_Input_DispatchCleanup,
+                                                                             stack, &stack->motion_cleanup );
+                              if (ret) {
+                                   D_DERROR( ret, "Core/WindowStack: Failed to add dispatch cleanup!\n" );
+                                   dfb_layer_context_unref( stack->context );
+                                   return RS_OK;
+                              }
+                         }
+                         return RS_OK;
+
+                    default:
+                         break;
+               }
+               break;
+
+          default:
+               break;
+     }
+
+     WindowStack_Input_Flush( stack );
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack )) {
           dfb_layer_context_unref( stack->context );
@@ -850,7 +983,8 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
      dfb_windowstack_unlock( stack );
 
      // Decrease the layer context's reference count.
-     dfb_layer_context_unref( stack->context );
+     if (!stack->motion_cleanup)
+          dfb_layer_context_unref( stack->context );
 
      return RS_OK;
 }
@@ -914,8 +1048,7 @@ stack_attach_devices( CoreInputDevice *device,
 
      direct_list_prepend( &stack->devices, &dev->link );
 
-     dfb_input_attach_global( device, DFB_WINDOWSTACK_INPUTDEVICE_LISTENER,
-                              ctx, &dev->reaction );
+     dfb_input_attach( device, _dfb_windowstack_inputdevice_listener, ctx, &dev->reaction );
 
      return DFENUM_OK;
 }
@@ -938,7 +1071,7 @@ stack_detach_devices( CoreInputDevice *device,
           if (dfb_input_device_id(device) == dev->id) {
                direct_list_remove( &stack->devices, &dev->link );
 
-               dfb_input_detach_global(device, &dev->reaction );
+               dfb_input_detach( device, &dev->reaction );
                SHFREE( stack->shmpool, dev );
                return DFENUM_OK;
           }

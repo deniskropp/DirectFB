@@ -40,6 +40,8 @@
 #include <core/windows.h>
 
 #include <direct/list.h>
+
+#include <fusion/fusion.h>
 #include <fusion/lock.h>
 #include <fusion/object.h>
 
@@ -199,6 +201,12 @@ struct __DFB_CoreWindowStack {
      CoreWindowStackFlags flags;
 
      FusionCall           call;
+
+
+     FusionDispatchCleanup  *motion_cleanup;
+
+     DFBInputEvent           motion_x;
+     DFBInputEvent           motion_y;
 };
 
 
