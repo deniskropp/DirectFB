@@ -546,7 +546,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
      DFBX11Shared *shared = x11->shared;
 
      while (!data->stop) {
-          unsigned int  pull = 23;
+          unsigned int  pull = 2000;
           XEvent        xEvent; 
           DFBInputEvent dfbEvent;
           static int    nextKeyIsRepeat = false;
