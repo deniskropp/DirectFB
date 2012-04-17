@@ -263,6 +263,30 @@ copy_line_nv16( u16 *yy, u16 *cbcr, const u8 *src_ycbcr, int width )
      }
 }
 
+static inline void
+copy_line_uyvy( u32 *uyvy, const u8 *src_ycbcr, int width )
+{
+     int x;
+
+     for (x=0; x<width/2; x++) {
+#ifdef WORDS_BIGENDIAN
+          uyvy[x] = (src_ycbcr[1] << 24) | (src_ycbcr[0] << 16) | (src_ycbcr[5] << 8) | src_ycbcr[3];
+#else
+          uyvy[x] = (src_ycbcr[3] << 24) | (src_ycbcr[5] << 16) | (src_ycbcr[0] << 8) | src_ycbcr[1];
+#endif
+
+          src_ycbcr += 6;
+     }
+
+     if (width & 1) {
+#ifdef WORDS_BIGENDIAN
+          uyvy[x] = (src_ycbcr[1] << 24) | (src_ycbcr[0] << 16) | (src_ycbcr[1] << 8) | src_ycbcr[0];
+#else
+          uyvy[x] = (src_ycbcr[0] << 24) | (src_ycbcr[1] << 16) | (src_ycbcr[0] << 8) | src_ycbcr[1];
+#endif
+     }
+}
+
 
 static void
 IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
@@ -521,6 +545,18 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     }
                     D_INFO( "JPEG: Going through RGB color space! (%dx%d -> %dx%d @%d,%d)\n",
                             cinfo.output_width, cinfo.output_height, rect.w, rect.h, rect.x, rect.y );
+                    cinfo.out_color_space = JCS_RGB;
+                    break;
+
+               case DSPF_UYVY:
+                    if (direct && !rect.x && !rect.y) {
+                         cinfo.out_color_space = JCS_YCbCr;
+                         break;
+                    }
+                    D_INFO( "JPEG: Going through RGB color space! (%dx%d -> %dx%d @%d,%d)\n",
+                            cinfo.output_width, cinfo.output_height, rect.w, rect.h, rect.x, rect.y );
+                    cinfo.out_color_space = JCS_RGB;
+                    break;
 
                default:
                     cinfo.out_color_space = JCS_RGB;
@@ -549,8 +585,20 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
                switch (dst_surface->config.format) {
                     case DSPF_NV16:
+                    case DSPF_UYVY:
                          if (direct) {
-                              copy_line_nv16( lock.addr, (u16*)lock.addr + uv_offset, *buffer, rect.w );
+                              switch (dst_surface->config.format) {
+                                   case DSPF_NV16:
+                                        copy_line_nv16( lock.addr, (u16*)lock.addr + uv_offset, *buffer, rect.w );
+                                        break;
+
+                                   case DSPF_UYVY:
+                                        copy_line_uyvy( lock.addr, *buffer, rect.w );
+                                        break;
+
+                                   default:
+                                        break;
+                              }
 
                               lock.addr = (u8*)lock.addr + lock.pitch;
 
