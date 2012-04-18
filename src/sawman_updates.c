@@ -93,11 +93,10 @@ typedef struct {
 
 static inline DFBUpdateBin *dfb_update_bin_get( const DFBUpdateBin *src, SaWManWindow *window, const int x1, const int y1, const int x2, const int y2, const int max)
 {
-     int            i;
-     int            cap  = max;
-     int            size = 0;
-     DFBUpdateBin  *bin;
-     SaWManWindow **win;
+     int           cap  = max;
+     int           size = 0;
+     DFBUpdateBin *bin;
+
 
      if (src) {
           cap = src->cap;
@@ -1031,8 +1030,8 @@ update_region4_r( SaWMan          *sawman,
                bool             premult = (window->config.opacity == 0xff && window->surface &&
                                            (window->surface->config.caps & DSCAPS_PREMULTIPLIED) &&
                                            (window->config.options & DWOP_ALPHACHANNEL) && !(window->config.options & DWOP_COLORKEYING) &&
-                                           (window->config.dst_geometry.mode == DWGM_DEFAULT) && tier->stack->bg.mode == DLBM_COLOR &&
-                                           !tier->stack->bg.color.a && !tier->stack->bg.color.r && !tier->stack->bg.color.g && !tier->stack->bg.color.b);
+                                           (window->config.dst_geometry.mode == DWGM_DEFAULT) && stack->bg.mode == DLBM_COLOR &&
+                                           !stack->bg.color.a && !stack->bg.color.r && !stack->bg.color.g && !stack->bg.color.b);
                D_ASSERT(bin->curr > 0);
                D_ASSERT(bin->size > 0);
 
@@ -1094,12 +1093,18 @@ update_region4( SaWMan          *sawman,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
      D_MAGIC_ASSERT( state, CardState );
-     D_ASSERT( start >= 0);
      D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
      D_ASSERT( x1 <= x2 );
      D_ASSERT( y1 <= y2 );
 
-     update_region4_r( sawman, tier, state, start, right_eye, dfb_update_bin_get( NULL, NULL, x1, y1, x2, y2, start + 1) );
+     if (start < 0) {
+          DFBRegion region = { x1, y1, x2, y2 };
+
+          sawman_draw_background( tier, state, &region);
+     }
+     else {
+          update_region4_r( sawman, tier, state, start, right_eye, dfb_update_bin_get( NULL, NULL, x1, y1, x2, y2, start + 1) );
+     }
 }
 
 void
