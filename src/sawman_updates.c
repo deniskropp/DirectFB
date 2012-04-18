@@ -82,6 +82,61 @@ typedef struct {
      int free;
 } DFBLinkRegionPool;
 
+typedef struct {
+     DFBRegion     region;
+     int           cap;
+     int           size;
+     int           curr;
+     SaWManWindow *windows;
+     /* hidden array of SaWManWindow* at the end of this struct */
+} DFBUpdateBin;
+
+static inline DFBUpdateBin *dfb_update_bin_get( const DFBUpdateBin *src, SaWManWindow *window, const int x1, const int y1, const int x2, const int y2, const int max)
+{
+     int            i;
+     int            cap  = max;
+     int            size = 0;
+     DFBUpdateBin  *bin;
+     SaWManWindow **win;
+
+     if (src) {
+          cap = src->cap;
+          size = src->size;
+     }
+
+     D_ASSERT(cap > 0);
+
+     bin = malloc( sizeof(DFBUpdateBin) + (cap - 1) * sizeof(SaWManWindow*) );
+     D_ASSERT(NULL != bin);
+
+     bin->region = (DFBRegion){ x1, y1, x2, y2 };
+     bin->size = size;
+     bin->cap = cap;
+     bin->curr = size;
+
+     if (src && size > 0)
+          memcpy(&bin->windows, &src->windows, size * sizeof(SaWManWindow*));
+
+     if (window) {
+          D_ASSERT(size < cap);
+
+          memcpy(&bin->windows + size, &window, sizeof(SaWManWindow*));
+          bin->size++;
+          bin->curr++;
+     }
+
+     return bin;
+}
+
+static inline SaWManWindow *dfb_update_bin_window_get( const DFBUpdateBin *bin, const int index )
+{
+     D_ASSERT(NULL != bin);
+     D_ASSERT(index >= 0);
+     D_ASSERT(index < bin->size);
+
+     return *(&bin->windows + index);
+}
+
 static inline void dfb_linkregionpool_init( DFBLinkRegionPool *pool, DFBLinkRegion *regions, int number )
 {
      pool->regions = regions;
@@ -363,14 +418,14 @@ update_region( SaWMan          *sawman,
 
 static void
 update_region2( SaWMan          *sawman,
-               SaWManTier      *tier,
-               CardState       *state,
-               int              start,
-               int              x1,
-               int              y1,
-               int              x2,
-               int              y2,
-               bool             right_eye )
+                SaWManTier      *tier,
+                CardState       *state,
+                int              start,
+                int              x1,
+                int              y1,
+                int              x2,
+                int              y2,
+                bool             right_eye )
 {
      int              i;
      SaWManWindow    *sawwin;
@@ -867,6 +922,186 @@ update_region3( SaWMan          *sawman,
      D_DEBUG_AT( SaWMan_Update, " -=> done <=-\n" );
 }
 
+static void
+update_region4_r( SaWMan          *sawman,
+                  SaWManTier      *tier,
+                  CardState       *state,
+                  int              start,
+                  bool             right_eye,
+                  DFBUpdateBin    *bin )
+{
+     int           i      = start;
+     CoreWindow   *window = NULL;
+     SaWManWindow *sawwin = NULL;
+     DFBRegion     region;
+     int           offset;
+
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, region.x1, region.y1, region.x2, region.y2 );
+
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
+
+     /* find next intersecting window */
+     while (i >= 0) {
+          sawwin = fusion_vector_at( &sawman->layout, i );
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+
+          window = sawwin->window;
+          D_MAGIC_COREWINDOW_ASSERT( window );
+
+          /* modify stereo offset */
+          offset = window->config.z;
+          offset *= right_eye ? -1 : 1;
+          region = DFB_REGION_INIT_FROM_RECTANGLE(&sawwin->bounds);
+          region.x1 += offset;
+
+          if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
+               if (dfb_region_intersect( &region, bin->region.x1, bin->region.y1, bin->region.x2, bin->region.y2))
+                    break;
+          }
+
+          i--;
+     }
+
+     /* intersecting window found? */
+     if (i >= 0) {
+          D_MAGIC_ASSERT( sawwin, SaWManWindow );
+          D_MAGIC_COREWINDOW_ASSERT( window );
+
+          /* continue recursion with left intersection? */
+          if (bin->region.x1 != region.x1)
+               update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, NULL, bin->region.x1, region.y1, region.x1 - 1, region.y2, i + 1) );
+
+          /* continue recursion with upper intersection? */
+          if (bin->region.y1 != region.y1)
+               update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, NULL, bin->region.x1, bin->region.y1, bin->region.x2, region.y1 - 1, i + 1) );
+
+          /* continue recursion with right intersection? */
+          if (bin->region.x2 != region.x2)
+               update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, NULL, region.x2 + 1, region.y1, bin->region.x2, region.y2, i + 1) );
+
+          /* continue recursion with lower intersection? */
+          if (bin->region.y2 != region.y2)
+               update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, NULL, bin->region.x1, region.y2 + 1, bin->region.x2, bin->region.y2, i + 1) );
+
+          if (D_FLAGS_ARE_SET( window->config.options, DWOP_OPAQUE_REGION )) {
+               DFBRegion opaque = DFB_REGION_INIT_TRANSLATED( &window->config.opaque, sawwin->bounds.x, sawwin->bounds.y );
+
+               /* continue recursion with left inner window intersection? */
+               if (opaque.x1 != region.x1)
+                    update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, opaque.y1, opaque.x1 - 1, opaque.y2, i + 1) );
+
+               /* continue recursion with upper inner window intersection? */
+               if (opaque.y1 != region.y1)
+                    update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, region.y1, region.x2, opaque.y1 - 1, i + 1) );
+
+               /* continue recursion with right inner window intersection? */
+               if (opaque.x2 != region.x2)
+                    update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, opaque.x2 + 1, opaque.y1, region.x2, opaque.y2, i + 1) );
+
+               /* continue recursion with lower inner window intersection? */
+               if (opaque.y2 != region.y2)
+                    update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, opaque.y2 + 1, region.x2, region.y2, i + 1) );
+
+               /* recursion ends on opaque inner window */
+               update_region4_r( sawman, tier, state, -1, right_eye, dfb_update_bin_get( bin, sawwin, opaque.x1, opaque.y1, opaque.x2, opaque.y2, i + 1) );
+          }
+          else if (SAWMAN_TRANSLUCENT_WINDOW( window )) {
+               /* continue recursion on window */
+               update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, region.y1, region.x2, region.y2, i + 1) );
+          }
+          else {
+               /* recursion ends on opaque window */
+               update_region4_r( sawman, tier, state, -1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, region.y1, region.x2, region.y2, i + 1) );
+          }
+     }
+     else {
+          /* recursion already ended */
+          if (bin->size < 1) {
+               sawman_draw_background( tier, state, &bin->region );
+
+               free( bin );
+          }
+          else {
+               CoreWindow      *window  = dfb_update_bin_window_get(bin, bin->curr - 1)->window;
+               CoreWindowStack *stack   = tier->stack;
+               bool             trans   = SAWMAN_TRANSLUCENT_WINDOW(window);
+               bool             premult = (window->config.opacity == 0xff && window->surface &&
+                                           (window->surface->config.caps & DSCAPS_PREMULTIPLIED) &&
+                                           (window->config.options & DWOP_ALPHACHANNEL) && !(window->config.options & DWOP_COLORKEYING) &&
+                                           (window->config.dst_geometry.mode == DWGM_DEFAULT) && tier->stack->bg.mode == DLBM_COLOR &&
+                                           !tier->stack->bg.color.a && !tier->stack->bg.color.r && !tier->stack->bg.color.g && !tier->stack->bg.color.b);
+               D_ASSERT(bin->curr > 0);
+               D_ASSERT(bin->size > 0);
+
+               /* draw background behind translucient windows */
+               if (bin->curr == bin->size && SAWMAN_TRANSLUCENT_WINDOW( window )) {
+                    sawman_draw_background( tier, state, &bin->region );
+               }
+
+               /* current window opaque or premultiplied with black background? */
+               if (!trans || (premult && (bin->size == bin->curr))) {
+                    int next = bin->curr - 1;
+                    if (next > 0) {
+                         /* there is another window on top so can blit 2 windows at once*/
+                         sawman_draw_two_windows( tier, dfb_update_bin_window_get(bin, bin->curr - 1), dfb_update_bin_window_get(bin, bin->curr - 2), state, &bin->region, right_eye );
+
+                         bin->curr -= 2;
+                    }
+                    else {
+                         /* single not blended blit */
+                         sawman_draw_window( tier, dfb_update_bin_window_get(bin, bin->curr - 1), state, &bin->region, false, right_eye );
+
+                         bin->curr--;
+                    }
+                    /* continue with next window on top? */
+                    if (bin->curr >= 1)
+                         update_region4_r( sawman, tier, state, -1, right_eye, bin );
+                    else
+                         free( bin );
+               }
+               else {
+                    /* single blend */
+                    sawman_draw_window( tier, dfb_update_bin_window_get(bin, bin->curr - 1), state, &bin->region, true, right_eye );
+
+                    /* continue with window on top? */
+                    if (bin->curr > 1) {
+                         bin->curr--;
+
+                         update_region4_r( sawman, tier, state, -1, right_eye, bin );
+                    }
+                    else {
+                         free( bin );
+                    }
+               }
+          }
+     }
+}
+
+static void
+update_region4( SaWMan          *sawman,
+                SaWManTier      *tier,
+                CardState       *state,
+                int              start,
+                int              x1,
+                int              y1,
+                int              x2,
+                int              y2,
+                bool             right_eye )
+{
+     D_MAGIC_ASSERT( sawman, SaWMan );
+     D_MAGIC_ASSERT( tier, SaWManTier );
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( start >= 0);
+     D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
+     D_ASSERT( x1 <= x2 );
+     D_ASSERT( y1 <= y2 );
+
+     update_region4_r( sawman, tier, state, start, right_eye, dfb_update_bin_get( NULL, NULL, x1, y1, x2, y2, start + 1) );
+}
+
 void
 sawman_flush_updating( SaWMan     *sawman,
                        SaWManTier *tier )
@@ -1054,6 +1289,13 @@ repaint_tier( SaWMan              *sawman,
                     break;
                case 3:
                     update_region3( sawman, tier, state,
+                                    fusion_vector_size( &sawman->layout ) - 1,
+                                    update->x1, update->y1, update->x2, update->y2,
+                                    right_eye );
+
+                    break;
+               case 4:
+                    update_region4( sawman, tier, state,
                                     fusion_vector_size( &sawman->layout ) - 1,
                                     update->x1, update->y1, update->x2, update->y2,
                                     right_eye );

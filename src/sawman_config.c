@@ -373,7 +373,7 @@ sawman_config_set( const char *name, const char *value )
                     D_ERROR("SaWMan/Config '%s': Could not parse value!\n", name);
                     return DFB_INVARG;
                }
-               if (mode < 1 || mode > 3) {
+               if (mode < 1 || mode > 4) {
                     D_ERROR("SaWMan/Config '%s': Value %d out of bounds!\n", name, mode);
                     return DFB_INVARG;
                }
