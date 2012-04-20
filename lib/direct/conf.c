@@ -59,6 +59,7 @@ const char   *direct_config_usage =
      "  disable-module=<module_name>   suppress loading this module\n"
      "  module-dir=<directory>         Override default module search directory (default = $libdir/directfb-x.y-z)\n"
      "  thread-priority-scale=<100th>  Apply scaling factor on thread type based priorities\n"
+     "  default-interface-implementation=<type/name> Probe interface_type/implementation_name first\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -374,6 +375,53 @@ direct_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "Direct/Config '%s': No value specified!\n", name );
+               return DR_INVARG;
+          }
+     }
+     else
+     if (direct_strcmp (name, "default-interface-implementation" ) == 0) {
+          if (value) {
+               char  itype[0xff];
+               char *iname = 0;
+               char  len;
+               int   n     = 0;
+
+               while (direct_config->default_interface_implementation_types &&
+                      direct_config->default_interface_implementation_types[n])
+                    n++;
+
+               direct_config->default_interface_implementation_types = (char**) D_REALLOC( direct_config->default_interface_implementation_types,
+                                                                                           sizeof(char*) * (n + 2) );
+               direct_config->default_interface_implementation_names = (char**) D_REALLOC( direct_config->default_interface_implementation_names,
+                                                                                           sizeof(char*) * (n + 2) );
+               iname = strstr(value, "/");
+               if (!iname) {
+                    D_ERROR("Direct/Config '%s': No interface/implementation specified!\n", name);
+                    return DR_INVARG;
+               }
+ 
+               if (iname <= value) {
+                    D_ERROR("Direct/Config '%s': No interface specified!\n", name);
+                    return DR_INVARG;
+               }
+
+               if (strlen(iname) < 2) {
+                    D_ERROR("Direct/Config '%s': No implementation specified!\n", name);
+                    return DR_INVARG;
+               }
+
+               len = iname - value;
+               strncpy(itype, value, len);
+               itype[len] = '\0';
+
+               direct_config->default_interface_implementation_types[n] = D_STRDUP( itype );
+               direct_config->default_interface_implementation_types[n+1] = NULL;
+
+               direct_config->default_interface_implementation_names[n] = D_STRDUP( iname + 1 );
+               direct_config->default_interface_implementation_names[n+1] = NULL;
+          }
+          else {
+               D_ERROR("Direct/Config '%s': No interface/implementation specified!\n", name);
                return DR_INVARG;
           }
      }

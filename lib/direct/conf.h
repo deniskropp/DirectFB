@@ -96,6 +96,9 @@ struct __D_DirectConfig {
      DirectConfigThreadScheduler   thread_scheduler;
      int                           thread_stack_size;
      int                           thread_priority_scale;
+
+     char                        **default_interface_implementation_types;
+     char                        **default_interface_implementation_names;
 };
 
 extern DirectConfig DIRECT_API *direct_config;
