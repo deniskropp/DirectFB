@@ -191,6 +191,8 @@ ISaWManManager_Real::InsertWindow(
 
      ret = (DFBResult) sawman_insert_window( m_sawman, window, relative,
                                              (relation == SWMWR_TOP) ? DFB_TRUE : DFB_FALSE );
+     if (!ret)
+          sawman_update_window( m_sawman, window, NULL, DSFLIP_NONE, SWMUF_NONE );
 
      sawman_unlock( m_sawman );
 
