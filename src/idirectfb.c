@@ -1080,15 +1080,12 @@ IDirectFB_CreatePalette( IDirectFB                    *thiz,
           size = desc->size;
      }
 
-     ret = dfb_palette_create( data->core, size, &palette );
+     ret = CoreDFB_CreatePalette( data->core, size, &palette );
      if (ret)
           return ret;
 
-     if (desc && desc->flags & DPDESC_ENTRIES) {
-          direct_memcpy( palette->entries, desc->entries, size * sizeof(DFBColor));
-
-          dfb_palette_update( palette, 0, size - 1 );
-     }
+     if (desc && desc->flags & DPDESC_ENTRIES)
+          CorePalette_SetEntries( palette, desc->entries, size, 0 );
      else
           dfb_palette_generate_rgb332_map( palette );
 
