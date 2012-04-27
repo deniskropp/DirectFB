@@ -53,6 +53,7 @@
 
 
 D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
+D_DEBUG_DOMAIN( Core_LayersLock, "Core/Layers/Lock", "DirectFB Display Layer Core locks" );
 
 
 static DFBResult region_buffer_unlock( CoreLayerRegion *region,
@@ -1202,9 +1203,13 @@ region_buffer_lock( CoreLayerRegion       *region,
 
      stereo = surface->config.caps & DSCAPS_STEREO;
 
+     D_DEBUG_AT( Core_LayersLock, "%s()\n" );
+
      /* First unlock any previously locked buffer. */
      if (region->left_buffer_lock.buffer) {
           D_MAGIC_ASSERT( region->left_buffer_lock.buffer, CoreSurfaceBuffer );
+
+          D_DEBUG_AT( Core_LayersLock, "  -> unlocking previously locked left buffer\n" );
 
           ret = dfb_surface_unlock_buffer( region->left_buffer_lock.buffer->surface, &region->left_buffer_lock );
           if (ret != DFB_OK)
@@ -1214,6 +1219,8 @@ region_buffer_lock( CoreLayerRegion       *region,
           if (region->right_buffer_lock.buffer) {
                D_MAGIC_ASSERT( region->right_buffer_lock.buffer, CoreSurfaceBuffer );
      
+               D_DEBUG_AT( Core_LayersLock, "  -> unlocking previously locked right buffer\n" );
+
                ret = dfb_surface_unlock_buffer( region->right_buffer_lock.buffer->surface, &region->right_buffer_lock );
                if (ret != DFB_OK)
                     return ret;
