@@ -18,6 +18,7 @@ AM_CPPFLAGS = \
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
+	CoreDFB_CallMode.h		\
 	$(builddir)/CoreDFB.h		\
 	CoreDFB_includes.h	\
 	$(builddir)/CoreSlave.h		\

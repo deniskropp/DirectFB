@@ -958,6 +958,7 @@ IDirectFBSurface_SetColorIndex( IDirectFBSurface *thiz,
 {
      CoreSurface *surface;
      CorePalette *palette;
+     DFBResult    ret;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -977,8 +978,11 @@ IDirectFBSurface_SetColorIndex( IDirectFBSurface *thiz,
      if (index > palette->num_entries)
           return DFB_INVARG;
 
-     dfb_state_set_color( &data->state, &palette->entries[index] );
+     ret = CoreGraphicsState_SetColorAndIndex( data->state_client.gfx_state, &palette->entries[index], index );
+     if (ret)
+          return ret;
 
+     dfb_state_set_color( &data->state, &palette->entries[index] );
      dfb_state_set_color_index( &data->state, index );
 
      data->state.colors[0]        = data->state.color;

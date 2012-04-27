@@ -56,6 +56,26 @@ interface {
 	}
 
 	method {
+               name      SetColorAndIndex
+               async     yes
+               queue     no
+
+               arg {
+                       name      color
+                       direction input
+                       type      struct
+                       typename  DFBColor
+               }
+
+               arg {
+                       name      index
+                       direction input
+                       type      int
+                       typename  u32
+               }
+       }
+
+	method {
 		name      SetSrcBlend
 		async  	  yes
 		queue     yes

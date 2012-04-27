@@ -113,6 +113,25 @@ IGraphicsState_Real::SetColor(
 
 
 DFBResult
+IGraphicsState_Real::SetColorAndIndex(
+                    const DFBColor                            *color,
+                    u32                                        index)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "%s()\n", __FUNCTION__ );
+
+    D_ASSERT( color != NULL );
+
+    dfb_state_set_color( &obj->state, color );
+    dfb_state_set_color_index( &obj->state, index );
+
+    obj->state.colors[0]        = *color;
+    obj->state.color_indices[0] = index;
+
+    return DFB_OK;
+}
+
+
+DFBResult
 IGraphicsState_Real::SetSrcBlend(
                     DFBSurfaceBlendFunction                    function
 )
