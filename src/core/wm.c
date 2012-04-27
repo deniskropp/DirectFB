@@ -175,6 +175,8 @@ dfb_wm_core_initialize( CoreDFB         *core,
 
      wm_shared->reactor = fusion_reactor_new( 0, "WM", dfb_core_world(core) );
 
+     fusion_reactor_direct( wm_shared->reactor, false );
+
      /* Initialize window manager. */
      ret = wm_local->funcs->Initialize( core, wm_local->data, wm_shared->data );
      if (ret) {
