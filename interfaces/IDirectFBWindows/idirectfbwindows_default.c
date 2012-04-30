@@ -77,13 +77,26 @@ typedef struct {
 static void
 IDirectFBWindows_Destruct( IDirectFBWindows *thiz )
 {
+     int                    i;
      IDirectFBWindows_data *data;
+     RegisteredWatcher     *watcher, *next;
 
      D_DEBUG_AT( IDirectFBWindows_default, "%s( %p )\n", __FUNCTION__, thiz );
 
      D_ASSERT( thiz != NULL );
 
      data = thiz->priv;
+
+     direct_list_foreach_safe (watcher, next, data->watchers) {
+          for (i=_CORE_WM_NUM_CHANNELS-1; i>=0; i--) {
+               if (watcher->reactions[i].func)
+                    dfb_wm_detach( data->core, &watcher->reactions[i] );
+          }
+
+          D_FREE( watcher );
+     }
+
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DirectResult

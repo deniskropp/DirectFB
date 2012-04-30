@@ -137,6 +137,11 @@ typedef struct {
      DFBWindowConfig               config;
 
      DFBWindowState                state;
+
+     u32                           process_id;              /* Fusion ID or even pid, or something else
+                                                               identifying a process. */
+     u32                           instance_id;             /* ID of the instance of an application. Each process
+                                                               can host a number of applications/instances. */
 } DFBWindowInfo;
 
 

@@ -637,6 +637,8 @@ dfb_wm_dispatch_WindowAdd( CoreDFB    *core,
      add.info.window_id   = window->id;
      add.info.caps        = window->caps;
      add.info.resource_id = window->resource_id;
+     add.info.process_id  = window->object.owner;
+     add.info.instance_id = window->object.owner;
 
      convert_config( &add.info.config, &window->config );
 
