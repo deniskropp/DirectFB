@@ -165,6 +165,7 @@ void
 dfb_palette_generate_rgb332_map( CorePalette *palette )
 {
      unsigned int i;
+     DFBColor     entries[0xff];
 
      D_DEBUG_AT( Core_Palette, "%s( %p )\n", __FUNCTION__, palette );
 
@@ -174,24 +175,20 @@ dfb_palette_generate_rgb332_map( CorePalette *palette )
           return;
 
      for (i=0; i<palette->num_entries; i++) {
-          palette->entries[i].a = i ? 0xff : 0x00;
-          palette->entries[i].r = lookup3to8[ (i & 0xE0) >> 5 ];
-          palette->entries[i].g = lookup3to8[ (i & 0x1C) >> 2 ];
-          palette->entries[i].b = lookup2to8[ (i & 0x03) ];
-
-          palette->entries_yuv[i].a = palette->entries[i].a;
-
-          RGB_TO_YCBCR( palette->entries[i].r, palette->entries[i].g, palette->entries[i].b,
-                        palette->entries_yuv[i].y, palette->entries_yuv[i].u, palette->entries_yuv[i].v );
+          entries[i].a = i ? 0xff : 0x00;
+          entries[i].r = lookup3to8[ (i & 0xE0) >> 5 ];
+          entries[i].g = lookup3to8[ (i & 0x1C) >> 2 ];
+          entries[i].b = lookup2to8[ (i & 0x03) ];
      }
 
-     dfb_palette_update( palette, 0, palette->num_entries - 1 );
+     CorePalette_SetEntries( palette, entries, palette->num_entries, 0 );
 }
 
 void
 dfb_palette_generate_rgb121_map( CorePalette *palette )
 {
      unsigned int i;
+     DFBColor     entries[0xff];
 
      D_DEBUG_AT( Core_Palette, "%s( %p )\n", __FUNCTION__, palette );
 
@@ -201,18 +198,13 @@ dfb_palette_generate_rgb121_map( CorePalette *palette )
           return;
 
      for (i=0; i<palette->num_entries; i++) {
-          palette->entries[i].a = i ? 0xff : 0x00;
-          palette->entries[i].r = (i & 0x8) ? 0xff : 0x00;
-          palette->entries[i].g = lookup2to8[ (i & 0x6) >> 1 ];
-          palette->entries[i].b = (i & 0x1) ? 0xff : 0x00;
-
-          palette->entries_yuv[i].a = palette->entries[i].a;
-
-          RGB_TO_YCBCR( palette->entries[i].r, palette->entries[i].g, palette->entries[i].b,
-                        palette->entries_yuv[i].y, palette->entries_yuv[i].u, palette->entries_yuv[i].v );
+          entries[i].a = i ? 0xff : 0x00;
+          entries[i].r = (i & 0x8) ? 0xff : 0x00;
+          entries[i].g = lookup2to8[ (i & 0x6) >> 1 ];
+          entries[i].b = (i & 0x1) ? 0xff : 0x00;
      }
 
-     dfb_palette_update( palette, 0, palette->num_entries - 1 );
+     CorePalette_SetEntries( palette, entries, palette->num_entries, 0 );
 }
 
 unsigned int
