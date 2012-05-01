@@ -543,7 +543,6 @@ glxDeallocateBuffer( CoreSurfacePool       *pool,
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( local, glxPoolLocalData );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( alloc, glxAllocationData );
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
