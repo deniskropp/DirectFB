@@ -182,5 +182,9 @@ DirectResult FUSION_API fusion_get_fusionee_path( const FusionWorld *world,
                                                   size_t             buf_size,
                                                   size_t            *ret_size );
 
+DirectResult FUSION_API fusion_get_fusionee_pid( const FusionWorld *world,
+                                                 FusionID           fusion_id,
+                                                 pid_t             *ret_pid );
+
 #endif
 

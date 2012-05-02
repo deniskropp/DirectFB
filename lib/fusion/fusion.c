@@ -1323,6 +1323,37 @@ fusion_get_fusionee_path( const FusionWorld *world,
      return DR_OK;
 }
 
+DirectResult
+fusion_get_fusionee_pid( const FusionWorld *world,
+                         FusionID           fusion_id,
+                         pid_t             *ret_pid )
+{
+     FusionGetFusioneeInfo info;
+
+     D_ASSERT( world != NULL );
+     D_ASSERT( ret_pid != NULL );
+
+     info.fusion_id = fusion_id;
+
+     while (ioctl( world->fusion_fd, FUSION_GET_FUSIONEE_INFO, &info ) < 0) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+
+               default:
+                    break;
+          }
+
+          D_PERROR( "Fusion: FUSION_GET_FUSIONEE_INFO failed!\n" );
+
+          return DR_FUSION;
+     }
+
+     *ret_pid = info.pid;
+
+     return DR_OK;
+}
+
 #else /* FUSION_BUILD_KERNEL */
 
 #include <dirent.h>
@@ -3036,6 +3067,16 @@ fusion_get_fusionee_path( const FusionWorld *world,
                           char              *buf,
                           size_t             buf_size,
                           size_t            *ret_size )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_get_fusionee_pid( const FusionWorld *world,
+                         FusionID           fusion_id,
+                         pid_t             *ret_pid )
 {
      D_UNIMPLEMENTED();
 
