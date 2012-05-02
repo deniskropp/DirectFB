@@ -31,6 +31,8 @@
 
 #include <fusion/build.h>
 
+#include <direct/types.h>
+
 #ifdef WIN32
 // The following ifdef block is the standard way of creating macros which make exporting 
 // from a DLL simpler. All files within this DLL are compiled with the FUSION_EXPORTS
