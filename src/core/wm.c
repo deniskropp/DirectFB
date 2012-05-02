@@ -632,12 +632,15 @@ DFBResult
 dfb_wm_dispatch_WindowAdd( CoreDFB    *core,
                            CoreWindow *window )
 {
+     pid_t            pid = 0;
      CoreWM_WindowAdd add;
+
+     fusion_get_fusionee_pid( core->world, window->object.identity, &pid );
 
      add.info.window_id   = window->id;
      add.info.caps        = window->caps;
      add.info.resource_id = window->resource_id;
-     add.info.process_id  = window->object.identity;
+     add.info.process_id  = pid;
      add.info.instance_id = window->object.identity;
 
      convert_config( &add.info.config, &window->config );
