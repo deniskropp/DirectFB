@@ -486,6 +486,8 @@ handle_expose( const XExposeEvent *expose )
           if (dfb_layer_context_get_primary_region( context,
                                                     false, &region ) == DFB_OK)
           {
+               CoreSurfaceBufferLock left, right;
+
                /* Lock the region to avoid tearing due to concurrent updates. */
                dfb_layer_region_lock( region );
 
@@ -494,29 +496,29 @@ handle_expose( const XExposeEvent *expose )
                     DFBSurfaceStereoEye eye = dfb_surface_get_stereo_eye( region->surface );
 
                     dfb_surface_set_stereo_eye( region->surface, DSSE_LEFT );
-                    dfb_surface_lock_buffer( region->surface, CSBR_FRONT, region->surface_accessor, CSAF_READ, &region->left_buffer_lock );
+                    dfb_surface_lock_buffer( region->surface, CSBR_FRONT, region->surface_accessor, CSAF_READ, &left );
 
                     if (region->surface->config.caps & DSCAPS_STEREO) {
                          dfb_surface_set_stereo_eye( region->surface, DSSE_RIGHT );
-                         dfb_surface_lock_buffer( region->surface, CSBR_FRONT, region->surface_accessor, CSAF_READ, &region->right_buffer_lock );
+                         dfb_surface_lock_buffer( region->surface, CSBR_FRONT, region->surface_accessor, CSAF_READ, &right );
                     }
 
-                    if (region->left_buffer_lock.buffer) {
+                    if (left.buffer) {
                          DFBRegion update = { expose->x, expose->y,
                                               expose->x + expose->width  - 1,
                                               expose->y + expose->height - 1 };
 
                          funcs->UpdateRegion( layer, layer->driver_data, layer->layer_data,
                                               region->region_data, region->surface, &update,
-                                              &region->left_buffer_lock, &update, &region->right_buffer_lock );
+                                              &left, &update, &right );
                     }
 
                     dfb_surface_set_stereo_eye( region->surface, DSSE_LEFT );
-                    dfb_surface_unlock_buffer(region->surface, &region->left_buffer_lock );
+                    dfb_surface_unlock_buffer(region->surface, &left );
 
                     if (region->surface->config.caps & DSCAPS_STEREO) {
                          dfb_surface_set_stereo_eye( region->surface, DSSE_RIGHT );
-                         dfb_surface_unlock_buffer(region->surface, &region->right_buffer_lock );
+                         dfb_surface_unlock_buffer(region->surface, &right );
                     }
 
                     dfb_surface_set_stereo_eye( region->surface, eye );
