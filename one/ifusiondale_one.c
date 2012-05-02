@@ -41,8 +41,9 @@
 
 #include <ifusiondale.h>
 
+#include "ifusiondale_one.h"
 #include "icoma_one.h"
-
+#include "ifusiondalemessenger_one.h"
 
 static DirectResult Probe( void );
 static DirectResult Construct( IFusionDale *thiz, const char *host, int session );
@@ -58,26 +59,6 @@ D_DEBUG_DOMAIN( IFusionDale_One, "IFusionDale/One", "IFusionDale One" );
 
 typedef struct __DecoupledGetComponentCall DecoupledGetComponentCall;
 
-/*
- * private data struct of IFusionDale_One
- */
-typedef struct {
-     IFusionDale_data      base;
-
-     OneQID                ns_qid;
-
-     DirectMap            *ns_map;
-     DirectMutex           ns_lock;
-     DirectWaitQueue       ns_wq;
-
-     DirectThread         *ns_thread;
-     bool                  ns_stop;
-
-     DirectLink           *ns_getcomponent_calls;
-
-     OneThread            *thread;
-} IFusionDale_One_data;
-
 struct __DecoupledGetComponentCall {
      DirectLink            link;
 
@@ -91,13 +72,13 @@ struct __DecoupledGetComponentCall {
 /**************************************************************************************************/
 
 typedef struct {
-     char           name[COMA_COMPONENT_NAME_LENGTH];
+     char           name[FUSIONDALE_NAME_LENGTH];
 } NSMapKey;
 
 typedef struct {
      NSMapKey       key;
 
-     OneQID         method_qid;
+     OneQID         qid;
 
      unsigned int   notifications;
 
@@ -140,6 +121,62 @@ ns_iterator( DirectMap *map,
              void      *ctx )
 {
      NSMapEntry *entry = object;
+
+     D_FREE( entry );
+
+     return DENUM_OK;
+}
+
+/**************************************************************************************************/
+
+typedef struct {
+     char           name[FUSIONDALE_NAME_LENGTH];
+} EventMapKey;
+
+typedef struct {
+     EventMapKey    key;
+
+     OneQID         qid;
+
+     int            refs;
+} EventMapEntry;
+
+static bool
+event_map_compare( DirectMap    *map,
+                   const void   *key,
+                   void         *object,
+                   void         *ctx )
+{
+     const EventMapKey *map_key   = key;
+     EventMapEntry     *map_entry = object;
+
+     return strcmp( map_key->name, map_entry->key.name ) == 0;
+}
+
+static unsigned int
+event_map_hash( DirectMap    *map,
+                const void   *key,
+                void         *ctx )
+{
+     size_t             i    = 0;
+     unsigned int       hash = 0;
+     const EventMapKey *map_key = key;
+
+     while (map_key->name[i]) {
+          hash = hash * 131 + map_key->name[i];
+
+          i++;
+     }
+
+     return hash;
+}
+
+static DirectEnumerationResult
+event_iterator( DirectMap *map,
+                void      *object,
+                void      *ctx )
+{
+     EventMapEntry *entry = object;
 
      D_FREE( entry );
 
@@ -213,6 +250,44 @@ IFusionDale_One_EnterComa( IFusionDale  *thiz,
      return DR_OK;
 }
 
+static DirectResult
+IFusionDale_One_CreateMessenger( IFusionDale           *thiz,
+                                 IFusionDaleMessenger **ret_interface )
+{
+     DirectResult          ret;
+     DirectInterfaceFuncs *funcs;
+     void                 *interface_ptr;
+
+     DIRECT_INTERFACE_GET_DATA(IFusionDale_One)
+
+     D_DEBUG_AT( IFusionDale_One, "%s\n", __FUNCTION__ );
+
+     D_ASSERT( ret_interface != NULL );
+
+     ret = DirectGetInterface( &funcs, "IFusionDaleMessenger", "One", NULL, NULL );
+     if (ret)
+          return ret;
+
+     ret = funcs->Allocate( &interface_ptr );
+     if (ret)
+          return ret;
+
+     ret = funcs->Construct( interface_ptr, thiz, data->thread );
+     if (ret)
+          return ret;
+
+     *ret_interface = interface_ptr;
+
+     return DR_OK;
+}
+
+static DirectResult
+IFusionDale_One_GetMessenger( IFusionDale           *thiz,
+                              IFusionDaleMessenger **ret_interface )
+{
+     return IFusionDale_One_CreateMessenger( thiz, ret_interface );
+}
+
 /**************************************************************************************************/
 
 static DirectResult
@@ -231,19 +306,19 @@ DispatchCreateComponent( IFusionDale_One_data         *data,
      if (!entry)
           return D_OOM();
 
-     entry->method_qid    = request->method_qid;
+     entry->qid           = request->method_qid;
      entry->notifications = request->notifications;
 
-     direct_snputs( entry->key.name, request->name, COMA_COMPONENT_NAME_LENGTH );
+     direct_snputs( entry->key.name, request->name, FUSIONDALE_NAME_LENGTH );
 
      direct_memcpy( entry + 1, request + 1, request->notifications * sizeof(OneQID) );
 
-     if (direct_map_lookup( data->ns_map, &entry->key )) {
+     if (direct_map_lookup( data->ns_components_map, &entry->key )) {
           D_FREE( entry );
           return DR_BUSY;
      }
 
-     response.result = direct_map_insert( data->ns_map, &entry->key, entry );
+     response.result = direct_map_insert( data->ns_components_map, &entry->key, entry );
      if (response.result)
           D_FREE( entry );
 
@@ -267,22 +342,22 @@ NSGetComponent_Thread( DirectThread *thread,
 
      D_DEBUG_AT( IFusionDale_One, "%s( '%s' )\n", __FUNCTION__, request->name );
 
-     direct_snputs( key.name, request->name, COMA_COMPONENT_NAME_LENGTH );
+     direct_snputs( key.name, request->name, FUSIONDALE_NAME_LENGTH );
 
      direct_mutex_lock( &data->ns_lock );
 
      while (!data->ns_stop) {
           NSMapEntry *entry;
 
-          entry = direct_map_lookup( data->ns_map, &key );
+          entry = direct_map_lookup( data->ns_components_map, &key );
           if (entry) {
                void   *datas[2];
                size_t  lengths[2];
 
-               D_DEBUG_AT( IFusionDale_One, "  -> method QID 0x%08x\n", entry->method_qid );
+               D_DEBUG_AT( IFusionDale_One, "  -> method QID 0x%08x\n", entry->qid );
 
                response.result        = DR_OK;
-               response.method_qid    = entry->method_qid;
+               response.method_qid    = entry->qid;
                response.notifications = entry->notifications;
 
                datas[0]   = &response;
@@ -366,9 +441,9 @@ DispatchGetComponent( IFusionDale_One_data      *data,
 
      D_DEBUG_AT( IFusionDale_One, "  -> name '%s'\n", request->name );
 
-     direct_snputs( key.name, request->name, COMA_COMPONENT_NAME_LENGTH );
+     direct_snputs( key.name, request->name, FUSIONDALE_NAME_LENGTH );
 
-     entry = direct_map_lookup( data->ns_map, &key );
+     entry = direct_map_lookup( data->ns_components_map, &key );
      if (!entry) {
 //          if (request->timeout_ms)
                return DecoupleGetComponent( data, request );
@@ -380,10 +455,10 @@ DispatchGetComponent( IFusionDale_One_data      *data,
           return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
      }
 
-     D_DEBUG_AT( IFusionDale_One, "  -> method QID 0x%08x\n", entry->method_qid );
+     D_DEBUG_AT( IFusionDale_One, "  -> method QID 0x%08x\n", entry->qid );
 
      response.result        = DR_OK;
-     response.method_qid    = entry->method_qid;
+     response.method_qid    = entry->qid;
      response.notifications = entry->notifications;
 
      datas[0]   = &response;
@@ -406,6 +481,139 @@ DispatchPing( IFusionDale_One_data *data,
      D_DEBUG_AT( IFusionDale_One, "  -> stamp %lld\n", request->stamp_us );
 
      response.stamp_us = direct_clock_get_abs_micros();
+
+     return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
+}
+
+static DirectResult
+DispatchRegisterEvent( IFusionDale_One_data       *data,
+                       const RegisterEventRequest *request )
+{
+     DirectResult           ret;
+     EventMapKey            key;
+     EventMapEntry         *entry;
+     RegisterEventResponse  response;
+     OneQID                 qid;
+
+     D_DEBUG_AT( IFusionDale_One, "%s()\n", __FUNCTION__ );
+
+     D_DEBUG_AT( IFusionDale_One, "  -> name '%s'\n", request->name );
+
+     direct_snputs( key.name, request->name, FUSIONDALE_NAME_LENGTH );
+
+     entry = direct_map_lookup( data->ns_events_map, &key );
+     if (entry) {
+          D_DEBUG_AT( IFusionDale_One, "  -> EVENT ENTRY FOUND\n" );
+
+          entry->refs++;
+
+          response.result    = DR_OK;
+          response.event_qid = entry->qid;
+
+          return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
+     }
+
+     entry = D_CALLOC( 1, sizeof(EventMapEntry) );
+     if (!entry)
+          return D_OOM();
+
+     ret = OneQueue_New( ONE_QUEUE_VIRTUAL, ONE_QID_NONE, &qid );
+     if (ret) {
+          D_DEBUG_AT( IFusionDale_One, "  -> FAILED TO CREATE VIRTUAL QUEUE\n" );
+
+          response.result = DR_FAILURE;
+
+          return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
+     }
+
+     OneQueue_SetName( qid, request->name );
+
+     direct_snputs( entry->key.name, request->name, FUSIONDALE_NAME_LENGTH );
+
+     entry->refs = 1;
+     entry->qid  = qid;
+
+     response.result = direct_map_insert( data->ns_events_map, &entry->key, entry );
+     if (response.result) {
+          D_FREE( entry );
+
+          OneQueue_Destroy( qid );
+
+          response.result = DR_FAILURE;
+          
+          return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
+     }
+
+     response.result    = DR_OK;
+     response.event_qid = qid;
+
+     return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
+}
+
+static DirectResult
+DispatchUnregisterEvent( IFusionDale_One_data         *data,
+                         const UnregisterEventRequest *request )
+{
+     EventMapKey              key;
+     EventMapEntry           *entry;
+     UnregisterEventResponse  response;
+
+     D_DEBUG_AT( IFusionDale_One, "%s()\n", __FUNCTION__ );
+
+     D_DEBUG_AT( IFusionDale_One, "  -> name '%s'\n", request->name );
+
+     direct_snputs( key.name, request->name, FUSIONDALE_NAME_LENGTH );
+
+     entry = direct_map_lookup( data->ns_events_map, &key );
+     if (!entry) {
+          D_DEBUG_AT( IFusionDale_One, "  -> NO EVENT ENTRY FOUND\n" );
+
+          response.result = DR_ITEMNOTFOUND;
+
+          return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
+     }
+
+     entry->refs--;
+     
+     if (!entry->refs) {
+          OneQueue_Destroy( entry->qid );
+
+          direct_map_remove( data->ns_events_map, &key );
+
+          D_FREE( entry );
+     }
+
+     response.result = DR_OK;
+
+     return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
+}
+
+static DirectResult
+DispatchGetEvent( IFusionDale_One_data  *data,
+                  const GetEventRequest *request )
+{
+     EventMapKey       key;
+     EventMapEntry    *entry;
+     GetEventResponse  response;
+
+     D_DEBUG_AT( IFusionDale_One, "%s()\n", __FUNCTION__ );
+
+     D_DEBUG_AT( IFusionDale_One, "  -> name '%s'\n", request->name );
+
+     direct_snputs( key.name, request->name, FUSIONDALE_NAME_LENGTH );
+
+     entry = direct_map_lookup( data->ns_events_map, &key );
+     if (!entry) {
+          D_DEBUG_AT( IFusionDale_One, "  -> NO ENTRY FOUND\n" );
+
+          response.result = DR_ITEMNOTFOUND;
+
+          return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
+     }
+
+     D_DEBUG_AT( IFusionDale_One, "  -> event QID 0x%08x\n", entry->qid );
+
+     response.result = DR_OK;
 
      return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
 }
@@ -447,6 +655,9 @@ DispatchNS( DirectThread *thread,
                CreateComponentRequest *create_component = (CreateComponentRequest *)( type + 1 );
                GetComponentRequest    *get_component    = (GetComponentRequest *)( type + 1 );
                PingRequest            *ping             = (PingRequest *)( type + 1 );
+               RegisterEventRequest   *register_event   = (RegisterEventRequest *)( type + 1 );
+               UnregisterEventRequest *unregister_event = (UnregisterEventRequest *)( type + 1 );
+               GetEventRequest        *get_event        = (GetEventRequest *)( type + 1 );
 
                D_DEBUG_AT( IFusionDale_One, "  -> size %zu\n", size );
 
@@ -456,7 +667,6 @@ DispatchNS( DirectThread *thread,
                     D_WARN( "invalid packet (offset %zu, length %zu)", offset, length );
                     continue;
                }
-
 
                if (size < sizeof(NSRequestType)) {
                     D_WARN( "invalid packet, no type" );
@@ -525,6 +735,56 @@ DispatchNS( DirectThread *thread,
                          direct_mutex_unlock( &data->ns_lock );
                          break;
 
+                    case NS_REGISTER_EVENT:
+                         D_DEBUG_AT( IFusionDale_One, "  -> REGISTER_EVENT\n" );
+
+                         if (size < sizeof(RegisterEventRequest)) {
+                              D_WARN( "invalid packet, short call request" );
+                              continue;
+                         }
+
+                         size -= sizeof(RegisterEventRequest);
+
+                         direct_mutex_lock( &data->ns_lock );
+
+                         DispatchRegisterEvent( data, register_event );
+
+                         direct_mutex_unlock( &data->ns_lock );
+                         break;
+
+                    case NS_UNREGISTER_EVENT:
+                         D_DEBUG_AT( IFusionDale_One, "  -> UNREGISTER_EVENT\n" );
+
+                         if (size < sizeof(UnregisterEventRequest)) {
+                              D_WARN( "invalid packet, short call request" );
+                              continue;
+                         }
+
+                         size -= sizeof(UnregisterEventRequest);
+
+                         direct_mutex_lock( &data->ns_lock );
+
+                         DispatchUnregisterEvent( data, unregister_event );
+
+                         direct_mutex_unlock( &data->ns_lock );
+                         break;
+
+                    case NS_GET_EVENT:
+                         D_DEBUG_AT( IFusionDale_One, "  -> GET_EVENT\n" );
+
+                         if (size < sizeof(GetEventRequest)) {
+                              D_WARN( "invalid packet, short call request" );
+                              continue;
+                         }
+
+                         size -= sizeof(GetEventRequest);
+
+                         direct_mutex_lock( &data->ns_lock );
+
+                         DispatchGetEvent( data, get_event );
+
+                         direct_mutex_unlock( &data->ns_lock );
+                         break;
                     default:
                          D_WARN( "unknown request type %d", *type );
                }
@@ -559,7 +819,13 @@ InitialiseNS( IFusionDale *thiz,
 
      D_INFO( "ComaOne/NameService: QID %u\n", data->ns_qid );
 
-     ret = direct_map_create( 7, ns_map_compare, ns_map_hash, data, &data->ns_map );
+     ret = direct_map_create( 7, ns_map_compare, ns_map_hash, data, &data->ns_components_map );
+     if (ret) {
+          OneQueue_Destroy( data->ns_qid );
+          return ret;
+     }
+
+     ret = direct_map_create( 7, event_map_compare, event_map_hash, data, &data->ns_events_map );
      if (ret) {
           OneQueue_Destroy( data->ns_qid );
           return ret;
@@ -603,8 +869,11 @@ ShutdownNS( IFusionDale *thiz )
                direct_thread_sleep( 200000 );
           }
 
-          direct_map_iterate( data->ns_map, ns_iterator, data );
-          direct_map_destroy( data->ns_map );
+          direct_map_iterate( data->ns_components_map, ns_iterator, data );
+          direct_map_destroy( data->ns_components_map );
+
+          direct_map_iterate( data->ns_events_map, event_iterator, data );
+          direct_map_destroy( data->ns_events_map );
 
           direct_mutex_deinit( &data->ns_lock );
           direct_waitqueue_deinit( &data->ns_wq );
@@ -646,7 +915,7 @@ WaitForNS( IFusionDale *thiz )
      if (ret)
           return ret;
 
-     OneQueue_SetName( request.response_qid, "Coma/NS Waiter" );
+     OneQueue_SetName( request.response_qid, "Coma/Messenger/NS Waiter" );
 
      /* Wait til NS is up and running... */
      while (loops--) {
@@ -703,6 +972,19 @@ out:
      return ret;
 }
 
+/**********************************************************************************************************************/
+
+static void
+tlshm_destroy( void *arg )
+{
+     FusionDaleTLS *fusiondale_tls = arg;
+
+     if (fusiondale_tls->local)
+          D_FREE( fusiondale_tls->local );
+
+     D_FREE( fusiondale_tls );
+}
+
 /**************************************************************************************************/
 
 static DirectResult
@@ -723,10 +1005,6 @@ Construct( IFusionDale *thiz, const char *host, int session )
      DirectResult ret;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionDale_One)
-
-     ret = IFusionDale_Construct( thiz );
-     if (ret)
-          return ret;
 
      ret = One_Initialize();
      if (ret) {
@@ -753,8 +1031,12 @@ Construct( IFusionDale *thiz, const char *host, int session )
           return ret;
      }
 
-     thiz->Release   = IFusionDale_One_Release;
-     thiz->EnterComa = IFusionDale_One_EnterComa;
+     direct_tls_register( &data->tlshm_key, tlshm_destroy );
+
+     thiz->Release         = IFusionDale_One_Release;
+     thiz->EnterComa       = IFusionDale_One_EnterComa;
+     thiz->CreateMessenger = IFusionDale_One_CreateMessenger;
+     thiz->GetMessenger    = IFusionDale_One_GetMessenger;
 
      return DR_OK;
 }

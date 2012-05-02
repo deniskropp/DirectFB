@@ -44,3 +44,4 @@ void         IFusionDale_Destruct ( IFusionDale *thiz );
 extern IFusionDale *ifusiondale_singleton;
 
 #endif
+

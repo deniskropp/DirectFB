@@ -38,6 +38,7 @@
 
 #include <coma/coma.h>
 
+#include "ifusiondale_one.h"
 #include "icoma_one.h"
 #include "icomacomponent_one.h"
 
@@ -93,7 +94,7 @@ typedef struct {
 
      IComa               *coma;
 
-     char                 name[COMA_COMPONENT_NAME_LENGTH];
+     char                 name[FUSIONDALE_NAME_LENGTH];
 
      OneQID               method_qid;
      ComaMethodFunc       method_func;
@@ -283,23 +284,26 @@ IComaComponent_One_Call( IComaComponent  *thiz,
 
      D_DEBUG_AT( IComaComponent_One, "%s( %s, method %lu, %p )\n", __FUNCTION__, data->name, method, arg );
 
-     ret = ComaTLS_GetResponseQID( data->coma, &request.response_qid );
+     ret = FusionDaleTLS_GetResponseQID( coma_data->dale, &request.response_qid );
      if (ret)
           return ret;
 
      request.method_id = method;
 
      if (arg) {
-          ComaTLS *coma_tls;
+          FusionDaleTLS *fusiondale_tls;
 
-          coma_tls = direct_tls_get( coma_data->tlshm_key );
-          if (!coma_tls)
+          ret = FusionDaleTLS_Get( coma_data->dale, &fusiondale_tls );
+          if (ret)
+               return ret;
+
+          if (!fusiondale_tls)
                return DR_BUG;
 
-          if (coma_tls->local != arg)
+          if (fusiondale_tls->local != arg)
                return DR_INVARG;
 
-          request.length = coma_tls->length;
+          request.length = fusiondale_tls->length;
      }
      else
           request.length = 0;
@@ -567,7 +571,7 @@ DispatchComponentThread( DirectThread *thread,
 static DirectResult
 IComaComponent_One_Activate( IComaComponent *thiz )
 {
-     char buf[COMA_COMPONENT_NAME_LENGTH+100];
+     char buf[FUSIONDALE_NAME_LENGTH+100];
 
      DIRECT_INTERFACE_GET_DATA(IComaComponent_One)
 
@@ -788,6 +792,9 @@ DispatchNotify( void                  *context,
      size_t                   size = header->uncompressed;
      ComaNotificationID      *id   = (ComaNotificationID *)( _data );
      unsigned int            *len  = (unsigned int *)( id + 1 );
+     IComa_One_data          *coma_data;
+
+     DIRECT_INTERFACE_GET_DATA_FROM( data->coma, coma_data, IComa_One );
 
      D_DEBUG_AT( IComaComponent_One, "%s()\n", __FUNCTION__ );
      D_DEBUG_AT( IComaComponent_One, "  -> size %zu\n", size );
@@ -816,7 +823,7 @@ DispatchNotify( void                  *context,
           return;
      }
 
-     ComaTLS_SetNotificationLength( data->coma, *len );
+     FusionDaleTLS_SetNotificationLength( coma_data->dale, *len );
 
      DispatchNotification( data, *id, *len ? len + 1 : NULL );
 }
@@ -925,7 +932,7 @@ Construct( IComaComponent   *thiz,
 {
      DirectResult ret;
      unsigned int i;
-     char         buf[COMA_COMPONENT_NAME_LENGTH+100];
+     char         buf[FUSIONDALE_NAME_LENGTH+100];
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IComaComponent_One)
 
@@ -962,7 +969,7 @@ Construct( IComaComponent   *thiz,
                data->notifications[i].qid = notification_qids[i];
      }
 
-     direct_snputs( data->name, name, COMA_COMPONENT_NAME_LENGTH );
+     direct_snputs( data->name, name, FUSIONDALE_NAME_LENGTH );
 
      ret = OneQueue_New( ONE_QUEUE_NO_FLAGS, ONE_QID_NONE, &data->notify_qid );
      if (ret)

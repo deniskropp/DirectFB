@@ -36,14 +36,16 @@
 
 #include <coma/coma.h>
 
+#include "ifusiondale_one.h"
 #include "icoma_one.h"
 
 
 static DirectResult Probe( void );
-static DirectResult Construct( IComa      *thiz,
-                               OneQID      ns_qid,
-                               const char *name,
-                               OneThread  *thread );
+static DirectResult Construct( IFusionDale *dale,
+                               IComa       *thiz,
+                               OneQID       ns_qid,
+                               const char  *name,
+                               OneThread   *thread );
 
 #include <direct/interface_implementation.h>
 
@@ -120,7 +122,7 @@ IComa_One_CreateComponent( IComa           *thiz,
 
      D_ASSERT( ret_component != NULL );
 
-     ret = ComaTLS_GetResponseQID( thiz, &request.response_qid );
+     ret = FusionDaleTLS_GetResponseQID( data->dale, &request.response_qid );
      if (ret)
           return ret;
 
@@ -227,7 +229,7 @@ IComa_One_GetComponent( IComa           *thiz,
 
      response = alloca( 9999 );
 
-     ret = ComaTLS_GetResponseQID( thiz, &request.response_qid );
+     ret = FusionDaleTLS_GetResponseQID( data->dale, &request.response_qid );
      if (ret)
           return ret;
 
@@ -339,26 +341,26 @@ IComa_One_GetLocal( IComa         *thiz,
                     unsigned int   length,
                     void         **ret_ptr )
 {
-     DirectResult  ret;
-     ComaTLS      *coma_tls;
+     DirectResult   ret;
+     FusionDaleTLS *fusiondale_tls;
 
      DIRECT_INTERFACE_GET_DATA(IComa_One)
 
-     ret = ComaTLS_Get( thiz, &coma_tls );
+     ret = FusionDaleTLS_Get( data->dale, &fusiondale_tls );
      if (ret)
           return ret;
 
-     if (coma_tls->capacity < length) {
-          if (coma_tls->local)
-               D_FREE( coma_tls->local );
+     if (fusiondale_tls->capacity < length) {
+          if (fusiondale_tls->local)
+               D_FREE( fusiondale_tls->local );
 
-          coma_tls->local    = D_MALLOC( length );
-          coma_tls->capacity = length;
+          fusiondale_tls->local    = D_MALLOC( length );
+          fusiondale_tls->capacity = length;
      }
 
-     coma_tls->length = length;
+     fusiondale_tls->length = length;
 
-     *ret_ptr = coma_tls->local;
+     *ret_ptr = fusiondale_tls->local;
 
      return DR_OK;
 }
@@ -366,21 +368,21 @@ IComa_One_GetLocal( IComa         *thiz,
 static DirectResult
 IComa_One_FreeLocal( IComa *thiz )
 {
-     DirectResult  ret;
-     ComaTLS      *coma_tls;
+     DirectResult   ret;
+     FusionDaleTLS *fusiondale_tls;
 
      DIRECT_INTERFACE_GET_DATA(IComa_One)
 
-     ret = ComaTLS_Get( thiz, &coma_tls );
+     ret = FusionDaleTLS_Get( data->dale, &fusiondale_tls );
      if (ret)
           return ret;
 
-     if (coma_tls->local)
-          D_FREE( coma_tls->local );
+     if (fusiondale_tls->local)
+          D_FREE( fusiondale_tls->local );
 
-     coma_tls->local    = NULL;
-     coma_tls->capacity = 0;
-     coma_tls->length   = 0;
+     fusiondale_tls->local    = NULL;
+     fusiondale_tls->capacity = 0;
+     fusiondale_tls->length   = 0;
 
      return DR_OK;
 }
@@ -400,10 +402,11 @@ Probe( void )
  * Fills in function pointers and intializes data structure.
  */
 static DirectResult
-Construct( IComa      *thiz,
-           OneQID      ns_qid,
-           const char *name,
-           OneThread  *thread )
+Construct( IFusionDale *dale,
+           IComa       *thiz,
+           OneQID       ns_qid,
+           const char  *name,
+           OneThread   *thread )
 {
      DirectResult ret;
 
@@ -415,6 +418,7 @@ Construct( IComa      *thiz,
           return ret;
      }
 
+     data->dale   = dale;
      data->ref    = 1;
      data->ns_qid = ns_qid;
      data->thread = thread;
@@ -426,8 +430,6 @@ Construct( IComa      *thiz,
           return D_OOM();
      }
 
-     direct_tls_register( &data->tlshm_key, tlshm_destroy );
-
      thiz->AddRef          = IComa_One_AddRef;
      thiz->Release         = IComa_One_Release;
      thiz->CreateComponent = IComa_One_CreateComponent;
@@ -438,18 +440,5 @@ Construct( IComa      *thiz,
      thiz->FreeLocal       = IComa_One_FreeLocal;
 
      return DR_OK;
-}
-
-/**********************************************************************************************************************/
-
-static void
-tlshm_destroy( void *arg )
-{
-     ComaTLS *coma_tls = arg;
-
-     if (coma_tls->local)
-          D_FREE( coma_tls->local );
-
-     D_FREE( coma_tls );
 }
 

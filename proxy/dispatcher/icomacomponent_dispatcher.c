@@ -44,6 +44,7 @@
 #include <coma/component.h>
 #include <coma/policy.h>
 
+#include "../../one/ifusiondale_one.h" // FIXME
 #include "../../one/icoma_one.h" // FIXME
 
 #include <coma/icoma.h>
@@ -224,9 +225,12 @@ Listener_Request( void *ctx,
      D_DEBUG_AT( IComaComponent_Dispatcher, "%s()\n", __FUNCTION__ );
 
      if (fusiondale_config->remote.host) {
-          unsigned int length;
+          IComa_One_data *coma_data;
+          unsigned int    length;
 
-          ret = ComaTLS_GetNotificationLength( requestor->coma, &length );
+          DIRECT_INTERFACE_GET_DATA_FROM( requestor->coma, coma_data, IComa_One );
+
+          ret = FusionDaleTLS_GetNotificationLength( coma_data->dale, &length );
           if (ret)
                return;
 

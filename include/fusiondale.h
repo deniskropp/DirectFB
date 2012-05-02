@@ -182,11 +182,11 @@ D_DEFINE_INTERFACE( IFusionDale,
 
 
 
-typedef unsigned long FDMessengerEventID;
-typedef unsigned long FDMessengerListenerID;
+typedef u32 FDMessengerEventID;
+typedef u32 FDMessengerListenerID;
 
-#define FDM_EVENT_ID_NONE     ((unsigned long)0)
-#define FDM_LISTENER_ID_NONE  ((unsigned long)0)
+#define FDM_EVENT_ID_NONE     ((u32)0)
+#define FDM_LISTENER_ID_NONE  ((u32)0)
 
 
 typedef void (*FDMessengerEventCallback)( FDMessengerEventID  event_id,
