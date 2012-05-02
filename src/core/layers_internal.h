@@ -174,8 +174,6 @@ struct __DFB_CoreLayerRegion {
      CoreLayerRegionConfig       config;
 
      CoreSurface                *surface;
-     CoreSurfaceBufferLock       left_buffer_lock;
-     CoreSurfaceBufferLock       right_buffer_lock;
      GlobalReaction              surface_reaction;
 
      void                       *region_data;
