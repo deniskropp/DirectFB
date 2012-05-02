@@ -115,8 +115,8 @@ dfb_x11_update_screen( DFBX11 *x11, X11LayerData *lds, const DFBRegion *left_reg
      D_ASSERT( left_lock != NULL );
 
      /* FIXME: Just a hot fix! */
-     while (shared->update.left_lock)
-          usleep( 10000 );
+     if (shared->update.left_lock)
+          return DFB_OK;
 
      shared->update.xw           = lds->xw;
      shared->update.left_region  = *left_region;
