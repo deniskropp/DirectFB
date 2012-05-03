@@ -399,8 +399,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      pthread_mutex_lock( &core_dfb_lock );
 
-     if (!core->shutdown_tid)
-          core->shutdown_tid = direct_gettid();
+     if (!core->shutdown_running)
+          core->shutdown_running = 1;
      else {
           pthread_mutex_unlock( &core_dfb_lock );
           return DFB_OK;
@@ -1410,6 +1410,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      /* Suspend input core to stop all input threads before shutting down. */
      if (dfb_input_core.initialized)
           dfb_input_core.Suspend( dfb_input_core.data_local );
+
+     core->shutdown_tid = direct_gettid();
 
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
