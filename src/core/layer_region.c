@@ -1113,7 +1113,7 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
 
                     /* Lock region buffer before it is used. */
                     region_buffer_lock( region, surface, CSBR_BACK, &left, &right );
-                    D_ASSERT(left_buffer_lock->buffer != NULL);
+                    D_ASSERT(left.buffer != NULL);
 
                     funcs->SetRegion( layer,
                                       layer->driver_data, layer->layer_data,
@@ -1141,7 +1141,7 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
 
                /* Lock region buffer before it is used. */
                region_buffer_lock( region, surface, CSBR_BACK, &left, &right );
-               D_ASSERT(left_buffer_lock->buffer != NULL);
+               D_ASSERT(left.buffer != NULL);
 
                funcs->SetRegion( layer,
                                  layer->driver_data, layer->layer_data,
@@ -1223,7 +1223,7 @@ region_buffer_lock( CoreLayerRegion       *region,
 
      stereo = surface->config.caps & DSCAPS_STEREO;
 
-     D_DEBUG_AT( Core_LayersLock, "%s()\n" );
+     D_DEBUG_AT( Core_LayersLock, "%s()\n", __FUNCTION__ );
 
      if (dfb_surface_lock( surface ))
           return DFB_FUSION;

@@ -303,11 +303,6 @@ dfb_layer_context_activate( CoreLayerContext *context )
      fusion_vector_foreach (region, index, context->regions) {
           /* first reallocate.. */
           if (region->surface && region->surface->num_buffers == 0) {
-               D_ASSERT( region->left_buffer_lock.buffer == NULL );
-               if (region->surface->config.caps & DSCAPS_STEREO) {
-                    D_ASSERT( region->right_buffer_lock.buffer == NULL );
-               }
-
                ret = dfb_layer_context_reallocate_surface( layer, region, &region->config );
                if (ret)
                     D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
