@@ -839,33 +839,6 @@ AC_SUBST(MESA_CFLAGS)
 
 
 
-dnl Test for libsysfs
-AC_ARG_ENABLE(sysfs,
-              AC_HELP_STRING([--enable-sysfs],
-                             [build with sysfs support @<:@default=auto@:>@]),
-              [], [enable_sysfs=yes])
-
-use_sysfs=no
-SYSFS_LIBS=
-
-if test "$enable_sysfs" = "yes"; then
-  AC_CHECK_LIB(sysfs, sysfs_get_mnt_path,
-    [
-	AC_CHECK_HEADER(sysfs/libsysfs.h,
-	use_sysfs=yes
-        AC_DEFINE(USE_SYSFS,1,[Define to 1 to build with sysfs support.])
-	SYSFS_LIBS='-lsysfs',
-	AC_MSG_WARN([
-*** libsysfs header files not found -- Building without sysfs support.]))
-    ],[
-	AC_MSG_WARN([ *** libsysfs not found -- Building without sysfs support.])
-    ])
-fi
-
-AC_SUBST(SYSFS_LIBS)
-
-
-
 dnl Test for libjpeg
 JPEG=no
 
@@ -2216,7 +2189,6 @@ Misc options:
   Dithering                 $with_dither
   Dithering 565             $with_dither_rgb16
   zlib compression          $use_zlib                 $ZLIB_LIBS
-  sysfs support             $use_sysfs                 $SYSFS_LIBS
   Using setsockopt          $with_setsockopt
 
 Building Tests              $with_tests

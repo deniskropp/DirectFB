@@ -29,8 +29,7 @@ systems_LTLIBRARIES = libdirectfb_fbdev.la
 
 libdirectfb_fbdev_la_LDFLAGS = \
 	-avoid-version	\
-	-module	\
-	$(SYSFS_LIBS)
+	-module
 
 libdirectfb_fbdev_la_SOURCES = \
 	agp.c			\

@@ -48,9 +48,10 @@
 
 #include <pthread.h>
 
-#ifdef USE_SYSFS
-# include <sysfs/libsysfs.h>
-#endif
+#define SYS_CLASS_GRAPHICS_DEV "/sys/class/graphics/%s/device"
+#define SYS_CLASS_GRAPHICS_DEV_VENDOR "/sys/class/graphics/%s/device/vendor"
+#define SYS_CLASS_GRAPHICS_DEV_MODEL "/sys/class/graphics/%s/device/device"
+#define SYSFS_PATH_MAX 128
 
 #include <fusion/arena.h>
 #include <fusion/fusion.h>
@@ -324,65 +325,79 @@ error:
 static void
 dfb_fbdev_get_pci_info( FBDevShared *shared )
 {
-     char buf[512];
-     int  vendor = -1;
-     int  model  = -1;
+     char  buf[512];
+     int   vendor = -1;
+     int   model  = -1;
+     FILE *fp;
+     int   bus;
+     int   dev;
+     int   func;
+     char *fbdev;
+     char  devname[5] = { 'f', 'b', '0', 0, 0 };
+     char  path[SYSFS_PATH_MAX];
+     int   len;
 
-#ifdef USE_SYSFS
-     if (!sysfs_get_mnt_path( buf, 512 )) {
-          struct sysfs_class_device *classdev;
-          struct sysfs_device       *device;
-          struct sysfs_attribute    *attr;
-          char                      *fbdev;
-          char                       dev[5] = { 'f', 'b', '0', 0, 0 };
+     /* try sysfs interface */
+     fbdev = dfb_config->fb_device;
+     if (!fbdev)
+          fbdev = getenv( "FRAMEBUFFER" );
 
-          fbdev = dfb_config->fb_device;
-          if (!fbdev)
-               fbdev = getenv( "FRAMEBUFFER" );
-
-          if (fbdev) {
-               if (!strncmp( fbdev, "/dev/fb/", 8 ))
-                    snprintf( dev, 5, "fb%s", fbdev+8 );
-               else if (!strncmp( fbdev, "/dev/fb", 7 ))
-                    snprintf( dev, 5, "fb%s", fbdev+7 );
-          }
-
-          classdev = sysfs_open_class_device( "graphics", dev );
-          if (classdev) {
-               device = sysfs_get_classdev_device( classdev );
-
-               if (device) {
-                    attr = sysfs_get_device_attr( device, "vendor" );
-                    if (attr)
-                           sscanf( attr->value, "0x%04x", &vendor );
-
-                    attr = sysfs_get_device_attr( device, "device" );
-                    if (attr)
-                         sscanf( attr->value, "0x%04x", &model );
-
-                    if (vendor != -1 && model != -1) {
-                         sscanf( device->name, "0000:%02x:%02x.%1x",
-                                 &shared->pci.bus,
-                                 &shared->pci.dev,
-                                 &shared->pci.func );
-
-                         shared->device.vendor = vendor;
-                         shared->device.model  = model;
-                    }
-               }
-
-               sysfs_close_class_device( classdev );
-          }
+     if (fbdev) {
+          if (!strncmp( fbdev, "/dev/fb/", 8 ))
+               snprintf( devname, 5, "fb%s", fbdev+8 );
+          else if (!strncmp( fbdev, "/dev/fb", 7 ))
+               snprintf( devname, 5, "fb%s", fbdev+7 );
      }
-#endif /* USE_SYSFS */
+
+     snprintf(path, SYSFS_PATH_MAX, SYS_CLASS_GRAPHICS_DEV, devname);
+
+     len = readlink(path,buf,512);
+     if(len != -1) {
+          char * base;
+          buf[len] = '\0';
+          base = basename(buf);
+
+          if (sscanf( base, "0000:%02x:%02x.%1x", &bus, &dev, &func ) == 3) {
+               shared->pci.bus  = bus;
+               shared->pci.dev  = dev;
+               shared->pci.func = func;
+           }
+
+          snprintf(path, SYSFS_PATH_MAX, SYS_CLASS_GRAPHICS_DEV_VENDOR, devname);
+
+          fp = fopen(path,"r");
+          if(fp) {
+               if(fgets(buf,512,fp)) {
+                    if(sscanf(buf,"0x%04x", &vendor) == 1)
+                         shared->device.vendor = vendor;
+               }
+               fclose(fp);
+          } else {
+               D_DEBUG( "DirectFB/FBDev: "
+                        "couldn't access %s!\n", path );
+          }
+
+          snprintf(path, SYSFS_PATH_MAX, SYS_CLASS_GRAPHICS_DEV_MODEL, devname);
+
+          fp = fopen(path,"r");
+          if(fp) {
+               if(fgets(buf,512,fp)) {
+                    if(sscanf(buf,"0x%04x", &model) == 1)
+                         shared->device.model = model;
+               }
+               fclose(fp);
+          } else {
+               D_DEBUG( "DirectFB/FBDev: "
+                        "couldn't access %s!\n", path );
+          }
+     } else {
+          D_DEBUG( "DirectFB/FBDev: "
+                   "couldn't access %s!\n", path );
+     }
 
      /* try /proc interface */
      if (vendor == -1 || model == -1) {
-          FILE *fp;
           int   id;
-          int   bus;
-          int   dev;
-          int   func;
 
           fp = fopen( "/proc/bus/pci/devices", "r" );
           if (!fp) {
