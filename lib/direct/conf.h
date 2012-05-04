@@ -107,6 +107,16 @@ extern const char   DIRECT_API *direct_config_usage;
 
 DirectResult        DIRECT_API  direct_config_set( const char *name, const char *value );
 
+/* Retrieve all values set on option 'name'. */
+/* Pass an array of char* pointers and number of pointers in 'num'. */
+/* The actual returned number of values gets returned in 'ret_num' */
+/* The returned option/values respect directfbrc, cmdline options and DFBARGS envvar. */
+/* The returned pointers are not extra allocated so do not free them! */
+DirectResult        DIRECT_API  direct_config_get( const char *name, char **values, const int values_len, int *ret_num );
+
+/* Return the integer value for the last occurrance of the passed option's setting. */
+/* Note that 0 is also retuned in case the passed option was not found ot set. */
+long long           DIRECT_API  direct_config_get_int_value( const char *name );
 
 void __D_conf_init( void );
 void __D_conf_deinit( void );
