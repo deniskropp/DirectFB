@@ -538,7 +538,6 @@ direct_config_set( const char *name, const char *value )
           }
      }
      else {
-          printf("parsing %s=%s\n", name, value);
           ConfigOption *option = direct_map_lookup( config_options, name );
           if (option)
                config_option_value_add( option, value );
