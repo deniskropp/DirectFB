@@ -53,6 +53,10 @@
 
 #define FUSION_MAX_WORLDS     8
 
+#define EXECUTE3_BIN_CALL_MAX_NUM   512
+#define EXECUTE3_BIN_DATA_MAX_LEN 65536
+#define EXECUTE3_BIN_FLUSH_MILLIS    20
+
 /***************************************
  *  Fusion internal type declarations  *
  ***************************************/
@@ -113,7 +117,7 @@ struct __Fusion_FusionWorld {
 
      FusionForkAction     fork_action;
      FusionForkCallback   fork_callback;
-     
+
      void                *fusionee;
 
      struct {
@@ -127,6 +131,13 @@ struct __Fusion_FusionWorld {
      void                *leave_ctx;
 
      DirectLink          *dispatch_cleanups;
+
+     DirectMutex          bins_lock;
+     FusionCallExecute3   bins[EXECUTE3_BIN_CALL_MAX_NUM];
+     int                  bins_num;
+     char                 bins_data[EXECUTE3_BIN_DATA_MAX_LEN];
+     int                  bins_data_len;
+     long long            bins_create_ts;
 };
 
 #if FUSION_BUILD_MULTI

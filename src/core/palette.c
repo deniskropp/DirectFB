@@ -165,7 +165,7 @@ void
 dfb_palette_generate_rgb332_map( CorePalette *palette )
 {
      unsigned int i;
-     DFBColor     entries[0xff];
+     DFBColor     entries[256];
 
      D_DEBUG_AT( Core_Palette, "%s( %p )\n", __FUNCTION__, palette );
 
@@ -188,7 +188,7 @@ void
 dfb_palette_generate_rgb121_map( CorePalette *palette )
 {
      unsigned int i;
-     DFBColor     entries[0xff];
+     DFBColor     entries[256];
 
      D_DEBUG_AT( Core_Palette, "%s( %p )\n", __FUNCTION__, palette );
 

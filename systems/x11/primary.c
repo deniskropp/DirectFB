@@ -115,12 +115,12 @@ dfb_x11_update_screen( DFBX11 *x11, X11LayerData *lds, const DFBRegion *left_reg
      D_ASSERT( left_lock != NULL );
 
      /* FIXME: Just a hot fix! */
-     if (shared->update.left_lock)
+     if (shared->update.left_lock.buffer)
           return DFB_OK;
 
      shared->update.xw           = lds->xw;
      shared->update.left_region  = *left_region;
-     shared->update.left_lock    = left_lock;
+     shared->update.left_lock    = *left_lock;
 
      shared->update.stereo       = (lds->config.options & DLOP_STEREO);
 
@@ -129,7 +129,7 @@ dfb_x11_update_screen( DFBX11 *x11, X11LayerData *lds, const DFBRegion *left_reg
           D_ASSERT( right_lock != NULL );
 
           shared->update.right_region = *right_region;
-          shared->update.right_lock   = right_lock;
+          shared->update.right_lock   = *right_lock;
      }
 
      if (fusion_call_execute( &shared->call, FCEF_NONE, X11_UPDATE_SCREEN, &shared->update, &ret ))
@@ -1082,20 +1082,20 @@ dfb_x11_update_screen_handler( DFBX11 *x11, UpdateScreenData *data )
           left_rect  = DFB_RECTANGLE_INIT_FROM_REGION( &data->left_region );
           right_rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->right_region );
 
-          if (data->left_lock && data->right_lock)
-               update_stereo( x11, &left_rect, &right_rect, data->left_lock, data->right_lock, data->xw );
+          if (data->left_lock.buffer && data->right_lock.buffer)
+               update_stereo( x11, &left_rect, &right_rect, &data->left_lock, &data->right_lock, data->xw );
      }
      else {
           DFBRectangle rect;
 
           rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->left_region );
 
-          if (data->left_lock)
-               update_screen( x11, &rect, data->left_lock, data->xw );
+          if (data->left_lock.buffer)
+               update_screen( x11, &rect, &data->left_lock, data->xw );
      }
 
-     data->left_lock  = NULL;
-     data->right_lock = NULL;
+     data->left_lock.buffer  = NULL;
+     data->right_lock.buffer = NULL;
 
      return DFB_OK;
 }

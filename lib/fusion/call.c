@@ -36,6 +36,7 @@
 
 #include <direct/debug.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 
 #include <fusion/types.h>
@@ -215,6 +216,8 @@ fusion_call_execute (FusionCall          *call,
           execute.call_ptr = call_ptr;
           execute.flags    = flags;
 
+          fusion_world_flush_calls( _fusion_world( call->shared ), 1 );
+
           while (ioctl( _fusion_fd( call->shared ), FUSION_CALL_EXECUTE, &execute )) {
                switch (errno) {
                     case EINTR:
@@ -277,6 +280,8 @@ fusion_call_execute2(FusionCall          *call,
           execute.ptr      = ptr;
           execute.length   = length;
           execute.flags    = flags;
+
+          fusion_world_flush_calls( _fusion_world( call->shared ), 1 );
 
           while (ioctl( _fusion_fd( call->shared ), FUSION_CALL_EXECUTE2, &execute )) {
                switch (errno) {
@@ -344,7 +349,51 @@ fusion_call_execute3(FusionCall          *call,
                *ret_length = execute_length;
      }
      else {
-          FusionCallExecute3 execute;
+          FusionCallExecute3  execute;
+          FusionWorld        *world = _fusion_world( call->shared );
+          DirectResult        ret   = DR_OK;
+
+          // check whether we can cache this call
+          if (flags & FCEF_QUEUE) {
+               D_ASSERT( flags & FCEF_ONEWAY );
+
+               direct_mutex_lock( &world->bins_lock );
+
+               if (world->bins_data_len + length > EXECUTE3_BIN_DATA_MAX_LEN) {
+                    ret = fusion_world_flush_calls( world, 0 );
+                    if (ret) {
+                         direct_mutex_unlock( &world->bins_lock );
+                         return ret;
+                    }
+               }
+
+               world->bins[world->bins_num].call_id    = call->call_id;
+               world->bins[world->bins_num].call_arg   = call_arg;
+               world->bins[world->bins_num].ptr        = NULL;
+               world->bins[world->bins_num].length     = length;
+               world->bins[world->bins_num].ret_ptr    = ret_ptr;
+               world->bins[world->bins_num].ret_length = ret_size;
+               world->bins[world->bins_num].flags      = flags | FCEF_FOLLOW;
+
+               if (length > 0) {
+                    world->bins[world->bins_num].ptr = &world->bins_data[world->bins_data_len];
+                    direct_memcpy( &world->bins_data[world->bins_data_len], ptr, length );
+                    world->bins_data_len += length;
+               }
+
+               world->bins_num++;
+
+               if (world->bins_num == 1)
+                    world->bins_create_ts = direct_clock_get_millis();
+               else if (world->bins_num >= EXECUTE3_BIN_CALL_MAX_NUM || direct_clock_get_millis() - world->bins_create_ts >= EXECUTE3_BIN_FLUSH_MILLIS)
+                    ret = fusion_world_flush_calls( world, 0 );    
+
+               direct_mutex_unlock( &world->bins_lock );
+
+               return ret;
+          }
+
+          ret = fusion_world_flush_calls( world, 1 );
 
           execute.call_id    = call->call_id;
           execute.call_arg   = call_arg;
@@ -382,6 +431,49 @@ fusion_call_execute3(FusionCall          *call,
 }
 
 DirectResult
+fusion_world_flush_calls( FusionWorld *world, int lock )
+{
+     DirectResult ret = DR_OK;
+
+     if (lock)
+          direct_mutex_lock( &world->bins_lock );
+
+     if (world->bins_num > 0) {
+          D_DEBUG_AT( Fusion_Call, "  -> num %d, length %u\n", world->bins_num, world->bins_data_len );
+
+          world->bins[world->bins_num - 1].flags &= ~FCEF_FOLLOW;
+
+          while (ioctl( _fusion_fd( world->shared ), FUSION_CALL_EXECUTE3, world->bins )) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         ret = DR_INVARG;
+                         break;
+                    case EIDRM:
+                         ret = DR_DESTROYED;
+                         break;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_CALL_EXECUTE3");
+
+               ret = DR_FAILURE;
+               break;
+          }
+
+          world->bins_num      = 0;
+          world->bins_data_len = 0;
+     }
+
+     if (lock)
+          direct_mutex_unlock( &world->bins_lock );
+
+     return ret;
+}
+
+DirectResult
 fusion_call_return( FusionCall   *call,
                     unsigned int  serial,
                     int           val )
@@ -401,6 +493,8 @@ fusion_call_return( FusionCall   *call,
      call_ret.call_id = call->call_id;
      call_ret.val     = val;
      call_ret.serial  = serial;
+
+     fusion_world_flush_calls( _fusion_world( call->shared ), 1 );
 
      while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_RETURN, &call_ret)) {
           switch (errno) {
@@ -446,6 +540,8 @@ fusion_call_return3( FusionCall   *call,
      call_ret.serial  = serial;
      call_ret.ptr     = ptr;
      call_ret.length  = length;
+
+     fusion_world_flush_calls( _fusion_world( call->shared ), 1 );
 
      while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_RETURN3, &call_ret)) {
           switch (errno) {
