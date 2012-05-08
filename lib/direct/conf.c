@@ -30,9 +30,13 @@
 
 #include <direct/conf.h>
 #include <direct/debug.h>
+#include <direct/list.h>
+#include <direct/map.h>
 #include <direct/mem.h>
 #include <direct/util.h>
 
+
+static DirectMap *config_options = NULL;
 
 static DirectConfig config;
 
@@ -64,9 +68,15 @@ const char   *direct_config_usage =
 
 /**********************************************************************************************************************/
 
+static bool config_option_compare( DirectMap *map, const void *key, void *object, void *ctx );
+static unsigned int config_option_hash( DirectMap *map, const void *key, void *ctx );
+static DirectEnumerationResult config_option_free( DirectMap *map, void *object, void *ctx );
+
 void
 __D_conf_init()
 {
+     direct_map_create( 123, config_option_compare, config_option_hash, NULL, &config_options );
+
      direct_config->log_level             = DIRECT_LOG_DEBUG_0;
      direct_config->trace                 = true;
      direct_config->sighandler            = true;
@@ -80,6 +90,111 @@ __D_conf_init()
 void
 __D_conf_deinit()
 {
+     if (config_options) {
+          direct_map_iterate( config_options, config_option_free, NULL );
+          direct_map_destroy( config_options );
+     }
+}
+
+/**********************************************************************************************************************/
+
+#define OPTION_NAME_LENGTH 128
+
+typedef struct {
+     char        name[OPTION_NAME_LENGTH];
+     DirectLink *values;
+} ConfigOption;
+
+typedef struct {
+     DirectLink  link;
+     char       *value;
+} ConfigOptionValue;
+
+static void
+config_option_value_add( ConfigOption *option, const char *name )
+{
+     ConfigOptionValue *value;
+
+     if (!name)
+          return;
+
+     value = D_CALLOC( 1, sizeof(ConfigOptionValue) + strlen(name) );
+     if (!value) {
+          D_OOM();
+          return;
+     }
+
+     value->value = direct_snputs( (char *)(value + 1), name, OPTION_NAME_LENGTH );
+
+     direct_list_append( &option->values, &value->link );
+}
+
+static ConfigOption*
+config_option_create( const char *name, const char *value )
+{
+     ConfigOption *option;
+
+     option = D_CALLOC( 1, sizeof(ConfigOption) );
+     if (!option) {
+          D_OOM();
+          return NULL;
+     }
+
+     direct_snputs( option->name, name, OPTION_NAME_LENGTH );
+
+     config_option_value_add( option, value );
+
+     direct_map_insert( config_options, name, option);
+
+     return option;
+}
+
+static bool
+config_option_compare( DirectMap  *map,
+                       const void *key,
+                       void       *object,
+                       void       *ctx )
+{
+     const char   *map_key   = key;
+     ConfigOption *map_entry = object;
+
+     return strcmp( map_key, map_entry->name ) == 0;
+}
+
+static unsigned int
+config_option_hash( DirectMap  *map,
+                    const void *key,
+                    void       *ctx )
+{
+     size_t        i       = 0;
+     unsigned int  hash    = 0;
+     const char   *map_key = key;
+
+     while (map_key[i]) {
+          hash = hash * 131 + map_key[i];
+
+          i++;
+     }
+
+     return hash;
+}
+
+static DirectEnumerationResult
+config_option_free( DirectMap *map,
+                    void      *object,
+                    void      *ctx )
+{
+     ConfigOption      *option = object;
+     ConfigOptionValue *value;
+     DirectLink        *next;
+
+     direct_list_foreach_safe( value, next, option->values ) {
+          D_FREE( value );
+     }
+
+     D_FREE( option );
+
+     return DENUM_OK;
 }
 
 /**********************************************************************************************************************/
@@ -383,7 +498,6 @@ direct_config_set( const char *name, const char *value )
           if (value) {
                char  itype[0xff];
                char *iname = 0;
-               char  len;
                int   n     = 0;
 
                while (direct_config->default_interface_implementation_types &&
@@ -410,9 +524,7 @@ direct_config_set( const char *name, const char *value )
                     return DR_INVARG;
                }
 
-               len = iname - value;
-               strncpy(itype, value, len);
-               itype[len] = '\0';
+               direct_snputs( itype, value, iname - value );
 
                direct_config->default_interface_implementation_types[n] = D_STRDUP( itype );
                direct_config->default_interface_implementation_types[n+1] = NULL;
@@ -425,9 +537,59 @@ direct_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      }
-     else
-          return DR_UNSUPPORTED;
+     else {
+          ConfigOption *option = direct_map_lookup( config_options, name );
+          if (option)
+               config_option_value_add( option, value );
+          else
+               config_option_create( name, value );
+     }
 
      return DR_OK;
+}
+
+DirectResult DIRECT_API
+direct_config_get( const char *name, char **values, const int values_len, int *ret_num )
+{
+     ConfigOption      *option;
+     ConfigOptionValue *value;
+     int                num = 0;
+
+     option = direct_map_lookup( config_options, name );
+     if (!option)
+          return DR_ITEMNOTFOUND;
+
+     *ret_num = 0;
+
+     if (!option->values)
+          return DR_OK;
+
+     direct_list_foreach( value, option->values ) {
+          if (num >= values_len)
+               break;
+
+          values[num++] = value->value;
+     }
+
+     *ret_num = num;
+
+     return DR_OK;
+}
+
+long long DIRECT_API
+direct_config_get_int_value( const char *name )
+{
+     ConfigOption      *option;
+     ConfigOptionValue *value;
+     char              *last_value;
+
+     option = direct_map_lookup( config_options, name );
+     if (!option || !option->values)
+          return 0;
+
+     direct_list_foreach( value, option->values )
+          last_value = value->value;
+
+     return atoll(last_value);
 }
 
