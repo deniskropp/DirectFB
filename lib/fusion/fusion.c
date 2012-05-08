@@ -258,6 +258,8 @@ fusion_world_fork( FusionWorld *world )
      /* Fill fork information. */
      fork.fusion_id = world->fusion_id;
 
+     fusion_world_flush_calls( world, 1 );
+
      /* Fork within the fusion world. */
      while (ioctl( fd, FUSION_FORK, &fork )) {
           if (errno != EINTR) {
@@ -705,10 +707,12 @@ fusion_enter( int               world_index,
      world->fusion_fd = fd;
      world->fusion_id = enter.fusion_id;
 
+     direct_mutex_init( &world->reactor_nodes_lock );
+     direct_mutex_init( &world->bins_lock );
+
      D_MAGIC_SET( world, FusionWorld );
 
      fusion_worlds[world_index] = world;
-
 
      /* Initialize shared memory part. */
      ret = fusion_shm_init( world );
@@ -884,6 +888,8 @@ fusion_exit( FusionWorld *world,
           msg.msg_data  = &foo;
           msg.msg_size  = sizeof(foo);
 
+          fusion_world_flush_calls( world, 1 );
+
           while (ioctl( world->fusion_fd, FUSION_SEND_MESSAGE, &msg ) < 0) {
                if (errno != EINTR) {
                     D_PERROR( "FUSION_SEND_MESSAGE" );
@@ -994,6 +1000,8 @@ fusion_kill( FusionWorld *world,
      param.fusion_id  = fusion_id;
      param.signal     = signal;
      param.timeout_ms = timeout_ms;
+
+     fusion_world_flush_calls( world, 1 );
 
      while (ioctl( world->fusion_fd, FUSION_KILL, &param )) {
           switch (errno) {

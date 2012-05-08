@@ -113,6 +113,7 @@ DirectResult FUSION_API fusion_call_get_owner( FusionCall          *call,
 
 DirectResult FUSION_API fusion_call_destroy( FusionCall          *call );
 
+DirectResult FUSION_API fusion_world_flush_calls( FusionWorld *world, int lock );
 
 typedef enum {
      FUSION_CALL_PERMIT_NONE              = 0x00000000,
