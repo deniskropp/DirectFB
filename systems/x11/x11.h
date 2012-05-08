@@ -48,8 +48,8 @@ typedef struct {
      bool                   stereo;
      DFBRegion              left_region;
      DFBRegion              right_region;
-     CoreSurfaceBufferLock *left_lock;
-     CoreSurfaceBufferLock *right_lock;
+     CoreSurfaceBufferLock  left_lock;
+     CoreSurfaceBufferLock  right_lock;
      XWindow               *xw;
 } UpdateScreenData;
 
