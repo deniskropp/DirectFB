@@ -54,6 +54,7 @@ driver_probe(CoreGraphicsDevice *device)
      switch (dfb_system_type()) {
           case CORE_MESA:
           case CORE_PVR2D:
+          case CORE_EGL:
           case CORE_ANDROID:
                return 1;
 
