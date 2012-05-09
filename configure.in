@@ -746,6 +746,24 @@ AC_SUBST(PVR2D_LIBS)
 AC_SUBST(PVR2D_CFLAGS)
 
 
+dnl Test for EGL
+AC_ARG_ENABLE(egl,
+              AC_HELP_STRING([--enable-egl],
+                             [build with EGL support @<:@default=no@:>@]),
+              [], [enable_egl=no])
+if test "$enable_egl" = "yes"; then
+  PKG_CHECK_MODULES(EGL, [gl egl], [enable_egl=yes], [enable_egl=no
+    AC_MSG_WARN([
+*** gl egl packages not found -- Building without EGL support.])
+    ])
+fi
+
+AM_CONDITIONAL(EGL_CORE, test "$enable_egl" = "yes")
+
+AC_SUBST(EGL_LIBS)
+AC_SUBST(EGL_CFLAGS)
+
+
 
 dnl Test for DevMem system
 AC_ARG_ENABLE(devmem,
@@ -1165,6 +1183,7 @@ nsc=no
 nvidia=no
 omap=no
 pvr2d=no
+egl=no
 pxa3xx=no
 radeon=no
 savage=no
@@ -1348,6 +1367,11 @@ if test "$checkfor_gles2" = "yes"; then
       gles2=yes
       GLES2_CFLAGS="$PVR2D_CFLAGS -DGLES2_PVR2D"
       GLES2_LIBS=$PVR2D_LIBS
+   fi
+   if test "$enable_egl" = "yes"; then
+      gles2=yes
+      GLES2_CFLAGS="$EGL_CFLAGS"
+      GLES2_LIBS=$EGL_LIBS
    fi
 fi
 
@@ -2064,6 +2088,7 @@ systems/dummy/Makefile
 systems/fbdev/Makefile
 systems/mesa/Makefile
 systems/pvr2d/Makefile
+systems/egl/Makefile
 systems/x11/Makefile
 systems/x11vdpau/Makefile
 systems/osx/Makefile
@@ -2199,6 +2224,7 @@ Building System Modules:
   Generic /dev/mem support  $enable_devmem
   Mesa/DRM/KMS support      $enable_mesa                $MESA_CFLAGS $MESA_LIBS
   PVR2D                     $enable_pvr2d               $PVR2D_CFLAGS $PVR2D_LIBS
+  EGL                       $enable_egl                 $EGL $EGL_LIBS
   X11 support               $enable_x11                 $X11_CFLAGS $X11_LIBS
   X11/VDPAU support         $enable_x11vdpau            $X11VDPAU_CFLAGS $X11VDPAU_LIBS
   OSX support               $enable_osx                 $OSX_CFLAGS $OSX_LIBS
