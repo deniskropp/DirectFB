@@ -524,7 +524,7 @@ direct_config_set( const char *name, const char *value )
                     return DR_INVARG;
                }
 
-               direct_snputs( itype, value, iname - value );
+               direct_snputs( itype, value, iname - value + 1);
 
                direct_config->default_interface_implementation_types[n] = D_STRDUP( itype );
                direct_config->default_interface_implementation_types[n+1] = NULL;
