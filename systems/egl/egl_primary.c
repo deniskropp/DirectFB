@@ -283,7 +283,7 @@ primaryTestRegion( CoreLayer                  *layer,
      }
 
      switch (config->format) {
-//          case DSPF_ARGB:
+          case DSPF_ARGB:
           case DSPF_RGB16:
                break;
 
@@ -369,8 +369,12 @@ primaryFlipRegion( CoreLayer             *layer,
 //     EGLDataShared *shared = egl->shared;
 
      D_DEBUG_AT( EGL_Layer, "%s()\n", __FUNCTION__ );
+     
+     eglSwapBuffers(egl->eglDisplay, egl->eglSurface);
 
      dfb_surface_flip( surface, false );
+     
+     
 
      return DisplaySurface( egl, left_lock->handle );
 }
@@ -396,6 +400,9 @@ primaryUpdateRegion( CoreLayer             *layer,
      if (left_update && !dfb_region_region_intersect( &region, left_update ))
           return DFB_OK;
 
+     eglSwapBuffers(egl->eglDisplay, egl->eglSurface);
+
+     
      return DisplaySurface( egl, left_lock->handle );
 }
 

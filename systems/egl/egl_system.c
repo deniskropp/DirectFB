@@ -50,6 +50,8 @@
 
 #include <core/core_system.h>
 
+#define RASPBERRY_PI
+
 DFB_CORE_SYSTEM( egl )
 
 /**********************************************************************************************************************/
@@ -62,13 +64,21 @@ static EGLData *m_data;    /* FIXME: Fix Core System API to pass data in all fun
 static DFBResult
 InitEGL( EGLData *egl )
 {
-#ifdef RASPBERRY_PI
-     static EGL_DISPMANX_WINDOW_T nativewindow;
-#endif
      EGLint iMajorVersion, iMinorVersion;
      EGLint ai32ContextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
 
-     egl->eglDisplay = eglGetDisplay((int)0);
+#ifdef RASPBERRY_PI
+     static EGL_DISPMANX_WINDOW_T nativewindow;
+     DISPMANX_ELEMENT_HANDLE_T dispman_element;
+     DISPMANX_DISPLAY_HANDLE_T dispman_display;
+     DISPMANX_UPDATE_HANDLE_T dispman_update;
+     VC_RECT_T dst_rect;
+     VC_RECT_T src_rect;
+
+     bcm_host_init();
+
+#endif     
+     egl->eglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
      if (!eglInitialize(egl->eglDisplay, &iMajorVersion, &iMinorVersion))
           return DFB_INIT;
@@ -90,28 +100,54 @@ InitEGL( EGLData *egl )
      if (!TestEGLError("eglBindAPI"))
           return DFB_INIT;
 
-     EGLint pi32ConfigAttribs[5];
-     pi32ConfigAttribs[0] = EGL_SURFACE_TYPE;
-     pi32ConfigAttribs[1] = EGL_WINDOW_BIT | EGL_PIXMAP_BIT;
-     pi32ConfigAttribs[2] = EGL_RENDERABLE_TYPE;
-     pi32ConfigAttribs[3] = EGL_OPENGL_ES2_BIT;
-     pi32ConfigAttribs[4] = EGL_NONE;
+     EGLint pi32ConfigAttribs[] = {  EGL_RED_SIZE, 8,
+                                     EGL_GREEN_SIZE, 8,
+                                     EGL_BLUE_SIZE, 8,
+                                     EGL_ALPHA_SIZE, 8,
+                                     EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+                                     EGL_NONE
+                                  };
 
      int iConfigs;
      if (!eglChooseConfig(egl->eglDisplay, pi32ConfigAttribs, &egl->eglConfig, 1, &iConfigs) || (iConfigs != 1)) {
           D_ERROR("DirectFB/EGL: eglChooseConfig() failed.\n");
           return DFB_INIT;
      }
+     
+     egl->eglContext = eglCreateContext(egl->eglDisplay, egl->eglConfig, EGL_NO_CONTEXT, ai32ContextAttribs);
+     if (!TestEGLError("eglCreateContext"))
+          return DFB_INIT;
+     
+#ifdef RASPBERRY_PI
+     graphics_get_display_size(0 /* LCD */, &egl->DisplayWidth, &egl->DisplayHeight);
 
+     dst_rect.x = 0;
+     dst_rect.y = 0;
+     dst_rect.width = egl->DisplayWidth;
+     dst_rect.height = egl->DisplayHeight;
 
-     egl->eglSurface = eglCreateWindowSurface( egl->eglDisplay, egl->eglConfig, &nativeWindow, NULL );
+     src_rect.x = 0;
+     src_rect.y = 0;
+     src_rect.width  = dst_rect.width  << 16; // ANDI: fixed point 16.16?
+     src_rect.height = dst_rect.height << 16;
+
+     dispman_display = vc_dispmanx_display_open( 0);
+     dispman_update = vc_dispmanx_update_start( 0 );
+
+     dispman_element = vc_dispmanx_element_add ( dispman_update, dispman_display,  0, &dst_rect, 0,
+                                                 &src_rect, DISPMANX_PROTECTION_NONE, 0, 0, 0);
+      
+     nativewindow.element = dispman_element;
+     nativewindow.width   = egl->DisplayWidth;
+     nativewindow.height  = egl->DisplayHeight;
+     vc_dispmanx_update_submit_sync( dispman_update );
+
+#endif
+
+     egl->eglSurface = eglCreateWindowSurface( egl->eglDisplay, egl->eglConfig, &nativewindow, NULL );
      if (!TestEGLError("eglCreateWindowSurface"))
           return DFB_INIT;
 
-
-     egl->eglContext = eglCreateContext(egl->eglDisplay, egl->eglConfig, NULL, ai32ContextAttribs);
-     if (!TestEGLError("eglCreateContext"))
-          return DFB_INIT;
 
      eglMakeCurrent( egl->eglDisplay, egl->eglSurface, egl->eglSurface, egl->eglContext );
      if (!TestEGLError("eglMakeCurrent"))
