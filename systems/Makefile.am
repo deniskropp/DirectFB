@@ -30,6 +30,12 @@ else
 PVR2D_DIR =
 endif
 
+if EGL_CORE
+EGL_DIR = egl
+else
+EGL_DIR =
+endif
+
 if DEVMEM_CORE
 DEVMEM_DIR = devmem
 else
@@ -59,6 +65,7 @@ SUBDIRS = \
 	android \
 	dummy \
 	$(PVR2D_DIR) \
+	$(EGL_DIR) \
 	$(DEVMEM_DIR) \
 	$(FBDEV_DIR) \
 	$(MESA_DIR) \

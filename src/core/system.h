@@ -51,6 +51,7 @@ typedef enum {
      CORE_PVR2D,
      CORE_CARE1,
      CORE_ANDROID,
+     CORE_EGL,
 } CoreSystemType;
 
 typedef enum {

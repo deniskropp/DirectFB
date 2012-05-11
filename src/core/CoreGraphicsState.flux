@@ -58,7 +58,7 @@ interface {
 	method {
                name      SetColorAndIndex
                async     yes
-               queue     no
+               queue     yes
 
                arg {
                        name      color
