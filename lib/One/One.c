@@ -702,14 +702,21 @@ OneThread_Dispatcher( DirectThread *thread,
      DirectResult  ret;
      OneThread    *data = arg;
      char         *buf;
-     OneQID       *ids       = NULL;
-     unsigned int  ids_count = 0;
-     unsigned int  ids_age   = 0;
+     OneQID       *ids          = NULL;
+     unsigned int  ids_capacity = 1000;
+     unsigned int  ids_count    = 0;
+     unsigned int  ids_age      = 0;
 
      D_DEBUG_AT( One_Thread, "%s()\n", __FUNCTION__ );
 
      buf = D_MALLOC( RECEIVE_BUFFER_SIZE );
      if (!buf) {
+          D_OOM();
+          return NULL;
+     }
+
+     ids = D_MALLOC( sizeof(OneQID) * ids_capacity );
+     if (!ids) {
           D_OOM();
           return NULL;
      }
@@ -733,15 +740,19 @@ OneThread_Dispatcher( DirectThread *thread,
                ids_age   = data->queues_age;
                ids_count = data->queue_count;
 
-               if (ids)
+               if (ids_count > ids_capacity) {
+                    while (ids_count > ids_capacity)
+                         ids_capacity *= 2;
+
                     D_FREE( ids );
 
-               D_ASSERT( data->queue_count > 0 );
+                    D_ASSERT( data->queue_count > 0 );
 
-               ids = D_MALLOC( sizeof(OneQID) * data->queue_count );
-               if (!ids) {
-                    D_OOM();
-                    return NULL;
+                    ids = D_MALLOC( sizeof(OneQID) * ids_capacity );
+                    if (!ids) {
+                         D_OOM();
+                         return NULL;
+                    }
                }
 
                direct_memcpy( ids, data->queue_ids, sizeof(OneQID) * data->queue_count );
