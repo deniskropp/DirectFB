@@ -596,7 +596,7 @@ static void
 png_info_callback( png_structp png_read_ptr,
                    png_infop   png_info_ptr )
 {
-     int                              i;
+     int                              i,ret;
      IDirectFBImageProvider_PNG_data *data;
 
      u32 bpp1[2] = {0, 0xff};
@@ -616,9 +616,13 @@ png_info_callback( png_structp png_read_ptr,
      /* set info stage */
      data->stage = STAGE_INFO;
 
-     png_get_IHDR( data->png_ptr, data->info_ptr,
-                   (png_uint_32 *)&data->width, (png_uint_32 *)&data->height, &data->bpp, &data->color_type,
-                   NULL, NULL, NULL );
+     ret = png_get_IHDR( data->png_ptr, data->info_ptr,
+                         (png_uint_32 *)&data->width, (png_uint_32 *)&data->height, &data->bpp, &data->color_type,
+                         NULL, NULL, NULL );
+
+     /* Let's not do anything with badly sized or corrupted images */
+     if ( (data->height == 0) || (data->width == 0) || (ret != 1) )
+         return;
 
      if (png_get_valid( data->png_ptr, data->info_ptr, PNG_INFO_tRNS )) {
           data->color_keyed = true;

@@ -184,7 +184,7 @@ Construct( IDirectFBImageProvider *thiz,
      buffer = va_arg( tag, IDirectFBDataBuffer * );
      core = va_arg( tag, CoreDFB * );
      va_end( tag );
-     
+
      data->base.ref = 1;
 
      data->base.buffer = buffer;
@@ -202,8 +202,10 @@ Construct( IDirectFBImageProvider *thiz,
 
      buffer->Release( buffer );
      data->base.buffer = NULL;
-     
-     if (!data->image) {
+
+     if (!data->image ||
+         (data->image_height == 0) ||
+         (data->image_width  == 0) ) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
@@ -245,7 +247,7 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
      if (dest_rect) {
           if (dest_rect->w < 1 || dest_rect->h < 1)
                return DFB_INVARG;
-          rect = *dest_rect; 
+          rect = *dest_rect;
           rect.x += dst_data->area.wanted.x;
           rect.y += dst_data->area.wanted.y;
      }
@@ -642,10 +644,10 @@ static u32* ReadImage( IDirectFBImageProvider_GIF_data *data, int width, int hei
                ;
           return NULL;
      }
-     
+
      // FIXME: allocates four additional bytes because the scaling functions
      //        in src/misc/gfx_util.c have an off-by-one bug which causes
-     //        segfaults on darwin/osx (not on linux)           
+     //        segfaults on darwin/osx (not on linux)
      if ((image = D_MALLOC(width * height * 4 + 4)) == NULL) {
           GIFERRORMSG("couldn't alloc space for image" );
      }
