@@ -118,7 +118,7 @@ config_option_value_add( ConfigOption *option, const char *name )
      if (!name)
           return;
 
-     value = D_CALLOC( 1, sizeof(ConfigOptionValue) + strlen(name) );
+     value = D_CALLOC( 1, sizeof(ConfigOptionValue) + strlen(name) + 1 );
      if (!value) {
           D_OOM();
           return;
