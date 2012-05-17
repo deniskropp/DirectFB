@@ -374,6 +374,12 @@ Construct( IDirectFBImageProvider *thiz,
      jpeg_abort_decompress(&cinfo);
      jpeg_destroy_decompress(&cinfo);
 
+     if ( (cinfo.output_width == 0) || (cinfo.output_height == 0)) {
+          buffer->Release( buffer );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return DFB_FAILURE;
+     }
+
      data->base.Destruct = IDirectFBImageProvider_JPEG_Destruct;
 
      thiz->RenderTo = IDirectFBImageProvider_JPEG_RenderTo;
