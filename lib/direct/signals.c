@@ -28,8 +28,6 @@
 
 #include <config.h>
 
-#include <linux/unistd.h>
-
 #include <direct/clock.h>
 #include <direct/conf.h>
 #include <direct/debug.h>
