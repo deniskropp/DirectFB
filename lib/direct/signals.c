@@ -28,6 +28,8 @@
 
 #include <config.h>
 
+#include <linux/unistd.h>
+
 #include <direct/clock.h>
 #include <direct/conf.h>
 #include <direct/debug.h>
@@ -468,7 +470,8 @@ handle_signals( void *ptr )
           }
           else {
                if (SIG_CLOSE_SIGHANDLER == info.si_signo) {
-                    break;
+                    if (direct_getpid() == info.si_pid)
+                         break;
                }
                else {
 #ifdef SA_SIGINFO
