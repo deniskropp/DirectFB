@@ -482,4 +482,3 @@ handle_signals( void *ptr )
 
      return NULL;
 }
-
