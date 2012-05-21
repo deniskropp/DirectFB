@@ -247,7 +247,11 @@ dfb_windowstack_create( CoreLayerContext *context )
      }
 
      /* Attach to all input devices */
+#ifndef DIRECTFB_DISABLE_DEPRECATED
      dfb_input_enumerate_devices( stack_attach_devices, stack, DICAPS_ALL );
+#else
+     dfb_input_enumerate_devices( stack_attach_devices, stack, DIDCAPS_ALL );
+#endif
 
      stack_containers_add(stack);
 

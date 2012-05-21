@@ -1056,7 +1056,11 @@ get_device_info( int              fd,
      if (test_bit( EV_KEY, evbit )) {
           int i;
 
+#ifndef DIRECTFB_DISABLE_DEPRECATED
           info->desc.caps |= DICAPS_KEYS;
+#else
+          info->desc.caps |= DIDCAPS_KEYS;
+#endif
 
           /* get keyboard bits */
           ioctl( fd, EVIOCGBIT(EV_KEY, sizeof(keybit)), keybit );
@@ -1141,13 +1145,21 @@ get_device_info( int              fd,
 
      /* Buttons */
      if (num_buttons) {
+#ifndef DIRECTFB_DISABLE_DEPRECATED
           info->desc.caps       |= DICAPS_BUTTONS;
+#else
+          info->desc.caps       |= DIDCAPS_BUTTONS;
+#endif
           info->desc.max_button  = DIBI_FIRST + num_buttons - 1;
      }
 
      /* Axes */
      if (num_rels || num_abs) {
+#ifndef DIRECTFB_DISABLE_DEPRECATED
           info->desc.caps       |= DICAPS_AXES;
+#else
+          info->desc.caps       |= DIDCAPS_AXES;
+#endif
           info->desc.max_axis    = DIAI_FIRST + MAX(num_rels, num_abs) - 1;
      }
 
@@ -1804,7 +1816,11 @@ driver_open_device( CoreInputDevice  *device,
 
      data->fd          = fd;
      data->device      = device;
+#ifndef DIRECTFB_DISABLE_DEPRECATED
      data->has_keys    = (info->desc.caps & DICAPS_KEYS) != 0;
+#else
+     data->has_keys    = (info->desc.caps & DIDCAPS_KEYS) != 0;
+#endif
      data->touchpad    = touchpad;
      data->vt_fd       = -1;
      data->sensitivity = 0x100;

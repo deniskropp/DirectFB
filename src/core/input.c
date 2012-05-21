@@ -835,7 +835,11 @@ dfb_input_enumerate_devices( InputDeviceCallback         callback,
 
           /* Always match if unclassified */
           if (!dev_caps)
+#ifndef DIRECTFB_DISABLE_DEPRECATED
                dev_caps = DICAPS_ALL;
+#else
+               dev_caps = DIDCAPS_ALL;
+#endif
 
           if ((dev_caps & caps) && callback( device, ctx ) == DFENUM_CANCEL)
                break;
