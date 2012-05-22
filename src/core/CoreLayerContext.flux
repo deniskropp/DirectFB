@@ -36,6 +36,7 @@ interface {
 			direction output
 			type      enum
 			typename  DFBDisplayLayerConfigFlags
+			optional  yes
 		}
 	}
 

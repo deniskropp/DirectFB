@@ -49,6 +49,7 @@ interface {
                 arg {
                         name        failed
                         direction   output
+                        optional    yes
                         type        enum
                         typename    DFBScreenMixerConfigFlags
                 }
@@ -92,6 +93,7 @@ interface {
                 arg {
                         name        failed
                         direction   output
+                        optional    yes
                         type        enum
                         typename    DFBScreenEncoderConfigFlags
                 }
@@ -135,6 +137,7 @@ interface {
                 arg {
                         name        failed
                         direction   output
+                        optional    yes
                         type        enum
                         typename    DFBScreenOutputConfigFlags
                 }
