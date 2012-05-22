@@ -208,7 +208,11 @@ driver_open_device( CoreInputDevice      *device,
      info->desc.type   = DIDTF_MOUSE;
 
      /* set capabilities */
+#ifndef DIRECTFB_DISABLE_DEPRECATED
      info->desc.caps       = DICAPS_BUTTONS | DICAPS_AXES;
+#else
+     info->desc.caps       = DIDCAPS_BUTTONS | DIDCAPS_AXES;
+#endif
      info->desc.max_axis   = DIAI_Z;
      info->desc.max_button = DIBI_MIDDLE;
 

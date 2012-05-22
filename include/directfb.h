@@ -912,11 +912,20 @@ typedef enum {
  * Basic input device features.
  */
 typedef enum {
+#ifndef DIRECTFB_DISABLE_DEPRECATED
      DICAPS_KEYS         = 0x00000001,  /* device supports key events */
      DICAPS_AXES         = 0x00000002,  /* device supports axis events */
      DICAPS_BUTTONS      = 0x00000004,  /* device supports button events */
 
      DICAPS_ALL          = 0x00000007   /* all capabilities */
+#else
+     DIDCAPS_NONE        = 0x00000000,  /* device supports no events */
+     DIDCAPS_KEYS        = 0x00000001,  /* device supports key events */ 
+     DIDCAPS_AXES        = 0x00000002,  /* device supports axis events */  
+     DIDCAPS_BUTTONS     = 0x00000004,  /* device supports button events */
+
+     DIDCAPS_ALL         = 0x00000007   /* all capabilities */
+#endif
 } DFBInputDeviceCapabilities;
 
 /*

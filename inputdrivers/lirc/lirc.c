@@ -316,8 +316,11 @@ driver_open_device( CoreInputDevice      *device,
      info->prefered_id = DIDID_REMOTE;
 
      info->desc.type   = DIDTF_REMOTE;
+#ifndef DIRECTFB_DISABLE_DEPRECATED
      info->desc.caps   = DICAPS_KEYS;
-
+#else
+     info->desc.caps   = DIDCAPS_KEYS;
+#endif
      /* allocate and fill private data */
      data = D_CALLOC( 1, sizeof(LircData) );
      if (!data) {

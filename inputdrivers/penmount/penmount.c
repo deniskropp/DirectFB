@@ -322,11 +322,15 @@ static DFBResult driver_open_device(CoreInputDevice *device,
      snprintf(info->desc.vendor, DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH,
               "AMT");
 
-     info->prefered_id		= DIDID_MOUSE;
-     info->desc.type		= DIDTF_MOUSE;
-     info->desc.caps		= DICAPS_AXES | DICAPS_BUTTONS;
-     info->desc.max_axis	= DIAI_Y;
-     info->desc.max_button	= DIBI_LEFT;
+     info->prefered_id     = DIDID_MOUSE;
+     info->desc.type       = DIDTF_MOUSE;
+#ifndef DIRECTFB_DISABLE_DEPRECATED
+     info->desc.caps       = DICAPS_AXES | DICAPS_BUTTONS;
+#else
+     info->desc.caps       = DIDCAPS_AXES | DIDCAPS_BUTTONS;
+#endif
+     info->desc.max_axis   = DIAI_Y;
+     info->desc.max_button = DIBI_LEFT;
 
      /* start input thread */
      data->thread = direct_thread_create (DTT_INPUT, PenMountEventThread, data, "PenMount Input");

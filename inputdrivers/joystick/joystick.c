@@ -228,7 +228,11 @@ driver_open_device( CoreInputDevice      *device,
      info->prefered_id     = DIDID_JOYSTICK;
 
      info->desc.type       = DIDTF_JOYSTICK;
+#ifndef DIRECTFB_DISABLE_DEPRECATED
      info->desc.caps       = DICAPS_AXES | DICAPS_BUTTONS;
+#else
+     info->desc.caps       = DIDCAPS_AXES | DIDCAPS_BUTTONS;
+#endif
      info->desc.max_button = buttons - 1;
      info->desc.max_axis   = axes - 1;
 

@@ -101,7 +101,6 @@ IScreen_Real::TestMixerConfig(
     D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
-    D_ASSERT( ret_failed != NULL );
 
     return dfb_screen_test_mixer_config( obj, mixer, config, ret_failed );
 }
@@ -131,7 +130,6 @@ IScreen_Real::TestEncoderConfig(
     D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
-    D_ASSERT( ret_failed != NULL );
 
     return dfb_screen_test_encoder_config( obj, encoder, config, ret_failed );
 }
@@ -161,7 +159,6 @@ IScreen_Real::TestOutputConfig(
     D_DEBUG_AT( DirectFB_CoreScreen, "IScreen_Real::%s()\n", __FUNCTION__ );
 
     D_ASSERT( config != NULL );
-    D_ASSERT( ret_failed != NULL );
 
     return dfb_screen_test_output_config( obj, output, config, ret_failed );
 }

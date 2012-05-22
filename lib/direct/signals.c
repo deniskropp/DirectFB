@@ -66,7 +66,7 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
                                 SIGTERM, /*SIGUSR1, SIGUSR2,*/ /*SIGVTALRM,*/
                                 /*SIGSTKFLT,*/ SIGABRT, SIGFPE, SIGILL, SIGQUIT,
                                 SIGSEGV, SIGTRAP, /*SIGSYS, SIGEMT,*/ SIGBUS,
-                                SIGXCPU, SIGXFSZ };
+                                SIGXCPU, SIGXFSZ, SIG_CLOSE_SIGHANDLER };
 
 #define NUM_SIGS_TO_HANDLE ((int)D_ARRAY_SIZE( sigs_to_handle ))
 
@@ -468,7 +468,8 @@ handle_signals( void *ptr )
           }
           else {
                if (SIG_CLOSE_SIGHANDLER == info.si_signo) {
-                    break;
+                    if (direct_getpid() == info.si_pid)
+                         break;
                }
                else {
 #ifdef SA_SIGINFO

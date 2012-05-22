@@ -430,7 +430,11 @@ driver_open_device( CoreInputDevice  *device,
 
      /* classify as a keyboard able to produce key events */
      info->desc.type   = DIDTF_KEYBOARD;
+#ifndef DIRECTFB_DISABLE_DEPRECATED
      info->desc.caps   = DICAPS_KEYS;
+#else
+     info->desc.caps   = DIDCAPS_KEYS;
+#endif
 
      /* enable translation of raw hardware keycodes */
      info->desc.min_keycode = 0;

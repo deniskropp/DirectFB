@@ -171,6 +171,7 @@ input_device_callback( DFBInputDeviceID           id,
      
      
      /* Details */
+#ifndef DIRECTFB_DISABLE_DEPRECATED
      if (desc.caps & DICAPS_KEYS)
           printf( "   Min. Keycode: %d\n", desc.min_keycode );
      if (desc.caps & DICAPS_KEYS)
@@ -179,7 +180,16 @@ input_device_callback( DFBInputDeviceID           id,
           printf( "   Max. Axis: %d\n", desc.max_axis );
      if (desc.caps & DICAPS_BUTTONS)
           printf( "   Max. Button: %d\n", desc.max_button );
-     
+#else
+     if (desc.caps & DIDCAPS_KEYS)
+          printf( "   Min. Keycode: %d\n", desc.min_keycode );
+     if (desc.caps & DIDCAPS_KEYS)
+          printf( "   Max. Keycode: %d\n", desc.max_keycode );
+     if (desc.caps & DIDCAPS_AXES)
+          printf( "   Max. Axis: %d\n", desc.max_axis );
+     if (desc.caps & DIDCAPS_BUTTONS)
+          printf( "   Max. Button: %d\n", desc.max_button );
+#endif
 
      printf( "\n" );
 
