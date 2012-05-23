@@ -2019,7 +2019,7 @@ process_updates( SaWMan              *sawman,
                     DFBSurfaceStereoEye old_eye = dfb_surface_get_stereo_eye( tier->region->surface );
 
                     /* Flip the whole region. */
-                    dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags );
+                    dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags | DSFLIP_WAITFORSYNC );
 
                     /* Copy back the updated region. */
                     if (left_num) {
@@ -2038,7 +2038,7 @@ process_updates( SaWMan              *sawman,
                }
                else {
                     /* Flip the whole region. */
-                    dfb_layer_region_flip_update( tier->region, NULL, flags );
+                    dfb_layer_region_flip_update( tier->region, NULL, flags | DSFLIP_WAITFORSYNC );
 
                     /* Copy back the updated region. */
                     dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
