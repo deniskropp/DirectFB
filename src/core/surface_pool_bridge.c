@@ -36,6 +36,7 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -524,7 +525,7 @@ init_bridge( CoreDFB                      *core,
           return ret;
      }
 
-     fusion_skirmish_init( &bridge->lock, bridge->desc.name, dfb_core_world(core) );
+     fusion_skirmish_init2( &bridge->lock, bridge->desc.name, dfb_core_world(core), fusion_config->secure_fusion );
 
      return DFB_OK;
 }

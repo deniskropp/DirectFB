@@ -220,7 +220,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY) {
           CoreWindowConfig config = { .opacity = 0xff };
 
-          ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_OPACITY );
+          ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_OPACITY );
      }
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
@@ -344,7 +344,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
      if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY) {
           CoreWindowConfig config = { .opacity = 0xff };
 
-          CoreWindow_SetConfig( data->window, &config, NULL, 0, NULL, CWCF_OPACITY );
+          CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_OPACITY );
      }
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );

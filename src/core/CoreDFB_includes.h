@@ -106,18 +106,11 @@ CoreGraphicsState_Unref( CoreGraphicsState *state )
 
 static __inline__ DirectResult
 CoreGraphicsState_Catch( CoreDFB            *core,
-                         u32                 object_id,
+                         void               *object_ptr,
                          CoreGraphicsState **ret_state )
 {
-     DirectResult ret;
-
-     ret = (DirectResult) dfb_core_get_graphics_state( core, object_id, ret_state );
-     if (ret)
-          return ret;
-
-     fusion_ref_catch( &(*ret_state)->object.ref );
-
-     return DR_OK;
+     *ret_state = (CoreGraphicsState*) object_ptr;
+     return fusion_object_catch( (FusionObject*) object_ptr );
 }
 
 static __inline__ DirectResult
@@ -173,7 +166,7 @@ CoreLayer_Unref( CoreLayer *layer )
 }
 
 static __inline__ DirectResult
-CoreLayer_Catch( CoreDFB    *core,
+CoreLayer_Catch__( CoreDFB    *core,
                  u32         object_id,
                  CoreLayer **ret_layer )
 {
@@ -239,18 +232,11 @@ CoreLayerContext_Unref( CoreLayerContext *context )
 
 static __inline__ DirectResult
 CoreLayerContext_Catch( CoreDFB           *core,
-                        u32                object_id,
+                        void              *object_ptr,
                         CoreLayerContext **ret_context )
 {
-     DirectResult ret;
-
-     ret = (DirectResult) dfb_core_get_layer_context( core, object_id, ret_context );
-     if (ret)
-          return ret;
-
-     fusion_ref_catch( &(*ret_context)->object.ref );
-
-     return DR_OK;
+     *ret_context = (CoreLayerContext*) object_ptr;
+     return fusion_object_catch( (FusionObject*) object_ptr );
 }
 
 static __inline__ DirectResult
@@ -310,18 +296,11 @@ CoreLayerRegion_Unref( CoreLayerRegion *region )
 
 static __inline__ DirectResult
 CoreLayerRegion_Catch( CoreDFB          *core,
-                       u32               object_id,
+                       void             *object_ptr,
                        CoreLayerRegion **ret_region )
 {
-     DirectResult ret;
-
-     ret = (DirectResult) dfb_core_get_layer_region( core, object_id, ret_region );
-     if (ret)
-          return ret;
-
-     fusion_ref_catch( &(*ret_region)->object.ref );
-
-     return DR_OK;
+     *ret_region = (CoreLayerRegion*) object_ptr;
+     return fusion_object_catch( (FusionObject*) object_ptr );
 }
 
 static __inline__ DirectResult
@@ -379,18 +358,11 @@ CorePalette_Unref( CorePalette *palette )
 
 static __inline__ DirectResult
 CorePalette_Catch( CoreDFB      *core,
-                   u32           object_id,
+                   void         *object_ptr,
                    CorePalette **ret_palette )
 {
-     DirectResult ret;
-
-     ret = (DirectResult) dfb_core_get_palette( core, object_id, ret_palette );
-     if (ret)
-          return ret;
-
-     fusion_ref_catch( &(*ret_palette)->object.ref );
-
-     return DR_OK;
+     *ret_palette = (CorePalette*) object_ptr;
+     return fusion_object_catch( (FusionObject*) object_ptr );
 }
 
 static __inline__ DirectResult
@@ -447,7 +419,7 @@ CoreScreen_Unref( CoreScreen *screen )
 }
 
 static __inline__ DirectResult
-CoreScreen_Catch( CoreDFB     *core,
+CoreScreen_Catch__( CoreDFB     *core,
                   u32          object_id,
                   CoreScreen **ret_screen )
 {
@@ -513,18 +485,11 @@ CoreSurface_Unref( CoreSurface *surface )
 
 static __inline__ DirectResult
 CoreSurface_Catch( CoreDFB      *core,
-                   u32           object_id,
+                   void         *object_ptr,
                    CoreSurface **ret_surface )
 {
-     DirectResult ret;
-
-     ret = (DirectResult) dfb_core_get_surface( core, object_id, ret_surface );
-     if (ret)
-          return ret;
-
-     fusion_ref_catch( &(*ret_surface)->object.ref );
-
-     return DR_OK;
+     *ret_surface = (CoreSurface*) object_ptr;
+     return fusion_object_catch( (FusionObject*) object_ptr );
 }
 
 static __inline__ DirectResult
@@ -586,18 +551,11 @@ CoreSurfaceAllocation_Unref( CoreSurfaceAllocation *allocation )
 
 static __inline__ DirectResult
 CoreSurfaceAllocation_Catch( CoreDFB                *core,
-                             u32                     object_id,
+                             void                   *object_ptr,
                              CoreSurfaceAllocation **ret_allocation )
 {
-     DirectResult ret;
-
-     ret = (DirectResult) dfb_core_get_surface_allocation( core, object_id, ret_allocation );
-     if (ret)
-          return ret;
-
-     fusion_ref_catch( &(*ret_allocation)->object.ref );
-
-     return DR_OK;
+     *ret_allocation = (CoreSurfaceAllocation*) object_ptr;
+     return fusion_object_catch( (FusionObject*) object_ptr );
 }
 
 static __inline__ DirectResult
@@ -658,18 +616,11 @@ CoreSurfaceBuffer_Unref( CoreSurfaceBuffer *buffer )
 
 static __inline__ DirectResult
 CoreSurfaceBuffer_Catch( CoreDFB            *core,
-                         u32                 object_id,
+                         void               *object_ptr,
                          CoreSurfaceBuffer **ret_buffer )
 {
-     DirectResult ret;
-
-     ret = (DirectResult) dfb_core_get_surface_buffer( core, object_id, ret_buffer );
-     if (ret)
-          return ret;
-
-     fusion_ref_catch( &(*ret_buffer)->object.ref );
-
-     return DR_OK;
+     *ret_buffer = (CoreSurfaceBuffer*) object_ptr;
+     return fusion_object_catch( (FusionObject*) object_ptr );
 }
 
 static __inline__ DirectResult
@@ -730,18 +681,11 @@ CoreSurfaceClient_Unref( CoreSurfaceClient *client )
 
 static __inline__ DirectResult
 CoreSurfaceClient_Catch( CoreDFB            *core,
-                         u32                 object_id,
+                         void               *object_ptr,
                          CoreSurfaceClient **ret_client )
 {
-     DirectResult ret;
-
-     ret = (DirectResult) dfb_core_get_surface_client( core, object_id, ret_client );
-     if (ret)
-          return ret;
-
-     fusion_ref_catch( &(*ret_client)->object.ref );
-
-     return DR_OK;
+     *ret_client = (CoreSurfaceClient*) object_ptr;
+     return fusion_object_catch( (FusionObject*) object_ptr );
 }
 
 static __inline__ DirectResult
@@ -802,18 +746,11 @@ CoreWindow_Unref( CoreWindow *window )
 
 static __inline__ DirectResult
 CoreWindow_Catch( CoreDFB     *core,
-                  u32          object_id,
+                  void        *object_ptr,
                   CoreWindow **ret_window )
 {
-     DirectResult ret;
-
-     ret = (DirectResult) dfb_core_get_window( core, object_id, ret_window );
-     if (ret)
-          return ret;
-
-     fusion_ref_catch( &(*ret_window)->object.ref );
-
-     return DR_OK;
+     *ret_window = (CoreWindow*) object_ptr;
+     return fusion_object_catch( (FusionObject*) object_ptr );
 }
 
 static __inline__ DirectResult

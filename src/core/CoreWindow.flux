@@ -90,14 +90,6 @@ interface {
 		}
 
 		arg {
-			name        parent
-			direction   input
-			type        object
-			typename    CoreWindow
-			optional    yes
-		}
-
-		arg {
 			name	    flags
 			direction   input
 			type        enum

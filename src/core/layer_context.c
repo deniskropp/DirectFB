@@ -37,6 +37,7 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
@@ -208,7 +209,7 @@ dfb_layer_context_init( CoreLayerContext *context,
      context->shmpool = shared->shmpool;
 
      /* Initialize the lock. */
-     if (fusion_skirmish_init( &context->lock, "Layer Context", dfb_core_world(layer->core) )) {
+     if (fusion_skirmish_init2( &context->lock, "Layer Context", dfb_core_world(layer->core), fusion_config->secure_fusion )) {
           fusion_object_destroy( &context->object );
           return DFB_FUSION;
      }

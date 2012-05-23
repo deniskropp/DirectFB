@@ -102,7 +102,6 @@ DFBResult
 IWindow_Real::SetConfig( const CoreWindowConfig        *config,
                          const DFBInputDeviceKeySymbol *keys,
                          u32                            num_keys,
-                         CoreWindow                    *parent,
                          CoreWindowConfigFlags          flags )
 {
      CoreWindowConfig config_copy;
@@ -112,11 +111,26 @@ IWindow_Real::SetConfig( const CoreWindowConfig        *config,
      D_MAGIC_ASSERT( obj, CoreWindow );
      D_ASSERT( config != NULL );
 
+     if ((flags & DWCONF_ASSOCIATION) && config->association) {
+          DFBResult ret;
+          CoreWindow *parent;
+
+          ret = dfb_core_get_window( core, config->association, &parent );
+          if (ret)
+               return ret;
+
+          if (parent->object.owner && parent->object.owner != Core_GetIdentity()) {
+               dfb_window_unref( parent );
+               return DFB_ACCESSDENIED;
+          }
+
+          dfb_window_unref( parent );
+     }
+
      config_copy = *config;
 
-     config_copy.keys        = (DFBInputDeviceKeySymbol*) keys;
-     config_copy.num_keys    = num_keys;
-     config_copy.association = parent ? parent->object.id : 0;
+     config_copy.keys     = (DFBInputDeviceKeySymbol*) keys;
+     config_copy.num_keys = num_keys;
 
      return dfb_window_set_config( obj, &config_copy, flags );
 }

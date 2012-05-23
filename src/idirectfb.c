@@ -831,7 +831,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if (caps & DSCAPS_STEREO)
                               wd.caps |= DWCAPS_STEREO;
 
-                         ret = CoreLayerContext_CreateWindow( data->context, &wd, NULL, NULL, &window );
+                         ret = CoreLayerContext_CreateWindow( data->context, &wd, &window );
                          if (ret)
                               return ret;
 

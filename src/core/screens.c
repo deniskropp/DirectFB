@@ -35,6 +35,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 
 #include <core/CoreScreen.h>
@@ -120,7 +121,7 @@ dfb_screen_core_initialize( CoreDFB             *core,
           snprintf( buf, sizeof(buf), "Screen %d", i );
 
           /* Initialize the lock. */
-          if (fusion_skirmish_init( &sshared->lock, buf, dfb_core_world(core) )) {
+          if (fusion_skirmish_init2( &sshared->lock, buf, dfb_core_world(core), fusion_config->secure_fusion )) {
                SHFREE( pool, sshared );
                return DFB_FUSION;
           }

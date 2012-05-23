@@ -37,6 +37,7 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -173,7 +174,7 @@ dfb_layer_region_create( CoreLayerContext  *context,
      }
 
      /* Initialize the lock. */
-     if (fusion_skirmish_init( &region->lock, "Layer Region", dfb_core_world(layer->core) )) {
+     if (fusion_skirmish_init2( &region->lock, "Layer Region", dfb_core_world(layer->core), fusion_config->secure_fusion )) {
           dfb_layer_context_unlink( &region->context );
           fusion_object_destroy( &region->object );
           return DFB_FUSION;

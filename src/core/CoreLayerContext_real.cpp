@@ -240,24 +240,47 @@ ILayerContext_Real::SetClipRegions(
 DFBResult
 ILayerContext_Real::CreateWindow(
                     const DFBWindowDescription                *description,
-                    CoreWindow                                *parent,
-                    CoreWindow                                *toplevel,
                     CoreWindow                               **ret_window
 )
 {
-    DFBWindowDescription description_copy;
+    DFBResult ret;
 
     D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
 
     D_ASSERT( description != NULL );
     D_ASSERT( ret_window != NULL );
 
-    description_copy = *description;
+    if (description->flags & DWDESC_PARENT) {
+        CoreWindow *parent;
 
-    description_copy.parent_id   = parent   ? parent->object.id   : 0;
-    description_copy.toplevel_id = toplevel ? toplevel->object.id : 0;
+        ret = dfb_core_get_window( core, description->parent_id, &parent );
+        if (ret)
+            return ret;
 
-    return dfb_layer_context_create_window( core, obj, &description_copy, ret_window );
+        if (parent->object.owner && parent->object.owner != Core_GetIdentity()) {
+             dfb_window_unref( parent );
+             return DFB_ACCESSDENIED;
+        }
+
+        dfb_window_unref( parent );
+    }
+
+    if (description->flags & DWDESC_TOPLEVEL_ID) {
+        CoreWindow *toplevel;
+
+        ret = dfb_core_get_window( core, description->toplevel_id, &toplevel );
+        if (ret)
+            return ret;
+
+        if (toplevel->object.owner && toplevel->object.owner != Core_GetIdentity()) {
+             dfb_window_unref( toplevel );
+             return DFB_ACCESSDENIED;
+        }
+
+        dfb_window_unref( toplevel );
+    }
+
+    return dfb_layer_context_create_window( core, obj, description, ret_window );
 }
 
 DFBResult

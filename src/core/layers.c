@@ -40,6 +40,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 #include <fusion/arena.h>
 #include <fusion/property.h>
@@ -139,7 +140,7 @@ dfb_layer_core_initialize( CoreDFB            *core,
           snprintf( buf, sizeof(buf), "Display Layer %d", i );
 
           /* Initialize the lock. */
-          ret = fusion_skirmish_init( &lshared->lock, buf, dfb_core_world(core) );
+          ret = fusion_skirmish_init2( &lshared->lock, buf, dfb_core_world(core), fusion_config->secure_fusion );
           if (ret)
                return ret;
 

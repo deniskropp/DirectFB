@@ -32,6 +32,7 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -1198,7 +1199,7 @@ init_pool( CoreDFB                *core,
      if (funcs->Write)
           pool->desc.caps |= CSPCAPS_WRITE;
 
-     fusion_skirmish_init( &pool->lock, pool->desc.name, dfb_core_world(core) );
+     fusion_skirmish_init2( &pool->lock, pool->desc.name, dfb_core_world(core), fusion_config->secure_fusion );
 
      return DFB_OK;
 }
