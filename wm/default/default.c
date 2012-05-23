@@ -3239,6 +3239,7 @@ defaultwm_surface_reaction( const void *msg_data,
      int                            i;
      const CoreSurfaceNotification *notification = msg_data;
      StackData                     *data         = ctx;
+     DFBResult                      ret;
 
      D_DEBUG_AT( WM_Default, "%s( %p, %p )\n", __FUNCTION__, msg_data, ctx );
 
