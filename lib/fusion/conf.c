@@ -151,7 +151,6 @@ fusion_config_set( const char *name, const char *value )
                return DR_INVARG;
           }
      } else
-     if (direct_config_set( name, value ))
           return DR_UNSUPPORTED;
 
      return DR_OK;
