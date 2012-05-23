@@ -960,6 +960,8 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
                                    return RS_OK;
                               }
                          }
+                         else
+                              dfb_layer_context_unref( stack->context );
                          return RS_OK;
 
                     default:
