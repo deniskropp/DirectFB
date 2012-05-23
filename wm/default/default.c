@@ -1527,7 +1527,7 @@ repaint_stack( CoreWindowStack     *stack,
 
           case DLBM_BACKVIDEO:
                /* Flip the whole region. */
-               dfb_layer_region_flip_update( region, NULL, flags );
+               dfb_layer_region_flip_update( region, NULL, flags | DSFLIP_WAITFORSYNC );
 
                /* Copy back the updated region. */
                dfb_gfx_copy_regions( region->surface, CSBR_FRONT, region->surface, CSBR_BACK, updates, num_updates, 0, 0 );
@@ -4364,7 +4364,7 @@ wm_update_cursor( CoreWindowStack       *stack,
 
                case DLBM_BACKVIDEO:
                     /* Flip the whole region. */
-                    dfb_layer_region_flip_update( primary, NULL, DSFLIP_NONE );
+                    dfb_layer_region_flip_update( primary, NULL, DSFLIP_WAITFORSYNC );
 
                     /* Copy back the updated region. */
                     dfb_gfx_copy_regions( surface, CSBR_FRONT, surface, CSBR_BACK, updates, updates_count, 0, 0 );
