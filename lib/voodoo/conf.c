@@ -256,7 +256,6 @@ voodoo_config_set( const char *name, const char *value )
      if (strcmp (name, "no-link-packet" ) == 0) {
           voodoo_config->link_packet = false;
      } else
-     if (direct_config_set( name, value ))
           return DR_UNSUPPORTED;
 
      return DR_OK;
