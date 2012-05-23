@@ -138,7 +138,7 @@ config_allocate()
           sawman_config->borders[0].unfocused_index[i] = -1;
      }
 
-     sawman_config->update_region_mode = 2;
+     sawman_config->update_region_mode = 4;
 
      return DFB_OK;
 }
