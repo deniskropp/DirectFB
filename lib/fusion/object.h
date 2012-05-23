@@ -139,6 +139,7 @@ DirectResult     FUSION_API  fusion_object_add_access         ( FusionObject    
 DirectResult     FUSION_API  fusion_object_has_access         ( FusionObject           *object,
                                                                 const char             *executable );
 
+DirectResult     FUSION_API  fusion_object_catch              ( FusionObject           *object );
 
 #define FUSION_OBJECT_METHODS(type, prefix)                                    \
                                                                                \

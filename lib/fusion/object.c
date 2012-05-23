@@ -35,6 +35,7 @@
 #include <direct/thread.h>
 
 #include <fusion/build.h>
+#include <fusion/conf.h>
 #include <fusion/object.h>
 #include <fusion/hash.h>
 #include <fusion/shmalloc.h>
@@ -178,9 +179,13 @@ fusion_object_pool_create( const char             *name,
      }
 
      /* Initialize the pool lock. */
-     fusion_skirmish_init( &pool->lock, name, world );
+     if (fusion_config->secure_fusion)
+          fusion_skirmish_init2( &pool->lock, name, world, true );
+     else {
+          fusion_skirmish_init2( &pool->lock, name, world, false );
 
-     fusion_skirmish_add_permissions( &pool->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+          fusion_skirmish_add_permissions( &pool->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+     }
 
      /* Fill information. */
      pool->shared       = shared;
@@ -709,5 +714,26 @@ fusion_object_has_access( FusionObject *object,
      }
 
      return DR_ACCESSDENIED;
+}
+
+DirectResult
+fusion_object_catch( FusionObject *object )
+{
+     DirectResult ret;
+
+     D_MAGIC_ASSERT( object, FusionObject );
+
+     ret = fusion_ref_up( &object->ref, false );
+     if (ret)
+          return ret;
+
+     ret = fusion_ref_catch( &object->ref );
+     if (ret) {
+          D_DERROR( ret, "Fusion/Object: Failed to catch reference 0x%08x!\n", object->ref.multi.id );
+          fusion_ref_down( &object->ref, false );
+          return ret;
+     }
+
+     return DR_OK;
 }
 
