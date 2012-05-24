@@ -556,6 +556,8 @@ virtual2DProcess( DirectProcessor *processor,
                D_BUG( "unknown op" );
      }
 
+     direct_processor_recycle( &vdrv->processor, data );
+
      return DR_OK;
 }
 
