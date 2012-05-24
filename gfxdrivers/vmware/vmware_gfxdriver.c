@@ -27,6 +27,9 @@
 #include <direct/debug.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
+
+#include <core/core.h>
 #include <core/gfxcard.h>
 
 #include "vmware_2d.h"
@@ -78,8 +81,19 @@ driver_init_driver( CoreGraphicsDevice  *device,
                     void                *device_data,
                     CoreDFB             *core )
 {
+     DirectResult      ret;
+     VMWareDriverData *drv = driver_data;
+
+     if (!fusion_config->secure_fusion || dfb_core_is_master(core)) {
+          ret = direct_processor_init( &drv->processor, "Virtual2D", virtual2DFuncs, sizeof(Virtual2DPacket), drv, 0 );
+          if (ret)
+               return ret;
+     }
+
      /* initialize function pointers */
      funcs->EngineSync    = vmwareEngineSync;
+     funcs->WaitSerial    = vmwareWaitSerial;
+     funcs->GetSerial     = vmwareGetSerial;
      funcs->EngineReset   = vmwareEngineReset;
      funcs->EmitCommands  = vmwareEmitCommands;
      funcs->CheckState    = vmwareCheckState;

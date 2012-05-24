@@ -50,6 +50,15 @@ typedef struct {
 
 
 typedef struct {
+     DirectProcessor        processor;
+     unsigned int           packet_count;
+
+     DirectMutex            wait_lock;
+     DirectWaitQueue        wait_queue;
+     
+     CoreGraphicsSerial     last;
+     CoreGraphicsSerial     next;
+     CoreGraphicsSerial     done;
 
      /** Add local data here... **/
 } VMWareDriverData;

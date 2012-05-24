@@ -145,41 +145,6 @@ vmware_validate_SOURCE( VMWareDeviceData *vdev,
 /**************************************************************************************************/
 
 /*
- * Wait for the blitter to be idle.
- *
- * This function is called before memory that has been written to by the hardware is about to be
- * accessed by the CPU (software driver) or another hardware entity like video encoder (by Flip()).
- * It can also be called by applications explicitly, e.g. at the end of a benchmark loop to include
- * execution time of queued commands in the measurement.
- */
-DFBResult
-vmwareEngineSync( void *drv, void *dev )
-{
-     return DFB_OK;
-}
-
-/*
- * Reset the graphics engine.
- */
-void
-vmwareEngineReset( void *drv, void *dev )
-{
-}
-
-/*
- * Start processing of queued commands if required.
- *
- * This function is called before returning from the graphics core to the application.
- * Usually that's after each rendering function. The only functions causing multiple commands
- * to be queued with a single emition at the end are DrawString(), TileBlit(), BatchBlit(),
- * DrawLines() and possibly FillTriangle() which is emulated using multiple FillRectangle() calls.
- */
-void
-vmwareEmitCommands( void *drv, void *dev )
-{
-}
-
-/*
  * Check for acceleration of 'accel' using the given 'state'.
  */
 void
@@ -322,6 +287,18 @@ vmwareSetState( void                *drv,
      state->mod_hw = 0;
 }
 
+static void
+virtual2D_postPacket( VMWareDriverData *vdrv,
+                      Virtual2DPacket  *packet )
+{
+     while (vdrv->packet_count > 7777)
+          direct_thread_sleep( 1000 );
+
+     D_SYNC_ADD( &vdrv->packet_count, 1 );
+
+     direct_processor_post( &vdrv->processor, packet );
+}
+
 /*
  * Render a filled rectangle using the current hardware state.
  */
@@ -329,48 +306,28 @@ bool
 vmwareFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      VMWareDeviceData *vdev = (VMWareDeviceData*) dev;
-     void             *addr = vdev->dst_addr + rect->y * vdev->dst_pitch +
-                              DFB_BYTES_PER_LINE(vdev->dst_format, rect->x);
+     VMWareDriverData *vdrv = (VMWareDriverData*) drv;
+     Virtual2DPacket  *packet;
 
      D_DEBUG_AT( VMWare_2D, "%s( %d,%d-%dx%d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( rect ) );
 
-     switch (vdev->dst_bpp) {
-          case 4:
-               while (rect->h--) {
-                    int  w   = rect->w;
-                    u32 *dst = addr;
-
-                    while (w--)
-                         *dst++ = vdev->color_pixel;
-
-                    addr += vdev->dst_pitch;
-               }
-               break;
-
-          case 2:
-               while (rect->h--) {
-                    int  w   = rect->w;
-                    u16 *dst = addr;
-
-                    while (w--)
-                         *dst++ = vdev->color_pixel;
-
-                    addr += vdev->dst_pitch;
-               }
-               break;
-
-          case 1:
-               while (rect->h--) {
-                    int  w   = rect->w;
-                    u8  *dst = addr;
-
-                    while (w--)
-                         *dst++ = vdev->color_pixel;
-
-                    addr += vdev->dst_pitch;
-               }
-               break;
+     packet = direct_processor_allocate( &vdrv->processor );
+     if (!packet) {
+          D_OOM();
+          return false;
      }
+
+     packet->op        = V2D_OP_FILL;
+
+     packet->dst_addr  = vdev->dst_addr + rect->y * vdev->dst_pitch +
+                         DFB_BYTES_PER_LINE(vdev->dst_format, rect->x);
+     packet->dst_bpp   = vdev->dst_bpp;
+     packet->dst_pitch = vdev->dst_pitch;
+
+     packet->dst       = *rect;
+     packet->color     = vdev->color_pixel;
+
+     virtual2D_postPacket( vdrv, packet );
 
      return true;
 }
@@ -382,21 +339,229 @@ bool
 vmwareBlit( void *drv, void *dev, DFBRectangle *srect, int dx, int dy )
 {
      VMWareDeviceData *vdev = (VMWareDeviceData*) dev;
-     void             *dst  = vdev->dst_addr + dy * vdev->dst_pitch +
-                              DFB_BYTES_PER_LINE(vdev->dst_format, dx);
-     void             *src  = vdev->src_addr + srect->y * vdev->src_pitch +
-                              DFB_BYTES_PER_LINE(vdev->src_format, srect->x);
+     VMWareDriverData *vdrv = (VMWareDriverData*) drv;
+     Virtual2DPacket  *packet;
 
      D_DEBUG_AT( VMWare_2D, "%s( %d,%d-%dx%d -> %d, %d )\n", __FUNCTION__,
                  DFB_RECTANGLE_VALS( srect ), dx, dy );
 
-     while (srect->h--) {
-          direct_memcpy( dst, src, srect->w * vdev->dst_bpp );
-
-          dst += vdev->dst_pitch;
-          src += vdev->src_pitch;
+     packet = direct_processor_allocate( &vdrv->processor );
+     if (!packet) {
+          D_OOM();
+          return false;
      }
+
+     packet->op        = V2D_OP_BLIT;
+
+     packet->dst_addr  = vdev->dst_addr + dy * vdev->dst_pitch +
+                         DFB_BYTES_PER_LINE(vdev->dst_format, dx);
+     packet->dst_bpp   = vdev->dst_bpp;
+     packet->dst_pitch = vdev->dst_pitch;
+
+     packet->src_addr  = vdev->src_addr + srect->y * vdev->src_pitch +
+                         DFB_BYTES_PER_LINE(vdev->src_format, srect->x);
+     packet->src_bpp   = vdev->src_bpp;
+     packet->src_pitch = vdev->src_pitch;
+
+     packet->dst.x     = dx;
+     packet->dst.y     = dy;
+     packet->src       = *srect;
+
+     virtual2D_postPacket( vdrv, packet );
 
      return true;
 }
+
+/*********************************************************************************************************************/
+
+/*
+ * Reset the graphics engine.
+ */
+void
+vmwareEngineReset( void *drv, void *dev )
+{
+     D_DEBUG_AT( VMWare_2D, "%s()\n", __FUNCTION__ );
+}
+
+/*
+ * Wait for the blitter to be idle.
+ *
+ * This function is called before memory that has been written to by the hardware is about to be
+ * accessed by the CPU (software driver) or another hardware entity like video encoder (by Flip()).
+ * It can also be called by applications explicitly, e.g. at the end of a benchmark loop to include
+ * execution time of queued commands in the measurement.
+ */
+DFBResult
+vmwareEngineSync( void *drv, void *dev )
+{
+     VMWareDriverData *vdrv = (VMWareDriverData*) drv;
+
+     D_DEBUG_AT( VMWare_2D, "%s()\n", __FUNCTION__ );
+
+     direct_mutex_lock( &vdrv->wait_lock );
+
+     while (vdrv->done.serial != vdrv->last.serial || vdrv->done.generation != vdrv->last.generation)
+          direct_waitqueue_wait( &vdrv->wait_queue, &vdrv->wait_lock );
+
+     direct_mutex_unlock( &vdrv->wait_lock );
+
+     return DFB_OK;
+}
+
+DFBResult
+vmwareWaitSerial( void *drv, void *dev,
+                  const CoreGraphicsSerial *serial )
+{
+     VMWareDriverData *vdrv = (VMWareDriverData*) drv;
+
+     D_DEBUG_AT( VMWare_2D, "%s( %d, %d )\n", __FUNCTION__, serial->generation, serial->serial );
+
+     direct_mutex_lock( &vdrv->wait_lock );
+
+     while ((vdrv->done.generation == serial->generation && vdrv->done.serial < serial->serial) ||
+             vdrv->done.generation < serial->generation)
+          direct_waitqueue_wait( &vdrv->wait_queue, &vdrv->wait_lock );
+
+     direct_mutex_unlock( &vdrv->wait_lock );
+
+     return DFB_OK;
+}
+
+void
+vmwareGetSerial( void *drv, void *dev,
+                 CoreGraphicsSerial *serial )
+{
+     VMWareDriverData *vdrv = (VMWareDriverData*) drv;
+
+     *serial = vdrv->next;
+
+     //D_DEBUG_AT( VMWare_2D, "%s() -> %d, %d\n", __FUNCTION__, serial->generation, serial->serial );
+}
+
+/*
+ * Start processing of queued commands if required.
+ *
+ * This function is called before returning from the graphics core to the application.
+ * Usually that's after each rendering function. The only functions causing multiple commands
+ * to be queued with a single emition at the end are DrawString(), TileBlit(), BatchBlit(),
+ * DrawLines() and possibly FillTriangle() which is emulated using multiple FillRectangle() calls.
+ */
+void
+vmwareEmitCommands( void *drv, void *dev )
+{
+     VMWareDriverData *vdrv = (VMWareDriverData*) drv;
+     Virtual2DPacket  *packet;
+
+     packet = direct_processor_allocate( &vdrv->processor );
+     if (!packet) {
+          D_OOM();
+          return;
+     }
+
+     D_DEBUG_AT( VMWare_2D, "%s() -> %d, %d\n", __FUNCTION__, vdrv->next.generation, vdrv->next.serial );
+
+     packet->op     = V2D_OP_SERIAL;
+     packet->serial = vdrv->next;
+
+     virtual2D_postPacket( vdrv, packet );
+
+     vdrv->last = vdrv->next;
+
+     if (!++(vdrv->next.serial))
+          vdrv->next.generation++;
+}
+
+/*********************************************************************************************************************/
+
+static DirectResult
+virtual2DProcess( DirectProcessor *processor,
+                  void            *data,
+                  void            *context )
+{
+     Virtual2DPacket  *packet = data;
+     VMWareDriverData *vdrv   = (VMWareDriverData*) context;
+     void             *dst    = packet->dst_addr;
+     void             *src    = packet->src_addr;
+
+     D_SYNC_ADD( &vdrv->packet_count, -1 );
+
+     switch (packet->op) {
+          case V2D_OP_SERIAL:
+               D_DEBUG_AT( VMWare_2D, "  -> SERIAL %d, %d\n", packet->serial.generation, packet->serial.serial );
+
+               direct_mutex_lock( &vdrv->wait_lock );
+
+               vdrv->done = packet->serial;
+
+               direct_waitqueue_broadcast( &vdrv->wait_queue );
+
+               direct_mutex_unlock( &vdrv->wait_lock );
+               break;
+
+          case V2D_OP_FILL:
+               D_DEBUG_AT( VMWare_2D, "  -> FILL %d,%d-%dx%d\n", DFB_RECTANGLE_VALS( &packet->dst ) );
+
+               switch (packet->dst_bpp) {
+                    case 4:
+                         while (packet->dst.h--) {
+                              int  w     = packet->dst.w;
+                              u32 *dst32 = dst;
+
+                              while (w--)
+                                   *dst32++ = packet->color;
+
+                              dst += packet->dst_pitch;
+                         }
+                         break;
+
+                    case 2:
+                         while (packet->dst.h--) {
+                              int  w     = packet->dst.w;
+                              u16 *dst16 = dst;
+
+                              while (w--)
+                                   *dst16++ = packet->color;
+
+                              dst += packet->dst_pitch;
+                         }
+                         break;
+
+                    case 1:
+                         while (packet->dst.h--) {
+                              int  w    = packet->dst.w;
+                              u8  *dst8 = dst;
+
+                              while (w--)
+                                   *dst8++ = packet->color;
+
+                              dst += packet->dst_pitch;
+                         }
+                         break;
+               }
+               break;
+
+          case V2D_OP_BLIT:
+               D_DEBUG_AT( VMWare_2D, "  -> BLIT %d,%d-%dx%d -> %d, %d\n", DFB_RECTANGLE_VALS( &packet->src ),
+                           packet->dst.x, packet->dst.y );
+
+               while (packet->src.h--) {
+                    direct_memcpy( dst, src, packet->src.w * packet->dst_bpp );
+
+                    dst += packet->dst_pitch;
+                    src += packet->src_pitch;
+               }
+               break;
+
+          default:
+               D_BUG( "unknown op" );
+     }
+
+     return DR_OK;
+}
+
+static const DirectProcessorFuncs _virtual2DFuncs = {
+     .Process = virtual2DProcess
+};
+
+const DirectProcessorFuncs *virtual2DFuncs = &_virtual2DFuncs;
 
