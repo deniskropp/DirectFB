@@ -1,5 +1,6 @@
 coretest_blit2
 dfbtest_blit
+dfbtest_blit_multi
 dfbtest_blit2
 dfbtest_fillrect
 dfbtest_font
@@ -20,6 +21,7 @@ dfbtest_surface_compositor
 dfbtest_surface_updates
 dfbtest_sync
 dfbtest_video
+dfbtest_waitserial
 dfbtest_water
 dfbtest_window
 dfbtest_window_cursor

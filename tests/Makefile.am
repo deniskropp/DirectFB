@@ -59,6 +59,7 @@ bin_PROGRAMS = \
 	$(GL_PROGS)	\
 	$(NON_PURE_VOODOO_PROGS)	\
 	dfbtest_blit	\
+	dfbtest_blit_multi	\
 	dfbtest_blit2	\
 	dfbtest_fillrect	\
 	dfbtest_font	\
@@ -75,6 +76,7 @@ bin_PROGRAMS = \
 	dfbtest_surface_updates	\
 	dfbtest_sync	\
 	dfbtest_video	\
+	dfbtest_waitserial	\
 	dfbtest_water	\
 	dfbtest_window	\
 	dfbtest_window_cursor	\
@@ -109,6 +111,9 @@ coretest_blit2_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(li
 
 dfbtest_blit_SOURCES = dfbtest_blit.c
 dfbtest_blit_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_blit_multi_SOURCES = dfbtest_blit_multi.c
+dfbtest_blit_multi_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_blit2_SOURCES = dfbtest_blit2.c
 dfbtest_blit2_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
@@ -173,6 +178,9 @@ dfbtest_sync_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libd
 
 dfbtest_video_SOURCES = dfbtest_video.c
 dfbtest_video_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_waitserial_SOURCES = dfbtest_waitserial.c
+dfbtest_waitserial_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_water_SOURCES = dfbtest_water.c
 dfbtest_water_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
