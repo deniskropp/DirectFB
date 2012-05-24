@@ -595,7 +595,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
                          allocation = left.allocation;
                          D_ASSERT( allocation != NULL );
-
+#if 0
                          /* If hardware has written or is writing... */
                          if (allocation->accessed[CSAID_GPU] & CSAF_WRITE) {
                               D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
@@ -610,6 +610,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                          dfb_surface_lock( surface );
                          dfb_surface_allocation_update( allocation, CSAF_READ );
                          dfb_surface_unlock( surface );
+#endif
                     }
 
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
@@ -821,7 +822,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
                          right_allocation = right.allocation;
                          D_ASSERT( left_allocation != NULL );
                          D_ASSERT( right_allocation != NULL );
-
+#if 0
                          /* If hardware has written or is writing... */
                          if ((left_allocation->accessed[CSAID_GPU] & CSAF_WRITE) ||
                              (right_allocation->accessed[CSAID_GPU] & CSAF_WRITE)) {
@@ -839,6 +840,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
                          dfb_surface_allocation_update( left_allocation, CSAF_READ );
                          dfb_surface_allocation_update( right_allocation, CSAF_READ );
                          dfb_surface_unlock( surface );
+#endif
                     }
 
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
@@ -1247,7 +1249,7 @@ region_buffer_lock( CoreLayerRegion       *region,
 
      allocation = left_buffer_lock->allocation;
      D_ASSERT( allocation != NULL );
-
+#if 0
      /* If hardware has written or is writing... */
      if (allocation->accessed[CSAID_GPU] & CSAF_WRITE) {
           D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
@@ -1257,7 +1259,7 @@ region_buffer_lock( CoreLayerRegion       *region,
 
           allocation->accessed[CSAID_GPU] &= ~CSAF_WRITE;
      }
-
+#endif
      if (stereo) {
           D_ASSERT(right_buffer_lock != NULL);
 
@@ -1275,7 +1277,7 @@ region_buffer_lock( CoreLayerRegion       *region,
      
           allocation = right_buffer_lock->allocation;
           D_ASSERT( allocation != NULL );
-     
+#if 0
           /* If hardware has written or is writing... */
           if (allocation->accessed[CSAID_GPU] & CSAF_WRITE) {
                D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
@@ -1285,6 +1287,7 @@ region_buffer_lock( CoreLayerRegion       *region,
      
                allocation->accessed[CSAID_GPU] &= ~CSAF_WRITE;
           }
+#endif
      }
      else if (right_buffer_lock)
           /* clear for region_buffer_unlock */

@@ -153,18 +153,17 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
 
      locks = dfb_surface_allocation_locks( allocation );
 
-#if 1
      /*
       * Manage access interlocks.
       *
       * SOON FIXME: Clearing flags only when not locked yet. Otherwise nested GPU/CPU locks are a problem.
       */
      /* Software read/write access... */
-     if (accessor == CSAID_CPU) {
+     if (accessor != CSAID_GPU) {
           /* If hardware has written or is writing... */
           if (allocation->accessed[CSAID_GPU] & CSAF_WRITE) {
                /* ...wait for the operation to finish. */
-               dfb_gfxcard_sync(); /* TODO: wait for serial instead */
+               dfb_gfxcard_wait_serial( &allocation->gfx_serial );
 
                /* Software read access after hardware write requires flush of the (bus) read cache. */
                dfb_gfxcard_flush_read_cache();
@@ -183,7 +182,7 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                /* ...if hardware has (to) read... */
                if (allocation->accessed[CSAID_GPU] & CSAF_READ) {
                     /* ...wait for the operation to finish. */
-                    dfb_gfxcard_sync(); /* TODO: wait for serial instead */
+                    dfb_gfxcard_wait_serial( &allocation->gfx_serial );
 
                     /* ...clear hardware read access. */
                     if (!locks)
@@ -208,7 +207,6 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
      if (! D_FLAGS_ARE_SET( allocation->accessed[accessor], access )) {
           /* FIXME: surface_enter */
      }
-#endif
 
      /* Collect... */
      allocation->accessed[accessor] = (CoreSurfaceAccessFlags)(allocation->accessed[accessor] | access);

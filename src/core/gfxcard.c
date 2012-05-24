@@ -416,6 +416,13 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
           return ret;
 
      if ((flags & GDLF_SYNC) && funcs->EngineSync) {
+          /* start command processing if not already running */
+          if (card->shared->pending_ops && card->funcs.EmitCommands) {
+               card->funcs.EmitCommands( card->driver_data, card->device_data );
+
+               card->shared->pending_ops = false;
+          }
+
           ret = funcs->EngineSync( card->driver_data, card->device_data );
           if (ret) {
                if (funcs->EngineReset)
@@ -847,6 +854,14 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      state->mod_hw   |= state->modified;
      state->modified  = SMF_ALL;
 
+     if (shared->last_allocation != state->dst.allocation) {
+          shared->last_allocation = state->dst.allocation;
+
+          /* start command processing if not already running */
+          if (card->shared->pending_ops && card->funcs.EmitCommands)
+               card->funcs.EmitCommands( card->driver_data, card->device_data );
+     }
+
      /*
       * If function hasn't been set or state is modified,
       * call the driver function to propagate the state changes.
@@ -879,18 +894,11 @@ dfb_gfxcard_state_release( CardState *state )
      D_ASSERT( state->destination != NULL );
 
      if (!dfb_config->software_only) {
-          /* start command processing if not already running */
-          if (card->funcs.EmitCommands)
-               card->funcs.EmitCommands( card->driver_data, card->device_data );
+          card->shared->pending_ops = true;
 
           /* Store the serial of the operation. */
-#if FIXME_SC_2
-          if (card->funcs.GetSerial) {
-               card->funcs.GetSerial( card->driver_data, card->device_data, &state->serial );
-
-              state->destination->back_buffer->video.serial = state->serial;
-          }
-#endif
+          if (card->funcs.GetSerial)
+               card->funcs.GetSerial( card->driver_data, card->device_data, &state->dst.allocation->gfx_serial );
      }
 
      /* allow others to use the hardware */
@@ -3313,9 +3321,16 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
      if (ret)
           return ret;
 
-/* FIXME_SC_2     if (card->funcs.WaitSerial)
+     /* start command processing if not already running */
+     if (card->shared->pending_ops && card->funcs.EmitCommands) {
+          card->funcs.EmitCommands( card->driver_data, card->device_data );
+
+          card->shared->pending_ops = false;
+     }
+
+     if (card->funcs.WaitSerial)
           ret = card->funcs.WaitSerial( card->driver_data, card->device_data, serial );
-     else*/ if (card->funcs.EngineSync)
+     else if (card->funcs.EngineSync)
           ret = card->funcs.EngineSync( card->driver_data, card->device_data );
 
      if (ret) {

@@ -34,6 +34,7 @@
 #include <fusion/object.h>
 #include <fusion/vector.h>
 
+#include <core/gfxcard.h>
 #include <core/surface.h>
 
 #include <directfb.h>
@@ -90,6 +91,8 @@ struct __DFB_CoreSurfaceAllocation {
      CoreSurfaceConfig              config;       /* Configuration of its surface at the time of the allocation creation */
      CoreSurfaceTypeFlags           type;
      unsigned long                  resource_id;  /* layer id, window id, or user specified */
+
+     CoreGraphicsSerial             gfx_serial;
 };
 
 #define CORE_SURFACE_ALLOCATION_ASSERT(alloc)                                                  \

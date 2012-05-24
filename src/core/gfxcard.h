@@ -571,6 +571,9 @@ typedef struct {
       */
      CardState               *state;
      FusionID                 holder; /* Fusion ID of state owner. */
+
+     CoreSurfaceAllocation   *last_allocation;
+     bool                     pending_ops;
 } DFBGraphicsCoreShared;
 
 struct __DFB_DFBGraphicsCore {
