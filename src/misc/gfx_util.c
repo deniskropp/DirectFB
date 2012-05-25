@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -312,6 +312,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     d += 2;
                     src++;
                     len--;
+                    (void)u;
                }
                for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u, v;
@@ -340,6 +341,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                                   (*src >>  8) & 0xff,
                                   (*src      ) & 0xff, y, u, v );
                     *((u16*)d) = y | (u << 8);
+                    (void)v;
                }
                break;
 
@@ -354,6 +356,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                     d += 2;
                     src++;
                     len--;
+                    (void)u;
                }
                for (i = 0; i < (len-1); i += 2) {
                     u32 y0, u, v;
@@ -382,6 +385,7 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
                                   (*src >>  8) & 0xff,
                                   (*src      ) & 0xff, y, u, v );
                     *((u16*)d) = u | (y << 8);
+                    (void)v;
                }
                break;
 
