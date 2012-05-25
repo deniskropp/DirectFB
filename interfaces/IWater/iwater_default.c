@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2012  The DirectFB Organization (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -69,13 +69,9 @@ DIRECT_INTERFACE_IMPLEMENTATION( IWater, default )
 static void
 IWater_Destruct( IWater *thiz )
 {
-     IWater_data *data;
-
      D_DEBUG_AT( IWater_default, "%s( %p )\n", __FUNCTION__, thiz );
 
      D_ASSERT( thiz != NULL );
-
-     data = thiz->priv;
 }
 
 static DirectResult
@@ -880,6 +876,7 @@ Construct( void *interface, ... )
      va_list tag;
      va_start(tag, interface);
      dfb = va_arg(tag, IDirectFB *);
+     (void)dfb;
      core = va_arg(tag, CoreDFB *);
      va_end( tag );
 
@@ -910,7 +907,6 @@ Construct( void *interface, ... )
      thiz->RenderShape           = IWater_RenderShape;
      thiz->RenderShapes          = IWater_RenderShapes;
      thiz->RenderShapeList       = IWater_RenderShapeList;
-
 
      return DFB_OK;
 

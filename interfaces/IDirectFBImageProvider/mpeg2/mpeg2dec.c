@@ -195,7 +195,7 @@ Initialize_Sequence(MPEG2_Decoder *dec)
 void
 MPEG2_Error(MPEG2_Decoder *dec, char *text)
 {
-     fprintf(stderr,text);
+     fprintf(stderr,text,"");
      //  exit(1);
 }
 

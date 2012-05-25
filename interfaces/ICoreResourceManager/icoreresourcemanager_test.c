@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2012  The DirectFB Organization (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -63,13 +63,9 @@ DIRECT_INTERFACE_IMPLEMENTATION( ICoreResourceManager, test )
 static void
 ICoreResourceManager_test_Destruct( ICoreResourceManager *thiz )
 {
-     ICoreResourceManager_test_data *data;
-
      D_DEBUG_AT( ICoreResourceManager_test, "%s( %p )\n", __FUNCTION__, thiz );
 
      D_ASSERT( thiz != NULL );
-
-     data = thiz->priv;
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }

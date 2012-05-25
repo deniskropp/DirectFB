@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2012  The DirectFB Organization (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -238,7 +238,7 @@ IDirectFBWindows_WM_Reaction_WindowFocus( const void *msg_data,
 
 /**********************************************************************************************************************/
 
-static DirectResult
+static DFBResult
 IDirectFBWindows_RegisterWatcher( IDirectFBWindows        *thiz,
                                   const DFBWindowsWatcher *watcher,
                                   void                    *context )

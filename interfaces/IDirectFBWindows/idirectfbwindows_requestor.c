@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2012  The DirectFB Organization (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -46,7 +46,7 @@
 #include "idirectfbwindows_requestor.h"
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDirectFBWindows *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID  instance,

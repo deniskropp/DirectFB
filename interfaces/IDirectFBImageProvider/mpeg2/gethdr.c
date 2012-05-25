@@ -144,9 +144,7 @@ static void
 sequence_header(MPEG2_Decoder *dec)
 {
      int i;
-     int pos;
 
-     pos = dec->Bitcnt;
      dec->horizontal_size             = MPEG2_Get_Bits(dec, 12);
      dec->vertical_size               = MPEG2_Get_Bits(dec, 12);
      dec->aspect_ratio_information    = MPEG2_Get_Bits(dec, 4);
@@ -193,9 +191,6 @@ sequence_header(MPEG2_Decoder *dec)
 static void
 group_of_pictures_header(MPEG2_Decoder *dec)
 {
-     int pos;
-
-     pos = dec->Bitcnt;
      dec->drop_flag   = MPEG2_Get_Bits(dec, 1);
      dec->hour        = MPEG2_Get_Bits(dec, 5);
      dec->minute      = MPEG2_Get_Bits(dec, 6);
@@ -215,10 +210,8 @@ group_of_pictures_header(MPEG2_Decoder *dec)
 static void
 picture_header(MPEG2_Decoder *dec)
 {
-     int pos;
      int Extra_Information_Byte_Count;
 
-     pos = dec->Bitcnt;
      dec->temporal_reference  = MPEG2_Get_Bits(dec, 10);
      dec->picture_coding_type = MPEG2_Get_Bits(dec, 3);
      dec->vbv_delay           = MPEG2_Get_Bits(dec, 16);
@@ -233,6 +226,7 @@ picture_header(MPEG2_Decoder *dec)
      }
 
      Extra_Information_Byte_Count = extra_bit_information(dec);
+     (void)Extra_Information_Byte_Count;
 
      extension_and_user_data(dec);
 }
@@ -245,12 +239,9 @@ MPEG2_slice_header(MPEG2_Decoder *dec)
 {
      int slice_vertical_position_extension;
      int quantizer_scale_code;
-     int pos;
      int slice_picture_id_enable = 0;
      int slice_picture_id = 0;
      int extra_information_slice = 0;
-
-     pos = dec->Bitcnt;
 
      slice_vertical_position_extension =
      (dec->MPEG2_Flag && dec->vertical_size>2800) ? MPEG2_Get_Bits(dec, 3) : 0;
@@ -265,9 +256,13 @@ MPEG2_slice_header(MPEG2_Decoder *dec)
           dec->intra_slice = MPEG2_Get_Bits(dec, 1);
 
           slice_picture_id_enable = MPEG2_Get_Bits(dec, 1);
+          (void)slice_picture_id_enable;
+
           slice_picture_id = MPEG2_Get_Bits(dec, 6);
+          (void)slice_picture_id;
 
           extra_information_slice = extra_bit_information(dec);
+          (void)extra_information_slice;
      }
      else
           dec->intra_slice = 0;
@@ -397,9 +392,6 @@ sequence_extension(MPEG2_Decoder *dec)
 static void
 sequence_display_extension(MPEG2_Decoder *dec)
 {
-     int pos;
-
-     pos = dec->Bitcnt;
      dec->video_format      = MPEG2_Get_Bits(dec, 3);
      dec->color_description = MPEG2_Get_Bits(dec, 1);
 
@@ -412,7 +404,6 @@ sequence_display_extension(MPEG2_Decoder *dec)
      dec->display_horizontal_size = MPEG2_Get_Bits(dec, 14);
      MPEG2_marker_bit(dec, "sequence_display_extension");
      dec->display_vertical_size   = MPEG2_Get_Bits(dec, 14);
-
 }
 
 
@@ -422,9 +413,6 @@ static void
 quant_matrix_extension(MPEG2_Decoder *dec)
 {
      int i;
-     int pos;
-
-     pos = dec->Bitcnt;
 
      if ((dec->load_intra_quantizer_matrix = MPEG2_Get_Bits(dec, 1))) {
           for (i=0; i<64; i++) {
@@ -470,9 +458,7 @@ picture_display_extension(MPEG2_Decoder *dec)
 {
      int i;
      int number_of_frame_center_offsets;
-     int pos;
 
-     pos = dec->Bitcnt;
      /* based on ISO/IEC 13818-2 section 6.3.12 
        (November 1994) Picture display extensions */
 
@@ -516,10 +502,6 @@ picture_display_extension(MPEG2_Decoder *dec)
 static void
 picture_coding_extension(MPEG2_Decoder *dec)
 {
-     int pos;
-
-     pos = dec->Bitcnt;
-
      dec->f_code[0][0] = MPEG2_Get_Bits(dec, 4);
      dec->f_code[0][1] = MPEG2_Get_Bits(dec, 4);
      dec->f_code[1][0] = MPEG2_Get_Bits(dec, 4);
@@ -595,6 +577,7 @@ MPEG2_marker_bit(MPEG2_Decoder *dec, char *text)
      int marker;
 
      marker = MPEG2_Get_Bits(dec, 1);
+     (void)marker;
 }
 
 
@@ -616,11 +599,7 @@ user_data(MPEG2_Decoder *dec)
 static void
 copyright_extension(MPEG2_Decoder *dec)
 {
-     int pos;
      int reserved_data;
-
-     pos = dec->Bitcnt;
-
 
      dec->copyright_flag =       MPEG2_Get_Bits(dec, 1); 
      dec->copyright_identifier = MPEG2_Get_Bits(dec, 8);
@@ -628,6 +607,7 @@ copyright_extension(MPEG2_Decoder *dec)
 
      /* reserved */
      reserved_data = MPEG2_Get_Bits(dec, 7);
+     (void)reserved_data;
 
      MPEG2_marker_bit(dec, "copyright_extension(), first marker bit");
      dec->copyright_number_1 =   MPEG2_Get_Bits(dec, 20);
