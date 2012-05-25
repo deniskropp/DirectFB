@@ -192,6 +192,12 @@ dfb_surface_allocation_decouple( CoreSurfaceAllocation *allocation )
      buffer = allocation->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
+     D_MAGIC_ASSERT( allocation->surface, CoreSurface );
+     D_ASSERT( allocation->surface == allocation->buffer->surface );
+
+     /* Indicate that this surface buffer pool allocation is about to be destroyed. */
+     dfb_surface_pool_notify( allocation->surface, buffer, allocation, CSNF_BUFFER_ALLOCATION_DESTROY );
+
      allocation->buffer  = NULL;
      allocation->surface = NULL;
 

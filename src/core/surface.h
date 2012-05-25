@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -56,16 +56,26 @@ typedef enum {
      CSNF_ALPHA_RAMP     = 0x00000100,  /* alpha ramp was modified */
      CSNF_DISPLAY        = 0x00000200,  /* surface buffer displayed */
      CSNF_FRAME          = 0x00000400,  /* flip count ack */
+     CSNF_BUFFER_ALLOCATION_DESTROY
+                         = 0x00000800,  /* Buffer allocation about to be destroyed */
 
-     CSNF_ALL            = 0x000007FF
+     CSNF_ALL            = 0x00000FFF
 } CoreSurfaceNotificationFlags;
 
 typedef struct {
      CoreSurfaceNotificationFlags  flags;
      CoreSurface                  *surface;
 
+     /* The following field is used only by the CSNF_DISPLAY message. */
      int                           index;
-     unsigned int                  flip_count;
+
+     /* The following fields are used only by the CSNF_BUFFER_ALLOCATION_DESTROY message. */
+     CoreSurfaceBuffer *buffer_no_access;  /* Pointer to associated CoreSurfaceBuffer being 
+                                              destroyed. Do not dereference. */
+     void              *surface_data;      /* CoreSurface's shared driver specific data. */
+     int                surface_object_id; /* CoreSurface's Fusion ID. */
+
+     unsigned int                  flip_count;     
 } CoreSurfaceNotification;
 
 
@@ -289,6 +299,18 @@ DFBResult dfb_surface_notify_display( CoreSurface                  *surface,
 
 DFBResult dfb_surface_notify_frame  ( CoreSurface                  *surface,
                                       unsigned int                  flip_count );
+
+/*
+     Prepares and sends a notification message that a change is about to happen to the specified
+     surface buffer pool allocation.  The notification message will be received by all pocesses
+     that have listeners attached to the associated CoreSurface's reactor.
+
+     At present, only THE CSNF_BUFFER_ALLOCATION_DESTROY message is handled.
+*/
+DFBResult dfb_surface_pool_notify   ( CoreSurface                  *surface,
+                                      CoreSurfaceBuffer            *buffer,
+                                      CoreSurfaceAllocation        *allocation,
+                                      CoreSurfaceNotificationFlags  flags );
 
 DFBResult dfb_surface_flip          ( CoreSurface                  *surface,
                                       bool                          swap );

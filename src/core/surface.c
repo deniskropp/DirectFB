@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -442,6 +442,13 @@ dfb_surface_notify( CoreSurface                  *surface,
      FUSION_SKIRMISH_ASSERT( &surface->lock );
      D_FLAGS_ASSERT( flags, CSNF_ALL );
 
+     D_DEBUG_AT(
+          Core_Surface,
+          "Notifying of Surface message. SurfaceID:%d MsgSize:%d %s()-%s:%d\n",
+          surface->object.id,
+          sizeof( CoreSurfaceNotification ),
+          __FUNCTION__, __FILE__, __LINE__ );
+
      direct_serial_increase( &surface->serial );
 
      if (!(surface->state & CSSF_DESTROYED)) {
@@ -488,6 +495,51 @@ dfb_surface_notify_frame( CoreSurface  *surface,
      notification.flags      = CSNF_FRAME;
      notification.surface    = surface;
      notification.flip_count = flip_count;
+
+     return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
+}
+
+DFBResult
+dfb_surface_pool_notify( CoreSurface                    *surface,
+                         CoreSurfaceBuffer              *buffer,
+                         CoreSurfaceAllocation          *allocation,
+                         CoreSurfaceNotificationFlags    flags )
+{
+     CoreSurfaceNotification notification;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+     D_FLAGS_ASSERT( flags, CSNF_ALL );
+
+     /* For the moment, the only supported message is surface buffer allocation destruction. */
+     D_ASSERT( flags == CSNF_BUFFER_ALLOCATION_DESTROY );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     D_ASSERT( buffer->surface == surface );
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+     D_ASSERT( allocation->buffer == buffer );
+
+     D_DEBUG_AT(
+          Core_Surface,
+          "Notifying of Surface buffer allocation destruction. SurfaceID:%d MsgSize:%d %s()-%s:%d\n",
+          surface->object.id,
+          sizeof( CoreSurfaceNotification ),
+          __FUNCTION__, __FILE__, __LINE__ );
+
+     if (!(surface->state & CSSF_DESTROYED)) {
+          if (!(surface->notifications & flags))
+               return DFB_OK;
+     }
+
+     /*
+          Make a copy of all the data needed by the listeners.  This was found to be necessary
+          because no good way was found to wait for all the listeners to complete before the
+          buffer allocation is destroyed along with all of its underlying data structures.
+     */
+     notification.flags             = flags;
+     notification.surface           = surface;
+     notification.buffer_no_access  = buffer;
+     notification.surface_data      = surface->data;
+     notification.surface_object_id = surface->object.id;
 
      return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
 }
