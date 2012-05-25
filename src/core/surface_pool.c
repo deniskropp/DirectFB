@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -1132,6 +1132,48 @@ dfb_surface_pool_enumerate ( CoreSurfacePool          *pool,
      }
 
      return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
+bool
+dfb_surface_pool_gfx_driver_update( CoreSurfaceTypeFlags   types,
+                                    CoreSurfaceAccessorID  accessor,
+                                    CoreSurfaceAccessFlags access )
+{
+     bool addedAccessFlags = false;
+     int  i;
+
+     /* Loop through all the available surface pools.  If they match the type, add the access flags. */
+     for (i=0; i<pool_count; i++) {
+          CoreSurfacePool *pool;
+
+          D_ASSERT( pool_order[i] >= 0 );
+          D_ASSERT( pool_order[i] < pool_count );
+
+          pool = pool_array[pool_order[i]];
+          D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+          /* Accept this pool if any of the specified types match the types of the surface pool under test. */
+          if ( D_FLAGS_IS_SET( pool->desc.types,  types ))
+          {
+               D_DEBUG_AT( Core_SurfacePool,
+                           "Pool:%d[%s] type:0x%03x matches type:0x%03x Adding access flags:0x%02x \n",
+                           pool->pool_id,
+                           pool->desc.name,
+                           pool->desc.types,
+                           types,
+                           access );
+
+               /* Add the access flags specified. */
+               D_FLAGS_SET( pool->desc.access[accessor], access );
+
+               /* Indicate a surface pool was updated. */
+               addedAccessFlags = true;
+          }
+     }
+
+     return addedAccessFlags;
 }
 
 /**********************************************************************************************************************/

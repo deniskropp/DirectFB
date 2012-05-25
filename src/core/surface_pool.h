@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -314,6 +314,24 @@ DFBResult dfb_surface_pool_write     ( CoreSurfacePool         *pool,
 DFBResult dfb_surface_pool_enumerate ( CoreSurfacePool         *pool,
                                        CoreSurfaceAllocCallback  callback,
                                        void                    *ctx );
+
+
+/*
+     Adds the extra access flags to each of the surface pools that match the
+     CoreSurfaceTypeFlags specified.  This allows the graphics driver to
+     specify in its driver_init_driver function that it supports the local
+     surface pool, shared surface pool, and/or pre-allocated surface pool.
+     For example:
+
+          dfb_surface_pool_gfx_driver_update( CSTF_INTERNAL | CSTF_PREALLOCATED,
+                                              CSAID_GPU,
+                                              CSAF_READ | CSAF_WRITE );
+
+     Returns true if a surface pool was updated, otherwise returns false.
+*/
+bool dfb_surface_pool_gfx_driver_update( CoreSurfaceTypeFlags   types,
+                                         CoreSurfaceAccessorID  accessor,
+                                         CoreSurfaceAccessFlags access );
 
 
 /*
