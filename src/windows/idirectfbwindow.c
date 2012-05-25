@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -817,8 +817,6 @@ static DFBResult
 IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
                                   DFBWindowStackingClass  stacking_class )
 {
-     CoreWindowConfig config;
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
@@ -834,8 +832,6 @@ IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
           default:
                return DFB_INVARG;
      }
-
-     config.stacking = stacking_class;
 
      return CoreWindow_SetStacking( data->window, stacking_class );
 }
