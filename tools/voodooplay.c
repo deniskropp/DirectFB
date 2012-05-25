@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -113,7 +113,7 @@ main( int argc, char *argv[] )
                for (i=1; i<argc; i++) {
                     char buf[100];
 
-                    if (voodoo_player_lookup( player, argv[i], NULL, buf, sizeof(buf) )) {
+                    if (voodoo_player_lookup( player, (const u8 *)argv[i], NULL, buf, sizeof(buf) )) {
                          D_ERROR( "Voodoo/Play: No '%s' found!\n", argv[i] );
                          continue;
                     }
