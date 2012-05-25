@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -94,7 +94,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
                     break;
 
                case DR_DESTROYED:
-                    D_BUG( "already destroyed %p [%ld] in '%s'", object, object->id, pool->name );
+                    D_BUG( "already destroyed %p [%u] in '%s'", object, object->id, pool->name );
 
                     fusion_hash_remove( pool->objects, (void*)(long) object->id, NULL, NULL );
                     fusion_skirmish_dismiss( &pool->lock );
@@ -102,7 +102,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
 
 
                default:
-                    D_ERROR( "Fusion/ObjectPool: Error locking ref of %p [%lu] in '%s'\n",
+                    D_ERROR( "Fusion/ObjectPool: Error locking ref of %p [%u] in '%s'\n",
                              object, object->id, pool->name );
                     /* fall through */
 
@@ -112,7 +112,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
           }
 
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-          D_DEBUG_AT( Fusion_Object, "  -> dead object %p [%lu] (ref %d)\n", object, object->id, object->ref.multi.id );
+          D_DEBUG_AT( Fusion_Object, "  -> dead object %p [%u] (ref %d)\n", object, object->id, object->ref.multi.id );
 
           if (object->state == FOS_INIT) {
                D_BUG( "== %s == incomplete object: %d (%p)", pool->name, call_arg, object );
@@ -251,7 +251,7 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
           fusion_ref_stat( &object->ref, &refs );
 
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-          D_DEBUG_AT( Fusion_Object, "  -> zombie %p [%ld], refs %d\n", object, object->id, refs );
+          D_DEBUG_AT( Fusion_Object, "  -> zombie %p [%u], refs %d\n", object, object->id, refs );
 
           /* Set "deinitializing" state. */
           object->state = FOS_DEINIT;

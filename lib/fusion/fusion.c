@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -1109,7 +1109,6 @@ static void *
 fusion_dispatch_loop( DirectThread *thread, void *arg )
 {
      int          len = 0;
-     int          result;
      char         buf[FUSION_MESSAGE_SIZE];
      FusionWorld *world = arg;
 
