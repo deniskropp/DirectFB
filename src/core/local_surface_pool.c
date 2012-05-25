@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -34,6 +34,7 @@
 #include <core/core.h>
 #include <core/surface_pool.h>
 #include <core/system.h>
+#include <misc/conf.h>
 
 
 /**********************************************************************************************************************/
@@ -143,11 +144,36 @@ localAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     dfb_surface_calc_buffer_size( surface, 8, 0, &alloc->pitch, &alloc->size );
+     /* Create aligned local system surface buffer if both base address and pitch are non-zero. */
+     if (dfb_config->system_surface_align_base && dfb_config->system_surface_align_pitch) {
+          /* Make sure base address and pitch are a positive power of two. */
+          D_ASSERT( dfb_config->system_surface_align_base >= 4 );
+          D_ASSERT( !(dfb_config->system_surface_align_base & (dfb_config->system_surface_align_base-1)) );
+          D_ASSERT( dfb_config->system_surface_align_pitch >= 2 );
+          D_ASSERT( !(dfb_config->system_surface_align_pitch & (dfb_config->system_surface_align_pitch-1)) );
 
-     alloc->addr = D_MALLOC( alloc->size );
-     if (!alloc->addr)
-          return D_OOM();
+          dfb_surface_calc_buffer_size( surface, dfb_config->system_surface_align_pitch, 0,
+                                        &alloc->pitch, &alloc->size );
+
+          /* Note: The posix_memalign function requires base alignment to actually be at least four. */
+          int tempRet = posix_memalign( &alloc->addr, dfb_config->system_surface_align_base, alloc->size );
+          if ( tempRet != 0 ) {
+              D_ERROR( "Local surface pool: Error from posix_memalign:%d with base alignment value:%d. "
+                       "%s()-%s:%d\n",
+                       tempRet, dfb_config->system_surface_align_base,
+                       __FUNCTION__, __FILE__, __LINE__ );
+              return DFB_FAILURE;
+          }
+     }
+     else {
+          /* Create un-aligned local system surface buffer. */
+
+          dfb_surface_calc_buffer_size( surface, 8, 0, &alloc->pitch, &alloc->size );
+
+          alloc->addr = D_MALLOC( alloc->size );
+          if (!alloc->addr)
+               return D_OOM();
+     }
 
      D_MAGIC_SET( alloc, LocalAllocationData );
 

@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -225,6 +225,13 @@ typedef struct
 
      int           surface_shmpool_size;          /* Set the size of the shared memory pool used for
                                                      shared system memory surfaces. */
+
+     unsigned int  system_surface_align_base;     /* If GPU supports system memory, byte alignment for system
+                                                     surface's base address (must be a positive power of two
+                                                     that is four or greater), or zero for no alignment. */
+     unsigned int  system_surface_align_pitch;    /* If GPU supports system memory, byte alignment for system
+                                                     surface's pitch (must be a positive power of two), or
+                                                     zero for no alignment. */
 
      bool          no_cursor_updates;             /* Never show the cursor etc. */
 

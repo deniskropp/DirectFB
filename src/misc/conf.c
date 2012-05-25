@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -80,6 +80,18 @@ static const char *config_usage_strings[]  = {
      "  primary-id=<surface-id>        Set ID of primary surface to use\n"
      "  surface-shmpool-size=<kb>      Set the size of the shared memory pool used\n"
      "                                 for shared system memory surfaces.\n"
+     "  system-surface-base-alignment=<byte alignment>\n"
+     "                                 If GPU supports system memory, sets the byte alignment for\n"
+     "                                 system memory based surface's base address (value must be a\n"
+     "                                 positive power of two that is four or greater), or zero for\n"
+     "                                 no alignment. Aligning the base address (along with the\n"
+     "                                 pitch) allows the data to travel more efficiently through\n"
+     "                                 the CPU and memory bus to increase performance, and meet GPU\n"
+     "                                 requirements (if any). Default is 0 (no alignment).\n"
+     "  system-surface-pitch-alignment=<byte alignment>\n"
+     "                                 If GPU supports system memory, sets the pitch alignment for\n"
+     "                                 system memory based surface's pitch (value must be a positive\n"
+     "                                 power of two), or zero for no alignment. Default is 0.\n"
      "  session=<num>                  Select multi app world (zero based, -1 = new)\n"
      "  remote=<host>[:<port>]         Set remote host and port to connect to\n"
      "  primary-layer=<id>             Select an alternative primary layer\n"
@@ -457,6 +469,8 @@ static void config_allocate( void )
      dfb_config->matrox_tv_std            = DSETV_PAL;
      dfb_config->i8xx_overlay_pipe_b      = false;
      dfb_config->surface_shmpool_size     = 64 * 1024 * 1024;
+     dfb_config->system_surface_align_base  = 0;
+     dfb_config->system_surface_align_pitch = 0;
      dfb_config->keep_accumulators        = 1024;
      dfb_config->font_format              = DSPF_A8;
      dfb_config->cursor_automation        = true;
@@ -647,6 +661,57 @@ DFBResult dfb_config_set( const char *name, const char *value )
                }
 
                dfb_config->surface_shmpool_size = size_kb * 1024;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp( name, "system-surface-base-alignment" ) == 0) {
+          if (value) {
+               char *error;
+               ulong base_align;
+
+               base_align = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in decimal value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               /* If non-zero, value must be a positive power of two that is four or greater. */
+               if (base_align && (base_align < 4 || (base_align & (base_align-1)) != 0)) {
+                   D_ERROR( "DirectFB/Config '%s': If non-zero, value must be a positive power-of-two "
+                            "that is four or greater!\n", name );
+                   return DFB_INVARG;
+               }
+
+               dfb_config->system_surface_align_base = base_align;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp( name, "system-surface-pitch-alignment" ) == 0) {
+          if (value) {
+               char *error;
+               ulong pitch_align;
+
+               pitch_align = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in decimal value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               /* If non-zero, value must be a positive power of two. */
+               if (pitch_align && (pitch_align == 1 || (pitch_align & (pitch_align-1)) != 0)) {
+                   D_ERROR( "DirectFB/Config '%s': If non-zero, value must be a positive power-of-two!\n", name );
+                   return DFB_INVARG;
+               }
+
+               dfb_config->system_surface_align_pitch = pitch_align;
           }
           else {
                D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );

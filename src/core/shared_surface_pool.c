@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -53,6 +53,7 @@ typedef struct {
 
 typedef struct {
      void *addr;
+     void *aligned_addr;
      int   pitch;
      int   size;
 } SharedAllocationData;
@@ -144,11 +145,40 @@ sharedAllocateBuffer( CoreSurfacePool       *pool,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     dfb_surface_calc_buffer_size( surface, 8, 0, &alloc->pitch, &alloc->size );
+     /* Create aligned shared system surface buffer if both base address and pitch are non-zero. */
+     if (dfb_config->system_surface_align_base && dfb_config->system_surface_align_pitch) {
+          /* Make sure base address and pitch are a positive power of two. */
+          D_ASSERT( dfb_config->system_surface_align_base >= 2 );
+          D_ASSERT( !(dfb_config->system_surface_align_base & (dfb_config->system_surface_align_base-1)) );
+          D_ASSERT( dfb_config->system_surface_align_pitch >= 2 );
+          D_ASSERT( !(dfb_config->system_surface_align_pitch & (dfb_config->system_surface_align_pitch-1)) );
 
-     alloc->addr = SHMALLOC( data->shmpool, alloc->size );
-     if (!alloc->addr)
-          return D_OOSHM();
+          dfb_surface_calc_buffer_size( surface, dfb_config->system_surface_align_pitch, 0,
+                                        &alloc->pitch, &alloc->size );
+
+          alloc->addr = SHMALLOC( data->shmpool, alloc->size + dfb_config->system_surface_align_base );
+          if ( !alloc->addr )
+               return D_OOSHM();
+
+          /* Calculate the aligned address. */
+
+          unsigned int addr = (unsigned int) alloc->addr;
+          unsigned int aligned_offset = dfb_config->system_surface_align_base -
+                                        (addr % dfb_config->system_surface_align_base );
+
+          alloc->aligned_addr = (void*) (addr + aligned_offset);
+     }
+     else {
+          /* Create un-aligned shared system surface buffer. */
+
+          dfb_surface_calc_buffer_size( surface, 8, 0, &alloc->pitch, &alloc->size );
+
+          alloc->addr = SHMALLOC( data->shmpool, alloc->size );
+          if (!alloc->addr)
+               return D_OOSHM();
+
+          alloc->aligned_addr = NULL;
+     }
 
      allocation->flags = CSALF_VOLATILE;
      allocation->size  = alloc->size;
@@ -188,7 +218,12 @@ sharedLock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     lock->addr  = alloc->addr;
+     /* Provide aligned address if one's available, otherwise the un-aligned one. */
+     if (alloc->aligned_addr)
+          lock->addr = alloc->aligned_addr;
+     else
+          lock->addr = alloc->addr;
+
      lock->pitch = alloc->pitch;
 
      return DFB_OK;
