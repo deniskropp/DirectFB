@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -662,16 +662,13 @@ static DFBResult
 dfb_input_core_leave( DFBInputCore *data,
                       bool          emergency )
 {
-     DFBInputCoreShared *shared;
-     DirectLink         *n;
-     CoreInputDevice    *device;
+     DirectLink      *n;
+     CoreInputDevice *device;
 
      D_DEBUG_AT( Core_Input, "dfb_input_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
 
      D_MAGIC_ASSERT( data, DFBInputCore );
      D_MAGIC_ASSERT( data->shared, DFBInputCoreShared );
-
-     shared = data->shared;
 
 #if FUSION_BUILD_MULTI
      fusion_reactor_detach( core_input->reactor, &local_processing_react );
@@ -697,16 +694,13 @@ dfb_input_core_leave( DFBInputCore *data,
 static DFBResult
 dfb_input_core_suspend( DFBInputCore *data )
 {
-     DFBInputCoreShared *shared;
-     CoreInputDevice    *device;
-     InputDriver        *driver;
+     CoreInputDevice *device;
+     InputDriver     *driver;
 
      D_DEBUG_AT( Core_Input, "dfb_input_core_suspend( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBInputCore );
      D_MAGIC_ASSERT( data->shared, DFBInputCoreShared );
-
-     shared = data->shared;
 
      D_DEBUG_AT( Core_Input, "  -> suspending...\n" );
 
@@ -763,17 +757,14 @@ dfb_input_core_suspend( DFBInputCore *data )
 static DFBResult
 dfb_input_core_resume( DFBInputCore *data )
 {
-     DFBInputCoreShared *shared;
-     DFBResult           ret;
-     CoreInputDevice    *device;
-     InputDriver        *driver;
+     DFBResult        ret;
+     CoreInputDevice *device;
+     InputDriver     *driver;
 
      D_DEBUG_AT( Core_Input, "dfb_input_core_resume( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBInputCore );
      D_MAGIC_ASSERT( data->shared, DFBInputCoreShared );
-
-     shared = data->shared;
 
      D_DEBUG_AT( Core_Input, "  -> resuming...\n" );
 

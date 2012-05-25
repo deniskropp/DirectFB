@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -380,16 +380,12 @@ static DFBResult
 dfb_screen_core_leave( DFBScreenCore *data,
                        bool           emergency )
 {
-     int                  i;
-     DFBScreenCoreShared *shared;
+     int i;
 
      D_DEBUG_AT( Core_Screen, "dfb_screen_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
 
      D_MAGIC_ASSERT( data, DFBScreenCore );
      D_MAGIC_ASSERT( data->shared, DFBScreenCoreShared );
-
-     shared = data->shared;
-
 
      /* Deinitialize all local stuff only. */
      for (i=0; i<num_screens; i++) {
@@ -402,7 +398,6 @@ dfb_screen_core_leave( DFBScreenCore *data,
      core_screens = NULL;
      num_screens  = 0;
 
-
      D_MAGIC_CLEAR( data );
 
      return DFB_OK;
@@ -411,15 +406,12 @@ dfb_screen_core_leave( DFBScreenCore *data,
 static DFBResult
 dfb_screen_core_suspend( DFBScreenCore *data )
 {
-     int                  i;
-     DFBScreenCoreShared *shared;
+     int i;
 
      D_DEBUG_AT( Core_Screen, "dfb_screen_core_suspend( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBScreenCore );
      D_MAGIC_ASSERT( data->shared, DFBScreenCoreShared );
-
-     shared = data->shared;
 
      for (i=num_screens-1; i>=0; i--)
           dfb_screen_suspend( screens[i] );
@@ -430,15 +422,12 @@ dfb_screen_core_suspend( DFBScreenCore *data )
 static DFBResult
 dfb_screen_core_resume( DFBScreenCore *data )
 {
-     int                  i;
-     DFBScreenCoreShared *shared;
+     int i;
 
      D_DEBUG_AT( Core_Screen, "dfb_screen_core_resume( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBScreenCore );
      D_MAGIC_ASSERT( data->shared, DFBScreenCoreShared );
-
-     shared = data->shared;
 
      for (i=0; i<num_screens; i++)
           dfb_screen_resume( screens[i] );

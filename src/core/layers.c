@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -357,16 +357,12 @@ static DFBResult
 dfb_layer_core_leave( DFBLayerCore *data,
                       bool          emergency )
 {
-     int                 i;
-     DFBLayerCoreShared *shared;
+     int i;
 
      D_DEBUG_AT( Core_Layer, "dfb_layer_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
 
      D_MAGIC_ASSERT( data, DFBLayerCore );
      D_MAGIC_ASSERT( data->shared, DFBLayerCoreShared );
-
-     shared = data->shared;
-
 
      /* Deinitialize all local stuff. */
      for (i=0; i<dfb_num_layers; i++) {
@@ -381,7 +377,6 @@ dfb_layer_core_leave( DFBLayerCore *data,
 
      dfb_num_layers = 0;
 
-
      D_MAGIC_CLEAR( data );
 
      return DFB_OK;
@@ -390,15 +385,12 @@ dfb_layer_core_leave( DFBLayerCore *data,
 static DFBResult
 dfb_layer_core_suspend( DFBLayerCore *data )
 {
-     int                 i;
-     DFBLayerCoreShared *shared;
+     int i;
 
      D_DEBUG_AT( Core_Layer, "dfb_layer_core_suspend( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBLayerCore );
      D_MAGIC_ASSERT( data->shared, DFBLayerCoreShared );
-
-     shared = data->shared;
 
      for (i=dfb_num_layers-1; i>=0; i--)
           dfb_layer_suspend( dfb_layers[i] );
@@ -409,15 +401,12 @@ dfb_layer_core_suspend( DFBLayerCore *data )
 static DFBResult
 dfb_layer_core_resume( DFBLayerCore *data )
 {
-     int                 i;
-     DFBLayerCoreShared *shared;
+     int i;
 
      D_DEBUG_AT( Core_Layer, "dfb_layer_core_resume( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBLayerCore );
      D_MAGIC_ASSERT( data->shared, DFBLayerCoreShared );
-
-     shared = data->shared;
 
      for (i=0; i<dfb_num_layers; i++)
           dfb_layer_resume( dfb_layers[i] );

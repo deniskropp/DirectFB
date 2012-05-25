@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -78,7 +78,7 @@ DFBResult
 dfb_screen_set_powermode( CoreScreen         *screen,
                           DFBScreenPowerMode  mode )
 {
-     ScreenFuncs *funcs;
+     const ScreenFuncs *funcs;
 
      D_ASSERT( screen != NULL );
      D_ASSERT( screen->funcs != NULL );
@@ -97,7 +97,7 @@ dfb_screen_set_powermode( CoreScreen         *screen,
 DFBResult
 dfb_screen_wait_vsync( CoreScreen *screen )
 {
-     ScreenFuncs *funcs;
+     const ScreenFuncs *funcs;
 
      D_ASSERT( screen != NULL );
      D_ASSERT( screen->funcs != NULL );
@@ -114,7 +114,7 @@ dfb_screen_wait_vsync( CoreScreen *screen )
 DFBResult
 dfb_screen_get_vsync_count( CoreScreen *screen, unsigned long *ret_count )
 {
-     ScreenFuncs *funcs;
+     const ScreenFuncs *funcs;
 
      D_ASSERT( screen != NULL );
      D_ASSERT( screen->funcs != NULL );
@@ -489,10 +489,10 @@ dfb_screen_get_layer_dimension( CoreScreen *screen,
                                 int        *ret_width,
                                 int        *ret_height )
 {
-     int               i;
-     DFBResult         ret = DFB_UNSUPPORTED;
-     CoreScreenShared *shared;
-     ScreenFuncs      *funcs;
+     int                i;
+     DFBResult          ret = DFB_UNSUPPORTED;
+     CoreScreenShared  *shared;
+     const ScreenFuncs *funcs;
 
      D_ASSERT( screen != NULL );
      D_ASSERT( screen->shared != NULL );

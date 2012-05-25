@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -336,16 +336,12 @@ static DFBResult
 dfb_wm_core_leave( DFBWMCore *data,
                     bool        emergency )
 {
-     DFBResult         ret;
-     DFBWMCoreShared *shared;
+     DFBResult ret;
 
      D_DEBUG_AT( Core_WM, "dfb_wm_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
 
      D_MAGIC_ASSERT( data, DFBWMCore );
      D_MAGIC_ASSERT( data->shared, DFBWMCoreShared );
-
-     shared = data->shared;
-
 
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
@@ -374,14 +370,10 @@ dfb_wm_core_leave( DFBWMCore *data,
 static DFBResult
 dfb_wm_core_suspend( DFBWMCore *data )
 {
-     DFBWMCoreShared *shared;
-
      D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, data );
 
      D_MAGIC_ASSERT( data, DFBWMCore );
      D_MAGIC_ASSERT( data->shared, DFBWMCoreShared );
-
-     shared = data->shared;
 
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
@@ -394,14 +386,10 @@ dfb_wm_core_suspend( DFBWMCore *data )
 static DFBResult
 dfb_wm_core_resume( DFBWMCore *data )
 {
-     DFBWMCoreShared *shared;
-
      D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, data );
 
      D_MAGIC_ASSERT( data, DFBWMCore );
      D_MAGIC_ASSERT( data->shared, DFBWMCoreShared );
-
-     shared = data->shared;
 
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );

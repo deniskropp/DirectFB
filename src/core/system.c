@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -207,16 +207,12 @@ static DFBResult
 dfb_system_core_leave( DFBSystemCore *data,
                        bool           emergency )
 {
-     DFBResult         ret;
-     DFBSystemCoreShared *shared;
+     DFBResult ret;
 
      D_DEBUG_AT( Core_System, "dfb_system_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
 
      D_MAGIC_ASSERT( data, DFBSystemCore );
      D_MAGIC_ASSERT( data->shared, DFBSystemCoreShared );
-
-     shared = data->shared;
-
 
      ret = system_funcs->Leave( emergency );
 
@@ -227,7 +223,6 @@ dfb_system_core_leave( DFBSystemCore *data,
      system_field  = NULL;
      system_data   = NULL;
 
-
      D_MAGIC_CLEAR( data );
 
      return ret;
@@ -236,14 +231,10 @@ dfb_system_core_leave( DFBSystemCore *data,
 static DFBResult
 dfb_system_core_suspend( DFBSystemCore *data )
 {
-     DFBSystemCoreShared *shared;
-
      D_DEBUG_AT( Core_System, "dfb_system_core_suspend( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBSystemCore );
      D_MAGIC_ASSERT( data->shared, DFBSystemCoreShared );
-
-     shared = data->shared;
 
      return system_funcs->Suspend();
 }
@@ -251,14 +242,10 @@ dfb_system_core_suspend( DFBSystemCore *data )
 static DFBResult
 dfb_system_core_resume( DFBSystemCore *data )
 {
-     DFBSystemCoreShared *shared;
-
      D_DEBUG_AT( Core_System, "dfb_system_core_resume( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBSystemCore );
      D_MAGIC_ASSERT( data->shared, DFBSystemCoreShared );
-
-     shared = data->shared;
 
      return system_funcs->Resume();
 }

@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2011  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -339,14 +339,10 @@ static DFBResult
 dfb_graphics_core_leave( DFBGraphicsCore *data,
                          bool             emergency )
 {
-     DFBGraphicsCoreShared *shared;
-
      D_DEBUG_AT( Core_Graphics, "dfb_graphics_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
 
      D_MAGIC_ASSERT( data, DFBGraphicsCore );
      D_MAGIC_ASSERT( data->shared, DFBGraphicsCoreShared );
-
-     shared = data->shared;
 
      if (data->driver_funcs) {
           data->driver_funcs->CloseDriver( data, data->driver_data );
@@ -365,14 +361,10 @@ dfb_graphics_core_leave( DFBGraphicsCore *data,
 static DFBResult
 dfb_graphics_core_suspend( DFBGraphicsCore *data )
 {
-     DFBGraphicsCoreShared *shared;
-
      D_DEBUG_AT( Core_Graphics, "dfb_graphics_core_suspend( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBGraphicsCore );
      D_MAGIC_ASSERT( data->shared, DFBGraphicsCoreShared );
-
-     shared = data->shared;
 
      dfb_gfxcard_lock( GDLF_WAIT | GDLF_SYNC | GDLF_RESET | GDLF_INVALIDATE );
 
@@ -382,14 +374,10 @@ dfb_graphics_core_suspend( DFBGraphicsCore *data )
 static DFBResult
 dfb_graphics_core_resume( DFBGraphicsCore *data )
 {
-     DFBGraphicsCoreShared *shared;
-
      D_DEBUG_AT( Core_Graphics, "dfb_graphics_core_resume( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBGraphicsCore );
      D_MAGIC_ASSERT( data->shared, DFBGraphicsCoreShared );
-
-     shared = data->shared;
 
      dfb_gfxcard_unlock();
 

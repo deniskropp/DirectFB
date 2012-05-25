@@ -444,7 +444,7 @@ dfb_surface_notify( CoreSurface                  *surface,
 
      D_DEBUG_AT(
           Core_Surface,
-          "Notifying of Surface message. SurfaceID:%d MsgSize:%d %s()-%s:%d\n",
+          "Notifying of Surface message. SurfaceID:%d MsgSize:%lu %s()-%s:%d\n",
           surface->object.id,
           sizeof( CoreSurfaceNotification ),
           __FUNCTION__, __FILE__, __LINE__ );
@@ -520,7 +520,7 @@ dfb_surface_pool_notify( CoreSurface                    *surface,
 
      D_DEBUG_AT(
           Core_Surface,
-          "Notifying of Surface buffer allocation destruction. SurfaceID:%d MsgSize:%d %s()-%s:%d\n",
+          "Notifying of Surface buffer allocation destruction. SurfaceID:%d MsgSize:%lu %s()-%s:%d\n",
           surface->object.id,
           sizeof( CoreSurfaceNotification ),
           __FUNCTION__, __FILE__, __LINE__ );
@@ -1045,7 +1045,6 @@ dfb_surface_write_buffer( CoreSurface            *surface,
                           const DFBRectangle     *prect )
 {
      DFBResult              ret;
-     int                    bytes;
      DFBRectangle           rect;
      DFBSurfacePixelFormat  format;
      CoreSurfaceAllocation *allocation;
@@ -1076,7 +1075,6 @@ dfb_surface_write_buffer( CoreSurface            *surface,
 
      /* Calculate bytes per read line. */
      format = surface->config.format;
-     bytes  = DFB_BYTES_PER_LINE( format, rect.w );
 
      D_DEBUG_AT( Core_Surface, "  -> %d,%d - %dx%d (%s)\n", DFB_RECTANGLE_VALS(&rect),
                  dfb_pixelformat_name( format ) );

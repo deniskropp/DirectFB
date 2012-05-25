@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -134,21 +134,16 @@ static DFBResult
 dfb_colorhash_core_shutdown( DFBColorHashCore *data,
                              bool              emergency )
 {
-     DFBColorHashCoreShared *shared;
-
      D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
 
      D_MAGIC_ASSERT( data, DFBColorHashCore );
      D_MAGIC_ASSERT( data->shared, DFBColorHashCoreShared );
-
-     shared = data->shared;
 
      direct_mutex_deinit( &data->hash_lock );
 
      D_FREE( data->hash );
 
      D_MAGIC_CLEAR( data );
-     D_MAGIC_CLEAR( shared );
 
      return DFB_OK;
 }
@@ -157,14 +152,10 @@ static DFBResult
 dfb_colorhash_core_leave( DFBColorHashCore *data,
                           bool              emergency )
 {
-     DFBColorHashCoreShared *shared;
-
      D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_leave( %p, %semergency )\n", data, emergency ? "" : "no " );
 
      D_MAGIC_ASSERT( data, DFBColorHashCore );
      D_MAGIC_ASSERT( data->shared, DFBColorHashCoreShared );
-
-     shared = data->shared;
 
      direct_mutex_deinit( &data->hash_lock );
 
@@ -178,14 +169,10 @@ dfb_colorhash_core_leave( DFBColorHashCore *data,
 static DFBResult
 dfb_colorhash_core_suspend( DFBColorHashCore *data )
 {
-     DFBColorHashCoreShared *shared;
-
      D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_suspend( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBColorHashCore );
      D_MAGIC_ASSERT( data->shared, DFBColorHashCoreShared );
-
-     shared = data->shared;
 
      return DFB_OK;
 }
@@ -193,14 +180,10 @@ dfb_colorhash_core_suspend( DFBColorHashCore *data )
 static DFBResult
 dfb_colorhash_core_resume( DFBColorHashCore *data )
 {
-     DFBColorHashCoreShared *shared;
-
      D_DEBUG_AT( Core_ColorHash, "dfb_colorhash_core_resume( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBColorHashCore );
      D_MAGIC_ASSERT( data->shared, DFBColorHashCoreShared );
-
-     shared = data->shared;
 
      return DFB_OK;
 }
@@ -215,9 +198,8 @@ dfb_colorhash_lookup( DFBColorHashCore *core,
                       u8                b,
                       u8                a )
 {
-     unsigned int            pixel = PIXEL_ARGB(a, r, g, b);
-     unsigned int            index = (pixel ^ (unsigned long) palette) % HASH_SIZE;
-     DFBColorHashCoreShared *shared;
+     unsigned int pixel = PIXEL_ARGB(a, r, g, b);
+     unsigned int index = (pixel ^ (unsigned long) palette) % HASH_SIZE;
 
 //     D_ASSUME( core != NULL );
 
@@ -227,8 +209,6 @@ dfb_colorhash_lookup( DFBColorHashCore *core,
      }
      else
           core = core_colorhash;
-
-     shared = core->shared;
 
      D_ASSERT( core->hash != NULL );
 
@@ -284,8 +264,7 @@ void
 dfb_colorhash_invalidate( DFBColorHashCore *core,
                           CorePalette      *palette )
 {
-     unsigned int            index = HASH_SIZE - 1;
-     DFBColorHashCoreShared *shared;
+     unsigned int index = HASH_SIZE - 1;
 
 //     D_ASSUME( core != NULL );
 
@@ -295,8 +274,6 @@ dfb_colorhash_invalidate( DFBColorHashCore *core,
      }
      else
           core = core_colorhash;
-
-     shared = core->shared;
 
      D_ASSERT( core->hash != NULL );
 

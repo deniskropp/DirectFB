@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -1313,7 +1313,6 @@ set_region( CoreLayerRegion            *region,
      CoreLayer               *layer;
      CoreLayerShared         *shared;
      const DisplayLayerFuncs *funcs;
-     bool                     stereo;
      CoreSurfaceBufferLock    left, right;
      bool                     locked = false;
 
@@ -1336,8 +1335,6 @@ set_region( CoreLayerRegion            *region,
      D_ASSERT( layer->shared != NULL );
      D_ASSERT( layer->funcs != NULL );
      D_ASSERT( layer->funcs->SetRegion != NULL );
-
-     stereo = !!(config->options & DLOP_STEREO);
 
      if (region->state & CLRSF_FROZEN) {
           D_DEBUG_AT( Core_Layers, "  -> FROZEN!\n" );
@@ -1467,7 +1464,6 @@ unrealize_region( CoreLayerRegion *region )
      CoreLayer               *layer;
      CoreLayerShared         *shared;
      const DisplayLayerFuncs *funcs;
-     bool                     stereo;
 
      D_DEBUG_AT( Core_Layers, "%s( %p )\n", __FUNCTION__, region );
 
@@ -1488,8 +1484,6 @@ unrealize_region( CoreLayerRegion *region )
 
      shared = layer->shared;
      funcs  = layer->funcs;
-
-     stereo = region->config.options & DLOP_STEREO;
 
      D_ASSERT( fusion_vector_contains( &shared->added_regions, region ) );
 

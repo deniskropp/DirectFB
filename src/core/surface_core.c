@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -213,14 +213,10 @@ dfb_surface_core_leave( DFBSurfaceCore *data,
 static DFBResult
 dfb_surface_core_suspend( DFBSurfaceCore *data )
 {
-     DFBSurfaceCoreShared *shared;
-
      D_DEBUG_AT( Core_Surface, "dfb_surface_core_suspend( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBSurfaceCore );
      D_MAGIC_ASSERT( data->shared, DFBSurfaceCoreShared );
-
-     shared = data->shared;
 
      return DFB_OK;
 }
@@ -228,14 +224,10 @@ dfb_surface_core_suspend( DFBSurfaceCore *data )
 static DFBResult
 dfb_surface_core_resume( DFBSurfaceCore *data )
 {
-     DFBSurfaceCoreShared *shared;
-
      D_DEBUG_AT( Core_Surface, "dfb_surface_core_resume( %p )\n", data );
 
      D_MAGIC_ASSERT( data, DFBSurfaceCore );
      D_MAGIC_ASSERT( data->shared, DFBSurfaceCoreShared );
-
-     shared = data->shared;
 
      return DFB_OK;
 }

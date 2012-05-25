@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -1882,7 +1882,7 @@ Core_PopCalling( void )
 
      if (core_tls) {
           if (core_tls->calling == 0) {
-               D_BUG( "" );
+               D_BUG( "Pop counter underrun" );
                return;
           }
 
