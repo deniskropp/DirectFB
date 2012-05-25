@@ -681,6 +681,9 @@ dfb_surface_reconfig( CoreSurface             *surface,
      if (config->flags & CSCONF_FORMAT)
           new_config.format = config->format;
 
+     if (config->flags & CSCONF_COLORSPACE)
+          surface->config.colorspace = config->colorspace;
+
      if (config->flags & CSCONF_CAPS) {
           if (config->caps & DSCAPS_ROTATED)
                D_UNIMPLEMENTED();

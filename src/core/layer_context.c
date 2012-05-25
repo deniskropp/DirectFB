@@ -1597,6 +1597,7 @@ init_region_config( CoreLayerContext      *context,
      config->width        = context->config.width;
      config->height       = context->config.height;
      config->format       = context->config.pixelformat;
+     config->colorspace   = context->config.colorspace;
      config->buffermode   = context->config.buffermode;
      config->options      = context->config.options;
      config->source_id    = context->config.source;
