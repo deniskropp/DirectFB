@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -253,15 +253,11 @@ direct_fifo_wait( DirectFifo *fifo )
 DirectResult
 direct_fifo_wait_timed( DirectFifo *fifo, int timeout_ms )
 {
-     DirectResult    ret = DR_OK;
-     struct timespec timeout;
+     DirectResult ret = DR_OK;
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
 
      D_DEBUG_AT( Direct_Fifo, "%s( %p ) ## ## %p # %p\n", __FUNCTION__, fifo, fifo->in, fifo->out );
-
-     timeout.tv_sec  =  timeout_ms / 1000;
-     timeout.tv_nsec = (timeout_ms % 1000) * 1000000;
 
      D_SYNC_ADD( &fifo->waiting, 1 );
 

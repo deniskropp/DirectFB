@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -54,7 +54,7 @@ static Func init_funcs[] = {
      __D_direct_init,
      __D_util_init,
      __D_result_init,
-	 DirectResult__init,
+     DirectResult__init,
      __D_mem_init,
      __D_thread_init,
      __D_log_init,
@@ -69,7 +69,7 @@ static Func deinit_funcs[] = {
      __D_log_domain_deinit,
      __D_thread_deinit,
      __D_mem_deinit,
-	 DirectResult__deinit,
+     DirectResult__deinit,
      __D_result_deinit,
      __D_util_deinit,
      __D_direct_deinit,
@@ -100,4 +100,3 @@ __D_deinit_all()
      for (i=0; i<D_ARRAY_SIZE(deinit_funcs); i++)
           deinit_funcs[i]();
 }
-

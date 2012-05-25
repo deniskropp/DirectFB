@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -47,7 +47,6 @@ direct_serial_wait( DirectSerial       *serial,
                     const DirectSerial *source )
 {
      DirectResult ret = DR_OK;
-     u32          value;
 
      D_ASSERT( serial != NULL );
      D_ASSERT( source != NULL );
@@ -64,8 +63,6 @@ direct_serial_wait( DirectSerial       *serial,
           int wakeup = serial->wakeup;
 
           D_ASSERT( serial->overflow == source->overflow || serial->value != source->value );
-
-          value = serial->value;
 
           if (direct_serial_check( serial, source ))
                break;
