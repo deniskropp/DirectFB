@@ -3702,8 +3702,12 @@ static void dfb_gfxcard_load_driver( void )
      if (!card->shared->module_name)
           return;
 
-     direct_list_foreach (link, dfb_graphics_drivers.entries) {
+     link = dfb_graphics_drivers.entries;
+
+     while (direct_list_check_link( link )) {
           DirectModuleEntry *module = (DirectModuleEntry*) link;
+
+          link = link->next;
 
           const GraphicsDriverFuncs *funcs = direct_module_ref( module );
 
@@ -3716,8 +3720,10 @@ static void dfb_gfxcard_load_driver( void )
                card->module       = module;
                card->driver_funcs = funcs;
           }
-          else
+          else {
+               /* can result in immediate removal, so "link" must already be on next */
                direct_module_unref( module );
+          }
      }
 }
 
