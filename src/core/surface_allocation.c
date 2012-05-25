@@ -370,6 +370,13 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
 
      transfer_buffer( buffer, src.addr, dst.addr, src.pitch, dst.pitch );
 
+     /*
+      * Track that the CPU wrote to the destination buffer allocation and that it read
+      * from the source buffer allocation so that proper cache flushing will occur.
+      */
+     allocation->accessed[CSAID_CPU] |= CSAF_WRITE;
+     source->accessed[CSAID_CPU] |= CSAF_READ;
+
      dfb_surface_pool_unlock( allocation->pool, allocation, &dst );
      dfb_surface_pool_unlock( source->pool, source, &src );
 

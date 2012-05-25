@@ -746,6 +746,12 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
      fusion_vector_add( &buffer->allocs, allocation );
      fusion_vector_add( &pool->allocs, allocation );
 
+     /*
+      * Mark the CoreSurfaceAllocation as having been read and written to by the CPU because it is possible
+      * the CPU cache after allocation has some data due to a read/write performed as part of allocation.
+      */
+     allocation->accessed[CSAID_CPU] |= CSAF_READ | CSAF_WRITE;
+
      dfb_surface_allocation_globalize( allocation );
 
      fusion_skirmish_dismiss( &pool->lock );

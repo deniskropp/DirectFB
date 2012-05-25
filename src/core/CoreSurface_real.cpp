@@ -191,16 +191,23 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
           }
      }
 
-     /* Hardware read access... */
-     if (accessor == CSAID_GPU && access & CSAF_READ) {
-          /* ...if software has written before... */
-          if (allocation->accessed[CSAID_CPU] & CSAF_WRITE) {
+     /* Hardware read or write access... */
+     if (accessor == CSAID_GPU && access & (CSAF_READ | CSAF_WRITE)) {
+          /* ...if software has read or written before... */
+          /*
+           * TODO: For graphics drivers that do not support internal surface usage,
+           *       probably do NOT want to test the CSAF_WRITE flag in the following if
+           *       condition if the allocation's associated pool does NOT have the GPU
+           *       read/write flags set as supported.
+           */
+          if (allocation->accessed[CSAID_CPU] & (CSAF_READ | CSAF_WRITE)) {
                /* ...flush texture cache. */
+               /* TODO: Optimize by providing "lock" to graphics driver flush function. */
                dfb_gfxcard_flush_texture_cache();
 
-               /* ...clear software write access. */
+               /* ...clear software read and write access. */
                if (!locks)
-                    allocation->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_CPU] & ~CSAF_WRITE);
+                    allocation->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_CPU] & ~(CSAF_READ | CSAF_WRITE));
           }
      }
 
