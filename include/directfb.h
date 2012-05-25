@@ -3765,6 +3765,14 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
+      * Get the current color space.
+      */
+     DFBResult (*GetColorSpace) (
+          IDirectFBSurface         *thiz,
+          DFBSurfaceColorSpace     *ret_colorspace
+     );
+
+     /*
       * Get a mask of drawing functions that are hardware
       * accelerated with the current settings.
       *

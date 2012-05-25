@@ -255,6 +255,25 @@ IDirectFBSurface_GetPixelFormat( IDirectFBSurface      *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_GetColorSpace( IDirectFBSurface      *thiz,
+                                DFBSurfaceColorSpace  *colorspace )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!colorspace)
+          return DFB_INVARG;
+
+     *colorspace = data->surface->config.colorspace;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
                                       IDirectFBSurface    *source,
                                       DFBAccelerationMask *ret_mask )
@@ -3447,6 +3466,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetSize = IDirectFBSurface_GetSize;
      thiz->GetVisibleRectangle = IDirectFBSurface_GetVisibleRectangle;
      thiz->GetPixelFormat = IDirectFBSurface_GetPixelFormat;
+     thiz->GetColorSpace = IDirectFBSurface_GetColorSpace;
      thiz->GetAccelerationMask = IDirectFBSurface_GetAccelerationMask;
 
      thiz->GetPalette = IDirectFBSurface_GetPalette;
