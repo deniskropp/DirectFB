@@ -25,6 +25,7 @@ dfbtest_waitserial
 dfbtest_water
 dfbtest_window
 dfbtest_window_cursor
+dfbtest_window_flip
 dfbtest_window_flip_once
 dfbtest_window_surface
 dfbtest_windows_watcher

@@ -1,5 +1,8 @@
 ## Makefile.am for DirectFB/tests
 
+AM_CPPFLAGS = \
+	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
+
 if DIRECTFB_BUILD_ONE
 ONE_PROGS = \
 	OneBench	\
@@ -80,6 +83,7 @@ bin_PROGRAMS = \
 	dfbtest_water	\
 	dfbtest_window	\
 	dfbtest_window_cursor	\
+	dfbtest_window_flip	\
 	dfbtest_window_flip_once	\
 	dfbtest_window_surface	\
 	dfbtest_windows_watcher	\
@@ -190,6 +194,9 @@ dfbtest_window_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(li
 
 dfbtest_window_cursor_SOURCES = dfbtest_window_cursor.c
 dfbtest_window_cursor_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_window_flip_SOURCES = dfbtest_window_flip.c
+dfbtest_window_flip_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_window_flip_once_SOURCES = dfbtest_window_flip_once.c
 dfbtest_window_flip_once_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
