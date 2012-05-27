@@ -183,7 +183,7 @@
 #endif
 
 
-#if defined(ARCH_ARM) && !defined(ARCH_IWMMXT)
+#if defined(ARCH_ARMv7) && !defined(ARCH_IWMMXT)
 
 static inline int _D__atomic_cmpxchg(volatile int *ptr, int old, int _new)
 {
