@@ -470,9 +470,9 @@ dfb_surface_notify_display( CoreSurface       *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
+//     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
-     direct_serial_increase( &surface->serial );
+//     direct_serial_increase( &surface->serial );
 
      notification.flags   = CSNF_DISPLAY;
      notification.surface = surface;
