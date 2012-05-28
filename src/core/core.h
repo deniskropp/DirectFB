@@ -82,6 +82,8 @@ void      *dfb_core_get_part( CoreDFB        *core,
 
 #define DFB_CORE(core,PART)   dfb_core_get_part( core, DFCP_##PART )
 
+DFBResult dfb_core_initialize( CoreDFB *core );
+
 
 /*
  * Object creation

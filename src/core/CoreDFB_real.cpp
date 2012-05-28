@@ -57,6 +57,20 @@ namespace DirectFB {
 
 
 DFBResult
+ICore_Real::Initialize(
+)
+{
+    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
+
+    D_MAGIC_ASSERT( obj, CoreDFB );
+
+    if (Core_GetIdentity() != FUSION_ID_MASTER)
+         return DFB_ACCESSDENIED;
+
+    return dfb_core_initialize( core );
+}
+
+DFBResult
 ICore_Real::Register(
      u32                       slave_call
 )

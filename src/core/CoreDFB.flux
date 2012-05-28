@@ -4,6 +4,10 @@ interface {
         object      CoreDFB
 
 	method {
+		name	Initialize
+	}
+
+	method {
 		name	Register
 
                 arg {

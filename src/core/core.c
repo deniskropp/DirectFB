@@ -1460,7 +1460,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      return 0;
 }
 
-static DFBResult
+DFBResult
 dfb_core_initialize( CoreDFB *core )
 {
      int            i;
@@ -1618,14 +1618,7 @@ dfb_core_arena_initialize( FusionArena *arena,
 
      D_MAGIC_SET( shared, CoreDFBShared );
 
-     /* Initialize. */
-     ret = dfb_core_initialize( core );
-     if (ret) {
-          D_MAGIC_CLEAR( shared );
-          SHFREE( pool, shared );
-          fusion_shm_pool_destroy( core->world, pool );
-          return ret;
-     }
+     CoreDFB_Init_Dispatch( core, core, &shared->call );
 
      fusion_skirmish_init( &shared->lock, "DirectFB Core", core->world );
 
@@ -1634,7 +1627,7 @@ dfb_core_arena_initialize( FusionArena *arena,
                                       FUSION_SKIRMISH_PERMIT_DISMISS |
                                       FUSION_SKIRMISH_PERMIT_WAIT );
 
-     CoreDFB_Init_Dispatch( core, core, &shared->call );
+
 
      fusion_call_add_permissions( &shared->call, 0, FUSION_CALL_PERMIT_EXECUTE );
 
@@ -1642,6 +1635,16 @@ dfb_core_arena_initialize( FusionArena *arena,
 
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
+
+
+     /* Initialize. */
+     ret = CoreDFB_Initialize( core );
+     if (ret) {
+          D_MAGIC_CLEAR( shared );
+          SHFREE( pool, shared );
+          fusion_shm_pool_destroy( core->world, pool );
+          return ret;
+     }
 
      return DFB_OK;
 }
