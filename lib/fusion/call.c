@@ -321,6 +321,8 @@ fusion_call_execute3(FusionCall          *call,
                      unsigned int         ret_size,
                      unsigned int        *ret_length)
 {
+     FusionWorld *world;
+
      D_DEBUG_AT( Fusion_Call, "%s( %p, flags 0x%x, arg %d, ptr %p, length %u, ret_ptr %p, ret_size %u )\n",
                  __FUNCTION__, call, flags, call_arg, ptr, length, ret_ptr, ret_size );
 
@@ -334,7 +336,11 @@ fusion_call_execute3(FusionCall          *call,
 
      D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler3 ) );
 
-     if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
+     world = _fusion_world( call->shared );
+
+     if (call->fusion_id == fusion_id( world ) &&
+         (!(flags & FCEF_NODIRECT) || (fusion_dispatcher_tid( world ) == direct_thread_get_tid( direct_thread_self() ))))
+     {
           FusionCallHandlerResult result;
           unsigned int            execute_length;
 
@@ -350,7 +356,6 @@ fusion_call_execute3(FusionCall          *call,
      }
      else {
           FusionCallExecute3  execute;
-          FusionWorld        *world = _fusion_world( call->shared );
           DirectResult        ret   = DR_OK;
 
           // check whether we can cache this call
@@ -434,6 +439,9 @@ DirectResult
 fusion_world_flush_calls( FusionWorld *world, int lock )
 {
      DirectResult ret = DR_OK;
+
+     if (direct_thread_self() == world->dispatch_loop)
+          return DR_OK;
 
      if (lock)
           direct_mutex_lock( &world->bins_lock );
