@@ -260,6 +260,8 @@ dfb_surface_create( CoreDFB                  *core,
 
      fusion_skirmish_init2( &surface->lock, buf, dfb_core_world(core), fusion_config->secure_fusion );
 
+     fusion_reactor_direct( surface->object.reactor, false );
+
 //     fusion_skirmish_add_permissions( &surface->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
 
      D_MAGIC_SET( surface, CoreSurface );
