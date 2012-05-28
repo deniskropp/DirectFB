@@ -12,6 +12,9 @@ extern "C" {
 
 #include <directfb.h>
 
+#include <misc/conf.h>
+
+
 typedef struct {
      FusionCall     call;
 } DataBuffer;
@@ -26,7 +29,9 @@ DataBuffer_Call( DataBuffer             *buffer,
               unsigned int         ret_size,
               unsigned int        *ret_length )
 {
-     return fusion_call_execute3( &buffer->call, flags, call_arg, ptr, length, ret_ptr, ret_size, ret_length );
+     return fusion_call_execute3( &buffer->call,
+                                  (FusionCallExecFlags)(dfb_config->call_nodirect | flags),
+                                  call_arg, ptr, length, ret_ptr, ret_size, ret_length );
 }
 
 

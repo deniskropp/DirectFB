@@ -21,7 +21,9 @@ CoreLayerContext_Call( CoreLayerContext    *context,
                        unsigned int         ret_size,
                        unsigned int        *ret_length )
 {
-     return fusion_call_execute3( &context->call, flags, call_arg, ptr, length, ret_ptr, ret_size, ret_length );
+     return fusion_call_execute3( &context->call,
+                                  (FusionCallExecFlags)(dfb_config->call_nodirect | flags),
+                                  call_arg, ptr, length, ret_ptr, ret_size, ret_length );
 }
 
 #ifdef __cplusplus

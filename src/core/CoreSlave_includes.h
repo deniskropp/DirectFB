@@ -11,6 +11,8 @@ extern "C" {
 
 #include <core/coretypes.h>
 
+#include <misc/conf.h>
+
 
 typedef struct {
      FusionCall call;
@@ -26,7 +28,9 @@ CoreSlave_Call( CoreSlave           *slave,
                 unsigned int         ret_size,
                 unsigned int        *ret_length )
 {
-     return fusion_call_execute3( &slave->call, flags, call_arg, ptr, length, ret_ptr, ret_size, ret_length );
+     return fusion_call_execute3( &slave->call,
+                                  (FusionCallExecFlags)(dfb_config->call_nodirect | flags),
+                                  call_arg, ptr, length, ret_ptr, ret_size, ret_length );
 }
 
 #ifdef __cplusplus

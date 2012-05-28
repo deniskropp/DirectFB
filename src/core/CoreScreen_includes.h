@@ -21,7 +21,9 @@ CoreScreen_Call( CoreScreen          *screen,
      D_ASSERT( screen != NULL );
      D_ASSERT( screen->shared != NULL );
 
-     return fusion_call_execute3( &screen->shared->call, flags, call_arg, ptr, length, ret_ptr, ret_size, ret_length );
+     return fusion_call_execute3( &screen->shared->call,
+                                  (FusionCallExecFlags)(dfb_config->call_nodirect | flags),
+                                  call_arg, ptr, length, ret_ptr, ret_size, ret_length );
 }
 
 #ifdef __cplusplus

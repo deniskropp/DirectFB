@@ -18,7 +18,9 @@ CorePalette_Call( CorePalette         *palette,
                   unsigned int         ret_size,
                   unsigned int        *ret_length )
 {
-     return fusion_call_execute3( &palette->call, flags, call_arg, ptr, length, ret_ptr, ret_size, ret_length );
+     return fusion_call_execute3( &palette->call,
+                                  (FusionCallExecFlags)(dfb_config->call_nodirect | flags),
+                                  call_arg, ptr, length, ret_ptr, ret_size, ret_length );
 }
 
 #ifdef __cplusplus

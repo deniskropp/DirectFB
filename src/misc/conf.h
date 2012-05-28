@@ -289,6 +289,7 @@ typedef struct
      DFBSurfaceID         primary_id;              /* id for primary surface */
 
      bool                 layers_clear;
+     FusionCallExecFlags  call_nodirect;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

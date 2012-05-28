@@ -63,7 +63,6 @@
 #include <core/surface.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
-#include <core/wm.h>
 
 #include <gfx/convert.h>
 
@@ -205,6 +204,14 @@ DirectFBCreate( IDirectFB **interface_ptr )
 
      direct_mutex_lock( &lock );
 
+     if (!dfb_config->no_singleton && idirectfb_singleton) {
+          idirectfb_singleton->AddRef( idirectfb_singleton );
+
+          *interface_ptr = idirectfb_singleton;
+
+          direct_mutex_unlock( &lock );
+          return DFB_OK;
+     }
 
      ret = dfb_core_create( &core_dfb );
      if (ret) {
@@ -221,30 +228,20 @@ DirectFBCreate( IDirectFB **interface_ptr )
           return ret;
      }
 
-     if (dfb_core_is_master( core_dfb )) {
-          if (!dfb_core_active( core_dfb )) {
-               ret = IDirectFB_InitLayers( dfb );
-               if (ret) {
-                    dfb->Release( dfb );
-                    direct_mutex_unlock( &lock );
-                    return ret;
-               }
-
-               /* not fatal */
-               ret = dfb_wm_post_init( core_dfb );
-               if (ret)
-                    D_DERROR( ret, "DirectFBCreate: Post initialization of WM failed!\n" );
-
-               dfb_core_activate( core_dfb );
-          }
-     }
+     if (!dfb_config->no_singleton)
+          idirectfb_singleton = dfb;
 
      direct_mutex_unlock( &lock );
 
-     *interface_ptr = dfb;
+     ret = IDirectFB_WaitInitialised( dfb );
+     if (ret) {
+          if (!dfb_config->no_singleton)
+               idirectfb_singleton = NULL;
+          dfb->Release( dfb );
+          return ret;
+     }
 
-     if (!dfb_config->no_singleton)
-          idirectfb_singleton = dfb;
+     *interface_ptr = dfb;
 
      return DFB_OK;
 #else

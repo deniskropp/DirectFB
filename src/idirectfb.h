@@ -71,6 +71,10 @@ typedef struct {
           CoreSurface           *surface;
           CorePalette           *palette;
      } layers[MAX_LAYERS];
+
+     bool                        init_done;
+     DirectMutex                 init_lock;
+     DirectWaitQueue             init_wq;
 } IDirectFB_data;
 
 /*
@@ -93,6 +97,8 @@ void      containers_remove_input_eventbuffer( IDirectFBEventBuffer *thiz );
 
 DFBResult IDirectFB_InitLayers( IDirectFB *thiz );
 
+
+DFBResult IDirectFB_WaitInitialised( IDirectFB *thiz );
 
 extern IDirectFB *idirectfb_singleton;
 

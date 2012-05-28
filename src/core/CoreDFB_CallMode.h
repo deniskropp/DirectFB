@@ -29,6 +29,7 @@
 #include <core/core.h>
 #include <fusion/conf.h>
 #include <fusion/fusion.h>
+#include <misc/conf.h>
 
 typedef enum {
      COREDFB_CALL_DENY,
@@ -40,6 +41,9 @@ static __inline__ CoreDFBCallMode
 CoreDFB_CallMode( CoreDFB *core )
 {
 #if FUSION_BUILD_MULTI
+     if (dfb_config->call_nodirect)
+          return COREDFB_CALL_INDIRECT;
+
      if (core->shutdown_tid && core->shutdown_tid != direct_gettid() && direct_gettid() != fusion_dispatcher_tid(core->world) && !Core_GetCalling()) {
           while (core_dfb)
                direct_thread_sleep(10000);

@@ -105,6 +105,7 @@ static const char *config_usage_strings[]  = {
      "  [no-]software                  Enable/disable software fallbacks\n"
      "  [no-]software-warn             Show warnings when doing/dropping software operations\n"
      "  [no-]software-trace            Show every stage of the software rendering pipeline\n"
+     "  [no-]always-indirect           Use purely indirect Flux calls (for secure master)\n"
      "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n",
 #ifdef USE_MMX
@@ -849,6 +850,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-software-trace" ) == 0) {
           dfb_config->software_trace = false;
+     } else
+     if (strcmp (name, "always-indirect" ) == 0) {
+          dfb_config->call_nodirect = FCEF_NODIRECT;
+     } else
+     if (strcmp (name, "no-always-indirect" ) == 0) {
+          dfb_config->call_nodirect = FCEF_NONE;
      } else
      if (strcmp (name, "warn" ) == 0 || strcmp (name, "no-warn" ) == 0) {
           /* Enable/disable all at once by default. */

@@ -71,6 +71,7 @@
 #include <core/windows.h>
 #include <core/windows_internal.h> /* FIXME */
 #include <core/windowstack.h>
+#include <core/wm.h>
 
 #include <display/idirectfbpalette.h>
 #include <display/idirectfbscreen.h>
@@ -555,8 +556,14 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
      if (data->primary.context)
           dfb_layer_context_get_configuration( data->primary.context, &config );
-     else
+     else if (data->context)
           dfb_layer_context_get_configuration( data->context, &config );
+     else {
+          config.width       = 512;
+          config.height      = 512;
+          config.pixelformat = DSPF_ARGB;
+          config.colorspace  = DSCS_RGB;
+     }
 
      if (desc->flags & DSDESC_HINTS && desc->hints & DSHF_FONT) {
           format = dfb_config->font_format;
@@ -1921,6 +1928,51 @@ error:
      return ret;
 }
 
+
+
+static void
+InitIDirectFB_Async( void *ctx,
+                     void *ctx2 )
+{
+     DFBResult       ret;
+     IDirectFB      *thiz = ctx;
+     IDirectFB_data *data = ctx2;
+
+     D_DEBUG_AT( IDFB, "%s( %p, %p )\n", __FUNCTION__, thiz, data );
+
+     ret = CoreLayer_GetPrimaryContext( data->layer, true, &data->context );
+     if (ret) {
+          D_ERROR( "%s: Could not get default context of primary layer!\n", __FUNCTION__ );
+          return;
+     }
+
+     data->stack = dfb_layer_context_windowstack( data->context );
+
+     if (dfb_core_is_master( data->core )) {
+          if (!dfb_core_active( data->core )) {
+               ret = IDirectFB_InitLayers( thiz );
+               if (ret)
+                    return;
+
+               /* not fatal */
+               ret = dfb_wm_post_init( data->core );
+               if (ret)
+                    D_DERROR( ret, "DirectFBCreate: Post initialization of WM failed!\n" );
+
+               dfb_core_activate( data->core );
+          }
+     }
+
+     direct_mutex_lock( &data->init_lock );
+
+     data->init_done = true;
+
+     direct_waitqueue_broadcast( &data->init_wq );
+
+     direct_mutex_unlock( &data->init_lock );
+}
+
+
 /*
  * Constructor
  *
@@ -1945,15 +1997,6 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      }
 
      data->layer = dfb_layer_at_translated( DLID_PRIMARY );
-
-     ret = CoreLayer_GetPrimaryContext( data->layer, true, &data->context );
-     if (ret) {
-          D_ERROR( "%s: Could not get default context of primary layer!\n", __FUNCTION__ );
-          DIRECT_DEALLOCATE_INTERFACE(thiz);
-          return ret;
-     }
-
-     data->stack = dfb_layer_context_windowstack( data->context );
 
      thiz->AddRef = IDirectFB_AddRef;
      thiz->Release = IDirectFB_Release;
@@ -1984,6 +2027,31 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      thiz->WaitForSync = IDirectFB_WaitForSync;
      thiz->GetInterface = IDirectFB_GetInterface;
      thiz->GetSurface = IDirectFB_GetSurface;
+
+     direct_mutex_init( &data->init_lock );
+     direct_waitqueue_init( &data->init_wq );
+
+     if (dfb_core_is_master( core ))
+          Core_AsyncCall( InitIDirectFB_Async, thiz, data );
+     else
+          InitIDirectFB_Async( thiz, data );
+
+     return DFB_OK;
+}
+
+DFBResult
+IDirectFB_WaitInitialised( IDirectFB *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
+
+     D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
+
+     direct_mutex_lock( &data->init_lock );
+
+     while (!data->init_done)
+          direct_waitqueue_wait( &data->init_wq, &data->init_lock );
+
+     direct_mutex_unlock( &data->init_lock );
 
      return DFB_OK;
 }

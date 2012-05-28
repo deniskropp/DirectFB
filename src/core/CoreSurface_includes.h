@@ -19,7 +19,9 @@ CoreSurface_Call( CoreSurface         *surface,
                   unsigned int         ret_size,
                   unsigned int        *ret_length )
 {
-     return fusion_call_execute3( &surface->call, flags, call_arg, ptr, length, ret_ptr, ret_size, ret_length );
+     return fusion_call_execute3( &surface->call,
+                                  (FusionCallExecFlags)(dfb_config->call_nodirect | flags),
+                                  call_arg, ptr, length, ret_ptr, ret_size, ret_length );
 }
 
 #ifdef __cplusplus

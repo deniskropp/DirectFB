@@ -101,6 +101,35 @@ void  *__DFB_CoreRegisterHookCtx = NULL;
 
 
 /** public **/
+static void
+InitDevice_Async( void *ctx,
+                  void *ctx2 )
+{
+     DFBResult                  ret;
+     DFBGraphicsCore           *data   = ctx;
+     DFBGraphicsCoreShared     *shared = data->shared;
+     const GraphicsDriverFuncs *funcs  = data->driver_funcs;
+
+     ret = funcs->InitDevice( data, &shared->device_info,
+                              data->driver_data, data->device_data );
+     if (ret) {
+          D_DERROR( ret, "Core/Graphics: Async InitDevice failed!\n" );
+          D_BREAK("InitDevice");
+          return;
+     }
+
+     if (data->funcs.EngineReset)
+          data->funcs.EngineReset( data->driver_data, data->device_data );
+
+     data->caps   = shared->device_info.caps;
+     data->limits = shared->device_info.limits;
+
+     D_INFO( "DirectFB/Graphics: %s %s %d.%d (%s)\n",
+             shared->device_info.vendor, shared->device_info.name,
+             shared->driver_info.version.major,
+             shared->driver_info.version.minor, shared->driver_info.vendor );
+}
+
 
 static DFBResult
 dfb_graphics_core_initialize( CoreDFB               *core,
@@ -181,25 +210,16 @@ dfb_graphics_core_initialize( CoreDFB               *core,
                return ret;
           }
 
-          ret = funcs->InitDevice( data, &shared->device_info,
-                                   data->driver_data, data->device_data );
-          if (ret) {
-               funcs->CloseDriver( card, card->driver_data );
-               SHFREE( pool, shared->device_data );
-               SHFREE( pool, shared->module_name );
-               D_FREE( card->driver_data );
-               card = NULL;
-               return ret;
-          }
-
-          if (data->funcs.EngineReset)
-               data->funcs.EngineReset( data->driver_data, data->device_data );
+          if (dfb_config->call_nodirect)
+               Core_AsyncCall( InitDevice_Async, data, NULL );
+          else
+               InitDevice_Async( data, NULL );
      }
-
-     D_INFO( "DirectFB/Graphics: %s %s %d.%d (%s)\n",
-             shared->device_info.vendor, shared->device_info.name,
-             shared->driver_info.version.major,
-             shared->driver_info.version.minor, shared->driver_info.vendor );
+     else
+          D_INFO( "DirectFB/Graphics: %s %s %d.%d (%s)\n",
+                  shared->device_info.vendor, shared->device_info.name,
+                  shared->driver_info.version.major,
+                  shared->driver_info.version.minor, shared->driver_info.vendor );
 
      if (dfb_config->software_only) {
           if (data->funcs.CheckState) {
