@@ -43,12 +43,11 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 #include <fusion/vector.h>
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
-
+#include <core/core.h>
 #include <core/gfxcard.h>
 #include <core/layer_context.h>
 #include <core/layer_region.h>
@@ -145,6 +144,8 @@ typedef struct {
      CoreLayerRegion              *region;
      CoreSurface                  *surface;
      Reaction                      surface_reaction;
+
+     FusionSkirmish                update_skirmish;
 } StackData;
 
 typedef struct {
@@ -1507,6 +1508,8 @@ repaint_stack( CoreWindowStack     *stack,
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
 
+     fusion_skirmish_prevail( &data->update_skirmish );
+
      switch (region->config.buffermode) {
           case DLBM_TRIPLE:
                /* Add the updated region. */
@@ -1544,6 +1547,9 @@ repaint_stack( CoreWindowStack     *stack,
                }
                break;
      }
+
+     fusion_skirmish_dismiss( &data->update_skirmish );
+
 }
 
 static DFBResult
@@ -3239,7 +3245,7 @@ defaultwm_surface_reaction( const void *msg_data,
      int                            i;
      const CoreSurfaceNotification *notification = msg_data;
      StackData                     *data         = ctx;
-     DFBResult                      ret;
+//     DFBResult                      ret;
 
      D_DEBUG_AT( WM_Default, "%s( %p, %p )\n", __FUNCTION__, msg_data, ctx );
 
@@ -3250,11 +3256,12 @@ defaultwm_surface_reaction( const void *msg_data,
 
           switch (data->region->config.buffermode) {
                case DLBM_TRIPLE:
-                    ret = dfb_layer_context_lock( data->region->context );
-                    if (ret) {
-                         D_DERROR( ret, "WM/Default/SurfaceReaction: Could not lock layer context!\n" );
-                         return RS_OK;
-                    }
+                    fusion_skirmish_prevail( &data->update_skirmish );
+                    //ret = dfb_layer_context_lock( data->region->context );
+                    //if (ret) {
+                    //     D_DERROR( ret, "WM/Default/SurfaceReaction: Could not lock layer context!\n" );
+                    //     return RS_OK;
+                    //}
 
                     D_ASSUME( data->updated.num_regions > 0 );
 
@@ -3302,7 +3309,8 @@ defaultwm_surface_reaction( const void *msg_data,
 
                          flush_updating( data );
                     }
-                    dfb_layer_context_unlock( data->region->context );
+                    fusion_skirmish_dismiss( &data->update_skirmish );
+                    //dfb_layer_context_unlock( data->region->context );
                     break;
 
                default:
@@ -3321,6 +3329,7 @@ wm_init_stack( CoreWindowStack *stack,
      DFBResult  ret;
      int        i;
      StackData *data = stack_data;
+     WMData    *wmdata = wm_data;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -3350,6 +3359,8 @@ wm_init_stack( CoreWindowStack *stack,
 
      dfb_layer_region_globalize( data->region );
      dfb_surface_globalize( data->surface );
+
+     fusion_skirmish_init2( &data->update_skirmish, "WM/Update", dfb_core_world(wmdata->core), fusion_config->secure_fusion );
 
      dfb_surface_attach( data->surface, defaultwm_surface_reaction, data, &data->surface_reaction );
 
@@ -3396,6 +3407,8 @@ wm_close_stack( CoreWindowStack *stack,
      /* Destroy backing store of software cursor. */
      if (data->cursor_bs)
           dfb_surface_unlink( &data->cursor_bs );
+
+     fusion_skirmish_destroy( &data->update_skirmish );
 
      /* Free grabbed keys. */
      direct_list_foreach_safe (l, next, data->grabbed_keys)
@@ -4347,6 +4360,8 @@ wm_update_cursor( CoreWindowStack       *stack,
           updates[updates_count++] = old_dest;
 
      if (updates_count) {
+          fusion_skirmish_prevail( &data->update_skirmish );
+
           switch (primary->config.buffermode) {
                case DLBM_TRIPLE:
                     /* Add the updated region .*/
@@ -4381,6 +4396,8 @@ wm_update_cursor( CoreWindowStack       *stack,
                     }
                     break;
           }
+
+          fusion_skirmish_dismiss( &data->update_skirmish );
      }
 
      return DFB_OK;
