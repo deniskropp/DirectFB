@@ -380,12 +380,19 @@ xsymbol_to_symbol( KeySym xKeySymbol )
 
 
 
-static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData)
+static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData, DFBX11 *x11)
 {
      static int          iMouseEventCount = 0;
      DFBInputEvent  dfbEvent;
      if (pXEvent->type == MotionNotify) {
-          motion_compress( pXEvent->xmotion.x, pXEvent->xmotion.y, pXEvent );
+          int x = pXEvent->xmotion.x;
+          
+          if (x11->shared->stereo) {
+               x %= x11->shared->stereo_width;
+               x *= 2;
+          }
+
+          motion_compress( x, pXEvent->xmotion.y, pXEvent );
           ++iMouseEventCount;
      }
 
@@ -588,7 +595,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
                     case ButtonRelease:
                          motion_realize( data );
                     case MotionNotify:
-                         handleMouseEvent( &xEvent, data ); // crash ???
+                         handleMouseEvent( &xEvent, data, x11 ); // crash ???
                          break;
 
                     case KeyPress:
