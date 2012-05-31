@@ -40,6 +40,8 @@ extern "C" {
 #include <core/core.h>
 #include <core/surface.h>
 #include <core/surface_pool.h>
+
+#include <gfx/util.h>
 }
 
 D_DEBUG_DOMAIN( DirectFB_CoreSurface, "DirectFB/CoreSurface", "DirectFB CoreSurface" );
@@ -647,6 +649,37 @@ ISurface_Real::CreateClient(
      D_ASSERT( ret_client != NULL );
 
      return dfb_surface_client_create( core, obj, ret_client );
+}
+
+
+DFBResult
+ISurface_Real::BackToFrontCopy(
+                   DFBSurfaceStereoEye                                  eye,
+                   const DFBRegion                                     *left_region,
+                   const DFBRegion                                     *right_region
+                   )
+{
+     DFBSurfaceStereoEye old_eye;
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+
+     /* Remember current stereo eye. */
+     old_eye = dfb_surface_get_stereo_eye( obj );
+
+     if (eye & DSSE_LEFT) {
+          dfb_surface_set_stereo_eye( obj, DSSE_LEFT );
+          dfb_back_to_front_copy( obj, left_region );
+     }
+
+     if (eye & DSSE_RIGHT) {
+          dfb_surface_set_stereo_eye( obj, DSSE_RIGHT );
+          dfb_back_to_front_copy( obj, right_region );
+     }
+
+     /* Restore current stereo focus. */
+     dfb_surface_set_stereo_eye( obj, old_eye );
+
+     return DFB_OK;
 }
 
 

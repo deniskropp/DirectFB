@@ -207,7 +207,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                         return ret;
                }
                else
-                    dfb_back_to_front_copy( data->base.surface, &reg );
+                    CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
           }
 
           dfb_surface_dispatch_update( data->base.surface, &reg, &reg );
@@ -322,19 +322,8 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                     {
                          CoreSurface_Flip( data->base.surface, false );
                     }
-                    else {
-                         /* Remember current stereo eye. */
-                         eye = dfb_surface_get_stereo_eye(data->base.surface);
-
-                         dfb_surface_set_stereo_eye(data->base.surface, DSSE_LEFT);
-                         dfb_back_to_front_copy( data->base.surface, &l_reg );  // FIXME secure-fusion
-                         dfb_surface_set_stereo_eye(data->base.surface, DSSE_RIGHT);
-                         dfb_back_to_front_copy( data->base.surface, &r_reg );  // FIXME secure-fusion
-
-                         /* Restore current stereo focus. */
-                         dfb_surface_set_stereo_eye(data->base.surface, eye);
-
-                    }
+                    else
+                         CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT | DSSE_RIGHT, &l_reg, &r_reg );
                }
           }
 
