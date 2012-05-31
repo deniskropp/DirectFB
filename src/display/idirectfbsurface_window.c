@@ -181,7 +181,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-
+#if 0
      if (flags & DSFLIP_PIPELINE) {
           dfb_gfxcard_wait_serial( &data->window->serial2 );
 
@@ -189,7 +189,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
           dfb_state_get_serial( &data->base.state, &data->window->serial1 );
      }
-
+#endif
 
      CoreGraphicsState_Flush( data->base.state_client.gfx_state );
 
@@ -293,6 +293,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
           DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
 
+#if 0
      if (flags & DSFLIP_PIPELINE) {
           dfb_gfxcard_wait_serial( &data->window->serial2 );
 
@@ -300,6 +301,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
           dfb_state_get_serial( &data->base.state, &data->window->serial1 );
      }
+#endif
 
      CoreGraphicsState_Flush( data->base.state_client.gfx_state );
 
