@@ -41,8 +41,12 @@ static __inline__ CoreDFBCallMode
 CoreDFB_CallMode( CoreDFB *core )
 {
 #if FUSION_BUILD_MULTI
-     if (dfb_config->call_nodirect)
+     if (dfb_config->call_nodirect) {
+          if (dfb_core_is_master( core ) && fusion_dispatcher_tid( core->world ) == direct_thread_get_tid( direct_thread_self() ))
+               return COREDFB_CALL_DIRECT;
+
           return COREDFB_CALL_INDIRECT;
+     }
 
      if (core->shutdown_tid && core->shutdown_tid != direct_gettid() && direct_gettid() != fusion_dispatcher_tid(core->world) && !Core_GetCalling()) {
           while (core_dfb)
