@@ -143,7 +143,7 @@ localAllocateBuffer( CoreSurfacePool       *pool,
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
-
+#ifndef ANDROID_NDK
      /* Create aligned local system surface buffer if both base address and pitch are non-zero. */
      if (dfb_config->system_surface_align_base && dfb_config->system_surface_align_pitch) {
           /* Make sure base address and pitch are a positive power of two. */
@@ -166,6 +166,7 @@ localAllocateBuffer( CoreSurfacePool       *pool,
           }
      }
      else {
+#endif
           /* Create un-aligned local system surface buffer. */
 
           dfb_surface_calc_buffer_size( surface, 8, 0, &alloc->pitch, &alloc->size );
@@ -173,8 +174,9 @@ localAllocateBuffer( CoreSurfacePool       *pool,
           alloc->addr = D_MALLOC( alloc->size );
           if (!alloc->addr)
                return D_OOM();
+#ifndef ANDROID_NDK
      }
-
+#endif
      D_MAGIC_SET( alloc, LocalAllocationData );
 
      allocation->flags = CSALF_VOLATILE;
