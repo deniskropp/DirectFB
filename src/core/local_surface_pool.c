@@ -198,7 +198,11 @@ localDeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( alloc, LocalAllocationData );
 
-     D_FREE( alloc->addr );
+     if (dfb_config->system_surface_align_base && dfb_config->system_surface_align_pitch)
+          // This was allocated by posix_memalign and requires "free()".
+          free( alloc->addr );
+     else
+          D_FREE( alloc->addr );
 
      D_MAGIC_CLEAR( alloc );
 
