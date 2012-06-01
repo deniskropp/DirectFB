@@ -293,5 +293,33 @@ interface {
 			typename    CoreSurfaceClient
 		}
 	}
+
+
+	method {
+		name	BackToFrontCopy
+
+		arg {
+			name	    eye
+			direction   input
+			type        enum
+			typename    DFBSurfaceStereoEye
+		}
+
+		arg {
+			name	    left_region
+			direction   input
+			type        struct
+			typename    DFBRegion
+			optional    yes
+		}
+
+		arg {
+			name	    right_region
+			direction   input
+			type        struct
+			typename    DFBRegion
+			optional    yes
+		}
+	}
 }
 

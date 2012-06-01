@@ -564,6 +564,9 @@ primarySetRegion( CoreLayer                  *layer,
      if (ret)
           return ret;
 
+     x11->shared->stereo       = !!(lds->config.options & DLOP_STEREO);
+     x11->shared->stereo_width = lds->config.width / 2;
+
      if (palette)
           dfb_x11_set_palette( x11, lds, palette );
 

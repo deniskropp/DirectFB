@@ -154,7 +154,7 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
                            CardState       *state)
 {
      CoreSurface *surface  = state->destination;
-     GLuint       color_rb = state->dst.handle;
+     GLuint       color_rb = (GLuint)state->dst.handle;
 
 
      D_DEBUG_AT( GLES2__2D, "%s( color_rb %u )\n", __FUNCTION__, color_rb );
@@ -324,7 +324,7 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
 
      CoreSurface      *surface = state->source;
 //     GLES2BufferData  *buffer = state->src.handle;
-     GLuint            texture = state->src.handle;
+     GLuint            texture = (GLuint)state->src.handle;
      GLES2ProgramInfo *prog = &gdev->progs[gdev->prog_index];
 
      D_DEBUG_AT(GLES2__2D, "%s( texture %u )\n", __FUNCTION__, texture);

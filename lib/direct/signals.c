@@ -70,27 +70,38 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
 
 #define NUM_SIGS_TO_HANDLE ((int)D_ARRAY_SIZE( sigs_to_handle ))
 
+#ifdef ANDROID_NDK
+static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
+#endif
+
 static DirectLink  *handlers = NULL;
 static DirectMutex  handlers_lock;
 
 static pthread_t sighandler_thread = -1;
 
 /**************************************************************************************************/
-
+#ifndef ANDROID_NDK
 static void *handle_signals( void *ptr );
-
+#else
+static void install_handlers( void );
+static void remove_handlers( void );
+#endif
 /**************************************************************************************************/
 
 DirectResult
 direct_signals_initialize( void )
 {
+#ifndef ANDROID_NDK
      sigset_t mask;
      int ret;
      int i;
-
+#endif
      D_DEBUG_AT( Direct_Signals, "Initializing...\n" );
 
      direct_recursive_mutex_init( &handlers_lock );
+#ifdef ANDROID_NDK
+     install_handlers();
+#else
      if (direct_config->sighandler) {
           sigemptyset( &mask );
           for (i=0; i<NUM_SIGS_TO_HANDLE; i++)
@@ -103,21 +114,25 @@ direct_signals_initialize( void )
           D_ASSERT( ret == 0 );
           D_ASSERT( sighandler_thread >= 0 );
      }
-
+#endif
      return DR_OK;
 }
 
 DirectResult
 direct_signals_shutdown( void )
 {
+#ifndef ANDROID_NDK
      D_ASSERT( sighandler_thread >= 0 );
+#endif
      D_DEBUG_AT( Direct_Signals, "Shutting down...\n" );
-
+#ifdef ANDROID_NDK
+     remove_handlers();
+#else
      if (direct_config->sighandler) {
           pthread_kill( sighandler_thread, SIG_CLOSE_SIGHANDLER );
           sighandler_thread = -1;
      }
-
+#endif
      direct_mutex_deinit( &handlers_lock );
 
      return DR_OK;
@@ -431,7 +446,15 @@ signal_handler( int num )
      }
 
      direct_mutex_unlock( &handlers_lock );
+#ifdef ANDROID_NDK
+     remove_handlers();
 
+     raise( num );
+
+     abort();
+
+     exit( -num );
+#else
      sigemptyset( &mask );
      sigaddset( &mask, num );
      pthread_sigmask( SIG_UNBLOCK, &mask, NULL );
@@ -439,10 +462,12 @@ signal_handler( int num )
      direct_trap( "SigHandler", num );
 
      pthread_sigmask( SIG_BLOCK, &mask, NULL );
+#endif
 }
 
 /**************************************************************************************************/
 
+#ifndef ANDROID_NDK
 static void *
 handle_signals( void *ptr )
 {
@@ -483,3 +508,61 @@ handle_signals( void *ptr )
 
      return NULL;
 }
+#else
+static void
+install_handlers( void )   
+{
+     int i;
+
+     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
+          sigs_handled[i].signum = -1;
+
+          if (direct_config->sighandler && !sigismember( &direct_config->dont_catch,
+                                                         sigs_to_handle[i] ))
+          {
+               struct sigaction action;
+               int              signum = sigs_to_handle[i];
+
+#ifdef SA_SIGINFO
+               action.sa_sigaction = signal_handler;
+               action.sa_flags     = SA_SIGINFO;
+#else
+               action.sa_handler   = signal_handler;
+               action.sa_flags     = 0;
+#endif
+
+               if (signum != SIGSEGV)
+                    action.sa_flags |= SA_NODEFER;
+ 
+               sigemptyset( &action.sa_mask );
+
+               if (sigaction( signum, &action, &sigs_handled[i].old_action )) {
+                    D_PERROR( "Direct/Signals: "
+                              "Unable to install signal handler for signal %d!\n", signum );
+                    continue;
+               }
+
+               sigs_handled[i].signum = signum;
+          }
+     }
+}
+
+static void
+remove_handlers( void )
+{
+     int i;
+
+     for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
+          if (sigs_handled[i].signum != -1) {
+               int signum = sigs_handled[i].signum;
+
+               if (sigaction( signum, &sigs_handled[i].old_action, NULL )) {
+                    D_PERROR( "Direct/Signals: "
+                              "Unable to restore previous handler for signal %d!\n", signum );
+               }
+
+               sigs_handled[i].signum = -1;
+          }
+     }
+}
+#endif

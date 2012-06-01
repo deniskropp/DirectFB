@@ -62,13 +62,13 @@ void dfb_gfx_copy_regions( CoreSurface           *source,
 static inline void dfb_simplify_blittingflags( DFBSurfaceBlittingFlags *flags )
 {
      if (*flags & DSBLIT_ROTATE180)
-          *flags ^= (DSBLIT_ROTATE180 | DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL);
+          *flags = (DFBSurfaceBlittingFlags)(*flags ^ (DSBLIT_ROTATE180 | DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL));
 
      if (*flags & DSBLIT_ROTATE270) {
           if (*flags & DSBLIT_ROTATE90)
-               *flags ^= (DSBLIT_ROTATE90 | DSBLIT_ROTATE270);
+               *flags = (DFBSurfaceBlittingFlags)(*flags ^ (DSBLIT_ROTATE90 | DSBLIT_ROTATE270));
           else
-               *flags ^= (DSBLIT_ROTATE90 | DSBLIT_ROTATE270 | DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL);
+               *flags = (DFBSurfaceBlittingFlags)(*flags ^ (DSBLIT_ROTATE90 | DSBLIT_ROTATE270 | DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL));
      }
 }
 

@@ -31,6 +31,7 @@
 
 #include <core/core.h>
 #include <core/gfxcard.h>
+#include <core/surface_pool.h>
 
 #include "vmware_2d.h"
 #include "vmware_gfxdriver.h"
@@ -123,6 +124,8 @@ driver_init_device( CoreGraphicsDevice *device,
                                   VMWARE_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = VMWARE_SUPPORTED_DRAWINGFLAGS;
      device_info->caps.blitting = VMWARE_SUPPORTED_BLITTINGFLAGS;
+
+     dfb_surface_pool_gfx_driver_update( CSTF_ALL, CSAID_GPU, CSAF_READ | CSAF_WRITE | CSAF_SHARED );
 
      return DFB_OK;
 }

@@ -81,6 +81,9 @@ typedef struct {
      int                  window_count; /* merely for optimizing wait loop */
 
      Bool                 x_error;
+
+     bool                 stereo;
+     int                  stereo_width;
 } DFBX11Shared;
 
 struct __DFB_X11 {
@@ -96,7 +99,7 @@ struct __DFB_X11 {
      Display             *display;
      Screen              *screenptr;
      int                  screennum;
-                     
+
      Visual              *visuals[DFB_NUM_PIXELFORMATS];
 };
 
