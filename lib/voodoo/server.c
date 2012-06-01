@@ -149,7 +149,7 @@ voodoo_server_create( const char    *_addr,
      addr.sin_addr.s_addr = inet_addr( _addr ?: "0.0.0.0" );
      addr.sin_port        = htons( port ?: 2323 );
 
-     if (bind( fd, &addr, sizeof(addr) )) {
+     if (bind( fd, (struct sockaddr*)&addr, sizeof(addr) )) {
           ret = errno2result( errno );
           D_PERROR( "Voodoo/Server: Could not bind() the socket!\n" );
           goto error;
@@ -366,7 +366,7 @@ voodoo_server_run( VoodooServer *server )
 
                switch (poll( &pf, 1, 100 )) {
                     default:
-                         fd = accept( server->fd, &addr, &addrlen );
+                         fd = accept( server->fd, (struct sockaddr*)&addr, &addrlen );
                          if (fd < 0) {
                               D_PERROR( "Voodoo/Server: Could not accept() incoming connection!\n" );
                               break;
