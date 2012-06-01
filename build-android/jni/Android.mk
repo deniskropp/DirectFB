@@ -166,6 +166,7 @@ SURFACE_CORE_SOURCES_NEW = \
 	$(DFB_SOURCE)/src/core/shared_secure_surface_pool.c	\
 	$(DFB_SOURCE)/src/core/surface.c				\
 	$(DFB_SOURCE)/src/core/surface_buffer.c			\
+	$(DFB_SOURCE)/src/core/surface_client.c			\
 	$(DFB_SOURCE)/src/core/surface_core.c			\
 	$(DFB_SOURCE)/src/core/surface_pool.c			\
 	$(DFB_SOURCE)/src/core/surface_allocation.c
@@ -257,6 +258,8 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/CoreScreen_real.cpp			\
 	$(DFB_SOURCE)/src/core/CoreSurface.cpp			\
 	$(DFB_SOURCE)/src/core/CoreSurface_real.cpp			\
+	$(DFB_SOURCE)/src/core/CoreSurfaceClient.cpp		\
+	$(DFB_SOURCE)/src/core/CoreSurfaceClient_real.cpp	\
 	$(DFB_SOURCE)/src/core/CoreWindow.cpp			\
 	$(DFB_SOURCE)/src/core/CoreWindowStack.cpp			\
 	$(DFB_SOURCE)/src/core/CoreWindowStack_real.cpp		\
