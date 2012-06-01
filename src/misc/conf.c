@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <directfb.h>
 #include <directfb_util.h>
@@ -671,7 +672,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp( name, "system-surface-base-alignment" ) == 0) {
           if (value) {
                char *error;
-               ulong base_align;
+               unsigned long base_align;
 
                base_align = strtoul( value, &error, 10 );
 
@@ -697,7 +698,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp( name, "system-surface-pitch-alignment" ) == 0) {
           if (value) {
                char *error;
-               ulong pitch_align;
+               unsigned long pitch_align;
 
                pitch_align = strtoul( value, &error, 10 );
 
