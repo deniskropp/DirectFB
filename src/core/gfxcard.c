@@ -352,6 +352,8 @@ dfb_graphics_core_shutdown( DFBGraphicsCore *data,
      D_MAGIC_CLEAR( data );
      D_MAGIC_CLEAR( shared );
 
+     card = NULL;
+
      return DFB_OK;
 }
 
@@ -374,6 +376,8 @@ dfb_graphics_core_leave( DFBGraphicsCore *data,
 
 
      D_MAGIC_CLEAR( data );
+
+     card = NULL;
 
      return DFB_OK;
 }
