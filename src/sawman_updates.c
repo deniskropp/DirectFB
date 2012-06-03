@@ -2052,14 +2052,14 @@ process_updates( SaWMan              *sawman,
                     if (left_num) {
                          left = left_updates[0];
 
-                         for (i=1; i<left_updates; i++)
+                         for (i=1; i<left_num; i++)
                               dfb_region_region_union( &left, &left_updates[i] );
                     }
 
                     if (right_num) {
                          right = right_updates[0];
 
-                         for (i=1; i<right_updates; i++)
+                         for (i=1; i<right_num; i++)
                               dfb_region_region_union( &right, &right_updates[i] );
                     }
 
