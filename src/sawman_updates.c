@@ -955,6 +955,7 @@ update_region4_r( SaWMan          *sawman,
           offset *= right_eye ? -1 : 1;
           region = DFB_REGION_INIT_FROM_RECTANGLE(&sawwin->bounds);
           region.x1 += offset;
+          region.x2 += offset;
 
           if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
                if (dfb_region_intersect( &region, bin->region.x1, bin->region.y1, bin->region.x2, bin->region.y2))
