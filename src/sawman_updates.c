@@ -2070,11 +2070,14 @@ process_updates( SaWMan              *sawman,
                                                          right_num ? &right : NULL, flags | DSFLIP_WAITFORSYNC );
                }
                else {
-                    /* Flip the whole region. */
-                    dfb_layer_region_flip_update( tier->region, NULL, flags | DSFLIP_WAITFORSYNC );
+                    /* Flip the updated region .*/
+                    for (i=0; i<left_num; i++) {
+                         const DFBRegion *update = &left_updates[i];
 
-                    /* Copy back the updated region. */
-                    dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
+                         DFB_REGION_ASSERT( update );
+
+                         dfb_layer_region_flip_update( tier->region, update, flags );
+                    }
                }
                break;
      }
