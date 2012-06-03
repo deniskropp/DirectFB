@@ -214,7 +214,8 @@ fusion_call_execute (FusionCall          *call,
           execute.call_id  = call->call_id;
           execute.call_arg = call_arg;
           execute.call_ptr = call_ptr;
-          execute.flags    = flags;
+          execute.flags    = flags | FCEF_RESUMABLE;
+          execute.serial   = 0;
 
           fusion_world_flush_calls( _fusion_world( call->shared ), 1 );
 
@@ -279,7 +280,8 @@ fusion_call_execute2(FusionCall          *call,
           execute.call_arg = call_arg;
           execute.ptr      = ptr;
           execute.length   = length;
-          execute.flags    = flags;
+          execute.flags    = flags | FCEF_RESUMABLE;
+          execute.serial   = 0;
 
           fusion_world_flush_calls( _fusion_world( call->shared ), 1 );
 
@@ -406,7 +408,8 @@ fusion_call_execute3(FusionCall          *call,
           execute.length     = length;
           execute.ret_ptr    = ret_ptr;
           execute.ret_length = ret_size;
-          execute.flags      = flags;
+          execute.flags      = flags | FCEF_RESUMABLE;
+          execute.serial     = 0;
 
           D_DEBUG_AT( Fusion_Call, "  -> ptr %p, length %u\n", ptr, length );
 
