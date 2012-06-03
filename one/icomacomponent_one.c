@@ -108,6 +108,7 @@ typedef struct {
      DirectThread        *notify_thread;
      bool                 notify_stop;
 
+     DirectMutex          calls_lock;
      DirectHash          *calls;
      unsigned int         serials;
 
@@ -179,6 +180,7 @@ IComaComponent_One_Destruct( IComaComponent *thiz )
 
      direct_hash_iterate( data->calls, call_iterator, data );
      direct_hash_destroy( data->calls );
+     direct_mutex_deinit( &data->calls_lock );
 
      if (data->notifications)
           D_FREE( data->notifications );
@@ -390,7 +392,9 @@ IComaComponent_One_Return( IComaComponent *thiz,
 
      D_DEBUG_AT( IComaComponent_One, "%s( val %d, serial %u )\n", __FUNCTION__, val, serial );
 
+     direct_mutex_lock( &data->calls_lock );
      call = direct_hash_lookup( data->calls, serial );
+     direct_mutex_unlock( &data->calls_lock );
      if (!call)
           return DR_INVARG;
 
@@ -407,7 +411,9 @@ IComaComponent_One_Return( IComaComponent *thiz,
 
      ret = OneQueue_DispatchV( call->response_qid, datas, lengths, call->length ? 2 : 1 );
 
+     direct_mutex_lock( &data->calls_lock );
      direct_hash_remove( data->calls, serial );
+     direct_mutex_unlock( &data->calls_lock );
 
      D_MAGIC_CLEAR( call );
 
@@ -618,6 +624,8 @@ DispatchCall( IComaComponent_One_data  *data,
 
      direct_memcpy( call->data, request + 1, request->length );
 
+     direct_mutex_lock( &data->calls_lock );
+
      do {
           serial = data->serials++;
      } while (direct_hash_lookup( data->calls, serial ));
@@ -627,6 +635,8 @@ DispatchCall( IComaComponent_One_data  *data,
      D_MAGIC_SET( call, CallData );
 
      direct_hash_insert( data->calls, serial, call );
+
+     direct_mutex_unlock( &data->calls_lock );
 
      data->method_func( data->method_ctx, request->method_id, call->data, serial );
 
@@ -979,6 +989,7 @@ Construct( IComaComponent   *thiz,
 
      OneQueue_SetName( data->notify_qid, buf );
 
+     direct_recursive_mutex_init( &data->calls_lock );
      direct_hash_create( 7, &data->calls );
 
      if (thread)
