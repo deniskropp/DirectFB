@@ -2046,21 +2046,34 @@ process_updates( SaWMan              *sawman,
                break;
 
           default:
-               /* Flip the updated region .*/
-               for (i=0; i<left_num; i++) {
-                    const DFBRegion *update = &left_updates[i];
+               if (tier->region->config.options & DLOP_STEREO) {
+                    DFBRegion left, right;
 
-                    DFB_REGION_ASSERT( update );
+                    if (left_num) {
+                         left = left_updates[0];
 
-                    dfb_layer_region_flip_update( tier->region, update, flags );
+                         for (i=1; i<left_updates; i++)
+                              dfb_region_region_union( &left, &left_updates[i] );
+                    }
+
+                    if (right_num) {
+                         right = right_updates[0];
+
+                         for (i=1; i<right_updates; i++)
+                              dfb_region_region_union( &right, &right_updates[i] );
+                    }
+
+                    /* Flip the whole region. */
+                    dfb_layer_region_flip_update_stereo( tier->region,
+                                                         left_num  ? &left  : NULL,
+                                                         right_num ? &right : NULL, flags | DSFLIP_WAITFORSYNC );
                }
+               else {
+                    /* Flip the whole region. */
+                    dfb_layer_region_flip_update( tier->region, NULL, flags | DSFLIP_WAITFORSYNC );
 
-               for (i=0; i<right_num; i++) {
-                    const DFBRegion *update = &right_updates[i];
-
-                    DFB_REGION_ASSERT( update );
-
-                    dfb_layer_region_flip_update( tier->region, update, flags );
+                    /* Copy back the updated region. */
+                    dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
                }
                break;
      }
