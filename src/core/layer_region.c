@@ -729,7 +729,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
           case DLBM_BACKVIDEO:
                /* Check if simply swapping the buffers is possible... */
                if (!(flags & DSFLIP_BLIT) && !surface->rotation &&
-                   ((!left_update && !right_update) || 
+                   ((!left_update && !right_update) ||      // FIXME: below code crashes if only one is set
                     ((left_update->x1 == 0 &&
                       left_update->y1 == 0 &&
                       left_update->x2 == surface->config.size.w - 1 &&
@@ -793,10 +793,14 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
 
                /* ...or copy updated contents from back to front buffer. */
                eye = dfb_surface_get_stereo_eye(surface);
-               dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
-               dfb_back_to_front_copy_rotation( surface, left_update, surface->rotation );
-               dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
-               dfb_back_to_front_copy_rotation( surface, right_update, surface->rotation );
+               if (left_update) {
+                    dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
+                    dfb_back_to_front_copy_rotation( surface, left_update, surface->rotation );
+               }
+               if (right_update) {
+                    dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
+                    dfb_back_to_front_copy_rotation( surface, right_update, surface->rotation );
+               }
                dfb_surface_set_stereo_eye(surface, eye);
 
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT) {
@@ -845,18 +849,28 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
 
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
                     
-                    if( !left_update ) {
-                         unrotated      = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
-                                             region->config.width, region->config.height );
-                         left_update    = &unrotated;
+                    if (!left_update && !right_update) {
+                         unrotated    = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
+                                           region->config.width, region->config.height );
+                         left_update  = &unrotated;
+
+                         unrotated    = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
+                                           region->config.width, region->config.height );
+                         right_update = &unrotated;
                     }
-                    if( !right_update ) {
-                         unrotated      = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
-                                             region->config.width, region->config.height );
-                         right_update    = &unrotated;
+                    else if (!left_update) {
+                         left_update  = right_update;
                     }
+                    else if (!right_update) {
+                         right_update = left_update;
+                    }
+
                     dfb_region_from_rotated( &left_rotated, left_update, &surface->config.size, surface->rotation );
-                    dfb_region_from_rotated( &right_rotated, right_update, &surface->config.size, surface->rotation );
+
+                    if (left_update != right_update)
+                         dfb_region_from_rotated( &right_rotated, right_update, &surface->config.size, surface->rotation );
+                    else
+                         right_rotated = left_rotated;
 
                     ret = funcs->UpdateRegion( layer,
                                                layer->driver_data,
