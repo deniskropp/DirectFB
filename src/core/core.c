@@ -1629,7 +1629,7 @@ dfb_core_arena_initialize( void *ctx )
      fusion_world_set_leave_callback( core->world, dfb_core_leave_callback, NULL );
 
      /* Register shared data. */
-     core_arena_add_shared_field( core, "Core/Shared", shared );
+     fusion_world_set_root( core->world, shared );
 
 
      /* Initialize. */
@@ -1697,10 +1697,7 @@ dfb_core_arena_join( void *ctx )
      D_DEBUG_AT( DirectFB_Core, "Joining...\n" );
 
      /* Get shared data. */
-     if (core_arena_get_shared_field( core, "Core/Shared", &field ))
-          return DFB_FUSION;
-
-     core->shared = field;
+     core->shared = fusion_world_get_root( core->world );
 
      if (fusion_config->secure_fusion != core->shared->secure) {
           D_ERROR( "DirectFB/Core: Local secure-fusion config (%d) does not match with running session (%d)!\n",
