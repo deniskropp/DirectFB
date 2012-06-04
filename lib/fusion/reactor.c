@@ -47,7 +47,7 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
-#include <fusion/types.h>
+#include <fusion/conf.h>
 #include <fusion/lock.h>
 #include <fusion/shmalloc.h>
 #include <fusion/reactor.h>
@@ -394,7 +394,8 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                                  bool                self,
                                  const ReactionFunc *globals )
 {
-     FusionReactorDispatch dispatch;
+     FusionWorld           *world;
+     FusionReactorDispatch  dispatch;
 
      D_MAGIC_ASSERT( reactor, FusionReactor );
 
@@ -404,8 +405,15 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                  "fusion_reactor_dispatch( %p [%d], msg_data %p, self %s, globals %p)\n",
                  reactor, reactor->id, msg_data, self ? "true" : "false", globals );
 
+     world = _fusion_world(reactor->shared);
+
      /* Handle global reactions first. */
      if (channel == 0 && reactor->globals) {
+          if (fusion_config->secure_fusion && !fusion_master(world)) {
+               D_BUG( "global reactions on channel 0, cannot dispatch from secure slave" );
+               return DR_BUG;
+          }
+
           if (globals)
                process_globals( reactor, msg_data, globals );
           else
@@ -415,7 +423,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
      
      /* Handle local reactions. */
      if (self && reactor->direct) {
-          _fusion_reactor_process_message( _fusion_world(reactor->shared), reactor->id, channel, msg_data );
+          _fusion_reactor_process_message( world, reactor->id, channel, msg_data );
           self = false;
      }
 
