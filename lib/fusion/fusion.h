@@ -152,6 +152,11 @@ bool FUSION_API fusion_master( const FusionWorld *world );
 DirectResult FUSION_API fusion_sync( const FusionWorld *world );
 
 /*
+ * Unblock slaves from entering. Must be called once after fusion_enter as master.
+ */
+DirectResult FUSION_API fusion_world_activate( FusionWorld *world );
+
+/*
  * Sends a signal to one or more fusionees and optionally waits
  * for their processes to terminate.
  *

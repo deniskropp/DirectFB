@@ -761,19 +761,6 @@ fusion_enter( int               world_index,
           goto error4;
      }
 
-     /* Let others enter the world. */
-     if (enter.fusion_id == FUSION_ID_MASTER) {
-          D_DEBUG_AT( Fusion_Main, "  -> unblocking world...\n" );
-
-          while (ioctl( fd, FUSION_UNBLOCK )) {
-               if (errno != EINTR) {
-                    D_PERROR( "Fusion/Init: Could not unblock world!\n" );
-                    ret = DR_FUSION;
-                    goto error4;
-               }
-          }
-     }
-
      D_DEBUG_AT( Fusion_Main, "  -> done. (%p)\n", world );
 
      pthread_mutex_unlock( &fusion_worlds_lock );
@@ -826,6 +813,21 @@ error:
      direct_shutdown();
 
      return ret;
+}
+
+DirectResult
+fusion_world_activate( FusionWorld *world )
+{
+     D_DEBUG_AT( Fusion_Main, "  -> unblocking world...\n" );
+
+     while (ioctl( world->fusion_fd, FUSION_UNBLOCK )) {
+          if (errno != EINTR) {
+               D_PERROR( "Fusion/Init: Could not unblock world!\n" );
+               return DR_FUSION;
+          }
+     }
+
+     return DR_OK;
 }
 
 DirectResult
@@ -2868,6 +2870,12 @@ error:
      direct_shutdown();
 
      return ret;
+}
+
+DirectResult
+fusion_world_activate( FusionWorld *world )
+{
+     D_DEBUG_AT( Fusion_Main, "  -> unblocking world...\n" );
 }
 
 DirectResult
