@@ -49,7 +49,6 @@
 #include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 #include <fusion/reactor.h>
-#include <fusion/arena.h>
 
 #include <core/CoreInputDevice.h>
 

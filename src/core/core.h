@@ -148,6 +148,16 @@ DirectResult dfb_core_enum_layer_regions ( CoreDFB               *core,
                                            FusionObjectCallback   callback,
                                            void                  *ctx );
 
+/*
+ * Arena shared fields
+ */
+DirectResult core_arena_add_shared_field( CoreDFB         *core,
+                                          const char      *name,
+                                          void            *data );
+
+DirectResult core_arena_get_shared_field( CoreDFB         *core,
+                                          const char      *name,
+                                          void           **data );
 
 /*
  * Returns true if the calling process is the master fusionee,
@@ -164,11 +174,6 @@ void         dfb_core_activate( CoreDFB *core );
  * Returns the core's fusion world.
  */
 FusionWorld *dfb_core_world( CoreDFB *core );
-
-/*
- * Returns the core arena.
- */
-FusionArena *dfb_core_arena( CoreDFB *core );
 
 /*
  * Returns the shared memory pool of the core.
@@ -235,6 +240,7 @@ struct __DFB_CoreDFBShared {
      FusionSHMPoolShared *shmpool_data; /* for raw data, e.g. surface buffers */
 
      FusionCall           call;
+     FusionHash          *field_hash;
 };
 
 struct __DFB_CoreDFB {
@@ -245,11 +251,9 @@ struct __DFB_CoreDFB {
      int                      fusion_id;
 
      FusionWorld             *world;
-     FusionArena             *arena;
 
      CoreDFBShared           *shared;
 
-     bool                     master;
      bool                     suspended;
 
      DirectLink              *cleanups;

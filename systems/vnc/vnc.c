@@ -34,7 +34,6 @@
 
 #include <directfb.h>
 
-#include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -107,7 +106,7 @@ system_initialize( CoreDFB *core, void **data )
 
      dfb_vnc->layer = dfb_layers_register( dfb_vnc->screen, dfb_vnc, vncPrimaryLayerFuncs );
 
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "vnc", dfb_vnc->shared );
+     core_arena_add_shared_field( core, "vnc", dfb_vnc->shared );
 
      *data = dfb_vnc;
 
@@ -121,7 +120,7 @@ system_join( CoreDFB *core, void **data )
 
      D_ASSERT( dfb_vnc == NULL );
 
-     fusion_arena_get_shared_field( dfb_core_arena( core ), "vnc", &ret );
+     core_arena_get_shared_field( core, "vnc", &ret );
 
      dfb_vnc = (DFBVNC*) D_CALLOC( 1, sizeof(DFBVNC) );
      if (!dfb_vnc)

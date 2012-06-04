@@ -35,7 +35,6 @@
 
 #include <direct/mem.h>
 
-#include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -173,7 +172,7 @@ system_initialize( CoreDFB *core, void **ret_data )
 
      dfb_surface_pool_initialize( core, &devmemSurfacePoolFuncs, &shared->pool );
 
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "devmem", shared );
+     core_arena_add_shared_field( core, "devmem", shared );
 
      return DFB_OK;
 }
@@ -202,7 +201,7 @@ system_join( CoreDFB *core, void **ret_data )
      if (!data)
           return D_OOM();
 
-     ret = fusion_arena_get_shared_field( dfb_core_arena( core ), "devmem", &tmp );
+     ret = core_arena_get_shared_field( core, "devmem", &tmp );
      if (ret) {
           D_FREE( data );
           return ret;

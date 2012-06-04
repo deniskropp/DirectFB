@@ -34,7 +34,6 @@
 #include <errno.h>
 
 #include <fusion/shmalloc.h>
-#include <fusion/arena.h>
 #include <fusion/property.h>
 
 #include <directfb.h>

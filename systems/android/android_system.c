@@ -35,7 +35,6 @@
 
 #include <direct/mem.h>
 
-#include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -192,7 +191,7 @@ system_initialize( CoreDFB *core, void **ret_data )
      android->layer  = dfb_layers_register( android->screen, android, androidLayerFuncs );
 
 
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "android", shared );
+     core_arena_add_shared_field( core, "android", shared );
 
      return DFB_OK;
 }
@@ -213,7 +212,7 @@ system_join( CoreDFB *core, void **ret_data )
 
      android->core = core;
 
-     ret = fusion_arena_get_shared_field( dfb_core_arena( core ), "android", &tmp );
+     ret = core_arena_get_shared_field( core, "android", &tmp );
      if (ret) {
           D_FREE( android );
           return ret;

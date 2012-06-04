@@ -40,7 +40,6 @@
 #include <fusion/conf.h>
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
-#include <fusion/arena.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>

@@ -36,7 +36,6 @@
 
 #include <direct/mem.h>
 
-#include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -213,7 +212,7 @@ system_initialize( CoreDFB *core, void **ret_data )
 
      dfb_surface_pool_initialize( core, eglSurfacePoolFuncs, &shared->pool );
 
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "egl", shared );
+     core_arena_add_shared_field( core, "egl", shared );
 
      return DFB_OK;
 }
@@ -234,7 +233,7 @@ system_join( CoreDFB *core, void **ret_data )
 
      data->core = core;
 
-     ret = fusion_arena_get_shared_field( dfb_core_arena( core ), "egl", &tmp );
+     ret = core_arena_get_shared_field( core, "egl", &tmp );
      if (ret) {
           D_FREE( data );
           return ret;

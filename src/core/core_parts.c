@@ -28,7 +28,6 @@
 
 #include <config.h>
 
-#include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
 #include <directfb.h>
@@ -86,8 +85,7 @@ dfb_core_part_initialize( CoreDFB  *core,
      }
 
      if (shared)
-          fusion_arena_add_shared_field( dfb_core_arena( core ),
-                                         core_part->name, shared );
+          core_arena_add_shared_field( core, core_part->name, shared );
 
      core_part->data_local  = local;
      core_part->data_shared = shared;
@@ -112,8 +110,7 @@ dfb_core_part_join( CoreDFB  *core,
      D_DEBUG_AT( Core_Parts, "Going to join '%s' core...\n", core_part->name );
 
      if (core_part->size_shared &&
-         fusion_arena_get_shared_field( dfb_core_arena( core ),
-                                        core_part->name, &shared ))
+         core_arena_get_shared_field( core, core_part->name, &shared ))
           return DFB_FUSION;
 
      if (core_part->size_local)

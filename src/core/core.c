@@ -39,7 +39,6 @@
 #include <direct/list.h>
 
 #include <fusion/fusion.h>
-#include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 #include <fusion/shm/shm_internal.h>
 
@@ -74,8 +73,8 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
-#include <fusion/build.h>
 #include <fusion/conf.h>
+#include <fusion/hash.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
@@ -180,15 +179,11 @@ static DirectSignalHandlerResult dfb_core_signal_handler( int   num,
 
 /******************************************************************************/
 
-static int dfb_core_arena_initialize( FusionArena *arena,
-                                      void        *ctx );
-static int dfb_core_arena_shutdown  ( FusionArena *arena,
-                                      void        *ctx,
+static int dfb_core_arena_initialize( void        *ctx );
+static int dfb_core_arena_shutdown  ( void        *ctx,
                                       bool         emergency );
-static int dfb_core_arena_join      ( FusionArena *arena,
-                                      void        *ctx );
-static int dfb_core_arena_leave     ( FusionArena *arena,
-                                      void        *ctx,
+static int dfb_core_arena_join      ( void        *ctx );
+static int dfb_core_arena_leave     ( void        *ctx,
                                       bool         emergency );
 
 /******************************************************************************/
@@ -324,13 +319,12 @@ dfb_core_create( CoreDFB **ret_core )
 
      fusion_call_init( &core_dfb->async_call, Core_AsyncCall_Handler, core, core_dfb->world );
 
-     if (fusion_arena_enter( core->world, "DirectFB/Core",
-                             dfb_core_arena_initialize, dfb_core_arena_join,
-                             core, &core->arena, &ret ) || ret)
-     {
-          ret = ret ? ret : DFB_FUSION;
+     if (dfb_core_is_master( core_dfb ))
+          ret = dfb_core_arena_initialize( core_dfb );
+     else
+          ret = dfb_core_arena_join( core_dfb );
+     if (ret)
           goto error;
-     }
 
      shared = core->shared;
      D_MAGIC_ASSERT( shared, CoreDFBShared );
@@ -415,7 +409,7 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      if (core->cleanup_handler)
           direct_cleanup_handler_remove( core->cleanup_handler );
 
-     if (core->master) {
+     if (dfb_core_is_master( core )) {
           if (emergency) {
                fusion_kill( core->world, 0, SIGKILL, 1000 );
           }
@@ -427,13 +421,10 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      dfb_core_process_cleanups( core, emergency );
 
-     while (fusion_arena_exit( core->arena, dfb_core_arena_shutdown,
-                               core->master ? NULL : dfb_core_arena_leave,
-                               core, emergency, NULL ) == DR_BUSY)
-     {
-          D_ONCE( "waiting for DirectFB slaves to terminate" );
-          direct_thread_sleep( 100000 );
-     }
+     if (dfb_core_is_master( core_dfb ))
+          dfb_core_arena_shutdown( core_dfb, emergency );
+     else
+          dfb_core_arena_leave( core_dfb, emergency );
 
      fusion_call_destroy( &core_dfb->async_call );
 
@@ -985,12 +976,60 @@ dfb_core_enum_layer_regions( CoreDFB               *core,
      return fusion_object_pool_enum( shared->layer_region_pool, callback, ctx );
 }
 
+DirectResult
+core_arena_add_shared_field( CoreDFB         *core,
+                             const char      *name,
+                             void            *data )
+{
+     DirectResult       ret;
+     char              *shname;
+
+     D_DEBUG_AT( DirectFB_Core, "%s( '%s' -> %p )\n", __FUNCTION__, name, data );
+
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+
+     /* Give it the requested name. */
+     shname = SHSTRDUP( core->shared->shmpool, name );
+     if (shname)
+          ret = fusion_hash_replace( core->shared->field_hash, shname, data, NULL, NULL );
+     else
+          ret = D_OOSHM();
+
+     return ret;
+}
+
+DirectResult
+core_arena_get_shared_field( CoreDFB         *core,
+                             const char      *name,
+                             void           **data )
+{
+     void *ptr;
+
+     D_DEBUG_AT( DirectFB_Core, "%s( '%s' )\n", __FUNCTION__, name );
+
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+
+     /* Lookup entry. */
+     ptr = fusion_hash_lookup( core->shared->field_hash, name );
+
+     D_DEBUG_AT( DirectFB_Core, "  -> %p\n", ptr );
+
+     if (!ptr)
+          return DR_ITEMNOTFOUND;
+
+     *data = ptr;
+
+     return DR_OK;
+}
+
 bool
 dfb_core_is_master( CoreDFB *core )
 {
      D_MAGIC_ASSERT( core, CoreDFB );
 
-     return core->master;
+     return core->fusion_id == FUSION_ID_MASTER;
 }
 
 void
@@ -1018,19 +1057,6 @@ dfb_core_world( CoreDFB *core )
      D_MAGIC_ASSERT( core, CoreDFB );
 
      return core->world;
-}
-
-FusionArena *
-dfb_core_arena( CoreDFB *core )
-{
-     D_ASSUME( core != NULL );
-
-     if (!core)
-          core = core_dfb;
-
-     D_MAGIC_ASSERT( core, CoreDFB );
-
-     return core->arena;
 }
 
 FusionSHMPoolShared *
@@ -1083,7 +1109,7 @@ dfb_core_suspend( CoreDFB *core )
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
-     if (!core->master)
+     if (!dfb_core_is_master( core ))
           return DFB_ACCESSDENIED;
 
      if (core->suspended)
@@ -1131,7 +1157,7 @@ dfb_core_resume( CoreDFB *core )
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
-     if (!core->master)
+     if (!dfb_core_is_master( core ))
           return DFB_ACCESSDENIED;
 
      if (!core->suspended)
@@ -1558,8 +1584,7 @@ dfb_core_leave_callback( FusionWorld *world,
 }
 
 static int
-dfb_core_arena_initialize( FusionArena *arena,
-                           void        *ctx )
+dfb_core_arena_initialize( void *ctx )
 {
      DFBResult            ret;
      CoreDFB             *core = ctx;
@@ -1584,10 +1609,16 @@ dfb_core_arena_initialize( FusionArena *arena,
      }
 
      core->shared = shared;
-     core->master = true;
 
      shared->shmpool = pool;
      shared->secure  = fusion_config->secure_fusion;
+
+     ret = fusion_hash_create( pool, HASH_STRING, HASH_PTR, 7, &shared->field_hash );
+     if (ret) {
+          SHFREE( pool, shared );
+          fusion_shm_pool_destroy( core->world, pool );
+          return ret;
+     }
 
      D_MAGIC_SET( shared, CoreDFBShared );
 
@@ -1598,12 +1629,13 @@ dfb_core_arena_initialize( FusionArena *arena,
      fusion_world_set_leave_callback( core->world, dfb_core_leave_callback, NULL );
 
      /* Register shared data. */
-     fusion_arena_add_shared_field( arena, "Core/Shared", shared );
+     core_arena_add_shared_field( core, "Core/Shared", shared );
 
 
      /* Initialize. */
      ret = CoreDFB_Initialize( core );
      if (ret) {
+          fusion_hash_destroy( shared->field_hash );
           D_MAGIC_CLEAR( shared );
           SHFREE( pool, shared );
           fusion_shm_pool_destroy( core->world, pool );
@@ -1614,9 +1646,8 @@ dfb_core_arena_initialize( FusionArena *arena,
 }
 
 static int
-dfb_core_arena_shutdown( FusionArena *arena,
-                         void        *ctx,
-                         bool         emergency)
+dfb_core_arena_shutdown( void *ctx,
+                         bool  emergency)
 {
      DFBResult            ret;
      CoreDFB             *core = ctx;
@@ -1633,7 +1664,7 @@ dfb_core_arena_shutdown( FusionArena *arena,
 
      D_DEBUG_AT( DirectFB_Core, "Shutting down...\n" );
 
-     if (!core->master) {
+     if (!dfb_core_is_master( core )) {
           D_WARN( "refusing shutdown in slave" );
           return dfb_core_leave( core, emergency );
      }
@@ -1642,6 +1673,8 @@ dfb_core_arena_shutdown( FusionArena *arena,
 
      /* Shutdown. */
      ret = dfb_core_shutdown( core, emergency );
+
+     fusion_hash_destroy( shared->field_hash );
 
      D_MAGIC_CLEAR( shared );
 
@@ -1653,8 +1686,7 @@ dfb_core_arena_shutdown( FusionArena *arena,
 }
 
 static int
-dfb_core_arena_join( FusionArena *arena,
-                     void        *ctx )
+dfb_core_arena_join( void *ctx )
 {
      DFBResult  ret;
      CoreDFB   *core = ctx;
@@ -1665,7 +1697,7 @@ dfb_core_arena_join( FusionArena *arena,
      D_DEBUG_AT( DirectFB_Core, "Joining...\n" );
 
      /* Get shared data. */
-     if (fusion_arena_get_shared_field( arena, "Core/Shared", &field ))
+     if (core_arena_get_shared_field( core, "Core/Shared", &field ))
           return DFB_FUSION;
 
      core->shared = field;
@@ -1686,9 +1718,8 @@ dfb_core_arena_join( FusionArena *arena,
 }
 
 static int
-dfb_core_arena_leave( FusionArena *arena,
-                      void        *ctx,
-                      bool         emergency)
+dfb_core_arena_leave( void *ctx,
+                      bool  emergency)
 {
      DFBResult  ret;
      CoreDFB   *core = ctx;

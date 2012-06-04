@@ -53,7 +53,6 @@
 #define SYS_CLASS_GRAPHICS_DEV_MODEL "/sys/class/graphics/%s/device/device"
 #define SYSFS_PATH_MAX 128
 
-#include <fusion/arena.h>
 #include <fusion/fusion.h>
 #include <fusion/reactor.h>
 #include <fusion/shmalloc.h>
@@ -474,7 +473,7 @@ system_initialize( CoreDFB *core, void **data )
      shared->shmpool      = pool;
      shared->shmpool_data = pool_data;
 
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "fbdev", shared );
+     core_arena_add_shared_field( core, "fbdev", shared );
 
      dfb_fbdev->core   = core;
      dfb_fbdev->shared = shared;
@@ -658,8 +657,7 @@ system_join( CoreDFB *core, void **data )
      if (!dfb_fbdev)
           return D_OOM();
 
-     fusion_arena_get_shared_field( dfb_core_arena( core ),
-                                    "fbdev", &shared );
+     core_arena_get_shared_field( core, "fbdev", &shared );
 
      dfb_fbdev->core = core;
      dfb_fbdev->shared = shared;

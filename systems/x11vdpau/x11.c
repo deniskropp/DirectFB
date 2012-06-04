@@ -36,7 +36,6 @@
 
 #include <directfb.h>
 
-#include <fusion/arena.h>
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 #include <fusion/lock.h>
@@ -298,7 +297,7 @@ system_initialize( CoreDFB *core, void **data )
       */
      dfb_surface_pool_initialize( core, x11vdpauSurfacePoolFuncs, &shared->vdpau_pool );
 
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "x11", shared );
+     core_arena_add_shared_field( core, "x11", shared );
 
      return DFB_OK;
 }
@@ -317,7 +316,7 @@ system_join( CoreDFB *core, void **data )
      if (!x11)
           return D_OOM();
 
-     fusion_arena_get_shared_field( dfb_core_arena( core ), "x11", &ptr );
+     core_arena_get_shared_field( core, "x11", &ptr );
      shared = ptr;
 
 

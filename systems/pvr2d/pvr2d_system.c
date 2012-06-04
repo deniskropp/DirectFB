@@ -36,7 +36,6 @@
 
 #include <direct/mem.h>
 
-#include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -228,7 +227,7 @@ system_initialize( CoreDFB *core, void **ret_data )
 
      dfb_surface_pool_initialize( core, pvr2dSurfacePoolFuncs, &shared->pool );
 
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "pvr2d", shared );
+     core_arena_add_shared_field( core, "pvr2d", shared );
 
      return DFB_OK;
 }
@@ -249,7 +248,7 @@ system_join( CoreDFB *core, void **ret_data )
 
      data->core = core;
 
-     ret = fusion_arena_get_shared_field( dfb_core_arena( core ), "pvr2d", &tmp );
+     ret = core_arena_get_shared_field( core, "pvr2d", &tmp );
      if (ret) {
           D_FREE( data );
           return ret;

@@ -35,7 +35,6 @@
 
 #include <direct/mem.h>
 
-#include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -179,7 +178,7 @@ system_initialize( CoreDFB *core, void **ret_data )
      mesa->layer  = dfb_layers_register( mesa->screen, mesa, mesaLayerFuncs );
 
 
-     fusion_arena_add_shared_field( dfb_core_arena( core ), "mesa", shared );
+     core_arena_add_shared_field( core, "mesa", shared );
 
      return DFB_OK;
 }
@@ -206,7 +205,7 @@ system_join( CoreDFB *core, void **ret_data )
 
      mesa->core = core;
 
-     ret = fusion_arena_get_shared_field( dfb_core_arena( core ), "mesa", &tmp );
+     ret = core_arena_get_shared_field( core, "mesa", &tmp );
      if (ret) {
           D_FREE( mesa );
           return ret;
