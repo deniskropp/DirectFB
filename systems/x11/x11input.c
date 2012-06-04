@@ -41,8 +41,7 @@
 #include <X11/keysym.h>
 
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
+#include <core/core.h>
 #include <core/input.h>
 #include <core/layer_context.h>
 #include <core/layer_control.h>
@@ -50,6 +49,7 @@
 #include <core/system.h>
 
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/thread.h>
 
 #include "xwindow.h"
@@ -459,10 +459,12 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData* pData, DFBX11 *x11)
 }
 
 static void
-handle_expose( const XExposeEvent *expose )
+handle_expose_Async( void *ctx,
+                     void *ctx2 )
 {
-     CoreLayer               *layer = 0;
-     const DisplayLayerFuncs *funcs = 0;
+     const XExposeEvent      *expose = ctx;
+     CoreLayer               *layer  = 0;
+     const DisplayLayerFuncs *funcs  = 0;
      CoreLayerContext        *context;
      int                      i;
 
@@ -477,8 +479,10 @@ handle_expose( const XExposeEvent *expose )
      }
 
      /* layer not found? */
-     if( i==dfb_layer_num() )
+     if( i==dfb_layer_num() ) {
+          D_FREE( ctx );
           return;
+     }
 
      funcs = layer->funcs;
 
@@ -541,6 +545,8 @@ handle_expose( const XExposeEvent *expose )
           /* Release the context. */
           dfb_layer_context_unref( context );
      }
+
+     D_FREE( ctx );
 }
 
 /*
@@ -618,9 +624,18 @@ x11EventThread( DirectThread *thread, void *driver_data )
                          break;
                     }
 
-                    case Expose:
-                         handle_expose( &xEvent.xexpose );
+                    case Expose: {
+                         XExposeEvent *event_copy = D_MALLOC( sizeof(XExposeEvent) );
+
+                         if (event_copy) {
+                              direct_memcpy( event_copy, &xEvent.xexpose, sizeof(XExposeEvent) );
+
+                              Core_AsyncCall( handle_expose_Async, event_copy, NULL );
+                         }
+                         else
+                              D_OOM();
                          break;
+                    }
 
                     case DestroyNotify:
                          /* this event is mainly to unblock XNextEvent. */
