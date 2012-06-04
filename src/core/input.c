@@ -46,6 +46,7 @@
 #include <direct/messages.h>
 
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 #include <fusion/reactor.h>
 #include <fusion/arena.h>
@@ -1496,7 +1497,7 @@ init_devices( CoreDFB *core )
                     snprintf( buf, sizeof(buf), "%s", device_info.desc.name );
 
                /* init skirmish */
-               fusion_skirmish_init( &shared->lock, buf, dfb_core_world(core) );
+               fusion_skirmish_init2( &shared->lock, buf, dfb_core_world(core), fusion_config->secure_fusion );
 
                /* create reactor */
                shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent), buf, dfb_core_world(core) );
@@ -1636,7 +1637,7 @@ dfb_input_create_device(int device_index, CoreDFB *core_in, void *driver_in)
      snprintf( buf, sizeof(buf), "%s (%d)", device_info.desc.name, device_index);
 
      /* init skirmish */
-     result = fusion_skirmish_init( &shared->lock, buf, dfb_core_world(device->core) );
+     result = fusion_skirmish_init2( &shared->lock, buf, dfb_core_world(device->core), fusion_config->secure_fusion );
      if (result) {
           funcs->CloseDevice( driver_data );
           SHFREE( pool, shared );
