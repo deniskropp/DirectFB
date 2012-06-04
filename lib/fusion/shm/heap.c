@@ -703,6 +703,7 @@ __shmalloc_join_heap( FusionSHM  *shm,
      shmalloc_heap   *heap = NULL;
      int              open_flags = write ? O_RDWR : O_RDONLY;
      int              prot_flags = PROT_READ;
+     int              heapsize   = (size + BLOCKSIZE-1) / BLOCKSIZE;
 
      if (write)
           prot_flags |= PROT_WRITE;
@@ -713,7 +714,8 @@ __shmalloc_join_heap( FusionSHM  *shm,
      D_MAGIC_ASSERT( shm, FusionSHM );
      D_ASSERT( filename != NULL );
      D_ASSERT( addr_base != NULL );
-     D_ASSERT( size >= sizeof(shmalloc_heap) );
+
+     size += BLOCKALIGN(sizeof(shmalloc_heap)) + BLOCKALIGN( heapsize * sizeof(shmalloc_info) );
 
      shared = shm->shared;
 
