@@ -40,7 +40,7 @@ DFB_INPUT_DRIVER( android )
 static int
 driver_get_available( void )
 {
-     return 1;
+     return dfb_system_type() == CORE_ANDROID;
 }
 
 static void
