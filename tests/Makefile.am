@@ -64,6 +64,7 @@ bin_PROGRAMS = \
 	dfbtest_blit	\
 	dfbtest_blit_multi	\
 	dfbtest_blit2	\
+	dfbtest_clipboard	\
 	dfbtest_fillrect	\
 	dfbtest_font	\
 	dfbtest_init	\
@@ -121,6 +122,9 @@ dfbtest_blit_multi_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) 
 
 dfbtest_blit2_SOURCES = dfbtest_blit2.c
 dfbtest_blit2_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_clipboard_SOURCES = dfbtest_clipboard.c
+dfbtest_clipboard_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_fillrect_SOURCES = dfbtest_fillrect.c
 dfbtest_fillrect_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)

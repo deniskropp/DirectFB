@@ -2,6 +2,7 @@ coretest_blit2
 dfbtest_blit
 dfbtest_blit_multi
 dfbtest_blit2
+dfbtest_clipboard
 dfbtest_fillrect
 dfbtest_font
 dfbtest_gl1
