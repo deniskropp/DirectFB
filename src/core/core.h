@@ -160,8 +160,6 @@ bool         dfb_core_is_master( CoreDFB *core );
  */
 void         dfb_core_activate( CoreDFB *core );
 
-bool         dfb_core_active  ( CoreDFB *core );
-
 /*
  * Returns the core's fusion world.
  */
@@ -222,9 +220,6 @@ struct __DFB_CoreDFBShared {
      int                  magic;
 
      bool                 secure;
-
-     FusionSkirmish       lock;
-     bool                 active;
 
      FusionObjectPool    *graphics_state_pool;
      FusionObjectPool    *layer_context_pool;

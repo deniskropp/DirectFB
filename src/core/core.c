@@ -341,15 +341,6 @@ dfb_core_create( CoreDFB **ret_core )
      if (dfb_config->deinit_check)
           direct_cleanup_handler_add( dfb_core_deinit_check, NULL, &core->cleanup_handler );
 
-     fusion_skirmish_prevail( &shared->lock );
-
-     if (!core->master) {
-          while (!shared->active)
-               fusion_skirmish_wait( &shared->lock, 0 );
-     }
-
-     fusion_skirmish_dismiss( &shared->lock );
-
      dfb_font_manager_create( core, &core->font_manager );
 
      *ret_core = core;
@@ -1012,26 +1003,8 @@ dfb_core_activate( CoreDFB *core )
      shared = core->shared;
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
-     fusion_skirmish_prevail( &shared->lock );
-
-     shared->active = true;
-
-     fusion_skirmish_notify( &shared->lock );
-
-     fusion_skirmish_dismiss( &shared->lock );
-}
-
-bool
-dfb_core_active( CoreDFB *core )
-{
-     CoreDFBShared *shared;
-
-     D_MAGIC_ASSERT( core, CoreDFB );
-
-     shared = core->shared;
-     D_MAGIC_ASSERT( shared, CoreDFBShared );
-
-     return shared->active;
+     /* Let others enter the world. */
+     fusion_world_activate( core->world );
 }
 
 FusionWorld *
@@ -1620,15 +1593,6 @@ dfb_core_arena_initialize( FusionArena *arena,
 
      CoreDFB_Init_Dispatch( core, core, &shared->call );
 
-     fusion_skirmish_init( &shared->lock, "DirectFB Core", core->world );
-
-     fusion_skirmish_add_permissions( &shared->lock, 0,
-                                      FUSION_SKIRMISH_PERMIT_PREVAIL |
-                                      FUSION_SKIRMISH_PERMIT_DISMISS |
-                                      FUSION_SKIRMISH_PERMIT_WAIT );
-
-
-
      fusion_call_add_permissions( &shared->call, 0, FUSION_CALL_PERMIT_EXECUTE );
 
      fusion_world_set_leave_callback( core->world, dfb_core_leave_callback, NULL );
@@ -1678,8 +1642,6 @@ dfb_core_arena_shutdown( FusionArena *arena,
 
      /* Shutdown. */
      ret = dfb_core_shutdown( core, emergency );
-
-     fusion_skirmish_destroy( &shared->lock );
 
      D_MAGIC_CLEAR( shared );
 

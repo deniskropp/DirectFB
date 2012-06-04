@@ -1949,18 +1949,16 @@ InitIDirectFB_Async( void *ctx,
      data->stack = dfb_layer_context_windowstack( data->context );
 
      if (dfb_core_is_master( data->core )) {
-          if (!dfb_core_active( data->core )) {
-               ret = IDirectFB_InitLayers( thiz );
-               if (ret)
-                    return;
+          ret = IDirectFB_InitLayers( thiz );
+          if (ret)
+               return;
 
-               /* not fatal */
-               ret = dfb_wm_post_init( data->core );
-               if (ret)
-                    D_DERROR( ret, "DirectFBCreate: Post initialization of WM failed!\n" );
+          /* not fatal */
+          ret = dfb_wm_post_init( data->core );
+          if (ret)
+               D_DERROR( ret, "DirectFBCreate: Post initialization of WM failed!\n" );
 
-               dfb_core_activate( data->core );
-          }
+          dfb_core_activate( data->core );
      }
 
      direct_mutex_lock( &data->init_lock );
