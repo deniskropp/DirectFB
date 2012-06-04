@@ -191,5 +191,10 @@ DirectResult FUSION_API fusion_get_fusionee_pid( const FusionWorld *world,
                                                  FusionID           fusion_id,
                                                  pid_t             *ret_pid );
 
+DirectResult FUSION_API fusion_world_set_root( FusionWorld *world,
+                                               void        *root );
+
+void *       FUSION_API fusion_world_get_root( FusionWorld *world );
+
 #endif
 

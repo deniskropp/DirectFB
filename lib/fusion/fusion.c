@@ -1360,6 +1360,30 @@ fusion_get_fusionee_pid( const FusionWorld *world,
      return DR_OK;
 }
 
+DirectResult
+fusion_world_set_root( FusionWorld *world,
+                       void        *root )
+{
+     D_ASSERT( world != NULL );
+     D_ASSERT( world->shared != NULL );
+
+     if (world->fusion_id != FUSION_ID_MASTER)
+          return DR_ACCESSDENIED;
+
+     world->shared->world_root = root;
+
+     return DR_OK;
+}
+
+void *
+fusion_world_get_root( FusionWorld *world )
+{
+     D_ASSERT( world != NULL );
+     D_ASSERT( world->shared != NULL );
+
+     return world->shared->world_root;
+}
+
 #else /* FUSION_BUILD_KERNEL */
 
 #include <dirent.h>
@@ -2840,6 +2864,8 @@ DirectResult fusion_enter( int               world_index,
           goto error;
      }
 
+     world->fusion_id = FUSION_ID_MASTER;
+
      /* Create the main pool. */
      ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x100000,
                                    fusion_config->debugshm, &world->shared->main_pool );
@@ -3017,7 +3043,7 @@ fusion_id( const FusionWorld *world )
 {
      D_MAGIC_ASSERT( world, FusionWorld );
 
-     return 1;
+     return world->fusion_id;
 }
 
 /*
@@ -3093,6 +3119,30 @@ fusion_get_fusionee_pid( const FusionWorld *world,
      D_UNIMPLEMENTED();
 
      return DR_UNIMPLEMENTED;
+}
+
+DirectResult
+fusion_world_set_root( FusionWorld *world,
+                       void        *root )
+{
+     D_ASSERT( world != NULL );
+     D_ASSERT( world->shared != NULL );
+
+     if (world->fusion_id != FUSION_ID_MASTER)
+          return DR_ACCESSDENIED;
+
+     world->shared->world_root = root;
+
+     return DR_OK;
+}
+
+void *
+fusion_world_get_root( FusionWorld *world )
+{
+     D_ASSERT( world != NULL );
+     D_ASSERT( world->shared != NULL );
+
+     return world->shared->world_root;
 }
 
 #endif

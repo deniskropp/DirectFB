@@ -92,6 +92,8 @@ struct __Fusion_FusionWorldShared {
 
      void                *pool_base;   /* SHM pool allocation base. */ 
      void                *pool_max;    /* SHM pool max address. */
+
+     void                *world_root;
 };
 
 struct __Fusion_FusionWorld {
