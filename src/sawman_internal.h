@@ -376,6 +376,7 @@ struct __SaWMan_SaWManTier {
      DFBDisplayLayerConfig   border_config;
 
      CoreSurface            *cursor_bs;          /* backing store for region under cursor */
+     CoreSurface            *cursor_bs_right;    /* backing store for region under cursor (right eye) */
      bool                    cursor_bs_valid;
      DFBRegion               cursor_region;
      bool                    cursor_drawn;

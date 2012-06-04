@@ -1539,6 +1539,9 @@ wm_close_stack( CoreWindowStack *stack,
      if (tier->cursor_bs)
           dfb_surface_unlink( &tier->cursor_bs );
 
+     if (tier->cursor_bs_right)
+          dfb_surface_unlink( &tier->cursor_bs_right );
+
      direct_list_remove( &sawman->tiers, &tier->link );
      D_MAGIC_CLEAR( tier );
      SHFREE( sawman->shmpool, tier );
@@ -3439,7 +3442,8 @@ update_single( SaWMan              *sawman,
                     D_DEBUG_AT( SaWMan_Cursor, "  -> saving background under cursor (%d,%d-%dx%d)\n",
                                 DFB_RECTANGLE_VALS(&rect) );
 
-                    dfb_gfx_copy_to( tier->region->surface, tier->cursor_bs, &rect,
+                    dfb_gfx_copy_to( tier->region->surface,
+                                     right_eye ? tier->cursor_bs_right : tier->cursor_bs, &rect,
                                      rect.x - tier->cursor_region.x1,
                                      rect.y - tier->cursor_region.y1, true );
 
@@ -3930,6 +3934,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      DFBDimension      size;
      DFBRegion         updates[2];
      int               updates_count = 0;
+     DFBSurfaceStereoEye old_eye;
 
      D_DEBUG_AT( SaWMan_Cursor, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, stack, wm_data, stack_data, flags );
 
@@ -4005,6 +4010,7 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      if (!tier->cursor_bs) {
           CoreSurface *cursor_bs;
+          CoreSurface *cursor_bs_right;
 
           D_ASSUME( flags & CCUF_ENABLE );
 
@@ -4021,13 +4027,31 @@ wm_update_cursor( CoreWindowStack       *stack,
                return ret;
           }
 
+          /* Create the cursor backing store surface. */
+          ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
+                                           context->config.pixelformat,
+#if DIRECTFB_VERSION_CODE >= VERSION_CODE(1,5,0)
+                                           context->config.colorspace,
+#endif
+                                           DSCAPS_NONE, CSTF_SHARED | CSTF_CURSOR, 0, NULL, &cursor_bs_right );
+          if (ret) {
+               D_ERROR( "WM/Default: Failed creating backing store for cursor (right eye)!\n" );
+               sawman_unlock( sawman );
+               return ret;
+          }
+
           ret = dfb_surface_globalize( cursor_bs );
           D_ASSERT( ret == DFB_OK );
 
-          tier->cursor_bs = cursor_bs;
+          ret = dfb_surface_globalize( cursor_bs_right );
+          D_ASSERT( ret == DFB_OK );
+
+          tier->cursor_bs       = cursor_bs;
+          tier->cursor_bs_right = cursor_bs_right;
      }
 
      D_ASSERT( tier->cursor_bs != NULL );
+     D_ASSERT( tier->cursor_bs_right != NULL );
 
      /* Get the primary region. */
      primary = tier->region;
@@ -4035,6 +4059,8 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      surface = primary->surface;
      D_ASSERT( surface != NULL );
+
+     old_eye = dfb_surface_get_stereo_eye( surface );
 
      /* restore region under cursor */
      if (tier->cursor_drawn) {
@@ -4045,7 +4071,15 @@ wm_update_cursor( CoreWindowStack       *stack,
           D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
 
           if (tier->active) {
+               dfb_surface_set_stereo_eye( surface, DSSE_LEFT );
+
                dfb_gfx_copy_to( tier->cursor_bs, surface, &rect, old_region.x1, old_region.y1, false );
+
+               if (primary->config.options & DLOP_STEREO) {
+                    dfb_surface_set_stereo_eye( surface, DSSE_RIGHT );
+
+                    dfb_gfx_copy_to( tier->cursor_bs_right, surface, &rect, old_region.x1, old_region.y1, false );
+               }
 
                restored = true;
           }
@@ -4055,6 +4089,13 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      if (flags & CCUF_SIZE) {
           ret = dfb_surface_reformat( tier->cursor_bs,
+                                      stack->cursor.size.w, stack->cursor.size.h,
+                                      tier->cursor_bs->config.format );
+          if (ret)
+               D_DERROR( ret, "WM/Default: Failed resizing backing store for cursor from %dx%d to %dx%d!\n",
+                         tier->cursor_bs->config.size.w, tier->cursor_bs->config.size.h, stack->cursor.size.w, stack->cursor.size.h );
+
+          ret = dfb_surface_reformat( tier->cursor_bs_right,
                                       stack->cursor.size.w, stack->cursor.size.h,
                                       tier->cursor_bs->config.format );
           if (ret)
@@ -4075,13 +4116,30 @@ wm_update_cursor( CoreWindowStack       *stack,
 
                D_ASSERT( !tier->cursor_drawn );
 
+               dfb_surface_set_stereo_eye( surface, DSSE_LEFT );
+
                dfb_gfx_copy_to( surface, tier->cursor_bs, &rect, 0, 0, true );
+
+               if (primary->config.options & DLOP_STEREO) {
+                    dfb_surface_set_stereo_eye( surface, DSSE_RIGHT );
+
+                    dfb_gfx_copy_to( surface, tier->cursor_bs_right, &rect, 0, 0, true );
+               }
 
                tier->cursor_bs_valid = true;
           }
 
+          dfb_surface_set_stereo_eye( surface, DSSE_LEFT );
+
           /* draw cursor */
           sawman_draw_cursor( stack, state, surface, &tier->cursor_region, x, y );
+
+          if (primary->config.options & DLOP_STEREO) {
+               dfb_surface_set_stereo_eye( surface, DSSE_RIGHT );
+
+               /* draw cursor */
+               sawman_draw_cursor( stack, state, surface, &tier->cursor_region, x, y );
+          }
 
           tier->cursor_drawn = true;
 
@@ -4122,8 +4180,17 @@ wm_update_cursor( CoreWindowStack       *stack,
                     /* Flip the whole region. */
                     dfb_layer_region_flip_update( primary, NULL, DSFLIP_WAITFORSYNC );
 
+                    dfb_surface_set_stereo_eye( surface, DSSE_LEFT );
+
                     /* Copy back the updated region. */
                     dfb_gfx_copy_regions( surface, CSBR_FRONT, surface, CSBR_BACK, updates, updates_count, 0, 0 );
+
+                    if (primary->config.options & DLOP_STEREO) {
+                         dfb_surface_set_stereo_eye( surface, DSSE_RIGHT );
+
+                         /* Copy back the updated region. */
+                         dfb_gfx_copy_regions( surface, CSBR_FRONT, surface, CSBR_BACK, updates, updates_count, 0, 0 );
+                    }
                     break;
 
                default:
@@ -4138,6 +4205,8 @@ wm_update_cursor( CoreWindowStack       *stack,
                     break;
           }
      }
+
+     dfb_surface_set_stereo_eye( surface, old_eye );
 
      sawman_unlock( sawman );
 

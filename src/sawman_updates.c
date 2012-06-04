@@ -1323,7 +1323,7 @@ repaint_tier( SaWMan              *sawman,
 
                D_ASSUME( tier->cursor_bs_valid );
 
-               dfb_gfx_copy_to( surface, tier->cursor_bs, &rect,
+               dfb_gfx_copy_to( surface, right_eye ? tier->cursor_bs_right : tier->cursor_bs, &rect,
                                 rect.x - tier->cursor_region.x1,
                                 rect.y - tier->cursor_region.y1, true );
 
