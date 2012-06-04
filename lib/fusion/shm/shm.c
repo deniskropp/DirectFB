@@ -137,13 +137,11 @@ fusion_shm_init( FusionWorld *world )
           shared->world = world->shared;
 
           /* Initialize shared lock. */
-          ret = fusion_skirmish_init( &shared->lock, "Fusion SHM", world );
+          ret = fusion_skirmish_init2( &shared->lock, "Fusion SHM", world, fusion_config->secure_fusion );
           if (ret) {
                D_DERROR( ret, "Fusion/SHM: Failed to create skirmish!\n" );
                return ret;
           }
-
-          fusion_skirmish_add_permissions( &shared->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
 
           /* Initialize static pool array. */
           for (i=0; i<FUSION_SHM_MAX_POOLS; i++)
@@ -154,10 +152,6 @@ fusion_shm_init( FusionWorld *world )
      }
      else {
           D_MAGIC_ASSERT( shared, FusionSHMShared );
-
-          ret = fusion_skirmish_prevail( &shared->lock );
-          if (ret)
-               return ret;
 
           D_MAGIC_SET( shm, FusionSHM );
 
@@ -172,8 +166,6 @@ fusion_shm_init( FusionWorld *world )
                                    fusion_shm_pool_detach( shm, &shared->pools[i] );
                          }
 
-                         fusion_skirmish_dismiss( &shared->lock );
-
                          D_MAGIC_CLEAR( shm );
 
                          return ret;
@@ -184,8 +176,6 @@ fusion_shm_init( FusionWorld *world )
           }
 
           D_ASSERT( num == shared->num_pools );
-
-          fusion_skirmish_dismiss( &shared->lock );
      }
 
      return DR_OK;
@@ -209,12 +199,12 @@ fusion_shm_deinit( FusionWorld *world )
 
      D_MAGIC_ASSERT( shared, FusionSHMShared );
 
-     ret = fusion_skirmish_prevail( &shared->lock );
-     if (ret)
-          return ret;
-
      /* Deinitialize shared data. */
      if (fusion_master( world )) {
+          ret = fusion_skirmish_prevail( &shared->lock );
+          if (ret)
+               return ret;
+
           D_ASSUME( shared->num_pools == 0 );
 
           for (i=0; i<FUSION_SHM_MAX_POOLS; i++) {
@@ -242,52 +232,9 @@ fusion_shm_deinit( FusionWorld *world )
                     fusion_shm_pool_detach( shm, &shared->pools[i] );
                }
           }
-
-          fusion_skirmish_dismiss( &shared->lock );
      }
 
      D_MAGIC_CLEAR( shm );
-
-     return DR_OK;
-}
-
-DirectResult
-fusion_shm_attach_unattached( FusionWorld *world )
-{
-     int              i;
-     DirectResult     ret;
-     FusionSHM       *shm;
-     FusionSHMShared *shared;
-
-     D_MAGIC_ASSERT( world, FusionWorld );
-     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
-
-     shm    = &world->shm;
-     shared = &world->shared->shm;
-
-     D_MAGIC_ASSERT( shm, FusionSHM );
-     D_MAGIC_ASSERT( shared, FusionSHMShared );
-
-     ret = fusion_skirmish_prevail( &shared->lock );
-     if (ret)
-          return ret;
-
-     for (i=0; i<FUSION_SHM_MAX_POOLS; i++) {
-          if (!shared->pools[i].active)
-               continue;
-
-          D_MAGIC_ASSERT( &shared->pools[i], FusionSHMPoolShared );
-
-          if (!shm->pools[i].attached) {
-               ret = fusion_shm_pool_attach( shm, &shared->pools[i] );
-               if (ret)
-                    D_DERROR( ret, "fusion_shm_pool_attach( '%s' ) failed!\n", shared->pools[i].name );
-          }
-          else
-               D_MAGIC_ASSERT( &shm->pools[i], FusionSHMPool );
-     }
-
-     fusion_skirmish_dismiss( &shared->lock );
 
      return DR_OK;
 }
@@ -312,10 +259,6 @@ fusion_shm_enum_pools( FusionWorld           *world,
      D_MAGIC_ASSERT( shm, FusionSHM );
      D_MAGIC_ASSERT( shared, FusionSHMShared );
 
-     ret = fusion_skirmish_prevail( &shared->lock );
-     if (ret)
-          return ret;
-
      for (i=0; i<FUSION_SHM_MAX_POOLS; i++) {
           if (!shared->pools[i].active)
                continue;
@@ -331,8 +274,6 @@ fusion_shm_enum_pools( FusionWorld           *world,
           if (callback( &shm->pools[i], ctx ) == DENUM_CANCEL)
                break;
      }
-
-     fusion_skirmish_dismiss( &shared->lock );
 
      return DR_OK;
 }

@@ -38,8 +38,6 @@ DirectResult fusion_shm_init  ( FusionWorld *world );
 
 DirectResult fusion_shm_deinit( FusionWorld *world );
 
-DirectResult fusion_shm_attach_unattached( FusionWorld *world );
-
 DirectResult fusion_shm_enum_pools( FusionWorld           *world,
                                     FusionSHMPoolCallback  callback,
                                     void                  *ctx );

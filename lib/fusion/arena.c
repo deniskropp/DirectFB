@@ -128,10 +128,6 @@ fusion_arena_enter (FusionWorld     *world,
      else {
           D_DEBUG ("Fusion/Arena: entering arena '%s' (joining)\n", name);
 
-#if FUSION_BUILD_MULTI
-          fusion_shm_attach_unattached( world );
-#endif
-
           /* Call 'join' later. */
           func = join;
      }
