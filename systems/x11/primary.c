@@ -910,7 +910,6 @@ update_stereo( DFBX11 *x11, const DFBRectangle *left_clip, const DFBRectangle *r
                CoreSurfaceBufferLock *left_lock, CoreSurfaceBufferLock *right_lock, XWindow *xw )
 {
      CoreSurface  *surface;
-     DFBRectangle  rect;
      DFBRectangle  left;
      DFBRectangle  right;
 
@@ -971,11 +970,15 @@ update_stereo( DFBX11 *x11, const DFBRectangle *left_clip, const DFBRectangle *r
      update_scaled32( xw, &left, left_lock, 0 );
      update_scaled32( xw, &right, right_lock, xw->width / 2 );
 
-     // FIXME
-     rect.x = 0;
-     rect.y = 0;
-     rect.w = xw->width;
-     rect.h = xw->height;
+
+     left.x /= 2;
+     left.w /= 2;
+
+     right.x /= 2;
+     right.w /= 2;
+
+     right.x += xw->width/2;
+
 
      /* Wait for previous data to be processed... */
      XSync( x11->display, False );
@@ -984,15 +987,24 @@ update_stereo( DFBX11 *x11, const DFBRectangle *left_clip, const DFBRectangle *r
      if (x11->use_shm) {
           /* Just queue the command, it's XShm :) */
           XShmPutImage( xw->display, xw->window, xw->gc, xw->ximage,
-                        rect.x, rect.y + xw->ximage_offset, rect.x, rect.y, rect.w, rect.h, False );
+                        left.x, left.y + xw->ximage_offset, left.x, left.y, left.w, left.h, False );
+
+          /* Just queue the command, it's XShm :) */
+          XShmPutImage( xw->display, xw->window, xw->gc, xw->ximage,
+                        right.x, right.y + xw->ximage_offset, right.x, right.y, right.w, right.h, False );
 
           /* Make sure the queue has really happened! */
           XFlush( x11->display );
      }
-     else
+     else {
           /* Initiate transfer of buffer... */
           XPutImage( xw->display, xw->window, xw->gc, xw->ximage,
-                     rect.x, rect.y + xw->ximage_offset, rect.x, rect.y, rect.w, rect.h );
+                     left.x, left.y + xw->ximage_offset, left.x, left.y, left.w, left.h );
+
+          /* Initiate transfer of buffer... */
+          XPutImage( xw->display, xw->window, xw->gc, xw->ximage,
+                     right.x, right.y + xw->ximage_offset, right.x, right.y, right.w, right.h );
+     }
 
      XUnlockDisplay( x11->display );
 
