@@ -33,6 +33,7 @@
 
 void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect );
 void dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect, int x, int y, bool from_back );
+void dfb_gfx_copy_to_stereo( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect, int x, int y, bool from_back, bool to_right );
 void dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role );
 void dfb_gfx_stretch_to( CoreSurface *source, CoreSurface *destination, const DFBRectangle *srect, const DFBRectangle *drect, bool from_back );
 void dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region );

@@ -105,6 +105,26 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectang
 }
 
 void
+dfb_gfx_copy_to_stereo( CoreSurface        *source,
+                        CoreSurface        *destination,
+                        const DFBRectangle *rect,
+                        int                 x,
+                        int                 y,
+                        bool                from_back,
+                        bool                to_right )
+{
+     DFBSurfaceStereoEye eye;
+
+     eye = dfb_surface_get_stereo_eye( destination );
+
+     dfb_surface_set_stereo_eye( to_right ? DSSE_RIGHT : DSSE_LEFT );
+
+     dfb_gfx_copy_to( source, destination, rect, x, y, from_back, to_right );
+
+     dfb_surface_set_stereo_eye( eye );
+}
+
+void
 dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role )
 {
      DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
