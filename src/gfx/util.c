@@ -117,11 +117,11 @@ dfb_gfx_copy_to_stereo( CoreSurface        *source,
 
      eye = dfb_surface_get_stereo_eye( destination );
 
-     dfb_surface_set_stereo_eye( to_right ? DSSE_RIGHT : DSSE_LEFT );
+     dfb_surface_set_stereo_eye( destination, to_right ? DSSE_RIGHT : DSSE_LEFT );
 
-     dfb_gfx_copy_to( source, destination, rect, x, y, from_back, to_right );
+     dfb_gfx_copy_to( source, destination, rect, x, y, from_back );
 
-     dfb_surface_set_stereo_eye( eye );
+     dfb_surface_set_stereo_eye( destination, eye );
 }
 
 void
