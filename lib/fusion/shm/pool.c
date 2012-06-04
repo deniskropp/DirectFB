@@ -500,7 +500,7 @@ init_pool( FusionSHM           *shm,
      shared->heap       = pool_new.addr_base;
      shared->heap->pool = shared;
 
-     fusion_skirmish_init( &shared->lock, name, world );
+     fusion_skirmish_init2( &shared->lock, name, world, fusion_config->secure_fusion );
 
 
      D_MAGIC_SET( pool, FusionSHMPool );
