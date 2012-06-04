@@ -241,7 +241,7 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
      /* Destroy the call. */
      fusion_call_destroy( &pool->call );
 
-     if (pool->objects)
+     if(fusion_hash_size(pool->objects))
           D_WARN( "still objects in '%s'", pool->name );
 
      /* Destroy zombies */
