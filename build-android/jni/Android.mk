@@ -311,6 +311,7 @@ GFXDRIVER_SOURCES = \
 #
 # DirectFB System
 DIRECTFB_SOURCES += \
+	$(DFB_SOURCE)/systems/android/android_input.c \
 	$(DFB_SOURCE)/systems/android/android_layer.c \
 	$(DFB_SOURCE)/systems/android/android_main.c \
 	$(DFB_SOURCE)/systems/android/android_screen.c \

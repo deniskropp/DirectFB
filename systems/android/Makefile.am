@@ -1,4 +1,5 @@
 EXTRA_DIST = \
+	android_input.c		\
 	android_layer.c		\
 	android_main.c		\
 	android_screen.c	\
