@@ -696,14 +696,9 @@ driver_open_device( CoreInputDevice  *device,
                     void            **driver_data )
 {
      X11InputData *data;
-     DFBX11       *x11    = dfb_system_data();
-     DFBX11Shared *shared = x11->shared;
+     DFBX11       *x11 = dfb_system_data();
 
      D_DEBUG_AT( X11_Input, "%s()\n", __FUNCTION__ );
-
-     fusion_skirmish_prevail( &shared->lock );
-
-     fusion_skirmish_dismiss( &shared->lock );
 
      /* set device vendor and name */
      snprintf( info->desc.vendor, DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "XServer" );

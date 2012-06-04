@@ -62,7 +62,6 @@ typedef struct {
      SetModeData          setmode;
      DestroyData          destroy;
                          
-     FusionSkirmish       lock;
      FusionCall           call;
 
      FusionSHMPoolShared *data_shmpool;

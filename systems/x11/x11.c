@@ -270,8 +270,6 @@ system_initialize( CoreDFB *core, void **data )
      shared->screen_size.w = x11->screenptr->width;
      shared->screen_size.h = x11->screenptr->height;
 
-     fusion_skirmish_init( &shared->lock, "X11 System", dfb_core_world(core) );
-
      fusion_call_init( &shared->call, call_handler, x11, dfb_core_world(core) );
 
 
@@ -392,8 +390,6 @@ system_shutdown( bool emergency )
       */
      fusion_call_destroy( &shared->call );
 
-     fusion_skirmish_prevail( &shared->lock );
-
      /* close remaining windows */
      for( i=0; i<dfb_layer_num(); i++ ) {
           CoreLayer    *layer;
@@ -407,8 +403,6 @@ system_shutdown( bool emergency )
               shared->window_count--;
           }
      }
-
-     fusion_skirmish_destroy( &shared->lock );
 
 
      SHFREE( dfb_core_shmpool( x11->core ), shared );
