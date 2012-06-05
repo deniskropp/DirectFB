@@ -59,6 +59,8 @@ ISaWMan_Destruct( ISaWMan *thiz )
                fusion_reactor_detach( data->tiers[i].tier->reactor, &data->tiers[i].reaction );
      }
 
+     dfb_core_destroy( data->core, false );
+
      pthread_mutex_destroy( &data->lock );
      pthread_cond_destroy( &data->cond );
 
@@ -377,6 +379,8 @@ ISaWMan_Construct( ISaWMan       *thiz,
      data->ref     = 1;
      data->sawman  = sawman;
      data->process = process;
+
+     dfb_core_create( &data->core );
 
      pthread_mutex_init( &data->lock, NULL );
      pthread_cond_init( &data->cond, NULL );

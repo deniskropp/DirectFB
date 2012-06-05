@@ -56,6 +56,8 @@ typedef struct {
      unsigned int                num_tiers;
 
      DirectLink                 *listeners;
+
+     CoreDFB                    *core;
 } ISaWMan_data;
 
 /*
