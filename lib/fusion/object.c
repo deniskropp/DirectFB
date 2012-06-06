@@ -241,24 +241,20 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
      /* Destroy the call. */
      fusion_call_destroy( &pool->call );
 
-     if(fusion_hash_size(pool->objects))
-          D_WARN( "still objects in '%s'", pool->name );
-
      /* Destroy zombies */
      fusion_hash_foreach (object, it, pool->objects) {
           int refs;
 
           fusion_ref_stat( &object->ref, &refs );
 
+          if (refs > 0)
+               D_WARN( "zombie %p [%u], refs %d (in %s)", object, object->id, refs, pool->name );
+
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-          D_DEBUG_AT( Fusion_Object, "  -> zombie %p [%u], refs %d\n", object, object->id, refs );
+          D_DEBUG_AT( Fusion_Object, "  -> %p [%u], refs %d\n", object, object->id, refs );
 
           /* Set "deinitializing" state. */
           object->state = FOS_DEINIT;
-
-          /* Remove the object from the pool. */
-          //direct_list_remove( &pool->objects, &object->link );
-          //object->pool = NULL;
 
           D_DEBUG_AT( Fusion_Object, "  -> calling destructor...\n" );
 
