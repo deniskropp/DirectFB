@@ -102,6 +102,8 @@ typedef struct {
      IDirectFB         *idirectfb;
 
      bool               created;
+
+     DFBWindowCursorFlags cursor_flags;
 } IDirectFBWindow_data;
 
 
@@ -615,7 +617,8 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
                                 int               hot_x,
                                 int               hot_y )
 {
-     DFBPoint hot;
+     DFBPoint         hot;
+     CoreWindowConfig config;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -623,6 +626,12 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
 
      if (data->destroyed)
           return DFB_DESTROYED;
+
+     if (!shape && !(data->window->config.cursor_flags & DWCF_INVISIBLE)) {
+          config.cursor_flags = data->cursor_flags | DWCF_INVISIBLE;
+
+          CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_CURSOR_FLAGS );
+     }
 
      if (shape) {
           IDirectFBSurface_data *shape_data;
@@ -639,13 +648,22 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
           hot.x = hot_x;
           hot.y = hot_y;
 
-          return CoreWindow_SetCursorShape( data->window, shape_surface, &hot );
+          CoreWindow_SetCursorShape( data->window, shape_surface, &hot );
+     }
+     else {     
+          hot.x = 0;
+          hot.y = 0;
+
+          CoreWindow_SetCursorShape( data->window, NULL, &hot );
      }
 
-     hot.x = 0;
-     hot.y = 0;
+     if (shape && !(data->cursor_flags & DWCF_INVISIBLE) && (data->window->config.cursor_flags & DWCF_INVISIBLE)) {
+          config.cursor_flags = data->cursor_flags;
 
-     return CoreWindow_SetCursorShape( data->window, NULL, &hot );
+          CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_CURSOR_FLAGS );
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -1314,7 +1332,13 @@ IDirectFBWindow_SetCursorFlags( IDirectFBWindow      *thiz,
      if (data->destroyed)
           return DFB_DESTROYED;
 
+     data->cursor_flags = flags;
+
      config.cursor_flags = flags;
+
+     if (!data->window->cursor.surface)
+          config.cursor_flags |= DWCF_INVISIBLE;
+
 
      return CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_CURSOR_FLAGS );
 }
@@ -1458,6 +1482,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      data->core      = core;
      data->idirectfb = idirectfb;
      data->created   = created;
+     data->cursor_flags = DWCF_INVISIBLE;
 
      dfb_window_attach( window, IDirectFBWindow_React, data, &data->reaction );
 

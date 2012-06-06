@@ -137,10 +137,15 @@ window_destructor( FusionObject *object, bool zombie, void *ctx )
 
           fusion_vector_remove( &toplevel->subwindows, index );
 
-          dfb_window_unlink( &window->toplevel );
+          window->toplevel = NULL;
      }
      else {
-          D_ASSERT( fusion_vector_size(&window->subwindows) == 0 );
+          CoreWindow *sub;
+          int         i;
+
+          fusion_vector_foreach (sub, i, window->subwindows) {
+               sub->toplevel = NULL;
+          }
 
           fusion_vector_destroy( &window->subwindows );
      }
@@ -300,7 +305,7 @@ init_subwindow( CoreWindow      *window,
      }
 
      /* Link top level window into sub window structure */
-     ret = dfb_window_link( &window->toplevel, toplevel );
+     window->toplevel = toplevel;
      if (ret)
           return ret;
 
@@ -717,7 +722,7 @@ dfb_window_destroy( CoreWindow *window )
 
      /* Unlink the window's surface. */
      if (window->surface) {
-          dfb_surface_deallocate_buffers( window->surface );
+          dfb_surface_destroy_buffers( window->surface );
           dfb_surface_unlink( &window->surface );
      }
 

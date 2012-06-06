@@ -65,9 +65,10 @@ typedef struct {
      int   size;
 
 
-     NATIVE_PIXMAP_STRUCT  nativePixmap;
+     EGLint                id;
      GLeglImageOES         eglImage;
      GLuint                texture;
+     void                 *pixeldata;
 } EGLAllocationData;
 
 /**********************************************************************************************************************/
@@ -272,25 +273,17 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
-
      dfb_surface_calc_buffer_size( surface, 8, 1, &alloc->pitch, &alloc->size );
 
-     if (surface->type & CSTF_LAYER) {
-          /*
-           * Use Framebuffer
-           */
-     }
-     else {
-
-          /*
-           * Allocate EGL Memory
-           */
-     }
 
      alloc->offset = 0;
 
      D_DEBUG_AT( EGL_Surfaces, "  -> offset %d, pitch %d, size %d\n", alloc->offset, alloc->pitch, alloc->size );
 
+
+    // EGLContext context = eglGetCurrentContext();
+
+  //   eglMakeCurrent( egl->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, egl->eglContext );
 
      long ePixelFormat;
 
@@ -308,46 +301,72 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
      }
 
 
-     /*
-      * Native Pixmap
-      */
-     alloc->nativePixmap.ePixelFormat = ePixelFormat;
-     alloc->nativePixmap.eRotation    = 0;
-     alloc->nativePixmap.lWidth       = surface->config.size.w;
-     alloc->nativePixmap.lHeight      = surface->config.size.h;
-     alloc->nativePixmap.lStride      = alloc->pitch;
-     alloc->nativePixmap.lSizeInBytes = alloc->size;
-
+     
 
      /*
       * EGLImage
       */
+     
+
      EGLint err;
 
-     alloc->eglImage = egl->eglCreateImageKHR( egl->eglDisplay, EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR, &alloc->nativePixmap, NULL );
-     if ((err = eglGetError()) != EGL_SUCCESS) {
-          D_ERROR( "DirectFB/EGL: eglCreateImageKHR() failed! (error = %x)\n", err );
-          //return DFB_FAILURE;
+#if 1
+        
+
+     alloc->pixeldata = malloc (alloc->pitch * surface->config.size.h);
+
+     alloc->id = -1;
+     eglCreateGlobalImageBRCM( surface->config.size.w, surface->config.size.h,  EGL_PIXEL_FORMAT_ARGB_8888_BRCM, alloc->pixeldata, alloc->pitch, &alloc->id);
+     if (alloc->id < 0) {
+          D_ERROR( "DirectFB/EGL: eglCreateGlobalImageBRCM() failed! (error = %x)\n", err );
+          return DFB_FAILURE;
      }
 
+     EGL_IMAGE_WRAP_BRCM_BC_IMAGE_T brcm_image_wrap;
+
+     brcm_image_wrap.format = BEGL_BufferFormat_eA8B8G8R8_Texture;
+     brcm_image_wrap.height = surface->config.size.h;
+     brcm_image_wrap.width  = surface->config.size.w;
+     brcm_image_wrap.stride = alloc->pitch;
+     brcm_image_wrap.storage = alloc->id;
+
+     
+     alloc->eglImage = egl->eglCreateImageKHR( egl->eglDisplay, NULL, EGL_IMAGE_WRAP_BRCM_BCG, &brcm_image_wrap, NULL );
+     if ((err = eglGetError()) != EGL_SUCCESS) {
+          D_ERROR( "DirectFB/EGL: eglCreateImageKHR() failed! (error = %x)\n", err );
+          return DFB_FAILURE;
+     }
+
+#endif
 
      /*
       * Texture
       */
      glGenTextures( 1, &alloc->texture );
+     if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/EGL: glGenTextures() failed! (error = %x)\n", err );
+          return DFB_FAILURE;
+     }
+     else printf ("geht!\n");
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
-
-     egl->glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->eglImage );
      if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/EGL: glBindTexture() failed! (error = %x)\n", err );
+         return DFB_FAILURE;
+     }
+
+     glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->eglImage );
+     if ((err = eglGetError()) != EGL_SUCCESS) {
           D_ERROR( "DirectFB/EGL: glEGLImageTargetTexture2DOES() failed! (error = %x)\n", err );
-          //return DFB_FAILURE;
+          return DFB_FAILURE;
      }
 
      allocation->size   = alloc->size;
      allocation->offset = alloc->offset;
 
      D_MAGIC_SET( alloc, EGLAllocationData );
+     
+    // eglMakeCurrent( egl->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
 
      return DFB_OK;
 }
@@ -372,17 +391,13 @@ eglDeallocateBuffer( CoreSurfacePool       *pool,
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, EGLPoolData );
-     D_MAGIC_ASSERT( local, VPSMemPoolLocalData );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( alloc, EGLAllocationData );
 
      egl = local->egl;
      D_ASSERT( egl != NULL );
 
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     if (surface->type & CSTF_LAYER) {
+     
+     if (allocation->type & CSTF_LAYER) {
      }
      else {
 //          EGLERROR eEGLStatus;
@@ -451,19 +466,20 @@ eglLock( CoreSurfacePool       *pool,
 
      lock->pitch  = alloc->pitch;
      lock->offset = alloc->offset;
+     lock->addr   = alloc->pixeldata;
 //     lock->addr   = alloc->meminfo->pBase;
 //     lock->phys   = alloc->meminfo->ui32DevAddr;
 //     lock->handle = alloc->meminfo;
 
-     if (lock->accessor == CSAID_GPU) {
+//     if (lock->accessor == CSAID_GPU) {
 //          if (lock->access & CSAF_WRITE)
 //               lock->handle = alloc->meminfo;
 //          else
-               lock->handle = alloc->texture;
-     }
+//               lock->handle = alloc->texture;
+//     }
 
      D_DEBUG_AT( EGL_SurfLock, "  -> offset %lu, pitch %d, addr %p, phys 0x%08lx\n",
-                 lock->offset, lock->pitch, lock->addr, lock->phys );
+                 lock->offset, lock->pitch, lock->addr, 0x0 );
 
      return DFB_OK;
 }
@@ -484,31 +500,6 @@ eglUnlock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
      D_DEBUG_AT( EGL_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
-
-     (void) alloc;
-
-     return DFB_OK;
-}
-
-#if 0
-static DFBResult
-eglRead( CoreSurfacePool       *pool,
-           void                  *pool_data,
-           void                  *pool_local,
-           CoreSurfaceAllocation *allocation,
-           void                  *alloc_data,
-           void                  *destination,
-           int                    pitch,
-           const DFBRectangle    *rect )
-{
-     EGLAllocationData *alloc = alloc_data;
-
-     D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( alloc, MesaAllocationData );
-     D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
-
-     D_DEBUG_AT( EGL_SurfLock, "%s( %p )\n", __FUNCTION__, allocation->buffer );
 
      (void) alloc;
 
@@ -550,7 +541,7 @@ eglWrite( CoreSurfacePool       *pool,
 
      return DFB_OK;
 }
-#endif
+
 
 static const SurfacePoolFuncs _eglSurfacePoolFuncs = {
      PoolDataSize:       eglPoolDataSize,
@@ -571,7 +562,7 @@ static const SurfacePoolFuncs _eglSurfacePoolFuncs = {
      Unlock:             eglUnlock,
 
 //     Read:               eglRead,
-//     Write:              eglWrite,
+     Write:              eglWrite,
 };
 
 const SurfacePoolFuncs *eglSurfacePoolFuncs = &_eglSurfacePoolFuncs;

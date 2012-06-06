@@ -473,7 +473,8 @@ dfb_input_core_initialize( CoreDFB            *core,
      }
 #endif
 
-     CoreInputHub_Create( 0, &core_local->hub );
+     if (dfb_config->input_hub_service_qid)
+          CoreInputHub_Create( dfb_config->input_hub_service_qid, &core_local->hub );
 
      init_devices( core );
 

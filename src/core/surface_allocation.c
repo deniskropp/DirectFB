@@ -409,6 +409,8 @@ allocation_update_write( CoreSurfaceAllocation *allocation,
      /* Lock the source allocation. */
      dfb_surface_buffer_lock_init( &src, CSAID_CPU, CSAF_READ );
 
+     dfb_surface_pool_prelock( source->pool, source, CSAID_CPU, CSAF_READ );
+
      ret = dfb_surface_pool_lock( source->pool, source, &src );
      if (ret) {
           D_DERROR( ret, "Core/SurfBuffer: Could not lock source for transfer!\n" );
@@ -450,6 +452,8 @@ allocation_update_read( CoreSurfaceAllocation *allocation,
 
      /* Lock the destination allocation. */
      dfb_surface_buffer_lock_init( &dst, CSAID_CPU, CSAF_WRITE );
+
+     dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_WRITE );
 
      ret = dfb_surface_pool_lock( allocation->pool, allocation, &dst );
      if (ret) {

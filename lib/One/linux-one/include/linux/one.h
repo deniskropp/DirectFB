@@ -39,7 +39,7 @@
 #endif
 
 
-#define ONE_MAX_PACKET_SIZE   16384     // FIXME: move to kernel module and report to user space via ENTER ioctl
+#define ONE_MAX_PACKET_SIZE   32768     // FIXME: move to kernel module and report to user space via ENTER ioctl
 
 
 /*

@@ -337,6 +337,14 @@ direct_thread_is_joined( const DirectThread *thread )
      return thread->joined;
 }
 
+const char *
+direct_thread_get_name( DirectThread *thread )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->name != NULL );
+
+     return thread->name;
+}
 /******************************************************************************/
 
 #if DIRECT_BUILD_TEXT

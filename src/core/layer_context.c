@@ -1946,6 +1946,9 @@ dfb_layer_context_reallocate_surface( CoreLayer             *layer,
      if (ret)
           return ret;
 
+     if (!(surface->config.caps & DSCAPS_FLIPPING))
+          surface->flips++;
+
      ret = dfb_surface_reconfig( surface, &sconfig );
      if (ret) {
           dfb_surface_unlock( surface );

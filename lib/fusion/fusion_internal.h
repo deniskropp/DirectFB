@@ -70,7 +70,7 @@ struct __Fusion_FusionWorldShared {
 
      int                  world_abi;
 
-     struct timeval       start_time;
+     long long            start_time;
 
      DirectLink          *arenas;
      FusionSkirmish       arenas_lock;

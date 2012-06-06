@@ -36,6 +36,10 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <core/surface.h>
+
+#include <misc/conf.h>
+
 #include <voodoo/conf.h>
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
@@ -563,6 +567,7 @@ Dispatch_CreateWindow( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
      VoodooInstanceID            instance;
      VoodooMessageParser         parser;
      bool                        force_system = (voodoo_config->resource_id != 0);
+     bool                        force_video  = false;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
 
@@ -570,7 +575,59 @@ Dispatch_CreateWindow( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
      VOODOO_PARSER_GET_DATA( parser, desc );
      VOODOO_PARSER_END( parser );
 
-     if (1) {
+     if (voodoo_config->resource_id) {
+          if (desc->flags & DWDESC_RESOURCE_ID) {
+               if (desc->resource_id == voodoo_config->resource_id) {
+                    force_system = false;
+
+                    if (dfb_config->window_policy == CSP_VIDEOONLY)
+                         force_video = true;
+               }
+          }
+     }
+
+     if (desc->flags & DWDESC_STACKING) {
+          if (voodoo_config->stacking_mask && !(voodoo_config->stacking_mask & (1 << desc->stacking))) {
+               D_ERROR( "Stacking class not permitted!\n" );
+               return DR_ACCESSDENIED;
+          }
+     }
+
+     if (force_system) {
+          DFBWindowDescription wd = *desc;
+
+          if (wd.flags & DWDESC_SURFACE_CAPS) {
+               wd.surface_caps &= ~DSCAPS_VIDEOONLY;
+               wd.surface_caps |=  DSCAPS_SYSTEMONLY;
+          }
+          else {
+               wd.flags        |= DWDESC_SURFACE_CAPS;
+               wd.surface_caps  = DSCAPS_SYSTEMONLY;
+          }
+
+          ret = real->CreateWindow( real, &wd, &window );
+     }
+     else if (force_video) {
+          DFBWindowDescription wd = *desc;
+
+          if (wd.flags & DWDESC_SURFACE_CAPS) {
+               wd.surface_caps &= ~DSCAPS_SYSTEMONLY;
+               wd.surface_caps |=  DSCAPS_VIDEOONLY;
+          }
+          else {
+               wd.flags        |= DWDESC_SURFACE_CAPS;
+               wd.surface_caps  = DSCAPS_VIDEOONLY;
+          }
+
+          ret = real->CreateWindow( real, &wd, &window );
+     }
+     else {
+          ret = real->CreateWindow( real, desc, &window );
+     }
+     if (ret)
+          return ret;
+
+     if (!force_video) {
           unsigned int w = 256, h = 256, b = 2, size;
 
           if (desc->flags & DWDESC_WIDTH)
@@ -598,41 +655,6 @@ Dispatch_CreateWindow( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
                return ret;
           }
      }
-
-     if (voodoo_config->resource_id) {
-          if (desc->flags & DWDESC_RESOURCE_ID) {
-               if (desc->resource_id == voodoo_config->resource_id) {
-                    force_system = false;
-               }
-          }
-     }
-
-     if (force_system) {
-          DFBWindowDescription wd = *desc;
-
-          if (wd.flags & DWDESC_SURFACE_CAPS) {
-               wd.surface_caps &= ~DSCAPS_VIDEOONLY;
-               wd.surface_caps |=  DSCAPS_SYSTEMONLY;
-          }
-          else {
-               wd.flags        |= DWDESC_SURFACE_CAPS;
-               wd.surface_caps  = DSCAPS_SYSTEMONLY;
-          }
-
-          if (wd.flags & DWDESC_STACKING) {
-               if (voodoo_config->stacking_mask && !(voodoo_config->stacking_mask & (1 << wd.stacking))) {
-                    D_ERROR( "Stacking class not permitted!\n" );
-                    return DR_ACCESSDENIED;
-               }
-          }
-
-          ret = real->CreateWindow( real, &wd, &window );
-     }
-     else {
-          ret = real->CreateWindow( real, desc, &window );
-     }
-     if (ret)
-          return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IDirectFBWindow",
                                         window, data->super, NULL, &instance, NULL );

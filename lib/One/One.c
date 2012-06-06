@@ -760,7 +760,14 @@ OneThread_Dispatcher( DirectThread *thread,
 
           direct_mutex_unlock( &thread->lock );
 
+//#define ONE_QUEUE_WORKAROUND
+#ifndef ONE_QUEUE_WORKAROUND
           ret = OneQueue_Receive( ids, ids_count, buf, RECEIVE_BUFFER_SIZE, &length, false, 0 );
+#else
+          ret = OneQueue_Receive( ids, ids_count, buf, RECEIVE_BUFFER_SIZE, &length, false, 100 );
+          if (ret == DR_TIMEOUT )
+               continue;
+#endif
           if (ret) {
                D_DERROR( ret, "IComaComponent/One: Could not receive from Component Queue!\n" );
                break;
