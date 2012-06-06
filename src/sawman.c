@@ -145,10 +145,6 @@ SaWManCreate( ISaWMan **ret_sawman )
      if (dfb_config->remote.host)
           return CreateRemote( dfb_config->remote.host, dfb_config->remote.port, ret_sawman );
 
-     CoreDFB *core;
-
-     dfb_core_create( &core );
-
      if (!m_sawman) {
           D_ERROR( "SaWManCreate: No running SaWMan detected! Did you use the 'wm=sawman' option?\n" );
           return DFB_NOIMPL;
