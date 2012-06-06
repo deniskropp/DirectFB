@@ -490,6 +490,8 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
           pool = pool_array[pool_order[i]];
           D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
+          D_DEBUG_AT( Core_SurfacePool, "  ->     0x%02x 0x%03x (%s)\n", pool->desc.access[accessor], pool->desc.types, pool->desc.name );
+
           if (D_FLAGS_ARE_SET( pool->desc.access[accessor], access ) &&
               D_FLAGS_ARE_SET( pool->desc.types, type & ~CSTF_PREALLOCATED ))
           {
