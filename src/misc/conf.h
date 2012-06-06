@@ -275,7 +275,6 @@ typedef struct
      char         *resource_manager;
 
      u32           input_hub_qid;
-     u32           input_hub_service_qid;
 
      unsigned long font_resource_id;
 
@@ -290,7 +289,14 @@ typedef struct
      DFBSurfaceID         primary_id;              /* id for primary surface */
 
      bool                 layers_clear;
+
      FusionCallExecFlags  call_nodirect;
+
+     u32           input_hub_service_qid;
+
+     bool          cursor_videoonly;
+     u64           cursor_resource_id;
+
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;
