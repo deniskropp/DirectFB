@@ -674,7 +674,7 @@ fusion_enter( int               world_index,
           shared->world_index = world_index;
 
           /* Set start time of world clock. */
-          gettimeofday( &shared->start_time, NULL );
+          shared->start_time = direct_clock_get_time( DIRECT_CLOCK_SESSION );
 
           D_MAGIC_SET( shared, FusionWorldShared );
      }
@@ -691,7 +691,7 @@ fusion_enter( int               world_index,
      }
 
      /* Synchronize to world clock. */
-     direct_clock_set_start( &shared->start_time );
+     direct_clock_set_time( DIRECT_CLOCK_SESSION, shared->start_time );
      
 
      /* Allocate local data. */
@@ -2156,7 +2156,7 @@ fusion_enter( int               world_index,
      }
 
      /* Synchronize to world clock. */
-     direct_clock_set_start( &shared->start_time );
+     direct_clock_set_time( DIRECT_CLOCK_SESSION, shared->start_time );
      
      /* Allocate local data. */
      world = D_CALLOC( 1, sizeof(FusionWorld) );

@@ -85,7 +85,7 @@ direct_clock_get_time( DirectClockType type )
      micros = spec.tv_sec * 1000000LL + spec.tv_nsec / 1000LL;
 
      if (type == DIRECT_CLOCK_SESSION)
-          micros += session_clock_offset;
+          micros -= session_clock_offset;
 
      return micros;
 }
@@ -100,7 +100,7 @@ direct_clock_set_time( DirectClockType type,
 
      switch (type) {
           case DIRECT_CLOCK_SESSION:
-               session_clock_offset = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ) - micros;
+               session_clock_offset = micros;
                return DR_OK;
 
           case DIRECT_CLOCK_REALTIME:
