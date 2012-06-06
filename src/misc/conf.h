@@ -275,6 +275,7 @@ typedef struct
      char         *resource_manager;
 
      u32           input_hub_qid;
+     u32           input_hub_service_qid;
 
      unsigned long font_resource_id;
 
