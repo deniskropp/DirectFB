@@ -1846,8 +1846,12 @@ dfb_layer_context_allocate_surface( CoreLayer             *layer,
                return ret;
           }
 
-          if (config->buffermode == DLBM_BACKSYSTEM)
-               surface->buffers[1]->policy = CSP_SYSTEMONLY;
+          if (config->buffermode == DLBM_BACKSYSTEM) {
+               surface->left_buffers[1]->policy = CSP_SYSTEMONLY;
+
+               if (config->options & DLOP_STEREO)
+                    surface->right_buffers[1]->policy = CSP_SYSTEMONLY;
+          }
      }
 
      if (surface->config.caps & DSCAPS_ROTATED)
@@ -1946,7 +1950,7 @@ dfb_layer_context_reallocate_surface( CoreLayer             *layer,
      if (ret)
           return ret;
 
-     if (!(surface->config.caps & DSCAPS_FLIPPING))
+     if (config->buffermode != DLBM_BACKSYSTEM && !(surface->config.caps & DSCAPS_FLIPPING))
           surface->flips++;
 
      ret = dfb_surface_reconfig( surface, &sconfig );
@@ -1962,15 +1966,15 @@ dfb_layer_context_reallocate_surface( CoreLayer             *layer,
      }
 
      switch (config->buffermode) {
+          case DLBM_BACKSYSTEM:
+               surface->left_buffers[1]->policy = CSP_SYSTEMONLY;
+
+               if (config->options & DLOP_STEREO)
+                    surface->right_buffers[1]->policy = CSP_SYSTEMONLY;
+               break;
+
           case DLBM_TRIPLE:
           case DLBM_BACKVIDEO:
-               surface->buffers[1]->policy = CSP_VIDEOONLY;
-               break;
-
-          case DLBM_BACKSYSTEM:
-               surface->buffers[1]->policy = CSP_SYSTEMONLY;
-               break;
-
           case DLBM_FRONTONLY:
                break;
 
