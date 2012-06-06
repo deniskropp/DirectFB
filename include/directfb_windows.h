@@ -240,6 +240,14 @@ DEFINE_INTERFACE(   IDirectFBWindows,
           const DFBWindowsWatcher  *watcher,
           void                     *context
      );
+
+     /*
+      * Unregisters a windows watcher.
+      */
+     DFBResult (*UnregisterWatcher) (
+          IDirectFBWindows         *thiz,
+          void                     *context
+     );
 )
 
 

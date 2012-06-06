@@ -292,6 +292,35 @@ error:
      return ret;
 }
 
+static DFBResult
+IDirectFBWindows_UnregisterWatcher( IDirectFBWindows *thiz,
+                                    void             *context )
+{
+     int                i;
+     RegisteredWatcher *registered;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindows)
+
+     D_DEBUG_AT( IDirectFBWindows_default, "%s( %p )\n", __FUNCTION__, thiz );
+
+     direct_list_foreach (registered, data->watchers) {
+          if (registered->context == context) {
+               for (i=_CORE_WM_NUM_CHANNELS-1; i>=0; i--) {
+                    if (registered->reactions[i].func)
+                         dfb_wm_detach( data->core, &registered->reactions[i] );
+               }
+               
+               direct_list_remove( &data->watchers, &registered->link );
+
+               D_FREE( registered );
+               
+               return DFB_OK;
+          }
+     }
+
+     return DFB_ITEMNOTFOUND;
+}
+
 /**********************************************************************************************************************/
 
 static DirectResult
@@ -339,6 +368,7 @@ Construct( void *interface, ... )
      thiz->Release            = IDirectFBWindows_Release;
 
      thiz->RegisterWatcher    = IDirectFBWindows_RegisterWatcher;
+     thiz->UnregisterWatcher  = IDirectFBWindows_UnregisterWatcher;
 
 
      return DFB_OK;
