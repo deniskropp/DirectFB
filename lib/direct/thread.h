@@ -142,7 +142,10 @@ void  DIRECT_API direct_thread_destroy    ( DirectThread       *thread );
 pid_t DIRECT_API direct_thread_get_tid    ( const DirectThread *thread );
 bool  DIRECT_API direct_thread_is_canceled( const DirectThread *thread );
 bool  DIRECT_API direct_thread_is_joined  ( const DirectThread *thread );
-
+/*
+ * Returns the name of the specified thread.
+ */
+const char   *direct_thread_get_name   ( DirectThread     *thread );
 
 /*
  * Utilities for stringification.
