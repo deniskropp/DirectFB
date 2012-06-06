@@ -82,6 +82,8 @@ typedef struct {
      u32                 *image;        /*  decoded image data    */
      int                  image_width;  /*  width of image data   */
      int                  image_height; /*  height of image data  */
+
+     DIRenderFlags        flags;        /*  selected idct method  */
 } IDirectFBImageProvider_JPEG_data;
 
 
@@ -92,12 +94,15 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
 static DFBResult
 IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
-                                                   DFBSurfaceDescription  *dsc);
+                                                   DFBSurfaceDescription  *dsc );
 
 static DFBResult
 IDirectFBImageProvider_JPEG_GetImageDescription( IDirectFBImageProvider *thiz,
                                                  DFBImageDescription    *dsc );
 
+static DFBResult
+IDirectFBImageProvider_JPEG_SetRenderFlags( IDirectFBImageProvider *thiz,
+                                            DIRenderFlags flags );
 
 #define JPEG_PROG_BUF_SIZE    0x10000
 
@@ -371,6 +376,8 @@ Construct( IDirectFBImageProvider *thiz,
      data->width = cinfo.output_width;
      data->height = cinfo.output_height;
 
+     data->flags = DIRENDER_NONE;
+
      jpeg_abort_decompress(&cinfo);
      jpeg_destroy_decompress(&cinfo);
 
@@ -384,6 +391,7 @@ Construct( IDirectFBImageProvider *thiz,
 
      thiz->RenderTo = IDirectFBImageProvider_JPEG_RenderTo;
      thiz->GetImageDescription =IDirectFBImageProvider_JPEG_GetImageDescription;
+     thiz->SetRenderFlags = IDirectFBImageProvider_JPEG_SetRenderFlags;
      thiz->GetSurfaceDescription =
      IDirectFBImageProvider_JPEG_GetSurfaceDescription;
 
@@ -569,6 +577,9 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     break;
           }
 
+          if (data->flags & DIRENDER_FAST)
+               cinfo.dct_method = JDCT_IFAST;
+
           jpeg_start_decompress( &cinfo );
 
           data->image_width = cinfo.output_width;
@@ -681,10 +692,23 @@ IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
+     if (!dsc)
+          return DFB_INVARG;
+
      dsc->flags  = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc->height = data->height;
      dsc->width  = data->width;
      dsc->pixelformat = dfb_primary_layer_pixelformat();
+
+     return DFB_OK;
+}
+static DFBResult
+IDirectFBImageProvider_JPEG_SetRenderFlags( IDirectFBImageProvider *thiz,
+                                                   DIRenderFlags flags )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
+
+     data->flags = flags;
 
      return DFB_OK;
 }
