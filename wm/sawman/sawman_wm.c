@@ -1647,6 +1647,9 @@ wm_resize_stack( CoreWindowStack *stack,
 
      sawman_call( sawman, SWMCID_STACK_RESIZED, &tier->size, sizeof(tier->size), false );
 
+     if (!tier->border_only)
+          tier->config = tier->context->config;
+
      /* Unlock SaWMan. */
      sawman_unlock( sawman );
 
