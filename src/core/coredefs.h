@@ -44,5 +44,8 @@
 #define MAX_SURFACE_POOLS          8
 #define MAX_SURFACE_POOL_BRIDGES   4
 
+#define MAX_CLIPBOARD_MIME_TYPE_SIZE    (128)
+#define MAX_CLIPBOARD_DATA_SIZE         (48*1024)
+
 #endif
 

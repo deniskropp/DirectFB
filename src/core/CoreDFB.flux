@@ -152,5 +152,93 @@ interface {
                         typename    CoreSurface
                 }
         }
+
+        method {
+                name    ClipboardSet
+
+                arg {
+                        name        mime_type
+                        direction   input
+                        type        int
+                        typename    char
+                        count       mime_type_size
+                }
+
+                arg {
+                        name        mime_type_size
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        data
+                        direction   input
+                        type        int
+                        typename    char
+                        count       data_size
+                }
+
+                arg {
+                        name        data_size
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        timestamp_us
+                        direction   input
+                        type        int
+                        typename    u64
+                }
+        }
+
+        method {
+                name    ClipboardGet
+
+                arg {
+                        name        mime_type
+                        direction   output
+                        type        int
+                        typename    char
+                        max         MAX_CLIPBOARD_MIME_TYPE_SIZE
+                        count       mime_type_size
+                }
+
+                arg {
+                        name        mime_type_size
+                        direction   output
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        data
+                        direction   output
+                        type        int
+                        typename    char
+                        max         MAX_CLIPBOARD_DATA_SIZE
+                        count       data_size
+                }
+
+                arg {
+                        name        data_size
+                        direction   output
+                        type        int
+                        typename    u32
+                }
+        }
+
+        method {
+                name    ClipboardGetTimestamp
+
+                arg {
+                        name        timestamp_us
+                        direction   output
+                        type        int
+                        typename    u64
+                }
+        }
 }
 

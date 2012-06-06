@@ -1518,8 +1518,6 @@ IDirectFB_SetClipboardData( IDirectFB      *thiz,
                             unsigned int    size,
                             struct timeval *timestamp )
 {
-     DFBClipboardCore *clip_core;
-
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
@@ -1527,11 +1525,8 @@ IDirectFB_SetClipboardData( IDirectFB      *thiz,
      if (!mime_type || !data || !size)
           return DFB_INVARG;
 
-     clip_core = DFB_CORE( data->core, CLIPBOARD );
-     if (!clip_core)
-          return DFB_NOCORE;
-
-     return dfb_clipboard_set( clip_core, mime_type, clip_data, size, timestamp );
+     return CoreDFB_ClipboardSet( data->core, mime_type, strlen(mime_type) + 1, clip_data,
+                                  size, timestamp->tv_sec * 1000000 + timestamp->tv_usec );
 }
 
 static DFBResult
@@ -1540,7 +1535,11 @@ IDirectFB_GetClipboardData( IDirectFB     *thiz,
                             void         **clip_data,
                             unsigned int  *size )
 {
-     DFBClipboardCore *clip_core;
+     DFBResult ret;
+     char      tmp_mime_type[MAX_CLIPBOARD_MIME_TYPE_SIZE];
+     u32       tmp_mime_type_size;
+     char      tmp_data[MAX_CLIPBOARD_DATA_SIZE];
+     u32       tmp_data_size;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -1549,18 +1548,33 @@ IDirectFB_GetClipboardData( IDirectFB     *thiz,
      if (!mime_type && !data && !size)
           return DFB_INVARG;
 
-     clip_core = DFB_CORE( data->core, CLIPBOARD );
-     if (!clip_core)
-          return DFB_NOCORE;
+     ret = CoreDFB_ClipboardGet( data->core, tmp_mime_type, &tmp_mime_type_size, tmp_data, &tmp_data_size );
+     if (ret)
+          return ret;
 
-     return dfb_clipboard_get( clip_core, mime_type, clip_data, size );
+     *mime_type = strdup( tmp_mime_type );
+     if (!*mime_type)
+          return D_OOM();
+
+     *clip_data = malloc( tmp_data_size );
+     if (!*clip_data) {
+          free( *mime_type );
+          return D_OOM();
+     }
+
+     direct_memcpy( *clip_data, tmp_data, tmp_data_size );
+
+     *size = tmp_data_size;
+
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFB_GetClipboardTimeStamp( IDirectFB      *thiz,
                                  struct timeval *timestamp )
 {
-     DFBClipboardCore *clip_core;
+     DFBResult ret;
+     u64       ts;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -1569,11 +1583,14 @@ IDirectFB_GetClipboardTimeStamp( IDirectFB      *thiz,
      if (!timestamp)
           return DFB_INVARG;
 
-     clip_core = DFB_CORE( data->core, CLIPBOARD );
-     if (!clip_core)
-          return DFB_NOCORE;
+     ret = CoreDFB_ClipboardGetTimestamp( data->core, &ts );
+     if (ret)
+          return ret;
 
-     return dfb_clipboard_get_timestamp( clip_core, timestamp );
+     timestamp->tv_sec  = ts / 1000000;
+     timestamp->tv_usec = ts % 1000000;
+
+     return ret;
 }
 
 static DFBResult

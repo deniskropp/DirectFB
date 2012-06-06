@@ -33,6 +33,7 @@
 #include <direct/debug.h>
 #include <direct/memcpy.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -84,9 +85,7 @@ dfb_clipboard_core_initialize( CoreDFB                *core,
 
      shared->shmpool = dfb_core_shmpool( core );
 
-     fusion_skirmish_init( &shared->lock, "Clipboard Core", dfb_core_world(core) );
-
-     fusion_skirmish_add_permissions( &shared->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+     fusion_skirmish_init2( &shared->lock, "Clipboard Core", dfb_core_world(core), fusion_config->secure_fusion );
 
      D_MAGIC_SET( data, DFBClipboardCore );
      D_MAGIC_SET( shared, DFBClipboardCoreShared );

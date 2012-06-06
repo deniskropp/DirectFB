@@ -37,11 +37,13 @@ extern "C" {
 #include <directfb.h>
 
 #include <direct/debug.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 
 #include <fusion/conf.h>
 #include <fusion/fusion.h>
 
+#include <core/clipboard.h>
 #include <core/core.h>
 
 #include <media/idirectfbdatabuffer_client.h>
@@ -246,6 +248,78 @@ ICore_Real::GetSurface( u32           surface_id,
      *ret_surface = surface;
 
      return DFB_OK;
+}
+
+
+DFBResult
+ICore_Real::ClipboardSet(
+                    const char                                *mime_type,
+                    u32                                        mime_type_size,
+                    const char                                *data,
+                    u32                                        data_size,
+                    u64                                        timestamp_us
+)
+{
+    struct timeval tv;
+
+    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
+
+    tv.tv_sec  = timestamp_us / 1000000;
+    tv.tv_usec = timestamp_us % 1000000;
+
+    return dfb_clipboard_set( (DFBClipboardCore*) DFB_CORE( core, CLIPBOARD ), mime_type, data, data_size, &tv );
+}
+
+
+DFBResult
+ICore_Real::ClipboardGet(
+                    char                                      *ret_mime_type,
+                    u32                                       *ret_mime_type_size,
+                    char                                      *ret_data,
+                    u32                                       *ret_data_size
+)
+{
+    DFBResult     ret;
+    char         *mime_type;
+    void         *data;
+    unsigned int  data_size;
+
+    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
+
+    ret = dfb_clipboard_get( (DFBClipboardCore*) DFB_CORE( core, CLIPBOARD ), &mime_type, &data, &data_size );
+    if (ret)
+         return ret;
+
+    direct_memcpy( ret_mime_type, mime_type, strlen(mime_type) + 1 );
+    *ret_mime_type_size = strlen(mime_type) + 1;
+
+    direct_memcpy( ret_data, data, data_size );
+    *ret_data_size = data_size;
+
+    free( data );
+    free( mime_type );
+
+    return DFB_OK;
+}
+
+
+DFBResult
+ICore_Real::ClipboardGetTimestamp(
+                    u64                                       *ret_timestamp_us
+)
+{
+    DFBResult      ret;
+    struct timeval tv;
+
+    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
+
+    ret = dfb_clipboard_get_timestamp( (DFBClipboardCore*) DFB_CORE( core, CLIPBOARD ), &tv );
+    if (ret)
+         return ret;
+
+    *ret_timestamp_us = tv.tv_sec * 1000000 + tv.tv_usec;
+
+    return DFB_OK;
 }
 
 
