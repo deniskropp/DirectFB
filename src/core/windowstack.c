@@ -1202,6 +1202,9 @@ create_cursor_surface( CoreWindowStack *stack,
      CoreLayerContext       *context;
      DFBSurfaceCapabilities  surface_caps = DSCAPS_PREMULTIPLIED;
 
+     if (dfb_config->cursor_videoonly)
+          surface_caps |= DSCAPS_VIDEOONLY;
+
      D_DEBUG_AT( Core_WindowStack, "%s( %p, %dx%d )\n", __FUNCTION__, stack, width, height );
 
      D_MAGIC_ASSERT( stack, CoreWindowStack );
@@ -1231,7 +1234,7 @@ create_cursor_surface( CoreWindowStack *stack,
      /* Create the cursor surface. */
      ret = dfb_surface_create_simple( layer->core, width, height, DSPF_ARGB, DSCS_RGB, 
                                       surface_caps, CSTF_SHARED | CSTF_CURSOR,
-                                      0, /* FIXME: no shared cursor objects, no cursor id */
+                                      dfb_config->cursor_resource_id, /* FIXME: no shared cursor objects, no cursor id */
                                       NULL, &surface );
      if (ret) {
           D_ERROR( "Core/WindowStack: Failed creating a surface for software cursor!\n" );

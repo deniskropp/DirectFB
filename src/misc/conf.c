@@ -136,6 +136,8 @@ static const char *config_usage_strings[]  = {
      "  [no-]cursor                    Never create a cursor or handle it\n"
      "  [no-]cursor-automation         Automated cursor show/hide for windowed primary surfaces\n"
      "  [no-]cursor-updates            Never show a cursor, but still handle it\n"
+     "  [no-]cursor-videoonly          Make the cursor a video only surface\n"
+     "  cursor-resource-id=<id>        Specify a resource id for the cursor surface\n"
      "  wm=<wm>                        Window manager module ('default' or 'unique')\n"
      "  init-layer=<id>                Initialize layer with ID (following layer- options apply)\n"
      "  [no-]layers-clear              Clear layer surface buffers after creation\n"
@@ -1591,6 +1593,25 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+     if (strcmp (name, "input-hub-service" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long qid;
+
+               qid = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->input_hub_service_qid = qid;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
      if (strcmp (name, "video-phys" ) == 0) {
           if (value) {
                char *error;
@@ -1969,6 +1990,28 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-accel1" ) == 0) {
           dfb_config->accel1 = false;
+     }
+     if (strcmp (name, "cursor-videoonly" ) == 0) {
+          dfb_config->cursor_videoonly = true;
+     } else
+     if (strcmp (name, "no-cursor-videoonly" ) == 0) {
+          dfb_config->cursor_videoonly = false;
+     } else
+     if (strcmp (name, "cursor-resource-id" ) == 0) {
+          if (value) {
+               unsigned long long cursor_resource_id;
+
+               if (direct_sscanf( value, "%llu", &cursor_resource_id ) < 1) {
+                    D_ERROR("DirectFB/Config '%s': Could not parse id!\n", name);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->cursor_resource_id = cursor_resource_id;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No id specified!\n", name);
+               return DFB_INVARG;
+          }
      } else
      if (
 #if DIRECTFB_BUILD_VOODOO
