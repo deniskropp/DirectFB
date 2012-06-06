@@ -1201,7 +1201,7 @@ dfb_surface_dump_buffer( CoreSurface           *surface,
      buffer = dfb_surface_get_buffer( surface, role );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     ret = dfb_surface_buffer_dump( buffer, path, prefix );
+     ret =  buffer->allocs.count ? dfb_surface_buffer_dump( buffer, path, prefix ) : DFB_BUFFEREMPTY;
 
      fusion_skirmish_dismiss( &surface->lock );
 
