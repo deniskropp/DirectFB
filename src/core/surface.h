@@ -329,6 +329,8 @@ DFBResult dfb_surface_destroy_buffers( CoreSurface                 *surface );
 
 DFBResult dfb_surface_deallocate_buffers( CoreSurface              *surface );
 
+DFBResult dfb_surface_destroy       ( CoreSurface                  *surface );
+
 DFBResult dfb_surface_lock_buffer   ( CoreSurface                  *surface,
                                       CoreSurfaceBufferRole         role,
                                       CoreSurfaceAccessorID         accessor,

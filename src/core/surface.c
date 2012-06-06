@@ -845,6 +845,29 @@ dfb_surface_deallocate_buffers( CoreSurface *surface )
 }
 
 DFBResult
+dfb_surface_destroy( CoreSurface *surface )
+{
+     int i, num_eyes;
+     DFBSurfaceStereoEye eye;
+
+     D_DEBUG_AT( Core_Surface, "%s( %p )\n", __FUNCTION__, surface );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
+
+     dfb_surface_deallocate_buffers( surface );
+
+     surface->state |= CSSF_DESTROYED;
+
+     fusion_skirmish_dismiss( &surface->lock );
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_surface_lock_buffer( CoreSurface            *surface,
                          CoreSurfaceBufferRole   role,
                          CoreSurfaceAccessorID   accessor,

@@ -240,6 +240,11 @@ ISurface_Real::PreLockBuffer(
 
      dfb_surface_lock( surface );
 
+     if (surface->state & CSSF_DESTROYED) {
+          dfb_surface_unlock( surface );
+          return DFB_DESTROYED;
+     }
+
      if (!buffer->surface) {
           dfb_surface_unlock( surface );
           return DFB_BUFFEREMPTY;
@@ -313,6 +318,11 @@ ISurface_Real::PreLockBuffer2(
      ret = (DFBResult) dfb_surface_lock( surface );
      if (ret)
           return ret;
+
+     if (surface->state & CSSF_DESTROYED) {
+          dfb_surface_unlock( surface );
+          return DFB_DESTROYED;
+     }
 
      if (surface->num_buffers < 1) {
           dfb_surface_unlock( surface );
@@ -408,6 +418,11 @@ ISurface_Real::PreReadBuffer(
 
      dfb_surface_lock( surface );
 
+     if (surface->state & CSSF_DESTROYED) {
+          dfb_surface_unlock( surface );
+          return DFB_DESTROYED;
+     }
+
      if (!buffer->surface) {
           dfb_surface_unlock( surface );
           return DFB_BUFFEREMPTY;
@@ -481,6 +496,11 @@ ISurface_Real::PreWriteBuffer(
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      dfb_surface_lock( surface );
+
+     if (surface->state & CSSF_DESTROYED) {
+          dfb_surface_unlock( surface );
+          return DFB_DESTROYED;
+     }
 
      if (!buffer->surface) {
           dfb_surface_unlock( surface );
