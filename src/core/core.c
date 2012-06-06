@@ -393,6 +393,13 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      pthread_mutex_lock( &core_dfb_lock );
 
+     if (!emergency) {
+          if (--core->refs) {
+               pthread_mutex_unlock( &core_dfb_lock );
+               return DFB_OK;
+          }
+     }
+
      if (!core->shutdown_running)
           core->shutdown_running = 1;
      else {
@@ -400,14 +407,7 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           return DFB_OK;
      }
 
-     if (!emergency) {
-          if (--core->refs) {
-               pthread_mutex_unlock( &core_dfb_lock );
-               return DFB_OK;
-          }
-     }
-     else
-          direct_thread_sleep( 500000 );
+     direct_thread_sleep( 500000 );
 
      if (core->font_manager)
           dfb_font_manager_destroy( core->font_manager );
