@@ -1240,7 +1240,7 @@ region_buffer_lock( CoreLayerRegion       *region,
 
      stereo = surface->config.caps & DSCAPS_STEREO;
 
-     D_DEBUG_AT( Core_LayersLock, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_LayersLock, "%s( role %d )\n", __FUNCTION__, role );
 
      if (dfb_surface_lock( surface ))
           return DFB_FUSION;
