@@ -1436,7 +1436,7 @@ windows_updating( SaWMan     *sawman,
           D_MAGIC_ASSERT( window, SaWManWindow );
           
           if (window->flags & SWMWF_UPDATING) {
-               long long diff = direct_clock_get_millis() - window->update_ms;
+               long long diff = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ) / 1000LL - window->update_ms;
 
                if (!sawman_config->flip_once_timeout || diff < sawman_config->flip_once_timeout) {
                     D_DEBUG_AT( SaWMan_FlipOnce, "  -> update blocking on window id %u (%lld ms, flags 0x%08x)\n",

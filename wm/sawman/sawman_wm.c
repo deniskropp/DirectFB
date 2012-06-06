@@ -3236,7 +3236,7 @@ wm_begin_updates( CoreWindow      *window,
 
      sawwin->flags |= SWMWF_UPDATING;
 
-     sawwin->update_ms = direct_clock_get_millis();
+     sawwin->update_ms = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ) / 1000LL;
 
      return DFB_OK;
 }
