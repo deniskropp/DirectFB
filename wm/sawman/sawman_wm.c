@@ -2300,7 +2300,7 @@ wm_add_window( CoreWindowStack *stack,
                return ret;
      }
 
-     if (ret == DFB_OK && sawwin->parent) {
+     if (ret == DFB_OK && sawwin->parent && !sawwin->parent_window) {
           SaWManWindow *parent = sawwin->parent;
 
           D_MAGIC_ASSERT( parent, SaWManWindow );
