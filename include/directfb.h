@@ -594,6 +594,15 @@ typedef enum {
 } DFBDisplayLayerCapabilities;
 
 /*
+ * Flags used by image providers
+ */
+typedef enum {
+     DIRENDER_NONE           = 0x00000000,
+     DIRENDER_FAST           = 0x00000001,   /* Select fast rendering method */
+     DIRENDER_ALL            = 0x00000001
+} DIRenderFlags;
+
+/*
  * Capabilities of a screen.
  */
 typedef enum {
@@ -6787,6 +6796,15 @@ D_DEFINE_INTERFACE(   IDirectFBImageProvider,
           void                     *callback_data
      );
 
+     /*
+      * Sets hint for preferred image decoding method
+      *
+      * This is optional and might be unsupported by some image providers
+      */
+     DFBResult (*SetRenderFlags) (
+          IDirectFBImageProvider   *thiz,
+          DIRenderFlags            flags
+     );
 
    /** Encoding **/
 

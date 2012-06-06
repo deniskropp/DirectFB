@@ -120,6 +120,13 @@ IDirectFBImageProvider_SetRenderCallback( IDirectFBImageProvider *thiz,
 }
 
 static DFBResult
+IDirectFBImageProvider_SetRenderFlags( IDirectFBImageProvider *thiz,
+                                       DIRenderFlags           flags )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
 IDirectFBImageProvider_WriteBack( IDirectFBImageProvider *thiz,
                                   IDirectFBSurface       *surface,
                                   const DFBRectangle     *src_rect,
@@ -137,6 +144,7 @@ IDirectFBImageProvider_Construct( IDirectFBImageProvider *thiz )
      thiz->GetImageDescription   = IDirectFBImageProvider_GetImageDescription;
      thiz->RenderTo              = IDirectFBImageProvider_RenderTo;
      thiz->SetRenderCallback     = IDirectFBImageProvider_SetRenderCallback;
+     thiz->SetRenderFlags        = IDirectFBImageProvider_SetRenderFlags;
      thiz->WriteBack             = IDirectFBImageProvider_WriteBack;
 }
      
