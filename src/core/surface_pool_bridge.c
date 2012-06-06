@@ -406,8 +406,9 @@ dfb_surface_pool_bridges_transfer( CoreSurfaceBuffer     *buffer,
      D_ASSERT( rects != NULL || num_rects == 0 );
      D_ASSERT( num_rects > 0 || rects == NULL );
 
-     D_DEBUG_AT( Core_SurfPoolBridge, "%s( %p [%s], %p -> %p, %d rects )\n", __FUNCTION__,
-                 buffer, dfb_pixelformat_name( buffer->format ), from, to, num_rects );
+     D_DEBUG_AT( Core_SurfPoolBridge, "%s( %p [%dx%d %s], %p -> %p, %d rects )\n", __FUNCTION__,
+                 buffer, buffer->config.size.w, buffer->config.size.h,
+                 dfb_pixelformat_name( buffer->format ), from, to, num_rects );
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
