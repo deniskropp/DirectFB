@@ -273,6 +273,15 @@ dfb_core_create( CoreDFB **ret_core )
      if (ret)
           goto error;
 
+     if (dfb_system_caps() & CSCAPS_SECURE_FUSION) {
+          D_INFO( "DirectFB/Core: Forcing 'secure-fusion' option (requested by system module)\n" );
+          fusion_config->secure_fusion = true;
+     }
+
+     if (dfb_system_caps() & CSCAPS_ALWAYS_INDIRECT) {
+          D_INFO( "DirectFB/Core: Forcing 'always-indirect' option (requested by system module)\n" );
+          dfb_config->call_nodirect = FCEF_NODIRECT;
+     }
 
      /* Allocate local core structure. */
      core = D_CALLOC( 1, sizeof(CoreDFB) );

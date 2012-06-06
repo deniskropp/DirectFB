@@ -55,12 +55,14 @@ typedef enum {
 } CoreSystemType;
 
 typedef enum {
-     CSCAPS_NONE         = 0x00000000,  /* None of these. */
+     CSCAPS_NONE              = 0x00000000,  /* None of these. */
 
-     CSCAPS_ACCELERATION = 0x00000001,  /* HW acceleration supported, so probe graphics drivers. */
-     CSCAPS_PREFER_SHM   = 0x00000002,  /* Prefer shared memory surface pool over local memory pool. */
+     CSCAPS_ACCELERATION      = 0x00000001,  /* HW acceleration supported, so probe graphics drivers. */
+     CSCAPS_PREFER_SHM        = 0x00000002,  /* Prefer shared memory surface pool over local memory pool. */
+     CSCAPS_SECURE_FUSION     = 0x00000004,  /* Fusion needs to be in secure fusion mode. */
+     CSCAPS_ALWAYS_INDIRECT   = 0x00000008,  /* All calls need to be indirect. */
 
-     CSCAPS_ALL          = 0x00000003   /* All of these. */
+     CSCAPS_ALL               = 0x0000000F   /* All of these. */
 } CoreSystemCapabilities;
 
 /*
