@@ -874,6 +874,41 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 }
 
 static void
+update_scaled565( XWindow *xw, const DFBRectangle *clip, CoreSurfaceBufferLock *lock, int xoffset )
+{
+     u32 *dst;
+     u32 *src;
+     int  x, y;
+
+     D_ASSERT( xw != NULL );
+     DFB_RECTANGLE_ASSERT( clip );
+
+     D_DEBUG_AT( X11_Update, "%s( %4d,%4d-%4dx%4d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( clip ) );
+
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+
+     dst = (u16*)(xw->virtualscreen + ((clip->x / 2) + xoffset) * xw->bpp + (clip->y + xw->ximage_offset) * xw->ximage->bytes_per_line);
+     src = lock->addr + 2 * clip->x + clip->y * lock->pitch;
+
+     for (y=0; y<clip->h; y++) {
+          for (x=0; x<clip->w/2; x++) {
+               u32 S2 = src[x];
+               u16 result;
+
+               S2 &= ~0x08210821;
+               S2 >>= 1;
+
+               result = (S2 & 0xffff) + (S2 >> 16);
+
+               dst[x] = RGB16_TO_RGB32( result );
+          }
+
+          dst = (u16*)((u8*) dst + xw->ximage->bytes_per_line);
+          src = (u32*)((u8*) src + lock->pitch);
+     }
+}
+
+static void
 update_scaled32( XWindow *xw, const DFBRectangle *clip, CoreSurfaceBufferLock *lock, int xoffset )
 {
      u32 *dst;
@@ -935,14 +970,6 @@ update_stereo( DFBX11 *x11, const DFBRectangle *left_clip, const DFBRectangle *r
      surface = left_lock->allocation->surface;
      D_ASSERT( surface != NULL );
 
-     switch (surface->config.format) {
-          case DSPF_ARGB:
-          case DSPF_RGB32:
-               break;
-          default:
-               return DFB_UNSUPPORTED;
-     }
-
      if (!left_lock->addr || !right_lock->addr)
           return DFB_UNSUPPORTED;
 
@@ -967,8 +994,19 @@ update_stereo( DFBX11 *x11, const DFBRectangle *left_clip, const DFBRectangle *r
      if (right.w & 1)
           right.w++;
 
-     update_scaled32( xw, &left, left_lock, 0 );
-     update_scaled32( xw, &right, right_lock, xw->width / 2 );
+     switch (surface->config.format) {
+          case DSPF_RGB16:
+               update_scaled565( xw, &left, left_lock, 0 );
+               update_scaled565( xw, &right, right_lock, xw->width / 2 );
+               break;
+          case DSPF_ARGB:
+          case DSPF_RGB32:
+               update_scaled32( xw, &left, left_lock, 0 );
+               update_scaled32( xw, &right, right_lock, xw->width / 2 );
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
 
 
      left.x /= 2;
