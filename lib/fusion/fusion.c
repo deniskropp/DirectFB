@@ -2903,6 +2903,8 @@ DirectResult
 fusion_world_activate( FusionWorld *world )
 {
      D_DEBUG_AT( Fusion_Main, "  -> unblocking world...\n" );
+
+     return DR_OK;
 }
 
 DirectResult
