@@ -639,8 +639,14 @@ DispatchNS( DirectThread *thread,
      while (!data->ns_stop) {
           size_t length;
           size_t offset;
-
+//#define ONE_QUEUE_WORKAROUND
+#ifndef ONE_QUEUE_WORKAROUND
           ret = OneQueue_Receive( &data->ns_qid, 1, buf, RECEIVE_BUFFER_SIZE, &length, false, 0 );
+#else
+          ret = OneQueue_Receive( &data->ns_qid, 1, buf, RECEIVE_BUFFER_SIZE, &length, false, 100 );
+          if (ret == DR_TIMEOUT )
+               continue;
+#endif
           if (ret) {
                D_DERROR( ret, "IFusionDale/One: Could not receive from NS Queue!\n" );
                break;
