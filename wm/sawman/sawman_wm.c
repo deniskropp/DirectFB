@@ -2853,7 +2853,7 @@ wm_set_window_config( CoreWindow             *window,
           window->config.dst_geometry = config->dst_geometry;
 
      if (flags & CWCF_ASSOCIATION && window->config.association != config->association) {
-          SaWManWindow *parent = NULL;
+          SaWManWindow *parent = sawwin->parent;
 
           /* Dissociate first */
           if (sawwin->parent_window) {
