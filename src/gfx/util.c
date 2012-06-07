@@ -255,8 +255,11 @@ dfb_gfx_copy_regions( CoreSurface           *source,
 static void
 back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBlittingFlags flags, int rotation)
 {
+     CardState *btf_statep = &btf_state;
+
      DFBRectangle rect;
      int          dx, dy;
+
 
      if (region) {
           rect.x = region->x1;
@@ -277,20 +280,20 @@ back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBli
      pthread_mutex_lock( &btf_lock );
 
      if (!btf_state_inited) {
-          dfb_state_init( &btf_state, NULL );
+          dfb_state_init( btf_statep, NULL );
 
-          btf_state.from = CSBR_BACK;
-          btf_state.to   = CSBR_FRONT;
+          btf_statep->from = CSBR_BACK;
+          btf_statep->to   = CSBR_FRONT;
 
           btf_state_inited = true;
      }
 
-     btf_state.modified     |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
+     btf_statep->modified     |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
 
-     btf_state.clip.x2       = surface->config.size.w - 1;
-     btf_state.clip.y2       = surface->config.size.h - 1;
-     btf_state.source        = surface;
-     btf_state.destination   = surface;
+     btf_statep->clip.x2       = surface->config.size.w - 1;
+     btf_statep->clip.y2       = surface->config.size.h - 1;
+     btf_statep->source        = surface;
+     btf_statep->destination   = surface;
 
 
      if (rotation == 90) {
@@ -313,12 +316,12 @@ back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBli
      }
 
 
-     dfb_state_set_blitting_flags( &btf_state, flags );
+     dfb_state_set_blitting_flags( btf_statep, flags );
 
-     dfb_gfxcard_blit( &rect, dx, dy, &btf_state );
+     dfb_gfxcard_blit( &rect, dx, dy, btf_statep );
 
      /* Signal end of sequence. */
-     dfb_state_stop_drawing( &btf_state );
+     dfb_state_stop_drawing( btf_statep );
 
      pthread_mutex_unlock( &btf_lock );
 }
