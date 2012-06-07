@@ -1895,6 +1895,8 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
      else
           dfb_state_set_source( &data->state, src_data->surface );
 
+     dfb_state_set_from( &data->state, CSBR_FRONT, src_data->src_eye );
+
      /* fetch the source color key from the source if necessary */
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
@@ -1969,6 +1971,8 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
      }
 
      dfb_state_set_source( &data->state, src_data->surface );
+
+     dfb_state_set_from( &data->state, CSBR_FRONT, src_data->src_eye );
 
      /* fetch the source color key from the source if necessary */
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
@@ -2057,6 +2061,8 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
      }
 
      dfb_state_set_source( &data->state, src_data->surface );
+
+     dfb_state_set_from( &data->state, CSBR_FRONT, src_data->src_eye );
 
      /* fetch the source color key from the source if necessary */
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
@@ -2170,6 +2176,8 @@ IDirectFBSurface_BatchBlit2( IDirectFBSurface   *thiz,
      dfb_state_set_source( &data->state, src_data->surface );
      dfb_state_set_source2( &data->state, src2_data->surface );
 
+     dfb_state_set_from( &data->state, CSBR_FRONT, src_data->src_eye );
+
      /* fetch the source color key from the source if necessary */
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
@@ -2269,6 +2277,8 @@ IDirectFBSurface_BatchStretchBlit( IDirectFBSurface   *thiz,
      }
 
      dfb_state_set_source( &data->state, src_data->surface );
+
+     dfb_state_set_from( &data->state, CSBR_FRONT, src_data->src_eye );
 
      /* fetch the source color key from the source if necessary */
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
@@ -2417,6 +2427,8 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
      }
 
      dfb_state_set_source( &data->state, src_data->surface );
+
+     dfb_state_set_from( &data->state, CSBR_FRONT, src_data->src_eye );
 
      /* fetch the source color key from the source if necessary */
      if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
@@ -2967,7 +2979,7 @@ IDirectFBSurface_GetStereoEye( IDirectFBSurface    *thiz,
      if (!(data->surface->config.caps & DSCAPS_STEREO))
           return DFB_UNSUPPORTED;
 
-     *ret_eye = data->surface->buffers == data->surface->left_buffers ? DSSE_LEFT : DSSE_RIGHT;
+     *ret_eye = data->src_eye;
 
      return DFB_OK;
 }
@@ -2986,9 +2998,9 @@ IDirectFBSurface_SetStereoEye( IDirectFBSurface    *thiz,
      if (!(data->surface->config.caps & DSCAPS_STEREO))
           return DFB_UNSUPPORTED;
 
-     dfb_surface_set_stereo_eye(data->surface, eye);
+     dfb_state_set_to( &data->state, CSBR_BACK, eye );
 
-     data->state.modified |= SMF_DESTINATION;
+     data->src_eye = eye;
 
      return DFB_OK;
 }

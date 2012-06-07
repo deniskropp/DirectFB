@@ -33,11 +33,23 @@
 
 void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect );
 void dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect, int x, int y, bool from_back );
-void dfb_gfx_copy_to_stereo( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect, int x, int y, bool from_back, bool to_right );
+void dfb_gfx_copy_stereo( CoreSurface         *source,
+                          DFBSurfaceStereoEye  source_eye,
+                          CoreSurface         *destination,
+                          DFBSurfaceStereoEye  destination_eye,
+                          const DFBRectangle  *rect,
+                          int                  x,
+                          int                  y,
+                          bool                 from_back );
 void dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role );
 void dfb_gfx_stretch_to( CoreSurface *source, CoreSurface *destination, const DFBRectangle *srect, const DFBRectangle *drect, bool from_back );
 void dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region );
 void dfb_back_to_front_copy_rotation( CoreSurface *surface, const DFBRegion *region, int rotation );
+void dfb_back_to_front_copy_stereo( CoreSurface         *surface,
+                                    DFBSurfaceStereoEye  eyes,
+                                    const DFBRegion     *left_region,
+                                    const DFBRegion     *right_region,
+                                    int                  rotation );
 void dfb_clear_depth( CoreSurface *surface, const DFBRegion *region );
 
 void dfb_sort_triangle( DFBTriangle *tri );
@@ -52,6 +64,17 @@ void dfb_gfx_copy_regions( CoreSurface           *source,
                            unsigned int           num,
                            int                    x,
                            int                    y );
+
+void dfb_gfx_copy_regions_stereo( CoreSurface           *source,
+                                  CoreSurfaceBufferRole  from,
+                                  DFBSurfaceStereoEye    source_eye,
+                                  CoreSurface           *destination,
+                                  CoreSurfaceBufferRole  to,
+                                  DFBSurfaceStereoEye    destination_eye,
+                                  const DFBRegion       *regions,
+                                  unsigned int           num,
+                                  int                    x,
+                                  int                    y );
 
 /*
  * Simplyfy blitting flags

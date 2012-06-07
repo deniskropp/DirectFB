@@ -8569,7 +8569,9 @@ gAcquireLockBuffers( CardState *state, DFBAccelerationMask accel )
           access |= CSAF_READ;
 
      /* Lock destination */
-     ret = dfb_surface_lock_buffer( destination, state->to, CSAID_CPU, access, &state->dst );
+     ret = dfb_surface_lock_buffer2( destination, state->to, destination->flips,
+                                     state->to_eye,
+                                     CSAID_CPU, access, &state->dst );
      if (ret) {
           D_DERROR( ret, "DirectFB/Genefx: Could not lock destination!\n" );
           return ret;
@@ -8588,7 +8590,9 @@ gAcquireLockBuffers( CardState *state, DFBAccelerationMask accel )
 #endif
 
           /* Lock source */
-          ret = dfb_surface_lock_buffer( source, state->from, CSAID_CPU, CSAF_READ, &state->src );
+          ret = dfb_surface_lock_buffer2( source, state->from, source->flips,
+                                          state->from_eye,
+                                          CSAID_CPU, CSAF_READ, &state->src );
           if (ret) {
                D_DERROR( ret, "DirectFB/Genefx: Could not lock source!\n" );
                dfb_surface_unlock_buffer( destination, &state->dst );

@@ -674,30 +674,14 @@ ISurface_Real::CreateClient(
 
 DFBResult
 ISurface_Real::BackToFrontCopy(
-                   DFBSurfaceStereoEye                                  eye,
-                   const DFBRegion                                     *left_region,
-                   const DFBRegion                                     *right_region
+                   DFBSurfaceStereoEye                                 eye,
+                   const DFBRegion                                    *left_region,
+                   const DFBRegion                                    *right_region
                    )
 {
-     DFBSurfaceStereoEye old_eye;
-
      D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
 
-     /* Remember current stereo eye. */
-     old_eye = dfb_surface_get_stereo_eye( obj );
-
-     if (eye & DSSE_LEFT) {
-          dfb_surface_set_stereo_eye( obj, DSSE_LEFT );
-          dfb_back_to_front_copy( obj, left_region );
-     }
-
-     if (eye & DSSE_RIGHT) {
-          dfb_surface_set_stereo_eye( obj, DSSE_RIGHT );
-          dfb_back_to_front_copy( obj, right_region );
-     }
-
-     /* Restore current stereo focus. */
-     dfb_surface_set_stereo_eye( obj, old_eye );
+     dfb_back_to_front_copy_stereo( obj, eye, left_region, right_region, 0 );
 
      return DFB_OK;
 }
