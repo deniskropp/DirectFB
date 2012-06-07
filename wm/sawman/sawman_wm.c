@@ -2307,16 +2307,11 @@ wm_add_window( CoreWindowStack *stack,
           D_ASSERT( parent->window != NULL );
           D_ASSERT( parent->id == window->config.association );
 
-          ret = dfb_window_link( &sawwin->parent_window, parent->window );
-          if (ret) {
-               D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", window->config.association );
-               sawman_unlock( sawman );
-               return ret;
-          }
+          sawwin->parent_window = parent->window;
 
           ret = fusion_vector_add( &parent->children, sawwin );
           if (ret) {
-               dfb_window_unlink( &sawwin->parent_window );
+               sawwin->parent_window = NULL;
                sawman_unlock( sawman );
                return ret;
           }
@@ -2353,6 +2348,7 @@ wm_remove_window( CoreWindowStack *stack,
      DFBResult     ret;
      WMData       *wmdata = wm_data;
      SaWManWindow *sawwin = window_data;
+     SaWManWindow *child;
      StackData    *sdata  = stack_data;
      SaWMan       *sawman;
      SaWManTier   *tier;
@@ -2414,7 +2410,10 @@ wm_remove_window( CoreWindowStack *stack,
                ret = DFB_OK;
 
           case DFB_OK:
-               D_ASSERT( sawwin->children.count == 0 );
+               fusion_vector_foreach (child, n, sawwin->children) {
+                    child->parent        = NULL;
+                    child->parent_window = NULL;
+               }
 
                /* Actually remove the window from the stack. */
                if (sawwin->flags & SWMWF_INSERTED)
@@ -2431,7 +2430,7 @@ wm_remove_window( CoreWindowStack *stack,
                     fusion_vector_remove( &parent->children, fusion_vector_index_of( &parent->children, sawwin ) );
                     sawwin->parent = NULL;
 
-                    dfb_window_unlink( &sawwin->parent_window );
+                    sawwin->parent_window = NULL;
                }
 
                D_MAGIC_CLEAR( sawwin );
@@ -2859,7 +2858,7 @@ wm_set_window_config( CoreWindow             *window,
           if (sawwin->parent_window) {
                int index;
 
-               dfb_window_unlink( &sawwin->parent_window );
+               sawwin->parent_window = NULL;
 
                index = fusion_vector_index_of( &parent->children, sawwin );
                D_ASSERT( index >= 0 );
@@ -2905,17 +2904,11 @@ wm_set_window_config( CoreWindow             *window,
 
                D_DEBUG_AT( SaWMan_WM, "  -> parent window %p\n", parent );
 
-
-               ret = dfb_window_link( &sawwin->parent_window, parent->window );
-               if (ret) {
-                    D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", config->association );
-                    sawman_unlock( sawman );
-                    return ret;
-               }
+               sawwin->parent_window = parent->window;
 
                ret = fusion_vector_add( &parent->children, sawwin );
                if (ret) {
-                    dfb_window_unlink( &sawwin->parent_window );
+                    sawwin->parent_window = NULL;
                     sawman_unlock( sawman );
                     return ret;
                }

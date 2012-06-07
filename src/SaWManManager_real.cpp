@@ -388,7 +388,7 @@ ISaWManManager_Real::SetWindowConfig(
           if (sawwin->parent_window) {
                int index;
 
-               dfb_window_unlink( &sawwin->parent_window );
+               sawwin->parent_window = NULL;
 
                index = fusion_vector_index_of( &parent->children, sawwin );
                D_ASSERT( index >= 0 );
@@ -434,17 +434,11 @@ ISaWManManager_Real::SetWindowConfig(
 
                D_DEBUG_AT( DirectFB_SaWManManager, "  -> parent window %p\n", parent );
 
-
-               ret = (DFBResult) dfb_window_link( &sawwin->parent_window, parent->window );
-               if (ret) {
-                    D_DERROR( ret, "SaWMan/WM: Can't link parent window with ID %d!\n", config->association );
-                    reset_geometry_to_nonfollow( sawwin );
-                    return ret;
-               }
+               sawwin->parent_window = parent->window;
 
                ret = (DFBResult) fusion_vector_add( &parent->children, sawwin );
                if (ret) {
-                    dfb_window_unlink( &sawwin->parent_window );
+                    sawwin->parent_window = NULL;
                     reset_geometry_to_nonfollow( sawwin );
                     return ret;
                }
