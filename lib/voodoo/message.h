@@ -111,6 +111,8 @@ typedef struct {
                                                             \
      D_MAGIC_ASSERT( _parser, VoodooMessageParser );        \
                                                             \
+     (void)_vp_type;                                        \
+                                                            \
      _vp_ptr = _parser->ptr;                                \
                                                             \
      /* Read message block type. */                         \

@@ -273,6 +273,8 @@ devmemAllocateBuffer( CoreSurfacePool       *pool,
      DevMemPoolLocalData  *local = pool_local;
      DevMemAllocationData *alloc = alloc_data;
 
+     (void)surface;
+
      D_DEBUG_AT( DevMem_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );

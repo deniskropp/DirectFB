@@ -39,11 +39,13 @@
 
 int main( void )
 {
+     int            res;
      unsigned char  byt;
      unsigned short wrd;
 
      do {
-          fread (&wrd, 2, 1, stdin);
+          res = fread (&wrd, 2, 1, stdin);
+          (void)res;
 
 #ifdef WORDS_BIGENDIAN
           swab (&wrd, &wrd, 2);

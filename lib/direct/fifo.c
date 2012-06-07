@@ -132,6 +132,8 @@ direct_fifo_pull( DirectFifo *fifo )
      int             index;
      DirectFifoItem *tmp, *out;
 
+     (void)index;
+
      D_DEBUG_AT( Direct_Fifo, "%s( %p )\n", __FUNCTION__, fifo );
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
@@ -184,6 +186,8 @@ direct_fifo_pop( DirectFifo *fifo )
 {
      int                    index;
      DirectFifoItem        *item;
+
+     (void)index;
 
      D_DEBUG_AT( Direct_Fifo, "%s( %p )\n", __FUNCTION__, fifo );
 

@@ -1074,6 +1074,8 @@ dfb_surface_write_buffer( CoreSurface            *surface,
      DFBSurfacePixelFormat  format;
      CoreSurfaceAllocation *allocation;
 
+     (void)format;
+
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( pitch > 0 || source == NULL );
      DFB_RECTANGLE_ASSERT_IF( prect );
@@ -1236,6 +1238,7 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
                           const char            *prefix )
 {
      DFBResult              ret;
+     int                    res;
      int                    num  = -1;
      int                    fd_p = -1;
      int                    fd_g = -1;
@@ -1254,6 +1257,8 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
      CorePalette           *palette = NULL;
      CoreSurfaceAllocation *allocation;
      CoreSurfaceBufferLock  lock;
+
+     (void)res;
 
      D_DEBUG_AT( Core_Surface, "%s( %p, %p, %p )\n", __FUNCTION__, surface, path, prefix );
 
@@ -1434,7 +1439,7 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
 #ifdef USE_ZLIB
           gzwrite( gz_p, head, strlen(head) );
 #else
-          write( fd_p, head, strlen(head) );
+          res = write( fd_p, head, strlen(head) );
 #endif
      }
 
@@ -1445,7 +1450,7 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
 #ifdef USE_ZLIB
           gzwrite( gz_g, head, strlen(head) );
 #else
-          write( fd_g, head, strlen(head) );
+          res = write( fd_g, head, strlen(head) );
 #endif
      }
 
@@ -1473,7 +1478,7 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
 #ifdef USE_ZLIB
                gzwrite( gz_p, buf_p, surface->config.size.w * 3 );
 #else
-               write( fd_p, buf_p, surface->config.size.w * 3 );
+               res = write( fd_p, buf_p, surface->config.size.w * 3 );
 #endif
           }
 
@@ -1491,7 +1496,7 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
 #ifdef USE_ZLIB
                gzwrite( gz_g, buf_g, surface->config.size.w );
 #else
-               write( fd_g, buf_g, surface->config.size.w );
+               res = write( fd_g, buf_g, surface->config.size.w );
 #endif
           }
      }

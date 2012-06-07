@@ -1396,6 +1396,8 @@ dfb_wm_update_window( CoreWindow          *window,
 {
      bool stereo;
 
+     (void)stereo;
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->UpdateWindow != NULL );

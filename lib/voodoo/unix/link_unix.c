@@ -279,7 +279,9 @@ SendReceive( VoodooLink  *link,
                          D_DEBUG_AT( Voodoo_Link, "  => WAKE UP\n" );
 
                          static char buf[1000];
-                         read( l->wakeup_fds[0], buf, sizeof(buf) );
+                         if (read( l->wakeup_fds[0], buf, sizeof(buf) ) < 0)
+                              return errno2result( errno );
+
                          if (!FD_ISSET( l->fd[0], &fds_read ) && !FD_ISSET( l->fd[0], &fds_write ))
                               return DR_INTERRUPTED;
                     }
@@ -305,7 +307,8 @@ WakeUp( VoodooLink *link )
      Link *l = link->priv;
      char  c = 0;
 
-     write( l->wakeup_fds[1], &c, 1 );
+     if (write( l->wakeup_fds[1], &c, 1 ))
+          return errno2result( errno );
 
      return DR_OK;
 }
@@ -456,7 +459,8 @@ voodoo_link_init_connect( VoodooLink *link,
      }
      D_INFO( "Voodoo/Link: Sent link code (%s).\n", raw ? "raw" : "packet" );
 
-     pipe( l->wakeup_fds );
+     if (pipe( l->wakeup_fds ))
+          return errno2result( errno );
 
 
      link->priv        = l;
@@ -544,7 +548,8 @@ voodoo_link_init_local( VoodooLink *link,
      }
      D_INFO( "Voodoo/Link: Sent link code (%s).\n", raw ? "raw" : "packet" );
 
-     pipe( l->wakeup_fds );
+     if (pipe( l->wakeup_fds ))
+          return errno2result( errno );
 
 
      link->priv        = l;
@@ -576,7 +581,8 @@ voodoo_link_init_fd( VoodooLink *link,
      l->fd[0] = fd[0];
      l->fd[1] = fd[1];
 
-     pipe( l->wakeup_fds );
+     if (pipe( l->wakeup_fds ))
+          return errno2result( errno );
 
      link->priv        = l;
      link->Close       = Close;

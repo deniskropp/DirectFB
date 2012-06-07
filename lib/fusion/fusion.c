@@ -441,7 +441,11 @@ map_shared_root( void               *shm_base,
 
      if (master) {
           fchmod( fd, fusion_config->secure_fusion ? 0640 : 0660 );
-          ftruncate( fd, sizeof(FusionWorldShared) );
+          if (ftruncate( fd, sizeof(FusionWorldShared))) {
+               ret = errno2result(errno);
+               D_PERROR( "Fusion/SHM: Could not truncate shared memory file '%s'!\n", root_file );
+               goto out;
+          }
      }
 
      D_DEBUG_AT( Fusion_Main, "  -> mmaping shared memory file... (%zu bytes)\n", sizeof(FusionWorldShared) );

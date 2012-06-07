@@ -2441,6 +2441,7 @@ fbdev_ioctl_call_handler( int           caller,
                           int          *ret_val )
 {
      int        ret;
+     int        res;
      const char cursoroff_str[] = "\033[?1;0;0c";
      const char blankoff_str[] = "\033[9;0]";
 
@@ -2453,8 +2454,9 @@ fbdev_ioctl_call_handler( int           caller,
 
      if (dfb_config->vt && !dfb_config->kd_graphics && call_arg == FBIOPUT_VSCREENINFO) {
           ioctl( dfb_fbdev->vt->fd, KDSETMODE, KD_TEXT );
-          write( dfb_fbdev->vt->fd, cursoroff_str, strlen(cursoroff_str) );
-          write( dfb_fbdev->vt->fd, blankoff_str, strlen(blankoff_str) );
+          res = write( dfb_fbdev->vt->fd, cursoroff_str, strlen(cursoroff_str) );
+          res = write( dfb_fbdev->vt->fd, blankoff_str, strlen(blankoff_str) );
+          (void)res;
      }
 
      *ret_val = ret;

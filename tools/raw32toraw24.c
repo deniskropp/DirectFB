@@ -41,11 +41,13 @@
 
 int main( void )
 {
+     int res;
      u8  byt;
      u32 pixel32;
 
      do {
-          fread (&pixel32, 4, 1, stdin);
+          res = fread (&pixel32, 4, 1, stdin);
+          (void)res;
 
 #ifdef WORDS_BIGENDIAN
           pixel32 = (pixel32 << 16) | (pixel32 >> 16);

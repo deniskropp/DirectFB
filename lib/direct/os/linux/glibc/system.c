@@ -192,6 +192,8 @@ direct_futex( int *uaddr, int op, int val, const struct timespec *timeout, int *
      int          ret;
      unsigned int count;
 
+     (void)count;
+
      switch (op) {
           case FUTEX_WAIT:
                count = D_SYNC_ADD_AND_FETCH( &__Direct_Futex_Wait_Count, 1 );

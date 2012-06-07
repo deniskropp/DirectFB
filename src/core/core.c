@@ -229,6 +229,8 @@ dfb_core_create( CoreDFB **ret_core )
      CoreDFB       *core   = NULL;
      CoreDFBShared *shared = NULL;
 
+     (void)shared;
+
      D_ASSERT( ret_core != NULL );
      D_ASSERT( dfb_config != NULL );
 
@@ -459,6 +461,8 @@ dfb_core_create_graphics_state( CoreDFB *core )
 {
      CoreDFBShared *shared;
 
+     (void)shared;
+
      D_ASSUME( core != NULL );
 
      if (!core)
@@ -498,6 +502,8 @@ CoreLayerRegion *
 dfb_core_create_layer_region( CoreDFB *core )
 {
      CoreDFBShared *shared;
+     
+     (void)shared;
 
      D_ASSUME( core != NULL );
 
@@ -519,6 +525,8 @@ dfb_core_create_palette( CoreDFB *core )
 {
      CoreDFBShared *shared;
 
+     (void)shared;
+
      D_ASSUME( core != NULL );
 
      if (!core)
@@ -538,6 +546,8 @@ CoreSurface *
 dfb_core_create_surface( CoreDFB *core )
 {
      CoreDFBShared *shared;
+
+     (void)shared;
 
      D_ASSUME( core != NULL );
 
@@ -559,6 +569,8 @@ dfb_core_create_surface_allocation( CoreDFB *core )
 {
      CoreDFBShared *shared;
 
+     (void)shared;
+
      D_ASSUME( core != NULL );
 
      if (!core)
@@ -578,6 +590,8 @@ CoreSurfaceBuffer *
 dfb_core_create_surface_buffer( CoreDFB *core )
 {
      CoreDFBShared *shared;
+
+     (void)shared;
 
      D_ASSUME( core != NULL );
 
@@ -599,6 +613,8 @@ dfb_core_create_surface_client( CoreDFB *core )
 {
      CoreDFBShared *shared;
 
+     (void)shared;
+
      D_ASSUME( core != NULL );
 
      if (!core)
@@ -618,6 +634,8 @@ CoreWindow *
 dfb_core_create_window( CoreDFB *core )
 {
      CoreDFBShared *shared;
+
+     (void)shared;
 
      D_ASSUME( core != NULL );
 
@@ -643,6 +661,8 @@ dfb_core_get_graphics_state( CoreDFB            *core,
      FusionObject *object;
 
      CoreDFBShared *shared;
+
+     (void)shared;
 
      D_ASSUME( core != NULL );
      D_ASSERT( ret_state != NULL );
@@ -676,6 +696,8 @@ dfb_core_get_layer_context( CoreDFB           *core,
 
      CoreDFBShared *shared;
 
+     (void)shared;
+
      D_ASSUME( core != NULL );
      D_ASSERT( ret_context != NULL );
 
@@ -707,6 +729,8 @@ dfb_core_get_layer_region( CoreDFB          *core,
      FusionObject *object;
 
      CoreDFBShared *shared;
+
+     (void)shared;
 
      D_ASSUME( core != NULL );
      D_ASSERT( ret_region != NULL );
@@ -740,6 +764,8 @@ dfb_core_get_palette( CoreDFB      *core,
 
      CoreDFBShared *shared;
 
+     (void)shared;
+
      D_ASSUME( core != NULL );
      D_ASSERT( ret_palette != NULL );
 
@@ -771,6 +797,8 @@ dfb_core_get_surface( CoreDFB      *core,
      FusionObject *object;
 
      CoreDFBShared *shared;
+
+     (void)shared;
 
      D_ASSUME( core != NULL );
      D_ASSERT( ret_surface != NULL );
@@ -804,6 +832,8 @@ dfb_core_get_surface_allocation( CoreDFB                *core,
 
      CoreDFBShared *shared;
 
+     (void)shared;
+
      D_ASSUME( core != NULL );
      D_ASSERT( ret_allocation != NULL );
 
@@ -835,6 +865,8 @@ dfb_core_get_surface_buffer( CoreDFB            *core,
      FusionObject *object;
 
      CoreDFBShared *shared;
+
+     (void)shared;
 
      D_ASSUME( core != NULL );
      D_ASSERT( ret_buffer != NULL );
@@ -868,6 +900,8 @@ dfb_core_get_surface_client( CoreDFB            *core,
 
      CoreDFBShared *shared;
 
+     (void)shared;
+
      D_ASSUME( core != NULL );
      D_ASSERT( ret_client != NULL );
 
@@ -899,6 +933,8 @@ dfb_core_get_window( CoreDFB     *core,
      FusionObject *object;
 
      CoreDFBShared *shared;
+
+     (void)shared;
 
      D_ASSUME( core != NULL );
      D_ASSERT( ret_window != NULL );
@@ -1045,6 +1081,8 @@ void
 dfb_core_activate( CoreDFB *core )
 {
      CoreDFBShared *shared;
+
+     (void)shared;
 
      D_MAGIC_ASSERT( core, CoreDFB );
 

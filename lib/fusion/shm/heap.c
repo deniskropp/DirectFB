@@ -599,11 +599,14 @@ __shmalloc_init_heap( FusionSHM  *shm,
                       int        *ret_size )
 {
      DirectResult     ret;
+     int              res;
      int              size;
      FusionSHMShared *shared;
      int              heapsize = (space + BLOCKSIZE-1) / BLOCKSIZE;
      int              fd       = -1;
      shmalloc_heap   *heap     = NULL;
+
+     (void)shared;
 
      D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %d, %p )\n",
                  __FUNCTION__, shm, filename, addr_base, space, ret_size );
@@ -640,9 +643,15 @@ __shmalloc_init_heap( FusionSHM  *shm,
      fchmod( fd, fusion_config->secure_fusion ? 0640 : 0660 );
 
      if (fusion_config->madv_remove)
-          ftruncate( fd, size + space );
+          res = ftruncate( fd, size + space );
      else
-          ftruncate( fd, size );
+          res = ftruncate( fd, size );
+
+     if (res) {
+          D_PERROR( "Fusion/SHM: Could not truncate shared memory file '%s'!\n", filename );
+          ret = errno2result(errno);
+          goto error;
+     }
 
      D_DEBUG_AT( Fusion_SHMHeap, "  -> mmaping shared memory file... (%d bytes)\n", size );
 
@@ -704,6 +713,8 @@ __shmalloc_join_heap( FusionSHM  *shm,
      int              open_flags = write ? O_RDWR : O_RDONLY;
      int              prot_flags = PROT_READ;
      int              heapsize   = (size + BLOCKSIZE-1) / BLOCKSIZE;
+
+     (void)shared;
 
      if (write)
           prot_flags |= PROT_WRITE;

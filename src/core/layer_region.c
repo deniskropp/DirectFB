@@ -590,6 +590,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                     if (surface) {
                          CoreSurfaceAllocation *allocation;
 
+                         (void)allocation;
+
                          /* Lock region buffer before it is used. */
                          region_buffer_lock( region, surface, CSBR_FRONT, &left, NULL );
 
@@ -818,6 +820,9 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
 
                     if (surface) {
                          CoreSurfaceAllocation *left_allocation, *right_allocation;
+
+                         (void)left_allocation;
+                         (void)right_allocation;                         
 
                          /* Lock region buffer before it is used. */
                          region_buffer_lock( region, surface, CSBR_FRONT, &left, &right );
@@ -1231,6 +1236,9 @@ region_buffer_lock( CoreLayerRegion       *region,
      bool                   stereo;
      DFBSurfaceStereoEye    eye;
 
+     (void)context;
+     (void)allocation;
+
      D_ASSERT( region != NULL );
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT(left_buffer_lock != NULL);
@@ -1329,6 +1337,8 @@ set_region( CoreLayerRegion            *region,
      const DisplayLayerFuncs *funcs;
      CoreSurfaceBufferLock    left, right;
      bool                     locked = false;
+
+     (void)shared;
 
      D_DEBUG_AT( Core_Layers, "%s( %p, %p, 0x%08x, %p )\n", __FUNCTION__, region, config, flags, surface );
 

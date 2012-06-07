@@ -394,6 +394,8 @@ allocation_update_write( CoreSurfaceAllocation *allocation,
      CoreSurfaceBufferLock  src;
      CoreSurfaceBuffer     *buffer;
 
+     (void)buffer;
+
      D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, (void *)allocation );
 
      D_ASSERT( allocation != source );
@@ -437,6 +439,8 @@ allocation_update_read( CoreSurfaceAllocation *allocation,
      DFBResult              ret;
      CoreSurfaceBufferLock  dst;
      CoreSurfaceBuffer     *buffer;
+
+     (void)buffer;
 
      D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, (void *)allocation );
 

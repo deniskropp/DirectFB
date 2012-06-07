@@ -51,6 +51,7 @@ static int sx,sy;
 int
 main( int argc, char *argv[] )
 {
+     int res;
      int quit = 0;
      DFBResult err;
      DFBGraphicsDeviceDescription gdesc;
@@ -75,7 +76,8 @@ main( int argc, char *argv[] )
 	 file = open ( init_str, O_RDONLY );
 	 if ( file != -1 ){
 	 	 char *pos, *pos2;
-           read(file, buf, sizeof(buf));
+           res = read(file, buf, sizeof(buf));
+           (void)res;
 		 close(file);
 	 
 		 pos = strstr( buf, "penmount-device" );

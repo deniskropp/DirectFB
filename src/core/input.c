@@ -722,6 +722,8 @@ dfb_input_core_suspend( DFBInputCore *data )
 
      direct_list_foreach (device, data->devices) {
           InputDeviceShared *devshared;
+
+          (void)devshared;
           
           D_MAGIC_ASSERT( device, CoreInputDevice );
           

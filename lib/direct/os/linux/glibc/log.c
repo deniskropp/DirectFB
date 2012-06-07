@@ -91,7 +91,11 @@ common_log_write( DirectLog  *log,
                   const char *buffer,
                   size_t      bytes )
 {
-     write( (long) log->data, buffer, bytes );
+     ssize_t ret;
+
+     ret = write( (long) log->data, buffer, bytes );
+
+     (void)ret;
 
 #ifdef ANDROID_NDK
 __android_log_print( ANDROID_LOG_INFO, "android-dfb", "%s", buffer );
@@ -169,6 +173,7 @@ parse_host_addr( const char       *hostport,
                  struct addrinfo **ret_addr )
 {
      int   i, ret;
+     unsigned long int res;
      
      int   size = strlen( hostport ) + 1;
      char  buf[size];
@@ -195,7 +200,9 @@ parse_host_addr( const char       *hostport,
           return DR_INVARG;
      }
 
-     strtoul( portstr, &end, 10 );
+     res = strtoul( portstr, &end, 10 );
+     (void)res;
+
      if (end && *end) {
           D_ERROR( "Direct/Log: Parse error in port number '%s'!\n", portstr );
           return DR_INVARG;

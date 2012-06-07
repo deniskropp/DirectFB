@@ -1053,6 +1053,8 @@ IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg )
 
                ret = write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
 
+               (void)ret;
+
                D_DEBUG_AT( IDFBEvBuf, "...wrote %d bytes to file descriptor %d.\n",
                            ret, data->pipe_fds[1] );
 

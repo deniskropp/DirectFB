@@ -2253,9 +2253,10 @@ DFBResult dfb_config_read( const char *filename )
           char nwd[strlen(filename)];
           strcpy( nwd, filename );
           nwd[slash-filename] = 0;
-          chdir( nwd );
-
-          D_DEBUG_AT( DirectFB_Config, "changing configuration lookup directory to '%s'.\n", nwd );
+          if (chdir( nwd ))
+               D_WARN( "config: failed to change directory to %s.\n", nwd );
+          else
+               D_DEBUG_AT( DirectFB_Config, "changing configuration lookup directory to '%s'.\n", nwd );
      }
 #endif
 
@@ -2297,7 +2298,11 @@ DFBResult dfb_config_read( const char *filename )
 #ifndef WIN32
      /* restore original cwd */
      if( cwd ) {
-          chdir( cwd );
+          if (chdir( cwd ))
+               D_WARN( "config: failed to change directory to %s.\n", cwd );
+          else
+               D_DEBUG_AT( DirectFB_Config, "changing directtory back to '%s'.\n", cwd );
+
           free( cwd );
      }
 #endif

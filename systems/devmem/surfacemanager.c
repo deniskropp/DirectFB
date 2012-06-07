@@ -254,6 +254,8 @@ DFBResult dfb_surfacemanager_displace( CoreDFB           *core,
      CoreGraphicsDevice    *device;
      CoreSurfaceAllocation *smallest = NULL;
 
+     (void)device;
+
      D_MAGIC_ASSERT( manager, SurfaceManager );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( buffer->surface, CoreSurface );
@@ -436,6 +438,8 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
                                          Chunk          *chunk )
 {
      CoreSurfaceBuffer *buffer;
+
+     (void)buffer;
 
      D_MAGIC_ASSERT( manager, SurfaceManager );
      D_MAGIC_ASSERT( chunk, Chunk );

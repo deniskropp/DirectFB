@@ -245,8 +245,11 @@ dfb_vt_join( void )
 DFBResult
 dfb_vt_shutdown( bool emergency )
 {
+     int res;
      const char cursoron_str[] = "\033[?0;0;0c";
      const char blankon_str[] = "\033[9;10]";
+
+     (void)res;
 
      D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
 
@@ -275,9 +278,9 @@ dfb_vt_shutdown( bool emergency )
                D_PERROR( "DirectFB/fbdev/vt: KD_TEXT failed!\n" );
      }
      else {
-          write( dfb_vt->fd, blankon_str, sizeof(blankon_str) );
+          res = write( dfb_vt->fd, blankon_str, sizeof(blankon_str) );
      }
-     write( dfb_vt->fd, cursoron_str, sizeof(cursoron_str) );
+     res = write( dfb_vt->fd, cursoron_str, sizeof(cursoron_str) );
 
      if (tcsetattr( dfb_vt->fd, TCSAFLUSH, &dfb_vt->old_ts ) < 0)
           D_PERROR("DirectFB/fbdev/vt: tcsetattr for original values failed!\n");
@@ -462,6 +465,9 @@ vt_init_switching( void )
      const char blankoff_str[] = "\033[9;0]";
      char buf[32];
 
+     int res;
+     (void)res;
+
      D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
 
      /* FIXME: Opening the device should be moved out of this function. */
@@ -520,7 +526,7 @@ vt_init_switching( void )
           return DFB_INIT;
      }
 
-     write( dfb_vt->fd, cursoroff_str, sizeof(cursoroff_str) );
+     res = write( dfb_vt->fd, cursoroff_str, sizeof(cursoroff_str) );
      if (dfb_config->kd_graphics) {
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
                D_PERROR( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
@@ -531,7 +537,7 @@ vt_init_switching( void )
           }
      }
      else {
-          write( dfb_vt->fd, blankoff_str, sizeof(blankoff_str) );
+          res = write( dfb_vt->fd, blankoff_str, sizeof(blankoff_str) );
      }
 
      if (dfb_config->vt_switching) {

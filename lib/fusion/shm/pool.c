@@ -211,6 +211,8 @@ fusion_shm_pool_attach( FusionSHM           *shm,
 {
      FusionSHMShared *shared;
 
+     (void)shared;
+
      D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p )\n", __FUNCTION__, shm, pool );
 
      D_MAGIC_ASSERT( shm, FusionSHM );
@@ -236,6 +238,8 @@ fusion_shm_pool_detach( FusionSHM           *shm,
                         FusionSHMPoolShared *pool )
 {
      FusionSHMShared *shared;
+
+     (void)shared;
 
      D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p )\n", __FUNCTION__, shm, pool );
 

@@ -669,6 +669,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
                          const char        *prefix )
 {
      DFBResult              ret;
+     int                    res;
      int                    num  = -1;
      int                    fd_p = -1;
      int                    fd_g = -1;
@@ -850,7 +851,8 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 #ifdef USE_ZLIB
           gzwrite( gz_p, head, strlen(head) );
 #else
-          write( fd_p, head, strlen(head) );
+          res = write( fd_p, head, strlen(head) );
+          (void)res;
 #endif
      }
 
@@ -861,7 +863,8 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 #ifdef USE_ZLIB
           gzwrite( gz_g, head, strlen(head) );
 #else
-          write( fd_g, head, strlen(head) );
+          res = write( fd_g, head, strlen(head) );
+          (void)res;
 #endif
      }
 
@@ -889,7 +892,8 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 #ifdef USE_ZLIB
                gzwrite( gz_p, buf_p, surface->config.size.w * 3 );
 #else
-               write( fd_p, buf_p, surface->config.size.w * 3 );
+               res = write( fd_p, buf_p, surface->config.size.w * 3 );
+               (void)res;
 #endif
           }
 
@@ -907,7 +911,8 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 #ifdef USE_ZLIB
                gzwrite( gz_g, buf_g, surface->config.size.w );
 #else
-               write( fd_g, buf_g, surface->config.size.w );
+               res = write( fd_g, buf_g, surface->config.size.w );
+               (void)res;
 #endif
           }
      }

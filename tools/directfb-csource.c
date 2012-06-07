@@ -120,6 +120,7 @@ int main (int         argc,
      bool        rawmode        = 0;
      bool        dither565      = 0;
      DFBColor   *transparent    = NULL;
+     int         res;
 
      /*  parse command line  */
 
@@ -220,7 +221,8 @@ int main (int         argc,
                f = fopen(filename[0], "r");
                if (f)
                {
-                    fread(data, statbuf.st_size, 1, f);
+                    res = fread(data, statbuf.st_size, 1, f);
+                    (void)res;
                     fclose(f);
                }
 

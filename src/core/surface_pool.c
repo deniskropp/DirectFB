@@ -594,6 +594,8 @@ dfb_surface_pools_allocate( CoreSurfaceBuffer       *buffer,
      CoreSurfacePool       *pools[pool_count];
      unsigned int           num_pools;
 
+     (void)surface;
+
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_FLAGS_ASSERT( access, CSAF_ALL );
      D_ASSERT( ret_allocation != NULL );
@@ -822,6 +824,8 @@ dfb_surface_pool_displace( CoreSurfacePool        *pool,
      CoreSurface            *surface;
      CoreSurfaceAllocation  *allocation;
      const SurfacePoolFuncs *funcs;
+
+     (void)surface;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
