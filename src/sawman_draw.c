@@ -294,7 +294,8 @@ void sawman_draw_cursor    ( CoreWindowStack *stack,
 
      /* Set blitting source. */
      state->source    = stack->cursor.surface;
-     state->modified |= SMF_SOURCE;
+     state->from_eye  = DSSE_LEFT;
+     state->modified |= SMF_SOURCE | SMF_FROM;
 
      /* Set clipping region. */
      dfb_state_set_clip( state, region );
@@ -413,8 +414,6 @@ draw_window( SaWManTier   *tier,
      DFBRegion                clip;
      DFBRegion                old_clip;
      int                      offset;
-     DFBSurfaceStereoEye      eye;
-     DFBSurfaceStereoEye      old_eye = 0; // silence compiler
 
      D_MAGIC_ASSERT( sawwin,  SaWManWindow );
      D_MAGIC_ASSERT( state, CardState );
@@ -595,14 +594,8 @@ draw_window( SaWManTier   *tier,
 
      /* Set blitting source. */
      state->source    = window->surface;
-     state->modified |= SMF_SOURCE;
-
-     /* Save current eye */
-     if (window->caps & DWCAPS_STEREO) {
-          old_eye = dfb_surface_get_stereo_eye( window->surface );
-          eye = right_eye ? DSSE_RIGHT : DSSE_LEFT;
-          dfb_surface_set_stereo_eye( window->surface, eye );
-     }
+     state->from_eye  = (right_eye && (sawwin->caps & DWCAPS_STEREO)) ? DSSE_RIGHT : DSSE_LEFT;
+     state->modified |= SMF_SOURCE | SMF_FROM;
 
      D_DEBUG_AT( SaWMan_Draw, "  [][] %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &clip ) );
 
@@ -652,10 +645,6 @@ draw_window( SaWManTier   *tier,
 
      /* Restore clipping region. */
      dfb_state_set_clip( state, &old_clip );
-
-     /* Restore eye. */
-     if (window->caps & DWCAPS_STEREO)
-          dfb_surface_set_stereo_eye( window->surface, old_eye );
 }
 
 static void

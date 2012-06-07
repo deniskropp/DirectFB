@@ -1112,19 +1112,14 @@ void
 sawman_flush_updating( SaWMan     *sawman,
                        SaWManTier *tier )
 {
-     int                 i;
-     DFBSurfaceStereoEye old_eye;
-     int                 left_num_regions  = 0;
-     int                 right_num_regions = 0;
+     int i;
+     int left_num_regions  = 0;
+     int right_num_regions = 0;
 
      D_DEBUG_AT( SaWMan_Surface, "%s( %p, %p )\n", __FUNCTION__, sawman, tier );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
-
-     old_eye = dfb_surface_get_stereo_eye( tier->region->surface );
-
-
 
      D_ASSUME( tier->left.updating.num_regions > 0 || tier->right.updating.num_regions > 0 );
      D_ASSUME( tier->left.updated.num_regions == 0 && tier->right.updated.num_regions == 0 );
@@ -1188,10 +1183,8 @@ sawman_flush_updating( SaWMan     *sawman,
           }
 
           /* Copy back the updated region .*/
-          dfb_surface_set_stereo_eye( tier->region->surface, DSSE_LEFT );
-
-          dfb_gfx_copy_regions( tier->surface, CSBR_FRONT, tier->surface, CSBR_BACK,
-                                tier->left.updated.regions, left_num_regions, 0, 0 );
+          dfb_gfx_copy_regions_stereo( tier->surface, CSBR_FRONT, DSSE_LEFT, tier->surface, CSBR_BACK,
+                                       DSSE_LEFT, tier->left.updated.regions, left_num_regions, 0, 0 );
      }
 
      if (right_num_regions) {
@@ -1203,14 +1196,9 @@ sawman_flush_updating( SaWMan     *sawman,
           }
 
           /* Copy back the updated region .*/
-          dfb_surface_set_stereo_eye( tier->region->surface, DSSE_RIGHT );
-
-          dfb_gfx_copy_regions( tier->surface, CSBR_FRONT, tier->surface, CSBR_BACK,
-                                tier->right.updated.regions, right_num_regions, 0, 0 );
+          dfb_gfx_copy_regions_stereo( tier->surface, CSBR_FRONT, DSSE_RIGHT, tier->surface, CSBR_BACK,
+                                       DSSE_RIGHT, tier->right.updated.regions, right_num_regions, 0, 0 );
      }
-
-
-     dfb_surface_set_stereo_eye( tier->region->surface, old_eye );
 }
 
 static void
@@ -1221,14 +1209,13 @@ repaint_tier( SaWMan              *sawman,
               DFBSurfaceFlipFlags  flags,
               bool                 right_eye )
 {
-     int                  i;
-     CoreLayer           *layer;
-     CoreLayerRegion     *region;
-     CardState           *state;
-     CoreSurface         *surface;
-     DFBRegion            cursor_inter;
-     CoreWindowStack     *stack;
-     DFBSurfaceStereoEye  old_eye, eye;
+     int              i;
+     CoreLayer       *layer;
+     CoreLayerRegion *region;
+     CardState       *state;
+     CoreSurface     *surface;
+     DFBRegion        cursor_inter;
+     CoreWindowStack *stack;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
@@ -1256,11 +1243,6 @@ repaint_tier( SaWMan              *sawman,
 
      sawman_dispatch_tier_update( sawman, tier, right_eye, updates, num_updates );
 
-     /* Set stereo eye */
-     old_eye = dfb_surface_get_stereo_eye( surface );
-     eye = right_eye ? DSSE_RIGHT : DSSE_LEFT;
-     dfb_surface_set_stereo_eye( surface, eye );
-
      for (i=0; i<num_updates; i++) {
           const DFBRegion *update = &updates[i];
 
@@ -1271,7 +1253,8 @@ repaint_tier( SaWMan              *sawman,
 
           /* Set destination. */
           state->destination  = surface;
-          state->modified    |= SMF_DESTINATION;
+          state->to_eye       = right_eye ? DSSE_RIGHT : DSSE_LEFT;
+          state->modified    |= SMF_DESTINATION | SMF_TO;
 
           if (!DFB_PLANAR_PIXELFORMAT(region->config.format))
                dfb_state_set_dst_colorkey( state, dfb_color_to_pixel( region->config.format,
@@ -1323,9 +1306,11 @@ repaint_tier( SaWMan              *sawman,
 
                D_ASSUME( tier->cursor_bs_valid );
 
-               dfb_gfx_copy_to( surface, right_eye ? tier->cursor_bs_right : tier->cursor_bs, &rect,
-                                rect.x - tier->cursor_region.x1,
-                                rect.y - tier->cursor_region.y1, true );
+               dfb_gfx_copy_stereo( surface, right_eye ? DSSE_RIGHT : DSSE_LEFT,
+                                    right_eye ? tier->cursor_bs_right : tier->cursor_bs, DSSE_LEFT,
+                                    &rect,
+                                    rect.x - tier->cursor_region.x1,
+                                    rect.y - tier->cursor_region.y1, true );
 
                x = (s64) stack->cursor.x * (s64) tier->size.w / (s64) sawman->resolution.w;
                y = (s64) stack->cursor.y * (s64) tier->size.h / (s64) sawman->resolution.h;
@@ -1337,9 +1322,6 @@ repaint_tier( SaWMan              *sawman,
      /* Reset destination. */
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
-
-     /* Restore stereo eye */
-     dfb_surface_set_stereo_eye( surface, old_eye );
 }
 
 static SaWManWindow *
@@ -1582,9 +1564,8 @@ process_single( SaWMan              *sawman,
          tier->single_format  != surface->config.format ||
          tier->single_options != options)
      {
-          DFBDisplayLayerConfig  config;
-          DFBSurfaceStereoEye    window_eye, region_eye;
-          CoreLayerRegionConfig  region_config;
+          DFBDisplayLayerConfig config;
+          CoreLayerRegionConfig region_config;
 
           D_DEBUG_AT( SaWMan_Auto, "  -> Switching to %dx%d [%dx%d] %s single mode for %p on %p...\n",
                       single->src.w, single->src.h, src.w, src.h,
@@ -1695,21 +1676,11 @@ process_single( SaWMan              *sawman,
           if (tier->single_options & DLOP_STEREO) {
                sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
 
+               dfb_gfx_copy_stereo( surface, DSSE_LEFT, tier->region->surface, DSSE_LEFT,
+                                    &src, window->config.z, 0, false );
 
-               window_eye = dfb_surface_get_stereo_eye(surface);
-               region_eye = dfb_surface_get_stereo_eye(tier->region->surface);
-               dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
-               dfb_surface_set_stereo_eye(tier->region->surface, DSSE_LEFT);
-               dfb_gfx_copy_to( surface, tier->region->surface, &src, window->config.z, 0, false );
-
-               if (window->caps & DWCAPS_STEREO) {
-                    dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
-               }
-               dfb_surface_set_stereo_eye(tier->region->surface, DSSE_RIGHT);
-               dfb_gfx_copy_to( surface, tier->region->surface, &src, -window->config.z, 0, false );
-
-               dfb_surface_set_stereo_eye(surface, window_eye);
-               dfb_surface_set_stereo_eye(tier->region->surface, region_eye);
+               dfb_gfx_copy_stereo( surface, (window->caps & DWCAPS_STEREO) ? DSSE_RIGHT : DSSE_LEFT, tier->region->surface, DSSE_RIGHT,
+                                    &src, -window->config.z, 0, false );
           }
           else {
                dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
@@ -1763,22 +1734,11 @@ process_single( SaWMan              *sawman,
      }
      else {
           if (tier->single_options & DLOP_STEREO) {
-               DFBSurfaceStereoEye    window_eye, region_eye;
+               dfb_gfx_copy_stereo( surface, DSSE_LEFT, tier->region->surface, DSSE_LEFT,
+                                    &src, window->config.z, 0, false );
 
-               window_eye = dfb_surface_get_stereo_eye(surface);
-               region_eye = dfb_surface_get_stereo_eye(tier->region->surface);
-               dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
-               dfb_surface_set_stereo_eye(tier->region->surface, DSSE_LEFT);
-               dfb_gfx_copy_to( surface, tier->region->surface, &src, window->config.z, 0, false );
-
-               if (window->caps & DWCAPS_STEREO) {
-                    dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
-               }
-               dfb_surface_set_stereo_eye(tier->region->surface, DSSE_RIGHT);
-               dfb_gfx_copy_to( surface, tier->region->surface, &src, -window->config.z, 0, false );
-
-               dfb_surface_set_stereo_eye(surface, window_eye);
-               dfb_surface_set_stereo_eye(tier->region->surface, region_eye);
+               dfb_gfx_copy_stereo( surface, (window->caps & DWCAPS_STEREO) ? DSSE_RIGHT : DSSE_LEFT, tier->region->surface, DSSE_RIGHT,
+                                    &src, -window->config.z, 0, false );
           }
           else {
                dfb_gfx_copy_to( surface, tier->region->surface, &src, 0, 0, false );
@@ -2017,25 +1977,19 @@ process_updates( SaWMan              *sawman,
 
           case DLBM_BACKVIDEO:
                if (tier->region->config.options & DLOP_STEREO) {
-                    DFBSurfaceStereoEye old_eye = dfb_surface_get_stereo_eye( tier->region->surface );
-
                     /* Flip the whole region. */
                     dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags | DSFLIP_WAITFORSYNC );
 
                     /* Copy back the updated region. */
-                    if (left_num) {
-                         dfb_surface_set_stereo_eye( tier->region->surface, DSSE_LEFT );
+                    if (left_num)
+                         dfb_gfx_copy_regions_stereo( tier->region->surface, CSBR_FRONT, DSSE_LEFT,
+                                                      tier->region->surface, CSBR_BACK, DSSE_LEFT,
+                                                      left_updates, left_num, 0, 0 );
 
-                         dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
-                    }
-
-                    if (right_num) {
-                         dfb_surface_set_stereo_eye( tier->region->surface, DSSE_RIGHT );
-
-                         dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, right_updates, right_num, 0, 0 );
-                    }
-
-                    dfb_surface_set_stereo_eye( tier->region->surface, old_eye );
+                    if (right_num)
+                         dfb_gfx_copy_regions_stereo( tier->region->surface, CSBR_FRONT, DSSE_RIGHT,
+                                                      tier->region->surface, CSBR_BACK, DSSE_RIGHT,
+                                                      right_updates, right_num, 0, 0 );
                }
                else {
                     /* Flip the whole region. */
@@ -2091,21 +2045,13 @@ process_updates( SaWMan              *sawman,
 
           if (fusion_skirmish_prevail( &tier->region->surface->lock ) == DFB_OK) {
                if (tier->region->config.options & DLOP_STEREO) {
-                    DFBSurfaceStereoEye eye;
-
-                    eye = dfb_surface_get_stereo_eye( tier->region->surface );
-
-                    dfb_surface_set_stereo_eye( tier->region->surface, DSSE_LEFT );
-                    buffer = dfb_surface_get_buffer( tier->region->surface, CSBR_FRONT );
+                    buffer = dfb_surface_get_buffer2( tier->region->surface, CSBR_FRONT, DSSE_LEFT );
                     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
                     ret = dfb_surface_buffer_dump( buffer, ".", "tier_left" );
 
-                    dfb_surface_set_stereo_eye( tier->region->surface, DSSE_RIGHT );
-                    buffer = dfb_surface_get_buffer( tier->region->surface, CSBR_FRONT );
+                    buffer = dfb_surface_get_buffer2( tier->region->surface, CSBR_FRONT, DSSE_RIGHT );
                     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
                     ret = dfb_surface_buffer_dump( buffer, ".", "tier_right" );
-
-                    dfb_surface_set_stereo_eye( tier->region->surface, eye );
                }
                else {
                     buffer = dfb_surface_get_buffer( tier->region->surface, CSBR_FRONT );
