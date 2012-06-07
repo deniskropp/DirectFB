@@ -75,11 +75,10 @@ TestDispatch( void                  *context,
 
 
 static DirectResult
-TestWakeUp()
+TestWakeUp(void)
 {
      DirectResult ret;
      char         buf[512];
-     size_t       received;
      int          loops = 1000000;
 
      while (loops--) {

@@ -119,7 +119,8 @@ main( int argc, char *argv[] )
 {
      DirectClock clock;
      int         counter = 0;
-
+     int         res;
+     (void)res;
      /* Initialize libdirect. */
      direct_initialize();
 
@@ -144,8 +145,8 @@ main( int argc, char *argv[] )
 
 //     socketpair( PF_LOCAL, SOCK_STREAM, 0, fd );
 
-     pipe( pipe_1 );
-     pipe( pipe_2 );
+     res = pipe( pipe_1 );
+     res = pipe( pipe_2 );
 
      fds_server[0] = pipe_1[0];
      fds_server[1] = pipe_2[1];
