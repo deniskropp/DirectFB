@@ -62,8 +62,6 @@ dfb_surface_set_stereo_eye( CoreSurface          *surface,
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( eye & (DSSE_LEFT | DSSE_RIGHT) );
 
-     direct_trace_print_stack(0);
-
      if (eye & DSSE_LEFT)
           surface->buffers = surface->left_buffers;
      else
