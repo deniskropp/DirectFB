@@ -33,8 +33,15 @@
 
 #include <misc/conf.h>
 
+#include <directfb_keyboard.h>
+
+#include <linux/input.h>
 
 #include "android_system.h"
+
+// FIXME
+AndroidNativeData native_data;
+extern AndroidData *m_data;
 
 /**********************************************************************************************************************/
 
@@ -60,17 +67,385 @@ dfb_main_thread( DirectThread *thread,
  * Process the next input event.
  */
 static int32_t
-native_handle_input( struct android_app* app, AInputEvent* event )
+native_handle_input( struct android_app *app, AInputEvent *event )
 {
-     AndroidNativeData* native_data = (AndroidNativeData*)app->userData;
-     if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
-//          native_data->state.x = AMotionEvent_getX(event, 0);
-//          native_data->state.y = AMotionEvent_getY(event, 0);
-//          LOGI("input: x=%d y=%d",
-//               AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0));
+     int           type = AInputEvent_getType( event );
+     DFBInputEvent evt;
+
+     evt.clazz     = DFEC_INPUT;
+     evt.device_id = dfb_input_device_id( m_data->input );
+
+     if (type == AINPUT_EVENT_TYPE_MOTION) {
+          int action = AMotionEvent_getAction( event ) & AMOTION_EVENT_ACTION_MASK;
+          int meta   = AMotionEvent_getMetaState (event );
+
+          if ((meta & AMETA_SHIFT_ON) || (meta & AMETA_SHIFT_LEFT_ON) || (meta & AMETA_SHIFT_RIGHT_ON))
+               evt.modifiers |= DIMM_SHIFT;
+
+          if ((meta & AMETA_ALT_ON) || (meta & AMETA_ALT_LEFT_ON) || (meta & AMETA_ALT_RIGHT_ON))
+               evt.modifiers |= DIMM_ALT;
+
+          if (meta & AMETA_SYM_ON)
+               evt.modifiers |= DIMM_HYPER;
+
+          switch (action) {
+               case AMOTION_EVENT_ACTION_DOWN:
+                    evt.type    = DIET_BUTTONPRESS;
+                    evt.button  = DIBI_LEFT;
+                    evt.buttons = DIBM_LEFT;
+                    evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
+                    evt.axis    = DIAI_X;
+                    evt.axisabs = AMotionEvent_getX( event, 0 );
+
+                    dfb_input_dispatch( m_data->input, &evt );
+
+                    evt.axis    = DIAI_Y;
+                    evt.axisabs = AMotionEvent_getY( event, 0 );
+                    evt.flags  &= ~DIEF_FOLLOW;
+
+                    dfb_input_dispatch( m_data->input, &evt );
+LOGW("dispatched motion event DOWN\n");
+                    return 1;
+
+               case AMOTION_EVENT_ACTION_UP:
+                    evt.type    = DIET_BUTTONRELEASE;
+                    evt.button  = DIBI_LEFT;
+                    evt.buttons = DIBM_LEFT;
+                    evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
+                    evt.axis    = DIAI_X;
+                    evt.axisabs = AMotionEvent_getX( event, 0 );
+
+                    dfb_input_dispatch( m_data->input, &evt );
+
+                    evt.axis    = DIAI_Y;
+                    evt.axisabs = AMotionEvent_getY( event, 0 );
+                    evt.flags  &= ~DIEF_FOLLOW;
+
+                    dfb_input_dispatch( m_data->input, &evt );
+LOGW("dispatched motion event UP\n");
+                    return 1;
+
+               case AMOTION_EVENT_ACTION_MOVE:
+                    evt.type    = DIET_AXISMOTION;
+                    evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
+                    evt.axis    = DIAI_X;
+                    evt.axisabs = AMotionEvent_getX( event, 0 );
+
+                    dfb_input_dispatch( m_data->input, &evt );
+
+                    evt.axis    = DIAI_Y;
+                    evt.axisabs = AMotionEvent_getY( event, 0 );
+                    evt.flags  &= ~DIEF_FOLLOW;
+
+                    dfb_input_dispatch( m_data->input, &evt );
+LOGW("dispatched motion event MOVE\n");
+                    return 1;
+
+               default:
+                    LOGW( "unhandled motion event action %d", action );
+                    return 0;
+          }
+     }
+     else if (type == AINPUT_EVENT_TYPE_KEY) {
+          int action = AKeyEvent_getAction( event );
+          int meta   = AKeyEvent_getMetaState( event );
+          int flags  = AKeyEvent_getFlags( event );
+          
+          if (!(flags & AKEY_EVENT_FLAG_FROM_SYSTEM)) {
+               LOGW( "unhandled key event action %d (non-system)", action );
+               return 0;
+          }
+
+          if (flags & AKEY_EVENT_FLAG_CANCELED) {
+               LOGW( "unhandled key event action %d (canceled)", action );
+               return 0;
+          }
+
+          if ((meta & AMETA_SHIFT_ON) || (meta & AMETA_SHIFT_LEFT_ON) || (meta & AMETA_SHIFT_RIGHT_ON))        
+               evt.modifiers |= DIMM_SHIFT;   
+
+          if ((meta & AMETA_ALT_ON) || (meta & AMETA_ALT_LEFT_ON) || (meta & AMETA_ALT_RIGHT_ON))                   
+               evt.modifiers |= DIMM_ALT;          
+
+          if (meta & AMETA_SYM_ON)  
+               evt.modifiers |= DIMM_HYPER;
+
+          switch (action) {
+               case AKEY_EVENT_ACTION_DOWN:
+                    evt.type = DIET_KEYPRESS;
+                    break;
+               case AKEY_EVENT_ACTION_UP:
+                    evt.type = DIET_KEYRELEASE;
+                    break;
+               default:
+                    LOGW( "unhandled key event action %d", action );
+                    return 0;
+          }
+
+          evt.flags    = DIEF_KEYCODE | DIEF_KEYID;
+          evt.key_code = AKeyEvent_getKeyCode( event );
+
+          switch (evt.key_code) {
+               case KEY_ESC:
+                    evt.key_id = DIKI_ESCAPE;
+                    break;
+               case KEY_1:
+                    evt.key_id = DIKI_1;
+                    break;
+               case KEY_2:
+                    evt.key_id = DIKI_2;
+                    break;
+               case KEY_3:
+                    evt.key_id = DIKI_3;
+                    break;
+               case KEY_4:
+                    evt.key_id = DIKI_4;
+                    break;
+               case KEY_5:
+                    evt.key_id = DIKI_5;
+                    break;
+               case KEY_6:
+                    evt.key_id = DIKI_6;
+                    break;
+               case KEY_7:
+                    evt.key_id = DIKI_7;
+                    break;
+               case KEY_8:
+                    evt.key_id = DIKI_8;
+                    break;
+               case KEY_9:
+                    evt.key_id = DIKI_9;
+                    break;
+               case KEY_0:
+                    evt.key_id = DIKI_0;
+                    break;
+               case KEY_MINUS:
+                    evt.key_id = DIKI_MINUS_SIGN;
+                    break;
+               case KEY_EQUAL:
+                    evt.key_id = DIKI_EQUALS_SIGN;
+                    break;
+               case KEY_BACKSPACE:
+                    evt.key_id = DIKI_BACKSPACE;
+                    break;
+               case KEY_TAB:
+                    evt.key_id = DIKI_TAB;
+                    break;
+               case KEY_Q:
+                    evt.key_id = DIKI_Q;
+                    break;
+               case KEY_W:
+                    evt.key_id = DIKI_W;
+                    break;
+               case KEY_E:
+                    evt.key_id = DIKI_E;
+                    break;
+               case KEY_R:
+                    evt.key_id = DIKI_R;
+                    break;
+               case KEY_T:
+                    evt.key_id = DIKI_T;
+                    break;
+               case KEY_Y:
+                    evt.key_id = DIKI_Y;
+                    break;
+               case KEY_U:
+                    evt.key_id = DIKI_U;
+                    break;
+               case KEY_I:
+                    evt.key_id = DIKI_I;
+                    break;
+               case KEY_O:
+                    evt.key_id = DIKI_O;
+                    break;
+               case KEY_P:
+                    evt.key_id = DIKI_P;
+                    break;
+               case KEY_LEFTBRACE:
+                    evt.key_id = DIKI_BRACKET_LEFT;
+                    break;
+               case KEY_RIGHTBRACE:
+                    evt.key_id = DIKI_BRACKET_RIGHT;
+                    break;
+               case KEY_ENTER:
+                    evt.key_id = DIKI_ENTER;
+                    break;
+               case KEY_LEFTCTRL:
+                    evt.key_id = DIKI_CONTROL_L;
+                    break;
+               case KEY_A:
+                    evt.key_id = DIKI_A;
+                    break;
+               case KEY_S:
+                    evt.key_id = DIKI_S;
+                    break;
+               case KEY_D:
+                    evt.key_id = DIKI_D;
+                    break;
+               case KEY_F:
+                    evt.key_id = DIKI_F;
+                    break;
+               case KEY_G:
+                    evt.key_id = DIKI_G;
+                    break;
+               case KEY_H:
+                    evt.key_id = DIKI_H;
+                    break;
+               case KEY_J:
+                    evt.key_id = DIKI_J;
+                    break;
+               case KEY_K:
+                    evt.key_id = DIKI_K;
+                    break;
+               case KEY_L:
+                    evt.key_id = DIKI_L;
+                    break;
+               case KEY_SEMICOLON:
+                    evt.key_id = DIKI_SEMICOLON;
+                    break;
+               case KEY_APOSTROPHE:
+                    evt.key_id = 0;
+                    break;
+               case KEY_GRAVE:
+                    evt.key_id = 0;
+                    break;
+               case KEY_LEFTSHIFT:
+                    evt.key_id = DIKI_SHIFT_L;
+                    break;
+               case KEY_BACKSLASH:
+                    evt.key_id = DIKI_BACKSLASH;
+                    break;
+               case KEY_Z:
+                    evt.key_id = DIKI_Z;
+                    break;
+               case KEY_X:
+                    evt.key_id = DIKI_X;
+                    break;
+               case KEY_C:
+                    evt.key_id = DIKI_C;
+                    break;
+               case KEY_V:
+                    evt.key_id = DIKI_V;
+                    break;
+               case KEY_B:
+                    evt.key_id = DIKI_B;
+                    break;
+               case KEY_N:
+                    evt.key_id = DIKI_N;
+                    break;
+               case KEY_M:
+                    evt.key_id = DIKI_M;
+                    break;
+               case KEY_COMMA:
+                    evt.key_id = DIKI_COMMA;
+                    break;
+               case KEY_DOT:
+                    evt.key_id = 0;
+                    break;
+               case KEY_SLASH:
+                    evt.key_id = DIKI_SLASH;
+                    break;
+               case KEY_RIGHTSHIFT:
+                    evt.key_id = DIKI_SHIFT_R;
+                    break;
+               case KEY_KPASTERISK:
+                    evt.key_id = 0;
+                    break;
+               case KEY_LEFTALT:
+                    evt.key_id = DIKI_ALT_L;
+                    break;
+               case KEY_SPACE:
+                    evt.key_id = DIKI_SPACE;
+                    break;
+               case KEY_CAPSLOCK:
+                    evt.key_id = DIKI_CAPS_LOCK;
+                    break;
+               case KEY_F1:
+                    evt.key_id = DIKI_F1;
+                    break;
+               case KEY_F2:
+                    evt.key_id = DIKI_F2;
+                    break;
+               case KEY_F3:
+                    evt.key_id = DIKI_F3;
+                    break;
+               case KEY_F4:
+                    evt.key_id = DIKI_F4;
+                    break;
+               case KEY_F5:
+                    evt.key_id = DIKI_F5;
+                    break;
+               case KEY_F6:
+                    evt.key_id = DIKI_F6;
+                    break;
+               case KEY_F7:
+                    evt.key_id = DIKI_F7;
+                    break;
+               case KEY_F8:
+                    evt.key_id = DIKI_F8;
+                    break;
+               case KEY_F9:
+                    evt.key_id = DIKI_F9;
+                    break;
+               case KEY_F10:
+                    evt.key_id = DIKI_F10;
+                    break;
+               case KEY_NUMLOCK:
+                    evt.key_id = DIKI_NUM_LOCK;
+                    break;
+               case KEY_SCROLLLOCK:
+                    evt.key_id = DIKI_SCROLL_LOCK;
+                    break;
+               case KEY_KP7:
+                    evt.key_id = DIKI_KP_7;
+                    break;
+               case KEY_KP8:
+                    evt.key_id = DIKI_KP_8;
+                    break;
+               case KEY_KP9:
+                    evt.key_id = DIKI_KP_9;
+                    break;
+               case KEY_KPMINUS:
+                    evt.key_id = DIKI_KP_MINUS;
+                    break;
+               case KEY_KP4:
+                    evt.key_id = DIKI_KP_4;
+                    break;
+               case KEY_KP5:
+                    evt.key_id = DIKI_KP_5;
+                    break;
+               case KEY_KP6:
+                    evt.key_id = DIKI_KP_6;
+                    break;
+               case KEY_KPPLUS:
+                    evt.key_id = DIKI_KP_PLUS;
+                    break;
+               case KEY_KP1:
+                    evt.key_id = DIKI_KP_1;
+                    break;
+               case KEY_KP2:
+                    evt.key_id = DIKI_KP_2;
+                    break;
+               case KEY_KP3:
+                    evt.key_id = DIKI_KP_3;
+                    break;
+               case KEY_KP0:
+                    evt.key_id = DIKI_KP_0;
+                    break;
+               case KEY_KPDOT:
+                    evt.key_id = 0;
+                    break;
+               default:
+                    LOGW( "unhandled key event action %d key_code %d", action, evt.key_code );
+                    return 0;
+          }
+
+          dfb_input_dispatch( m_data->input, &evt );
+LOGW("dispatched key event\n");
           return 1;
      }
-     return 0;
+
+     return 1;
 }
 
 /**
@@ -126,10 +501,6 @@ native_handle_cmd( struct android_app* app, int32_t cmd )
      }
 }
 
-
-// FIXME
-AndroidNativeData native_data;
-     
 /**
  * This is the main entry point of a native application that is using
  * android_native_app_glue.  It runs in its own thread, with its own

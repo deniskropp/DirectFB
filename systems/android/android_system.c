@@ -52,7 +52,7 @@ DFB_CORE_SYSTEM( android )
 
 /**********************************************************************************************************************/
 
-static AndroidData *m_data;    /* FIXME: Fix Core System API to pass data in all functions. */
+AndroidData *m_data;    /* FIXME: Fix Core System API to pass data in all functions. */
 
 // FIXME
 extern AndroidNativeData native_data;
