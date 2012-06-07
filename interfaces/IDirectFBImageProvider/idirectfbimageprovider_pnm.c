@@ -740,6 +740,7 @@ Construct( IDirectFBImageProvider *thiz,
      static const char* format_names[] = {
           "PBM", "PGM", "PPM"
      };
+     (void)format_names;
 #endif
      DFBResult err;
 

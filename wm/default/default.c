@@ -1559,6 +1559,7 @@ process_updates( StackData           *data,
      int               total;
      int               bounding;
      CoreLayerContext *context;
+     (void)context;
 
      D_ASSERT( data != NULL );
      D_ASSERT( wmdata != NULL );

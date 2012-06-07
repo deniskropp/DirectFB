@@ -232,6 +232,9 @@ mesaTestConfig( CoreSurfacePool         *pool,
      MesaPoolData      *data  = pool_data;
      MesaPoolLocalData *local = pool_local;
 
+     (void)data;
+     (void)local;
+
      D_DEBUG_AT( Mesa_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
@@ -262,6 +265,9 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      MesaPoolLocalData  *local = pool_local;
      MesaAllocationData *alloc = alloc_data;
      MesaData           *mesa;
+
+     (void)data;
+     (void)local;
 
      D_DEBUG_AT( Mesa_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 
@@ -377,6 +383,8 @@ mesaDeallocateBuffer( CoreSurfacePool       *pool,
      MesaPoolData       *data  = pool_data;
      MesaAllocationData *alloc = alloc_data;
      MesaPoolLocalData  *local = pool_local;
+
+     (void)data;
 
      D_DEBUG_AT( Mesa_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 

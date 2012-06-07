@@ -239,6 +239,8 @@ GetLocalPixmap( glxPoolLocalData       *local,
      CoreSurface       *surface;
      CoreSurfaceBuffer *buffer;
 
+     (void)buffer;
+
      surface = allocation->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
@@ -784,6 +786,8 @@ glxWrite( CoreSurfacePool       *pool,
      XImage            *image;
      glxPoolLocalData  *local = pool_local;
      glxAllocationData *alloc = alloc_data;
+
+     (void)surface;
 
      D_DEBUG_AT( GLX_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
 

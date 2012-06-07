@@ -130,6 +130,7 @@ mouse_motion_realize( SerialMouseData *data )
 static void
 mouse_setspeed( SerialMouseData *data )
 {
+     int res;
      struct termios tty;
 
      tcgetattr (data->fd, &tty);
@@ -146,7 +147,8 @@ mouse_setspeed( SerialMouseData *data )
 
      tcsetattr (data->fd, TCSAFLUSH, &tty);
 
-     write (data->fd, "*n", 2);
+     res = write (data->fd, "*n", 2);
+     (void)res;
 }
 
 /* the main routine for MS mice (plus extensions) */

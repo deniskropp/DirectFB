@@ -134,6 +134,7 @@ ICoreResourceClient_test_CheckSurfaceUpdate( ICoreResourceClient     *thiz,
                                              const CoreSurfaceConfig *config )
 {
      unsigned int mem;
+     (void)mem;
 
      DIRECT_INTERFACE_GET_DATA(ICoreResourceClient_test)
 

@@ -180,7 +180,7 @@ Construct( IDirectFBFont               *thiz,
      DGIFFFaceHeader *face;
      DGIFFGlyphInfo  *glyphs;
      DGIFFGlyphRow   *row;
-     DGIFFImplData   *data;
+     DGIFFImplData   *data = NULL;
      const char      *filename;
      CoreSurfaceConfig config;
 

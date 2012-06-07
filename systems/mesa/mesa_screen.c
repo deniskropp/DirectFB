@@ -59,21 +59,14 @@ mesaInitScreen( CoreScreen           *screen,
                 DFBScreenDescription *description )
 {
      MesaData       *mesa = driver_data;
-     MesaScreenData *data = screen_data;
 
      description->caps = DSCCAPS_NONE;
 
      direct_snputs( description->name, "Mesa", DFB_SCREEN_DESC_NAME_LENGTH );
 
-
-
-
-
-
-
      drmModeRes       *resources;
-     drmModeConnector *connector;
-     drmModeEncoder   *encoder;
+     drmModeConnector *connector = NULL;
+     drmModeEncoder   *encoder   = NULL;
      int               i;
 
      resources = drmModeGetResources( mesa->fd );
@@ -114,11 +107,6 @@ mesaInitScreen( CoreScreen           *screen,
 
           drmModeFreeEncoder(encoder);
      }
-
-     data->connector = connector;
-     data->encoder   = encoder;
-     data->mode      = connector->modes[0];
-
 
      mesa->connector = connector;
      mesa->encoder   = encoder;

@@ -189,24 +189,28 @@ static inline void __mdelay(unsigned int msec)
 // au protocole (pour Zytronic il y n'a rien autour du code OP_CODE lui même)
 static inline void ZytSendPacket(int file, unsigned char *msg, unsigned char len)
 {
-  write(file,msg,len);
+  int res;
+  res = write(file,msg,len);
+  (void)res;
 }
 
 // procédure pour lire un "paquet" de données venant du controleur (un message donc)
 static int ZytReadMsg(int file, unsigned char *msg)
 {
   int i=0;
-  read(file,&msg[0],1);
+  int res;
+  (void)res;
+  res = read(file,&msg[0],1);
 
   if(msg[0]==':'){ // si c'est un réponse à une commande :
     do{ // on lit tant qu'on trouve pas les 2 caractères de fin :
       i++; // on commence à lire à 1 (car le 0 est déjà lu)
-      read(file,&msg[i],1);
+      res = read(file,&msg[i],1);
     }while(msg[i]!=ZYT_ENDOFMSG_LF || msg[i-1]!=ZYT_ENDOFMSG_CR);
   }else if(msg[0]==0xC0 || msg[0]==0x80){ // si c'est un appui ou un relachement sur la dalle :
     // on lit les 4 caractères pour la position du touché :
     for(i=1;i<5;i++){
-      read(file,&msg[i],1);
+      res = read(file,&msg[i],1);
     }
   }else if(msg[0]==0x06 || msg[0]==0x15){ // si c'est un ACK/NACK on le dit
     if(zytConf.debug==DEBUG){
@@ -246,6 +250,7 @@ static int ZytReadTouchMessage(ZytData* event){
 
 // procédure pour écrire un paramètre dans le fichier de configuration Zytronic :
 static void ecrireConf(int f,char *sp, char *sv){
+  int res;
   char tmp[100];
 
   strcpy(tmp,":");
@@ -253,7 +258,9 @@ static void ecrireConf(int f,char *sp, char *sv){
   strcat(tmp,"=");
   strcat(tmp,sv);
   strcat(tmp,";\n");
-  write(f,tmp,strlen(tmp));
+
+  res = write(f,tmp,strlen(tmp));
+  (void)res;
 }
 
 // procédure pour créer le fichier de configuration avec les valeurs par défaut
@@ -289,6 +296,8 @@ static void createConfigFile(int *fdConf){
 static int nextConf(int fdConf,char *param, char *res){
   char charActuel;
   int i,nb=1;
+  int result;
+  (void)result;
 
   // note : on suppose pour l'instant qu'aucune erreur de lecture n'intervient, ni de fichier mal formaté *** ...
 
@@ -302,10 +311,11 @@ static int nextConf(int fdConf,char *param, char *res){
 
   // on enregistre le nom du paramètre:
   i=0;
-  read(fdConf,&charActuel,1);
+  result = read(fdConf,&charActuel,1);
+
   while(charActuel!='='){
     param[i]=charActuel;
-    read(fdConf,&charActuel,1);
+    result = read(fdConf,&charActuel,1);
     i++;
   }
   param[i]='\0';
@@ -313,10 +323,10 @@ static int nextConf(int fdConf,char *param, char *res){
 
   // on enregistre la valeur de ce paramètre :
   i=0;
-  read(fdConf,&charActuel,1);
+  result = read(fdConf,&charActuel,1);
   while(charActuel!=';'){
     res[i]=charActuel;
-    read(fdConf,&charActuel,1);
+    result = read(fdConf,&charActuel,1);
     i++;
   }
   res[i]='\0';

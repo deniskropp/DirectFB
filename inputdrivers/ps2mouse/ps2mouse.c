@@ -250,6 +250,8 @@ ps2WriteChar( int fd, unsigned char c, bool verbose )
 {
      struct timeval tv;
      fd_set fds;
+     int res;
+     (void)res;
 
      tv.tv_sec = 0;
      tv.tv_usec = 200000;       /*  timeout 200 ms  */
@@ -257,7 +259,7 @@ ps2WriteChar( int fd, unsigned char c, bool verbose )
      FD_ZERO( &fds );
      FD_SET( fd, &fds );
 
-     write( fd, &c, 1 );
+     res = write( fd, &c, 1 );
 
      if ( select(fd+1, &fds, NULL, NULL, &tv) == 0 ) {
           if ( verbose )
@@ -265,7 +267,7 @@ ps2WriteChar( int fd, unsigned char c, bool verbose )
           return -1;
      }
 
-     read( fd, &c, 1 );
+     res = read( fd, &c, 1 );
 
      if ( c != PS2_ACK )
           return -2;
@@ -278,11 +280,13 @@ static int
 ps2GetId( int fd, bool verbose )
 {
      unsigned char c;
+     int res;
 
      if ( ps2WriteChar(fd, PS2_SEND_ID, verbose) < 0 )
           return PS2_ID_ERROR;
 
-     read( fd, &c, 1 );
+     res = read( fd, &c, 1 );
+     (void)res;
 
      return( c );
 }
@@ -323,6 +327,8 @@ init_ps2( int fd, bool verbose )
      struct timeval tv;
      fd_set fds;
      int count = 100;
+     int res;
+     (void)res;
 
      /* read all data from the file descriptor before initializing the mouse */
      while (true) {
@@ -335,7 +341,7 @@ init_ps2( int fd, bool verbose )
           FD_SET( fd, &fds );
 
           if (select( fd+1, &fds, NULL, NULL, &tv ))
-               read( fd, buf, sizeof(buf) );
+               res = read( fd, buf, sizeof(buf) );
           else
                break;
 

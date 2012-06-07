@@ -772,13 +772,16 @@ translate_event( const LinuxInputData     *data,
 static void
 set_led( const LinuxInputData *data, int led, int state )
 {
+     int res;
+
      struct input_event levt;
 
      levt.type = EV_LED;
      levt.code = led;
      levt.value = !!state;
 
-     write( data->fd, &levt, sizeof(levt) );
+     res = write( data->fd, &levt, sizeof(levt) );
+     (void)res;
 }
 
 static void
@@ -1657,6 +1660,8 @@ errorExit:
 static DFBResult
 stop_hotplug( void )
 {
+     int res;
+
      D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
 
      /* Exit immediately if the hotplug thread is not created successfully in
@@ -1666,7 +1671,8 @@ stop_hotplug( void )
           goto exit;
 
      /* Write to the hotplug quit pipe to cause the thread to terminate */
-     (void)write( hotplug_quitpipe[1], " ", 1 );
+     res = write( hotplug_quitpipe[1], " ", 1 );
+     (void)res;
      /* Shutdown the hotplug detection thread. */
      direct_thread_join(hotplug_thread);
      direct_thread_destroy(hotplug_thread);
@@ -2007,12 +2013,14 @@ driver_get_keymap_entry( CoreInputDevice           *device,
 static void
 driver_close_device( void *driver_data )
 {
+     int res;
      LinuxInputData *data = (LinuxInputData*) driver_data;
 
      D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
 
      /* stop input thread */
-     (void)write( data->quitpipe[1], " ", 1 );
+     res = write( data->quitpipe[1], " ", 1 );
+     (void)res;
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );
      close( data->quitpipe[0] );

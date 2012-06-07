@@ -412,6 +412,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
      FILE *file;
      bool  found = false;
      DIR  *dir;
+     int   res;
 
      /* Locate G400 maven /dev/i2c file */
 
@@ -438,7 +439,9 @@ DFBResult maven_init( MatroxMavenData  *mav,
 
                memset( line, 0, 6 );
 
-               fread( line, 1, 5, fp );
+               res = fread( line, 1, 5, fp );
+               (void)res;
+
                if (ferror( fp )) {
                     D_PERROR( "DirectFB/Matrox/Maven: Error reading `%s'!\n", path );
                     fclose( fp );
