@@ -4023,7 +4023,7 @@ wm_update_cursor( CoreWindowStack       *stack,
 #if DIRECTFB_VERSION_CODE >= VERSION_CODE(1,5,0)
                                            context->config.colorspace,
 #endif
-                                           DSCAPS_NONE, CSTF_SHARED | CSTF_CURSOR, 0, NULL, &cursor_bs );
+                                           DSCAPS_NONE, CSTF_SHARED | CSTF_CURSOR, dfb_config->cursor_resource_id, NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
                sawman_unlock( sawman );
@@ -4036,7 +4036,7 @@ wm_update_cursor( CoreWindowStack       *stack,
 #if DIRECTFB_VERSION_CODE >= VERSION_CODE(1,5,0)
                                            context->config.colorspace,
 #endif
-                                           DSCAPS_NONE, CSTF_SHARED | CSTF_CURSOR, 0, NULL, &cursor_bs_right );
+                                           DSCAPS_NONE, CSTF_SHARED | CSTF_CURSOR, dfb_config->cursor_resource_id, NULL, &cursor_bs_right );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor (right eye)!\n" );
                sawman_unlock( sawman );
