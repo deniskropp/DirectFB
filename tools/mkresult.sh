@@ -28,6 +28,9 @@ static DirectResultType ${ENUM}__type = {
 };
 
 void
+${ENUM}__init(void);
+
+void
 ${ENUM}__init(void)
 {
      ${ENUM}__strings[0] = "${ENUM}";
@@ -50,6 +53,9 @@ cat << EOF
 
      DirectResultTypeRegister( &${ENUM}__type );
 }
+
+void
+${ENUM}__deinit(void);
 
 void
 ${ENUM}__deinit(void)

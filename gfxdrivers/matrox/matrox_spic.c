@@ -179,7 +179,8 @@ spicSetRegion( CoreLayer                  *layer,
                CoreLayerRegionConfigFlags  updated,
                CoreSurface                *surface,
                CorePalette                *palette,
-               CoreSurfaceBufferLock      *lock )
+               CoreSurfaceBufferLock      *left_lock,
+               CoreSurfaceBufferLock      *right_lock )
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
@@ -206,7 +207,7 @@ spicSetRegion( CoreLayer                  *layer,
 
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SURFACE_CAPS |
                     CLRCF_OPTIONS | CLRCF_OPACITY | CLRCF_SURFACE)) {
-          spic_calc_buffer( mdrv, mspic, surface, lock );
+          spic_calc_buffer( mdrv, mspic, surface, left_lock );
           spic_set_buffer( mdrv, mspic );
 
           mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
@@ -261,12 +262,13 @@ spicFlipRegion( CoreLayer             *layer,
                 void                  *region_data,
                 CoreSurface           *surface,
                 DFBSurfaceFlipFlags    flags,
-                CoreSurfaceBufferLock *lock )
+                CoreSurfaceBufferLock *left_lock,
+                CoreSurfaceBufferLock *right_lock )
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
 
-     spic_calc_buffer( mdrv, mspic, surface, lock );
+     spic_calc_buffer( mdrv, mspic, surface, left_lock );
      spic_set_buffer( mdrv, mspic );
 
      dfb_surface_flip( surface, false );

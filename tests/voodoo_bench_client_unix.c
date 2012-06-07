@@ -138,7 +138,7 @@ main( int argc, char *argv[] )
      direct_clock_stop( &clock );
 
 
-     D_INFO( "Voodoo/Test: Stopped after %d.%03d seconds... (%lld items/sec)\n",
+     D_INFO( "Voodoo/Test: Stopped after %lld.%03lld seconds... (%lld items/sec)\n",
              DIRECT_CLOCK_DIFF_SEC_MS( &clock ), NUM_ITEMS * 1000000ULL / direct_clock_diff( &clock ) );
 
 

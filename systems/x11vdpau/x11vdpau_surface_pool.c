@@ -194,7 +194,7 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      if (surface->type & CSTF_PREALLOCATED) {
-          alloc->surface = surface->config.preallocated[0].handle;
+          alloc->surface = (VdpOutputSurface)surface->config.preallocated[0].handle;
 
           D_DEBUG_AT( X11VDPAU_Surfaces, "  -> preallocated from output surface %u\n", alloc->surface );
      }

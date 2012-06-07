@@ -887,7 +887,7 @@ update_scaled565( XWindow *xw, const DFBRectangle *clip, CoreSurfaceBufferLock *
 
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
 
-     dst = (u16*)(xw->virtualscreen + ((clip->x / 2) + xoffset) * xw->bpp + (clip->y + xw->ximage_offset) * xw->ximage->bytes_per_line);
+     dst = (u32*)(xw->virtualscreen + ((clip->x / 2) + xoffset) * xw->bpp + (clip->y + xw->ximage_offset) * xw->ximage->bytes_per_line);
      src = lock->addr + 2 * clip->x + clip->y * lock->pitch;
 
      for (y=0; y<clip->h; y++) {
@@ -903,7 +903,7 @@ update_scaled565( XWindow *xw, const DFBRectangle *clip, CoreSurfaceBufferLock *
                dst[x] = RGB16_TO_RGB32( result );
           }
 
-          dst = (u16*)((u8*) dst + xw->ximage->bytes_per_line);
+          dst = (u32*)((u8*) dst + xw->ximage->bytes_per_line);
           src = (u32*)((u8*) src + lock->pitch);
      }
 }

@@ -29,20 +29,28 @@
 #include "sis315_mmio.h"
 #include "sis315_regs.h"
 
+bool sis_fill_rectangle(void *driver_data, void *device_data, DFBRectangle *rect);
+bool sis_draw_rectangle(void *driver_data, void *device_data, DFBRectangle *rect);
+bool sis_draw_line(void *driver_data, void *device_data, DFBRegion *line);
+bool sis_blit(void *driver_data, void *device_data, DFBRectangle *rect, int dx, int dy);
+bool sis_stretchblit(void *driver_data, void *device_data, DFBRectangle *sr, DFBRectangle *dr);
+
+
+#if 0
 static void dump_cmd(SiSDriverData *drv)
 {
 	int i;
 	fprintf(stderr,"MMIO8200--MMIO8240 \n");
 	for( i = 0x8200 ; i < 0x8240 ; i+=0x10 )
 	{
-		fprintf(stderr,"[%04X]: %08lX %08lX %08lX %08lX\n",i,
+		fprintf(stderr,"[%04X]: %08X %08X %08X %08X\n",i,
 				sis_rl(drv->mmio_base, i),
 				sis_rl(drv->mmio_base, i+4),
 				sis_rl(drv->mmio_base, i+8),
 				sis_rl(drv->mmio_base, i+12));
 	}
 }
-
+#endif
 
 static void sis_idle(SiSDriverData *drv)
 {
@@ -190,11 +198,11 @@ bool sis_stretchblit(void *driver_data, void *device_data, DFBRectangle *sr, DFB
 
 	src_colorkey = sis_rl(drv->mmio_base, SIS315_2D_TRANS_SRC_KEY_HIGH);
 
-	sis_wl(drv->mmio_base, 0x8208, (sr->x << 16) | sr->y & 0xFFFF);
-	sis_wl(drv->mmio_base, 0x820C, ( dr->x << 16) | dr->y & 0xFFFF);
+	sis_wl(drv->mmio_base, 0x8208, (sr->x << 16) | (sr->y & 0xFFFF));
+	sis_wl(drv->mmio_base, 0x820C, (dr->x << 16) | (dr->y & 0xFFFF));
 
-	sis_wl(drv->mmio_base, 0x8218, (dr->h << 16) | dr->w & 0x0FFF);
-	sis_wl(drv->mmio_base, 0x821c, (sr->h << 16) | sr->w & 0x0FFF);
+	sis_wl(drv->mmio_base, 0x8218, (dr->h << 16) | (dr->w & 0x0FFF));
+	sis_wl(drv->mmio_base, 0x821c, (sr->h << 16) | (sr->w & 0x0FFF));
 
 	sis_wl(drv->mmio_base, 0x8220, ((((lSmallWidth - lLargeWidth) * 2) << 16 ) | ((lSmallWidth * 2) & 0xFFFF)));
 	sis_wl(drv->mmio_base, 0x8224, ((((lSmallHeight - lLargeHeight) * 2) << 16 ) | ((lSmallHeight * 2) & 0xFFFF)));

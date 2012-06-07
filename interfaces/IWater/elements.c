@@ -1176,6 +1176,6 @@ TEST_Render_Circle( State                    *state,
      /*
       * Render temporary element
       */
-     return TEST_Render_Rectangle( state, &temp, values, num_values * 4 / 3 );
+     return TEST_Render_Rectangle( state, &temp, vals, num_values * 4 / 3 );
 }
 

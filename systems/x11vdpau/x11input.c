@@ -39,7 +39,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
-
+#include <X11/XKBlib.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -645,7 +645,7 @@ driver_get_keymap_entry( CoreInputDevice           *device,
      XLockDisplay( x11->display );
 
      for (i=0; i<4; i++) {
-          KeySym xSymbol = XKeycodeToKeysym( x11->display, entry->code, i );
+          KeySym xSymbol = XkbKeycodeToKeysym( x11->display, entry->code, 0, i );
 
           if (i == 0)
                entry->identifier = xsymbol_to_id( xSymbol );

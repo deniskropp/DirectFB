@@ -446,7 +446,7 @@ dfb_surface_notify( CoreSurface                  *surface,
 
      D_DEBUG_AT(
           Core_Surface,
-          "Notifying of Surface message. SurfaceID:%d MsgSize:%lu %s()-%s:%d\n",
+          "Notifying of Surface message. SurfaceID:%d MsgSize:%u %s()-%s:%d\n",
           surface->object.id,
           sizeof( CoreSurfaceNotification ),
           __FUNCTION__, __FILE__, __LINE__ );
@@ -522,7 +522,7 @@ dfb_surface_pool_notify( CoreSurface                    *surface,
 
      D_DEBUG_AT(
           Core_Surface,
-          "Notifying of Surface buffer allocation destruction. SurfaceID:%d MsgSize:%lu %s()-%s:%d\n",
+          "Notifying of Surface buffer allocation destruction. SurfaceID:%d MsgSize:%u %s()-%s:%d\n",
           surface->object.id,
           sizeof( CoreSurfaceNotification ),
           __FUNCTION__, __FILE__, __LINE__ );
@@ -847,9 +847,6 @@ dfb_surface_deallocate_buffers( CoreSurface *surface )
 DFBResult
 dfb_surface_destroy( CoreSurface *surface )
 {
-     int i, num_eyes;
-     DFBSurfaceStereoEye eye;
-
      D_DEBUG_AT( Core_Surface, "%s( %p )\n", __FUNCTION__, surface );
 
      D_MAGIC_ASSERT( surface, CoreSurface );

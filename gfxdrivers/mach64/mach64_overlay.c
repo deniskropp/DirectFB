@@ -257,7 +257,8 @@ ovSetRegion( CoreLayer                  *layer,
              CoreLayerRegionConfigFlags  updated,
              CoreSurface                *surface,
              CorePalette                *palette,
-             CoreSurfaceBufferLock      *lock )
+             CoreSurfaceBufferLock      *left_lock,
+             CoreSurfaceBufferLock      *right_lock )
 {
      Mach64DriverData       *mdrv = (Mach64DriverData*) driver_data;
      Mach64OverlayLayerData *mov  = (Mach64OverlayLayerData*) layer_data;
@@ -269,8 +270,8 @@ ovSetRegion( CoreLayer                  *layer,
           ov_reset( mdrv );
 
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SOURCE | CLRCF_DEST | CLRCF_OPTIONS)) {
-          ov_calc_buffer( mdrv, mov, config, surface, lock );
-          ov_calc_regs( mdrv, mov, config, surface, lock );
+          ov_calc_buffer( mdrv, mov, config, surface, left_lock );
+          ov_calc_regs( mdrv, mov, config, surface, left_lock );
           ov_set_buffer( mdrv, mov );
           ov_set_regs( mdrv, mov );
      }
@@ -322,12 +323,14 @@ ovFlipRegion( CoreLayer             *layer,
               void                  *region_data,
               CoreSurface           *surface,
               DFBSurfaceFlipFlags    flags,
-              CoreSurfaceBufferLock *lock )
+              CoreSurfaceBufferLock *left_lock,
+              CoreSurfaceBufferLock *right_lock )
+
 {
      Mach64DriverData       *mdrv = (Mach64DriverData*) driver_data;
      Mach64OverlayLayerData *mov  = (Mach64OverlayLayerData*) layer_data;
 
-     ov_calc_buffer( mdrv, mov, &mov->config, surface, lock );
+     ov_calc_buffer( mdrv, mov, &mov->config, surface, left_lock );
      ov_set_buffer( mdrv, mov );
 
      dfb_surface_flip( surface, false );

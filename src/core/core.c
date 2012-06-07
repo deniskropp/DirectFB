@@ -1699,7 +1699,6 @@ dfb_core_arena_join( void *ctx )
 {
      DFBResult  ret;
      CoreDFB   *core = ctx;
-     void      *field;
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
@@ -1919,7 +1918,7 @@ Core_Resource_CheckSurface( const CoreSurfaceConfig *config,
      ICoreResourceClient *client;
 
      D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, config->size.w, config->size.h,
-                 dfb_pixelformat_name( config->format ), type, resource_id, Core_GetIdentity() );
+                 dfb_pixelformat_name( config->format ), type, (size_t)resource_id, Core_GetIdentity() );
 
      if (Core_GetIdentity() == core_dfb->fusion_id)
           return DFB_OK;
@@ -1942,7 +1941,7 @@ Core_Resource_CheckSurfaceUpdate( CoreSurface             *surface,
      ICoreResourceClient *client;
 
      D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, config->size.w, config->size.h,
-                 dfb_pixelformat_name( config->format ), surface->type, surface->resource_id, surface->object.identity );
+                 dfb_pixelformat_name( config->format ), surface->type, (size_t)surface->resource_id, surface->object.identity );
 
      if (surface->object.identity == core_dfb->fusion_id)
           return DFB_OK;
@@ -1964,7 +1963,7 @@ Core_Resource_AddSurface( CoreSurface *surface )
      ICoreResourceClient *client;
 
      D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, surface->config.size.w, surface->config.size.h,
-                 dfb_pixelformat_name( surface->config.format ), surface->type, surface->resource_id, Core_GetIdentity() );
+                 dfb_pixelformat_name( surface->config.format ), surface->type, (size_t)surface->resource_id, Core_GetIdentity() );
 
      if (surface->object.identity == core_dfb->fusion_id)
           return DFB_OK;
@@ -1986,7 +1985,7 @@ Core_Resource_RemoveSurface( CoreSurface *surface )
      ICoreResourceClient *client;
 
      D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, surface->config.size.w, surface->config.size.h,
-                 dfb_pixelformat_name( surface->config.format ), surface->type, surface->resource_id, surface->object.identity );
+                 dfb_pixelformat_name( surface->config.format ), surface->type, (size_t)surface->resource_id, surface->object.identity );
 
      if (surface->object.identity == core_dfb->fusion_id)
           return DFB_OK;
@@ -2009,7 +2008,7 @@ Core_Resource_UpdateSurface( CoreSurface             *surface,
      ICoreResourceClient *client;
 
      D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, config->size.w, config->size.h,
-                 dfb_pixelformat_name( config->format ), surface->type, surface->resource_id, surface->object.identity );
+                 dfb_pixelformat_name( config->format ), surface->type, (size_t)surface->resource_id, surface->object.identity );
 
      if (surface->object.identity == core_dfb->fusion_id)
           return DFB_OK;

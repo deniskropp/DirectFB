@@ -163,7 +163,8 @@ fb0FlipRegion( CoreLayer             *layer,
                void                  *region_data,
                CoreSurface           *surface,
                DFBSurfaceFlipFlags    flags,
-               CoreSurfaceBufferLock *lock )
+               CoreSurfaceBufferLock *left_lock,
+               CoreSurfaceBufferLock *right_lock )
 {
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev  = nvdrv->device_data;
@@ -171,7 +172,7 @@ fb0FlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
      
-     offset = (lock->offset + nvdev->fb_offset) & ~3;
+     offset = (left_lock->offset + nvdev->fb_offset) & ~3;
      nv_out32( nvdrv->mmio_base, PCRTC_START, offset );
 
      if (flags & DSFLIP_WAIT)

@@ -1996,8 +1996,6 @@ InitIDirectFB_Async( void *ctx,
 DFBResult
 IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
 {
-     DFBResult ret;
-
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFB)
 
      D_DEBUG_AT( IDFB, "%s( %p, %p )\n", __FUNCTION__, thiz, core );

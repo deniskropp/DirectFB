@@ -142,9 +142,9 @@ driver_init_device(CoreGraphicsDevice *device,
 
      // Fill device info.
      snprintf(device_info->vendor,
-              DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "GLES2 Acceleration -");
+              DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "%s", "GLES2 Acceleration -");
      snprintf(device_info->name,
-              DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,   renderer ?: "Unknown");
+              DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "%s", renderer ?: "Unknown");
 
      // Initialize shader program objects, shared across all EGL contexts.
      status = gles2_init_shader_programs((GLES2DeviceData *)device_data);

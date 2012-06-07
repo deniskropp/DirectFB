@@ -48,23 +48,27 @@ static DirectLog *default_log;
 void
 __D_log_init()
 {
-     fallback_log.type = DLT_STDERR;
+     DirectLog *fb = &fallback_log;
 
-     direct_recursive_mutex_init( &fallback_log.lock );
+     fb->type = DLT_STDERR;
 
-     direct_log_init( &fallback_log, NULL );
+     direct_recursive_mutex_init( &fb->lock );
 
-     D_MAGIC_SET( &fallback_log, DirectLog );
+     direct_log_init( fb, NULL );
+
+     D_MAGIC_SET( fb, DirectLog );
 }
 
 void
 __D_log_deinit()
 {
-     direct_log_deinit( &fallback_log );
+     DirectLog *fb = &fallback_log;
 
-     direct_mutex_deinit( &fallback_log.lock );
+     direct_log_deinit( fb );
 
-     D_MAGIC_CLEAR( &fallback_log );
+     direct_mutex_deinit( &fb->lock );
+
+     D_MAGIC_CLEAR( fb );
 
      default_log = NULL;
 }

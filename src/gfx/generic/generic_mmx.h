@@ -464,6 +464,7 @@ static void Xacc_blend_srcalpha_MMX( GenefxState *gfxs )
                : "%st", "memory");
 }
 
+#if 0
 static void Dacc_YCbCr_to_RGB_MMX( GenefxState *gfxs )
 {  
      static const u16 __aligned(8) sub0[4] = {  16,  16,  16,  16 }; 
@@ -662,4 +663,4 @@ static void Dacc_RGB_to_YCbCr_MMX( GenefxState *gfxs )
           w--;
      }
 }
-
+#endif

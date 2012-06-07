@@ -176,7 +176,6 @@ IDirectFBImageProvider_JPEG2000_RenderTo( IDirectFBImageProvider *thiz,
      if (!data->buf) {
           int  cmptlut[3];
           int  width, height;
-          int  cw, ch;
           int  tlx, tly;
           int  hs, vs;
           int  i, j;
@@ -202,8 +201,6 @@ IDirectFBImageProvider_JPEG2000_RenderTo( IDirectFBImageProvider *thiz,
      
           width = jas_image_width(data->image);
           height = jas_image_height(data->image);
-          cw = jas_image_cmptwidth(data->image, 0);
-          ch = jas_image_cmptheight(data->image, 0);
           tlx = jas_image_cmpttlx(data->image, 0);
           tly = jas_image_cmpttly(data->image, 0);
           hs = jas_image_cmpthstep(data->image, 0);

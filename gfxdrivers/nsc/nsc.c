@@ -468,7 +468,7 @@ nscBlit(void *drv, void *dev, DFBRectangle * rect, int dx, int dy)
 static bool
 nscBlitGu1(void *drv, void *dev, DFBRectangle * rect, int dx, int dy)
 { 
-   int result, yoff;
+   int yoff;
 
    NSCDeviceData *nscdev = (NSCDeviceData *) dev;
 
@@ -486,7 +486,7 @@ nscBlitGu1(void *drv, void *dev, DFBRectangle * rect, int dx, int dy)
    Gal_set_raster_operation(0xCC);
    
    yoff = nscdev->src_offset / nscdev->src_pitch;
-   result = Gal_screen_to_screen_blt(rect->x, rect->y + yoff, dx, dy,
+   Gal_screen_to_screen_blt(rect->x, rect->y + yoff, dx, dy,
                              (unsigned short)rect->w,
                              (unsigned short)rect->h);
 

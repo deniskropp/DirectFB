@@ -450,7 +450,6 @@ static DirectResult
 Dispatch_SetPowerMode( IDirectFBScreen *thiz, IDirectFBScreen *real,
                        VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DirectResult        ret;
      VoodooMessageParser parser;
      DFBScreenPowerMode  mode;
 
@@ -460,22 +459,16 @@ Dispatch_SetPowerMode( IDirectFBScreen *thiz, IDirectFBScreen *real,
      VOODOO_PARSER_GET_INT( parser, mode );
      VOODOO_PARSER_END( parser );
 
-     ret = real->SetPowerMode( real, mode );
-     
-     return DFB_OK;
+     return real->SetPowerMode( real, mode );
 }
 
 static DirectResult
 Dispatch_WaitForSync( IDirectFBScreen *thiz, IDirectFBScreen *real,
                        VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DirectResult ret;
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Dispatcher)
 
-     ret = real->WaitForSync( real );
-     
-     return DFB_OK;
+     return real->WaitForSync( real );
 }
 
 

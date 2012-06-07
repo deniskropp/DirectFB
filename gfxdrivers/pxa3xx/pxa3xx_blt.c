@@ -685,7 +685,6 @@ static bool
 pxa3xxBlitBlend( void *drv, void *dev, DFBRectangle *rect, int x, int y )
 {
      PXA3XXDriverData *pdrv = drv;
-     PXA3XXDeviceData *pdev = dev;
      u32              *prep = start_buffer( pdrv, 8 );
 
      D_DEBUG_AT( PXA3XX_BLT, "%s( %d, %d - %dx%d  -> %d, %d )\n",

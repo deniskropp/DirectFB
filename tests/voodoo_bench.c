@@ -49,6 +49,8 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
+#include <voodoo/types.h>
+#include <voodoo/link.h>
 #include <voodoo/internal.h>
 #include <voodoo/manager.h>
 #include <voodoo/server.h>
@@ -72,6 +74,8 @@ Dispatch_Push( void *dispatcher, void *real,
      VOODOO_PARSER_BEGIN( parser, msg );
      VOODOO_PARSER_GET_INT( parser, counter );
      VOODOO_PARSER_END( parser );
+
+     (void)counter;
 
      return DR_OK;
 }
@@ -132,6 +136,8 @@ main( int argc, char *argv[] )
 //     int               socket[2];
      int               fds_server[2];
      int               fds_client[2];
+     VoodooLink        voodoo_link_server;
+     VoodooLink        voodoo_link_client;
      VoodooManager    *manager_server;
      VoodooManager    *manager_client;
      VoodooInstanceID  instance;
@@ -148,12 +154,14 @@ main( int argc, char *argv[] )
      fds_client[1] = pipe_1[1];
 
 
-     voodoo_manager_create( fds_server, NULL, NULL, &manager_server );
+     voodoo_link_init_fd( &voodoo_link_server, fds_server );
+     voodoo_manager_create( &voodoo_link_server, NULL, NULL, &manager_server );
 
      voodoo_manager_register_local( manager_server, VOODOO_INSTANCE_NONE, NULL, NULL, Dispatch, &instance );
 
 
-     voodoo_manager_create( fds_client, NULL, NULL, &manager_client );
+     voodoo_link_init_fd( &voodoo_link_client, fds_client );
+     voodoo_manager_create( &voodoo_link_client, NULL, NULL, &manager_client );
 
 
 
@@ -193,7 +201,7 @@ main( int argc, char *argv[] )
      direct_clock_stop( &clock );
 
 
-     D_INFO( "Voodoo/Test: Stopped after %d.%03d seconds... (%lld items/sec)\n",
+     D_INFO( "Voodoo/Test: Stopped after %lld.%03lld seconds... (%lld items/sec)\n",
              DIRECT_CLOCK_DIFF_SEC_MS( &clock ), NUM_ITEMS * 1000000ULL / direct_clock_diff( &clock ) );
 
 

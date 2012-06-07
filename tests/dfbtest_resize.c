@@ -79,7 +79,6 @@ static void
 TestResize( IDirectFB *dfb )
 {
      DFBResult              ret;
-     DirectThread          *thread;
      DFBWindowDescription   desc;
      IDirectFBDisplayLayer *layer;
      IDirectFBWindow       *window;
@@ -104,7 +103,7 @@ TestResize( IDirectFB *dfb )
           return;
      }
 
-     thread = direct_thread_create( DTT_DEFAULT, TestThread, surface, "Test" );
+     direct_thread_create( DTT_DEFAULT, TestThread, surface, "Test" );
 
      while (true) {
           ret = window->Resize( window, 500, 400 );

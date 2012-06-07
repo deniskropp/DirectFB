@@ -235,7 +235,6 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                                     DFBSurfaceFlipFlags  flags )
 {
      DFBRegion l_reg, r_reg;
-     DFBSurfaceStereoEye eye;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 

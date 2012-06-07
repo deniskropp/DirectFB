@@ -197,7 +197,8 @@ ov0SetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
               CorePalette                *palette,
-              CoreSurfaceBufferLock      *lock )
+              CoreSurfaceBufferLock      *left_lock,
+              CoreSurfaceBufferLock      *right_lock )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
@@ -205,7 +206,7 @@ ov0SetRegion( CoreLayer                  *layer,
      /* remember configuration */
      aov0->config = *config;
 
-     ov0_calc_regs( adrv, aov0, config, surface, lock );
+     ov0_calc_regs( adrv, aov0, config, surface, left_lock );
      ov0_set_regs( adrv, aov0 );
 
      /* enable overlay */
@@ -236,14 +237,15 @@ ov0FlipRegion( CoreLayer             *layer,
                void                  *region_data,
                CoreSurface           *surface,
                DFBSurfaceFlipFlags    flags,
-               CoreSurfaceBufferLock *lock )
+               CoreSurfaceBufferLock *left_lock,
+               CoreSurfaceBufferLock *right_lock )
 {
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
 
      dfb_surface_flip( surface, false );
 
-     ov0_calc_regs( adrv, aov0, &aov0->config, surface, lock );
+     ov0_calc_regs( adrv, aov0, &aov0->config, surface, left_lock );
      ov0_set_regs( adrv, aov0 );
 
      return DFB_OK;

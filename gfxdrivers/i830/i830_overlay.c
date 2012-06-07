@@ -263,7 +263,8 @@ ovlSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
               CorePalette                *palette,
-              CoreSurfaceBufferLock      *lock )
+              CoreSurfaceBufferLock      *left_lock,
+              CoreSurfaceBufferLock      *right_lock )
 {
      I830DriverData       *idrv = driver_data;
      I830DeviceData       *idev = idrv->idev;
@@ -271,7 +272,7 @@ ovlSetRegion( CoreLayer                  *layer,
 
      iovl->config = *config;
 
-     ovl_calc_regs ( idrv, idev, iovl, layer, surface, config, false, lock );
+     ovl_calc_regs ( idrv, idev, iovl, layer, surface, config, false, left_lock );
 
      i830ovlOnOff( idrv, idev, true );
 
@@ -300,7 +301,8 @@ ovlFlipRegion(  CoreLayer             *layer,
                 void                  *region_data,
                 CoreSurface           *surface,
                 DFBSurfaceFlipFlags    flags,
-                CoreSurfaceBufferLock *lock )
+                CoreSurfaceBufferLock *left_lock,
+                CoreSurfaceBufferLock *right_lock )
 {
      I830DriverData       *idrv = driver_data;
      I830DeviceData       *idev = idrv->idev;
@@ -308,7 +310,7 @@ ovlFlipRegion(  CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
-     ovl_calc_regs ( idrv, idev, iovl, layer, surface, &iovl->config, true, lock );
+     ovl_calc_regs ( idrv, idev, iovl, layer, surface, &iovl->config, true, left_lock );
 
      update_overlay( idrv, idev );
 

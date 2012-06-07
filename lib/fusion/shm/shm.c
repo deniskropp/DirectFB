@@ -245,7 +245,6 @@ fusion_shm_enum_pools( FusionWorld           *world,
                        void                  *ctx )
 {
      int              i;
-     DirectResult     ret;
      FusionSHM       *shm;
      FusionSHMShared *shared;
 

@@ -78,7 +78,7 @@ struct __DFB_CoreSurfaceBufferLock {
      unsigned long            offset;             /* " */
      unsigned int             pitch;              /* " */
 
-     void                    *handle;             /* " */
+     void*                    handle;             /* " */
 };
 
 static inline void
@@ -92,7 +92,7 @@ dfb_surface_buffer_lock_reset( CoreSurfaceBufferLock *lock )
      lock->phys       = 0;
      lock->offset     = ~0;
      lock->pitch      = 0;
-     lock->handle     = NULL;
+     lock->handle     = 0;
 }
 
 static inline void

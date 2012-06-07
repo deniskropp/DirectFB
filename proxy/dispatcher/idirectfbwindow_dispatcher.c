@@ -761,7 +761,6 @@ static DirectResult
 Dispatch_SetOptions( IDirectFBWindow *thiz, IDirectFBWindow *real,
                      VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DFBResult           ret;
      VoodooMessageParser parser;
      DFBWindowOptions    options;
 
@@ -771,9 +770,7 @@ Dispatch_SetOptions( IDirectFBWindow *thiz, IDirectFBWindow *real,
      VOODOO_PARSER_GET_INT( parser, options );
      VOODOO_PARSER_END( parser );
 
-     ret = real->SetOptions( real, options );
-
-     return DFB_OK;
+     return real->SetOptions( real, options );
 }
 
 static DirectResult
@@ -966,7 +963,6 @@ static DirectResult
 Dispatch_SetStackingClass( IDirectFBWindow *thiz, IDirectFBWindow *real,
                            VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DFBResult              ret;
      VoodooMessageParser    parser;
      DFBWindowStackingClass stacking_class;
 
@@ -983,9 +979,7 @@ Dispatch_SetStackingClass( IDirectFBWindow *thiz, IDirectFBWindow *real,
           }
      }
 
-     ret = real->SetStackingClass( real, stacking_class );
-
-     return DFB_OK;
+     return real->SetStackingClass( real, stacking_class );
 }
 
 static DirectResult

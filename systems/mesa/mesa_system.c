@@ -230,8 +230,6 @@ system_join( CoreDFB *core, void **ret_data )
 static DFBResult
 system_shutdown( bool emergency )
 {
-     DFBResult   ret;
-
      MesaDataShared *shared;
 
      D_ASSERT( m_data != NULL );

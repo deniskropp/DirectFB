@@ -215,7 +215,7 @@ primaryInitScreen( CoreScreen           *screen,
      config.format = DSPF_ARGB;
      config.caps   = DSCAPS_VIDEOONLY;
      config.preallocated[0].addr   = NULL;
-     config.preallocated[0].handle = shared->vdp_surface;
+     config.preallocated[0].handle = (void*)shared->vdp_surface;
      config.preallocated[0].pitch  = shared->screen_size.w * 4;
 
      ret = dfb_surface_create( x11->core, &config, CSTF_EXTERNAL | CSTF_PREALLOCATED,

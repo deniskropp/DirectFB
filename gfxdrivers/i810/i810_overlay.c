@@ -276,14 +276,15 @@ ovlSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
               CorePalette                *palette,
-              CoreSurfaceBufferLock      *lock)
+              CoreSurfaceBufferLock      *left_lock,
+              CoreSurfaceBufferLock      *right_lock)
 {
 	I810DriverData       *i810drv = (I810DriverData *) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
 
 	i810ovl->config = *config;
 
-	ovl_calc_regs (i810drv, i810ovl, layer, surface, config, lock);
+	ovl_calc_regs (i810drv, i810ovl, layer, surface, config, left_lock);
 	update_overlay(i810drv, i810drv->idev);
 
 	i810ovlOnOff(i810drv, i810drv->idev, 1);
@@ -312,7 +313,8 @@ ovlFlipRegion(  CoreLayer             *layer,
                 void                  *region_data,
                 CoreSurface           *surface,
                 DFBSurfaceFlipFlags    flags,
-                CoreSurfaceBufferLock *lock )
+                CoreSurfaceBufferLock *left_lock,
+                CoreSurfaceBufferLock *right_lock )
 {
 	I810DriverData       *i810drv = (I810DriverData *) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
@@ -330,7 +332,7 @@ ovlFlipRegion(  CoreLayer             *layer,
 		i810drv->oregs->ov0cmd |= 4;
 	}
 
-	ovl_calc_regs (i810drv, i810ovl, layer, surface, &i810ovl->config, lock);
+	ovl_calc_regs (i810drv, i810ovl, layer, surface, &i810ovl->config, left_lock);
 	update_overlay(i810drv, i810drv->idev);
 	
 	if (flags & DSFLIP_WAIT)

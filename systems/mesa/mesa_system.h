@@ -44,10 +44,6 @@
 #include <drm.h>
 #include <xf86drmMode.h>
 
-#ifdef GL_OES_EGL_image
-static PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES_func;
-#endif
-
 #include <fusion/shmalloc.h>
 
 #include <core/surface_pool.h>

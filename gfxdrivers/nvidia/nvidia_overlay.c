@@ -257,7 +257,8 @@ ov0SetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
               CorePalette                *palette,
-              CoreSurfaceBufferLock      *lock )
+              CoreSurfaceBufferLock      *left_lock,
+              CoreSurfaceBufferLock      *right_lock )
 {
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
@@ -266,7 +267,7 @@ ov0SetRegion( CoreLayer                  *layer,
      nvov0->config = *config;
      
      nvov0->videoSurface = surface;
-     nvov0->lock = lock;
+     nvov0->lock = left_lock;
 
      /* set configuration */
      if (updated & (CLRCF_WIDTH  | CLRCF_HEIGHT | CLRCF_FORMAT  |
@@ -290,13 +291,14 @@ ov0FlipRegion ( CoreLayer             *layer,
                 void                  *region_data,
                 CoreSurface           *surface,
                 DFBSurfaceFlipFlags    flags,
-                CoreSurfaceBufferLock *lock )
+                CoreSurfaceBufferLock *left_lock,
+                CoreSurfaceBufferLock *right_lock )
 {
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
     
      nvov0->videoSurface = surface;
-     nvov0->lock = lock;
+     nvov0->lock = left_lock;
 
      dfb_surface_flip( nvov0->videoSurface, false );
 

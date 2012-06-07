@@ -128,8 +128,6 @@ main( int argc, char *argv[] )
      DFBSurfacePixelFormat   source_format = DSPF_UNKNOWN;
      DFBSurfacePixelFormat   dest_format   = DSPF_UNKNOWN;
      bool                    dest_resize   = false;
-     bool                    benchmark     = false;
-     bool                    rerender      = false;
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
@@ -168,10 +166,6 @@ main( int argc, char *argv[] )
           }
           else if (strcmp (arg, "-r") == 0 || strcmp (arg, "--resize") == 0)
                dest_resize = true;
-          else if (strcmp (arg, "-b") == 0 || strcmp (arg, "--benchmark") == 0)
-               benchmark = true;
-          else if (strcmp (arg, "-R") == 0 || strcmp (arg, "--rerender") == 0)
-               rerender = true;
           else if (!url)
                url = arg;
           else

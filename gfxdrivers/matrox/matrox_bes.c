@@ -260,7 +260,8 @@ besSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
               CorePalette                *palette,
-              CoreSurfaceBufferLock      *lock )
+              CoreSurfaceBufferLock      *left_lock,
+              CoreSurfaceBufferLock      *right_lock )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
@@ -273,7 +274,7 @@ besSetRegion( CoreLayer                  *layer,
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT |
                     CLRCF_OPTIONS | CLRCF_DEST | CLRCF_OPACITY | CLRCF_SOURCE))
      {
-          bes_calc_regs( mdrv, mbes, config, surface, lock );
+          bes_calc_regs( mdrv, mbes, config, surface, left_lock );
           bes_set_regs( mdrv, mbes );
      }
 
@@ -331,13 +332,14 @@ besFlipRegion( CoreLayer             *layer,
                void                  *region_data,
                CoreSurface           *surface,
                DFBSurfaceFlipFlags    flags,
-               CoreSurfaceBufferLock *lock )
+               CoreSurfaceBufferLock *left_lock,
+               CoreSurfaceBufferLock *right_lock )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
      bool                swap;
 
-     bes_calc_regs( mdrv, mbes, &mbes->config, surface, lock );
+     bes_calc_regs( mdrv, mbes, &mbes->config, surface, left_lock );
      swap = bes_set_buffer( mdrv, mbes, flags & DSFLIP_ONSYNC );
 
      dfb_surface_flip( surface, swap );

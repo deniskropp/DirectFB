@@ -129,8 +129,6 @@ gles2_validate_SCISSOR(GLES2DriverData *gdrv,
                        GLES2DeviceData *gdev,
                        CardState       *state)
 {
-     CoreSurface *surface = state->destination;
-
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
      glEnable(GL_SCISSOR_TEST);
@@ -233,8 +231,6 @@ gles2_validate_MATRIX(GLES2DriverData *gdrv,
                       GLES2DeviceData *gdev,
                       CardState       *state)
 {
-     CoreSurface *surface = state->destination;
-
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
      if (state->render_options & DSRO_MATRIX) {

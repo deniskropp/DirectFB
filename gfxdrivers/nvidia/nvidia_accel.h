@@ -149,10 +149,8 @@ static inline void
 nv_emitdma( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev )
 {
      if (nvdev->dma_put != nvdev->dma_cur) {
-          volatile u8 scratch;
-          
           /* flush MTRR buffers */
-          scratch = nv_in8( nvdrv->fb_base, 0 );
+          nv_in8( nvdrv->fb_base, 0 );
           nv_out32( nvdrv->mmio_base, DMA_PUT, nvdev->dma_cur << 2 );
           
           nvdev->dma_put = nvdev->dma_cur;

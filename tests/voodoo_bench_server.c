@@ -79,6 +79,8 @@ Dispatch_Push( void *dispatcher, void *real,
      VOODOO_PARSER_GET_INT( parser, counter );
      VOODOO_PARSER_END( parser );
 
+     (void)counter;
+
      return DR_OK;
 }
 

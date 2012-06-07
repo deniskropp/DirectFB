@@ -226,6 +226,8 @@ Construct( void *interface, ... )
      core = va_arg(tag, CoreDFB *);
      va_end( tag );
 
+     (void)dfb;
+
      /* Allocate interface data. */
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBGL2 );
 

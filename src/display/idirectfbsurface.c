@@ -3000,7 +3000,6 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                              DFBSurfaceFlipFlags  flags )
 {
      DFBRegion l_reg, r_reg;
-     DFBSurfaceStereoEye eye;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -3089,7 +3088,7 @@ IDirectFBSurface_SetWriteMaskBits( IDirectFBSurface *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p, MASK 0x%08zx )\n", __FUNCTION__, thiz, bits );
+     D_DEBUG_AT( Surface, "%s( %p, MASK 0x%08zx )\n", __FUNCTION__, thiz, (size_t)bits );
 
      dfb_state_set_write_mask_bits( &data->state, bits );
 

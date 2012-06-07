@@ -214,6 +214,10 @@ app_update( App *app )
 
 void *
 app_thread( DirectThread *thread,
+            void         *arg );
+
+void *
+app_thread( DirectThread *thread,
             void         *arg )
 {
      App *app = arg;
