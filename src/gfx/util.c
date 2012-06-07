@@ -315,7 +315,7 @@ back_to_front_copy( CoreSurface             *surface,
      pthread_mutex_lock( &btf_lock );
 
      if (!btf_state_inited) {
-          dfb_state_init( btf_statep, NULL );
+          dfb_state_init( state, NULL );
 
           state->from = CSBR_BACK;
           state->to   = CSBR_FRONT;
