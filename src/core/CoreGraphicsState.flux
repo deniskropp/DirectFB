@@ -260,6 +260,46 @@ interface {
 		}
 	}
 
+	method {
+		name      SetFrom
+		async  	  yes
+		queue     yes
+
+		arg {
+			name      role
+			direction input
+			type      enum
+			typename  CoreSurfaceBufferRole
+		}
+
+		arg {
+			name      eye
+			direction input
+			type      enum
+			typename  DFBSurfaceStereoEye
+		}
+	}
+
+	method {
+		name      SetTo
+		async  	  yes
+		queue     yes
+
+		arg {
+			name      role
+			direction input
+			type      enum
+			typename  CoreSurfaceBufferRole
+		}
+
+		arg {
+			name      eye
+			direction input
+			type      enum
+			typename  DFBSurfaceStereoEye
+		}
+	}
+
 
 
 

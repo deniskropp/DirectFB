@@ -117,7 +117,9 @@ dfb_state_init( CardState *state, CoreDFB *core )
      state->affine_matrix = DFB_TRUE;
 
      state->from      = CSBR_FRONT;
+     state->from_eye  = DSSE_LEFT;
      state->to        = CSBR_BACK;
+     state->to_eye    = DSSE_LEFT;
 
      state->src_colormatrix[0]  = 0x10000;
      state->src_colormatrix[1]  = 0x00000;

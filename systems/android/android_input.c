@@ -74,7 +74,7 @@ driver_open_device( CoreInputDevice  *device,
      info->prefered_id = DIDID_KEYBOARD;
 
      /* set type flags */
-     info->desc.type   = DIDTF_JOYSTICK | DIDTF_KEYBOARD | DIDTF_MOUSE;
+     info->desc.type   = DIDTF_KEYBOARD | DIDTF_MOUSE;
 
      /* set capabilities */
      info->desc.caps   = DICAPS_ALL;

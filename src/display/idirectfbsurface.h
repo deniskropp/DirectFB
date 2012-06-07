@@ -147,6 +147,8 @@ typedef struct {
      CoreSurfaceClient       *surface_client;
      unsigned int             surface_client_flip_count;
      DirectMutex              surface_client_lock;
+
+     DFBSurfaceStereoEye      src_eye;
 } IDirectFBSurface_data;
 
 /*

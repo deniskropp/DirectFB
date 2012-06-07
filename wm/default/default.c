@@ -1418,9 +1418,6 @@ flush_updating( StackData *data )
                            DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
           }
 
-          /* Copy back the updated region .*/
-          dfb_surface_set_stereo_eye( data->region->surface, DSSE_LEFT );
-
           dfb_gfx_copy_regions( data->region->surface, CSBR_FRONT, data->region->surface, CSBR_BACK,
                                 data->updated.regions, left_num_regions, 0, 0 );
      }
@@ -3267,8 +3264,6 @@ defaultwm_surface_reaction( const void *msg_data,
 
                     if (data->updated.num_regions) {
                          if (data->region->config.options & DLOP_STEREO) {
-                              DFBSurfaceStereoEye old_eye = dfb_surface_get_stereo_eye( data->region->surface );
-
                               /* Copy back the updated region. */
                               if (data->updated.num_regions) {
                                    D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
@@ -3278,13 +3273,9 @@ defaultwm_surface_reaction( const void *msg_data,
                                                     DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
                                    }
 
-                                   dfb_surface_set_stereo_eye( data->region->surface, DSSE_LEFT );
-
                                    dfb_gfx_copy_regions( data->surface, CSBR_FRONT, data->surface, CSBR_IDLE,
                                                          data->updated.regions, data->updated.num_regions, 0, 0 );
                               }
-
-                              dfb_surface_set_stereo_eye( data->region->surface, old_eye );
                          }
                          else {
                               /* Copy back the updated region. */

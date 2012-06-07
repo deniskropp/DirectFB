@@ -316,6 +316,34 @@ IGraphicsState_Real::SetSource2(
 }
 
 
+DFBResult
+IGraphicsState_Real::SetFrom(
+                    CoreSurfaceBufferRole                      role,
+                    DFBSurfaceStereoEye                        eye
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s( %d, %d )\n", __FUNCTION__, role, eye );
+
+    dfb_state_set_from( &obj->state, role, eye );
+
+    return DFB_OK;
+}
+
+
+DFBResult
+IGraphicsState_Real::SetTo(
+                    CoreSurfaceBufferRole                      role,
+                    DFBSurfaceStereoEye                        eye
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s( %d, %d )\n", __FUNCTION__, role, eye );
+
+    dfb_state_set_to( &obj->state, role, eye );
+
+    return DFB_OK;
+}
+
+
 /**********************************************************************************************************************
  * Rendering
  */

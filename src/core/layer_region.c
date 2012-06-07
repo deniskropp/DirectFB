@@ -664,7 +664,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
      CoreLayerContext        *context;
      CoreSurface             *surface;
      const DisplayLayerFuncs *funcs;
-     DFBSurfaceStereoEye      eye;
+     DFBSurfaceStereoEye      eyes = 0;
 
      D_DEBUG_AT( Core_Layers, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, region, left_update, right_update, flags );
      if (left_update)
@@ -793,17 +793,13 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
 
                D_DEBUG_AT( Core_Layers, "  -> Copying content from back to front buffer...\n" );
 
-               /* ...or copy updated contents from back to front buffer. */
-               eye = dfb_surface_get_stereo_eye(surface);
-               if (left_update) {
-                    dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
-                    dfb_back_to_front_copy_rotation( surface, left_update, surface->rotation );
-               }
-               if (right_update) {
-                    dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
-                    dfb_back_to_front_copy_rotation( surface, right_update, surface->rotation );
-               }
-               dfb_surface_set_stereo_eye(surface, eye);
+               if (left_update)
+                    eyes |= DSSE_LEFT;
+
+               if (right_update)
+                    eyes |= DSSE_RIGHT;
+
+               dfb_back_to_front_copy_stereo( surface, eyes, left_update, right_update, surface->rotation );
 
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT) {
                     D_DEBUG_AT( Core_Layers, "  -> Waiting for VSync...\n" );
@@ -1234,7 +1230,6 @@ region_buffer_lock( CoreLayerRegion       *region,
      CoreSurfaceAllocation *allocation;
      CoreLayerContext      *context;
      bool                   stereo;
-     DFBSurfaceStereoEye    eye;
 
      (void)context;
      (void)allocation;
@@ -1254,11 +1249,7 @@ region_buffer_lock( CoreLayerRegion       *region,
           return DFB_FUSION;
 
      /* Save current buffer focus. */
-     eye = dfb_surface_get_stereo_eye(surface);
-
-     dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
-
-     buffer = dfb_surface_get_buffer( surface, role );
+     buffer = dfb_surface_get_buffer2( surface, role, DSSE_LEFT );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      /* Lock the surface buffer. */
@@ -1285,8 +1276,7 @@ region_buffer_lock( CoreLayerRegion       *region,
      if (stereo) {
           D_ASSERT(right_buffer_lock != NULL);
 
-          dfb_surface_set_stereo_eye(surface, DSSE_RIGHT);
-          buffer = dfb_surface_get_buffer( surface, role );
+          buffer = dfb_surface_get_buffer2( surface, role, DSSE_RIGHT );
           D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      
           /* Lock the surface buffer. */
@@ -1314,9 +1304,6 @@ region_buffer_lock( CoreLayerRegion       *region,
      else if (right_buffer_lock)
           /* clear for region_buffer_unlock */
           right_buffer_lock->buffer = NULL;
-
-     /* Restore current buffer focus. */
-     dfb_surface_set_stereo_eye(surface, eye);
 
      /* surface is unlocked by caller */
 

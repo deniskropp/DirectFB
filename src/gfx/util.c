@@ -65,11 +65,29 @@ static pthread_mutex_t cd_lock   = PTHREAD_MUTEX_INITIALIZER;
 void
 dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect )
 {
-     dfb_gfx_copy_to( source, destination, rect, rect ? rect->x : 0, rect ? rect->y : 0, false );
+     dfb_gfx_copy_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, rect, rect ? rect->x : 0, rect ? rect->y : 0, false );
 }
 
 void
-dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect, int x, int y, bool from_back )
+dfb_gfx_copy_to( CoreSurface        *source,
+                 CoreSurface        *destination,
+                 const DFBRectangle *rect,
+                 int                 x,
+                 int                 y,
+                 bool                from_back )
+{
+     dfb_gfx_copy_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, rect, x, y, false );
+}
+
+void
+dfb_gfx_copy_stereo( CoreSurface         *source,
+                     DFBSurfaceStereoEye  source_eye,
+                     CoreSurface         *destination,
+                     DFBSurfaceStereoEye  destination_eye,
+                     const DFBRectangle  *rect,
+                     int                  x,
+                     int                  y,
+                     bool                 from_back )
 {
      DFBRectangle sourcerect = { 0, 0, source->config.size.w, source->config.size.h };
 
@@ -80,14 +98,16 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectang
           copy_state_inited = true;
      }
 
-     copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
+     copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO;
 
      copy_state.clip.x2     = destination->config.size.w - 1;
      copy_state.clip.y2     = destination->config.size.h - 1;
      copy_state.source      = source;
      copy_state.destination = destination;
      copy_state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
+     copy_state.from_eye    = source_eye;
      copy_state.to          = CSBR_BACK;
+     copy_state.to_eye      = destination_eye;
 
      if (rect) {
           if (dfb_rectangle_intersect( &sourcerect, rect ))
@@ -101,27 +121,10 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectang
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &copy_state );
 
+     copy_state.destination = NULL;
+     copy_state.source      = NULL;
+
      pthread_mutex_unlock( &copy_lock );
-}
-
-void
-dfb_gfx_copy_to_stereo( CoreSurface        *source,
-                        CoreSurface        *destination,
-                        const DFBRectangle *rect,
-                        int                 x,
-                        int                 y,
-                        bool                from_back,
-                        bool                to_right )
-{
-     DFBSurfaceStereoEye eye;
-
-     eye = dfb_surface_get_stereo_eye( destination );
-
-     dfb_surface_set_stereo_eye( destination, to_right ? DSSE_RIGHT : DSSE_LEFT );
-
-     dfb_gfx_copy_to( source, destination, rect, x, y, from_back );
-
-     dfb_surface_set_stereo_eye( destination, eye );
 }
 
 void
@@ -136,13 +139,13 @@ dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role )
           copy_state_inited = true;
      }
 
-     copy_state.modified   |= SMF_CLIP | SMF_COLOR | SMF_DESTINATION;
+     copy_state.modified   |= SMF_CLIP | SMF_COLOR | SMF_DESTINATION | SMF_TO;
 
      copy_state.clip.x2     = surface->config.size.w - 1;
      copy_state.clip.y2     = surface->config.size.h - 1;
      copy_state.destination = surface;
-     copy_state.source      = surface;
      copy_state.to          = role;
+     copy_state.to_eye      = DSSE_LEFT;
      copy_state.color.a     = 0;
      copy_state.color.r     = 0;
      copy_state.color.g     = 0;
@@ -153,6 +156,8 @@ dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role )
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &copy_state );
+
+     copy_state.destination = NULL;
 
      pthread_mutex_unlock( &copy_lock );
 }
@@ -181,19 +186,24 @@ dfb_gfx_stretch_to( CoreSurface *source, CoreSurface *destination,
           copy_state_inited = true;
      }
 
-     copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
+     copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO;
 
      copy_state.clip.x2     = destination->config.size.w - 1;
      copy_state.clip.y2     = destination->config.size.h - 1;
      copy_state.source      = source;
      copy_state.destination = destination;
      copy_state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
+     copy_state.from_eye    = DSSE_LEFT;
      copy_state.to          = CSBR_BACK;
+     copy_state.to_eye      = DSSE_LEFT;
 
      dfb_gfxcard_stretchblit( &sourcerect, &destrect, &copy_state );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &copy_state );
+
+     copy_state.destination = NULL;
+     copy_state.source      = NULL;
 
      pthread_mutex_unlock( &copy_lock );
 }
@@ -207,6 +217,21 @@ dfb_gfx_copy_regions( CoreSurface           *source,
                       unsigned int           num,
                       int                    x,
                       int                    y )
+{
+     dfb_gfx_copy_regions_stereo( source, from, DSSE_LEFT, destination, to, DSSE_LEFT, regions, num, x, y );
+}
+
+void
+dfb_gfx_copy_regions_stereo( CoreSurface           *source,
+                             CoreSurfaceBufferRole  from,
+                             DFBSurfaceStereoEye    source_eye,
+                             CoreSurface           *destination,
+                             CoreSurfaceBufferRole  to,
+                             DFBSurfaceStereoEye    destination_eye,
+                             const DFBRegion       *regions,
+                             unsigned int           num,
+                             int                    x,
+                             int                    y )
 {
      unsigned int i, n = 0;
      DFBRectangle rect = { 0, 0, source->config.size.w, source->config.size.h };
@@ -234,31 +259,41 @@ dfb_gfx_copy_regions( CoreSurface           *source,
                copy_state_inited = true;
           }
 
-          copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
+          copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO;
 
           copy_state.clip.x2     = destination->config.size.w - 1;
           copy_state.clip.y2     = destination->config.size.h - 1;
           copy_state.source      = source;
           copy_state.destination = destination;
           copy_state.from        = from;
+          copy_state.from_eye    = source_eye;
           copy_state.to          = to;
+          copy_state.to_eye      = destination_eye;
 
           dfb_gfxcard_batchblit( rects, points, n, &copy_state );
      
           /* Signal end of sequence. */
           dfb_state_stop_drawing( &copy_state );
 
+          copy_state.destination = NULL;
+          copy_state.source      = NULL;
+
           pthread_mutex_unlock( &copy_lock );
      }
 }
 
-static void
-back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBlittingFlags flags, int rotation)
-{
-     CardState *btf_statep = &btf_state;
+/*********************************************************************************************************************/
 
-     DFBRectangle rect;
-     int          dx, dy;
+static void
+back_to_front_copy( CoreSurface             *surface,
+                    DFBSurfaceStereoEye      eye,
+                    const DFBRegion         *region,
+                    DFBSurfaceBlittingFlags  flags,
+                    int                      rotation)
+{
+     DFBRectangle  rect;
+     int           dx, dy;
+     CardState    *state = &btf_state;
 
 
      if (region) {
@@ -280,20 +315,22 @@ back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBli
      pthread_mutex_lock( &btf_lock );
 
      if (!btf_state_inited) {
-          dfb_state_init( btf_statep, NULL );
+          dfb_state_init( state, NULL );
 
-          btf_statep->from = CSBR_BACK;
-          btf_statep->to   = CSBR_FRONT;
+          state->from = CSBR_BACK;
+          state->to   = CSBR_FRONT;
 
           btf_state_inited = true;
      }
 
-     btf_statep->modified     |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
+     state->modified    |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO;
 
-     btf_statep->clip.x2       = surface->config.size.w - 1;
-     btf_statep->clip.y2       = surface->config.size.h - 1;
-     btf_statep->source        = surface;
-     btf_statep->destination   = surface;
+     state->clip.x2      = surface->config.size.w - 1;
+     state->clip.y2      = surface->config.size.h - 1;
+     state->source       = surface;
+     state->destination  = surface;
+     state->from_eye     = eye;
+     state->to_eye       = eye;
 
 
      if (rotation == 90) {
@@ -316,12 +353,12 @@ back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBli
      }
 
 
-     dfb_state_set_blitting_flags( btf_statep, flags );
+     dfb_state_set_blitting_flags( state, flags );
 
-     dfb_gfxcard_blit( &rect, dx, dy, btf_statep );
+     dfb_gfxcard_blit( &rect, dx, dy, state );
 
      /* Signal end of sequence. */
-     dfb_state_stop_drawing( btf_statep );
+     dfb_state_stop_drawing( state );
 
      pthread_mutex_unlock( &btf_lock );
 }
@@ -329,14 +366,30 @@ back_to_front_copy( CoreSurface *surface, const DFBRegion *region, DFBSurfaceBli
 void
 dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 {
-     back_to_front_copy( surface, region, DSBLIT_NOFX, 0);
+     back_to_front_copy( surface, DSSE_LEFT, region, DSBLIT_NOFX, 0);
 }
 
 void
 dfb_back_to_front_copy_rotation( CoreSurface *surface, const DFBRegion *region, int rotation )
 {
-     back_to_front_copy( surface, region, DSBLIT_NOFX, rotation );
+     back_to_front_copy( surface, DSSE_LEFT, region, DSBLIT_NOFX, rotation );
 }
+
+void
+dfb_back_to_front_copy_stereo( CoreSurface         *surface,
+                               DFBSurfaceStereoEye  eyes,
+                               const DFBRegion     *left_region,
+                               const DFBRegion     *right_region,
+                               int                  rotation )
+{
+     if (eyes & DSSE_LEFT)
+          back_to_front_copy( surface, DSSE_LEFT, left_region, DSBLIT_NOFX, rotation );
+
+     if (eyes & DSSE_RIGHT)
+          back_to_front_copy( surface, DSSE_RIGHT, right_region, DSBLIT_NOFX, rotation );
+}
+
+/*********************************************************************************************************************/
 
 void
 dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
@@ -360,7 +413,7 @@ dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
           cd_state_inited = true;
      }
 
-     cd_state.modified   |= SMF_CLIP | SMF_DESTINATION;
+     cd_state.modified   |= SMF_CLIP | SMF_DESTINATION | SMF_TO;
 
      cd_state.clip.x2     = surface->config.size.w - 1;
      cd_state.clip.y2     = surface->config.size.h - 1;

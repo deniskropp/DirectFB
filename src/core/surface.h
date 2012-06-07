@@ -573,31 +573,6 @@ typedef enum {
      DFB_WINDOWSTACK_BACKGROUND_IMAGE_LISTENER
 } DFB_SURFACE_GLOBALS;
 
-static __inline__ void 
-dfb_surface_set_stereo_eye( CoreSurface          *surface,
-                            DFBSurfaceStereoEye   eye )
-{
-     D_ASSERT( surface != NULL );
-     D_MAGIC_ASSERT( surface, CoreSurface );
-     D_ASSERT( eye & (DSSE_LEFT | DSSE_RIGHT) );
-
-     if (eye & DSSE_LEFT) 
-          surface->buffers = surface->left_buffers;
-     else
-          surface->buffers = surface->right_buffers;
-}
-
-static __inline__ DFBSurfaceStereoEye
-dfb_surface_get_stereo_eye( CoreSurface *surface )
-{
-     D_ASSERT( surface != NULL );
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     if (surface->buffers == surface->left_buffers) 
-          return DSSE_LEFT;
-     else
-          return DSSE_RIGHT;
-}
 
 #endif
 

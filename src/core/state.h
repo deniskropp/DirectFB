@@ -84,7 +84,10 @@ typedef enum {
      SMF_ROP_BG_COLOR      = 0x04000000,
      SMF_ROP_PATTERN       = 0x08000000,
 
-     SMF_ALL               = 0x0F3FFFFF
+     SMF_FROM              = 0x10000000,
+     SMF_TO                = 0x20000000,
+
+     SMF_ALL               = 0x3F3FFFFF
 } StateModificationFlags;
 
 typedef enum {
@@ -158,7 +161,9 @@ struct _CardState {
      /* from/to buffers */
 
      CoreSurfaceBufferRole    from;          /* usually CSBR_FRONT */
+     DFBSurfaceStereoEye      from_eye;      /* usually DSSE_LEFT */
      CoreSurfaceBufferRole    to;            /* usually CSBR_BACK */
+     DFBSurfaceStereoEye      to_eye;        /* usually DSSE_LEFT */
 
      /* read/write locks during operation */
      
@@ -367,6 +372,36 @@ do {                                                        \
 #define dfb_state_set_rop_pattern_mode(state,mode) _dfb_state_set_checked( rop_pattern_mode, \
                                                                            ROP_PATTERN_MODE, \
                                                                            state, mode )
+
+static inline void dfb_state_set_from( CardState             *state,
+                                       CoreSurfaceBufferRole  role,
+                                       DFBSurfaceStereoEye    eye )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( role == CSBR_FRONT || role == CSBR_BACK || role == CSBR_IDLE );
+     D_ASSERT( eye == DSSE_LEFT || eye == DSSE_RIGHT );
+
+     if (state->from != role || state->from_eye != eye) {
+          state->from     = role;
+          state->from_eye = eye;
+          state->modified = (StateModificationFlags)( state->modified | SMF_SOURCE | SMF_SOURCE2 | SMF_SOURCE_MASK | SMF_FROM );
+     }
+}
+
+static inline void dfb_state_set_to( CardState             *state,
+                                     CoreSurfaceBufferRole  role,
+                                     DFBSurfaceStereoEye    eye )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( role == CSBR_FRONT || role == CSBR_BACK || role == CSBR_IDLE );
+     D_ASSERT( eye == DSSE_LEFT || eye == DSSE_RIGHT );
+
+     if (state->to != role || state->to_eye != eye) {
+          state->to       = role;
+          state->to_eye   = eye;
+          state->modified = (StateModificationFlags)( state->modified | SMF_DESTINATION | SMF_TO );
+     }
+}
 
 static inline void dfb_state_set_clip( CardState *state, const DFBRegion *clip )
 {

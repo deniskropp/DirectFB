@@ -54,6 +54,36 @@ D_DEBUG_DOMAIN( Core_Surface, "Core/Surface", "DirectFB Core Surface" );
 
 /**********************************************************************************************************************/
 
+static __inline__ void
+dfb_surface_set_stereo_eye( CoreSurface          *surface,
+                            DFBSurfaceStereoEye   eye )
+{
+     D_ASSERT( surface != NULL );
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( eye & (DSSE_LEFT | DSSE_RIGHT) );
+
+     direct_trace_print_stack(0);
+
+     if (eye & DSSE_LEFT)
+          surface->buffers = surface->left_buffers;
+     else
+          surface->buffers = surface->right_buffers;
+}
+
+static __inline__ DFBSurfaceStereoEye
+dfb_surface_get_stereo_eye( CoreSurface *surface )
+{
+     D_ASSERT( surface != NULL );
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (surface->buffers == surface->left_buffers)
+          return DSSE_LEFT;
+     else
+          return DSSE_RIGHT;
+}
+
+/**********************************************************************************************************************/
+
 static const ReactionFunc dfb_surface_globals[] = {
 /* 0 */   _dfb_layer_region_surface_listener,
 /* 1 */   _dfb_windowstack_background_image_listener,

@@ -754,7 +754,9 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      Core_PushIdentity( 0 );
 
      /* lock destination */
-     ret = dfb_surface_lock_buffer( dst, state->to, CSAID_GPU, access, &state->dst );
+     ret = dfb_surface_lock_buffer2( dst, state->to, state->destination->flips,
+                                     state->to_eye,
+                                     CSAID_GPU, access, &state->dst );
      if (ret) {
           D_DEBUG_AT( Core_Graphics, "Could not lock destination for GPU access!\n" );
           Core_PopIdentity();
@@ -766,10 +768,12 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           /* ...lock source for reading */
           if (state->source_flip_count_used)
                ret = dfb_surface_lock_buffer2( src, state->from, state->source_flip_count,
-                                               dfb_surface_get_stereo_eye( src ),
+                                               state->from_eye,
                                                CSAID_GPU, CSAF_READ, &state->src );
           else
-               ret = dfb_surface_lock_buffer( src, state->from, CSAID_GPU, CSAF_READ, &state->src );
+               ret = dfb_surface_lock_buffer2( src, state->from, state->source->flips,
+                                               state->from_eye,
+                                               CSAID_GPU, CSAF_READ, &state->src );
           if (ret) {
                D_DEBUG_AT( Core_Graphics, "Could not lock source for GPU access!\n" );
                dfb_surface_unlock_buffer( dst, &state->dst );
@@ -782,7 +786,9 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           /* if using a mask... */
           if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
                /* ...lock source mask for reading */
-               ret = dfb_surface_lock_buffer( state->source_mask, state->from, CSAID_GPU, CSAF_READ, &state->src_mask );
+               ret = dfb_surface_lock_buffer2( state->source_mask, state->from, state->source_mask->flips,
+                                               state->from_eye,
+                                               CSAID_GPU, CSAF_READ, &state->src_mask );
                if (ret) {
                     D_DEBUG_AT( Core_Graphics, "Could not lock source mask for GPU access!\n" );
                     dfb_surface_unlock_buffer( src, &state->src );
@@ -797,7 +803,9 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           /* if using source2... */
           if (accel == DFXL_BLIT2) {
                /* ...lock source2 for reading */
-               ret = dfb_surface_lock_buffer( state->source2, state->from, CSAID_GPU, CSAF_READ, &state->src2 );
+               ret = dfb_surface_lock_buffer2( state->source2, state->from, state->source2->flips,
+                                               state->from_eye,
+                                               CSAID_GPU, CSAF_READ, &state->src2 );
                if (ret) {
                     D_DEBUG_AT( Core_Graphics, "Could not lock source2 for GPU access!\n" );
 

@@ -200,6 +200,18 @@ CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
                return ret;
      }
 
+     if (flags & SMF_FROM) {
+          ret = CoreGraphicsState_SetFrom( client->gfx_state, state->from, state->from_eye );
+          if (ret)
+               return ret;
+     }
+
+     if (flags & SMF_TO) {
+          ret = CoreGraphicsState_SetTo( client->gfx_state, state->to, state->to_eye );
+          if (ret)
+               return ret;
+     }
+
      return DFB_OK;
 }
 
@@ -209,7 +221,7 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
                                 CardState               *state )
 {
      DFBResult              ret;
-     StateModificationFlags flags = SMF_DESTINATION | SMF_CLIP | SMF_RENDER_OPTIONS;
+     StateModificationFlags flags = SMF_TO | SMF_DESTINATION | SMF_CLIP | SMF_RENDER_OPTIONS;
 
      D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
 
@@ -239,10 +251,10 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
                flags |= SMF_DST_COLORKEY;
      }
      else {
-          flags |= SMF_BLITTING_FLAGS | SMF_SOURCE;
+          flags |= SMF_BLITTING_FLAGS | SMF_FROM | SMF_SOURCE;
 
           if (accel == DFXL_BLIT2)
-               flags |= SMF_SOURCE2;
+               flags |= SMF_FROM | SMF_SOURCE2;
 
           if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                       DSBLIT_COLORIZE |
@@ -260,7 +272,7 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
                flags |= SMF_DST_COLORKEY;
 
           if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR))
-               flags |= SMF_SOURCE_MASK | SMF_SOURCE_MASK_VALS;
+               flags |= SMF_FROM | SMF_SOURCE_MASK | SMF_SOURCE_MASK_VALS;
 
           if (state->blittingflags & DSBLIT_INDEX_TRANSLATION)
                flags |= SMF_INDEX_TRANSLATION;
