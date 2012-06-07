@@ -202,6 +202,12 @@ typedef struct {
      DFBDisplayLayerConfig    config;
 } SaWManLayerReconfig;
 
+typedef enum {
+     SWMCFR_APPLICATION,
+     SWMCFR_MANAGER,
+     SWMCFR_IMPLICIT
+} SaWManChangeFocusReason;
+
 /*
  * Callbacks, to be used together with the SaWMan Manager interface
  */
@@ -265,6 +271,15 @@ typedef struct {
      DirectResult (*ApplicationIDChanged) ( void             *context,
                                             SaWManWindowInfo *info );
 
+
+     /*
+      * ChangeFocus, if present, overrides SwitchFocus, adding the reason for the switch.
+      *
+      * If not present, or if the implementation returns DFB_NOIMPL, SwitchFocus is called.
+      */
+     DirectResult (*ChangeFocus)    ( void                    *context,
+                                      SaWManWindowHandle       handle,
+                                      SaWManChangeFocusReason  reason );
 
 } SaWManCallbacks;
 

@@ -34,8 +34,9 @@ extern "C"
 #include "sawman_internal.h"
 
 
-DirectResult  sawman_switch_focus              ( SaWMan                *sawman,
-                                                 SaWManWindow          *to );
+DirectResult  sawman_switch_focus              ( SaWMan                  *sawman,
+                                                 SaWManWindow            *to,
+                                                 SaWManChangeFocusReason  reason );
 
 DirectResult  sawman_post_event                ( SaWMan                *sawman,
                                                  SaWManWindow          *sawwin,

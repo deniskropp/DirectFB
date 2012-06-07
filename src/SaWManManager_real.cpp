@@ -230,7 +230,7 @@ ISaWManManager_Real::SwitchFocus(
 
      sawman_lock( m_sawman );
 
-     ret = (DFBResult) sawman_switch_focus( m_sawman, window );
+     ret = (DFBResult) sawman_switch_focus( m_sawman, window, SWMCFR_MANAGER );
 
      sawman_unlock( m_sawman );
 

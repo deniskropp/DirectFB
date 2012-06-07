@@ -92,13 +92,15 @@ static void update_visible ( SaWMan              *sawman,
 /**********************************************************************************************************************/
 
 DirectResult
-sawman_switch_focus( SaWMan       *sawman,
-                     SaWManWindow *to )
+sawman_switch_focus( SaWMan                  *sawman,
+                     SaWManWindow            *to,
+                     SaWManChangeFocusReason  reason )
 {
-     DirectResult    ret;
-     DFBWindowEvent  evt;
-     SaWManWindow   *from;
-     SaWManTier     *tier;
+     DirectResult           ret;
+     DFBWindowEvent         evt;
+     SaWManWindow          *from;
+     SaWManTier            *tier;
+     SaWManChangeFocusArgs  changefocus_args;
 
      D_DEBUG_AT( SaWMan_Focus, "%s( %p, to %p )\n", __FUNCTION__, sawman, to );
 
@@ -118,10 +120,22 @@ sawman_switch_focus( SaWMan       *sawman,
           return DFB_OK;
      }
 
+     changefocus_args.handle = (SaWManWindowHandle)(long) to;
+     changefocus_args.reason = reason;
+
      if (to) {
-          switch (ret = sawman_call( sawman, SWMCID_SWITCH_FOCUS, &to, sizeof(to), false )) {
-               case DFB_OK:
+          switch (ret = sawman_call( sawman, SWMCID_CHANGE_FOCUS, &changefocus_args, sizeof(changefocus_args), false )) {
                case DFB_NOIMPL:
+                    switch (ret = sawman_call( sawman, SWMCID_SWITCH_FOCUS, &to, sizeof(to), false )) {
+                         case DFB_OK:
+                         case DFB_NOIMPL:
+                              break;
+
+                         default:
+                              D_DEBUG_AT( SaWMan_Focus, "  -> application manager returned '%s'\n", DirectFBErrorString( ret ) );
+                              return ret;
+                    }
+               case DFB_OK:
                     break;
 
                default:
@@ -660,7 +674,7 @@ sawman_withdraw_window( SaWMan       *sawman,
           SaWManWindow *swin;
           CoreWindow   *cwin;
 
-          sawman_switch_focus( sawman, NULL );
+          sawman_switch_focus( sawman, NULL, SWMCFR_IMPLICIT );
 
           /* Always try to have a focused window */
           fusion_vector_foreach_reverse (swin, index, sawman->layout) {
@@ -670,7 +684,7 @@ sawman_withdraw_window( SaWMan       *sawman,
                D_ASSERT( cwin != NULL );
 
                if (swin != sawwin && cwin->config.opacity && !(cwin->config.options & DWOP_GHOST)) {
-                    sawman_switch_focus( sawman, swin );
+                    sawman_switch_focus( sawman, swin, SWMCFR_IMPLICIT );
                     break;
                }
           }
@@ -1618,7 +1632,7 @@ sawman_update_focus( SaWMan          *sawman,
                }
 
                /* switch focus and send enter event */
-               sawman_switch_focus( sawman, after );
+               sawman_switch_focus( sawman, after, SWMCFR_IMPLICIT );
 
                if (after) {
                     D_MAGIC_ASSERT( after, SaWManWindow );

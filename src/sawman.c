@@ -649,6 +649,10 @@ sawman_call( SaWMan       *sawman,
                     return DFB_NOIMPL;
                break;
 
+          case SWMCID_CHANGE_FOCUS:
+               if (!sawman->manager.callbacks.ChangeFocus)
+                    return DFB_NOIMPL;
+               break;
      }
 
      tmp = alloca( sizeof(int) + len );
@@ -679,12 +683,13 @@ manager_call_handler( int           caller,   /* fusion id of the caller */
                       unsigned int  ret_size,
                       unsigned int *ret_length )
 {
-     DirectResult       ret;
-     SaWMan            *sawman       = ctx;
-     SaWManCallID       call         = call_arg;
-     int               *ret_val      = ret_ptr;
-     void              *call_ptr     = ret_val + 1;
-     SaWManRestackArgs *restack_args = call_ptr;
+     DirectResult           ret;
+     SaWMan                *sawman           = ctx;
+     SaWManCallID           call             = call_arg;
+     int                   *ret_val          = ret_ptr;
+     void                  *call_ptr         = ret_val + 1;
+     SaWManRestackArgs     *restack_args     = call_ptr;
+     SaWManChangeFocusArgs *changefocus_args = call_ptr;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
 
@@ -771,6 +776,13 @@ manager_call_handler( int           caller,   /* fusion id of the caller */
           case SWMCID_APPLICATION_ID_CHANGED:
                if (sawman->manager.callbacks.ApplicationIDChanged)
                     *ret_val = sawman->manager.callbacks.ApplicationIDChanged( sawman->manager.context, call_ptr );
+               break;
+
+          case SWMCID_CHANGE_FOCUS:
+               if (sawman->manager.callbacks.ChangeFocus)
+                    *ret_val = sawman->manager.callbacks.ChangeFocus( sawman->manager.context,
+                                                                      changefocus_args->handle,
+                                                                      changefocus_args->reason );
                break;
 
           default:

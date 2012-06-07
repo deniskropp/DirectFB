@@ -828,6 +828,22 @@ static DirectResult application_id_changed( void             *context,
      return DFB_OK;
 }
 
+static DirectResult
+change_focus( void                    *context,
+              SaWManWindowHandle       window,
+              SaWManChangeFocusReason  reason )
+{
+     TestManager        *tm = context;
+
+     D_MAGIC_ASSERT( tm, TestManager );
+
+     D_INFO( "SaWMan/TestMan: Changing focus (to %lx, reason %d)\n", window, reason );
+
+     tm->focus_window = window;
+
+     return DFB_OK;
+}
+
 
 static const SaWManCallbacks callbacks = {
      Start:              start_request,
@@ -843,7 +859,8 @@ static const SaWManCallbacks callbacks = {
      //~ StackResized
      SwitchFocus:        switch_focus,
      LayerReconfig:      layer_reconfig,
-     ApplicationIDChanged: application_id_changed
+     ApplicationIDChanged: application_id_changed,
+     ChangeFocus:        change_focus
 };
 
 

@@ -721,7 +721,7 @@ request_focus( SaWMan       *sawman,
      stack = sawwin->stack;
      D_ASSERT( stack != NULL );
 
-     ret = sawman_switch_focus( sawman, sawwin );
+     ret = sawman_switch_focus( sawman, sawwin, SWMCFR_APPLICATION );
      if (ret)
           return ret;
 

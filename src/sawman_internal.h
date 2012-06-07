@@ -150,6 +150,7 @@ typedef enum {
      SWMCID_SWITCH_FOCUS,
      SWMCID_LAYER_RECONFIG,
      SWMCID_APPLICATION_ID_CHANGED,
+     SWMCID_CHANGE_FOCUS,
 } SaWManCallID;
 
 typedef enum {
@@ -222,6 +223,11 @@ typedef struct {
      SaWManWindowHandle   relative;
      SaWManWindowRelation relation;
 } SaWManRestackArgs;
+
+typedef struct {
+     SaWManWindowHandle       handle;
+     SaWManChangeFocusReason  reason;
+} SaWManChangeFocusArgs;
 
 struct __SaWMan_SaWMan {
      int                   magic;
