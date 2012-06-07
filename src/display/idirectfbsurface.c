@@ -3446,6 +3446,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      data->state.modified = SMF_ALL;
 
+     data->src_eye = DSSE_LEFT;
+
      ret = CoreGraphicsStateClient_Init( &data->state_client, &data->state );
      if (ret)
           return ret;    // FIXME: deinit
