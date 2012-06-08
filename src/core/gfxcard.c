@@ -3572,6 +3572,7 @@ dfb_gfxcard_calc_buffer_size( CoreGraphicsDevice *device,
                               int                *ret_pitch,
                               int                *ret_length )
 {
+     DFBResult    ret = DFB_FAILURE;
      int          pitch;
      int          length;
      CoreSurface *surface;
@@ -3582,35 +3583,43 @@ dfb_gfxcard_calc_buffer_size( CoreGraphicsDevice *device,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     /* calculate the required length depending on limitations */
-     pitch = MAX( surface->config.size.w, surface->config.min_size.w );
-
-     if (pitch < device->limits.surface_max_power_of_two_pixelpitch &&
-         surface->config.size.h < device->limits.surface_max_power_of_two_height)
-          pitch = 1 << direct_log2( pitch );
-
-     if (device->limits.surface_pixelpitch_alignment > 1) {
-          pitch += device->limits.surface_pixelpitch_alignment - 1;
-          pitch -= pitch % device->limits.surface_pixelpitch_alignment;
+     /* Use the Graphics card's own method to calculate the buffer size */
+     if (card->funcs.CalcBufferSize) {
+          ret = card->funcs.CalcBufferSize( card->driver_data, card->device_data,
+                                            buffer, &pitch, &length );
      }
 
-     pitch = DFB_BYTES_PER_LINE( buffer->format, pitch );
+     if (ret != DFB_OK) {
+          /* calculate the required length depending on limitations */
+          pitch = MAX( surface->config.size.w, surface->config.min_size.w );
 
-     if (pitch < device->limits.surface_max_power_of_two_bytepitch &&
-         surface->config.size.h < device->limits.surface_max_power_of_two_height)
-          pitch = 1 << direct_log2( pitch );
+          if (pitch < device->limits.surface_max_power_of_two_pixelpitch &&
+              surface->config.size.h < device->limits.surface_max_power_of_two_height)
+               pitch = 1 << direct_log2( pitch );
 
-     if (device->limits.surface_bytepitch_alignment > 1) {
-          pitch += device->limits.surface_bytepitch_alignment - 1;
-          pitch -= pitch % device->limits.surface_bytepitch_alignment;
-     }
+          if (device->limits.surface_pixelpitch_alignment > 1) {
+               pitch += device->limits.surface_pixelpitch_alignment - 1;
+               pitch -= pitch % device->limits.surface_pixelpitch_alignment;
+          }
 
-     length = DFB_PLANE_MULTIPLY( buffer->format,
-                                  MAX( surface->config.size.h, surface->config.min_size.h ) * pitch );
+          pitch = DFB_BYTES_PER_LINE( buffer->format, pitch );
 
-     if (device->limits.surface_byteoffset_alignment > 1) {
-          length += device->limits.surface_byteoffset_alignment - 1;
-          length -= length % device->limits.surface_byteoffset_alignment;
+          if (pitch < device->limits.surface_max_power_of_two_bytepitch &&
+              surface->config.size.h < device->limits.surface_max_power_of_two_height)
+               pitch = 1 << direct_log2( pitch );
+
+          if (device->limits.surface_bytepitch_alignment > 1) {
+               pitch += device->limits.surface_bytepitch_alignment - 1;
+               pitch -= pitch % device->limits.surface_bytepitch_alignment;
+          }
+
+          length = DFB_PLANE_MULTIPLY( buffer->format,
+                                       MAX( surface->config.size.h, surface->config.min_size.h ) * pitch );
+
+          if (device->limits.surface_byteoffset_alignment > 1) {
+               length += device->limits.surface_byteoffset_alignment - 1;
+               length -= length % device->limits.surface_byteoffset_alignment;
+          }
      }
 
      if (ret_pitch)

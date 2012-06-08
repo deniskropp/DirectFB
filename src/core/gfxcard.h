@@ -309,6 +309,14 @@ typedef struct _GraphicsDeviceFuncs {
         driver to hold additional state. */
      void (*StateInit)   ( void *driver_data, void *device_data, CardState *state );
      void (*StateDestroy)( void *driver_data, void *device_data, CardState *state );
+
+     /*
+      * Calculate the amount of memory and pitch for the specified
+      * surface buffer.
+      */
+     DFBResult (*CalcBufferSize)( void *driver_data, void *device_data,
+                                  CoreSurfaceBuffer  *buffer,
+                                  int *ret_pitch, int *ret_length );
 } GraphicsDeviceFuncs;
 
 typedef struct {
