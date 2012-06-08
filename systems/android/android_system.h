@@ -83,6 +83,8 @@ typedef struct {
      CoreLayer           *layer;
      CoreInputDevice     *input;
 
+     JavaVM              *java_vm;
+
      EGLDisplay           dpy;
      EGLContext           ctx;
      EGLSurface           surface;

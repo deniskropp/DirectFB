@@ -57,7 +57,17 @@ AndroidData *m_data;    /* FIXME: Fix Core System API to pass data in all functi
 // FIXME
 extern AndroidNativeData native_data;
 
+static JavaVM *java_vm;
+
 /**********************************************************************************************************************/
+
+jint
+JNI_OnLoad(JavaVM *vm, void *reserved)
+{
+     java_vm = vm;
+
+     return JNI_VERSION_1_6;
+}
 
 static DFBResult
 InitLocal( AndroidData *android )
@@ -187,9 +197,9 @@ system_initialize( CoreDFB *core, void **ret_data )
 
      dfb_surface_pool_initialize( core, &androidSurfacePoolFuncs, &shared->pool );
 
-     android->screen = dfb_screens_register( NULL, android, androidScreenFuncs );
-     android->layer  = dfb_layers_register( android->screen, android, androidLayerFuncs );
-
+     android->screen  = dfb_screens_register( NULL, android, androidScreenFuncs );
+     android->layer   = dfb_layers_register( android->screen, android, androidLayerFuncs );
+     android->java_vm = java_vm;
 
      core_arena_add_shared_field( core, "android", shared );
 
