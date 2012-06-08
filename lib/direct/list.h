@@ -243,6 +243,20 @@ direct_list_move_to_front( DirectLink **list, DirectLink *link )
      *list = link;
 }
 
+static __inline__ void*
+direct_list_get_last( DirectLink *list )
+{
+     D_MAGIC_ASSERT_IF( list, DirectLink );
+
+     if (list) {
+          D_MAGIC_ASSERT( list->prev, DirectLink );
+
+          return list->prev;
+     }
+
+     return NULL;
+}
+
 #ifdef __GNUC__
 #define direct_list_check_link( link )                      \
      ({                                                     \
