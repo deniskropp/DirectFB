@@ -166,6 +166,17 @@ void
 dfb_gfx_stretch_to( CoreSurface *source, CoreSurface *destination,
                     const DFBRectangle *srect, const DFBRectangle *drect, bool from_back )
 {
+     dfb_gfx_stretch_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, srect, drect, from_back );
+}
+
+void dfb_gfx_stretch_stereo( CoreSurface         *source,
+                             DFBSurfaceStereoEye  source_eye,
+                             CoreSurface         *destination,
+                             DFBSurfaceStereoEye  destination_eye,
+                             const DFBRectangle  *srect,
+                             const DFBRectangle  *drect,
+                             bool                 from_back )
+{
      DFBRectangle sourcerect = { 0, 0, source->config.size.w, source->config.size.h };
      DFBRectangle destrect =   { 0, 0, destination->config.size.w, destination->config.size.h };
 
@@ -193,9 +204,9 @@ dfb_gfx_stretch_to( CoreSurface *source, CoreSurface *destination,
      copy_state.source      = source;
      copy_state.destination = destination;
      copy_state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
-     copy_state.from_eye    = DSSE_LEFT;
+     copy_state.from_eye    = source_eye;
      copy_state.to          = CSBR_BACK;
-     copy_state.to_eye      = DSSE_LEFT;
+     copy_state.to_eye      = destination_eye;
 
      dfb_gfxcard_stretchblit( &sourcerect, &destrect, &copy_state );
 
