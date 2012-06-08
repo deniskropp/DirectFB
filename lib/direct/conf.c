@@ -581,15 +581,14 @@ direct_config_get_int_value( const char *name )
 {
      ConfigOption      *option;
      ConfigOptionValue *value;
-     char              *last_value;
 
      option = direct_map_lookup( config_options, name );
      if (!option || !option->values)
           return 0;
 
-     direct_list_foreach( value, option->values )
-          last_value = value->value;
+     value = direct_list_get_last( option->values );
+     D_ASSERT( value != NULL );
 
-     return atoll(last_value);
+     return atoll(value->value);
 }
 
