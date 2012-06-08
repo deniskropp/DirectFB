@@ -68,7 +68,7 @@ typedef struct {
      int   alpha;
      int   pitch;
      int   format;
-     char *pixptr;
+     char *image;
      
      jobject    buffer;
      jbyteArray pixels;
@@ -78,44 +78,49 @@ typedef struct {
 
 extern AndroidData *m_data;
 
-static int
+static DFBResult
 decodeImage( IDirectFBImageProvider_ANDROID_data *data )
 {
-     JNIEnv     *env    = 0;
-     jclass      clazz  = 0;
-     jclass      clazz2 = 0;
-     jmethodID   method = 0;
-     jstring     path   = 0;
-     jobject     buffer = 0;
-     jbyteArray  pixels = 0;
-     jobject     bitmap = 0;
-     jobject     config = 0;
-     jstring     format = 0;
-     const char *fvalue = 0;
+     JNIEnv     *env     = 0;
+     jclass      clazz   = 0;
+     jclass      clazz2  = 0;
+     jmethodID   method  = 0;
+     jstring     path    = 0;
+     jobject     buffer  = 0;
+     jbyteArray  pixels  = 0;
+     jobject     bitmap  = 0;
+     jobject     convert = 0;
+     jobject     config  = 0;
+     jstring     format  = 0;
+     const char *fvalue  = 0;
 
-     if (data->pixptr)
-          return 1;
+     if (data->image)
+          return DFB_OK;
+
+     //FIXME
+     if (!data->path)
+          return DFB_UNSUPPORTED;
 
      (*m_data->java_vm)->AttachCurrentThread( m_data->java_vm, &env, NULL );
      if (!env)
-          return 0;
+          return DFB_INIT;
 
      clazz = (*env)->FindClass( env, "android/graphics/BitmapFactory" );
      if (!clazz)
-          return 0;
+          return DFB_INIT;
 
      method = (*env)->GetStaticMethodID( env, clazz, "decodeFile", "(Ljava/lang/String;)Landroid/graphics/Bitmap;" );
      if (!method)
-          return 0;
+          return DFB_INIT;
 
      path = (*env)->NewStringUTF( env, data->path );
      if (!path)
-          return 0;
+          return DFB_INIT;
 
      bitmap = (*env)->CallStaticObjectMethod( env, clazz, method, path );
      if (!bitmap) {
           (*env)->DeleteLocalRef( env, path );
-          return 0;
+          return DFB_INIT;
      }
 
      (*env)->DeleteLocalRef( env, path );
@@ -185,10 +190,39 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           data->format = DSPF_ARGB;
      }
      else if (!strcmp( fvalue, "RGB_565" )) {
-          data->format = DSPF_RGB555;
+          data->format = DSPF_RGB16;
      }
      else {
           data->format = DSPF_UNKNOWN;
+     }
+
+     if (DSPF_ARGB != data->format) {
+          const wchar_t nconfig_name[] = L"ARGB_8888";
+          jstring       jconfig_name   = (*env)->NewString( env, (const jchar*)nconfig_name, wcslen(nconfig_name) );
+          jclass        config_clazz   = (*env)->FindClass( env, "android/graphics/Bitmap$Config" );
+          jobject       bitmap_config  = 0;
+
+          method = (*env)->GetStaticMethodID( env, config_clazz, "valueOf", "(Ljava/lang/String;)Landroid/graphics/Bitmap$Config;" );
+          if (!method)
+               goto error;
+
+          bitmap_config = (*env)->CallStaticObjectMethod( env, config_clazz, method, jconfig_name );
+          if (!bitmap_config)
+               goto error;
+
+          method = (*env)->GetMethodID( env, clazz, "copy", "(Landroid/graphics/Bitmap/Config;Z)Landroid/graphics/Bitmap;" );
+          if (!method)
+               goto error;
+
+          convert = (*env)->CallObjectMethod( env, bitmap, method,  bitmap_config, 0 );
+          if (!convert)
+               goto error;
+
+          (*env)->DeleteGlobalRef( env, bitmap );
+
+          bitmap = convert;
+
+          data->format = DSPF_ARGB;
      }
 
      pixels = (*env)->NewByteArray( env, data->width * data->height );
@@ -217,20 +251,23 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
 
      (*env)->CallVoidMethod( env, bitmap, method, buffer );
 
-     data->pixptr = (*env)->GetByteArrayElements( env, pixels, 0 );
-     if (!data->pixptr)
+     data->image = (*env)->GetByteArrayElements( env, pixels, 0 );
+     if (!data->image)
           goto error;
 
-     data->buffer = buffer;
-     data->pixels = pixels;
-     data->bitmap = bitmap;
-     data->config = config;
+     data->buffer  = buffer;
+     data->pixels  = pixels;
+     data->bitmap  = bitmap;
+     data->config  = config;
 
-     return 1;
+     return DFB_OK;
 
 error:
      if (bitmap)
           (*env)->DeleteGlobalRef( env, bitmap );
+
+     if (convert)
+          (*env)->DeleteGlobalRef( env, convert );
 
      if (config)
           (*env)->DeleteGlobalRef( env, config );
@@ -241,7 +278,7 @@ error:
      if (buffer)
           (*env)->DeleteGlobalRef( env, buffer );
 
-     return 0;
+     return DFB_INIT;
 }
 
 static void
@@ -277,111 +314,84 @@ IDirectFBImageProvider_ANDROID_RenderTo( IDirectFBImageProvider *thiz,
                                          const DFBRectangle     *dest_rect )
 {
      DFBResult              ret;
+     bool                   direct = false;
+     DFBRegion              clip;
+     DFBRectangle           rect;
+     DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
-     DFBRectangle           rect;
-     DFBRectangle           clipped;
+     CoreSurfaceBufferLock  lock;
+     DIRenderCallbackResult cb_result = DIRCR_OK;
 
-     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_ANDROID)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_ANDROID)
 
-     if (!destination)
-          return DFB_INVARG;
-
-     if (!decodeImage( data ))
-          return DFB_INIT;
-
-     DIRECT_INTERFACE_GET_DATA_FROM (destination, dst_data, IDirectFBSurface);
+     dst_data = (IDirectFBSurface_data*) destination->priv;
+     if (!dst_data)
+          return DFB_DEAD;
 
      dst_surface = dst_data->surface;
      if (!dst_surface)
-          return DFB_DEAD;
+          return DFB_DESTROYED;
+
+     ret = destination->GetPixelFormat( destination, &format );
+     if (ret)
+          return ret;
+
+     dfb_region_from_rectangle( &clip, &dst_data->area.current );
 
      if (dest_rect) {
-          rect.x = dest_rect->x + dst_data->area.wanted.x;
-          rect.y = dest_rect->y + dst_data->area.wanted.y;
-          rect.w = dest_rect->w;
-          rect.h = dest_rect->h;
-     }
-     else
-          rect = dst_data->area.wanted;
+          if (dest_rect->w < 1 || dest_rect->h < 1)
+               return DFB_INVARG;
 
-     if (rect.w < 1 || rect.h < 1)
-          return DFB_INVAREA;
+          rect = *dest_rect;
+          rect.x += dst_data->area.wanted.x;
+          rect.y += dst_data->area.wanted.y;
 
-     clipped = rect;
-
-     if (!dfb_rectangle_intersect( &clipped, &dst_data->area.current ))
-          return DFB_INVAREA;
-
-     if (DFB_RECTANGLE_EQUAL( rect, clipped ) &&
-         (unsigned)rect.w == data->width && (unsigned)rect.h == data->height &&
-         dst_surface->config.format == data->format)
-     {
-          ret = dfb_surface_write_buffer( dst_surface, CSBR_BACK, (u8*)data->pixptr, data->pitch, &rect );
-          if (ret)
-               return ret;
+          if (!dfb_rectangle_region_intersects( &rect, &clip ))
+               return DFB_OK;
      }
      else {
-          IDirectFBSurface      *source;
-          DFBSurfaceDescription  desc;
-          DFBSurfaceCapabilities caps;
-          DFBRegion              clip = DFB_REGION_INIT_FROM_RECTANGLE( &clipped );
-          DFBRegion              old_clip;
-
-          thiz->GetSurfaceDescription( thiz, &desc );
-
-          desc.flags |= DSDESC_PREALLOCATED;   
-          desc.preallocated[0].data  = (u8*)data->pixptr;
-          desc.preallocated[0].pitch = data->pitch;
-
-          ret = data->base.idirectfb->CreateSurface( data->base.idirectfb, &desc, &source );
-          if (ret)
-               return ret;
-
-          destination->GetCapabilities( destination, &caps );
-
-          if (caps & DSCAPS_PREMULTIPLIED && DFB_PIXELFORMAT_HAS_ALPHA(desc.pixelformat))
-               destination->SetBlittingFlags( destination, DSBLIT_SRC_PREMULTIPLY );
-          else
-               destination->SetBlittingFlags( destination, DSBLIT_NOFX );
-
-          destination->GetClip( destination, &old_clip );
-          destination->SetClip( destination, &clip );
-
-          destination->StretchBlit( destination, source, NULL, &rect );
-
-          destination->SetClip( destination, &old_clip );
-
-          destination->SetBlittingFlags( destination, DSBLIT_NOFX );
-
-          destination->ReleaseSource( destination );
-
-          source->Release( source );
+          rect = dst_data->area.wanted;
      }
-     
+
+     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
+     if (ret)
+          return ret;
+
+     dfb_scale_linear_32( (u32 *)data->image, data->width, data->height, lock.addr, lock.pitch, &rect, dst_surface, &clip );
      if (data->base.render_callback) {
-          DFBRectangle rect = { 0, 0, clipped.w, clipped.h };
-          data->base.render_callback( &rect, data->base.render_callback_context );
+          DFBRectangle r = { 0, 0, data->width, data->height };
+          data->base.render_callback( &r, data->base.render_callback_context );
      }
+
+     dfb_surface_unlock_buffer( dst_surface, &lock );
 
      return DFB_OK;
 }
-
-/* Loading routines */
 
 static DFBResult
 IDirectFBImageProvider_ANDROID_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                       DFBSurfaceDescription  *desc )
 {
+     DFBResult             ret;
+     DFBSurfacePixelFormat primary_format = dfb_primary_layer_pixelformat();
+
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_ANDROID)
 
      if (!desc)
           return DFB_INVARG;
 
-     if (!decodeImage( data ))
-          return DFB_INIT;
+     ret = decodeImage( data );
+     if (ret)
+          return ret;
 
-     desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT;
+     desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+
+     if (data->alpha)
+          desc->pixelformat = DFB_PIXELFORMAT_HAS_ALPHA(primary_format) ? primary_format : DSPF_ARGB;
+     else
+          desc->pixelformat = primary_format;
+
      desc->width  = data->width;
      desc->height = data->height;
                          
@@ -392,13 +402,16 @@ static DFBResult
 IDirectFBImageProvider_ANDROID_GetImageDescription( IDirectFBImageProvider *thiz,
                                                     DFBImageDescription    *desc )
 {
+     DFBResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_ANDROID)
 
      if (!desc)
           return DFB_INVARG;
 
-     if (!decodeImage( data ))
-          return DFB_INIT;
+     ret = decodeImage( data );
+     if (ret)
+          return ret;
 
      desc->caps = DICAPS_NONE;
         
@@ -438,24 +451,22 @@ Construct( IDirectFBImageProvider *thiz,
 
      D_MAGIC_ASSERT( (IAny*) buffer, DirectInterface );
 
-     /* Get the buffer's private data. */
      buffer_data = buffer->priv;
      if (!buffer_data) {
           ret = DFB_DEAD;
           goto error;
      }
 
-     /* Check for valid filename. */
-     if (!buffer_data->filename) {
-          ret = DFB_UNSUPPORTED;
-          goto error;
-     }
+     if (buffer_data->filename) {
+          data->path = D_STRDUP( buffer_data->filename );
 
-     /* Query file size etc. */
-     if (stat( buffer_data->filename, &info ) < 0) {
-          ret = errno2result( errno );
-          D_PERROR( "ImageProvider/ANDROID: Failure during fstat() of '%s'!\n", buffer_data->filename );
-          goto error;
+          if (stat( buffer_data->filename, &info ) < 0) {
+               ret = errno2result( errno );
+               D_PERROR( "ImageProvider/ANDROID: Failure during fstat() of '%s'!\n", buffer_data->filename );
+               goto error;
+          }
+
+          data->size = info.st_size;
      }
 
      data->base.ref    = 1;
@@ -463,9 +474,6 @@ Construct( IDirectFBImageProvider *thiz,
      data->base.buffer = buffer;
 
      buffer->AddRef( buffer );
-
-     data->size = info.st_size;
-     data->path = D_STRDUP( buffer_data->filename );
 
      data->base.Destruct = IDirectFBImageProvider_ANDROID_Destruct;
 
