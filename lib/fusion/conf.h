@@ -47,6 +47,8 @@ struct __Fusion_FusionConfig {
      bool  defer_destructors;
 
      int   trace_ref;
+
+     bool  fork_handler;
 };
 
 extern FusionConfig FUSION_API *fusion_config;

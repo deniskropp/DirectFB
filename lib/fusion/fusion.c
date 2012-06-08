@@ -160,7 +160,8 @@ init_once( void )
      struct utsname uts;
      int            i, j, k, l;
 
-     pthread_atfork( fusion_fork_handler_prepare, fusion_fork_handler_parent, fusion_fork_handler_child );
+     if (fusion_config->fork_handler)
+          pthread_atfork( fusion_fork_handler_prepare, fusion_fork_handler_parent, fusion_fork_handler_child );
 
      if (uname( &uts ) < 0) {
           D_PERROR( "Fusion/Init: uname() failed!\n" );

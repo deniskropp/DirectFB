@@ -113,6 +113,12 @@ fusion_config_set( const char *name, const char *value )
      if (strcmp (name, "no-force-slave" ) == 0) {
           fusion_config->force_slave = false;
      } else
+     if (strcmp (name, "fork-handler" ) == 0) {
+          fusion_config->fork_handler = true;
+     } else
+     if (strcmp (name, "no-fork-handler" ) == 0) {
+          fusion_config->fork_handler = false;
+     } else
      if (strcmp (name, "debugshm" ) == 0) {
           fusion_config->debugshm = true;
      } else
