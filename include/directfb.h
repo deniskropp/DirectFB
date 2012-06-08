@@ -720,6 +720,7 @@ typedef enum {
                                             There's no video memory allocation/storage. */
      DSCAPS_VIDEOONLY     = 0x00000004,  /* Surface data is permanently stored in video memory.<br>
                                             There's no system memory allocation/storage. */
+     DSCAPS_GL            = 0x00000008,  /* Surface data is stored in memory that can be accessed by a GL accelerator. */
      DSCAPS_DOUBLE        = 0x00000010,  /* Surface is double buffered */
      DSCAPS_SUBSURFACE    = 0x00000020,  /* Surface is just a sub area of another
                                             one sharing the surface data. */
@@ -750,7 +751,7 @@ typedef enum {
 
      DSCAPS_ROTATED       = 0x01000000,  /* The back buffers are allocated with swapped width/height (unimplemented!). */
 
-     DSCAPS_ALL           = 0x011113F7,  /* All of these. */
+     DSCAPS_ALL           = 0x011113FF,  /* All of these. */
 
 
      DSCAPS_FLIPPING      = DSCAPS_DOUBLE | DSCAPS_TRIPLE /* Surface needs Flip() calls to make
