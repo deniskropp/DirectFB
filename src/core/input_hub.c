@@ -63,9 +63,14 @@ struct __CoreDFB__CoreInputHubClient {
 
      OneQID                        listen_qid;
      OneQID                        remote_qid;
+     bool                          activate_stop;
+     DirectThread                 *activate_thread;
 
      CoreInputHubClientCallbacks   callbacks;
      void                         *ctx;
+
+     DirectMutex                   lock;
+     DirectWaitQueue               wq;
 };
 
 /**********************************************************************************************************************/
@@ -75,6 +80,7 @@ typedef struct {
 } InputHubAttachRequest;
 
 typedef enum {
+     IHNT_ATTACHED,
      IHNT_DEVICE_ADD,
      IHNT_DEVICE_REMOVE,
      IHNT_EVENT_DISPATCH,
@@ -139,6 +145,16 @@ CoreInputHub_Dispatch( void                  *context,
 
      // FIXME: replace by own list of devices recorded in CoreInputHub_AddDevice/RemoveDevice calls
      dfb_input_enumerate_devices( CoreInputHub_EnumDevice_Callback, request, DICAPS_ALL );
+
+
+     InputHubNotification notification;
+
+     memset( &notification, 0, sizeof(notification) );
+
+     notification.type = IHNT_ATTACHED;
+
+     OneQueue_Dispatch( request->listen_qid, &notification, sizeof(notification) );
+
 
      OneQueue_Attach( hub->notify_qid, request->listen_qid );
 
@@ -357,6 +373,16 @@ CoreInputHubClient_Dispatch( void                  *context,
      D_DEBUG_AT( Core_InputHub, "%s()\n", __FUNCTION__ );
 
      switch (notification->type) {
+          case IHNT_ATTACHED:
+               direct_mutex_lock( &client->lock );
+
+               client->activate_stop = true;
+
+               direct_waitqueue_broadcast( &client->wq );
+
+               direct_mutex_unlock( &client->lock );
+               break;
+
           case IHNT_DEVICE_ADD:
                CoreInputHubClient_Dispatch_DeviceAdd( client, notification );
                break;
@@ -414,6 +440,9 @@ CoreInputHubClient_Create( u32                                 remote_qid,
      if (ret)
           goto error;
 
+     direct_mutex_init( &client->lock );
+     direct_waitqueue_init( &client->wq );
+
      *ret_client = client;
 
      return DFB_OK;
@@ -440,7 +469,48 @@ CoreInputHubClient_Destroy( CoreInputHubClient *client )
 
      OneQueue_Destroy( client->listen_qid );
 
+     if (client->activate_thread) {
+          direct_mutex_lock( &client->lock );
+
+          client->activate_stop = true;
+
+          direct_waitqueue_broadcast( &client->wq );
+
+          direct_mutex_unlock( &client->lock );
+
+
+          direct_thread_join( client->activate_thread );
+          direct_thread_destroy( client->activate_thread );
+     }
+
+     direct_mutex_deinit( &client->lock );
+     direct_waitqueue_deinit( &client->wq );
+
      D_FREE( client );
+
+     return DFB_OK;
+}
+
+static void *
+CoreInputHubClient_ActivateThread( DirectThread *thread,
+                                   void         *arg )
+{
+     CoreInputHubClient    *client = arg;
+     InputHubAttachRequest  request;
+
+     D_DEBUG_AT( Core_InputHub, "%s()\n", __FUNCTION__ );
+
+     direct_mutex_lock( &client->lock );
+
+     while (!client->activate_stop) {
+          request.listen_qid = client->listen_qid;
+
+          OneQueue_Dispatch( client->remote_qid, &request, sizeof(request) );
+
+          direct_waitqueue_wait_timeout( &client->wq, &client->lock, 1000000 );
+     }
+
+     direct_mutex_unlock( &client->lock );
 
      return DFB_OK;
 }
@@ -448,13 +518,11 @@ CoreInputHubClient_Destroy( CoreInputHubClient *client )
 DFBResult
 CoreInputHubClient_Activate( CoreInputHubClient *client )
 {
-     InputHubAttachRequest request;
-
      D_DEBUG_AT( Core_InputHub, "%s()\n", __FUNCTION__ );
 
-     request.listen_qid = client->listen_qid;
+     D_ASSERT( !client->activated && client->activate_thread == NULL );
 
-     OneQueue_Dispatch( client->remote_qid, &request, sizeof(request) );
+     client->activate_thread = direct_thread_create( DTT_DEFAULT, CoreInputHubClient_ActivateThread, client, "InputHub/Activate" );
 
      return DFB_OK;
 }
