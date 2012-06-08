@@ -454,6 +454,11 @@ typedef enum {
      DIKS_CURSOR_UP_RIGHT          = DFB_KEY( SPECIAL, 0x66 ),
      DIKS_CURSOR_DOWN_RIGHT        = DFB_KEY( SPECIAL, 0x67 ),
 
+     DIKS_PIP                      = DFB_KEY( SPECIAL, 0x68 ),
+     DIKS_SWAP                     = DFB_KEY( SPECIAL, 0x69 ),
+     DIKS_FREEZE                   = DFB_KEY( SPECIAL, 0x6A ),
+     DIKS_MOVE                     = DFB_KEY( SPECIAL, 0x6B ),
+
      /*
       * Unicode private area - DirectFB Function keys
       *
