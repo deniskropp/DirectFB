@@ -2562,8 +2562,9 @@ typedef enum {
      DSECAPS_SLOW_BLANKING = 0x00002000, /* Slow Blanking on outputs is supported. */
      DSECAPS_RESOLUTION   = 0x00004000, /* Different encoder resolutions supported */
      DSECAPS_FRAMING      = 0x00008000, /* Can select picture framing mode for stereo */
+     DSECAPS_ASPECT_RATIO = 0x00010000, /* Can specify display aspect ratio */
 
-     DSECAPS_ALL          = 0x0000FF3F
+     DSECAPS_ALL          = 0x0001FF3F
 } DFBScreenEncoderCapabilities;
 
 /*
@@ -2662,6 +2663,12 @@ typedef enum {
 #define DSEPF_STEREO_SEQUENTIAL    DSEPF_STEREO_FRAME_PACKING
 #endif
 
+typedef enum {
+    DFB_ASPECT_RATIO_eAuto, /* 4x3 for SD and 480p, 16x9 for HD (including 720p, 1080i, etc.) */
+    DFB_ASPECT_RATIO_e4x3,
+    DFB_ASPECT_RATIO_e16x9
+} DFBDisplayAspectRatio;
+
 #define DFB_SCREEN_ENCODER_DESC_NAME_LENGTH    24
 
 /*
@@ -2679,6 +2686,7 @@ typedef struct {
      char name[DFB_SCREEN_ENCODER_DESC_NAME_LENGTH];   /* Encoder name */
 
      DFBScreenEncoderPictureFraming all_framing;       /* Supported HDMI signaling modes */
+     DFBDisplayAspectRatio          all_aspect_ratio;  /* Supported display aspect ratios */
 } DFBScreenEncoderDescription;
 
 /*
@@ -2701,8 +2709,9 @@ typedef enum {
      DSECONF_RESOLUTION       = 0x00000400, /* Can change resolution of the encoder.*/
 
      DSECONF_FRAMING          = 0x00000800, /* Set method for delivering pictures to display. */
+     DSECONF_ASPECT_RATIO     = 0x00001000, /* Set display aspect ratio. */
 
-     DSECONF_ALL              = 0x00000FFF
+     DSECONF_ALL              = 0x00001FFF
 } DFBScreenEncoderConfigFlags;
 
 /*
@@ -2747,6 +2756,7 @@ typedef struct {
      DFBScreenEncoderFrequency          frequency;          /* Selected Output Frequency*/
      DFBScreenOutputResolution          resolution;         /* Selected Output resolution*/
      DFBScreenEncoderPictureFraming     framing;            /* Selected picture delivery method. */
+     DFBDisplayAspectRatio              aspect_ratio;       /* screen aspect ratio */
 } DFBScreenEncoderConfig;
 
 
