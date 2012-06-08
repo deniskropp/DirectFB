@@ -39,6 +39,7 @@
 #include <fusion/shmalloc.h>
 
 #include <core/surface_pool.h>
+#include <core/system.h>
 
 #include <GL/glx.h>
 #include <GL/glxext.h>
@@ -396,7 +397,8 @@ glxInitPool( CoreDFB                    *core,
      D_ASSERT( ret_desc != NULL );
 
      ret_desc->caps              = CSPCAPS_NONE;
-     ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE;
+     if (dfb_system_get_accelerator() != 51)
+          ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
      ret_desc->priority          = CSPP_DEFAULT;
 
