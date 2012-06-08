@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -142,7 +142,7 @@ LOGW("dispatched motion event MOVE\n");
                     return 1;
 
                default:
-                    LOGW( "unhandled motion event action %d", action );
+                    LOGW( "unhandled motion event action %d at %d:%d", action, AMotionEvent_getX( event, 0 ), AMotionEvent_getY( event, 0 ) );
                     return 0;
           }
      }

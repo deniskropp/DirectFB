@@ -10,7 +10,7 @@ LOCAL_MODULE := directfb
 DFB_SOURCE = ../..
 KERNEL = $(LOCAL_PATH)/Kernel
 
-LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/.. $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums
+LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/.. $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums -DDEBUG
 
 LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid
 
@@ -312,6 +312,7 @@ GFXDRIVER_SOURCES = \
 # DirectFB System
 DIRECTFB_SOURCES += \
 	$(DFB_SOURCE)/systems/android/android_input.c \
+	$(DFB_SOURCE)/systems/android/idirectfbimageprovider_android.c \
 	$(DFB_SOURCE)/systems/android/android_layer.c \
 	$(DFB_SOURCE)/systems/android/android_main.c \
 	$(DFB_SOURCE)/systems/android/android_screen.c \
