@@ -162,9 +162,9 @@ sharedAllocateBuffer( CoreSurfacePool       *pool,
 
           /* Calculate the aligned address. */
 
-          unsigned int addr = (unsigned int) alloc->addr;
-          unsigned int aligned_offset = dfb_config->system_surface_align_base -
-                                        (addr % dfb_config->system_surface_align_base );
+          unsigned long addr           = (unsigned long) alloc->addr;
+          unsigned long aligned_offset = dfb_config->system_surface_align_base -
+                                             (addr % dfb_config->system_surface_align_base );
 
           alloc->aligned_addr = (void*) (addr + aligned_offset);
      }
