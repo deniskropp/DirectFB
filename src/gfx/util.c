@@ -76,7 +76,7 @@ dfb_gfx_copy_to( CoreSurface        *source,
                  int                 y,
                  bool                from_back )
 {
-     dfb_gfx_copy_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, rect, x, y, false );
+     dfb_gfx_copy_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, rect, x, y, from_back );
 }
 
 void
