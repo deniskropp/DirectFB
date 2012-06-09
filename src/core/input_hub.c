@@ -520,7 +520,7 @@ CoreInputHubClient_Activate( CoreInputHubClient *client )
 {
      D_DEBUG_AT( Core_InputHub, "%s()\n", __FUNCTION__ );
 
-     D_ASSERT( !client->activated && client->activate_thread == NULL );
+     D_ASSERT( !client->activate_stop && client->activate_thread == NULL );
 
      client->activate_thread = direct_thread_create( DTT_DEFAULT, CoreInputHubClient_ActivateThread, client, "InputHub/Activate" );
 
