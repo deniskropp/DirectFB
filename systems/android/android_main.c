@@ -39,6 +39,8 @@
 
 #include "android_system.h"
 
+D_DEBUG_DOMAIN( ANDROID_MAIN, "ANDROID/Main", "Android Main" );
+
 // FIXME
 AndroidNativeData native_data;
 extern AndroidData *m_data;
@@ -52,11 +54,11 @@ dfb_main_thread( DirectThread *thread,
                  void         *arg )
 {
      int   ret;
-     char *argv[] = { "android-native-dfb-app", "--dfb:debug" };
+     char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID" };
 
      LOGI( "Running main()..." );
 
-     ret = main( 1, argv );
+     ret = main( 2, argv );
 
      LOGI( "main() has returned %d!", ret );
 
@@ -104,7 +106,9 @@ native_handle_input( struct android_app *app, AInputEvent *event )
                     evt.flags  &= ~DIEF_FOLLOW;
 
                     dfb_input_dispatch( m_data->input, &evt );
-LOGW("dispatched motion event DOWN\n");
+
+                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event DOWN\n" );
+
                     return 1;
 
                case AMOTION_EVENT_ACTION_UP:
@@ -122,7 +126,9 @@ LOGW("dispatched motion event DOWN\n");
                     evt.flags  &= ~DIEF_FOLLOW;
 
                     dfb_input_dispatch( m_data->input, &evt );
-LOGW("dispatched motion event UP\n");
+
+                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event UP\n" );
+
                     return 1;
 
                case AMOTION_EVENT_ACTION_MOVE:
@@ -138,11 +144,14 @@ LOGW("dispatched motion event UP\n");
                     evt.flags  &= ~DIEF_FOLLOW;
 
                     dfb_input_dispatch( m_data->input, &evt );
-LOGW("dispatched motion event MOVE\n");
+
+                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event MOVE\n" );
+
                     return 1;
 
                default:
-                    LOGW( "unhandled motion event action %d at %d:%d", action, AMotionEvent_getX( event, 0 ), AMotionEvent_getY( event, 0 ) );
+                    D_DEBUG_AT( ANDROID_MAIN, "unhandled motion event action %d at (%d,%d)\n",
+                                action, (int)AMotionEvent_getX( event, 0 ), (int)AMotionEvent_getY( event, 0 ) );
                     return 0;
           }
      }
@@ -152,12 +161,12 @@ LOGW("dispatched motion event MOVE\n");
           int flags  = AKeyEvent_getFlags( event );
           
           if (!(flags & AKEY_EVENT_FLAG_FROM_SYSTEM)) {
-               LOGW( "unhandled key event action %d (non-system)", action );
+               D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d (non-system)", action );
                return 0;
           }
 
           if (flags & AKEY_EVENT_FLAG_CANCELED) {
-               LOGW( "unhandled key event action %d (canceled)", action );
+               D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d (cancel)", action );
                return 0;
           }
 
@@ -178,7 +187,7 @@ LOGW("dispatched motion event MOVE\n");
                     evt.type = DIET_KEYRELEASE;
                     break;
                default:
-                    LOGW( "unhandled key event action %d", action );
+                    D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d", action );
                     return 0;
           }
 
@@ -436,16 +445,16 @@ LOGW("dispatched motion event MOVE\n");
                     evt.key_id = 0;
                     break;
                default:
-                    LOGW( "unhandled key event action %d key_code %d", action, evt.key_code );
+                    D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d key_code %d", action, evt.key_code );
                     return 0;
           }
 
           dfb_input_dispatch( m_data->input, &evt );
-LOGW("dispatched key event\n");
+
           return 1;
      }
 
-     return 1;
+     return 0;
 }
 
 /**
@@ -553,9 +562,7 @@ android_main( struct android_app* state )
                     if (native_data.accelerometerSensor != NULL) {
                          ASensorEvent event;
                          while (ASensorEventQueue_getEvents(native_data.sensorEventQueue, &event, 1) > 0) {
-                              LOGI("accelerometer: x=%f y=%f z=%f",
-                                   event.acceleration.x, event.acceleration.y,
-                                   event.acceleration.z);
+                              //LOGI("accelerometer: x=%f y=%f z=%f", event.acceleration.x, event.acceleration.y, event.acceleration.z);
                          }
                     }
                }

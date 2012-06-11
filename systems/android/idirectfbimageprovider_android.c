@@ -55,6 +55,8 @@ Construct( IDirectFBImageProvider *thiz, ... );
 
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, ANDROID )
 
+D_DEBUG_DOMAIN(imageProviderANDROID, "ANDROID/ImageProvider", "Android ImageProvider");
+
 /*
  * private data struct of IDirectFBImageProvider_ANDROID
  */
