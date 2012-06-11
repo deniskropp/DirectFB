@@ -36,7 +36,32 @@
 
 #include "mesa_system.h"
 
+D_DEBUG_DOMAIN( Mesa_Layer, "Mesa/Layer", "Mesa Layer" );
+
 /**********************************************************************************************************************/
+
+void
+page_flip_handler(int fd, unsigned int frame,
+                  unsigned int sec, unsigned int usec, void *driver_data);
+
+void
+page_flip_handler(int fd, unsigned int frame,
+                  unsigned int sec, unsigned int usec, void *driver_data)
+{
+     MesaData          *mesa   = driver_data;
+     CoreSurfaceBuffer *buffer = mesa->buffer;
+
+     dfb_surface_notify_display( buffer->surface, buffer );
+
+     mesa->flip_pending = false;
+     mesa->buffer       = NULL;
+
+     dfb_surface_buffer_unref( buffer );
+
+     D_DEBUG_AT( Mesa_Layer, "page_flip_handler() called\n");
+}
+
+
 
 static DFBResult
 mesaInitLayer( CoreLayer                  *layer,
@@ -47,6 +72,11 @@ mesaInitLayer( CoreLayer                  *layer,
                DFBColorAdjustment         *adjustment )
 {
      MesaData *mesa = driver_data;
+
+
+     mesa->drmeventcontext.version = DRM_EVENT_CONTEXT_VERSION;
+     mesa->drmeventcontext.vblank_handler = NULL;
+     mesa->drmeventcontext.page_flip_handler = page_flip_handler;
 
      description->type             = DLTF_GRAPHICS;
      description->caps             = DLCAPS_SURFACE;
@@ -113,19 +143,41 @@ mesaFlipRegion( CoreLayer                  *layer,
                 CoreSurfaceBufferLock      *left_lock,
                 CoreSurfaceBufferLock      *right_lock )
 {
-     int       ret;
-     MesaData *mesa = driver_data;
+     int            ret;
+     MesaData      *mesa = driver_data;
 
-//   ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, left_lock->handle, 0, NULL );
-     ret = drmModeSetCrtc( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, 0, 0,
-                           &mesa->connector->connector_id, 1, &mesa->mode );
+     //    ret = drmModeSetCrtc( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, 0, 0,
+     //                           &mesa->connector->connector_id, 1, &mesa->mode );
+
+     if (mesa->flip_pending) {
+          drmHandleEvent( mesa->fd, &mesa->drmeventcontext );
+
+          mesa->flip_pending = false;
+     }
+
+
+     mesa->buffer = left_lock->buffer;
+     dfb_surface_buffer_ref( mesa->buffer );
+
+
+     if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
+          ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, driver_data );
+          if (!ret)
+               drmHandleEvent( mesa->fd, &mesa->drmeventcontext );
+     } else {
+          ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, driver_data );
+
+          mesa->flip_pending = true;
+     }
+
+     if (ret) {
+          D_PERROR( "DirectFB/Mesa: drmModePageFlip() failed!\n" );
+          return DFB_FAILURE;
+     }
+
 
      dfb_surface_flip( surface, false );
 
-     if (ret) {
-          D_ERROR( "DirectFB/Mesa: drmModePageFlip() failed!\n" );
-          return DFB_FAILURE;
-     }
 
      return DFB_OK;
 }

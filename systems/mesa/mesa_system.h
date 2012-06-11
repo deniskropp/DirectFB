@@ -43,6 +43,7 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <xf86drmMode.h>
+#include <xf86drm.h>
 
 #include <fusion/shmalloc.h>
 
@@ -81,8 +82,13 @@ typedef struct {
      drmModeConnector    *connector;
      drmModeEncoder      *encoder;
      drmModeModeInfo      mode;
-     
+
+     drmEventContext     drmeventcontext;
+
      VirtualTerminal     *vt;
+
+     bool                 flip_pending;
+     CoreSurfaceBuffer   *buffer;
 } MesaData;
 
 
