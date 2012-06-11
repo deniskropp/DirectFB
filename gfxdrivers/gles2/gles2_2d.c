@@ -644,19 +644,6 @@ gles2CheckState(void                *drv,
           return;
      }
 
-     // Return if the destination format is not supported.
-     switch (state->destination->config.format) {
-          case DSPF_ARGB:
-          case DSPF_RGB32:
-          case DSPF_RGB16:
-               break;
-          default:
-               D_DEBUG_AT
-               (GLES2__2D, "  -> unsupported destination format %s\n",
-                dfb_pixelformat_name(state->destination->config.format));
-               return;
-     }
-
      // Check if drawing or blitting is requested.
      if (DFB_DRAWING_FUNCTION(accel)) {
           // Return if unsupported drawing flags are set.
@@ -667,19 +654,6 @@ gles2CheckState(void                *drv,
           }
      }
      else {
-          // Return if the source format is not supported.
-          switch (state->source->config.format) {
-               case DSPF_ARGB:
-               case DSPF_RGB32:
-               case DSPF_RGB16:
-                    break;
-               default:
-                    D_DEBUG_AT
-                    (GLES2__2D, "  -> unsupported source format %s\n",
-                     dfb_pixelformat_name(state->source->config.format));
-                    return;
-          }
-
           // Return if unsupported blitting flags are set.
           if (state->blittingflags & ~GLES2_SUPPORTED_BLITTINGFLAGS) {
                D_DEBUG_AT(GLES2__2D, "  -> unsupported blit flags 0x%08x\n",
