@@ -38,6 +38,61 @@ D_LOG_DOMAIN( Direct_Hash, "Direct/Hash", "Hash table implementation" );
 
 /**********************************************************************************************************************/
 
+static const unsigned int primes[] =
+{
+     11,
+     19,
+     37,
+     73,
+     109,
+     163,
+     251,
+     367,
+     557,
+     823,
+     1237,
+     1861,
+     2777,
+     4177,
+     6247,
+     9371,
+     14057,
+     21089,
+     31627,
+     47431,
+     71143,
+     106721,
+     160073,
+     240101,
+     360163,
+     540217,
+     810343,
+     1215497,
+     1823231,
+     2734867,
+     4102283,
+     6153409,
+     9230113,
+     13845163,
+};
+
+static const unsigned int nprimes = D_ARRAY_SIZE( primes );
+
+static unsigned int
+spaced_primes_closest (unsigned int num)
+{
+     unsigned int i;
+     for (i = 0; i < nprimes; i++)
+          if (primes[i] > num)
+               return primes[i];
+     return primes[nprimes - 1];
+}
+
+#define DIRECT_HASH_MIN_SIZE 11
+#define DIRECT_HASH_MAX_SIZE 13845163
+
+/**********************************************************************************************************************/
+
 static __inline__ int
 locate_key( const DirectHash *hash, unsigned long key )
 {
@@ -100,8 +155,8 @@ void
 direct_hash_init( DirectHash *hash,
                   int         size )
 {
-     if (size < 17)
-          size = 17;
+     if (size < DIRECT_HASH_MIN_SIZE)
+          size = DIRECT_HASH_MIN_SIZE;
 
      D_DEBUG_AT( Direct_Hash, "Creating hash table with initial capacity of %d...\n", size );
 
@@ -162,8 +217,14 @@ direct_hash_insert( DirectHash    *hash,
 
      /* Need to resize the hash table? */
      if ((hash->count + hash->removed) > hash->size / 2) {
-          int                i, size = hash->size * 3;
+          int                i, size;
           DirectHashElement *elements;
+
+          size = spaced_primes_closest( hash->size );
+          if (size > DIRECT_HASH_MAX_SIZE)
+               size = DIRECT_HASH_MAX_SIZE;
+          if (size < DIRECT_HASH_MIN_SIZE)
+               size = DIRECT_HASH_MIN_SIZE;
 
           D_DEBUG_AT( Direct_Hash, "Resizing from %d to %d... (count %d, removed %d)\n",
                       hash->size, size, hash->count, hash->removed );
