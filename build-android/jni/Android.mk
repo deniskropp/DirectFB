@@ -10,7 +10,7 @@ LOCAL_MODULE := directfb
 DFB_SOURCE = ../..
 KERNEL = $(LOCAL_PATH)/Kernel
 
-LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/.. $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums -DDEBUG
+LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/.. $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums
 
 LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid
 
@@ -21,9 +21,11 @@ MINOR   = 6
 TINY    = 0
 VERSION = $(MAJOR).$(MINOR).$(TINY)
 
+DEBUG=yes
+
 buildtime = $(shell sh -c date -u +%Y-%m-%d %H:%M)
 
-CPPFLAGS += \
+CPPFLAGS +=	\
 	-DHAVE_CONFIG_H							\
 	-DHAVE_STDBOOL_H						\
 	-D_GNU_SOURCE							\

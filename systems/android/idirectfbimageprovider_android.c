@@ -55,6 +55,8 @@ Construct( IDirectFBImageProvider *thiz, ... );
 
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, ANDROID )
 
+D_DEBUG_DOMAIN(imageProviderANDROID, "ANDROID/ImageProvider", "Android ImageProvider");
+
 /*
  * private data struct of IDirectFBImageProvider_ANDROID
  */
@@ -68,6 +70,7 @@ typedef struct {
      int   alpha;
      int   pitch;
      int   format;
+     char *data;
      char *image;
 
      jobject    buffer;
@@ -87,8 +90,57 @@ extern AndroidData *m_data;
 }
 
 static DFBResult
+readBufferStream( IDirectFBImageProvider_ANDROID_data  *data,
+                  char                                **bufferData,
+                  int                                  *bufferSize )
+{
+     IDirectFBDataBuffer *buffer = data->base.buffer;
+     DFBResult            ret;
+     int                  len;
+     int                  total_size = 0;
+     const int            bufsize = 0x10000;
+     char                *buf = NULL;
+     char                *rbuf; 
+
+     while (1) {
+          rbuf = realloc(buf, total_size + bufsize);
+          if (!rbuf) {
+               free( buf );
+               return DFB_NOSYSTEMMEMORY;
+          }
+
+          buf = rbuf;
+
+          while (buffer->HasData( buffer ) == DFB_OK) {
+               D_DEBUG_AT( imageProviderANDROID, "Retrieving data (up to %d )...\n", bufsize );
+
+               ret = buffer->GetData( buffer, bufsize, &buf[total_size], &len );
+               if (ret)
+                    return ret;
+
+               D_DEBUG_AT( imageProviderANDROID, "  -> got %d bytes\n", len );
+
+               total_size += len;
+          }
+
+          D_DEBUG_AT( imageProviderANDROID, "Waiting for data...\n" );
+
+          if (buffer->WaitForData( buffer, 1 ) == DFB_EOF) {
+               *bufferData = buf;
+               *bufferSize = total_size;
+               return DFB_OK;
+          }
+     }
+
+     free( buf );
+
+     return DFB_INCOMPLETE;
+}
+
+static DFBResult
 decodeImage( IDirectFBImageProvider_ANDROID_data *data )
 {
+     DFBResult   ret;
      JNIEnv     *env     = 0;
      jclass      clazz   = 0;
      jclass      clazz2  = 0;
@@ -105,38 +157,69 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
      if (data->image)
           return DFB_OK;
 
-     //FIXME
-     if (!data->path)
-          return DFB_UNSUPPORTED;
-
      (*m_data->java_vm)->AttachCurrentThread( m_data->java_vm, &env, NULL );
      if (!env)
           return DFB_INIT;
+
+     if (!data->path && !data->size) {
+          ret = readBufferStream( data, &data->data, &data->size );
+          if (ret)
+               return ret;
+     }
 
      clazz = (*env)->FindClass( env, "android/graphics/BitmapFactory" );
      CHECK_EXCEPTION( env );
      if (!clazz)
           return DFB_INIT;
 
-     method = (*env)->GetStaticMethodID( env, clazz, "decodeFile", "(Ljava/lang/String;)Landroid/graphics/Bitmap;" );
-     CHECK_EXCEPTION( env );
-     if (!method)
-          return DFB_INIT;
+     if (data->path) {
+          method = (*env)->GetStaticMethodID( env, clazz, "decodeFile", "(Ljava/lang/String;)Landroid/graphics/Bitmap;" );
+          CHECK_EXCEPTION( env );
+          if (!method)
+               return DFB_INIT;
 
-     path = (*env)->NewStringUTF( env, data->path );
-     CHECK_EXCEPTION( env );
-     if (!path)
-          return DFB_INIT;
+          path = (*env)->NewStringUTF( env, data->path );
+          CHECK_EXCEPTION( env );
+          if (!path)
+               return DFB_INIT;
 
-     bitmap = (*env)->CallStaticObjectMethod( env, clazz, method, path );
-     CHECK_EXCEPTION( env );
-     if (!bitmap) {
+          bitmap = (*env)->CallStaticObjectMethod( env, clazz, method, path );
+          CHECK_EXCEPTION( env );
+          if (!bitmap) {
+               (*env)->DeleteLocalRef( env, path );
+               return DFB_INIT;
+          }
+
           (*env)->DeleteLocalRef( env, path );
-          return DFB_INIT;
+          CHECK_EXCEPTION( env );
+     }
+     else {
+          jbyteArray jArray = 0;
+
+          method = (*env)->GetStaticMethodID( env, clazz, "decodeByteArray", "([BII)Landroid/graphics/Bitmap;" );
+          CHECK_EXCEPTION( env );
+          if (!method)
+               return DFB_INIT;
+
+          jArray = (*env)->NewByteArray( env, data->size );
+          CHECK_EXCEPTION( env );
+          if (!jArray)
+               return DFB_INIT;
+
+          (*env)->GetByteArrayRegion(env, jArray, 0, data->size, buffer);
+          CHECK_EXCEPTION( env );
+
+          bitmap = (*env)->CallStaticObjectMethod( env, clazz, method, data, 0, data->size );
+          CHECK_EXCEPTION( env );
+          if (!bitmap) {
+               (*env)->DeleteLocalRef( env, jArray );
+               return DFB_INIT;
+          }
+
+          (*env)->DeleteLocalRef( env, jArray );
+          CHECK_EXCEPTION( env );
      }
 
-     (*env)->DeleteLocalRef( env, path );
-     CHECK_EXCEPTION( env );
      (*env)->NewGlobalRef( env, bitmap );
      CHECK_EXCEPTION( env );
 
@@ -228,9 +311,19 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
 
      if (DSPF_ARGB != data->format) {
           const wchar_t nconfig_name[] = L"ARGB_8888";
-          jstring       jconfig_name   = (*env)->NewString( env, (const jchar*)nconfig_name, wcslen(nconfig_name) );
-          jclass        config_clazz   = (*env)->FindClass( env, "android/graphics/Bitmap$Config" );
+          jstring       jconfig_name   = 0;
+          jclass        config_clazz   = 0;
           jobject       bitmap_config  = 0;
+
+          jconfig_name = (*env)->NewString( env, (const jchar*)nconfig_name, wcslen(nconfig_name) );
+          CHECK_EXCEPTION( env );
+          if (!jconfig_name)
+               goto error;
+
+          config_clazz = (*env)->FindClass( env, "android/graphics/Bitmap$Config" );
+          CHECK_EXCEPTION( env );
+          if (!config_clazz)
+               goto error;
 
           method = (*env)->GetStaticMethodID( env, config_clazz, "valueOf", "(Ljava/lang/String;)Landroid/graphics/Bitmap$Config;" );
           CHECK_EXCEPTION( env );
@@ -298,6 +391,10 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
      CHECK_EXCEPTION( env );
      if (!data->image)
           goto error;
+
+     if (!data->path) {
+          free( data->data );
+     }
 
      data->buffer  = buffer;
      data->pixels  = pixels;
