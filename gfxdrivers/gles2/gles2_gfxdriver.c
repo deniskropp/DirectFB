@@ -113,7 +113,7 @@ driver_init_driver(CoreGraphicsDevice  *device,
 
      // Choose accelerated font format
      if (!dfb_config->software_only) {
-          dfb_config->font_format  = DSPF_ABGR;
+          dfb_config->font_format  = DSPF_ARGB;
           dfb_config->font_premult = true;
      }
 
