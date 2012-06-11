@@ -89,6 +89,11 @@ typedef struct {
 
      bool                 flip_pending;
      CoreSurfaceBuffer   *buffer;
+
+     DirectThread        *thread;
+     DirectMutex          lock;
+     DirectWaitQueue      wq_event;
+     DirectWaitQueue      wq_flip;
 } MesaData;
 
 

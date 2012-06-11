@@ -246,7 +246,7 @@ mesaTestConfig( CoreSurfacePool         *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (surface->config.format != DSPF_ABGR)
+     if (surface->config.format != DSPF_ARGB)
           return DFB_UNSUPPORTED;
 
      return DFB_OK;
@@ -535,7 +535,7 @@ mesaRead( CoreSurfacePool       *pool,
                                 GL_RENDERBUFFER,
                                 alloc->color_rb );
 
-     glReadPixels( rect->x, rect->y, rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, destination );
+     glReadPixels( rect->x, rect->y, rect->w, rect->h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, destination );
 
 
      glBindFramebuffer( GL_FRAMEBUFFER, fbo );
@@ -587,7 +587,7 @@ mesaWrite( CoreSurfacePool       *pool,
 
 
      glPixelStorei( GL_UNPACK_ALIGNMENT, 8);
-     glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_RGBA, GL_UNSIGNED_BYTE, source );
+     glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, source );
 
 
      glBindTexture( GL_TEXTURE_2D, texture );

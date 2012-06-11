@@ -51,14 +51,51 @@ page_flip_handler(int fd, unsigned int frame,
      MesaData          *mesa   = driver_data;
      CoreSurfaceBuffer *buffer = mesa->buffer;
 
+     D_DEBUG_AT( Mesa_Layer, "%s()\n", __FUNCTION__ );
+
      dfb_surface_notify_display( buffer->surface, buffer );
 
      mesa->flip_pending = false;
      mesa->buffer       = NULL;
 
      dfb_surface_buffer_unref( buffer );
+}
 
-     D_DEBUG_AT( Mesa_Layer, "page_flip_handler() called\n");
+
+static void *
+Mesa_BufferThread_Main( DirectThread *thread, void *arg )
+{
+     MesaData *data = arg;
+
+     D_DEBUG_AT( Mesa_Layer, "%s()\n", __FUNCTION__ );
+
+     while (true) {
+          direct_mutex_lock( &data->lock );
+
+          while (!data->flip_pending) {
+               D_DEBUG_AT( Mesa_Layer, "  -> waiting for flip to be issued\n" );
+
+               direct_waitqueue_wait( &data->wq_flip, &data->lock );
+          }
+
+          direct_mutex_unlock( &data->lock );
+
+
+          D_DEBUG_AT( Mesa_Layer, "  -> waiting for flip to be done\n" );
+
+          drmHandleEvent( data->fd, &data->drmeventcontext );
+
+
+          direct_mutex_lock( &data->lock );
+
+          data->flip_pending = false;
+
+          direct_waitqueue_broadcast( &data->wq_event );
+
+          direct_mutex_unlock( &data->lock );
+     }
+
+     return NULL;
 }
 
 
@@ -89,8 +126,14 @@ mesaInitLayer( CoreLayer                  *layer,
      config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT;
      config->width       = dfb_config->mode.width  ?: mesa->mode.hdisplay;
      config->height      = dfb_config->mode.height ?: mesa->mode.vdisplay;
-     config->pixelformat = dfb_config->mode.format ?: DSPF_ABGR;
+     config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
      config->buffermode  = DLBM_FRONTONLY;
+
+     mesa->thread = direct_thread_create( DTT_CRITICAL, Mesa_BufferThread_Main, mesa, "Mesa/Buffer" );
+
+     direct_mutex_init( &mesa->lock );
+     direct_waitqueue_init( &mesa->wq_event );
+     direct_waitqueue_init( &mesa->wq_flip );
 
      return DFB_OK;
 }
@@ -123,6 +166,8 @@ mesaSetRegion( CoreLayer                  *layer,
      int       ret;
      MesaData *mesa = driver_data;
 
+     D_DEBUG_AT( Mesa_Layer, "%s()\n", __FUNCTION__ );
+
      ret = drmModeSetCrtc( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, 0, 0,
                            &mesa->connector->connector_id, 1, &mesa->mode );
      if (ret) {
@@ -146,38 +191,55 @@ mesaFlipRegion( CoreLayer                  *layer,
      int            ret;
      MesaData      *mesa = driver_data;
 
+     D_DEBUG_AT( Mesa_Layer, "%s()\n", __FUNCTION__ );
+
      //    ret = drmModeSetCrtc( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, 0, 0,
      //                           &mesa->connector->connector_id, 1, &mesa->mode );
 
-     if (mesa->flip_pending) {
-          drmHandleEvent( mesa->fd, &mesa->drmeventcontext );
+     direct_mutex_lock( &mesa->lock );
 
-          mesa->flip_pending = false;
+     while (mesa->flip_pending) {
+          D_DEBUG_AT( Mesa_Layer, "  -> waiting for pending flip (previous)\n" );
+
+          direct_waitqueue_wait( &mesa->wq_event, &mesa->lock );
      }
+
+     direct_mutex_unlock( &mesa->lock );
+
+
+     D_ASSERT( mesa->buffer == NULL );
 
 
      mesa->buffer = left_lock->buffer;
      dfb_surface_buffer_ref( mesa->buffer );
 
 
-     if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
-          ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, driver_data );
-          if (!ret)
-               drmHandleEvent( mesa->fd, &mesa->drmeventcontext );
-     } else {
-          ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, driver_data );
+     D_DEBUG_AT( Mesa_Layer, "  -> calling drmModePageFlip()\n" );
 
-          mesa->flip_pending = true;
-     }
-
+     ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, driver_data );
      if (ret) {
           D_PERROR( "DirectFB/Mesa: drmModePageFlip() failed!\n" );
           return DFB_FAILURE;
      }
 
-
      dfb_surface_flip( surface, false );
 
+
+     direct_mutex_lock( &mesa->lock );
+
+     mesa->flip_pending = true;
+
+     direct_waitqueue_broadcast( &mesa->wq_flip );
+
+     if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
+          while (mesa->flip_pending) {
+               D_DEBUG_AT( Mesa_Layer, "  -> waiting for pending flip (WAITFORSYNC)\n" );
+
+               direct_waitqueue_wait( &mesa->wq_event, &mesa->lock );
+          }
+     }
+
+     direct_mutex_unlock( &mesa->lock );
 
      return DFB_OK;
 }
