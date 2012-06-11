@@ -69,7 +69,7 @@ typedef struct {
      int   pitch;
      int   format;
      char *image;
-     
+
      jobject    buffer;
      jbyteArray pixels;
      jobject    bitmap;
@@ -77,6 +77,14 @@ typedef struct {
 } IDirectFBImageProvider_ANDROID_data;
 
 extern AndroidData *m_data;
+
+#define CHECK_EXCEPTION( env ) {		\
+     if ((*env)->ExceptionCheck(env)) {		\
+          (*env)->ExceptionDescribe( env );	\
+          (*env)->ExceptionClear( env );	\
+          return DFB_INIT;			\
+     }						\
+}
 
 static DFBResult
 decodeImage( IDirectFBImageProvider_ANDROID_data *data )
@@ -106,77 +114,99 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           return DFB_INIT;
 
      clazz = (*env)->FindClass( env, "android/graphics/BitmapFactory" );
+     CHECK_EXCEPTION( env );
      if (!clazz)
           return DFB_INIT;
 
      method = (*env)->GetStaticMethodID( env, clazz, "decodeFile", "(Ljava/lang/String;)Landroid/graphics/Bitmap;" );
+     CHECK_EXCEPTION( env );
      if (!method)
           return DFB_INIT;
 
      path = (*env)->NewStringUTF( env, data->path );
+     CHECK_EXCEPTION( env );
      if (!path)
           return DFB_INIT;
 
      bitmap = (*env)->CallStaticObjectMethod( env, clazz, method, path );
+     CHECK_EXCEPTION( env );
      if (!bitmap) {
           (*env)->DeleteLocalRef( env, path );
           return DFB_INIT;
      }
 
      (*env)->DeleteLocalRef( env, path );
+     CHECK_EXCEPTION( env );
      (*env)->NewGlobalRef( env, bitmap );
+     CHECK_EXCEPTION( env );
 
      clazz = (*env)->GetObjectClass(env, bitmap);
+     CHECK_EXCEPTION( env );
      if (!clazz)
           goto error;
 
      method = (*env)->GetMethodID( env, clazz, "getWidth", "()I" );
+     CHECK_EXCEPTION( env );
      if (!method)
           goto error;
 
      data->width = (*env)->CallIntMethod( env, bitmap, method );
+     CHECK_EXCEPTION( env );
 
      method = (*env)->GetMethodID( env, clazz, "getHeight", "()I" );
+     CHECK_EXCEPTION( env );
      if (!method)
           goto error;
 
      data->height = (*env)->CallIntMethod( env, bitmap, method );
+     CHECK_EXCEPTION( env );
 
      method = (*env)->GetMethodID( env, clazz, "hasAlpha", "()Z" );
+     CHECK_EXCEPTION( env );
      if (!method)
           goto error;
 
      data->alpha = (*env)->CallBooleanMethod( env, bitmap, method );
+     CHECK_EXCEPTION( env );
 
      method = (*env)->GetMethodID( env, clazz, "getRowBytes", "()I" );
+     CHECK_EXCEPTION( env );
      if (!method)
           goto error;
 
      data->pitch = (*env)->CallIntMethod( env, bitmap, method );
+     CHECK_EXCEPTION( env );
 
      method = (*env)->GetMethodID( env, clazz, "getConfig", "()Landroid/graphics/Bitmap/Config;" );
+     CHECK_EXCEPTION( env );
      if (!method)
           goto error;
 
      config = (*env)->CallObjectMethod( env, bitmap, method );
+     CHECK_EXCEPTION( env );
      if (!config)
           goto error;
 
      (*env)->NewGlobalRef( env, config );
+     CHECK_EXCEPTION( env );
 
      clazz2 = (*env)->FindClass( env, "android/graphics/Bitmap/Config" );
+     CHECK_EXCEPTION( env );
      if (!clazz2)
           goto error;
 
      method = (*env)->GetMethodID( env, clazz2, "name", "()Ljava/lang/String;" );
+     CHECK_EXCEPTION( env );
      if (!method)
           goto error;
 
      format = (jstring)(*env)->CallObjectMethod( env, config, method );
+     CHECK_EXCEPTION( env );
      if (!format)
           goto error;
 
      fvalue = (*env)->GetStringUTFChars( env, format, 0 );
+     CHECK_EXCEPTION( env );
      if (!fvalue)
           goto error;
 
@@ -203,22 +233,27 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           jobject       bitmap_config  = 0;
 
           method = (*env)->GetStaticMethodID( env, config_clazz, "valueOf", "(Ljava/lang/String;)Landroid/graphics/Bitmap$Config;" );
+          CHECK_EXCEPTION( env );
           if (!method)
                goto error;
 
           bitmap_config = (*env)->CallStaticObjectMethod( env, config_clazz, method, jconfig_name );
+          CHECK_EXCEPTION( env );
           if (!bitmap_config)
                goto error;
 
           method = (*env)->GetMethodID( env, clazz, "copy", "(Landroid/graphics/Bitmap/Config;Z)Landroid/graphics/Bitmap;" );
+          CHECK_EXCEPTION( env );
           if (!method)
                goto error;
 
           convert = (*env)->CallObjectMethod( env, bitmap, method,  bitmap_config, 0 );
+          CHECK_EXCEPTION( env );
           if (!convert)
                goto error;
 
           (*env)->DeleteGlobalRef( env, bitmap );
+          CHECK_EXCEPTION( env );
 
           bitmap = convert;
 
@@ -226,32 +261,41 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
      }
 
      pixels = (*env)->NewByteArray( env, data->width * data->height );
+     CHECK_EXCEPTION( env );
      if (!pixels)
           goto error;
 
      (*env)->NewGlobalRef( env, pixels );
+     CHECK_EXCEPTION( env );
 
      clazz2 = (*env)->FindClass( env, "java/nio/ByteBuffer" );
+     CHECK_EXCEPTION( env );
      if (!clazz2)
           goto error;
 
      method = (*env)->GetStaticMethodID( env, clazz2, "wrap", "([B)Ljava/nio/ByteBuffer;" );
+     CHECK_EXCEPTION( env );
      if (!method)
           goto error;
 
      buffer = (*env)->CallStaticObjectMethod( env, clazz2, method, pixels );
+     CHECK_EXCEPTION( env );
      if (!buffer)
           goto error;
 
      (*env)->NewGlobalRef( env, buffer );
+     CHECK_EXCEPTION( env );
 
      method = (*env)->GetMethodID( env, clazz, "copyPixelsToBuffer", "(Ljava/nio/ByteBuffer;)V" );
+     CHECK_EXCEPTION( env );
      if (!method)
           goto error;
 
      (*env)->CallVoidMethod( env, bitmap, method, buffer );
+     CHECK_EXCEPTION( env );
 
      data->image = (*env)->GetByteArrayElements( env, pixels, 0 );
+     CHECK_EXCEPTION( env );
      if (!data->image)
           goto error;
 
@@ -263,20 +307,30 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
      return DFB_OK;
 
 error:
-     if (bitmap)
+     if (bitmap) {
           (*env)->DeleteGlobalRef( env, bitmap );
+          CHECK_EXCEPTION( env );
+     }
 
-     if (convert)
+     if (convert) {
           (*env)->DeleteGlobalRef( env, convert );
+          CHECK_EXCEPTION( env );
+     }
 
-     if (config)
+     if (config) {
           (*env)->DeleteGlobalRef( env, config );
+          CHECK_EXCEPTION( env );
+     }
 
-     if (pixels)
+     if (pixels) {
           (*env)->DeleteGlobalRef( env, pixels );
+          CHECK_EXCEPTION( env );
+     }
 
-     if (buffer)
+     if (buffer) {
           (*env)->DeleteGlobalRef( env, buffer );
+          CHECK_EXCEPTION( env );
+     }
 
      return DFB_INIT;
 }
@@ -332,6 +386,10 @@ IDirectFBImageProvider_ANDROID_RenderTo( IDirectFBImageProvider *thiz,
      dst_surface = dst_data->surface;
      if (!dst_surface)
           return DFB_DESTROYED;
+
+     ret = decodeImage( data );
+     if (ret)
+          return ret;
 
      ret = destination->GetPixelFormat( destination, &format );
      if (ret)
