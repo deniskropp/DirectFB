@@ -50,7 +50,6 @@
 #include <core/windows_internal.h>
 #include <core/windowstack.h>
 #include <core/wm.h>
-#include <core/system.h>
 
 #include <misc/conf.h>
 
@@ -1202,12 +1201,6 @@ create_cursor_surface( CoreWindowStack *stack,
      CoreLayer              *layer;
      CoreLayerContext       *context;
      DFBSurfaceCapabilities  surface_caps = DSCAPS_PREMULTIPLIED;
-     DFBSurfacePixelFormat   pixelformat;
-
-     if (dfb_system_type() == CORE_MESA)
-          pixelformat = DSPF_ARGB;
-     else
-          pixelformat = DSPF_ABGR;
 
      if (dfb_config->cursor_videoonly)
           surface_caps |= DSCAPS_VIDEOONLY;
@@ -1239,7 +1232,7 @@ create_cursor_surface( CoreWindowStack *stack,
      dfb_surface_caps_apply_policy( stack->cursor.policy, &surface_caps );
 
      /* Create the cursor surface. */
-     ret = dfb_surface_create_simple( layer->core, width, height, pixelformat, DSCS_RGB,
+     ret = dfb_surface_create_simple( layer->core, width, height, DSPF_ARGB, DSCS_RGB, 
                                       surface_caps, CSTF_SHARED | CSTF_CURSOR,
                                       dfb_config->cursor_resource_id, /* FIXME: no shared cursor objects, no cursor id */
                                       NULL, &surface );
