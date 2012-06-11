@@ -94,7 +94,7 @@ mesaInitScreen( CoreScreen           *screen,
           return DFB_INIT;
      }
      else
-          D_INFO( "DirectFB/Mesa: using connector %d.\n", i );
+          D_INFO( "DirectFB/Mesa: using connector id %d.\n", connector->connector_id );
 
      for (i = resources->count_encoders-1; i >= 0; i--) {
           encoder = drmModeGetEncoder( mesa->fd, resources->encoders[i] );
@@ -108,10 +108,14 @@ mesaInitScreen( CoreScreen           *screen,
           drmModeFreeEncoder(encoder);
      }
 
+     D_INFO( "DirectFB/Mesa: using encoder id %d.\n", encoder->encoder_id );
+     D_INFO( "DirectFB/Mesa: using crtc id %d.\n", encoder->crtc_id  );
+
      mesa->connector = connector;
      mesa->encoder   = encoder;
      mesa->mode      = connector->modes[0];
 
+     D_INFO( "DirectFB/Mesa: Default mode is %dx%d\n", mesa->mode.hdisplay, mesa->mode.vdisplay );
 
      return DFB_OK;
 }

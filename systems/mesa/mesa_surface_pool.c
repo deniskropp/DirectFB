@@ -66,6 +66,7 @@ typedef struct {
      EGLImageKHR     image;
      EGLint          handle;
      struct gbm_bo  *bo;
+     struct gbm_surface *gs;
      GLuint          fbo;
      GLuint          color_rb;
      GLuint          texture;
@@ -293,9 +294,8 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
      glGetIntegerv( GL_RENDERBUFFER_BINDING, &rbo );
 
-     alloc->bo = gbm_bo_create( mesa->gbm, surface->config.size.w, surface->config.size.h, GBM_BO_FORMAT_ARGB8888,
+     alloc->bo = gbm_bo_create( mesa->gbm, surface->config.size.w, surface->config.size.h, GBM_BO_FORMAT_XRGB8888,
                                                                             GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING );
-
      alloc->handle = gbm_bo_get_handle( alloc->bo ).u32;
      alloc->pitch  = gbm_bo_get_pitch( alloc->bo );
 
@@ -360,7 +360,7 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
       */
      ret = drmModeAddFB( local->mesa->fd,
                          surface->config.size.w, surface->config.size.h,
-                         32, 32, alloc->pitch, alloc->handle, &alloc->fb_id );
+                         24, 32, alloc->pitch, alloc->handle, &alloc->fb_id );
      if (ret) {
           D_ERROR( "DirectFB/Mesa: drmModeAddFB() failed!\n" );
 //          return DFB_FAILURE;
@@ -585,7 +585,8 @@ mesaWrite( CoreSurfacePool       *pool,
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
-     glPixelStorei( GL_UNPACK_ROW_LENGTH, pitch/4);
+
+     glPixelStorei( GL_UNPACK_ALIGNMENT, 8);
      glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_RGBA, GL_UNSIGNED_BYTE, source );
 
 

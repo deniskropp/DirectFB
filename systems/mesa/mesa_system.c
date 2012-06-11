@@ -67,7 +67,7 @@ InitLocal( MesaData *mesa )
      const char *ver;
      const char *extensions;
      EGLint      major, minor;
-     
+
      setenv( "EGL_PLATFORM","drm",1 );
 
      mesa->fd = open( device_name, O_RDWR );
@@ -122,6 +122,11 @@ InitLocal( MesaData *mesa )
      };
 
      mesa->ctx = eglCreateContext( mesa->dpy, NULL, EGL_NO_CONTEXT, context_attribs );
+
+     if (mesa->ctx == NULL) {
+          D_ERROR("DirectFB/Mesa: Could not create context!\n");
+          return DFB_INIT;
+     }
 
      eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
 

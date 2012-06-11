@@ -33,15 +33,15 @@
 #define EGL_EGLEXT_PROTOTYPES
 #define GL_GLEXT_PROTOTYPES
 
+#include <gbm.h>
+
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #ifndef GLAPIENTRY
 #define GLAPIENTRY
 #endif
-#include <gbm.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
-#include <drm.h>
 #include <xf86drmMode.h>
 
 #include <fusion/shmalloc.h>
