@@ -902,7 +902,7 @@ Dispatch_Flip( IDirectFBSurface *thiz, IDirectFBSurface *real,
      VoodooMessageParser  parser;
      const DFBRegion     *region;
      DFBSurfaceFlipFlags  flags;
-     unsigned int         millis;
+     unsigned int         millis = 0;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
