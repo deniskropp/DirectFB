@@ -65,6 +65,7 @@ dump_config( const DFBWindowConfig *config )
 {
      D_INFO( "  -> bounds       %d,%d-%dx%d\n", DFB_RECTANGLE_VALS( &config->bounds ) );
      D_INFO( "  -> opacity      %d\n", config->opacity );
+     D_INFO( "  -> cursor flags 0x%08x\n", config->cursor_flags );
 }
 
 /**********************************************************************************************************************/
