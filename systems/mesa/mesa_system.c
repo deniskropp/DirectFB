@@ -50,6 +50,7 @@
 
 DFB_CORE_SYSTEM( mesa )
 
+#define MESA_BUILD_GLES2
 
 static const char device_name[] = "/dev/dri/card0";
 
@@ -67,7 +68,7 @@ InitLocal( MesaData *mesa )
      const char *extensions;
      EGLint      major, minor;
      
-     setenv( "EGL_PLATFORM","drm",0 );
+     setenv( "EGL_PLATFORM","drm",1 );
 
      mesa->fd = open( device_name, O_RDWR );
      if (mesa->fd < 0) {
@@ -106,10 +107,21 @@ InitLocal( MesaData *mesa )
 //     if (!setup_kms(fd, &kms))
 //        return -1;
 
+#ifdef MESA_BUILD_GLES2
+     eglBindAPI(EGL_OPENGL_ES_API);
+#else
      eglBindAPI(EGL_OPENGL_API);
+#endif
 
 
-     mesa->ctx = eglCreateContext( mesa->dpy, NULL, EGL_NO_CONTEXT, NULL );
+     EGLint context_attribs[] = {
+#ifdef MESA_BUILD_GLES2
+          EGL_CONTEXT_CLIENT_VERSION, 2,
+#endif
+          EGL_NONE
+     };
+
+     mesa->ctx = eglCreateContext( mesa->dpy, NULL, EGL_NO_CONTEXT, context_attribs );
 
      eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, mesa->ctx );
 

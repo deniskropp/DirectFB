@@ -93,10 +93,10 @@ mesaSetRegion( CoreLayer                  *layer,
      int       ret;
      MesaData *mesa = driver_data;
 
-     ret = drmModeSetCrtc( mesa->fd, mesa->encoder->crtc_id, (u32)left_lock->handle, 0, 0,
+     ret = drmModeSetCrtc( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, 0, 0,
                            &mesa->connector->connector_id, 1, &mesa->mode );
      if (ret) {
-          D_ERROR( "DirectFB/Mesa: drmModeSetCrtc() failed!\n" );
+          D_PERROR( "DirectFB/Mesa: drmModeSetCrtc() failed! (%d)\n", ret );
           return DFB_FAILURE;
      }
 
@@ -117,7 +117,7 @@ mesaFlipRegion( CoreLayer                  *layer,
      MesaData *mesa = driver_data;
 
 //   ret = drmModePageFlip( mesa->fd, mesa->encoder->crtc_id, left_lock->handle, 0, NULL );
-     ret = drmModeSetCrtc( mesa->fd, mesa->encoder->crtc_id, (u32)left_lock->handle, 0, 0,
+     ret = drmModeSetCrtc( mesa->fd, mesa->encoder->crtc_id, (u32)(long)left_lock->handle, 0, 0,
                            &mesa->connector->connector_id, 1, &mesa->mode );
 
      dfb_surface_flip( surface, false );

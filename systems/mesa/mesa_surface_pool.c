@@ -141,7 +141,7 @@ mesaInitPool( CoreDFB                    *core,
      ret_desc->access[CSAID_LAYER14] = CSAF_READ;
      ret_desc->access[CSAID_LAYER15] = CSAF_READ;
 
-     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "/dev/mem" );
+     snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Mesa" );
 
      local->mesa = mesa;
 
@@ -313,7 +313,7 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
       */
      glGenRenderbuffers( 1, &alloc->color_rb );
 
-     glBindRenderbuffer( GL_RENDERBUFFER_EXT, alloc->color_rb );
+     glBindRenderbuffer( GL_RENDERBUFFER, alloc->color_rb );
 
      glEGLImageTargetRenderbufferStorageOES( GL_RENDERBUFFER, alloc->image );
 
@@ -323,14 +323,14 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
       */
      glGenFramebuffers( 1, &alloc->fbo );
 
-     glBindFramebuffer( GL_RENDERBUFFER_EXT, alloc->fbo );
+     glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
 
-     glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT,
-                                   GL_COLOR_ATTACHMENT0_EXT,
-                                   GL_RENDERBUFFER_EXT,
-                                   alloc->color_rb );
+     glFramebufferRenderbuffer( GL_FRAMEBUFFER,
+                                GL_COLOR_ATTACHMENT0,
+                                GL_RENDERBUFFER,
+                                alloc->color_rb );
 
-     if (glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT) != GL_FRAMEBUFFER_COMPLETE) {
+     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
           D_ERROR( "DirectFB/Mesa: Framebuffer not complete\n" );
      }
 
@@ -348,8 +348,8 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      /*
       * Restore
       */
-     glBindRenderbuffer( GL_RENDERBUFFER_EXT, rbo );
-     glBindFramebuffer( GL_RENDERBUFFER_EXT, fbo );
+     glBindRenderbuffer( GL_RENDERBUFFER, rbo );
+     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
      glBindTexture( GL_TEXTURE_2D, texture );
 
      eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
@@ -528,17 +528,17 @@ mesaRead( CoreSurfacePool       *pool,
      glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
 
 
-     glBindFramebuffer( GL_RENDERBUFFER_EXT, alloc->fbo );
+     glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
 
-     glFramebufferRenderbufferEXT( GL_FRAMEBUFFER_EXT,
-                                   GL_COLOR_ATTACHMENT0_EXT,
-                                   GL_RENDERBUFFER_EXT,
-                                   alloc->color_rb );
+     glFramebufferRenderbuffer( GL_FRAMEBUFFER,
+                                GL_COLOR_ATTACHMENT0,
+                                GL_RENDERBUFFER,
+                                alloc->color_rb );
 
-     glReadPixels( rect->x, rect->y, rect->w, rect->h, GL_BGRA, GL_UNSIGNED_BYTE, destination );
+     glReadPixels( rect->x, rect->y, rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, destination );
 
 
-     glBindFramebuffer( GL_RENDERBUFFER_EXT, fbo );
+     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
 
      eglMakeCurrent( mesa->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, context );
 
@@ -586,7 +586,7 @@ mesaWrite( CoreSurfacePool       *pool,
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
      glPixelStorei( GL_UNPACK_ROW_LENGTH, pitch/4);
-     glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_BGRA, GL_UNSIGNED_BYTE, source );
+     glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_RGBA, GL_UNSIGNED_BYTE, source );
 
 
      glBindTexture( GL_TEXTURE_2D, texture );
