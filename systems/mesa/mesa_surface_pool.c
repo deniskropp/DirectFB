@@ -246,7 +246,7 @@ mesaTestConfig( CoreSurfacePool         *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (surface->config.format != DSPF_ARGB)
+     if (surface->config.format != DSPF_ABGR)
           return DFB_UNSUPPORTED;
 
      return DFB_OK;
