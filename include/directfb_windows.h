@@ -91,7 +91,6 @@ typedef struct {
      u32                           color_key;               /* transparent pixel */
      DFBRegion                     opaque;                  /* region of the window forced to be opaque */
      DFBColor                      color;                   /* constant color (no surface needed) */
-     int                           stereo_depth;
 
 //     DFBWindowKeySelection         key_selection;           /* how to filter keys in focus */
 //     DFBInputDeviceKeySymbol      *keys;                    /* list of keys for DWKS_LIST */
@@ -106,6 +105,7 @@ typedef struct {
      int                           rotation;
 
      u64                           application_id;
+     int                           stereo_depth;
 } DFBWindowConfig;
 
 
