@@ -129,11 +129,12 @@ mesaInitLayer( CoreLayer                  *layer,
      config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
      config->buffermode  = DLBM_FRONTONLY;
 
-     mesa->thread = direct_thread_create( DTT_CRITICAL, Mesa_BufferThread_Main, mesa, "Mesa/Buffer" );
 
      direct_mutex_init( &mesa->lock );
      direct_waitqueue_init( &mesa->wq_event );
      direct_waitqueue_init( &mesa->wq_flip );
+
+     mesa->thread = direct_thread_create( DTT_CRITICAL, Mesa_BufferThread_Main, mesa, "Mesa/Buffer" );
 
      return DFB_OK;
 }
