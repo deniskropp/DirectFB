@@ -35,8 +35,8 @@
 
 #include <directfb_keyboard.h>
 
-#include <linux/input.h>
 
+#include "android_keycodes.h"
 #include "android_system.h"
 
 D_DEBUG_DOMAIN( ANDROID_MAIN, "ANDROID/Main", "Android Main" );
@@ -54,7 +54,7 @@ dfb_main_thread( DirectThread *thread,
                  void         *arg )
 {
      int   ret;
-     char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID" };
+     char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
 
      LOGI( "Running main()..." );
 
@@ -195,254 +195,182 @@ native_handle_input( struct android_app *app, AInputEvent *event )
           evt.key_code = AKeyEvent_getKeyCode( event );
 
           switch (evt.key_code) {
-               case KEY_ESC:
+               case AKEYCODE_DPAD_UP:
+                    evt.key_id = DIKI_UP;
+                    break;
+               case AKEYCODE_DPAD_DOWN:
+                    evt.key_id = DIKI_DOWN;
+                    break;
+               case AKEYCODE_DPAD_LEFT:
+                    evt.key_id = DIKI_LEFT;
+                    break;
+               case AKEYCODE_DPAD_RIGHT:
+                    evt.key_id = DIKI_RIGHT;
+                    break;
+               case AKEYCODE_BACK:
                     evt.key_id = DIKI_ESCAPE;
                     break;
-               case KEY_1:
+               case AKEYCODE_1:
                     evt.key_id = DIKI_1;
                     break;
-               case KEY_2:
+               case AKEYCODE_2:
                     evt.key_id = DIKI_2;
                     break;
-               case KEY_3:
+               case AKEYCODE_3:
                     evt.key_id = DIKI_3;
                     break;
-               case KEY_4:
+               case AKEYCODE_4:
                     evt.key_id = DIKI_4;
                     break;
-               case KEY_5:
+               case AKEYCODE_5:
                     evt.key_id = DIKI_5;
                     break;
-               case KEY_6:
+               case AKEYCODE_6:
                     evt.key_id = DIKI_6;
                     break;
-               case KEY_7:
+               case AKEYCODE_7:
                     evt.key_id = DIKI_7;
                     break;
-               case KEY_8:
+               case AKEYCODE_8:
                     evt.key_id = DIKI_8;
                     break;
-               case KEY_9:
+               case AKEYCODE_9:
                     evt.key_id = DIKI_9;
                     break;
-               case KEY_0:
+               case AKEYCODE_0:
                     evt.key_id = DIKI_0;
                     break;
-               case KEY_MINUS:
+               case AKEYCODE_MINUS:
                     evt.key_id = DIKI_MINUS_SIGN;
                     break;
-               case KEY_EQUAL:
-                    evt.key_id = DIKI_EQUALS_SIGN;
-                    break;
-               case KEY_BACKSPACE:
-                    evt.key_id = DIKI_BACKSPACE;
-                    break;
-               case KEY_TAB:
+               case AKEYCODE_TAB:
                     evt.key_id = DIKI_TAB;
                     break;
-               case KEY_Q:
+               case AKEYCODE_Q:
                     evt.key_id = DIKI_Q;
                     break;
-               case KEY_W:
+               case AKEYCODE_W:
                     evt.key_id = DIKI_W;
                     break;
-               case KEY_E:
+               case AKEYCODE_E:
                     evt.key_id = DIKI_E;
                     break;
-               case KEY_R:
+               case AKEYCODE_R:
                     evt.key_id = DIKI_R;
                     break;
-               case KEY_T:
+               case AKEYCODE_T:
                     evt.key_id = DIKI_T;
                     break;
-               case KEY_Y:
+               case AKEYCODE_Y:
                     evt.key_id = DIKI_Y;
                     break;
-               case KEY_U:
+               case AKEYCODE_U:
                     evt.key_id = DIKI_U;
                     break;
-               case KEY_I:
+               case AKEYCODE_I:
                     evt.key_id = DIKI_I;
                     break;
-               case KEY_O:
+               case AKEYCODE_O:
                     evt.key_id = DIKI_O;
                     break;
-               case KEY_P:
+               case AKEYCODE_P:
                     evt.key_id = DIKI_P;
                     break;
-               case KEY_LEFTBRACE:
+               case AKEYCODE_LEFT_BRACKET:
                     evt.key_id = DIKI_BRACKET_LEFT;
                     break;
-               case KEY_RIGHTBRACE:
+               case AKEYCODE_RIGHT_BRACKET:
                     evt.key_id = DIKI_BRACKET_RIGHT;
                     break;
-               case KEY_ENTER:
+               case AKEYCODE_ENTER:
                     evt.key_id = DIKI_ENTER;
                     break;
-               case KEY_LEFTCTRL:
-                    evt.key_id = DIKI_CONTROL_L;
-                    break;
-               case KEY_A:
+               case AKEYCODE_A:
                     evt.key_id = DIKI_A;
                     break;
-               case KEY_S:
+               case AKEYCODE_S:
                     evt.key_id = DIKI_S;
                     break;
-               case KEY_D:
+               case AKEYCODE_D:
                     evt.key_id = DIKI_D;
                     break;
-               case KEY_F:
+               case AKEYCODE_F:
                     evt.key_id = DIKI_F;
                     break;
-               case KEY_G:
+               case AKEYCODE_G:
                     evt.key_id = DIKI_G;
                     break;
-               case KEY_H:
+               case AKEYCODE_H:
                     evt.key_id = DIKI_H;
                     break;
-               case KEY_J:
+               case AKEYCODE_J:
                     evt.key_id = DIKI_J;
                     break;
-               case KEY_K:
+               case AKEYCODE_K:
                     evt.key_id = DIKI_K;
                     break;
-               case KEY_L:
+               case AKEYCODE_L:
                     evt.key_id = DIKI_L;
                     break;
-               case KEY_SEMICOLON:
+               case AKEYCODE_SEMICOLON:
                     evt.key_id = DIKI_SEMICOLON;
                     break;
-               case KEY_APOSTROPHE:
+               case AKEYCODE_APOSTROPHE:
                     evt.key_id = 0;
                     break;
-               case KEY_GRAVE:
+               case AKEYCODE_GRAVE:
                     evt.key_id = 0;
                     break;
-               case KEY_LEFTSHIFT:
+               case AKEYCODE_SHIFT_LEFT:
                     evt.key_id = DIKI_SHIFT_L;
                     break;
-               case KEY_BACKSLASH:
-                    evt.key_id = DIKI_BACKSLASH;
-                    break;
-               case KEY_Z:
-                    evt.key_id = DIKI_Z;
-                    break;
-               case KEY_X:
-                    evt.key_id = DIKI_X;
-                    break;
-               case KEY_C:
-                    evt.key_id = DIKI_C;
-                    break;
-               case KEY_V:
-                    evt.key_id = DIKI_V;
-                    break;
-               case KEY_B:
-                    evt.key_id = DIKI_B;
-                    break;
-               case KEY_N:
-                    evt.key_id = DIKI_N;
-                    break;
-               case KEY_M:
-                    evt.key_id = DIKI_M;
-                    break;
-               case KEY_COMMA:
-                    evt.key_id = DIKI_COMMA;
-                    break;
-               case KEY_DOT:
-                    evt.key_id = 0;
-                    break;
-               case KEY_SLASH:
-                    evt.key_id = DIKI_SLASH;
-                    break;
-               case KEY_RIGHTSHIFT:
+               case AKEYCODE_SHIFT_RIGHT:
                     evt.key_id = DIKI_SHIFT_R;
                     break;
-               case KEY_KPASTERISK:
-                    evt.key_id = 0;
-                    break;
-               case KEY_LEFTALT:
+               case AKEYCODE_ALT_LEFT:
                     evt.key_id = DIKI_ALT_L;
                     break;
-               case KEY_SPACE:
+               case AKEYCODE_ALT_RIGHT:
+                    evt.key_id = DIKI_ALT_R;
+                    break;
+               case AKEYCODE_CTRL_LEFT:
+                    evt.key_id = DIKI_CONTROL_L;
+                    break;
+               case AKEYCODE_CTRL_RIGHT:
+                    evt.key_id = DIKI_CONTROL_R;
+                    break;
+               case AKEYCODE_BACKSLASH:
+                    evt.key_id = DIKI_BACKSLASH;
+                    break;
+               case AKEYCODE_Z:
+                    evt.key_id = DIKI_Z;
+                    break;
+               case AKEYCODE_X:
+                    evt.key_id = DIKI_X;
+                    break;
+               case AKEYCODE_C:
+                    evt.key_id = DIKI_C;
+                    break;
+               case AKEYCODE_V:
+                    evt.key_id = DIKI_V;
+                    break;
+               case AKEYCODE_B:
+                    evt.key_id = DIKI_B;
+                    break;
+               case AKEYCODE_N:
+                    evt.key_id = DIKI_N;
+                    break;
+               case AKEYCODE_M:
+                    evt.key_id = DIKI_M;
+                    break;
+               case AKEYCODE_COMMA:
+                    evt.key_id = DIKI_COMMA;
+                    break;
+               case AKEYCODE_SLASH:
+                    evt.key_id = DIKI_SLASH;
+                    break;
+               case AKEYCODE_SPACE:
                     evt.key_id = DIKI_SPACE;
-                    break;
-               case KEY_CAPSLOCK:
-                    evt.key_id = DIKI_CAPS_LOCK;
-                    break;
-               case KEY_F1:
-                    evt.key_id = DIKI_F1;
-                    break;
-               case KEY_F2:
-                    evt.key_id = DIKI_F2;
-                    break;
-               case KEY_F3:
-                    evt.key_id = DIKI_F3;
-                    break;
-               case KEY_F4:
-                    evt.key_id = DIKI_F4;
-                    break;
-               case KEY_F5:
-                    evt.key_id = DIKI_F5;
-                    break;
-               case KEY_F6:
-                    evt.key_id = DIKI_F6;
-                    break;
-               case KEY_F7:
-                    evt.key_id = DIKI_F7;
-                    break;
-               case KEY_F8:
-                    evt.key_id = DIKI_F8;
-                    break;
-               case KEY_F9:
-                    evt.key_id = DIKI_F9;
-                    break;
-               case KEY_F10:
-                    evt.key_id = DIKI_F10;
-                    break;
-               case KEY_NUMLOCK:
-                    evt.key_id = DIKI_NUM_LOCK;
-                    break;
-               case KEY_SCROLLLOCK:
-                    evt.key_id = DIKI_SCROLL_LOCK;
-                    break;
-               case KEY_KP7:
-                    evt.key_id = DIKI_KP_7;
-                    break;
-               case KEY_KP8:
-                    evt.key_id = DIKI_KP_8;
-                    break;
-               case KEY_KP9:
-                    evt.key_id = DIKI_KP_9;
-                    break;
-               case KEY_KPMINUS:
-                    evt.key_id = DIKI_KP_MINUS;
-                    break;
-               case KEY_KP4:
-                    evt.key_id = DIKI_KP_4;
-                    break;
-               case KEY_KP5:
-                    evt.key_id = DIKI_KP_5;
-                    break;
-               case KEY_KP6:
-                    evt.key_id = DIKI_KP_6;
-                    break;
-               case KEY_KPPLUS:
-                    evt.key_id = DIKI_KP_PLUS;
-                    break;
-               case KEY_KP1:
-                    evt.key_id = DIKI_KP_1;
-                    break;
-               case KEY_KP2:
-                    evt.key_id = DIKI_KP_2;
-                    break;
-               case KEY_KP3:
-                    evt.key_id = DIKI_KP_3;
-                    break;
-               case KEY_KP0:
-                    evt.key_id = DIKI_KP_0;
-                    break;
-               case KEY_KPDOT:
-                    evt.key_id = 0;
                     break;
                default:
                     D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d key_code %d", action, evt.key_code );
