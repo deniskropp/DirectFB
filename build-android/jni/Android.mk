@@ -10,8 +10,8 @@ LOCAL_MODULE := directfb
 DFB_SOURCE = ../..
 KERNEL = $(LOCAL_PATH)/Kernel
 
-LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/.. $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums
-
+LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/.. $(INCLUDES) -I$(LOCAL_PATH)/../freetype2-android/include $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums
+#LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid $(LOCAL_PATH)/../freetype2-android/Android/obj/local/x86/libfreetype2-static.a
 LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid
 
 #
@@ -40,6 +40,7 @@ CPPFLAGS +=	\
 	-DGLES2_PVR2D \
         -DPTHREADMINIT \
 	-DDATADIR=\"/mnt/sdcard/directfb\"	\
+	-DFONT=\"/mnt/sdcard/directfb/decker.ttf\"	\
 	-DSYSCONFDIR=\"/mnt/sdcard/directfb\"
 #
 # Debug option
@@ -305,6 +306,9 @@ DIRECTFB_SOURCES += \
 WM_SOURCES = \
 	$(DFB_SOURCE)/wm/default/default.c
 
+FONTPROVIDER_SOURCES = \
+	$(DFB_SOURCE)/interfaces/IDirectFBFont/idirectfbfont_ft2.c
+
 GFXDRIVER_SOURCES = \
 	$(DFB_SOURCE)/gfxdrivers/gles2/gles2_2d.c	\
 	$(DFB_SOURCE)/gfxdrivers/gles2/gles2_gfxdriver.c	\
@@ -318,12 +322,15 @@ DIRECTFB_SOURCES += \
 	$(DFB_SOURCE)/systems/android/android_layer.c \
 	$(DFB_SOURCE)/systems/android/android_main.c \
 	$(DFB_SOURCE)/systems/android/android_screen.c \
-	$(DFB_SOURCE)/systems/android/android_surface_pool.c \
+	$(DFB_SOURCE)/systems/android/fbo_surface_pool.c \
 	$(DFB_SOURCE)/systems/android/android_system.c
 
 # Test
 DIRECTFB_SOURCES += \
 	$(DFB_SOURCE)/tests/dfbtest_fillrect.c
+#	$(DFB_SOURCE)/../DirectFB-examples/src/df_input.c
+#	$(DFB_SOURCE)/../DirectFB-examples/src/df_andi.c
+#	$(DFB_SOURCE)/../DirectFB-examples/src/df_andi.c
 
 #
 # DirectFB header files
@@ -418,7 +425,8 @@ LOCAL_SRC_FILES := \
 	$(LIB_FUSION_SOURCES_SINGLE)					\
 	$(DIRECTFB_SOURCES)						\
 	$(WM_SOURCES)							\
-	$(GFXDRIVER_SOURCES)
+	$(GFXDRIVER_SOURCES)						\
+#	$(FONTPROVIDER_SOURCES)						\
 #	$(DIVINE_SOURCES)						\
 #	$(SAWMAN_SOURCES)						\
 #	$(FUSIONDALE_SOURCES)
