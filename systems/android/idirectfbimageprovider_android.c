@@ -55,7 +55,7 @@ Construct( IDirectFBImageProvider *thiz, ... );
 
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, ANDROID )
 
-D_DEBUG_DOMAIN(imageProviderANDROID, "ANDROID/ImageProvider", "Android ImageProvider");
+D_DEBUG_DOMAIN( imageProviderANDROID, "ANDROID/ImageProvider", "Android ImageProvider" );
 
 /*
  * private data struct of IDirectFBImageProvider_ANDROID
@@ -260,7 +260,7 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
      data->pitch = (*env)->CallIntMethod( env, bitmap, method );
      CHECK_EXCEPTION( env );
 
-     method = (*env)->GetMethodID( env, clazz, "getConfig", "()Landroid/graphics/Bitmap/Config;" );
+     method = (*env)->GetMethodID( env, clazz, "getConfig", "()Landroid/graphics/Bitmap$Config;" );
      CHECK_EXCEPTION( env );
      if (!method)
           goto error;
@@ -273,7 +273,7 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
      (*env)->NewGlobalRef( env, config );
      CHECK_EXCEPTION( env );
 
-     clazz2 = (*env)->FindClass( env, "android/graphics/Bitmap/Config" );
+     clazz2 = (*env)->FindClass( env, "android/graphics/Bitmap$Config" );
      CHECK_EXCEPTION( env );
      if (!clazz2)
           goto error;
@@ -353,7 +353,7 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           data->format = DSPF_ARGB;
      }
 
-     pixels = (*env)->NewByteArray( env, data->width * data->height );
+     pixels = (*env)->NewByteArray( env, data->pitch * data->height);
      CHECK_EXCEPTION( env );
      if (!pixels)
           goto error;
@@ -379,7 +379,7 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
      (*env)->NewGlobalRef( env, buffer );
      CHECK_EXCEPTION( env );
 
-     method = (*env)->GetMethodID( env, clazz, "copyPixelsToBuffer", "(Ljava/nio/ByteBuffer;)V" );
+     method = (*env)->GetMethodID( env, clazz, "copyPixelsToBuffer", "(Ljava/nio/Buffer;)V" );
      CHECK_EXCEPTION( env );
      if (!method)
           goto error;
@@ -549,7 +549,10 @@ IDirectFBImageProvider_ANDROID_GetSurfaceDescription( IDirectFBImageProvider *th
 
      desc->width  = data->width;
      desc->height = data->height;
-                         
+
+     D_DEBUG_AT( imageProviderANDROID, "GetSurfaceDescription: width=%d height=%d pitch=%d has_alpha=%d pixelformat=%s/%s\n",
+                 data->width, data->height, data->pitch, data->alpha, dfb_pixelformat_name(data->format), dfb_pixelformat_name(desc->pixelformat) );
+
      return DFB_OK;
 }
 
@@ -572,6 +575,9 @@ IDirectFBImageProvider_ANDROID_GetImageDescription( IDirectFBImageProvider *thiz
         
      if (data->alpha)
           desc->caps |= DICAPS_ALPHACHANNEL;
+
+     D_DEBUG_AT( imageProviderANDROID, "GetImageDescription: width=%d height=%d pitch=%d has_alpha=%d pixelformat=%s\n",
+                 data->width, data->height, data->pitch, data->alpha, dfb_pixelformat_name(data->format) );
 
      return DFB_OK;
 }
