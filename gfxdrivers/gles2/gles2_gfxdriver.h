@@ -38,8 +38,6 @@
 #include <GLES2/gl2.h>
 #endif
 
-
-
 typedef enum {
      GLES2BF_UPDATE_TARGET  = 0x00000001,
      GLES2BF_UPDATE_TEXTURE = 0x00000002,
