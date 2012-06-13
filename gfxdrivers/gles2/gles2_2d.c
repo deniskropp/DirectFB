@@ -314,17 +314,13 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
                       GLES2DeviceData *gdev,
                       CardState       *state)
 {
-     #ifdef ANDROID_NDK
-     return;
-     #endif
-
      CoreSurface      *surface = state->source;
-//     GLES2BufferData  *buffer = state->src.handle;
+//   GLES2BufferData  *buffer = state->src.handle;
      GLuint            texture = (GLuint)(long)state->src.handle;
      GLES2ProgramInfo *prog = &gdev->progs[gdev->prog_index];
 
      D_DEBUG_AT(GLES2__2D, "%s( texture %u )\n", __FUNCTION__, texture);
-//     D_MAGIC_ASSERT(buffer, GLES2BufferData);
+//   D_MAGIC_ASSERT(buffer, GLES2BufferData);
 
      glBindTexture( GL_TEXTURE_2D, texture );
 

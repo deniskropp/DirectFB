@@ -84,6 +84,7 @@ typedef struct {
      CoreInputDevice     *input;
 
      JavaVM              *java_vm;
+     char                *app_path;
 
      EGLDisplay           dpy;
      EGLContext           ctx;
