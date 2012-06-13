@@ -520,14 +520,14 @@ fboRead( CoreSurfacePool       *pool,
 
      (void) alloc;
 
-
+/*
      buff = (GLuint *)D_MALLOC(rect->w * rect->h * 4);
      if (!buff) {
           D_ERROR("EGL: failed to allocate %d bytes for texture download!\n",
                   rect->w * rect->h);
           return D_OOM();
      }
-
+*/
 
      int fbo;
 
@@ -536,11 +536,11 @@ fboRead( CoreSurfacePool       *pool,
      glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
 
      glReadPixels(rect->x, rect->y,
-                  rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, buff);
+                  rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, destination);
 
      glBindFramebuffer( GL_FRAMEBUFFER, fbo );
 
-
+/*
      pixels_per_line = pitch/4;
 
      sline = buff;
@@ -562,7 +562,7 @@ fboRead( CoreSurfacePool       *pool,
      }
 
      D_FREE(buff);
-
+*/
      return DFB_OK;
 }
 
@@ -600,7 +600,7 @@ fboWrite( CoreSurfacePool       *pool,
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
-
+/*
      buff = (GLuint *)D_MALLOC(rect->w * rect->h * 4);
      if (!buff) {
           D_ERROR("EGL: failed to allocate %d bytes for texture upload!\n",
@@ -627,14 +627,17 @@ fboWrite( CoreSurfacePool       *pool,
           sline += pixels_per_line;
           dline += rect->w;
      }
-
+*/
      //glTexSubImage2D(GL_TEXTURE_2D, 0,
      //                rect->x, rect->y,
      //                rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, buff);
+     // glTexImage2D(GL_TEXTURE_2D, 0,
+     //              GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, buff);
      glTexImage2D(GL_TEXTURE_2D, 0,
-                  GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, buff);
+                  GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, source);
 
-     D_FREE(buff);
+
+     //D_FREE(buff);
 
 
 
