@@ -633,6 +633,7 @@ fboWrite( CoreSurfacePool       *pool,
      //                rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, buff);
      // glTexImage2D(GL_TEXTURE_2D, 0,
      //              GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, buff);
+     glPixelStorei( GL_UNPACK_ALIGNMENT, 8);
      glTexImage2D(GL_TEXTURE_2D, 0,
                   GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, source);
 
