@@ -64,29 +64,29 @@ typedef struct {
      IDirectFBImageProvider_data base;
 
      char *path;
-     int   size;
      int   width;
      int   height;
      int   alpha;
      int   pitch;
      int   format;
-     char *data;
      char *image;
 
-     jobject    buffer;
      jbyteArray pixels;
-     jobject    bitmap;
-     jobject    config;
 } IDirectFBImageProvider_ANDROID_data;
 
 extern AndroidData *m_data;
 
-#define CHECK_EXCEPTION( env ) {		\
-     if ((*env)->ExceptionCheck(env)) {		\
-          (*env)->ExceptionDescribe( env );	\
-          (*env)->ExceptionClear( env );	\
-          return DFB_INIT;			\
-     }						\
+static int
+check_exception( JNIEnv *env )
+{
+     if ((*env)->ExceptionCheck(env)) {
+          (*env)->ExceptionDescribe( env );
+          (*env)->ExceptionClear( env );
+
+          return 1;
+     }
+
+     return 0;
 }
 
 static DFBResult
@@ -94,16 +94,16 @@ readBufferStream( IDirectFBImageProvider_ANDROID_data  *data,
                   char                                **bufferData,
                   int                                  *bufferSize )
 {
-     IDirectFBDataBuffer *buffer = data->base.buffer;
+     IDirectFBDataBuffer *buffer     = data->base.buffer;
+     int                  total_size = 0;
+     const int            bufsize    = 0x10000;
+     char                *buf        = NULL;
      DFBResult            ret;
      int                  len;
-     int                  total_size = 0;
-     const int            bufsize = 0x10000;
-     char                *buf = NULL;
      char                *rbuf; 
 
      while (1) {
-          rbuf = realloc(buf, total_size + bufsize);
+          rbuf = realloc( buf, total_size + bufsize );
           if (!rbuf) {
                free( buf );
                return DFB_NOSYSTEMMEMORY;
@@ -153,145 +153,145 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
      jobject     config  = 0;
      jstring     format  = 0;
      const char *fvalue  = 0;
+     char       *sdata   = 0;
+     int         ssize   = 0;
 
      if (data->image)
           return DFB_OK;
 
      (*m_data->java_vm)->AttachCurrentThread( m_data->java_vm, &env, NULL );
-     if (!env)
+     if (!env) {
+          D_DEBUG_AT( imageProviderANDROID, "decodeImage: Failed to attach current thread to JVM\n" );
           return DFB_INIT;
-
-     if (!data->path && !data->size) {
-          ret = readBufferStream( data, &data->data, &data->size );
-          if (ret)
-               return ret;
      }
 
      clazz = (*env)->FindClass( env, "android/graphics/BitmapFactory" );
-     CHECK_EXCEPTION( env );
-     if (!clazz)
+     if (check_exception( env ) || !clazz)
           return DFB_INIT;
 
      if (data->path) {
           method = (*env)->GetStaticMethodID( env, clazz, "decodeFile", "(Ljava/lang/String;)Landroid/graphics/Bitmap;" );
-          CHECK_EXCEPTION( env );
-          if (!method)
+          if (check_exception( env ) || !method)
                return DFB_INIT;
 
           path = (*env)->NewStringUTF( env, data->path );
-          CHECK_EXCEPTION( env );
-          if (!path)
-               return DFB_INIT;
+          if (check_exception( env ) || !path)
+               return DFB_NOSYSTEMMEMORY;
 
           bitmap = (*env)->CallStaticObjectMethod( env, clazz, method, path );
-          CHECK_EXCEPTION( env );
-          if (!bitmap) {
+          if (check_exception( env ) || !bitmap) {
                (*env)->DeleteLocalRef( env, path );
+               check_exception( env );
                return DFB_INIT;
           }
 
           (*env)->DeleteLocalRef( env, path );
-          CHECK_EXCEPTION( env );
+          if (check_exception( env ))
+               return DFB_INIT;
      }
      else {
           jbyteArray jArray = 0;
 
+          ret = readBufferStream( data, &sdata, &ssize );
+          if (ret)
+               return ret;
+
           method = (*env)->GetStaticMethodID( env, clazz, "decodeByteArray", "([BII)Landroid/graphics/Bitmap;" );
-          CHECK_EXCEPTION( env );
-          if (!method)
+          if (check_exception( env ) || !method) {
+               free( sdata );
                return DFB_INIT;
+          }
 
-          jArray = (*env)->NewByteArray( env, data->size );
-          CHECK_EXCEPTION( env );
-          if (!jArray)
-               return DFB_INIT;
+          jArray = (*env)->NewByteArray( env, ssize );
+          if (check_exception( env ) || !jArray) {
+               free( sdata );
+               return DFB_NOSYSTEMMEMORY;
+          }
 
-          (*env)->GetByteArrayRegion(env, jArray, 0, data->size, buffer);
-          CHECK_EXCEPTION( env );
-
-          bitmap = (*env)->CallStaticObjectMethod( env, clazz, method, data, 0, data->size );
-          CHECK_EXCEPTION( env );
-          if (!bitmap) {
+          (*env)->SetByteArrayRegion(env, jArray, 0, ssize, sdata);
+          if (check_exception( env )) {
                (*env)->DeleteLocalRef( env, jArray );
+               check_exception( env );
+               free( sdata );
+               return DFB_INIT;
+          }
+
+          bitmap = (*env)->CallStaticObjectMethod( env, clazz, method, jArray, 0, ssize );
+          if (check_exception( env ) || !bitmap) {
+               free( sdata );
+               (*env)->DeleteLocalRef( env, jArray );
+               check_exception( env );
                return DFB_INIT;
           }
 
           (*env)->DeleteLocalRef( env, jArray );
-          CHECK_EXCEPTION( env );
+          if (check_exception( env )) {
+               free( sdata );
+               return DFB_INIT;
+          }
+
+          free( sdata );
      }
 
-     (*env)->NewGlobalRef( env, bitmap );
-     CHECK_EXCEPTION( env );
-
      clazz = (*env)->GetObjectClass(env, bitmap);
-     CHECK_EXCEPTION( env );
-     if (!clazz)
-          goto error;
+     if (check_exception( env ) || !clazz)
+          return DFB_INIT;
 
      method = (*env)->GetMethodID( env, clazz, "getWidth", "()I" );
-     CHECK_EXCEPTION( env );
-     if (!method)
-          goto error;
+     if (check_exception( env ) || !method)
+          return DFB_INIT;
 
      data->width = (*env)->CallIntMethod( env, bitmap, method );
-     CHECK_EXCEPTION( env );
+     if (check_exception( env ))
+          return DFB_INIT;
 
      method = (*env)->GetMethodID( env, clazz, "getHeight", "()I" );
-     CHECK_EXCEPTION( env );
-     if (!method)
-          goto error;
+     if (check_exception( env ) || !method)
+          return DFB_INIT;
 
      data->height = (*env)->CallIntMethod( env, bitmap, method );
-     CHECK_EXCEPTION( env );
+     if (check_exception( env ))
+          return DFB_INIT;
 
      method = (*env)->GetMethodID( env, clazz, "hasAlpha", "()Z" );
-     CHECK_EXCEPTION( env );
-     if (!method)
-          goto error;
+     if (check_exception( env ) || !method)
+          return DFB_INIT;
 
      data->alpha = (*env)->CallBooleanMethod( env, bitmap, method );
-     CHECK_EXCEPTION( env );
+     if (check_exception( env ))
+          return DFB_INIT;
 
      method = (*env)->GetMethodID( env, clazz, "getRowBytes", "()I" );
-     CHECK_EXCEPTION( env );
-     if (!method)
-          goto error;
+     if (check_exception( env ) || !method)
+          return DFB_INIT;
 
      data->pitch = (*env)->CallIntMethod( env, bitmap, method );
-     CHECK_EXCEPTION( env );
+     if (check_exception( env ))
+          return DFB_INIT;
 
      method = (*env)->GetMethodID( env, clazz, "getConfig", "()Landroid/graphics/Bitmap$Config;" );
-     CHECK_EXCEPTION( env );
-     if (!method)
-          goto error;
+     if (check_exception( env ) || !method)
+          return DFB_INIT;
 
      config = (*env)->CallObjectMethod( env, bitmap, method );
-     CHECK_EXCEPTION( env );
-     if (!config)
-          goto error;
-
-     (*env)->NewGlobalRef( env, config );
-     CHECK_EXCEPTION( env );
+     if (check_exception( env ) || !config)
+          return DFB_INIT;
 
      clazz2 = (*env)->FindClass( env, "android/graphics/Bitmap$Config" );
-     CHECK_EXCEPTION( env );
-     if (!clazz2)
-          goto error;
+     if (check_exception( env ) || !clazz2)
+          return DFB_INIT;
 
      method = (*env)->GetMethodID( env, clazz2, "name", "()Ljava/lang/String;" );
-     CHECK_EXCEPTION( env );
-     if (!method)
-          goto error;
+     if (check_exception( env ) || !method)
+          return DFB_INIT;
 
      format = (jstring)(*env)->CallObjectMethod( env, config, method );
-     CHECK_EXCEPTION( env );
-     if (!format)
-          goto error;
+     if (check_exception( env ) || !format)
+          return DFB_INIT;
 
      fvalue = (*env)->GetStringUTFChars( env, format, 0 );
-     CHECK_EXCEPTION( env );
-     if (!fvalue)
-          goto error;
+     if (check_exception( env ) || !fvalue)
+          return DFB_NOSYSTEMMEMORY;
 
      if (!strcmp( fvalue, "ALPHA_8" )) {
           data->format = DSPF_A8;
@@ -309,6 +309,10 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           data->format = DSPF_UNKNOWN;
      }
 
+     (*env)->ReleaseStringUTFChars( env, format, fvalue );
+     if (check_exception( env ))
+          return DFB_INIT;
+
      if (DSPF_ARGB != data->format) {
           const wchar_t nconfig_name[] = L"ARGB_8888";
           jstring       jconfig_name   = 0;
@@ -316,37 +320,47 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           jobject       bitmap_config  = 0;
 
           jconfig_name = (*env)->NewString( env, (const jchar*)nconfig_name, wcslen(nconfig_name) );
-          CHECK_EXCEPTION( env );
-          if (!jconfig_name)
-               goto error;
+          if (check_exception( env ) || !jconfig_name)
+               return DFB_INIT;
 
           config_clazz = (*env)->FindClass( env, "android/graphics/Bitmap$Config" );
-          CHECK_EXCEPTION( env );
-          if (!config_clazz)
-               goto error;
+          if (check_exception( env ) || !config_clazz) {
+               (*env)->DeleteLocalRef( env, jconfig_name );
+               check_exception( env );
+               return DFB_INIT;
+          }
 
           method = (*env)->GetStaticMethodID( env, config_clazz, "valueOf", "(Ljava/lang/String;)Landroid/graphics/Bitmap$Config;" );
-          CHECK_EXCEPTION( env );
-          if (!method)
-               goto error;
+          if (check_exception( env ) || !method) {
+               (*env)->DeleteLocalRef( env, jconfig_name );
+               check_exception( env );
+               return DFB_INIT;
+          }
 
           bitmap_config = (*env)->CallStaticObjectMethod( env, config_clazz, method, jconfig_name );
-          CHECK_EXCEPTION( env );
-          if (!bitmap_config)
-               goto error;
+          if (check_exception( env ) || !bitmap_config) {
+               (*env)->DeleteLocalRef( env, jconfig_name );
+               check_exception( env );
+               return DFB_INIT;
+          }
 
           method = (*env)->GetMethodID( env, clazz, "copy", "(Landroid/graphics/Bitmap/Config;Z)Landroid/graphics/Bitmap;" );
-          CHECK_EXCEPTION( env );
-          if (!method)
-               goto error;
+          if (check_exception( env ) || !method) {
+               (*env)->DeleteLocalRef( env, jconfig_name );
+               check_exception( env );
+               return DFB_INIT;
+          }
 
           convert = (*env)->CallObjectMethod( env, bitmap, method,  bitmap_config, 0 );
-          CHECK_EXCEPTION( env );
-          if (!convert)
-               goto error;
+          if (check_exception( env ) || !convert) {
+               (*env)->DeleteLocalRef( env, jconfig_name );
+               check_exception( env );
+               return DFB_INIT;
+          }
 
-          (*env)->DeleteGlobalRef( env, bitmap );
-          CHECK_EXCEPTION( env );
+          (*env)->DeleteLocalRef( env, jconfig_name );
+          if (check_exception( env ))
+               return DFB_INIT;
 
           bitmap = convert;
 
@@ -354,82 +368,59 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
      }
 
      pixels = (*env)->NewByteArray( env, data->pitch * data->height);
-     CHECK_EXCEPTION( env );
-     if (!pixels)
-          goto error;
-
-     (*env)->NewGlobalRef( env, pixels );
-     CHECK_EXCEPTION( env );
+     if (check_exception( env ) || !pixels)
+          return DFB_NOSYSTEMMEMORY;
 
      clazz2 = (*env)->FindClass( env, "java/nio/ByteBuffer" );
-     CHECK_EXCEPTION( env );
-     if (!clazz2)
-          goto error;
+     if (check_exception( env ) || !clazz2) {
+          (*env)->DeleteLocalRef( env, pixels );
+          check_exception( env );
+          return DFB_INIT;
+     }
 
      method = (*env)->GetStaticMethodID( env, clazz2, "wrap", "([B)Ljava/nio/ByteBuffer;" );
-     CHECK_EXCEPTION( env );
-     if (!method)
-          goto error;
+     if (check_exception( env ) || !method) {
+          (*env)->DeleteLocalRef( env, pixels );
+          check_exception( env );
+          return DFB_INIT;
+     }
 
      buffer = (*env)->CallStaticObjectMethod( env, clazz2, method, pixels );
-     CHECK_EXCEPTION( env );
-     if (!buffer)
-          goto error;
-
-     (*env)->NewGlobalRef( env, buffer );
-     CHECK_EXCEPTION( env );
+     if (check_exception( env ) || !buffer) {
+          (*env)->DeleteLocalRef( env, pixels );
+          check_exception( env );
+          return DFB_INIT;
+     }
 
      method = (*env)->GetMethodID( env, clazz, "copyPixelsToBuffer", "(Ljava/nio/Buffer;)V" );
-     CHECK_EXCEPTION( env );
-     if (!method)
-          goto error;
+     if (check_exception( env ) || !method) {
+          (*env)->DeleteLocalRef( env, pixels );
+          check_exception( env );
+          return DFB_INIT;
+     }
 
      (*env)->CallVoidMethod( env, bitmap, method, buffer );
-     CHECK_EXCEPTION( env );
+     if (check_exception( env )) {
+          (*env)->DeleteLocalRef( env, pixels );
+          check_exception( env );
+          return DFB_INIT;
+     }
+
+     data->pixels = (*env)->NewGlobalRef( env, pixels );
+     if (check_exception( env )) {
+          (*env)->DeleteLocalRef( env, pixels );
+          check_exception( env );
+          return DFB_INIT;
+     }
 
      data->image = (*env)->GetByteArrayElements( env, pixels, 0 );
-     CHECK_EXCEPTION( env );
-     if (!data->image)
-          goto error;
-
-     if (!data->path) {
-          free( data->data );
+     if (check_exception( env ) || !data->image) {
+          (*env)->DeleteLocalRef( env, pixels );
+          check_exception( env );
+          return DFB_INIT;
      }
-
-     data->buffer  = buffer;
-     data->pixels  = pixels;
-     data->bitmap  = bitmap;
-     data->config  = config;
 
      return DFB_OK;
-
-error:
-     if (bitmap) {
-          (*env)->DeleteGlobalRef( env, bitmap );
-          CHECK_EXCEPTION( env );
-     }
-
-     if (convert) {
-          (*env)->DeleteGlobalRef( env, convert );
-          CHECK_EXCEPTION( env );
-     }
-
-     if (config) {
-          (*env)->DeleteGlobalRef( env, config );
-          CHECK_EXCEPTION( env );
-     }
-
-     if (pixels) {
-          (*env)->DeleteGlobalRef( env, pixels );
-          CHECK_EXCEPTION( env );
-     }
-
-     if (buffer) {
-          (*env)->DeleteGlobalRef( env, buffer );
-          CHECK_EXCEPTION( env );
-     }
-
-     return DFB_INIT;
 }
 
 static void
@@ -440,20 +431,18 @@ IDirectFBImageProvider_ANDROID_Destruct( IDirectFBImageProvider *thiz )
      IDirectFBImageProvider_ANDROID_data *data = (IDirectFBImageProvider_ANDROID_data *)thiz->priv;
 
      (*m_data->java_vm)->AttachCurrentThread( m_data->java_vm, &env, NULL );
-     if (!env)
+     if (!env) {
+          D_DEBUG_AT( imageProviderANDROID, "Destruct: Failed to attach current thread to JVM\n" );
           return;
+     }
 
-     if (data->bitmap)
-          (*env)->DeleteGlobalRef( env, data->bitmap );
+     if (data->image) {
+          (*env)->ReleaseByteArrayElements( env, data->pixels, data->image, JNI_ABORT );
+          check_exception( env );
+     }
 
-     if (data->pixels)
-          (*env)->DeleteGlobalRef( env, data->pixels );
-
-     if (data->buffer)
-          (*env)->DeleteGlobalRef( env, data->buffer );
-
-     if (data->config)
-          (*env)->DeleteGlobalRef( env, data->config );
+     (*env)->DeleteGlobalRef( env, data->pixels );
+     check_exception( env );
 
      if (data->path)
           D_FREE( data->path );
@@ -626,8 +615,6 @@ Construct( IDirectFBImageProvider *thiz,
                D_PERROR( "ImageProvider/ANDROID: Failure during fstat() of '%s'!\n", buffer_data->filename );
                goto error;
           }
-
-          data->size = info.st_size;
      }
 
      data->base.ref    = 1;
