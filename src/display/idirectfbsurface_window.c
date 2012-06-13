@@ -424,7 +424,9 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      stack = window->stack;
      D_MAGIC_ASSERT( stack, CoreWindowStack );
 
-     CoreWindowStack_GetInsets( stack, window, &insets );
+     ret = CoreWindow_GetInsets( window, &insets );
+     if (ret)
+          return ret;
 
      ret = CoreWindow_GetSurface( window, &surface );
      if (ret)

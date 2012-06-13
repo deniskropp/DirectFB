@@ -452,5 +452,17 @@ interface {
 	method {
 		name	AllowFocus
 	}
+
+
+	method {
+		name GetInsets
+
+		arg {
+			name		insets
+			direction	output
+			type		struct
+			typename	DFBInsets
+		}
+	}
 }
 

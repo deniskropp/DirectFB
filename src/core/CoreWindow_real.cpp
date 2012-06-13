@@ -461,5 +461,26 @@ IWindow_Real::AllowFocus()
 }
 
 
+DFBResult
+IWindow_Real::GetInsets(
+     DFBInsets                                *ret_insets
+)
+{
+    DFBResult ret;
+
+    D_DEBUG_AT( Core_Window, "IWindow_Real::%s()\n", __FUNCTION__ );
+
+    ret = (DFBResult) dfb_layer_context_lock( obj->stack->context );
+    if (ret)
+         return ret;
+
+    ret = dfb_wm_get_insets( obj->stack, obj, ret_insets );
+
+    dfb_layer_context_unlock( obj->stack->context );
+
+    return ret;
+}
+
+
 }
 
