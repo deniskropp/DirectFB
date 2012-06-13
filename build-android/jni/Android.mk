@@ -11,8 +11,8 @@ DFB_SOURCE = ../..
 KERNEL = $(LOCAL_PATH)/Kernel
 
 LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/.. $(INCLUDES) -I$(LOCAL_PATH)/../freetype2-android/include $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums
-#LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid $(LOCAL_PATH)/../freetype2-android/Android/obj/local/x86/libfreetype2-static.a
-LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid
+LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid $(LOCAL_PATH)/../freetype2-android/Android/obj/local/x86/libfreetype2-static.a
+#LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid
 
 #
 # Version definition
@@ -326,11 +326,10 @@ DIRECTFB_SOURCES += \
 	$(DFB_SOURCE)/systems/android/android_system.c
 
 # Test
-DIRECTFB_SOURCES += \
-	$(DFB_SOURCE)/tests/dfbtest_fillrect.c
+DIRECTFB_SOURCES += $(CLANBOMBER_SOURCES)
+#	$(DFB_SOURCE)/../DirectFB-examples/src/df_andi.c
 #	$(DFB_SOURCE)/../DirectFB-examples/src/df_input.c
-#	$(DFB_SOURCE)/../DirectFB-examples/src/df_andi.c
-#	$(DFB_SOURCE)/../DirectFB-examples/src/df_andi.c
+#	$(DFB_SOURCE)/tests/dfbtest_fillrect.c
 
 #
 # DirectFB header files
@@ -415,6 +414,70 @@ FUSIONDALE_SOURCES = \
 	$(DFB_SOURCE)/FusionDale/proxy/requestor/icoma_requestor.c		\
 	$(DFB_SOURCE)/FusionDale/proxy/requestor/icomacomponent_requestor.c
 
+CLANBOMBER_INCLUDES = \
+	-I$(DFB_SOURCE)/ClanBomber2/clanbomber \
+	-I$(DFB_SOURCE)/FusionSound/include/
+
+CLANBOMBER_SOURCES = \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Controller_Keyboard.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Disease.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Observer.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapTile_Arrow.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapTile_None.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Bomber.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/cl_vector.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapTile_Ice.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Debug.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Extra.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Extra_Joint.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Disease_PutBomb.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Extra_Koks.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapEntry.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Corpse_Part.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Disease_Stoned.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Thread.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Chat.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Controller_Joystick.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/GameStatus_Team.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Menu.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Disease_Frozen.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/ClientSetup.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/ClanBomber.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapTile_Trap.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Resources.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Extra_Viagra.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Explosion.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/GameStatus.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapTile_Box.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/ServerSetup.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Credits.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Controller_RCMouse.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Timer.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/PlayerSetup.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Controller.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Controller_AI.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/GameObject.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Bomb.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Config.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapTile_Wall.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Map.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Extra_Glove.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Extra_Skateboard.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Bomber_Corpse.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Event.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapEditor.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Extra_Kick.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Controller_AI_mass.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Mutex.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Disease_Fast.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Extra_Bomb.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Extra_Power.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapTile.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Server.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/Client.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapSelector.cpp \
+	$(DFB_SOURCE)/../ClanBomber2/clanbomber/MapTile_Ground.cpp
+
 #
 #
 # Build list of all objects
@@ -426,7 +489,7 @@ LOCAL_SRC_FILES := \
 	$(DIRECTFB_SOURCES)						\
 	$(WM_SOURCES)							\
 	$(GFXDRIVER_SOURCES)						\
-#	$(FONTPROVIDER_SOURCES)						\
+	$(FONTPROVIDER_SOURCES)
 #	$(DIVINE_SOURCES)						\
 #	$(SAWMAN_SOURCES)						\
 #	$(FUSIONDALE_SOURCES)
@@ -438,7 +501,8 @@ INCLUDES += \
 	$(DIRECTFB_INCLUDES)						\
 	$(DIVINE_INCLUDES)						\
 	$(SAWMAN_INCLUDES)						\
-	$(FUSIONDALE_INCLUDES)
+	$(FUSIONDALE_INCLUDES)						\
+	$(CLANBOMBER_INCLUDES)
 
 
 
@@ -448,5 +512,3 @@ LOCAL_STATIC_LIBRARIES := android_native_app_glue
 include $(BUILD_SHARED_LIBRARY)
 
 $(call import-module,android/native_app_glue)
-
-
