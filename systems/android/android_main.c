@@ -159,12 +159,13 @@ native_handle_input( struct android_app *app, AInputEvent *event )
           int action = AKeyEvent_getAction( event );
           int meta   = AKeyEvent_getMetaState( event );
           int flags  = AKeyEvent_getFlags( event );
-          
+
+/*          
           if (!(flags & AKEY_EVENT_FLAG_FROM_SYSTEM)) {
                D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d (non-system)", action );
                return 0;
           }
-
+*/
           if (flags & AKEY_EVENT_FLAG_CANCELED) {
                D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d (cancel)", action );
                return 0;
