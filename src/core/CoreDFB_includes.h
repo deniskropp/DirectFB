@@ -469,7 +469,7 @@ CoreSurface_Lookup( CoreDFB      *core,
      if (ret)
           return (DirectResult) ret;
 
-     if (surface->object.owner && surface->object.owner != caller) {
+     if (caller != FUSION_ID_MASTER && surface->object.owner && surface->object.owner != caller) {
           dfb_surface_unref( surface );
           return DR_ACCESSDENIED;
      }
