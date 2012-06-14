@@ -348,9 +348,6 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
           D_DEBUG_AT(GLES2__2D, "  -> w %d h %d, scale x %f scale y %f\n",
                      w, h, 1.0f/w, 1.0f/h);
 
-          glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-          glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
           glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
           glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -738,6 +735,9 @@ gles2SetState(void                *drv,
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
           case DFXL_FILLTRIANGLE:
+               // FIXME: workaround state issue in some drivers?
+               glBlendFunc(GL_ZERO, GL_ZERO);
+               GLES2_INVALIDATE(BLENDFUNC);
                // If alpha blending is used...
                if (state->drawingflags & DSDRAW_BLEND) {
                     // ...require valid blend functions.
@@ -745,6 +745,7 @@ gles2SetState(void                *drv,
                     glEnable(GL_BLEND);
                }
                else {
+                    glBlendFunc(GL_ONE, GL_ZERO);
                     glDisable(GL_BLEND);
                }
 
@@ -793,6 +794,10 @@ gles2SetState(void                *drv,
 
           case DFXL_BLIT:
           case DFXL_STRETCHBLIT:
+               // FIXME: workaround state issue in some drivers?
+               glBlendFunc(GL_ZERO, GL_ZERO);
+               GLES2_INVALIDATE(BLENDFUNC);
+
                // If alpha blending is used...
                if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                            DSBLIT_BLEND_COLORALPHA)) {
@@ -802,11 +807,21 @@ gles2SetState(void                *drv,
                     blend = DFB_TRUE;
                }
                else {
+                    glBlendFunc(GL_ONE, GL_ZERO);
                     glDisable(GL_BLEND);
                     blend = DFB_FALSE;
                }
+               // If normal blitting or color keying is used...
+               if (accel == DFXL_BLIT || (state->blittingflags & DSBLIT_SRC_COLORKEY)) {
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+               }
+               else {
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+               }
 
-               /*
+            /*
              * Validate the current shader program.  This can't use the the
              * GLES2_CHECK_VALIDATE macro since the needed state isn't
              * tracked by DFB.

@@ -82,8 +82,10 @@ typedef struct {
      drmModeConnector    *connector;
      drmModeEncoder      *encoder;
      drmModeModeInfo      mode;
+     drmModeRes          *resources;
+     drmModeCrtcPtr       saved_crtc;
 
-     drmEventContext     drmeventcontext;
+     drmEventContext      drmeventcontext;
 
      VirtualTerminal     *vt;
 
@@ -98,4 +100,3 @@ typedef struct {
 
 
 #endif
-

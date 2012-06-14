@@ -373,6 +373,43 @@ native_handle_input( struct android_app *app, AInputEvent *event )
                case AKEYCODE_SPACE:
                     evt.key_id = DIKI_SPACE;
                     break;
+               case AKEYCODE_F1:
+                    evt.key_id = DIKI_F1;
+                    break;
+               case AKEYCODE_F2:
+                    evt.key_id = DIKI_F2;
+                    break;
+               case AKEYCODE_F3:
+                    evt.key_id = DIKI_F3;
+                    break;
+               case AKEYCODE_F4:
+                    evt.key_id = DIKI_F4;
+                    break;
+               case AKEYCODE_F5:
+                    evt.key_id = DIKI_F5;
+                    break;
+               case AKEYCODE_F6:
+                    evt.key_id = DIKI_F6;
+                    break;
+               case AKEYCODE_F7:
+                    evt.key_id = DIKI_F7;
+                    break;
+               case AKEYCODE_F8:
+                    evt.key_id = DIKI_F8;
+                    break;
+               case AKEYCODE_F9:
+                    evt.key_id = DIKI_F9;
+                    break;
+               case AKEYCODE_F10:
+                    evt.key_id = DIKI_F10;
+                    break;
+               case AKEYCODE_F11:
+                    evt.key_id = DIKI_F11;
+                    break;
+               case AKEYCODE_F12:
+                    evt.key_id = DIKI_F12;
+                    break;
+
                default:
                     D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d key_code %d", action, evt.key_code );
                     return 0;

@@ -256,9 +256,22 @@ system_shutdown( bool emergency )
 
      dfb_surface_pool_destroy( shared->pool );
 
+     if (m_data->saved_crtc) {
+          drmModeSetCrtc( m_data->fd, m_data->saved_crtc->crtc_id, m_data->saved_crtc->buffer_id, m_data->saved_crtc->x,
+                          m_data->saved_crtc->y, &m_data->connector->connector_id, 1, &m_data->saved_crtc->mode );
+
+          drmModeFreeCrtc( m_data->saved_crtc );
+     }
+
      /* cleanup EGL related stuff */
+     eglMakeCurrent( m_data->dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT );
      eglDestroyContext( m_data->dpy, m_data->ctx );
      eglTerminate( m_data->dpy );
+
+     if (m_data->resources)
+          drmModeFreeResources( m_data->resources );
+
+     gbm_device_destroy( m_data->gbm );
 
      /* close drm fd */
      close( m_data->fd );
