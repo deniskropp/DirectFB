@@ -36,7 +36,7 @@ ifusiondalemessenger_DATA = libifusiondalemessenger_one.o
 endif
 
 
-libifusiondale_one_la_SOURCES = ifusiondale_one.c
+libifusiondale_one_la_SOURCES = ifusiondale_one.c ifusiondale_one.h
 libifusiondale_one_la_LDFLAGS = -avoid-version -module
 libifusiondale_one_la_LIBADD  = $(ONE_LIBS)
 
