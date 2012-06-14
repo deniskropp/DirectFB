@@ -45,6 +45,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 
+#include <voodoo/conf.h>
 #include <voodoo/server.h>
 
 /*****************************************************************************/
@@ -162,7 +163,7 @@ server_run()
      DirectResult  ret;
      VoodooServer *server;
 
-     ret = voodoo_server_create( &server );
+     ret = voodoo_server_create( NULL, 0, voodoo_config->server_fork, &server );
      if (ret) {
           D_ERROR( "Voodoo/Proxy: Could not create the server (%s)!\n", FusionSoundErrorString(ret) );
           return ret;
