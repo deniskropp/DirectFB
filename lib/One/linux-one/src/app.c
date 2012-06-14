@@ -193,6 +193,9 @@ OneApp_New( OneDev  *dev,
      oneapp->one_id    = one_id;
      oneapp->recv_data = NULL;
 
+     oneapp->link.magic = 0;
+     oneapp->magic      = 0;
+
      one_core_wq_init( one_core, &oneapp->wait_for_free );
      one_core_wq_init( one_core, &oneapp->wait_for_packets );
 
