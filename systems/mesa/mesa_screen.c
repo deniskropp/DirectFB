@@ -117,6 +117,9 @@ mesaInitScreen( CoreScreen           *screen,
 
      D_INFO( "DirectFB/Mesa: Default mode is %dx%d\n", mesa->mode.hdisplay, mesa->mode.vdisplay );
 
+     mesa->resources = resources;
+     mesa->saved_crtc = drmModeGetCrtc( mesa->fd, mesa->encoder->crtc_id );
+
      return DFB_OK;
 }
 
