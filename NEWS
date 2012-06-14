@@ -1,3 +1,50 @@
+1.6.0
+-----
+
+New APIs
+- DWOP_STEREO_SIDE_BY_SIDE_HALF to have stereo output without changing buffers
+- Increase number of preallocated entries in DFBSurfaceDescription to 3
+- Add IDirectFBInputDevice::SetConfiguration() with DFBInputDeviceConfiguration featuring sensitivity setting
+- Add IDirectFBFont::GetDescription() to retrieve the font description with which the font had been created
+- Add IDirectFBWindow::SetGeometry() to set src and dst geometry in one call
+- Add supported HDMI signaling modes (all_framing) to DFBScreenEncoderDescription
+- Add DSOR_960_540 to DFBScreenOutputResolution
+- Add IDirectFBSurface::GetID() to retrieve the object id of the CoreSurface
+- Add IDirectFBSurface::AllowAccess() to allow other process identified by an executable name access to the surface in secure fusion mode
+- Add "primary-id" option for CreateSurface(PRIMARY)
+- Add IDirectFB::GetSurface(ID)
+- Add DFBSurfaceEventType with DSEVT_DESTROYED and DSEVT_UPDATE
+- Add DFBSurfaceEvent with type, surface_id and update region for left and right buffer
+- Add IDirectFBSurface::CreateEventBuffer, AttachEventBuffer and DetachEventBuffer
+- Add DSOR_1440_540 to DFBScreenOutputResolution
+- Add IDirectFBSurface::MakeClient() and FrameAck()
+- Fixed DFBInputDeviceCapabilities naming, there was a naming clash with DFBImageCapabilities enum
+- Add IDirectFBSurface::GetColorSpace()
+- Add IDirectFBImageProvider::SetRenderFlags()
+- Add DSCAPS_GL to indicate surface data is stored in memory that can be accessed by a GL accelerator
+- Add DFBDisplayAspectRatio in caps and config of encoders
+- Add DFB_ASPECT_RATIO_eAuto, DFB_ASPECT_RATIO_e4x3, DFB_ASPECT_RATIO_e16x9
+- Add DSECAPS_ASPECT_RATIO to DFBScreenEncoderCapabilities
+- Add all_aspect_ratio in DFBScreenEncoderDescription
+- Add aspect_ratio in DFBScreenEncoderConfig
+- Add DSPF_LUT4 and DSPF_ALUT8, only definitions for now
+
+Secure Fusion
+- In secure mode all skirmishs are gone
+- Performance improvements over non-secure mode
+
+Compositor Support
+- New APIs allow compositor application to get access to surfaces and updates of other applications
+
+Mesa incl multi app (experimental)
+- New system module with OpenGL based acceleration
+
+Android (highly experimental)
+- New system module allowing DirectFB apps to run on Android
+
+...many other changes, must read ChangeLog.
+
+
 1.5.3
 -----
 
