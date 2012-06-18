@@ -299,6 +299,11 @@ pvr2d_validate_BLITFLAGS(PVR2DDriverData *gdrv,
      if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
           gdrv->bltinfo.BlitFlags |= PVR2D_BLIT_PERPIXEL_ALPHABLEND_ENABLE;
 
+     if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+          gdrv->bltinfo.BlitFlags |= PVR2D_BLIT_GLOBAL_ALPHA_ENABLE;
+	  gdrv->bltinfo.GlobalAlphaValue = state->color.a;
+     }
+
      // Set the flag.
      PVR2D_VALIDATE(BLITFLAGS);
 }
