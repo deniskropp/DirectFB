@@ -747,6 +747,9 @@ pvr2dStretchBlit(void *drv, void *dev,
 
      PVR2DERROR ePVR2DStatus;
 
+     if (!srect->w) srect->w = 1;
+     if (!srect->h) srect->h = 1;
+
      gdrv->bltinfo.DstX   = drect->x;
      gdrv->bltinfo.DstY   = drect->y;
      gdrv->bltinfo.DSizeX = drect->w;
@@ -767,4 +770,3 @@ pvr2dStretchBlit(void *drv, void *dev,
 
      return true;
 }
-
