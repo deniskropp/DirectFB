@@ -24,6 +24,11 @@
 
 #include <config.h>
 
+#define EGL_EGLEXT_PROTOTYPES
+
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
 #include <directfb.h>
 
 #include <direct/debug.h>
@@ -130,10 +135,11 @@ gles2_validate_SCISSOR(GLES2DriverData *gdrv,
                        CardState       *state)
 {
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
-
+//FIXME reenable again
      glEnable(GL_SCISSOR_TEST);
      glScissor(state->clip.x1,
                state->clip.y1,
+               //state->dst.allocation->config.size.h - state->clip.y1 - (state->clip.y2 - state->clip.y1 + 1),
                state->clip.x2 - state->clip.x1 + 1,
                state->clip.y2 - state->clip.y1 + 1);
 
@@ -201,13 +207,23 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
                           m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
           }
           else {
+               int fbo;
+
+               glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
                // Just need the X & Y scale factors and constant offsets.
 #ifdef GLES2_PVR2D
-               glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
-               glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
+               if (fbo) {
+                    glUniform3f(prog->dfbScale, 2.0f/w, 2.0f/h, - 1.0f);
+               }
+               else {
+                    glUniform3f(prog->dfbScale, 2.0f/w, -2.0f/h, 1.0f);
+               }
+               //glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
+               //glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
 #else
-               glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
-               glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
+               glUniform3f(prog->dfbScale, 2.0f/w, 2.0f/h, - 1.0f);
+               //glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
+               //glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
 #endif
 
                D_DEBUG_AT(GLES2__2D, "  -> loaded scale factors %f %f\n",
@@ -576,7 +592,7 @@ gles2EngineSync(void *drv, void *dev)
 
      if (gdrv->calls > 0) {
           glFinish();
-
+          //eglSwapBuffers( eglGetCurrentDisplay(), eglGetCurrentSurface( EGL_DRAW ) );
           gdrv->calls = 0;
      }
 
