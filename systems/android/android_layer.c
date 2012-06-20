@@ -57,9 +57,14 @@ androidInitLayer( CoreLayer                  *layer,
 
 
      config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
-     config->width       = dfb_config->mode.width  ?: DEFAULT_SCREEN_WIDTH;
-     config->height      = dfb_config->mode.height ?: DEFAULT_SCREEN_HEIGHT;
-     config->pixelformat = dfb_config->mode.format ?: DEFAULT_PIXELFORMAT;
+     config->width       = dfb_config->mode.width  ?: android->shared->screen_size.w;
+     config->height      = dfb_config->mode.height ?: android->shared->screen_size.h;
+
+     if (android->shared->native_pixelformat == HAL_PIXEL_FORMAT_BGRA_8888)
+          config->pixelformat = DSPF_ABGR;
+     else
+          config->pixelformat = DSPF_ARGB;
+
      config->buffermode  = DLBM_BACKVIDEO;
 
      return DFB_OK;

@@ -34,6 +34,8 @@
 #include <android/log.h>
 #include <android_native_app_glue.h>
 
+#include <system/graphics.h>
+
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android-dfb", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "android-dfb", __VA_ARGS__))
 
@@ -73,6 +75,7 @@ typedef struct {
      CoreSurfacePool     *pool;
 
      DFBDimension         screen_size;
+     uint32_t             native_pixelformat;
 } AndroidDataShared;
 
 typedef struct {
@@ -106,18 +109,5 @@ typedef struct {
     DirectThread *main_thread;
 } AndroidNativeData;
 
-
-// HTC with adreno
-/*
-#define DEFAULT_SCREEN_WIDTH  960
-#define DEFAULT_SCREEN_HEIGHT 540
-#define DEFAULT_PIXELFORMAT DSPF_ARGB
-#define DEFAULT_HAL_PIXEL_FORMAT HAL_PIXEL_FORMAT_ARGB_8888
-*/
-// android-x86 on eeepc (mesa)
-#define DEFAULT_SCREEN_WIDTH  1024
-#define DEFAULT_SCREEN_HEIGHT 600
-#define DEFAULT_PIXELFORMAT DSPF_ABGR
-#define DEFAULT_HAL_PIXEL_FORMAT HAL_PIXEL_FORMAT_BGRA_8888
 
 #endif

@@ -54,8 +54,9 @@ dfb_main_thread( DirectThread *thread,
                  void         *arg )
 {
      int   ret;
-     char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
-     //char *argv[] = { "android-native-dfb-app", "--dfb:force-windowed" };
+//   char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
+     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug" };
+//   char *argv[] = { "android-native-dfb-app", "--dfb:force-windowed" };
      
 
      LOGI( "Running main()..." );

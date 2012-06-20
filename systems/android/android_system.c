@@ -73,7 +73,7 @@ InitLocal( AndroidData *android )
              EGL_GREEN_SIZE, 8,
              EGL_RED_SIZE, 8,
              EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-             EGL_NATIVE_VISUAL_ID, 1, 
+             EGL_NATIVE_VISUAL_ID, HAL_PIXEL_FORMAT_RGBA_8888,    // DSPF_ARGB
              EGL_NONE
      };
 
@@ -104,9 +104,6 @@ InitLocal( AndroidData *android )
      eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
 
      D_INFO("##################### FORMAT %d\n", format);
-     ANativeWindow_setBuffersGeometry(native_data.app->window, 0, 0, format);
-     int f = ANativeWindow_getFormat(native_data.app->window);
-     D_INFO("######### format=%d\n", f);
 
      ANativeWindow_setBuffersGeometry( native_data.app->window, 0, 0, format);
 
@@ -127,7 +124,8 @@ InitLocal( AndroidData *android )
      android->ctx = context;
      android->surface = surface;
      android->shared->screen_size.w = w;
-     android->shared->screen_size.h = h;
+     android->shared->screen_size.h = h;     
+     android->shared->native_pixelformat = ANativeWindow_getFormat(native_data.app->window);
 
      // Initialize GL state.
 //     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
