@@ -77,8 +77,8 @@ androidGetScreenSize( CoreScreen *screen,
 
      D_UNIMPLEMENTED();
 
-     *ret_width  = 1024;
-     *ret_height = 600;
+     *ret_width  = DEFAULT_SCREEN_WIDTH;
+     *ret_height = DEFAULT_SCREEN_HEIGHT;
 
      return DFB_OK;
 }
