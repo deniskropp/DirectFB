@@ -2912,6 +2912,8 @@ fusion_dispatch_cleanup_add( FusionWorld                  *world,
                              void                         *ctx,
                              FusionDispatchCleanup       **ret_cleanup )
 {
+     func( ctx );
+
      return DR_OK;
 }
 
