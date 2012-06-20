@@ -40,6 +40,7 @@
 #include <core/system.h>
 
 #include <gfx/convert.h>
+#include <gfx/util.h>
 
 #include "gles2_2d.h"
 #include "gles2_gfxdriver.h"
@@ -135,7 +136,7 @@ gles2_validate_SCISSOR(GLES2DriverData *gdrv,
                        CardState       *state)
 {
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
-//FIXME reenable again
+
      glEnable(GL_SCISSOR_TEST);
      glScissor(state->clip.x1,
                state->clip.y1,
@@ -158,7 +159,9 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
                            CardState       *state)
 {
      CoreSurface *surface  = state->destination;
+#ifdef GLES2_USE_FBO
      GLuint       color_rb = (GLuint)(long)state->dst.handle;
+#endif
 
 
      D_DEBUG_AT( GLES2__2D, "%s( color_rb %u )\n", __FUNCTION__, color_rb );
@@ -218,19 +221,15 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
                else {
                     glUniform3f(prog->dfbScale, 2.0f/w, -2.0f/h, 1.0f);
                }
-               //glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
-               //glUniform2f(prog->dfbScale, 2.0f/w, -2.0f/h);
 #else
                glUniform3f(prog->dfbScale, 2.0f/w, 2.0f/h, - 1.0f);
-               //glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
-               //glUniform2f(prog->dfbScale, 2.0f/w, 2.0f/h);
 #endif
 
                D_DEBUG_AT(GLES2__2D, "  -> loaded scale factors %f %f\n",
                           2.0f/w, 2.0f/h);
           }
 
-          GLES2_INVALIDATE(ALL);
+//          GLES2_INVALIDATE(ALL);
 //          buffer->flags &= ~GLES2BF_UPDATE_TARGET;
      }
 
@@ -624,7 +623,7 @@ gles2EmitCommands(void *drv, void *dev)
 
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
-     if (gdrv->calls > 523) {
+     if (gdrv->calls > 0) {
           glFlush();
 
           gdrv->calls = 1;
@@ -642,9 +641,13 @@ gles2CheckState(void                *drv,
                 CardState           *state,
                 DFBAccelerationMask  accel)
 {
+     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
+
      D_DEBUG_AT(GLES2__2D, "%s(state %p, accel 0x%08x) <- dest %p [%lu]\n",
                 __FUNCTION__, state, accel, state->destination,
                 state->dst.offset);
+
+     dfb_simplify_blittingflags( &blittingflags );
 
      // Return if the desired function is not supported at all.
      if (accel & ~(GLES2_SUPPORTED_DRAWINGFUNCTIONS |
@@ -664,9 +667,9 @@ gles2CheckState(void                *drv,
      }
      else {
           // Return if unsupported blitting flags are set.
-          if (state->blittingflags & ~GLES2_SUPPORTED_BLITTINGFLAGS) {
+          if (blittingflags & ~GLES2_SUPPORTED_BLITTINGFLAGS) {
                D_DEBUG_AT(GLES2__2D, "  -> unsupported blit flags 0x%08x\n",
-                          state->blittingflags);
+                          blittingflags);
                return;
           }
      }
@@ -754,6 +757,7 @@ gles2SetState(void                *drv,
                // FIXME: workaround state issue in some drivers?
                glBlendFunc(GL_ZERO, GL_ZERO);
                GLES2_INVALIDATE(BLENDFUNC);
+
                // If alpha blending is used...
                if (state->drawingflags & DSDRAW_BLEND) {
                     // ...require valid blend functions.
@@ -766,10 +770,10 @@ gles2SetState(void                *drv,
                }
 
                /*
-             * Validate the current shader program.  This can't use the the
-             * GLES2_CHECK_VALIDATE macro since the needed state isn't
-             * tracked by DFB.
-             */
+                * Validate the current shader program.  This can't use the the
+                * GLES2_CHECK_VALIDATE macro since the needed state isn't
+                * tracked by DFB.
+                */
                if (state->render_options & DSRO_MATRIX) {
                     if (gdev->prog_index != GLES2_DRAW_MAT) {
                          // switch to program that uses 3x3 2D matrices
@@ -793,6 +797,7 @@ gles2SetState(void                *drv,
 
                // Check for valid drawing color.
                GLES2_CHECK_VALIDATE(COLOR_DRAW);
+
 
                // Enable vertex positions and disable texture coordinates.
                glEnableVertexAttribArray(GLES2VA_POSITIONS);
@@ -827,21 +832,12 @@ gles2SetState(void                *drv,
                     glDisable(GL_BLEND);
                     blend = DFB_FALSE;
                }
-               // If normal blitting or color keying is used...
-               if (accel == DFXL_BLIT || (state->blittingflags & DSBLIT_SRC_COLORKEY)) {
-                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-               }
-               else {
-                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-               }
 
-            /*
-             * Validate the current shader program.  This can't use the the
-             * GLES2_CHECK_VALIDATE macro since the needed state isn't
-             * tracked by DFB.
-             */
+               /*
+                * Validate the current shader program.  This can't use the the
+                * GLES2_CHECK_VALIDATE macro since the needed state isn't
+                * tracked by DFB.
+                */
                if (state->render_options & DSRO_MATRIX) {
                     if (state->blittingflags & DSBLIT_SRC_COLORKEY && !blend) {
                          if (gdev->prog_index != GLES2_BLIT_COLORKEY_MAT) {
@@ -899,6 +895,17 @@ gles2SetState(void                *drv,
                GLES2_CHECK_VALIDATE(DESTINATION);
                GLES2_CHECK_VALIDATE(SOURCE);
 
+               // If normal blitting or color keying is used...
+               if (accel == DFXL_BLIT || (state->blittingflags & DSBLIT_SRC_COLORKEY)) {
+                    // ...don't use filtering
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+               }
+               else {
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+               }
+
                // Check if DSRO_MATRIX needs to be loaded.
                GLES2_CHECK_VALIDATE(MATRIX);
 
@@ -908,9 +915,9 @@ gles2SetState(void                *drv,
                }
 
                /*
-             * To reduce the number of shader programs, the blit fragment
-             * shader always modulates by a color.  Validate that color.
-             */
+                * To reduce the number of shader programs, the blit fragment
+                * shader always modulates by a color.  Validate that color.
+                */
                GLES2_CHECK_VALIDATE(COLOR_BLIT);
 
                // Enable vertex positions and texture coordinates.
@@ -918,13 +925,13 @@ gles2SetState(void                *drv,
                glEnableVertexAttribArray(GLES2VA_TEXCOORDS);
 
                /*
-          * 3) Tell which functions can be called without further
-          * validation, i.e. SetState().
+                * 3) Tell which functions can be called without further
+                * validation, i.e. SetState().
                 *
                 * When the hw independent state is changed, this collection is
                 * reset.
                 */
-               state->set = GLES2_SUPPORTED_BLITTINGFUNCTIONS;
+               state->set = accel;
                break;
 
           default:
