@@ -135,12 +135,15 @@ gles2_validate_SCISSOR(GLES2DriverData *gdrv,
                        GLES2DeviceData *gdev,
                        CardState       *state)
 {
+     int fbo;
+
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
+
+     glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
 
      glEnable(GL_SCISSOR_TEST);
      glScissor(state->clip.x1,
-               state->clip.y1,
-               //state->dst.allocation->config.size.h - state->clip.y1 - (state->clip.y2 - state->clip.y1 + 1),
+               fbo ? state->clip.y1 : (state->dst.allocation->config.size.h - state->clip.y2 - 1),
                state->clip.x2 - state->clip.x1 + 1,
                state->clip.y2 - state->clip.y1 + 1);
 
