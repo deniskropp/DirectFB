@@ -106,5 +106,18 @@ typedef struct {
     DirectThread *main_thread;
 } AndroidNativeData;
 
-#endif
 
+// HTC with adreno
+/*
+#define DEFAULT_SCREEN_WIDTH  960
+#define DEFAULT_SCREEN_HEIGHT 540
+#define DEFAULT_PIXELFORMAT DSPF_ARGB
+#define DEFAULT_HAL_PIXEL_FORMAT HAL_PIXEL_FORMAT_ARGB_8888
+*/
+// android-x86 on eeepc (mesa)
+#define DEFAULT_SCREEN_WIDTH  1024
+#define DEFAULT_SCREEN_HEIGHT 600
+#define DEFAULT_PIXELFORMAT DSPF_ABGR
+#define DEFAULT_HAL_PIXEL_FORMAT HAL_PIXEL_FORMAT_BGRA_8888
+
+#endif

@@ -108,7 +108,7 @@ AndroidAllocNativeBuffer( FBOAllocationData *alloc, int width, int height )
      buffer_handle_t buf_handle = NULL;
      int stride = 0;
      int usage = GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_SW_READ_OFTEN;
-     int format = HAL_PIXEL_FORMAT_BGRA_8888;
+     int format = DEFAULT_HAL_PIXEL_FORMAT;
 
      alloc->alloc_mod->alloc( alloc->alloc_mod, width, height, format, usage, &buf_handle, &stride );
      if (!buf_handle) {

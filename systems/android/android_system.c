@@ -102,10 +102,16 @@ InitLocal( AndroidData *android )
       * As soon as we picked a EGLConfig, we can safely reconfigure the
       * ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
      eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
-D_INFO("##################### FORMAT %d\n", format);
+
+     D_INFO("##################### FORMAT %d\n", format);
      ANativeWindow_setBuffersGeometry(native_data.app->window, 0, 0, format);
-int f = ANativeWindow_getFormat(native_data.app->window);
-D_INFO("######### format=%d\n", f);
+     int f = ANativeWindow_getFormat(native_data.app->window);
+     D_INFO("######### format=%d\n", f);
+
+     ANativeWindow_setBuffersGeometry( native_data.app->window, 0, 0, format);
+
+//     ANativeActivity_setWindowFlags( native_data.app->window, AWINDOW_FLAG_FULLSCREEN | AWINDOW_FLAG_KEEP_SCREEN_ON , 0 );
+
      surface = eglCreateWindowSurface(display, config, native_data.app->window, NULL);
      context = eglCreateContext(display, config, NULL, ctx_attribs);
 
