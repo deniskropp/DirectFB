@@ -314,12 +314,12 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           return DFB_INIT;
 
      if (DSPF_ARGB != data->format) {
-          const wchar_t nconfig_name[] = L"ARGB_8888";
-          jstring       jconfig_name   = 0;
-          jclass        config_clazz   = 0;
-          jobject       bitmap_config  = 0;
+          const char *nconfig_name  = "ARGB_8888";
+          jstring     jconfig_name  = 0;
+          jclass      config_clazz  = 0;
+          jobject     bitmap_config = 0;
 
-          jconfig_name = (*env)->NewString( env, (const jchar*)nconfig_name, wcslen(nconfig_name) );
+          jconfig_name = (*env)->NewStringUTF( env, nconfig_name );
           if (check_exception( env ) || !jconfig_name)
                return DFB_INIT;
 
@@ -344,7 +344,7 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
                return DFB_INIT;
           }
 
-          method = (*env)->GetMethodID( env, clazz, "copy", "(Landroid/graphics/Bitmap/Config;Z)Landroid/graphics/Bitmap;" );
+          method = (*env)->GetMethodID( env, clazz, "copy", "(Landroid/graphics/Bitmap$Config;Z)Landroid/graphics/Bitmap;" );
           if (check_exception( env ) || !method) {
                (*env)->DeleteLocalRef( env, jconfig_name );
                check_exception( env );
@@ -367,7 +367,7 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           data->format = DSPF_ARGB;
      }
 
-     pixels = (*env)->NewByteArray( env, data->pitch * data->height);
+     pixels = (*env)->NewByteArray( env, data->pitch * 2 * data->height); // FIXME: *2 is a stupid workaround
      if (check_exception( env ) || !pixels)
           return DFB_NOSYSTEMMEMORY;
 
@@ -533,6 +533,7 @@ IDirectFBImageProvider_ANDROID_GetSurfaceDescription( IDirectFBImageProvider *th
 
      if (data->alpha)
           desc->pixelformat = DFB_PIXELFORMAT_HAS_ALPHA(primary_format) ? primary_format : DSPF_ARGB;
+          //desc->pixelformat = DSPF_ABGR;
      else
           desc->pixelformat = primary_format;
 

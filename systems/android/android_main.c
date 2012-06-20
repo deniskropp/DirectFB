@@ -54,11 +54,14 @@ dfb_main_thread( DirectThread *thread,
                  void         *arg )
 {
      int   ret;
-     char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
+//   char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
+     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug", "-a" };
+//   char *argv[] = { "android-native-dfb-app", "--dfb:force-windowed" };
+     
 
      LOGI( "Running main()..." );
 
-     ret = main( 2, argv );
+     ret = main( 3, argv );
 
      LOGI( "main() has returned %d!", ret );
 
@@ -80,6 +83,7 @@ native_handle_input( struct android_app *app, AInputEvent *event )
      if (type == AINPUT_EVENT_TYPE_MOTION) {
           int action = AMotionEvent_getAction( event ) & AMOTION_EVENT_ACTION_MASK;
           int meta   = AMotionEvent_getMetaState (event );
+          int proc   = 0;
 
           if ((meta & AMETA_SHIFT_ON) || (meta & AMETA_SHIFT_LEFT_ON) || (meta & AMETA_SHIFT_RIGHT_ON))
                evt.modifiers |= DIMM_SHIFT;
@@ -91,63 +95,76 @@ native_handle_input( struct android_app *app, AInputEvent *event )
                evt.modifiers |= DIMM_HYPER;
 
           switch (action) {
-               case AMOTION_EVENT_ACTION_DOWN:
-                    evt.type    = DIET_BUTTONPRESS;
-                    evt.button  = DIBI_LEFT;
-                    evt.buttons = DIBM_LEFT;
-                    evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
-                    evt.axis    = DIAI_X;
-                    evt.axisabs = AMotionEvent_getX( event, 0 );
-
-                    dfb_input_dispatch( m_data->input, &evt );
-
-                    evt.axis    = DIAI_Y;
-                    evt.axisabs = AMotionEvent_getY( event, 0 );
-                    evt.flags  &= ~DIEF_FOLLOW;
-
-                    dfb_input_dispatch( m_data->input, &evt );
-
-                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event DOWN\n" );
-
-                    return 1;
-
                case AMOTION_EVENT_ACTION_UP:
                     evt.type    = DIET_BUTTONRELEASE;
                     evt.button  = DIBI_LEFT;
                     evt.buttons = DIBM_LEFT;
                     evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
                     evt.axis    = DIAI_X;
+                    evt.min = 0;//FIXME
+                    evt.max = 1023;//FIXME
                     evt.axisabs = AMotionEvent_getX( event, 0 );
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     evt.axis    = DIAI_Y;
+                    evt.min = 0;//FIXME
+                    evt.max = 599;//FIXME
                     evt.axisabs = AMotionEvent_getY( event, 0 );
                     evt.flags  &= ~DIEF_FOLLOW;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event UP\n" );
+D_INFO("UP\n");
+                    break;
 
-                    return 1;
-
-               case AMOTION_EVENT_ACTION_MOVE:
-                    evt.type    = DIET_AXISMOTION;
+               case AMOTION_EVENT_ACTION_DOWN:
+                    evt.type    = DIET_BUTTONPRESS;
+                    evt.button  = DIBI_LEFT;
+                    evt.buttons = DIBM_LEFT;
                     evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
                     evt.axis    = DIAI_X;
+                    evt.min = 0;//FIXME
+                    evt.max = 1023;//FIXME
                     evt.axisabs = AMotionEvent_getX( event, 0 );
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     evt.axis    = DIAI_Y;
+                    evt.min = 0;//FIXME
+                    evt.max = 599;//FIXME
+                    evt.axisabs = AMotionEvent_getY( event, 0 );
+                    evt.flags  &= ~DIEF_FOLLOW;
+
+                    dfb_input_dispatch( m_data->input, &evt );
+
+                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event DOWN\n" );
+D_INFO("DOWN\n");
+                    break;
+
+               case AMOTION_EVENT_ACTION_MOVE:
+               case 7:
+                    evt.type    = DIET_AXISMOTION;
+                    evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
+                    evt.axis    = DIAI_X;
+                    evt.min = 0;//FIXME
+                    evt.max = 1023;//FIXME
+                    evt.axisabs = AMotionEvent_getX( event, 0 );
+
+                    dfb_input_dispatch( m_data->input, &evt );
+
+                    evt.axis    = DIAI_Y;
+                    evt.min = 0;//FIXME
+                    evt.max = 599;//FIXME
                     evt.axisabs = AMotionEvent_getY( event, 0 );
                     evt.flags  &= ~DIEF_FOLLOW;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event MOVE\n" );
-
-                    return 1;
+D_INFO("MOVE\n");
+                    break;
 
                default:
                     D_DEBUG_AT( ANDROID_MAIN, "unhandled motion event action %d at (%d,%d)\n",
@@ -499,7 +516,9 @@ android_main( struct android_app* state )
                                                                        ASENSOR_TYPE_ACCELEROMETER);
      native_data.sensorEventQueue = ASensorManager_createEventQueue(native_data.sensorManager,
                                                                     state->looper, LOOPER_ID_USER, NULL, NULL);
-
+D_INFO("#######################################################\n");
+D_INFO("state->window = %p\n", state->window);
+D_INFO("#######################################################\n");
      if (state->savedState != NULL) {
           // We are starting with a previous saved state; restore from it.
 //          native_data.state = *(struct saved_state*)state->savedState;

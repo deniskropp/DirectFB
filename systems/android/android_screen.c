@@ -73,12 +73,11 @@ androidGetScreenSize( CoreScreen *screen,
                    int        *ret_width,
                    int        *ret_height )
 {
+     AndroidData       *android = driver_data;
      AndroidScreenData *data = screen_data;
 
-     D_UNIMPLEMENTED();
-
-     *ret_width  = 1024;
-     *ret_height = 600;
+     *ret_width  = android->shared->screen_size.w;
+     *ret_height = android->shared->screen_size.h;
 
      return DFB_OK;
 }

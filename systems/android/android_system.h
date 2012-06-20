@@ -34,6 +34,8 @@
 #include <android/log.h>
 #include <android_native_app_glue.h>
 
+#include <system/graphics.h>
+
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "android-dfb", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "android-dfb", __VA_ARGS__))
 
@@ -73,6 +75,7 @@ typedef struct {
      CoreSurfacePool     *pool;
 
      DFBDimension         screen_size;
+     uint32_t             native_pixelformat;
 } AndroidDataShared;
 
 typedef struct {
@@ -106,5 +109,5 @@ typedef struct {
     DirectThread *main_thread;
 } AndroidNativeData;
 
-#endif
 
+#endif

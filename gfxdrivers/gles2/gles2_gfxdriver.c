@@ -56,6 +56,7 @@ driver_probe(CoreGraphicsDevice *device)
           case CORE_PVR2D:
           case CORE_EGL:
           case CORE_ANDROID:
+          case CORE_CARE1:
                return 1;
 
           default:

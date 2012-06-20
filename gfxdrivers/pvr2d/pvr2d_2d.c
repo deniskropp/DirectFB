@@ -299,6 +299,11 @@ pvr2d_validate_BLITFLAGS(PVR2DDriverData *gdrv,
      if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
           gdrv->bltinfo.BlitFlags |= PVR2D_BLIT_PERPIXEL_ALPHABLEND_ENABLE;
 
+     if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+          gdrv->bltinfo.BlitFlags |= PVR2D_BLIT_GLOBAL_ALPHA_ENABLE;
+	  gdrv->bltinfo.GlobalAlphaValue = state->color.a;
+     }
+
      // Set the flag.
      PVR2D_VALIDATE(BLITFLAGS);
 }
@@ -747,6 +752,9 @@ pvr2dStretchBlit(void *drv, void *dev,
 
      PVR2DERROR ePVR2DStatus;
 
+     if (!srect->w) srect->w = 1;
+     if (!srect->h) srect->h = 1;
+
      gdrv->bltinfo.DstX   = drect->x;
      gdrv->bltinfo.DstY   = drect->y;
      gdrv->bltinfo.DSizeX = drect->w;
@@ -767,4 +775,3 @@ pvr2dStretchBlit(void *drv, void *dev,
 
      return true;
 }
-

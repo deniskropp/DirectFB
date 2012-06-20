@@ -73,6 +73,7 @@ InitLocal( AndroidData *android )
              EGL_GREEN_SIZE, 8,
              EGL_RED_SIZE, 8,
              EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+             EGL_NATIVE_VISUAL_ID, HAL_PIXEL_FORMAT_RGBA_8888,    // DSPF_ARGB
              EGL_NONE
      };
 
@@ -102,7 +103,11 @@ InitLocal( AndroidData *android )
       * ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
      eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
 
-     ANativeWindow_setBuffersGeometry(native_data.app->window, 0, 0, format);
+     D_INFO("##################### FORMAT %d\n", format);
+
+     ANativeWindow_setBuffersGeometry( native_data.app->window, 0, 0, format);
+
+//     ANativeActivity_setWindowFlags( native_data.app->window, AWINDOW_FLAG_FULLSCREEN | AWINDOW_FLAG_KEEP_SCREEN_ON , 0 );
 
      surface = eglCreateWindowSurface(display, config, native_data.app->window, NULL);
      context = eglCreateContext(display, config, NULL, ctx_attribs);
@@ -119,7 +124,8 @@ InitLocal( AndroidData *android )
      android->ctx = context;
      android->surface = surface;
      android->shared->screen_size.w = w;
-     android->shared->screen_size.h = h;
+     android->shared->screen_size.h = h;     
+     android->shared->native_pixelformat = ANativeWindow_getFormat(native_data.app->window);
 
      // Initialize GL state.
 //     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
@@ -134,7 +140,7 @@ InitLocal( AndroidData *android )
      glClear( GL_COLOR_BUFFER_BIT );
 
      eglSwapBuffers( android->dpy, android->surface );
-
+D_INFO("################################### android->window=%p\n", native_data.app->window);
      return DFB_OK;
 }
 

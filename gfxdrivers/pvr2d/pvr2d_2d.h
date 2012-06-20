@@ -34,10 +34,10 @@
                                            //DFXL_DRAWLINE      | \
                                            //DFXL_FILLTRIANGLE)
 
-#define PVR2D_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL)// | \
+#define PVR2D_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL | \
+                                           DSBLIT_BLEND_COLORALPHA) //
                                            //DSBLIT_SRC_COLORKEY)
                                            //DSBLIT_COLORIZE           )// \
-                                           //DSBLIT_BLEND_COLORALPHA   | \
                                            //DSBLIT_ROTATE180          | \
                                            //DSBLIT_SRC_PREMULTIPLY    | \
                                            //DSBLIT_SRC_PREMULTCOLOR)
