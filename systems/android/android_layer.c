@@ -33,8 +33,8 @@
 
 #include <misc/conf.h>
 
-
 #include "android_system.h"
+#include "fbo_surface_pool.h"
 
 /**********************************************************************************************************************/
 
@@ -59,8 +59,8 @@ androidInitLayer( CoreLayer                  *layer,
      config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
      config->width       = dfb_config->mode.width  ?: 1024;
      config->height      = dfb_config->mode.height ?: 600;
-     config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
-     config->buffermode  = DLBM_FRONTONLY;
+     config->pixelformat = dfb_config->mode.format ?: DSPF_ABGR;
+     config->buffermode  = DLBM_BACKVIDEO;
 
      return DFB_OK;
 }
@@ -105,9 +105,15 @@ androidFlipRegion( CoreLayer                  *layer,
                 CoreSurfaceBufferLock      *left_lock,
                 CoreSurfaceBufferLock      *right_lock )
 {
-     AndroidData *android = driver_data;
+     AndroidData       *android = driver_data;
+     FBOAllocationData *alloc   = (FBOAllocationData *)left_lock->allocation->data;
 
+     alloc->layer_flip = 1;
+
+     dfb_gfx_copy_to( surface, left_lock->buffer->surface, NULL , 0, 0, true );
      eglSwapBuffers(android->dpy, android->surface);
+
+     alloc->layer_flip = 0;
 
      dfb_surface_flip( surface, false );
 

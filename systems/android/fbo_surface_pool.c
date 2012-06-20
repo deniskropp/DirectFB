@@ -49,11 +49,8 @@
 
 #include <idirectfb.h>
 
-#include "hardware/gralloc.h"
-#include "hardware/hardware.h"
-#include "system/window.h"
-
 #include "android_system.h"
+#include "fbo_surface_pool.h"
 
 D_DEBUG_DOMAIN( Android_FBO,     "Android/FBO",     "Android FBO Surface Pool" );
 D_DEBUG_DOMAIN( Android_FBOLock, "Android/FBOLock", "Android FBO Surface Pool Locks" );
@@ -65,39 +62,6 @@ D_DEBUG_DOMAIN( Android_FBOLock, "Android/FBOLock", "Android FBO Surface Pool Lo
           return DFB_INCOMPLETE;                       \
      }                                                 \
 }
-
-/**********************************************************************************************************************/
-
-typedef struct {
-     int             magic;
-} FBOPoolData;
-
-typedef struct {
-     int                  magic;
-
-     CoreDFB             *core;
-
-     AndroidData         *data;
-} FBOPoolLocalData;
-
-typedef struct {
-     int                    magic;
-
-     int                    pitch;
-     int                    size;
-
-     EGLImageKHR            image;
-
-     GLuint                 texture;
-     GLuint                 fbo;
-     GLuint                 color_rb;
-     GLuint                 depth_rb;
-
-     ANativeWindowBuffer_t *win_buf;
-     const hw_module_t     *hw_mod;
-     gralloc_module_t      *gralloc_mod;
-     alloc_device_t        *alloc_mod;
-} FBOAllocationData;
 
 /**********************************************************************************************************************/
 
@@ -417,8 +381,8 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
                                        EGL_NATIVE_BUFFER_ANDROID, buf, eglImgAttrs );
      CHECK_GL_ERROR();
 
-     alloc->pitch = alloc->win_buf->stride;
-     alloc->size  = alloc->win_buf->stride * buffer->config.size.h;
+     alloc->pitch = alloc->win_buf->stride * 4;
+     alloc->size  = alloc->win_buf->stride * 4 * buffer->config.size.h;
 
      int tex, fbo;
 
@@ -588,7 +552,7 @@ fboLock( CoreSurfacePool       *pool,
           case CSAID_GPU:
           case CSAID_LAYER0:
                if (lock->access & CSAF_WRITE) {
-                    if (allocation->type & CSTF_LAYER) {
+                    if (allocation->type & CSTF_LAYER && alloc->layer_flip) {
                          lock->handle = NULL;
 
                          glBindFramebuffer( GL_FRAMEBUFFER, 0 );
