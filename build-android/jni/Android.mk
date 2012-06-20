@@ -10,9 +10,35 @@ LOCAL_MODULE := directfb
 DFB_SOURCE = ../..
 KERNEL = $(LOCAL_PATH)/Kernel
 
-LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/.. $(INCLUDES) -I$(LOCAL_PATH)/../freetype2-android/include $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums
-LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid $(LOCAL_PATH)/../freetype2-android/Android/obj/local/x86/libfreetype2-static.a
-#LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid
+FREETYPE_SRC_PATH:= freetype2-android
+FREETYPE_INCLUDES:= -I $(FREETYPE_SRC_PATH)/include/freetype -I $(FREETYPE_SRC_PATH)/include -I $(FREETYPE_SRC_PATH)/src
+
+FREETYPE_SOURCES := \
+        ../$(FREETYPE_SRC_PATH)/src/autofit/autofit.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/basepic.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftapi.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftbase.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftbbox.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftbitmap.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftdbgmem.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftdebug.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftglyph.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftinit.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftpic.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftstroke.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftsynth.c \
+        ../$(FREETYPE_SRC_PATH)/src/base/ftsystem.c \
+        ../$(FREETYPE_SRC_PATH)/src/cff/cff.c \
+        ../$(FREETYPE_SRC_PATH)/src/pshinter/pshinter.c \
+        ../$(FREETYPE_SRC_PATH)/src/psnames/psnames.c \
+        ../$(FREETYPE_SRC_PATH)/src/raster/raster.c \
+        ../$(FREETYPE_SRC_PATH)/src/sfnt/sfnt.c \
+        ../$(FREETYPE_SRC_PATH)/src/smooth/smooth.c \
+        ../$(FREETYPE_SRC_PATH)/src/truetype/truetype.c
+
+
+LOCAL_CFLAGS = -I$(LOCAL_PATH) -I$(LOCAL_PATH)/..  $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums -DFT2_BUILD_LIBRARY=1
+LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid 
 
 #
 # Version definition
@@ -339,7 +365,9 @@ DIRECTFB_INCLUDES += \
 	-I../src					\
 	-I../proxy/requestor				\
 	-I../proxy/dispatcher			\
-	-I../systems
+	-I../systems				\
+	-IAndroid				\
+	$(FREETYPE_INCLUDES)
 
 
 #
@@ -482,6 +510,7 @@ CLANBOMBER_SOURCES = \
 #
 # Build list of all objects
 LOCAL_SRC_FILES := \
+	$(FREETYPE_SOURCES)						\
 	$(LIB_VOODOO_SOURCES)						\
 	$(LIB_DIRECT_SOURCES)						\
 	$(LIB_FUSION_SOURCES)						\
@@ -489,7 +518,7 @@ LOCAL_SRC_FILES := \
 	$(DIRECTFB_SOURCES)						\
 	$(WM_SOURCES)							\
 	$(GFXDRIVER_SOURCES)						\
-	$(FONTPROVIDER_SOURCES)
+	$(FONTPROVIDER_SOURCES)						\
 #	$(DIVINE_SOURCES)						\
 #	$(SAWMAN_SOURCES)						\
 #	$(FUSIONDALE_SOURCES)
@@ -503,7 +532,6 @@ INCLUDES += \
 	$(SAWMAN_INCLUDES)						\
 	$(FUSIONDALE_INCLUDES)						\
 	$(CLANBOMBER_INCLUDES)
-
 
 
 LOCAL_STATIC_LIBRARIES := android_native_app_glue

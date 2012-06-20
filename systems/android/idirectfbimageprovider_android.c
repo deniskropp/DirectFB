@@ -533,6 +533,7 @@ IDirectFBImageProvider_ANDROID_GetSurfaceDescription( IDirectFBImageProvider *th
 
      if (data->alpha)
           desc->pixelformat = DFB_PIXELFORMAT_HAS_ALPHA(primary_format) ? primary_format : DSPF_ARGB;
+          //desc->pixelformat = DSPF_ABGR;
      else
           desc->pixelformat = primary_format;
 

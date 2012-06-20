@@ -73,6 +73,7 @@ InitLocal( AndroidData *android )
              EGL_GREEN_SIZE, 8,
              EGL_RED_SIZE, 8,
              EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+             EGL_NATIVE_VISUAL_ID, 1, 
              EGL_NONE
      };
 
@@ -101,9 +102,10 @@ InitLocal( AndroidData *android )
       * As soon as we picked a EGLConfig, we can safely reconfigure the
       * ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
      eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
-
+D_INFO("##################### FORMAT %d\n", format);
      ANativeWindow_setBuffersGeometry(native_data.app->window, 0, 0, format);
-
+int f = ANativeWindow_getFormat(native_data.app->window);
+D_INFO("######### format=%d\n", f);
      surface = eglCreateWindowSurface(display, config, native_data.app->window, NULL);
      context = eglCreateContext(display, config, NULL, ctx_attribs);
 
@@ -134,7 +136,7 @@ InitLocal( AndroidData *android )
      glClear( GL_COLOR_BUFFER_BIT );
 
      eglSwapBuffers( android->dpy, android->surface );
-
+D_INFO("################################### android->window=%p\n", native_data.app->window);
      return DFB_OK;
 }
 

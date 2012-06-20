@@ -94,9 +94,15 @@ void main (void) \
 static const char *blit_vert_src = " \
 attribute "HIGHP" vec2   dfbPos; \
 attribute "MEDIUMP" vec2 dfbUV; \
+<<<<<<< HEAD
 uniform "HIGHP" vec3     dfbScale; \
 uniform "MEDIUMP" vec2   dfbTexScale; \
 varying "LOWP" vec2   varTexCoord; \
+=======
+uniform "HIGHP"   vec3   dfbScale; \
+uniform "MEDIUMP" vec2   dfbTexScale; \
+varying "LOWP"    vec2   varTexCoord; \
+>>>>>>> b34dd082196e2090fb4e1865deadf20dceb35cb5
 void main (void) \
 { \
      gl_Position.x = dfbScale.x * dfbPos.x - 1.0; \
@@ -114,10 +120,14 @@ void main (void) \
 static const char *blit_vert_mat_src = " \
 attribute "HIGHP" vec2   dfbPos; \
 attribute "MEDIUMP" vec2 dfbUV; \
-uniform "HIGHP" mat3     dfbMVPMatrix; \
-uniform "HIGHP" mat3     dfbROMatrix; \
+uniform "HIGHP"   mat3   dfbMVPMatrix; \
+uniform "HIGHP"   mat3   dfbROMatrix; \
 uniform "MEDIUMP" vec2   dfbTexScale; \
+<<<<<<< HEAD
 varying "LOWP" vec2   varTexCoord; \
+=======
+varying "LOWP"    vec2   varTexCoord; \
+>>>>>>> b34dd082196e2090fb4e1865deadf20dceb35cb5
 void main (void) \
 { \
      "HIGHP" vec3 pos = dfbMVPMatrix * dfbROMatrix * vec3(dfbPos, 1.0); \
@@ -132,8 +142,13 @@ void main (void) \
  */
 static const char *blit_frag_src = " \
 uniform sampler2D    dfbSampler; \
+<<<<<<< HEAD
 uniform "LOWP" vec4    dfbColor; \
 varying "LOWP" vec2 varTexCoord; \
+=======
+uniform "LOWP" vec4  dfbColor; \
+varying "LOWP" vec2  varTexCoord; \
+>>>>>>> b34dd082196e2090fb4e1865deadf20dceb35cb5
 void main (void) \
 { \
      gl_FragColor = texture2D(dfbSampler, varTexCoord) * dfbColor; \
@@ -145,8 +160,13 @@ void main (void) \
  */
 static const char *blit_colorkey_frag_src = " \
 uniform sampler2D dfbSampler; \
+<<<<<<< HEAD
 uniform "LOWP" vec4      dfbColor; \
 uniform ivec3     dfbColorkey; \
+=======
+uniform "LOWP" vec4   dfbColor; \
+uniform        ivec3  dfbColorkey; \
+>>>>>>> b34dd082196e2090fb4e1865deadf20dceb35cb5
 varying "LOWP" vec2   varTexCoord; \
 void main (void) \
 { \
@@ -168,8 +188,13 @@ void main (void) \
  */
 static const char *blit_premultiply_frag_src = " \
 uniform sampler2D    dfbSampler; \
+<<<<<<< HEAD
 uniform "LOWP" vec4    dfbColor; \
 varying "LOWP" vec2 varTexCoord; \
+=======
+uniform "LOWP" vec4  dfbColor; \
+varying "LOWP" vec2  varTexCoord; \
+>>>>>>> b34dd082196e2090fb4e1865deadf20dceb35cb5
 void main (void) \
 { \
      gl_FragColor = texture2D(dfbSampler, varTexCoord); \
