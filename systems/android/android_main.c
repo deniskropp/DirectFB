@@ -55,13 +55,13 @@ dfb_main_thread( DirectThread *thread,
 {
      int   ret;
 //   char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
-     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug" };
+     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug", "-a" };
 //   char *argv[] = { "android-native-dfb-app", "--dfb:force-windowed" };
      
 
      LOGI( "Running main()..." );
 
-     ret = main( 2, argv );
+     ret = main( 3, argv );
 
      LOGI( "main() has returned %d!", ret );
 

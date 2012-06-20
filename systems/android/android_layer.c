@@ -113,12 +113,15 @@ androidFlipRegion( CoreLayer                  *layer,
      AndroidData       *android = driver_data;
      FBOAllocationData *alloc   = (FBOAllocationData *)left_lock->allocation->data;
 
+
      alloc->layer_flip = 1;
 
+#ifdef ANDROID_USE_FBO_FOR_PRIMARY
      dfb_gfx_copy_to( surface, left_lock->buffer->surface, NULL , 0, 0, true );
-     eglSwapBuffers(android->dpy, android->surface);
-
      alloc->layer_flip = 0;
+#endif
+
+     eglSwapBuffers(android->dpy, android->surface);
 
      dfb_surface_flip( surface, false );
 

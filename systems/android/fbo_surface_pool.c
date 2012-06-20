@@ -454,6 +454,10 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
 
      allocation->size = alloc->size;
 
+#ifndef ANDROID_USE_FBO_FOR_PRIMARY
+     alloc->layer_flip = 1;
+#endif
+
      D_MAGIC_SET( alloc, FBOAllocationData );
 
      return DFB_OK;
