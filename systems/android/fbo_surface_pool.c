@@ -76,7 +76,7 @@ static void decRef(struct android_native_base_t* base)
 typedef int(*HW_GET_MODULE)( const char *, const hw_module_t **);
 
 static ANativeWindowBuffer_t *
-AndroidAllocNativeBuffer( FBOAllocationData *alloc, int width, int height )
+AndroidAllocNativeBuffer( FBOAllocationData *alloc, int width, int height, uint32_t native_pixelformat )
 {
      void *hw_handle = dlopen( "/system/lib/libhardware.so", RTLD_LAZY );
      if (!hw_handle) {
@@ -108,9 +108,8 @@ AndroidAllocNativeBuffer( FBOAllocationData *alloc, int width, int height )
      buffer_handle_t buf_handle = NULL;
      int stride = 0;
      int usage = GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_SW_READ_OFTEN;
-     int format = DEFAULT_HAL_PIXEL_FORMAT;
 
-     alloc->alloc_mod->alloc( alloc->alloc_mod, width, height, format, usage, &buf_handle, &stride );
+     alloc->alloc_mod->alloc( alloc->alloc_mod, width, height, native_pixelformat, usage, &buf_handle, &stride );
      if (!buf_handle) {
           D_ERROR( "DirectFB/EGL: failed to alloc buffer\n");
           return NULL;
@@ -123,7 +122,7 @@ AndroidAllocNativeBuffer( FBOAllocationData *alloc, int width, int height )
      wbuf->width = width;
      wbuf->height = height;
      wbuf->stride = stride;
-     wbuf->format = format;
+     wbuf->format = native_pixelformat;
      wbuf->common.incRef = incRef;
      wbuf->common.decRef = decRef;
      wbuf->usage = usage;
@@ -373,7 +372,7 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
 
      D_INFO("FBO %dx%d\n", buffer->config.size.w, buffer->config.size.h);
 
-     ANativeWindowBuffer_t *buf = AndroidAllocNativeBuffer( alloc, buffer->config.size.w, buffer->config.size.h );
+     ANativeWindowBuffer_t *buf = AndroidAllocNativeBuffer( alloc, buffer->config.size.w, buffer->config.size.h, local->data->shared->native_pixelformat );
 
      CHECK_GL_ERROR();
      EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
@@ -454,6 +453,10 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      glBindTexture( GL_TEXTURE_2D, tex );
 
      allocation->size = alloc->size;
+
+#ifndef ANDROID_USE_FBO_FOR_PRIMARY
+     alloc->layer_flip = 1;
+#endif
 
      D_MAGIC_SET( alloc, FBOAllocationData );
 

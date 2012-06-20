@@ -367,7 +367,7 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           data->format = DSPF_ARGB;
      }
 
-     pixels = (*env)->NewByteArray( env, data->pitch * data->height);
+     pixels = (*env)->NewByteArray( env, data->pitch * 2 * data->height); // FIXME: *2 is a stupid workaround
      if (check_exception( env ) || !pixels)
           return DFB_NOSYSTEMMEMORY;
 
