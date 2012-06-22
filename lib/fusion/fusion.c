@@ -61,13 +61,15 @@
 
 #include <fusion/shm/shm.h>
 
-D_DEBUG_DOMAIN( Fusion_Main,          "Fusion/Main",          "Fusion - High level IPC" );
-D_DEBUG_DOMAIN( Fusion_Main_Dispatch, "Fusion/Main/Dispatch", "Fusion - High level IPC Dispatch" );
 
 #if FUSION_BUILD_MULTI
 
 #include <sys/mman.h>
 #include <sys/utsname.h>
+
+
+D_DEBUG_DOMAIN( Fusion_Main,          "Fusion/Main",          "Fusion - High level IPC" );
+D_DEBUG_DOMAIN( Fusion_Main_Dispatch, "Fusion/Main/Dispatch", "Fusion - High level IPC Dispatch" );
 
 /**********************************************************************************************************************/
 
@@ -2508,7 +2510,7 @@ fusion_kill( FusionWorld *world,
                else {
                     D_PERROR( "Fusion/Main: kill(%d, %d)\n", fusionee->pid, signal );
                }
-          }
+          } 
      }
      
      fusion_skirmish_dismiss( &shared->fusionees_lock );
@@ -2835,156 +2837,6 @@ fusion_is_shared( FusionWorld *world,
 
 #else /* FUSION_BUILD_MULTI */
 
-static void *
-event_dispatcher_loop( DirectThread *thread, void *arg )
-{
-     const int    call_size = sizeof( FusionEventDispatcherCall );
-     FusionWorld *world     = arg;
-
-     D_DEBUG_AT( Fusion_Main_Dispatch, "%s() running...\n", __FUNCTION__ );
-
-     while (1) {
-          FusionEventDispatcherBuffer *buf;
-
-          direct_mutex_lock( &world->event_dispatcher_mutex );
-
-          if (!world->event_dispatcher_buffers)
-               direct_waitqueue_wait( &world->event_dispatcher_cond, &world->event_dispatcher_mutex );
-
-          buf = (FusionEventDispatcherBuffer *)world->event_dispatcher_buffers;
-          
-          if (buf->can_free) {
-               direct_list_remove( &world->event_dispatcher_buffers, &buf->link);
-               D_FREE( buf );
-               direct_mutex_unlock( &world->event_dispatcher_mutex );
-               continue;
-          }
-
-          if (buf->read_pos >= buf->write_pos) {
-               D_ASSERT( buf->read_pos == buf->write_pos );
-               direct_waitqueue_wait( &world->event_dispatcher_cond, &world->event_dispatcher_mutex );
-          }
-
-          if (world->event_dispatcher_buffers) {
-               FusionEventDispatcherCall *msg = (FusionEventDispatcherCall*)&buf[buf->read_pos];
-D_INFO("msg at bufpos=%d\n", buf->read_pos);
-               D_DEBUG_AT( Fusion_Main_Dispatch, "\n" );
-
-               buf->read_pos += call_size;
-               if (!msg->flags & FCEF_ONEWAY)
-                    buf->read_pos += msg->length;
-
-               if (world->dispatch_stop) {
-                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
-               }
-               else {
-                    if (msg->call_handler3) {
-D_INFO("handler3\n");
-                         if (FCHR_RETAIN == msg->call_handler3( 1, msg->call_arg, msg->ptr, msg->length, msg->call_ctx, 0, msg->ret_ptr, msg->ret_size, &msg->ret_length )) {
-                              D_WARN( "RETAIN!\n" );
-                         }
-D_INFO("returned from handler3\n");
-                    }
-                    else if (msg->call_handler) {
-                         D_INFO("msg=%p\n", msg);
-D_INFO("handler1 h=%p call_arg=%d ptr->%p ctx=%p\n", msg->call_handler, msg->call_arg, msg->ptr, msg->call_ctx);
-                         if (FCHR_RETAIN == msg->call_handler( 1, msg->call_arg, msg->ptr, msg->call_ctx, 0, &msg->ret_val )) {
-                              D_WARN( "RETAIN!\n" );
-                         }
-D_INFO("returned from handler\n");
-                    }
-                    else {
-                         D_ASSERT( 0 );
-                    }
-
-                    if (!(msg->flags & FCEF_ONEWAY)) {
-                         direct_mutex_lock( &msg->mutex );
-     
-                         msg->processed = 1;
-                         direct_waitqueue_signal( &msg->cond );
-                         direct_mutex_unlock( &msg->mutex );
-                    }
-               }
-          }
-          else {
-               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (buffer empty!)\n" );
-          }
-
-          direct_mutex_unlock( &world->event_dispatcher_mutex );
-
-          if (!world->refs) {
-               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
-               return NULL;
-          }
-     }
-
-     return NULL;
-}
-
-DirectResult _fusion_event_dispatcher_process( FusionWorld *world, FusionEventDispatcherCall *call, FusionEventDispatcherCall **ret )
-{
-     const int call_size = sizeof( FusionEventDispatcherCall );
-
-     direct_mutex_lock( &world->event_dispatcher_mutex );
-
-     if (!(call->flags & FCEF_ONEWAY)) {
-D_INFO("--- call is sync!\n");
-          direct_mutex_init( &call->mutex );
-          direct_waitqueue_init( &call->cond );
-     }
-     else {
-D_INFO("--- call is async!\n");
-     }
-
-     if (!world->event_dispatcher_buffers) {
-          FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
-          direct_list_append( &world->event_dispatcher_buffers, &new_buf->link );
-     }
-
-     FusionEventDispatcherBuffer *buf = (FusionEventDispatcherBuffer *)direct_list_get_last( world->event_dispatcher_buffers );
-     D_ASSERT( NULL != buf );
-
-     if (buf->write_pos + call_size + call->length > EVENT_DISPATCHER_BUFFER_LENGTH) {
-          buf->can_free = 1;
-          FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
-          direct_list_append( &world->event_dispatcher_buffers, &new_buf->link );
-          buf = new_buf;
-     }
-
-     *ret = (FusionEventDispatcherCall *)&buf[buf->write_pos];
-D_INFO("copy to writepos=%d (%d bytes)\n", buf->write_pos, call_size);
-     // copy data and signal dispatcher
-     memcpy( *ret, call, call_size );
-
-     buf->write_pos += call_size;
-
-     // copy extra data to buffer
-     if (call->flags & FCEF_ONEWAY && call->length) {
-D_INFO("(async) copy extra data to writepos=%d\n", buf->write_pos);
-          (*ret)->ptr = &buf->buffer[buf->write_pos];
-D_INFO("memcpy1 buf=%p ptr=%p\n", *ret, (*ret)->ptr);
-          memcpy( (*ret)->ptr, call->ptr, call->length );
-D_INFO("memcpy2\n");
-          buf->write_pos += call->length;
-     }
-
-     direct_waitqueue_signal( &world->event_dispatcher_cond );
-
-     direct_mutex_unlock( &world->event_dispatcher_mutex );
-
-     if (!(call->flags & FCEF_ONEWAY)) {
-D_INFO("core: call_ctx=%p\n", call->call_ctx);
-          direct_mutex_lock( &call->mutex );
-
-          if (!call->processed)
-               direct_waitqueue_wait( &call->cond, &call->mutex );
-
-          direct_mutex_unlock( &call->mutex );
-     }
-D_INFO("return from process\n");
-     return DR_OK;
-}
-
 /*
  * Enters a fusion world by joining or creating it.
  *
@@ -3030,15 +2882,10 @@ DirectResult fusion_enter( int               world_index,
 
      fusion_skirmish_init( &world->shared->arenas_lock, "Fusion Arenas", world );
 
-     world->shared->world = world;
-
-     direct_mutex_init( &world->event_dispatcher_mutex );
-     direct_waitqueue_init( &world->event_dispatcher_cond );
-     world->event_dispatcher_thread = direct_thread_create( DTT_MESSAGING, event_dispatcher_loop, world, "Fusion Dispatch" );
-
      *ret_world = world;
 
      return DR_OK;
+
 
 error:
      if (world) {

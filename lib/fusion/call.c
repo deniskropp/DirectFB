@@ -1040,7 +1040,6 @@ fusion_call_init (FusionCall        *call,
      /* Called locally. */
      call->handler = handler;
      call->ctx     = ctx;
-     call->shared  = world->shared;
 
      return DR_OK;
 }
@@ -1057,7 +1056,6 @@ fusion_call_init3 (FusionCall         *call,
      /* Called locally. */
      call->handler3 = handler3;
      call->ctx      = ctx;
-     call->shared   = world->shared;
 
      return DR_OK;
 }
@@ -1094,37 +1092,22 @@ fusion_call_execute (FusionCall          *call,
                      void                *call_ptr,
                      int                 *ret_val)
 {
-     DirectResult               ret;
-     FusionEventDispatcherCall  msg;
-     FusionEventDispatcherCall *ret_msg = &msg;
+     FusionCallHandlerResult ret;
+     int                     val = 0;
 
      D_ASSERT( call != NULL );
 
      if (!call->handler)
           return DR_DESTROYED;
 
-     msg.call_handler = call->handler;
-     msg.call_handler3 = 0;
-     msg.call_ctx = call->ctx;
-     msg.flags = flags;
-     msg.call_arg = call_arg;
-     msg.ptr = call_ptr;
-     msg.length = 0;
-     msg.ret_val = 0;
-     msg.ret_ptr = 0;
-     msg.ret_size = 0;
-     msg.ret_length = 0;
-D_INFO("call1 call_arg=%d ptr=%p\n", call_arg, call_ptr);
-     if (direct_thread_self() == call->shared->world->event_dispatcher_thread) {
-          ret = call->handler( 1, call_arg, call_ptr, call->ctx, 0, ret_val );
-     }
-     else {
-          ret = _fusion_event_dispatcher_process( call->shared->world, &msg, &ret_msg );
-          if (!(flags & FCEF_ONEWAY) && ret_val)
-               *ret_val = ret_msg->ret_val;
-     }
+     ret = call->handler( 1, call_arg, call_ptr, call->ctx, 0, &val );
+     if (ret != FCHR_RETURN)
+          D_WARN( "only FCHR_RETURN supported in single app core at the moment" );
 
-     return ret;
+     if (ret_val)
+          *ret_val = val;
+
+     return DR_OK;
 }
 
 DirectResult
@@ -1135,37 +1118,7 @@ fusion_call_execute2(FusionCall          *call,
                      unsigned int         length,
                      int                 *ret_val)
 {
-     DirectResult               ret;
-     FusionEventDispatcherCall  msg;
-     FusionEventDispatcherCall *ret_msg = &msg;
-
-     D_ASSERT( call != NULL );
-
-     if (!call->handler)
-          return DR_DESTROYED;
-
-     msg.call_handler = call->handler;
-     msg.call_handler3 = 0;
-     msg.call_ctx = call->ctx;
-     msg.flags = flags;
-     msg.call_arg = call_arg;
-     msg.ptr = ptr;
-     msg.length = length;
-     msg.ret_val = 0;
-     msg.ret_ptr = 0;
-     msg.ret_size = 0;
-     msg.ret_length = 0;
-D_INFO("call2 h=%p call_arg=%d ptr=%p ctx=%p length=%d\n", call->handler, call_arg, ptr, call->ctx, length);
-     if (direct_thread_self() == call->shared->world->event_dispatcher_thread) {
-          ret = call->handler( 1, call_arg, ptr, call->ctx, 0, ret_val );
-     }
-     else {
-          ret = _fusion_event_dispatcher_process( call->shared->world, &msg, &ret_msg );
-          if (!(flags & FCEF_ONEWAY) && ret_val)
-               *ret_val = ret_msg->ret_val;
-     }
-
-     return ret;
+     return fusion_call_execute( call, flags, call_arg, ptr, ret_val );
 }
 
 DirectResult
@@ -1178,39 +1131,18 @@ fusion_call_execute3(FusionCall          *call,
                      unsigned int         ret_size,
                      unsigned int        *ret_length)
 {
-     DirectResult               ret;
-     FusionEventDispatcherCall  msg;
-     FusionEventDispatcherCall *ret_msg = &msg;
+     FusionCallHandlerResult ret;
 
      D_ASSERT( call != NULL );
 
      if (!call->handler3)
           return DR_DESTROYED;
 
-     msg.call_handler = 0;
-     msg.call_handler3 = call->handler3;
-     msg.call_ctx = call->ctx;
-     msg.flags = flags;
-     msg.call_arg = call_arg;
-     msg.ptr = ptr;
-     msg.length = length;
-     msg.ret_val = 0;
-     msg.ret_ptr = 0;
-     msg.ret_size = 0;
-     msg.ret_length = 0;
+     ret = call->handler3( 1, call_arg, ptr, length, call->ctx, 0, ret_ptr, ret_size, ret_length );
+     if (ret != FCHR_RETURN)
+          D_WARN( "only FCHR_RETURN supported in single app core at the moment" );
 
-     if (direct_thread_self() == call->shared->world->event_dispatcher_thread) {
-          ret = call->handler3( 1, call_arg, ptr, length, call->ctx, 0, ret_ptr, ret_size, ret_length );
-     }
-     else {
-          ret = _fusion_event_dispatcher_process( call->shared->world, &msg, &ret_msg );
-          if (!(flags & FCEF_ONEWAY) && ret_ptr && ret_msg->ret_length) {
-               memcpy( ret_ptr, ret_msg->ret_ptr, ret_msg->ret_length );
-               *ret_length = ret_msg->ret_length;
-          }
-     }
-
-     return ret;
+     return DR_OK;
 }
 
 DirectResult
