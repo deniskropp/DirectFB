@@ -365,6 +365,14 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           bitmap = convert;
 
           data->format = DSPF_ARGB;
+
+          method = (*env)->GetMethodID( env, clazz, "getRowBytes", "()I" );
+          if (check_exception( env ) || !method)
+               return DFB_INIT;
+
+          data->pitch = (*env)->CallIntMethod( env, bitmap, method );
+          if (check_exception( env ))
+               return DFB_INIT;
      }
 
      pixels = (*env)->NewByteArray( env, data->pitch * 2 * data->height); // FIXME: *2 is a stupid workaround
