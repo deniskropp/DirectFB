@@ -58,7 +58,7 @@ typedef struct {
      bool        attached;
 } GlobalReaction;
 
-#if !BUILD_MULTI
+#if !FUSION_BUILD_MULTI
 /***************************
  *  Internal declarations  *
  ***************************/
