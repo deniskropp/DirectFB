@@ -49,6 +49,14 @@ extern AndroidData *m_data;
 
 extern int main( int argc, char **argv );
 
+
+static inline void crashme()
+{
+     char* a = 0;
+     *a = 0;
+}
+
+
 static void *
 dfb_main_thread( DirectThread *thread,
                  void         *arg )
@@ -468,6 +476,8 @@ native_handle_cmd( struct android_app* app, int32_t cmd )
                // The window is being hidden or closed, clean it up.
 //               native_term_display(native_data);
 
+               crashme();
+
                direct_thread_join( native_data->main_thread );
                direct_thread_destroy( native_data->main_thread );
                break;
@@ -484,6 +494,9 @@ native_handle_cmd( struct android_app* app, int32_t cmd )
           case APP_CMD_LOST_FOCUS:
                // When our app loses focus, we stop monitoring the accelerometer.
                // This is to avoid consuming battery while not being used.
+
+               crashme();
+
                if (native_data->accelerometerSensor != NULL) {
                     ASensorEventQueue_disableSensor(native_data->sensorEventQueue,
                                                     native_data->accelerometerSensor);
