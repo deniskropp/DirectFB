@@ -2885,6 +2885,8 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
                if (world->dispatch_stop) {
                     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
+                    direct_mutex_unlock( &world->event_dispatcher_mutex );
+                    return NULL;
                }
                else {
                     direct_mutex_unlock( &world->event_dispatcher_mutex );
@@ -3177,6 +3179,8 @@ fusion_exit( FusionWorld *world,
 
      fusion_shm_pool_destroy( world, world->shared->main_pool );
 
+     world->dispatch_stop = 1;
+
      D_MAGIC_CLEAR( world->shared );
 
      D_FREE( world->shared );
@@ -3270,6 +3274,8 @@ fusion_kill( FusionWorld *world,
              int          timeout_ms )
 {
      D_MAGIC_ASSERT( world, FusionWorld );
+
+     world->dispatch_stop = 1;
 
      return DR_OK;
 }
