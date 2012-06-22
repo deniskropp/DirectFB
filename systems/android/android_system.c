@@ -72,6 +72,7 @@ InitLocal( AndroidData *android )
              EGL_BLUE_SIZE, 8,
              EGL_GREEN_SIZE, 8,
              EGL_RED_SIZE, 8,
+             EGL_ALPHA_SIZE, 8,
              EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
              EGL_NATIVE_VISUAL_ID, HAL_PIXEL_FORMAT_RGBA_8888,    // DSPF_ARGB
              EGL_NONE
@@ -102,8 +103,6 @@ InitLocal( AndroidData *android )
       * As soon as we picked a EGLConfig, we can safely reconfigure the
       * ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
      eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
-
-     D_INFO("##################### FORMAT %d\n", format);
 
      ANativeWindow_setBuffersGeometry( native_data.app->window, 0, 0, format);
 
@@ -140,7 +139,7 @@ InitLocal( AndroidData *android )
      glClear( GL_COLOR_BUFFER_BIT );
 
      eglSwapBuffers( android->dpy, android->surface );
-D_INFO("################################### android->window=%p\n", native_data.app->window);
+
      return DFB_OK;
 }
 
@@ -150,7 +149,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_ANDROID;
-     info->caps = CSCAPS_ACCELERATION;
+     info->caps = CSCAPS_ACCELERATION;// | CSCAPS_ALWAYS_INDIRECT;
 
      snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "Android" );
 }

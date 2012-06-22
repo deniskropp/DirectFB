@@ -55,13 +55,13 @@ dfb_main_thread( DirectThread *thread,
 {
      int   ret;
 //   char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
-     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug", "-a" };
-//   char *argv[] = { "android-native-dfb-app", "--dfb:force-windowed" };
+//     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug", "-a" };
+   char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler" };
      
 
      LOGI( "Running main()..." );
 
-     ret = main( 3, argv );
+     ret = main( 2, argv );
 
      LOGI( "main() has returned %d!", ret );
 
@@ -101,22 +101,22 @@ native_handle_input( struct android_app *app, AInputEvent *event )
                     evt.buttons = DIBM_LEFT;
                     evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
                     evt.axis    = DIAI_X;
-                    evt.min = 0;//FIXME
-                    evt.max = 1023;//FIXME
+                    evt.min     = 0;
+                    evt.max     = m_data->shared->screen_size.w - 1;
                     evt.axisabs = AMotionEvent_getX( event, 0 );
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     evt.axis    = DIAI_Y;
-                    evt.min = 0;//FIXME
-                    evt.max = 599;//FIXME
+                    evt.min     = 0;
+                    evt.max     = m_data->shared->screen_size.h - 1;
                     evt.axisabs = AMotionEvent_getY( event, 0 );
                     evt.flags  &= ~DIEF_FOLLOW;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event UP\n" );
-D_INFO("UP\n");
+
                     break;
 
                case AMOTION_EVENT_ACTION_DOWN:
@@ -125,45 +125,45 @@ D_INFO("UP\n");
                     evt.buttons = DIBM_LEFT;
                     evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
                     evt.axis    = DIAI_X;
-                    evt.min = 0;//FIXME
-                    evt.max = 1023;//FIXME
+                    evt.min     = 0;
+                    evt.max     = m_data->shared->screen_size.w - 1;
                     evt.axisabs = AMotionEvent_getX( event, 0 );
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     evt.axis    = DIAI_Y;
-                    evt.min = 0;//FIXME
-                    evt.max = 599;//FIXME
+                    evt.min     = 0;
+                    evt.max     = m_data->shared->screen_size.h - 1;
                     evt.axisabs = AMotionEvent_getY( event, 0 );
                     evt.flags  &= ~DIEF_FOLLOW;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event DOWN\n" );
-D_INFO("DOWN\n");
+
                     break;
 
                case AMOTION_EVENT_ACTION_MOVE:
-               case 7:
+               case 7: //FIXME!!!
                     evt.type    = DIET_AXISMOTION;
                     evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
                     evt.axis    = DIAI_X;
-                    evt.min = 0;//FIXME
-                    evt.max = 1023;//FIXME
+                    evt.min     = 0;
+                    evt.max     = m_data->shared->screen_size.w - 1;
                     evt.axisabs = AMotionEvent_getX( event, 0 );
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     evt.axis    = DIAI_Y;
-                    evt.min = 0;//FIXME
-                    evt.max = 599;//FIXME
+                    evt.min     = 0;
+                    evt.max     = m_data->shared->screen_size.h - 1;
                     evt.axisabs = AMotionEvent_getY( event, 0 );
                     evt.flags  &= ~DIEF_FOLLOW;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event MOVE\n" );
-D_INFO("MOVE\n");
+
                     break;
 
                default:
@@ -516,9 +516,7 @@ android_main( struct android_app* state )
                                                                        ASENSOR_TYPE_ACCELEROMETER);
      native_data.sensorEventQueue = ASensorManager_createEventQueue(native_data.sensorManager,
                                                                     state->looper, LOOPER_ID_USER, NULL, NULL);
-D_INFO("#######################################################\n");
-D_INFO("state->window = %p\n", state->window);
-D_INFO("#######################################################\n");
+
      if (state->savedState != NULL) {
           // We are starting with a previous saved state; restore from it.
 //          native_data.state = *(struct saved_state*)state->savedState;
