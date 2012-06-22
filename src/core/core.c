@@ -211,7 +211,10 @@ Core_AsyncCall_Handler( int           caller,   /* fusion id of the caller */
                         int          *ret_val )
 {
      AsyncCall *call = call_ptr;
-
+D_INFO("core: call=%p\n", call);
+D_INFO("core: func=%p\n", call->func);
+D_INFO("core: call_ctx=%p\n", call->ctx);
+D_INFO("core: call_ctx2=%p\n", call->ctx2);
      call->func( call->ctx, call->ctx2 );
 
      return FCHR_RETURN;

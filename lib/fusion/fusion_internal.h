@@ -94,7 +94,46 @@ struct __Fusion_FusionWorldShared {
      void                *pool_max;    /* SHM pool max address. */
 
      void                *world_root;
+#if !FUSION_BUILD_MULTI
+     FusionWorld         *world;
+#endif
 };
+
+#if !FUSION_BUILD_MULTI
+
+#define EVENT_DISPATCHER_BUFFER_LENGTH (64 * 1024)
+
+typedef struct {
+     DirectLink link;
+
+     char       buffer[EVENT_DISPATCHER_BUFFER_LENGTH];
+     int        read_pos;
+     int        write_pos;
+     int        can_free;
+} FusionEventDispatcherBuffer;
+
+typedef struct
+{
+     FusionCallHandler    call_handler;
+     FusionCallHandler3   call_handler3;
+     void                *call_ctx;
+     FusionCallExecFlags  flags;
+     int                  call_arg;
+     void                *ptr;
+     unsigned int         length;
+     int                  ret_val;
+     void                *ret_ptr;
+     unsigned int         ret_size;
+     unsigned int         ret_length;
+     DirectMutex          mutex;
+     DirectWaitQueue      cond;
+     int                  processed;
+} FusionEventDispatcherCall;
+
+//pass fusion calls to single-app dispatcher thread
+DirectResult _fusion_event_dispatcher_process( FusionWorld *world, FusionEventDispatcherCall *call, FusionEventDispatcherCall **ret );
+
+#endif /* !FUSION_BUILD_MULTI */
 
 struct __Fusion_FusionWorld {
      int                  magic;
@@ -143,6 +182,11 @@ struct __Fusion_FusionWorld {
      int                  bins_data_len;
      long long            bins_create_ts;
 # endif
+#else
+     DirectThread        *event_dispatcher_thread;
+     DirectMutex          event_dispatcher_mutex;
+     DirectWaitQueue      event_dispatcher_cond;
+     DirectLink          *event_dispatcher_buffers;
 #endif
 };
 
@@ -262,6 +306,6 @@ DirectResult _fusion_recv_message( int                  fd,
 DirectResult _fusion_ref_change( FusionRef *ref, int add, bool global );
                                    
 #endif /* FUSION_BUILD_KERNEL */
-#endif /* FUSION_BUILD_MULTI */
 
+#endif
 #endif

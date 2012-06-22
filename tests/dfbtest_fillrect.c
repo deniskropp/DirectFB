@@ -36,6 +36,8 @@
 #include <directfb_strings.h>
 #include <directfb_util.h>
 
+#include "../systems/android/android_system.h"
+
 static const DirectFBPixelFormatNames( format_names );
 
 /**********************************************************************************************************************/
@@ -119,14 +121,18 @@ main( int argc, char *argv[] )
      IDirectFB              *dfb;
      IDirectFBSurface       *dest          = NULL;
      DFBSurfacePixelFormat   dest_format   = DSPF_UNKNOWN;
+     IDirectFBImageProvider *provider      = NULL;
+     IDirectFBSurface       *source        = NULL;
+     IDirectFBSurface       *testblit      = NULL;
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
      if (ret) {
           D_DERROR( ret, "DFBTest/FillRectangle: DirectFBInit() failed!\n" );
-          return ret;
-     }
+          return ret;/* Create an image provider for the image to be loaded. */
+	}
 
+     
      /* Parse arguments. */
      for (i=1; i<argc; i++) {
           const char *arg = argv[i];
@@ -157,9 +163,40 @@ main( int argc, char *argv[] )
           return ret;
      }
 
+     char *imagepath = "/mnt/sdcard/biglogo.png";     
+     LOGW("################################################# CreateImageProvider\n");
+     ret = dfb->CreateImageProvider( dfb, imagepath, &provider );
+     if (ret) {
+          D_DERROR( ret, "DFBTest/Blit: IDirectFB::CreateImageProvider( '%s' ) failed!\n", imagepath );
+          goto out;
+     }
+     LOGW("################################################# GetSurfaceDescription\n");
+     ret = provider->GetSurfaceDescription( provider, &desc );
+     if (ret) {
+          D_DERROR( ret, "DFBTest/Blit: IDirectFBImageProvider::GetSurfaceDescription() failed!\n" );
+          goto out;
+     }
+     LOGW("################################################# CreateSurface\n");
+     ret = dfb->CreateSurface( dfb, &desc, &source );
+     if (ret) {
+          D_DERROR( ret, "DFBTest/Blit: IDirectFB::CreateSurface() failed!\n" );
+          goto out;
+     }
+     LOGW("################################################# RenderTo\n");
+     ret = provider->RenderTo( provider, source, NULL );
+     if (ret) {
+          D_DERROR( ret, "DFBTest/Blit: IDirectFBImageProvider::RenderTo() failed!\n" );
+          goto out;
+     }
+     ret = dfb->CreateSurface( dfb, &desc, &testblit );
+     if (ret) {
+          D_DERROR( ret, "DFBTest/Blit: IDirectFB::CreateSurface() failed!\n" );
+          goto out;
+     }
+
      /* Fill description for a primary surface. */
      desc.flags = DSDESC_CAPS;
-     desc.caps  = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
+     desc.caps  = DSCAPS_PRIMARY | DSCAPS_DOUBLE;
 
      if (dest_format != DSPF_UNKNOWN) {
           desc.flags       |= DSDESC_PIXELFORMAT;
@@ -185,17 +222,20 @@ main( int argc, char *argv[] )
 
      while (true) {
           long long now;
-
-          for (i=0; i<100000; i++) {
+//dest->Clear(dest, 0, 0, 0, 0);
+          for (i=0; i<10; i++) {
                dest->SetColor( dest, rand()%256, rand()%256, rand()%256, rand()%256 );
                dest->FillRectangle( dest, rand()%100, rand()%100, rand()%100, rand()%100 );
+               dest->SetBlittingFlags( dest, DSBLIT_XOR );
+               dest->Blit( dest, source, NULL, rand()%100, rand()%100 );
+               //dest->Blit( dest, testblit, NULL, rand()%100, rand()%100 );
           }
 
           dest->Flip( dest, NULL, DSFLIP_NONE );
-
+          //dest->Blit( dest, dest, NULL, 0, 0 );
           now = direct_clock_get_abs_millis();
 
-          D_INFO( "Took %lld ms\n", now - ms );
+          //D_INFO( "Took %lld ms\n", now - ms );
 
           ms = now;
      }
