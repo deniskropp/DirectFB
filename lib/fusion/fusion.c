@@ -2891,12 +2891,12 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
                     if (msg->call_handler3) {
                          if (FCHR_RETAIN == msg->call_handler3( 1, msg->call_arg, msg->ptr, msg->length, msg->call_ctx, 0, msg->ret_ptr, msg->ret_size, &msg->ret_length )) {
-                              D_INFO( "RETAIN!\n" );
+                              D_WARN( "RETAIN!\n" );
                          }
                     }
                     else if (msg->call_handler) {
                          if (FCHR_RETAIN == msg->call_handler( 1, msg->call_arg, msg->ptr, msg->call_ctx, 0, &msg->ret_val )) {
-                              D_INFO( "RETAIN!\n" );
+                              D_WARN( "RETAIN!\n" );
                          }
                     }
                     else if (msg->reaction) {
