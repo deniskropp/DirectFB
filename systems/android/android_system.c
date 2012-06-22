@@ -149,7 +149,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_ANDROID;
-     info->caps = CSCAPS_ACCELERATION;// | CSCAPS_ALWAYS_INDIRECT;
+     info->caps = CSCAPS_ACCELERATION | CSCAPS_ALWAYS_INDIRECT;
 
      snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "Android" );
 }
