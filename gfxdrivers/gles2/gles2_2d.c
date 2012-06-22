@@ -166,8 +166,12 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
      GLuint       color_rb = (GLuint)(long)state->dst.handle;
 #endif
 
-
+#ifdef GLES2_USE_FBO
      D_DEBUG_AT( GLES2__2D, "%s( color_rb %u )\n", __FUNCTION__, color_rb );
+#else
+     D_DEBUG_AT( GLES2__2D, "%s\n", __FUNCTION__ );
+#endif
+
 //     D_MAGIC_ASSERT(buffer, GLES2BufferData);
 #ifdef GLES2_USE_FBO
      glFramebufferRenderbuffer( GL_FRAMEBUFFER,
