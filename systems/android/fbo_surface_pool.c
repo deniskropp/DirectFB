@@ -134,6 +134,21 @@ AndroidAllocNativeBuffer( FBOAllocationData *alloc, int width, int height, uint3
      return wbuf;
 }
 
+void
+AndroidFreeNativeBuffer( FBOAllocationData *alloc )
+{
+     if (!alloc->alloc_mod || !alloc->win_buf) {
+          D_WARN(" AndroidFreeNativeBuffer: FBO was never initialized correctly.\n ");
+          return;
+     }
+
+     alloc->alloc_mod->free( alloc->alloc_mod, alloc->win_buf->handle );
+
+     free( alloc->win_buf );
+
+     alloc->alloc_mod->common.close( (hw_device_t *)alloc->alloc_mod );
+}
+
 /**********************************************************************************************************************/
 
 static inline bool
@@ -486,6 +501,8 @@ fboDeallocateBuffer( CoreSurfacePool       *pool,
 
      glDeleteTextures( 1, &alloc->texture );
      glDeleteFramebuffers( 1, &alloc->fbo );
+
+     AndroidFreeNativeBuffer( alloc );
 
      D_MAGIC_CLEAR( alloc );
 
