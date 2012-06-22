@@ -58,6 +58,28 @@ typedef struct {
      bool        attached;
 } GlobalReaction;
 
+#if !BUILD_MULTI
+/***************************
+ *  Internal declarations  *
+ ***************************/
+
+/*
+ *
+ */
+struct __Fusion_FusionReactor {
+     DirectLink       *reactions; /* reactor listeners attached to node  */
+     pthread_mutex_t   reactions_lock;
+
+     DirectLink       *globals; /* global reactions attached to node  */
+     pthread_mutex_t   globals_lock;
+
+     bool              destroyed;
+
+     int               msg_size;
+
+     FusionWorld      *world;
+};
+#endif
 
 /*
  * Create a new reactor configured for the specified message data size.

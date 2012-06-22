@@ -848,9 +848,10 @@ fusion_ref_down (FusionRef *ref, bool global)
                FusionCall *call = ref->single.call;
 
                if (call->handler) {
-                    int ret;
-                    direct_mutex_unlock (&ref->single.lock);
-                    call->handler( 0, ref->single.call_arg, NULL, call->ctx, 0, &ret );
+                    fusion_call_execute( call, FCEF_NODIRECT | FCEF_ONEWAY, ref->single.call_arg, NULL, NULL );
+
+                    direct_mutex_unlock( &ref->single.lock );
+
                     return DR_OK;
                }
           }

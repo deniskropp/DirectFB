@@ -1606,25 +1606,6 @@ unlock_node( ReactorNode *node )
 
 #else /* FUSION_BUILD_MULTI */
 
-/***************************
- *  Internal declarations  *
- ***************************/
-
-/*
- *
- */
-struct __Fusion_FusionReactor {
-     DirectLink       *reactions; /* reactor listeners attached to node  */
-     pthread_mutex_t   reactions_lock;
-
-     DirectLink       *globals; /* global reactions attached to node  */
-     pthread_mutex_t   globals_lock;
-
-     bool              destroyed;
-
-     int               msg_size;
-};
-
 static void
 process_globals( FusionReactor      *reactor,
                  const void         *msg_data,
@@ -1646,6 +1627,7 @@ fusion_reactor_new( int                msg_size,
           return NULL;
 
      reactor->msg_size = msg_size;
+     reactor->world    = (FusionWorld *)world;
 
      direct_util_recursive_pthread_mutex_init( &reactor->reactions_lock );
      direct_util_recursive_pthread_mutex_init( &reactor->globals_lock );
@@ -1780,8 +1762,6 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                                  bool                self,
                                  const ReactionFunc *globals )
 {
-     DirectLink *l;
-
      D_ASSERT( reactor != NULL );
      D_ASSERT( msg_data != NULL );
 
@@ -1796,32 +1776,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
      if (!self)
           return DR_OK;
 
-     pthread_mutex_lock( &reactor->reactions_lock );
-
-     l = reactor->reactions;
-     while (l) {
-          DirectLink *next     = l->next;
-          Reaction   *reaction = (Reaction*) l;
-
-          if ((long) reaction->node_link == channel) {
-               switch (reaction->func( msg_data, reaction->ctx )) {
-                    case RS_REMOVE:
-                         direct_list_remove( &reactor->reactions, l );
-                         break;
-
-                    case RS_DROP:
-                         pthread_mutex_unlock( &reactor->reactions_lock );
-                         return DR_OK;
-
-                    default:
-                         break;
-               }
-          }
-
-          l = next;
-     }
-
-     pthread_mutex_unlock( &reactor->reactions_lock );
+     _fusion_event_dispatcher_process_reactions( reactor->world, reactor, channel, (void *)msg_data, msg_size );
 
      return DR_OK;
 }

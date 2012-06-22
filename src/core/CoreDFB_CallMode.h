@@ -60,7 +60,7 @@ CoreDFB_CallMode( CoreDFB *core )
 
      return COREDFB_CALL_INDIRECT;
 #else
-     return COREDFB_CALL_DIRECT;
+     return dfb_config->call_nodirect ? COREDFB_CALL_INDIRECT : COREDFB_CALL_DIRECT;
 #endif
 }
 

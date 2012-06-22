@@ -1678,7 +1678,7 @@ dfb_core_arena_initialize( void *ctx )
      /* Register shared data. */
      fusion_world_set_root( core->world, shared );
 
-
+D_MAGIC_ASSERT( core, CoreDFB );
      /* Initialize. */
      ret = CoreDFB_Initialize( core );
      if (ret) {
