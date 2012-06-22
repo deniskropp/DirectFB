@@ -2852,7 +2852,7 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
                direct_waitqueue_wait( &world->event_dispatcher_cond, &world->event_dispatcher_mutex );
 
           buf = (FusionEventDispatcherBuffer *)world->event_dispatcher_buffers;
-//D_INFO("1: buf %p read %d write %d (free %d)\n", buf, buf->read_pos, buf->write_pos, buf->can_free );
+
           if (buf->can_free && buf->read_pos == buf->write_pos) {
                direct_list_remove( &world->event_dispatcher_buffers, &buf->link);
                D_FREE( buf );
@@ -2861,13 +2861,12 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
           }
 
           if (buf->read_pos >= buf->write_pos) {
-//D_INFO("waiting... read %d write %d (free %d)\n", buf->read_pos, buf->write_pos, buf->can_free );
                D_ASSERT( buf->read_pos == buf->write_pos );
                direct_waitqueue_wait( &world->event_dispatcher_cond, &world->event_dispatcher_mutex );
           }
 
           buf = (FusionEventDispatcherBuffer *)world->event_dispatcher_buffers;
-//D_INFO("2: buf %p read %d write %d (free %d)\n", buf, buf->read_pos, buf->write_pos, buf->can_free );
+
           if (buf->can_free && buf->read_pos == buf->write_pos) {
                direct_list_remove( &world->event_dispatcher_buffers, &buf->link);
                D_FREE( buf );
@@ -2877,7 +2876,7 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
           if (buf) {
                FusionEventDispatcherCall *msg = (FusionEventDispatcherCall*)&buf->buffer[buf->read_pos];
-//D_INFO("message at bufpos %d\n", buf->read_pos);
+
                D_DEBUG_AT( Fusion_Main_Dispatch, "\n" );
 
                buf->read_pos += call_size;
@@ -2960,16 +2959,14 @@ DirectResult _fusion_event_dispatcher_process( FusionWorld *world, const FusionE
      if (!world->event_dispatcher_buffers) {
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
           direct_list_append( &world->event_dispatcher_buffers, &new_buf->link );
-//D_INFO("1 made buffers %p\n", new_buf);
      }
 
      FusionEventDispatcherBuffer *buf = (FusionEventDispatcherBuffer *)direct_list_get_last( world->event_dispatcher_buffers );
      D_ASSERT( NULL != buf );
-//D_INFO("1 buf info buf %p read %d write %d\n", buf, buf->read_pos, buf->write_pos);
+
      if (buf->write_pos + call_size + call->length > EVENT_DISPATCHER_BUFFER_LENGTH) {
           buf->can_free = 1;
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
-//D_INFO("1 append new buffer %p (old %p read %d write %d)\n", new_buf, buf, buf->read_pos, buf->write_pos);
           direct_list_append( &world->event_dispatcher_buffers, &new_buf->link );
           buf = new_buf;
      }
@@ -2978,7 +2975,7 @@ DirectResult _fusion_event_dispatcher_process( FusionWorld *world, const FusionE
 
      // copy data and signal dispatcher
      memcpy( *ret, call, call_size );
-//D_INFO("1 copied message to bufpos %d\n", buf->write_pos);
+
      buf->write_pos += call_size;
 
      // copy extra data to buffer
@@ -3029,16 +3026,14 @@ DirectResult _fusion_event_dispatcher_process_reactions( FusionWorld *world, Fus
      if (!world->event_dispatcher_buffers) {
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
           direct_list_append( &world->event_dispatcher_buffers, &new_buf->link );
-//D_INFO("2 made buffers %p\n", new_buf);
      }
 
      FusionEventDispatcherBuffer *buf = (FusionEventDispatcherBuffer *)direct_list_get_last( world->event_dispatcher_buffers );
      D_ASSERT( NULL != buf );
-//D_INFO("2 buf info buf %p read %d write %d\n", buf, buf->read_pos, buf->write_pos);
+
      if (buf->write_pos + call_size + msg_size > EVENT_DISPATCHER_BUFFER_LENGTH) {
           buf->can_free = 1;
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
-//D_INFO("2 append new buffer %p (old %p read %d write %d)\n", new_buf, buf, buf->read_pos, buf->write_pos);
           direct_list_append( &world->event_dispatcher_buffers, &new_buf->link );
           buf = new_buf;
      }
@@ -3047,7 +3042,7 @@ DirectResult _fusion_event_dispatcher_process_reactions( FusionWorld *world, Fus
 
      // copy data and signal dispatcher
      memcpy( ret, &msg, call_size );
-//D_INFO("2 copied message to bufpos %d\n", buf->write_pos);
+
      buf->write_pos += call_size;
 
      // copy extra data to buffer
