@@ -110,6 +110,7 @@ driver_init_driver(CoreGraphicsDevice  *device,
      funcs->DrawLine      = gles2DrawLine;
      funcs->FillTriangle  = gles2FillTriangle;
      funcs->Blit          = gles2Blit;
+     funcs->BatchBlit     = gles2BatchBlit;
      funcs->StretchBlit   = gles2StretchBlit;
 
      // Choose accelerated font format

@@ -201,9 +201,7 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
 
      /*
       * blit_program transforms a vertex by the current model-view-projection
-      * matrix, applies texture sample colors to fragments, and modulates the
-      * colors with a static RGBA color.  Modulation is effectively disabled
-      * by setting static color components to 1.0.
+      * matrix, applies texture sample colors to fragments.
       */
      prog = glCreateProgram();
      status = init_program(prog, "blit_vert", blit_vert_src,
@@ -212,7 +210,6 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           dev->progs[GLES2_BLIT].obj = prog;
           dev->progs[GLES2_BLIT].name = "blit";
 
-          GET_UNIFORM_LOCATION(dev, GLES2_BLIT, dfbColor);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT, dfbScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT, dfbTexScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT, dfbSampler);
@@ -231,7 +228,6 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           dev->progs[GLES2_BLIT_MAT].obj = prog;
           dev->progs[GLES2_BLIT_MAT].name = "blit_mat";
 
-          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_MAT, dfbColor);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_MAT, dfbROMatrix);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_MAT, dfbMVPMatrix);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_MAT, dfbTexScale);
@@ -241,6 +237,51 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
      }
      else {
           D_ERROR("GLES2/Driver: blit_mat_program init failed!\n");
+          goto fail;
+     }
+
+     /*
+      * blit_color_program transforms a vertex by the current model-view-projection
+      * matrix, applies texture sample colors to fragments, and modulates the
+      * colors with a static RGBA color.  Modulation is effectively disabled
+      * by setting static color components to 1.0.
+      */
+     prog = glCreateProgram();
+     status = init_program(prog, "blit_color_vert", blit_vert_src,
+                           "blit_color_frag", blit_color_frag_src, DFB_TRUE);
+     if (status) {
+          dev->progs[GLES2_BLIT_COLOR].obj = prog;
+          dev->progs[GLES2_BLIT_COLOR].name = "blit_color";
+
+          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR, dfbColor);
+          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR, dfbScale);
+          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR, dfbTexScale);
+          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR, dfbSampler);
+
+          D_DEBUG_AT(GLES2__2D, "-> created blit_color_program\n");
+     }
+     else {
+          D_ERROR("GLES2/Driver: blit_color_program init failed!\n");
+          goto fail;
+     }
+
+     prog = glCreateProgram();
+     status = init_program(prog, "blit_color_vert_mat", blit_vert_mat_src,
+                           "blit_color_frag", blit_color_frag_src, DFB_TRUE);
+     if (status) {
+          dev->progs[GLES2_BLIT_COLOR_MAT].obj = prog;
+          dev->progs[GLES2_BLIT_COLOR_MAT].name = "blit_color_mat";
+
+          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR_MAT, dfbColor);
+          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR_MAT, dfbROMatrix);
+          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR_MAT, dfbMVPMatrix);
+          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR_MAT, dfbTexScale);
+          GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR_MAT, dfbSampler);
+
+          D_DEBUG_AT(GLES2__2D, "-> created blit_color_mat_program\n");
+     }
+     else {
+          D_ERROR("GLES2/Driver: blit_color_mat_program init failed!\n");
           goto fail;
      }
 

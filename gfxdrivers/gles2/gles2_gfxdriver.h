@@ -85,12 +85,14 @@ typedef enum {
      GLES2_DRAW_MAT             =  1,
      GLES2_BLIT                 =  2,
      GLES2_BLIT_MAT             =  3,
-     GLES2_BLIT_COLORKEY        =  4,
-     GLES2_BLIT_COLORKEY_MAT    =  5,
-     GLES2_BLIT_PREMULTIPLY     =  6,
-     GLES2_BLIT_PREMULTIPLY_MAT =  7,
-     GLES2_NUM_PROGRAMS         =  8,
-     GLES2_INVALID_PROGRAM      =  9
+     GLES2_BLIT_COLOR           =  4,
+     GLES2_BLIT_COLOR_MAT       =  5,
+     GLES2_BLIT_COLORKEY        =  6,
+     GLES2_BLIT_COLORKEY_MAT    =  7,
+     GLES2_BLIT_PREMULTIPLY     =  8,
+     GLES2_BLIT_PREMULTIPLY_MAT =  9,
+     GLES2_NUM_PROGRAMS         = 10,
+     GLES2_INVALID_PROGRAM      = 11
 } GLES2ProgramIndex;
 
 typedef struct {
