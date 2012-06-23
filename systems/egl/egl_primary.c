@@ -272,9 +272,9 @@ primaryTestRegion( CoreLayer                  *layer,
 
      switch (config->buffermode) {
           case DLBM_FRONTONLY:
-//          case DLBM_BACKSYSTEM:
-//          case DLBM_BACKVIDEO:
-//          case DLBM_TRIPLE:
+          case DLBM_BACKSYSTEM:
+          case DLBM_BACKVIDEO:
+          case DLBM_TRIPLE:
                break;
 
           default:
