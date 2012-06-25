@@ -398,14 +398,14 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      alloc->pitch = alloc->win_buf->stride * 4;
      alloc->size  = alloc->win_buf->stride * 4 * buffer->config.size.h;
 
-     int tex, fbo;
+     int tex, fbo, crb;
 
      glGetIntegerv( GL_TEXTURE_BINDING_2D, &tex );
      CHECK_GL_ERROR();
-     
-     glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+
+     glGetIntegerv( GL_RENDERBUFFER_BINDING, &crb );
      CHECK_GL_ERROR();
-     
+
      glGenTextures( 1, &alloc->texture );
      CHECK_GL_ERROR();
 
@@ -452,20 +452,8 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      glGenFramebuffers( 1, &alloc->fbo );
      CHECK_GL_ERROR();
 
-     glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
-     CHECK_GL_ERROR();
-
-     glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, alloc->color_rb );
-     CHECK_GL_ERROR();
-
-     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-          D_ERROR( "DirectFB/Mesa: Framebuffer not complete\n" );
-     }
-
-     checkFramebufferStatus();
-
-     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
      glBindTexture( GL_TEXTURE_2D, tex );
+     glBindRenderbuffer( GL_RENDERBUFFER, crb );
 
      allocation->size = alloc->size;
 
@@ -581,6 +569,20 @@ fboLock( CoreSurfacePool       *pool,
                          lock->handle = (void*) (long) alloc->fbo;
      
                          glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
+                         CHECK_GL_ERROR();
+
+                         if (!alloc->fb_ready) {
+                              glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, alloc->color_rb );
+                              CHECK_GL_ERROR();
+
+                              if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                                   D_ERROR( "DirectFB/Mesa: Framebuffer not complete\n" );
+                              }
+
+                              checkFramebufferStatus();
+
+                              alloc->fb_ready = 1;
+                         }
                     }
                }
                else {
@@ -624,7 +626,7 @@ fboUnlock( CoreSurfacePool       *pool,
                break;
           case CSAID_GPU:
                if (lock->access & CSAF_WRITE) {
-                    glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+                    //glBindFramebuffer( GL_FRAMEBUFFER, 0 );
                }
                break;
 
