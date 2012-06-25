@@ -64,8 +64,8 @@ dfb_main_thread( DirectThread *thread,
      int   ret;
 //   char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
 //     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug", "-a" };
-   char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler" };
-     
+   //char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler,layer-buffer-mode=backvideo,debug=ANDROID/Main,debug=core/input,debug=core/inputevt" };
+     char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler,layer-buffer-mode=backvideo" };
 
      LOGI( "Running main()..." );
 
@@ -92,6 +92,8 @@ native_handle_input( struct android_app *app, AInputEvent *event )
           int action = AMotionEvent_getAction( event ) & AMOTION_EVENT_ACTION_MASK;
           int meta   = AMotionEvent_getMetaState (event );
           int proc   = 0;
+          int pos_x  = AMotionEvent_getX( event, 0 );
+          int pos_y  = AMotionEvent_getY( event, 0 );
 
           if ((meta & AMETA_SHIFT_ON) || (meta & AMETA_SHIFT_LEFT_ON) || (meta & AMETA_SHIFT_RIGHT_ON))
                evt.modifiers |= DIMM_SHIFT;
@@ -104,50 +106,56 @@ native_handle_input( struct android_app *app, AInputEvent *event )
 
           switch (action) {
                case AMOTION_EVENT_ACTION_UP:
-                    evt.type    = DIET_BUTTONRELEASE;
+                    evt.type    = DIET_AXISMOTION;
                     evt.button  = DIBI_LEFT;
-                    evt.buttons = DIBM_LEFT;
                     evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
                     evt.axis    = DIAI_X;
                     evt.min     = 0;
                     evt.max     = m_data->shared->screen_size.w - 1;
-                    evt.axisabs = AMotionEvent_getX( event, 0 );
+                    evt.axisabs = pos_x;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     evt.axis    = DIAI_Y;
                     evt.min     = 0;
                     evt.max     = m_data->shared->screen_size.h - 1;
-                    evt.axisabs = AMotionEvent_getY( event, 0 );
-                    evt.flags  &= ~DIEF_FOLLOW;
+                    evt.axisabs = pos_y;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
-                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event UP\n" );
+                    evt.type    = DIET_BUTTONRELEASE;
+                    evt.flags   = DIEF_NONE;
+
+                    dfb_input_dispatch( m_data->input, &evt );
+
+                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event UP (%d,%d)\n", pos_x, pos_y );
 
                     break;
 
                case AMOTION_EVENT_ACTION_DOWN:
-                    evt.type    = DIET_BUTTONPRESS;
+                    evt.type    = DIET_AXISMOTION;
                     evt.button  = DIBI_LEFT;
-                    evt.buttons = DIBM_LEFT;
                     evt.flags   = DIEF_FOLLOW | DIEF_AXISABS;
                     evt.axis    = DIAI_X;
                     evt.min     = 0;
                     evt.max     = m_data->shared->screen_size.w - 1;
-                    evt.axisabs = AMotionEvent_getX( event, 0 );
+                    evt.axisabs = pos_x;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     evt.axis    = DIAI_Y;
                     evt.min     = 0;
                     evt.max     = m_data->shared->screen_size.h - 1;
-                    evt.axisabs = AMotionEvent_getY( event, 0 );
-                    evt.flags  &= ~DIEF_FOLLOW;
+                    evt.axisabs = pos_y;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
-                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event DOWN\n" );
+                    evt.type    = DIET_BUTTONPRESS;
+                    evt.flags   = DIEF_NONE;
+
+                    dfb_input_dispatch( m_data->input, &evt );
+
+                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event DOWN (%d,%d)\n", pos_x, pos_y );
 
                     break;
 
@@ -158,25 +166,25 @@ native_handle_input( struct android_app *app, AInputEvent *event )
                     evt.axis    = DIAI_X;
                     evt.min     = 0;
                     evt.max     = m_data->shared->screen_size.w - 1;
-                    evt.axisabs = AMotionEvent_getX( event, 0 );
+                    evt.axisabs = pos_x;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
                     evt.axis    = DIAI_Y;
                     evt.min     = 0;
                     evt.max     = m_data->shared->screen_size.h - 1;
-                    evt.axisabs = AMotionEvent_getY( event, 0 );
+                    evt.axisabs = pos_y;
                     evt.flags  &= ~DIEF_FOLLOW;
 
                     dfb_input_dispatch( m_data->input, &evt );
 
-                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event MOVE\n" );
+                    D_DEBUG_AT( ANDROID_MAIN, "dispatched motion event MOVE (%d,%d)\n", pos_x, pos_y );
 
                     break;
 
                default:
-                    D_DEBUG_AT( ANDROID_MAIN, "unhandled motion event action %d at (%d,%d)\n",
-                                action, (int)AMotionEvent_getX( event, 0 ), (int)AMotionEvent_getY( event, 0 ) );
+                    D_DEBUG_AT( ANDROID_MAIN, "unhandled motion event action %d at (%d,%d)\n", action, pos_x, pos_y );
+
                     return 0;
           }
      }
@@ -185,12 +193,6 @@ native_handle_input( struct android_app *app, AInputEvent *event )
           int meta   = AKeyEvent_getMetaState( event );
           int flags  = AKeyEvent_getFlags( event );
 
-/*          
-          if (!(flags & AKEY_EVENT_FLAG_FROM_SYSTEM)) {
-               D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d (non-system)", action );
-               return 0;
-          }
-*/
           if (flags & AKEY_EVENT_FLAG_CANCELED) {
                D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d (cancel)", action );
                return 0;
@@ -465,12 +467,12 @@ native_handle_cmd( struct android_app* app, int32_t cmd )
                break;
           case APP_CMD_INIT_WINDOW:
                // The window is being shown, get it ready.
-               if (native_data->app->window != NULL) {
+               //if (native_data->app->window != NULL) {
 //                    native_init_display(native_data);
 //                    native_draw_frame(native_data);
 
                     native_data->main_thread = direct_thread_create( DTT_DEFAULT, dfb_main_thread, native_data, "dfb-main" );
-               }
+               //}
                break;
           case APP_CMD_TERM_WINDOW:
                // The window is being hidden or closed, clean it up.
@@ -565,7 +567,7 @@ android_main( struct android_app* state )
 
                // Check if we are exiting.
                if (state->destroyRequested != 0) {
-//                    native_term_display(&native_data);
+                    //native_term_display(&native_data);
                     return;
                }
           }
