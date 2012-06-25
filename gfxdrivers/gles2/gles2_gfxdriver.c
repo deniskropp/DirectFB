@@ -41,6 +41,8 @@
 
 D_DEBUG_DOMAIN(GLES2__2D, "GLES2/2D", "OpenGL ES2 2D Acceleration");
 
+D_DEBUG_DOMAIN( GL, "GL", "GL" );
+
 DFB_GRAPHICS_DRIVER(gles2)
 
 
@@ -122,6 +124,9 @@ driver_init_driver(CoreGraphicsDevice  *device,
 
 #ifdef GLES2_USE_FBO
      glGenFramebuffers( 1, &drv->fbo );
+
+     D_DEBUG_AT( GL, "%s glBindFramebuffer (%d)\n", __FUNCTION__, drv->fbo );
+
      glBindFramebuffer( GL_FRAMEBUFFER, drv->fbo );
 #endif
 

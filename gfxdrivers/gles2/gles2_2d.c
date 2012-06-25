@@ -48,6 +48,8 @@
 
 D_DEBUG_DOMAIN(GLES2__2D, "GLES2/2D", "OpenGL ES2 2D Acceleration");
 
+D_DEBUG_DOMAIN( GL, "GL", "GL" );
+
 /*
  * State validation flags.
  *
@@ -174,6 +176,8 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
 
 //     D_MAGIC_ASSERT(buffer, GLES2BufferData);
 #ifdef GLES2_USE_FBO
+     D_DEBUG_AT( GL, "%s glFramebufferRenderbuffer (%d)\n", __FUNCTION__, color_rb );
+
      glFramebufferRenderbuffer( GL_FRAMEBUFFER,
                                 GL_COLOR_ATTACHMENT0,
                                 GL_RENDERBUFFER,
@@ -338,6 +342,8 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
 
      D_DEBUG_AT(GLES2__2D, "%s( texture %u )\n", __FUNCTION__, texture);
 //   D_MAGIC_ASSERT(buffer, GLES2BufferData);
+
+     D_DEBUG_AT( GL, "%s glBindTexture (%d)\n", __FUNCTION__, texture );
 
      glBindTexture( GL_TEXTURE_2D, texture );
 
@@ -627,6 +633,7 @@ gles2EmitCommands(void *drv, void *dev)
 
      if (gdrv->calls > 0) {
 //          glFlush();
+//           glFinish();
 
           gdrv->calls = 1;
      }
