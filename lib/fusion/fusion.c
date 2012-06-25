@@ -2883,6 +2883,9 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
                if (msg->flags & FCEF_ONEWAY)
                     buf->read_pos += msg->length;
 
+               //align on 4-byte boundaries
+               buf->read_pos = (buf->read_pos + 3) & ~3;
+
                if (world->dispatch_stop) {
                     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
                     direct_mutex_unlock( &world->event_dispatcher_mutex );
@@ -2987,6 +2990,9 @@ DirectResult _fusion_event_dispatcher_process( FusionWorld *world, const FusionE
           buf->write_pos += call->length;
      }
 
+     //align on 4-byte boundaries
+     buf->write_pos = (buf->write_pos + 3) & ~3;
+
      direct_waitqueue_signal( &world->event_dispatcher_cond );
 
      direct_mutex_unlock( &world->event_dispatcher_mutex );
@@ -3053,6 +3059,9 @@ DirectResult _fusion_event_dispatcher_process_reactions( FusionWorld *world, Fus
           memcpy( ret->ptr, msg.ptr, msg.length );
           buf->write_pos += msg.length;
      }
+
+     //align on 4-byte boundaries
+     buf->write_pos = (buf->write_pos + 3) & ~3;
 
      direct_waitqueue_signal( &world->event_dispatcher_cond );
 
