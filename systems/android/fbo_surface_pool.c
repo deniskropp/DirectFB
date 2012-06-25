@@ -52,8 +52,9 @@
 #include "android_system.h"
 #include "fbo_surface_pool.h"
 
-D_DEBUG_DOMAIN( Android_FBO,     "Android/FBO",     "Android FBO Surface Pool" );
-D_DEBUG_DOMAIN( Android_FBOLock, "Android/FBOLock", "Android FBO Surface Pool Locks" );
+D_DEBUG_DOMAIN( Android_FBO, "Android/FBO", "Android FBO Surface Pool" );
+
+D_DEBUG_DOMAIN( GL, "GL", "GL" );
 
 #define CHECK_GL_ERROR() {                             \
      int err = glGetError();                           \
@@ -204,7 +205,7 @@ fboInitPool( CoreDFB                    *core,
      D_ASSERT( ret_desc != NULL );
 
      ret_desc->caps              = CSPCAPS_PHYSICAL | CSPCAPS_VIRTUAL;
-     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+//     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_LAYER0] = CSAF_READ | CSAF_SHARED;
      ret_desc->types             = CSTF_WINDOW | CSTF_LAYER | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
@@ -385,14 +386,12 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     D_INFO("FBO %dx%d\n", buffer->config.size.w, buffer->config.size.h);
-
      ANativeWindowBuffer_t *buf = AndroidAllocNativeBuffer( alloc, buffer->config.size.w, buffer->config.size.h, local->data->shared->native_pixelformat );
 
      CHECK_GL_ERROR();
      EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
      alloc->image = eglCreateImageKHR( eglGetDisplay( EGL_DEFAULT_DISPLAY ), EGL_NO_CONTEXT,
-                                       EGL_NATIVE_BUFFER_ANDROID, buf, eglImgAttrs );
+                                      EGL_NATIVE_BUFFER_ANDROID, buf, 0 );
      CHECK_GL_ERROR();
 
      alloc->pitch = alloc->win_buf->stride * 4;
@@ -408,6 +407,8 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
 
      glGenTextures( 1, &alloc->texture );
      CHECK_GL_ERROR();
+
+     D_DEBUG_AT( GL, "%s glBindTexture (%d)\n", __FUNCTION__, alloc->texture );
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
      CHECK_GL_ERROR();
@@ -430,7 +431,8 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      glGenRenderbuffers( 1, &alloc->depth_rb );
      CHECK_GL_ERROR();
 
-     /* Update depth buffer */
+     D_DEBUG_AT( GL, "%s glBindRenderbuffer (%d)\n", __FUNCTION__, alloc->depth_rb );
+
      glBindRenderbuffer( GL_RENDERBUFFER, alloc->depth_rb );
      CHECK_GL_ERROR();
 
@@ -439,6 +441,8 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
       */
      glGenRenderbuffers( 1, &alloc->color_rb );
      CHECK_GL_ERROR();
+
+     D_DEBUG_AT( GL, "%s glBindRenderbuffer (%d)\n", __FUNCTION__, alloc->color_rb );
 
      glBindRenderbuffer( GL_RENDERBUFFER, alloc->color_rb );
      CHECK_GL_ERROR();
@@ -452,7 +456,12 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      glGenFramebuffers( 1, &alloc->fbo );
      CHECK_GL_ERROR();
 
+     D_DEBUG_AT( GL, "%s glBindTexture (%d)\n", __FUNCTION__, tex );
+
      glBindTexture( GL_TEXTURE_2D, tex );
+
+     D_DEBUG_AT( GL, "%s glBindRenderbuffer (%d)\n", __FUNCTION__, crb );
+
      glBindRenderbuffer( GL_RENDERBUFFER, crb );
 
      allocation->size = alloc->size;
@@ -541,7 +550,7 @@ fboLock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( alloc, FBOAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     D_DEBUG_AT( Android_FBOLock, "%s( %p, accessor 0x%02x, access 0x%02x )\n",
+     D_DEBUG_AT( Android_FBO, "%s( %p, accessor 0x%02x, access 0x%02x )\n",
                  __FUNCTION__, lock->buffer, lock->accessor, lock->access );
 
 //     if (!dfb_core_is_master(local->core))
@@ -563,15 +572,21 @@ fboLock( CoreSurfacePool       *pool,
                     if (allocation->type & CSTF_LAYER && alloc->layer_flip) {
                          lock->handle = NULL;
 
+                         D_DEBUG_AT( GL, "%s glBindFramebuffer (%d)\n", __FUNCTION__, 0 );
+
                          glBindFramebuffer( GL_FRAMEBUFFER, 0 );
                     }
                     else {
                          lock->handle = (void*) (long) alloc->fbo;
-     
+
+                         D_DEBUG_AT( GL, "%s glBindFramebuffer (%d)\n", __FUNCTION__, alloc->fbo );
+
                          glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
                          CHECK_GL_ERROR();
 
                          if (!alloc->fb_ready) {
+                              D_DEBUG_AT( GL, "%s glFramebufferRenderbuffer (%d)\n", __FUNCTION__, alloc->color_rb );
+
                               glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, alloc->color_rb );
                               CHECK_GL_ERROR();
 
@@ -595,7 +610,7 @@ fboLock( CoreSurfacePool       *pool,
                return DFB_BUG;
      }
 
-     D_DEBUG_AT( Android_FBOLock, "  -> offset %lu, pitch %d, addr %p, phys 0x%08lx\n",
+     D_DEBUG_AT( Android_FBO, "  -> offset %lu, pitch %d, addr %p, phys 0x%08lx\n",
                  lock->offset, lock->pitch, lock->addr, lock->phys );
 
      return DFB_OK;
@@ -616,7 +631,7 @@ fboUnlock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( alloc, FBOAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     D_DEBUG_AT( Android_FBOLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+     D_DEBUG_AT( Android_FBO, "%s( %p )\n", __FUNCTION__, lock->buffer );
 
      (void) alloc;
 
@@ -655,7 +670,7 @@ fboRead( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, FBOAllocationData );
 
-     D_DEBUG_AT( Android_FBOLock, "%s( %p )\n", __FUNCTION__, allocation->buffer );
+     D_DEBUG_AT( Android_FBO, "%s( %p )\n", __FUNCTION__, allocation->buffer );
 
      (void) alloc;
 
@@ -672,10 +687,14 @@ fboRead( CoreSurfacePool       *pool,
 
      glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
 
+     D_DEBUG_AT( GL, "%s glBindFramebuffer (%d)\n", __FUNCTION__, alloc->fbo );
+          
      glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
 
      glReadPixels(rect->x, rect->y,
                   rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, destination);
+
+     D_DEBUG_AT( GL, "%s glBindFramebuffer (%d)\n", __FUNCTION__, fbo );
 
      glBindFramebuffer( GL_FRAMEBUFFER, fbo );
 
@@ -727,13 +746,15 @@ fboWrite( CoreSurfacePool       *pool,
      surface = allocation->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     D_DEBUG_AT( Android_FBOLock, "%s( %p )\n", __FUNCTION__, allocation->buffer );
+     D_DEBUG_AT( Android_FBO, "%s( %p )\n", __FUNCTION__, allocation->buffer );
 
      EGLint err;
 
      int tex;
 
      glGetIntegerv( GL_TEXTURE_BINDING_2D, &tex );
+
+     D_DEBUG_AT( GL, "%s glBindTexture (%d)\n", __FUNCTION__, alloc->texture );
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
@@ -771,20 +792,22 @@ fboWrite( CoreSurfacePool       *pool,
      // glTexImage2D(GL_TEXTURE_2D, 0,
      //              GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, buff);
      glPixelStorei( GL_UNPACK_ALIGNMENT, 8);
-     glTexImage2D(GL_TEXTURE_2D, 0,
-                  GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, source);
+     //glTexImage2D(GL_TEXTURE_2D, 0,
+     //             GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, source);
 
 
      //D_FREE(buff);
 
 
+     D_DEBUG_AT( GL, "%s glTexSubImage2D\n", __FUNCTION__ );
 
-//     glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, allocation->config.size.w, allocation->config.size.h, GL_RGBA, GL_UNSIGNED_BYTE, source );
+     glTexSubImage2D( GL_TEXTURE_2D, 0, rect->x, rect->y, rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, source );
      if ((err = glGetError()) != 0) {
           D_ERROR( "DirectFB/PVR2D: glTexSubImage2D() failed! (error = %x)\n", err );
           //return DFB_FAILURE;
      }
 
+     D_DEBUG_AT( GL, "%s glBindTexture (%d)\n", __FUNCTION__, tex );
 
      glBindTexture( GL_TEXTURE_2D, tex );
 

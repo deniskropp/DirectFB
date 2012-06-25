@@ -36,6 +36,8 @@
 #include "android_system.h"
 #include "fbo_surface_pool.h"
 
+D_DEBUG_DOMAIN( EGL, "EGL", "EGL" );
+
 /**********************************************************************************************************************/
 
 static DFBResult
@@ -121,6 +123,8 @@ androidFlipRegion( CoreLayer                  *layer,
      alloc->layer_flip = 0;
 #endif
 
+     D_DEBUG_AT( EGL, "%s eglSwapBuffers (%p, %p)\n", __FUNCTION__, android->dpy, android->surface);
+
      eglSwapBuffers(android->dpy, android->surface);
 
      dfb_surface_flip( surface, false );
@@ -148,6 +152,8 @@ androidUpdateRegion( CoreLayer                  *layer,
      dfb_gfx_copy_to( surface, left_lock->buffer->surface, NULL , 0, 0, true );
      alloc->layer_flip = 0;
 #endif
+
+     D_DEBUG_AT( EGL, "%s eglSwapBuffers (%p, %p)\n", __FUNCTION__, android->dpy, android->surface);
 
      eglSwapBuffers(android->dpy, android->surface);
 

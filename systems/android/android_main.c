@@ -65,7 +65,7 @@ dfb_main_thread( DirectThread *thread,
 //   char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
 //     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug", "-a" };
    //char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler,layer-buffer-mode=backvideo,debug=ANDROID/Main,debug=core/input,debug=core/inputevt" };
-     char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler,layer-buffer-mode=backvideo" };
+     char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler,layer-buffer-mode=backvideo,wm-fullscreen-updates,debug=GL,debug=EGL,debug=idirectfbsurface,debug=idirectfbsurfacew" };
 
      LOGI( "Running main()..." );
 
