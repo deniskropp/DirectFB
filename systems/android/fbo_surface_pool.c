@@ -205,7 +205,7 @@ fboInitPool( CoreDFB                    *core,
      D_ASSERT( ret_desc != NULL );
 
      ret_desc->caps              = CSPCAPS_PHYSICAL | CSPCAPS_VIRTUAL;
-//     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     //ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_LAYER0] = CSAF_READ | CSAF_SHARED;
      ret_desc->types             = CSTF_WINDOW | CSTF_LAYER | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
@@ -399,6 +399,9 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
 
      int tex, fbo, crb;
 
+     glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+     CHECK_GL_ERROR();
+
      glGetIntegerv( GL_TEXTURE_BINDING_2D, &tex );
      CHECK_GL_ERROR();
 
@@ -454,6 +457,27 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
       * Framebuffer
       */
      glGenFramebuffers( 1, &alloc->fbo );
+     CHECK_GL_ERROR();
+
+     glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
+     CHECK_GL_ERROR();
+
+     if (!alloc->fb_ready) {
+          D_DEBUG_AT( GL, "%s glFramebufferRenderbuffer (%d)\n", __FUNCTION__, alloc->color_rb );
+
+          glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, alloc->color_rb );
+          CHECK_GL_ERROR();
+
+          if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+               D_ERROR( "DirectFB/Mesa: Framebuffer not complete\n" );
+          }
+
+          checkFramebufferStatus();
+
+          alloc->fb_ready = 1;
+     }
+
+     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
      CHECK_GL_ERROR();
 
      D_DEBUG_AT( GL, "%s glBindTexture (%d)\n", __FUNCTION__, tex );
@@ -583,21 +607,6 @@ fboLock( CoreSurfacePool       *pool,
 
                          glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
                          CHECK_GL_ERROR();
-
-                         if (!alloc->fb_ready) {
-                              D_DEBUG_AT( GL, "%s glFramebufferRenderbuffer (%d)\n", __FUNCTION__, alloc->color_rb );
-
-                              glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, alloc->color_rb );
-                              CHECK_GL_ERROR();
-
-                              if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-                                   D_ERROR( "DirectFB/Mesa: Framebuffer not complete\n" );
-                              }
-
-                              checkFramebufferStatus();
-
-                              alloc->fb_ready = 1;
-                         }
                     }
                }
                else {
@@ -798,7 +807,6 @@ fboWrite( CoreSurfacePool       *pool,
 
      //D_FREE(buff);
 
-
      D_DEBUG_AT( GL, "%s glTexSubImage2D\n", __FUNCTION__ );
 
      glTexSubImage2D( GL_TEXTURE_2D, 0, rect->x, rect->y, rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, source );
@@ -810,7 +818,6 @@ fboWrite( CoreSurfacePool       *pool,
      D_DEBUG_AT( GL, "%s glBindTexture (%d)\n", __FUNCTION__, tex );
 
      glBindTexture( GL_TEXTURE_2D, tex );
-
 
      return DFB_OK;
 }
