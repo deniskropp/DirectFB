@@ -26,8 +26,12 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __ANDROID_FBO_SURFACE_POOL_H__
-#define __ANDROID_FBO_SURFACE_POOL_H__
+#ifndef __ANDROID_SURFACE_POOL_GR_H__
+#define __ANDROID_SURFACE_POOL_GR_H__
+
+#include "hardware/gralloc.h"
+#include "hardware/hardware.h"
+#include "system/window.h"
 
 typedef struct {
      int             magic;
@@ -47,12 +51,19 @@ typedef struct {
      int                    pitch;
      int                    size;
 
+     EGLImageKHR            image;
+
      GLuint                 texture;
      GLuint                 fbo;
      GLuint                 color_rb;
      GLuint                 depth_rb;
 
      int                    fb_ready;
+
+     ANativeWindowBuffer_t *win_buf;
+     const hw_module_t     *hw_mod;
+     gralloc_module_t      *gralloc_mod;
+     alloc_device_t        *alloc_mod;
 
      int                    layer_flip;
 } FBOAllocationData;

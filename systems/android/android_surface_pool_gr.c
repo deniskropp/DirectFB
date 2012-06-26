@@ -50,9 +50,9 @@
 #include <idirectfb.h>
 
 #include "android_system.h"
-#include "fbo_surface_pool.h"
+#include "android_surface_pool_gr.h"
 
-D_DEBUG_DOMAIN( Android_FBO, "Android/FBO", "Android FBO Surface Pool" );
+D_DEBUG_DOMAIN( Android_FBO, "Android/FBO", "Android FBO Surface Pool GR" );
 
 D_DEBUG_DOMAIN( GL, "GL", "GL" );
 
@@ -66,6 +66,92 @@ D_DEBUG_DOMAIN( GL, "GL", "GL" );
 
 /**********************************************************************************************************************/
 
+static void incRef(struct android_native_base_t* base)
+{
+}
+
+static void decRef(struct android_native_base_t* base)
+{
+}
+
+typedef int(*HW_GET_MODULE)( const char *, const hw_module_t **);
+
+static ANativeWindowBuffer_t *
+AndroidAllocNativeBuffer( FBOAllocationData *alloc, int width, int height, uint32_t native_pixelformat )
+{
+     void *hw_handle = dlopen( "/system/lib/libhardware.so", RTLD_NOW );
+     if (!hw_handle) {
+          D_ERROR( "DirectFB/EGL: dlopen failed (%d)\n", errno );
+          return NULL;
+     }
+
+     HW_GET_MODULE hw_get_module = dlsym( hw_handle, "hw_get_module" );
+     if (!hw_get_module)  {
+          D_ERROR( "DirectFB/EGL: dlsym failed (%d)\n", errno );
+          dlclose( hw_handle );
+          return NULL;
+     }
+
+     dlclose( hw_handle );
+
+     int err = (*hw_get_module)( "gralloc", &alloc->hw_mod );
+     if (err || !alloc->hw_mod) {
+          D_ERROR( "DirectFB/EGL: hw_get_module failed (%d)\n", err );
+          return NULL;
+     }
+
+     alloc->hw_mod->methods->open( alloc->hw_mod, "gpu0", (struct hw_device_t**)&alloc->alloc_mod );
+     if (!alloc->alloc_mod) {
+          D_ERROR( "DirectFB/EGL: open alloc failed\n");
+          return NULL;
+     }
+
+     buffer_handle_t buf_handle = NULL;
+     int stride = 0;
+     int usage = GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_SW_WRITE_OFTEN | GRALLOC_USAGE_SW_READ_OFTEN;
+
+     alloc->alloc_mod->alloc( alloc->alloc_mod, width, height, native_pixelformat, usage, &buf_handle, &stride );
+     if (!buf_handle) {
+          D_ERROR( "DirectFB/EGL: failed to alloc buffer\n");
+          return NULL;
+     }
+
+     ANativeWindowBuffer_t *wbuf = (ANativeWindowBuffer_t *)malloc( sizeof(ANativeWindowBuffer_t) );
+     wbuf->common.magic = ANDROID_NATIVE_BUFFER_MAGIC;
+     wbuf->common.version = sizeof(ANativeWindowBuffer_t);
+     memset( wbuf->common.reserved, 0, sizeof(wbuf->common.reserved) );
+     wbuf->width = width;
+     wbuf->height = height;
+     wbuf->stride = stride;
+     wbuf->format = native_pixelformat;
+     wbuf->common.incRef = incRef;
+     wbuf->common.decRef = decRef;
+     wbuf->usage = usage;
+     wbuf->handle = buf_handle;
+
+     alloc->win_buf = wbuf;
+     alloc->gralloc_mod = (gralloc_module_t *)alloc->hw_mod;
+
+     return wbuf;
+}
+
+void
+AndroidFreeNativeBuffer( FBOAllocationData *alloc )
+{
+     if (!alloc->alloc_mod || !alloc->win_buf) {
+          D_WARN(" AndroidFreeNativeBuffer: FBO was never initialized correctly.\n ");
+          return;
+     }
+
+     alloc->alloc_mod->free( alloc->alloc_mod, alloc->win_buf->handle );
+
+     free( alloc->win_buf );
+
+     alloc->alloc_mod->common.close( (hw_device_t *)alloc->alloc_mod );
+}
+
+/**********************************************************************************************************************/
+
 static inline bool
 TestEGLError( const char* pszLocation )
 {
@@ -74,7 +160,6 @@ TestEGLError( const char* pszLocation )
           D_ERROR( "DirectFB/EGL: %s failed (%d).\n", pszLocation, iErr );
           return false;
      }
-     D_INFO("############################ open success!\n");
      return true;
 }
 
@@ -119,6 +204,7 @@ fboInitPool( CoreDFB                    *core,
      D_ASSERT( ret_desc != NULL );
 
      ret_desc->caps              = CSPCAPS_PHYSICAL | CSPCAPS_VIRTUAL;
+     ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_LAYER0] = CSAF_READ | CSAF_SHARED;
      ret_desc->types             = CSTF_WINDOW | CSTF_LAYER | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
@@ -299,8 +385,16 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     dfb_surface_calc_buffer_size( surface, 8, 2, &alloc->pitch, &alloc->size );
-     allocation->size = alloc->size;
+     ANativeWindowBuffer_t *buf = AndroidAllocNativeBuffer( alloc, buffer->config.size.w, buffer->config.size.h, local->data->shared->native_pixelformat );
+
+     CHECK_GL_ERROR();
+     EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
+     alloc->image = eglCreateImageKHR( eglGetDisplay( EGL_DEFAULT_DISPLAY ), EGL_NO_CONTEXT,
+                                      EGL_NATIVE_BUFFER_ANDROID, buf, 0 );
+     CHECK_GL_ERROR();
+
+     alloc->pitch = alloc->win_buf->stride * 4;
+     alloc->size  = alloc->win_buf->stride * 4 * buffer->config.size.h;
 
      int tex, fbo, crb;
 
@@ -333,7 +427,26 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
      CHECK_GL_ERROR();
 
-     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, allocation->config.size.w, allocation->config.size.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+     glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->image );
+     CHECK_GL_ERROR();
+
+     glGenRenderbuffers( 1, &alloc->depth_rb );
+     CHECK_GL_ERROR();
+
+     D_DEBUG_AT( GL, "%s glBindRenderbuffer (%d)\n", __FUNCTION__, alloc->depth_rb );
+
+     glBindRenderbuffer( GL_RENDERBUFFER, alloc->depth_rb );
+     CHECK_GL_ERROR();
+
+     glGenRenderbuffers( 1, &alloc->color_rb );
+     CHECK_GL_ERROR();
+
+     D_DEBUG_AT( GL, "%s glBindRenderbuffer (%d)\n", __FUNCTION__, alloc->color_rb );
+
+     glBindRenderbuffer( GL_RENDERBUFFER, alloc->color_rb );
+     CHECK_GL_ERROR();
+
+     glEGLImageTargetRenderbufferStorageOES( GL_RENDERBUFFER, alloc->image );
      CHECK_GL_ERROR();
 
      /*
@@ -342,15 +455,13 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      glGenFramebuffers( 1, &alloc->fbo );
      CHECK_GL_ERROR();
 
-     D_DEBUG_AT( GL, "%s glBindFramebuffer (%d)\n", __FUNCTION__, alloc->fbo );
-
      glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
      CHECK_GL_ERROR();
 
      if (!alloc->fb_ready) {
           D_DEBUG_AT( GL, "%s glFramebufferRenderbuffer (%d)\n", __FUNCTION__, alloc->color_rb );
 
-          glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, alloc->texture, 0);
+          glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, alloc->color_rb );
           CHECK_GL_ERROR();
 
           if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -362,6 +473,8 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
           alloc->fb_ready = 1;
      }
 
+     D_DEBUG_AT( GL, "%s glBindFramebuffer (%d)\n", __FUNCTION__, fbo );
+
      glBindFramebuffer( GL_FRAMEBUFFER, fbo );
      CHECK_GL_ERROR();
 
@@ -370,6 +483,8 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      glBindTexture( GL_TEXTURE_2D, tex );
 
      D_DEBUG_AT( GL, "%s glBindRenderbuffer (%d)\n", __FUNCTION__, crb );
+
+     glBindRenderbuffer( GL_RENDERBUFFER, crb );
 
      allocation->size = alloc->size;
 
@@ -405,6 +520,8 @@ fboDeallocateBuffer( CoreSurfacePool       *pool,
 
      glDeleteTextures( 1, &alloc->texture );
      glDeleteFramebuffers( 1, &alloc->fbo );
+
+     AndroidFreeNativeBuffer( alloc );
 
      D_MAGIC_CLEAR( alloc );
 
@@ -467,6 +584,10 @@ fboLock( CoreSurfacePool       *pool,
      lock->phys   = 0;
 
      switch (lock->accessor) {
+          case CSAID_CPU:
+               if (alloc->gralloc_mod->lock(alloc->gralloc_mod, alloc->win_buf->handle, GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN, 0, 0, allocation->config.size.w, allocation->config.size.h, &lock->addr))
+                    return DFB_ACCESSDENIED;
+               break;
           case CSAID_GPU:
           case CSAID_LAYER0:
                if (lock->access & CSAF_WRITE) {
@@ -522,6 +643,9 @@ fboUnlock( CoreSurfacePool       *pool,
      (void) alloc;
 
      switch (lock->accessor) {
+          case CSAID_CPU:
+               alloc->gralloc_mod->unlock(alloc->gralloc_mod, alloc->win_buf->handle);
+               break;
           case CSAID_GPU:
                if (lock->access & CSAF_WRITE) {
                     //glBindFramebuffer( GL_FRAMEBUFFER, 0 );
