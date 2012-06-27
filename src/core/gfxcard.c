@@ -3132,10 +3132,12 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      /* simple prechecks */
-     if (!(state->render_options & DSRO_MATRIX) &&
-         (x > state->clip.x2 || y > state->clip.y2 ||
-          y + font->height <= state->clip.y1)) {
-          return;
+     if (!font->description.rotation) {
+          if (!(state->render_options & DSRO_MATRIX) &&
+              (x > state->clip.x2 || y > state->clip.y2 ||
+               y + font->height <= state->clip.y1)) {
+               return;
+          }
      }
 
      /* Decode string to character indices. */
