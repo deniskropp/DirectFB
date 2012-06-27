@@ -111,6 +111,7 @@ typedef struct {
      int        read_pos;
      int        write_pos;
      int        can_free;
+     int        sync_calls;
 } FusionEventDispatcherBuffer;
 
 typedef struct
@@ -128,6 +129,7 @@ typedef struct
      unsigned int         ret_size;
      unsigned int         ret_length;
      int                  processed;
+     
 } FusionEventDispatcherCall;
 
 //pass fusion calls to single-app dispatcher thread
