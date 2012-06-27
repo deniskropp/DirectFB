@@ -1530,7 +1530,10 @@ repaint_stack( CoreWindowStack     *stack,
                dfb_layer_region_flip_update( region, NULL, flags | DSFLIP_WAITFORSYNC );
 
                /* Copy back the updated region. */
-               dfb_gfx_copy_regions( region->surface, CSBR_FRONT, region->surface, CSBR_BACK, updates, num_updates, 0, 0 );
+
+               if (!dfb_config->wm_fullscreen_updates)
+                    dfb_gfx_copy_regions( region->surface, CSBR_FRONT, region->surface, CSBR_BACK, updates, num_updates, 0, 0 );
+
                break;
 
           default:
@@ -1570,6 +1573,16 @@ process_updates( StackData           *data,
 
      if (!data->updates.num_regions)
           return DFB_OK;
+
+     if (dfb_config->wm_fullscreen_updates) {
+          DFBRegion reg = { 0, 0, stack->width - 1, stack->height - 1 };
+
+          repaint_stack( stack, data, &reg, 1, flags );
+
+          dfb_updates_reset( &data->updates );
+
+          return DFB_OK;
+     }
 
      dfb_updates_stat( &data->updates, &total, &bounding );
 

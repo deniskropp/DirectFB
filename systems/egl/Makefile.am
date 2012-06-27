@@ -6,7 +6,7 @@ INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src		\
-	$(egl_CFLAGS)
+	$(EGL_CFLAGS)
 
 
 internalincludedir = $(INTERNALINCLUDEDIR)/egl
@@ -36,6 +36,6 @@ libdirectfb_egl_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/lib/fusion/libfusion.la \
 	$(top_builddir)/src/libdirectfb.la	\
-	$(egl_LIBS)
+	$(EGL_LIBS)
 
 include $(top_srcdir)/rules/libobject.make

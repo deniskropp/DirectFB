@@ -153,6 +153,7 @@ static const char *config_usage_strings[]  = {
      "  layer-src-key=AARRGGBB         Enable color keying (hex)\n"
      "  layer-palette-<index>=AARRGGBB Set palette entry at index (hex)\n"
      "  layer-rotate=<degree>          Set the layer rotation for double buffer mode (0,90,180,270)\n"
+     "  [no-]wm-fullscreen-updates     Force fullscreen updates in window manager\n"
      "  [no-]smooth-upscale            Enable/disable smooth upscaling per default\n"
      "  [no-]smooth-downscale          Enable/disable smooth downscaling per default\n"
      "  [no-]translucent-windows       Allow translucent windows\n"
@@ -479,6 +480,7 @@ static void config_allocate( void )
      dfb_config->font_format              = DSPF_A8;
      dfb_config->cursor_automation        = true;
      dfb_config->layers_clear             = true;
+     dfb_config->wm_fullscreen_updates    = false;
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -991,6 +993,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-cursor-automation" ) == 0) {
           dfb_config->cursor_automation = false;
+     } else
+     if (strcmp (name, "wm-fullscreen-updates" ) == 0) {
+          dfb_config->wm_fullscreen_updates = true;
+     } else
+     if (strcmp (name, "no-wm-fullscreen-updates" ) == 0) {
+          dfb_config->wm_fullscreen_updates = false;
      } else
      if (strcmp (name, "cursor-updates" ) == 0) {
           dfb_config->no_cursor_updates = false;

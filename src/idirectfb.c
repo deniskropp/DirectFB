@@ -2044,7 +2044,7 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      direct_mutex_init( &data->init_lock );
      direct_waitqueue_init( &data->init_wq );
 
-     if (dfb_core_is_master( core ))
+     if (dfb_config->call_nodirect && dfb_core_is_master( core ))
           Core_AsyncCall( InitIDirectFB_Async, thiz, data );
      else
           InitIDirectFB_Async( thiz, data );

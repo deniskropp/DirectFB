@@ -274,44 +274,50 @@ decodeImage( IDirectFBImageProvider_ANDROID_data *data )
           return DFB_INIT;
 
      config = (*env)->CallObjectMethod( env, bitmap, method );
-     if (check_exception( env ) || !config)
-          return DFB_INIT;
-
-     clazz2 = (*env)->FindClass( env, "android/graphics/Bitmap$Config" );
-     if (check_exception( env ) || !clazz2)
-          return DFB_INIT;
-
-     method = (*env)->GetMethodID( env, clazz2, "name", "()Ljava/lang/String;" );
-     if (check_exception( env ) || !method)
-          return DFB_INIT;
-
-     format = (jstring)(*env)->CallObjectMethod( env, config, method );
-     if (check_exception( env ) || !format)
-          return DFB_INIT;
-
-     fvalue = (*env)->GetStringUTFChars( env, format, 0 );
-     if (check_exception( env ) || !fvalue)
-          return DFB_NOSYSTEMMEMORY;
-
-     if (!strcmp( fvalue, "ALPHA_8" )) {
-          data->format = DSPF_A8;
-     }
-     else if (!strcmp( fvalue, "ARGB_4444" )) {
-          data->format = DSPF_ARGB4444;
-     }
-     else if (!strcmp( fvalue, "ARGB_8888" )) {
-          data->format = DSPF_ARGB;
-     }
-     else if (!strcmp( fvalue, "RGB_565" )) {
-          data->format = DSPF_RGB16;
-     }
-     else {
-          data->format = DSPF_UNKNOWN;
-     }
-
-     (*env)->ReleaseStringUTFChars( env, format, fvalue );
      if (check_exception( env ))
           return DFB_INIT;
+
+     if (config) {
+          clazz2 = (*env)->FindClass( env, "android/graphics/Bitmap$Config" );
+          if (check_exception( env ) || !clazz2)
+               return DFB_INIT;
+
+          method = (*env)->GetMethodID( env, clazz2, "name", "()Ljava/lang/String;" );
+          if (check_exception( env ) || !method)
+               return DFB_INIT;
+
+          format = (jstring)(*env)->CallObjectMethod( env, config, method );
+          if (check_exception( env ) || !format)
+               return DFB_INIT;
+
+          fvalue = (*env)->GetStringUTFChars( env, format, 0 );
+          if (check_exception( env ) || !fvalue)
+               return DFB_NOSYSTEMMEMORY;
+
+          if (!strcmp( fvalue, "ALPHA_8" )) {
+               data->format = DSPF_A8;
+          }
+          else if (!strcmp( fvalue, "ARGB_4444" )) {
+               data->format = DSPF_ARGB4444;
+          }
+          else if (!strcmp( fvalue, "ARGB_8888" )) {
+               data->format = DSPF_ARGB;
+          }
+          else if (!strcmp( fvalue, "RGB_565" )) {
+               data->format = DSPF_RGB16;
+          }
+          else {
+               data->format = DSPF_UNKNOWN;
+          }
+
+          (*env)->ReleaseStringUTFChars( env, format, fvalue );
+          if (check_exception( env ))
+               return DFB_INIT;
+     }
+     else {
+          // config is not known, so force conversion
+          data->format = DSPF_UNKNOWN;
+     }
 
      if (DSPF_ARGB != data->format) {
           const char *nconfig_name  = "ARGB_8888";

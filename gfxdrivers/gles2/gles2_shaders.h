@@ -132,6 +132,18 @@ void main (void) \
  */
 static const char *blit_frag_src = " \
 uniform sampler2D    dfbSampler; \
+varying "LOWP" vec2  varTexCoord; \
+void main (void) \
+{ \
+     gl_FragColor = texture2D(dfbSampler, varTexCoord); \
+}";
+
+
+/*
+ * Sample texture and modulate by static color.
+ */
+static const char *blit_color_frag_src = " \
+uniform sampler2D    dfbSampler; \
 uniform "LOWP" vec4  dfbColor; \
 varying "LOWP" vec2  varTexCoord; \
 void main (void) \

@@ -1215,12 +1215,6 @@ fusion_call_execute3(FusionCall          *call,
      msg.ret_size = ret_size;
      msg.ret_length = 0;
 
-     //FIXME HACK fix GraphicsState::Flush
-     if (flags & FCEF_ONEWAY && length == 1) {
-          msg.ptr = 0;
-          msg.length = 0;
-     }
-
      ret = _fusion_event_dispatcher_process( call->shared->world, &msg, &ret_msg );
 
      if (!(flags & FCEF_ONEWAY) && ret_length)

@@ -48,6 +48,8 @@
 
 D_DEBUG_DOMAIN(GLES2__2D, "GLES2/2D", "OpenGL ES2 2D Acceleration");
 
+D_DEBUG_DOMAIN( GL, "GL", "GL" );
+
 /*
  * State validation flags.
  *
@@ -174,6 +176,8 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
 
 //     D_MAGIC_ASSERT(buffer, GLES2BufferData);
 #ifdef GLES2_USE_FBO
+     D_DEBUG_AT( GL, "%s glFramebufferRenderbuffer (%d)\n", __FUNCTION__, color_rb );
+
      glFramebufferRenderbuffer( GL_FRAMEBUFFER,
                                 GL_COLOR_ATTACHMENT0,
                                 GL_RENDERBUFFER,
@@ -220,17 +224,12 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
                int fbo;
 
                glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+
                // Just need the X & Y scale factors and constant offsets.
-#ifdef GLES2_PVR2D
-               if (fbo) {
+               if (fbo)
                     glUniform3f(prog->dfbScale, 2.0f/w, 2.0f/h, - 1.0f);
-               }
-               else {
+               else
                     glUniform3f(prog->dfbScale, 2.0f/w, -2.0f/h, 1.0f);
-               }
-#else
-               glUniform3f(prog->dfbScale, 2.0f/w, 2.0f/h, - 1.0f);
-#endif
 
                D_DEBUG_AT(GLES2__2D, "  -> loaded scale factors %f %f\n",
                           2.0f/w, 2.0f/h);
@@ -343,6 +342,8 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
 
      D_DEBUG_AT(GLES2__2D, "%s( texture %u )\n", __FUNCTION__, texture);
 //   D_MAGIC_ASSERT(buffer, GLES2BufferData);
+
+     D_DEBUG_AT( GL, "%s glBindTexture (%d)\n", __FUNCTION__, texture );
 
      glBindTexture( GL_TEXTURE_2D, texture );
 
@@ -597,7 +598,7 @@ gles2EngineSync(void *drv, void *dev)
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
      if (gdrv->calls > 0) {
-          glFinish();
+//          glFinish();
           //eglSwapBuffers( eglGetCurrentDisplay(), eglGetCurrentSurface( EGL_DRAW ) );
           gdrv->calls = 0;
      }
@@ -631,7 +632,8 @@ gles2EmitCommands(void *drv, void *dev)
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
      if (gdrv->calls > 0) {
-          glFlush();
+//          glFlush();
+//           glFinish();
 
           gdrv->calls = 1;
      }
@@ -706,6 +708,9 @@ gles2SetState(void                *drv,
      D_DEBUG_AT(GLES2__2D,
                 "%s(state %p, accel 0x%08x) <- dest %p, modified 0x%08x\n",
                 __FUNCTION__, state, accel, state->destination, modified);
+
+     glDepthMask( GL_FALSE );
+     glDisable( GL_DEPTH_TEST );
 
      /*
       * 1) Invalidate hardware states
@@ -863,6 +868,13 @@ gles2SetState(void                *drv,
                               glUseProgram(gdev->progs[gdev->prog_index].obj);
                          }
                     }
+                    else if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_BLEND_COLORALPHA | DSBLIT_SRC_PREMULTCOLOR)) {
+                         if (gdev->prog_index != GLES2_BLIT_COLOR_MAT) {
+
+                              gdev->prog_index = GLES2_BLIT_COLOR_MAT;
+                              glUseProgram(gdev->progs[gdev->prog_index].obj);
+                         }
+                    }
                     else {
                          if (gdev->prog_index != GLES2_BLIT_MAT) {
 
@@ -886,6 +898,13 @@ gles2SetState(void                *drv,
                          if (gdev->prog_index != GLES2_BLIT_PREMULTIPLY) {
 
                               gdev->prog_index = GLES2_BLIT_PREMULTIPLY;
+                              glUseProgram(gdev->progs[gdev->prog_index].obj);
+                         }
+                    }
+                    else if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_BLEND_COLORALPHA | DSBLIT_SRC_PREMULTCOLOR)) {
+                         if (gdev->prog_index != GLES2_BLIT_COLOR) {
+
+                              gdev->prog_index = GLES2_BLIT_COLOR;
                               glUseProgram(gdev->progs[gdev->prog_index].obj);
                          }
                     }
@@ -1126,6 +1145,84 @@ gles2Blit(void *drv, void *dev, DFBRectangle *srect, int dx, int dy)
 
      // XXX hood - how are these magic numbers determined?
      gdrv->calls += 1 + srect->w * srect->h / (23 * 42);
+
+     return true;
+}
+
+/*
+ * Blit a rectangle using the current hardware state.
+ */
+bool
+gles2BatchBlit(void *drv, void *dev,
+               const DFBRectangle *rects, const DFBPoint *points,
+               unsigned int num, unsigned int *ret_num)
+{
+     GLES2DriverData *gdrv = drv;
+     int              i;
+
+     GLfloat pos[num*12];
+     GLfloat tex[num*12];
+
+     //     D_DEBUG_AT(GLES2__2D, "%s(%4d,%4d-%4dx%4d <- %4d,%4d)\n",
+     //                __FUNCTION__, dx, dy, srect->w, srect->h, srect->x, srect->y);
+
+     for (i=0; i<num; i++) {
+          float x1 = points[i].x;
+          float y1 = points[i].y;
+          float x2 = rects[i].w + x1;
+          float y2 = rects[i].h + y1;
+
+          float tx1 = rects[i].x;
+          float ty1 = rects[i].y;
+          float tx2 = rects[i].w + tx1;
+          float ty2 = rects[i].h + ty1;
+
+          pos[i*12+0] = x1;
+          pos[i*12+1] = y1;
+
+          pos[i*12+2] = x2;
+          pos[i*12+3] = y1;
+
+          pos[i*12+4] = x2;
+          pos[i*12+5] = y2;
+
+          pos[i*12+6] = x2;
+          pos[i*12+7] = y2;
+
+          pos[i*12+8] = x1;
+          pos[i*12+9] = y1;
+
+          pos[i*12+10] = x1;
+          pos[i*12+11] = y2;
+
+          if (gdrv->blittingflags & DSBLIT_ROTATE180) {
+               tex[i*12+0] = tx2; tex[i*12+1] = ty2;
+               tex[i*12+2] = tx1; tex[i*12+3] = ty2;
+               tex[i*12+4] = tx1; tex[i*12+5] = ty1;
+
+               tex[i*12+6] = tx1; tex[i*12+7] = ty1;
+               tex[i*12+8] = tx2; tex[i*12+9] = ty2;
+               tex[i*12+10] = tx2; tex[i*12+11] = ty1;
+          }
+          else {
+               tex[i*12+0] = tx1; tex[i*12+1] = ty1;
+               tex[i*12+2] = tx2; tex[i*12+3] = ty1;
+               tex[i*12+4] = tx2; tex[i*12+5] = ty2;
+
+               tex[i*12+6] = tx2; tex[i*12+7] = ty2;
+               tex[i*12+8] = tx1; tex[i*12+9] = ty1;
+               tex[i*12+10] = tx1; tex[i*12+11] = ty2;
+          }
+
+          // XXX hood - how are these magic numbers determined?
+          gdrv->calls += 1 + rects[i].w * rects[i].h / (23 * 42);
+     }
+
+     glVertexAttribPointer(GLES2VA_POSITIONS, 2, GL_FLOAT, GL_FALSE, 0, pos);
+     glVertexAttribPointer(GLES2VA_TEXCOORDS, 2, GL_FLOAT, GL_FALSE, 0, tex);
+
+     glDrawArrays(GL_TRIANGLES, 0, num*6);
+
 
      return true;
 }

@@ -90,6 +90,10 @@ bool      gles2Blit         (void                *drv,
 			     int                  dx,
 			     int                  dy);
 
+bool      gles2BatchBlit(void *driver_data, void *device_data,
+                         const DFBRectangle *rects, const DFBPoint *points,
+                         unsigned int num, unsigned int *ret_num);
+
 bool      gles2StretchBlit  (void                *drv,
 			     void                *dev,
 			     DFBRectangle        *srect,
