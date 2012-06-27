@@ -1632,12 +1632,15 @@ fusion_reactor_new( int                msg_size,
      direct_util_recursive_pthread_mutex_init( &reactor->reactions_lock );
      direct_util_recursive_pthread_mutex_init( &reactor->globals_lock );
 
+     D_MAGIC_SET( reactor, FusionReactor );
+
      return reactor;
 }
 
 DirectResult
 fusion_reactor_set_lock( FusionReactor  *reactor,
                          FusionSkirmish *lock )
+
 {
      D_ASSERT( reactor != NULL );
      D_ASSERT( lock != NULL );
@@ -1663,6 +1666,8 @@ fusion_reactor_attach (FusionReactor *reactor,
                        void          *ctx,
                        Reaction      *reaction)
 {
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+
      return fusion_reactor_attach_channel( reactor, 0, func, ctx, reaction );
 }
 
@@ -1672,6 +1677,8 @@ fusion_reactor_detach (FusionReactor *reactor,
 {
      D_ASSERT( reactor != NULL );
      D_ASSERT( reaction != NULL );
+
+     D_MAGIC_ASSERT( reactor, FusionReactor );
 
      pthread_mutex_lock( &reactor->reactions_lock );
 
@@ -1691,6 +1698,8 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
      D_ASSERT( reactor != NULL );
      D_ASSERT( index >= 0 );
      D_ASSERT( reaction != NULL );
+
+     D_MAGIC_ASSERT( reactor, FusionReactor );
 
      reaction->index = index;
      reaction->ctx   = ctx;
@@ -1712,6 +1721,8 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
 {
      D_ASSERT( reactor != NULL );
      D_ASSERT( reaction != NULL );
+
+     D_MAGIC_ASSERT( reactor, FusionReactor );
 
      pthread_mutex_lock( &reactor->globals_lock );
 
@@ -1741,6 +1752,8 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
      D_ASSERT( func != NULL );
      D_ASSERT( reaction != NULL );
 
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+
      reaction->func      = func;
      reaction->ctx       = ctx;
      reaction->node_link = (void*)(long) channel;
@@ -1765,6 +1778,8 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
      D_ASSERT( reactor != NULL );
      D_ASSERT( msg_data != NULL );
 
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+
      if (channel == 0 && reactor->globals) {
           if (globals)
                process_globals( reactor, msg_data, globals );
@@ -1786,6 +1801,8 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
                                       FusionCall     *call,
                                       void           *call_ptr )
 {
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+
      D_UNIMPLEMENTED();
 
      return DR_UNIMPLEMENTED;
@@ -1795,6 +1812,8 @@ DirectResult
 fusion_reactor_set_name( FusionReactor *reactor,
                          const char    *name )
 {
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+
      D_UNIMPLEMENTED();
 
      return DR_UNIMPLEMENTED;
@@ -1805,6 +1824,8 @@ fusion_reactor_add_permissions( FusionReactor            *reactor,
                                 FusionID                  fusion_id,
                                 FusionReactorPermissions  permissions )
 {
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+
      return DR_OK;
 }
 
@@ -1814,13 +1835,15 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
                          bool                self,
                          const ReactionFunc *globals)
 {
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+
      return fusion_reactor_dispatch_channel( reactor, 0, msg_data, reactor->msg_size, self, globals );
 }
 
 DirectResult
 fusion_reactor_direct( FusionReactor *reactor, bool direct )
 {
-     D_ASSERT( reactor != NULL );
+     D_MAGIC_ASSERT( reactor, FusionReactor );
      
      return DR_OK;
 }
@@ -1828,7 +1851,7 @@ fusion_reactor_direct( FusionReactor *reactor, bool direct )
 DirectResult
 fusion_reactor_destroy (FusionReactor *reactor)
 {
-     D_ASSERT( reactor != NULL );
+     D_MAGIC_ASSERT( reactor, FusionReactor );
 
      D_ASSUME( !reactor->destroyed );
 
@@ -1840,15 +1863,20 @@ fusion_reactor_destroy (FusionReactor *reactor)
 DirectResult
 fusion_reactor_free (FusionReactor *reactor)
 {
-     D_ASSERT( reactor != NULL );
+     D_MAGIC_ASSERT( reactor, FusionReactor );
 
 //     D_ASSUME( reactor->destroyed );
+
+     if (_fusion_event_dispatcher_process_reactor_free( reactor->world, reactor ))
+          return DR_OK;
 
      reactor->reactions = NULL;
      pthread_mutex_destroy( &reactor->reactions_lock );
 
      reactor->globals = NULL;
      pthread_mutex_destroy( &reactor->globals_lock );
+
+     D_MAGIC_CLEAR( reactor );
 
      D_FREE( reactor );
 

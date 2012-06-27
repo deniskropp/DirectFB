@@ -133,7 +133,7 @@ typedef struct
 //pass fusion calls to single-app dispatcher thread
 DirectResult _fusion_event_dispatcher_process( FusionWorld *world, const FusionEventDispatcherCall *call, FusionEventDispatcherCall **ret );
 DirectResult _fusion_event_dispatcher_process_reactions( FusionWorld *world, FusionReactor *reactor, int channel, void *msg_data, int msg_size );
-
+DirectResult _fusion_event_dispatcher_process_reactor_free( FusionWorld *world, FusionReactor *reactor );
 #endif /* !FUSION_BUILD_MULTI */
 
 struct __Fusion_FusionWorld {

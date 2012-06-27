@@ -41,8 +41,8 @@
 
 #include "android_system.h"
 
-
 D_DEBUG_DOMAIN( IDFBGL_Android, "IDirectFBGL2Context/Android", "IDirectFBGL2Context Android Implementation" );
+D_DEBUG_DOMAIN( GL, "GL", "GL" );
 
 static DirectResult
 Probe( void *ctx, ... );
@@ -151,14 +151,22 @@ IDirectFBGL2Context_Bind( IDirectFBGL2Context *thiz,
           return ret;
      }
 
+     D_DEBUG_AT( GL, "%s glBindRenderbuffer (%d)\n", __FUNCTION__, data->depth );
+
      /* Update depth buffer */
      glBindRenderbuffer( GL_RENDERBUFFER, data->depth );
      glRenderbufferStorage( GL_RENDERBUFFER, GL_DEPTH_COMPONENT, surface->config.size.w, surface->config.size.h );
 
+     D_DEBUG_AT( GL, "%s glBindFramebuffer (%d)\n", __FUNCTION__, data->fbo );
+
      /* Set color and depth buffers */
      glBindFramebuffer( GL_FRAMEBUFFER, data->fbo );
 
+     D_DEBUG_AT( GL, "%s glFramebufferRenderbuffer (%d)\n", __FUNCTION__, data->depth );
+
      glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, data->depth );
+
+     D_DEBUG_AT( GL, "%s glFramebufferRenderbuffer (%d)\n", __FUNCTION__, data->lock.handle );
 
      glFramebufferRenderbuffer( GL_FRAMEBUFFER,
                                 GL_COLOR_ATTACHMENT0,

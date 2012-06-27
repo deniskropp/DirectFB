@@ -67,6 +67,8 @@ typedef struct {
  *
  */
 struct __Fusion_FusionReactor {
+     int               magic;
+
      DirectLink       *reactions; /* reactor listeners attached to node  */
      pthread_mutex_t   reactions_lock;
 
@@ -78,6 +80,7 @@ struct __Fusion_FusionReactor {
      int               msg_size;
 
      FusionWorld      *world;
+     bool              free;
 };
 #endif
 

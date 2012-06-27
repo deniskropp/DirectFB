@@ -255,6 +255,7 @@ typedef struct
 
      bool          cursor_automation;
 
+     bool          wm_fullscreen_updates;
 
      int           max_font_rows;
      int           max_font_row_width;
@@ -296,7 +297,6 @@ typedef struct
 
      bool          cursor_videoonly;
      u64           cursor_resource_id;
-
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

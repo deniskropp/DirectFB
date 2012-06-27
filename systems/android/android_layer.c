@@ -36,6 +36,8 @@
 #include "android_system.h"
 #include "fbo_surface_pool.h"
 
+D_DEBUG_DOMAIN( EGL, "EGL", "EGL" );
+
 /**********************************************************************************************************************/
 
 static DFBResult
@@ -121,6 +123,38 @@ androidFlipRegion( CoreLayer                  *layer,
      alloc->layer_flip = 0;
 #endif
 
+     D_DEBUG_AT( EGL, "%s eglSwapBuffers (%p, %p)\n", __FUNCTION__, android->dpy, android->surface);
+
+     eglSwapBuffers(android->dpy, android->surface);
+
+     dfb_surface_flip( surface, false );
+
+     return DFB_OK;
+}
+
+static DFBResult
+androidUpdateRegion( CoreLayer                  *layer,
+                     void                       *driver_data,
+                     void                       *layer_data,
+                     void                       *region_data,
+                     CoreSurface                *surface,
+                     const DFBRegion            *left_update,
+                     CoreSurfaceBufferLock      *left_lock,
+                     const DFBRegion            *right_update,
+                     CoreSurfaceBufferLock      *right_lock )
+{
+     AndroidData       *android = driver_data;
+     FBOAllocationData *alloc   = (FBOAllocationData *)left_lock->allocation->data;
+
+     alloc->layer_flip = 1;
+
+#ifdef ANDROID_USE_FBO_FOR_PRIMARY
+     dfb_gfx_copy_to( surface, left_lock->buffer->surface, NULL , 0, 0, true );
+     alloc->layer_flip = 0;
+#endif
+
+     D_DEBUG_AT( EGL, "%s eglSwapBuffers (%p, %p)\n", __FUNCTION__, android->dpy, android->surface);
+
      eglSwapBuffers(android->dpy, android->surface);
 
      dfb_surface_flip( surface, false );
@@ -132,7 +166,8 @@ static const DisplayLayerFuncs _androidLayerFuncs = {
      .InitLayer     = androidInitLayer,
      .TestRegion    = androidTestRegion,
      .SetRegion     = androidSetRegion,
-     .FlipRegion    = androidFlipRegion
+     .FlipRegion    = androidFlipRegion,
+     .UpdateRegion  = androidUpdateRegion
 };
 
 const DisplayLayerFuncs *androidLayerFuncs = &_androidLayerFuncs;
