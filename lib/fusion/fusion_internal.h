@@ -107,11 +107,14 @@ struct __Fusion_FusionWorldShared {
 typedef struct {
      DirectLink link;
 
+     int magic;
+
      char       buffer[EVENT_DISPATCHER_BUFFER_LENGTH];
      int        read_pos;
      int        write_pos;
      int        can_free;
      int        sync_calls;
+     int        pending;
 } FusionEventDispatcherBuffer;
 
 typedef struct
