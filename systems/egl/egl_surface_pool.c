@@ -28,6 +28,8 @@
 
 #include <config.h>
 
+#include <directfb_util.h>
+
 #include <direct/debug.h>
 #include <direct/mem.h>
 
@@ -68,6 +70,7 @@ typedef struct {
      EGLint                id;
      GLeglImageOES         eglImage;
      GLuint                texture;
+     GLuint                fbo;
      void                 *pixeldata;
 } EGLAllocationData;
 
@@ -117,7 +120,7 @@ eglInitPool( CoreDFB                    *core,
      D_ASSERT( shared != NULL );
 
      ret_desc->caps                 = CSPCAPS_PHYSICAL | CSPCAPS_VIRTUAL;
-     ret_desc->access[CSAID_CPU]    = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+//     ret_desc->access[CSAID_CPU]    = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_GPU]    = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_LAYER0] = CSAF_READ | CSAF_SHARED;
      ret_desc->types                = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
@@ -307,10 +310,12 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
       * EGLImage
       */
      
-
-     EGLint err;
-
 #if 1
+     EGLint err;
+     int    fbo;
+     int    tex;
+
+#if 0
         
 
      alloc->pixeldata = malloc (alloc->pitch * surface->config.size.h);
@@ -339,6 +344,10 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
 
 #endif
 
+     glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+     glGetIntegerv( GL_TEXTURE_BINDING_2D, &tex );
+
+
      /*
       * Texture
       */
@@ -347,7 +356,6 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
           D_ERROR( "DirectFB/EGL: glGenTextures() failed! (error = %x)\n", err );
           return DFB_FAILURE;
      }
-     else printf ("geht!\n");
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
      if ((err = glGetError()) != 0) {
@@ -355,12 +363,25 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
          return DFB_FAILURE;
      }
 
-     glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->eglImage );
+     glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, surface->config.size.w, surface->config.size.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+
+//     glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->eglImage );
      if ((err = eglGetError()) != EGL_SUCCESS) {
           D_ERROR( "DirectFB/EGL: glEGLImageTargetTexture2DOES() failed! (error = %x)\n", err );
           return DFB_FAILURE;
      }
 
+     /*
+      * FBO
+      */
+     glGenFramebuffers( 1, &alloc->fbo );
+     glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
+     glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, alloc->texture, 0 );
+
+     
+     glBindTexture( GL_TEXTURE_2D, tex );
+     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+#endif
      allocation->size   = alloc->size;
      allocation->offset = alloc->offset;
 
@@ -471,12 +492,16 @@ eglLock( CoreSurfacePool       *pool,
 //     lock->phys   = alloc->meminfo->ui32DevAddr;
 //     lock->handle = alloc->meminfo;
 
-//     if (lock->accessor == CSAID_GPU) {
-//          if (lock->access & CSAF_WRITE)
-//               lock->handle = alloc->meminfo;
-//          else
-//               lock->handle = alloc->texture;
-//     }
+     if (lock->accessor == CSAID_GPU) {
+          if (lock->access & CSAF_WRITE) {
+               if (allocation->type & CSTF_LAYER)
+                    glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+               else
+                    glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
+          }
+          else
+               lock->handle = alloc->texture;
+     }
 
      D_DEBUG_AT( EGL_SurfLock, "  -> offset %lu, pitch %d, addr %p, phys 0x%08lx\n",
                  lock->offset, lock->pitch, lock->addr, 0x0 );
@@ -517,26 +542,66 @@ eglWrite( CoreSurfacePool       *pool,
             const DFBRectangle    *rect )
 {
      EGLAllocationData *alloc = alloc_data;
-     CoreSurface         *surface;
+     GLuint            *buff, *sline, *dline, *s, *d;
+     GLuint             pixel, w, h, pixels_per_line;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( alloc, MesaAllocationData );
-
-     surface = allocation->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_MAGIC_ASSERT( alloc, EGLAllocationData );
 
      D_DEBUG_AT( EGL_SurfLock, "%s( %p )\n", __FUNCTION__, allocation->buffer );
 
-
      EGLint err;
+     int    tex;
 
-     glBindTexture( GL_TEXTURE_2D, alloc->texture );
+     switch (allocation->config.format) {
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               glGetIntegerv( GL_TEXTURE_BINDING_2D, &tex );
 
-     glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, surface->config.size.w, surface->config.size.h, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, source );
-     if ((err = glGetError()) != 0) {
-          D_ERROR( "DirectFB/EGL: glTexSubImage2D() failed! (error = %x)\n", err );
-          //return DFB_FAILURE;
+               glBindTexture( GL_TEXTURE_2D, alloc->texture );
+
+               buff = (GLuint *)D_MALLOC(rect->w * rect->h * 4);
+               if (!buff) {
+                    D_ERROR("EGL: failed to allocate %d bytes for texture upload!\n",
+                            rect->w * rect->h * 4);
+                    return D_OOM();
+               }
+
+               pixels_per_line = pitch/4;
+
+               sline = (GLuint *)source + rect->x + (rect->y * pixels_per_line);
+               dline = buff;
+
+               h = rect->h;
+               while (h--) {
+                    s = sline;
+                    d = dline;
+                    w = rect->w;
+                    while (w--) {
+                         pixel = *s++;
+                         *d++ = (pixel & 0xff00ff00) |
+                                ((pixel >> 16) & 0x000000ff) |
+                                ((pixel << 16) & 0x00ff0000);
+                    }
+                    sline += pixels_per_line;
+                    dline += rect->w;
+               }
+
+               //if (rect->w == allocation->config.size.w && rect->h == allocation->config.size.h)
+               //     glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, allocation->config.size.w, allocation->config.size.h, 0, GL_RGBA, GL_UNSIGNED_BYTE, source );
+               //else
+                    glTexSubImage2D( GL_TEXTURE_2D, 0, rect->x, rect->y, rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, buff );
+                    D_FREE(buff);
+               if ((err = glGetError()) != 0) {
+                    D_ERROR( "DirectFB/EGL: glTexSubImage2D() failed! (error = %x)\n", err );
+                    //return DFB_FAILURE;
+               }
+
+               glBindTexture( GL_TEXTURE_2D, tex );
+               break;
+          default:
+               break;
      }
 
      return DFB_OK;
