@@ -2848,11 +2848,13 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
           direct_mutex_lock( &world->event_dispatcher_mutex );
 
-          if (!world->event_dispatcher_buffers)
+          if (!world->event_dispatcher_buffers) {
+//D_INFO("dispatcher: no buffers, waiting...\n");
                direct_waitqueue_wait( &world->event_dispatcher_cond, &world->event_dispatcher_mutex );
+          }
 
           buf = (FusionEventDispatcherBuffer *)world->event_dispatcher_buffers;
-
+//D_INFO("dispatcher buf read %d write %d\n", buf->read_pos, buf->write_pos);
           if (buf->can_free && buf->read_pos == buf->write_pos) {
                direct_list_remove( &world->event_dispatcher_buffers, &buf->link);
                D_FREE( buf );
@@ -2862,6 +2864,7 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
           if (buf->read_pos >= buf->write_pos) {
                D_ASSERT( buf->read_pos == buf->write_pos );
+//D_INFO("dispatcher waiting for new message in buffer...\n");
                direct_waitqueue_wait( &world->event_dispatcher_cond, &world->event_dispatcher_mutex );
           }
 
@@ -2873,7 +2876,7 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
                direct_mutex_unlock( &world->event_dispatcher_mutex );
                continue;
           }
-
+//D_INFO("processing buffer %p read %d write %d\n", buf, buf->read_pos, buf->write_pos);
           if (buf) {
                FusionEventDispatcherCall *msg = (FusionEventDispatcherCall*)&buf->buffer[buf->read_pos];
 
@@ -2895,19 +2898,21 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
                     direct_mutex_unlock( &world->event_dispatcher_mutex );
 
                     if (msg->call_handler3) {
-                         if (FCHR_RETAIN == msg->call_handler3( 1, msg->call_arg, msg->ptr, msg->length, msg->call_ctx, 0, msg->ret_ptr, msg->ret_size, &msg->ret_length )) {
+//D_INFO("calling handler3 ...\n");
+                         if (FCHR_RETAIN == msg->call_handler3( 1, msg->call_arg, msg->ptr, msg->length, msg->call_ctx, 0, msg->ret_ptr, msg->ret_size, &msg->ret_length ))
                               D_WARN( "RETAIN!\n" );
-                         }
+//D_INFO("handler3 called.\n");
                     }
                     else if (msg->call_handler) {
-                         if (FCHR_RETAIN == msg->call_handler( 1, msg->call_arg, msg->ptr, msg->call_ctx, 0, &msg->ret_val )) {
+                         if (FCHR_RETAIN == msg->call_handler( 1, msg->call_arg, msg->ptr, msg->call_ctx, 0, &msg->ret_val ))
                               D_WARN( "RETAIN!\n" );
-                         }
                     }
-                    else if (msg->reaction) {
+                    else if (msg->reaction == 1) {
                          FusionReactor *reactor = (FusionReactor *)msg->call_ctx;
                          Reaction      *reaction;
                          DirectLink    *link;
+
+                         D_MAGIC_ASSERT( reactor, FusionReactor );
 
                          pthread_mutex_lock( &reactor->reactions_lock );
 
@@ -2923,6 +2928,11 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
                          pthread_mutex_unlock( &reactor->reactions_lock );
                     }
+                    else if (msg->reaction == 2) {
+                         FusionReactor *reactor = (FusionReactor *)msg->call_ctx;
+
+                         fusion_reactor_free( reactor );
+                    }
                     else {
                          D_ASSERT( 0 );
                     }
@@ -2936,7 +2946,7 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
                          direct_mutex_unlock( &world->event_dispatcher_call_mutex );
                     }
-
+//D_INFO("dispatcher processed message: buf read %d write %d\n", buf->read_pos, buf->write_pos);
                     continue;
                }
           }
@@ -2955,7 +2965,8 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
      return NULL;
 }
 
-DirectResult _fusion_event_dispatcher_process( FusionWorld *world, const FusionEventDispatcherCall *call, FusionEventDispatcherCall **ret )
+DirectResult
+_fusion_event_dispatcher_process( FusionWorld *world, const FusionEventDispatcherCall *call, FusionEventDispatcherCall **ret )
 {
      const int call_size = sizeof( FusionEventDispatcherCall );
 
@@ -3009,12 +3020,13 @@ DirectResult _fusion_event_dispatcher_process( FusionWorld *world, const FusionE
      return DR_OK;
 }
 
-DirectResult _fusion_event_dispatcher_process_reactions( FusionWorld *world, FusionReactor *reactor, int channel, void *msg_data, int msg_size )
+DirectResult
+_fusion_event_dispatcher_process_reactions( FusionWorld *world, FusionReactor *reactor, int channel, void *msg_data, int msg_size )
 {
      const int                  call_size = sizeof( FusionEventDispatcherCall );
      FusionEventDispatcherCall  msg;
      FusionEventDispatcherCall *ret;
-
+//D_INFO("######## reactor_reactions_process (%d)\n", reactor->free);
      msg.processed = 0;
      msg.reaction = 1;
      msg.call_handler = 0;
@@ -3068,6 +3080,66 @@ DirectResult _fusion_event_dispatcher_process_reactions( FusionWorld *world, Fus
      direct_mutex_unlock( &world->event_dispatcher_mutex );
 
      return DR_OK;
+}
+
+DirectResult
+_fusion_event_dispatcher_process_reactor_free( FusionWorld *world, FusionReactor *reactor )
+{
+     const int                  call_size = sizeof( FusionEventDispatcherCall );
+     FusionEventDispatcherCall  msg;
+     FusionEventDispatcherCall *ret;
+//D_INFO("######## reactor_free (%d)\n", reactor->free);
+     if (reactor->free)
+          return DR_OK;
+
+     reactor->free = 1;
+
+     msg.processed = 0;
+     msg.reaction = 2;
+     msg.call_handler = 0;
+     msg.call_handler3 = 0;
+     msg.call_ctx = reactor;
+     msg.flags = FCEF_ONEWAY;
+     msg.call_arg = 0;
+     msg.ptr = 0;
+     msg.length = 0;
+     msg.ret_val = 0;
+     msg.ret_ptr = 0;
+     msg.ret_size = 0;
+     msg.ret_length = 0;
+
+     direct_mutex_lock( &world->event_dispatcher_mutex );
+
+     if (!world->event_dispatcher_buffers) {
+          FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
+          direct_list_append( &world->event_dispatcher_buffers, &new_buf->link );
+     }
+
+     FusionEventDispatcherBuffer *buf = (FusionEventDispatcherBuffer *)direct_list_get_last( world->event_dispatcher_buffers );
+     D_ASSERT( NULL != buf );
+
+     if (buf->write_pos + call_size > EVENT_DISPATCHER_BUFFER_LENGTH) {
+          buf->can_free = 1;
+          FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
+          direct_list_append( &world->event_dispatcher_buffers, &new_buf->link );
+          buf = new_buf;
+     }
+
+     ret = (FusionEventDispatcherCall *)&buf->buffer[buf->write_pos];
+
+     // copy data and signal dispatcher
+     memcpy( ret, &msg, call_size );
+
+     buf->write_pos += call_size;
+
+     //align on 4-byte boundaries
+     buf->write_pos = (buf->write_pos + 3) & ~3;
+
+     direct_waitqueue_signal( &world->event_dispatcher_cond );
+
+     direct_mutex_unlock( &world->event_dispatcher_mutex );
+
+     return DR_INCOMPLETE;
 }
 
 /*
@@ -3128,7 +3200,6 @@ DirectResult fusion_enter( int               world_index,
      *ret_world = world;
 
      return DR_OK;
-
 
 error:
      if (world) {
