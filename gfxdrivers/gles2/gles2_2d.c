@@ -199,7 +199,6 @@ gles2_validate_DESTINATION(GLES2DriverData *gdrv,
           D_DEBUG_AT(GLES2__2D, "  -> width %d height %d\n", w, h);
 
           glViewport(0, 0, w, h);
-          glDisable(GL_CULL_FACE);
 
           if (state->render_options & DSRO_MATRIX) {
                /*
@@ -358,9 +357,6 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
                      gdev->progs[gdev->prog_last].name,
                      gdev->progs[gdev->prog_index].name);
 
-          // For now we always use texture unit 0 (GL_TEXTURE0).
-          glUniform1i(prog->dfbSampler, 0);
-
           /*
            * The equivalent of ARB_texture_rectangle isn't supported by GLES2,
            * so blit source coordinates have to be normalized to tex coords in
@@ -370,9 +366,6 @@ gles2_validate_SOURCE(GLES2DriverData *gdrv,
 
           D_DEBUG_AT(GLES2__2D, "  -> w %d h %d, scale x %f scale y %f\n",
                      w, h, 1.0f/w, 1.0f/h);
-
-          glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-          glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 //          buffer->flags &= ~GLES2BF_UPDATE_TEXTURE;
      }
@@ -708,9 +701,6 @@ gles2SetState(void                *drv,
      D_DEBUG_AT(GLES2__2D,
                 "%s(state %p, accel 0x%08x) <- dest %p, modified 0x%08x\n",
                 __FUNCTION__, state, accel, state->destination, modified);
-
-     glDepthMask( GL_FALSE );
-     glDisable( GL_DEPTH_TEST );
 
      /*
       * 1) Invalidate hardware states
