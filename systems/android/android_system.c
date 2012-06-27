@@ -124,7 +124,11 @@ InitLocal( AndroidData *android )
      android->surface = surface;
      android->shared->screen_size.w = w;
      android->shared->screen_size.h = h;     
-     android->shared->native_pixelformat = ANativeWindow_getFormat(native_data.app->window);
+
+     if (strstr(glGetString(GL_RENDERER),"SGX"))
+          android->shared->native_pixelformat = HAL_PIXEL_FORMAT_RGBA_8888; //ANativeWindow_getFormat(native_data.app->window);
+     else
+          android->shared->native_pixelformat = ANativeWindow_getFormat(native_data.app->window);
 
      // Initialize GL state.
 //     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
