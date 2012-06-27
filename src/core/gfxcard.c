@@ -873,8 +873,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      state->mod_hw   |= state->modified;
      state->modified  = SMF_ALL;
 
-     if (shared->last_allocation != state->dst.allocation) {
-          shared->last_allocation = state->dst.allocation;
+     if (shared->last_allocation_id != state->dst.allocation->object.id) {
+          shared->last_allocation_id = state->dst.allocation->object.id;
 
           /* start command processing if not already running */
           if (card->shared->pending_ops && card->funcs.EmitCommands)

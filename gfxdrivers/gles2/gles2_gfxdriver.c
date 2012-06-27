@@ -130,6 +130,11 @@ driver_init_driver(CoreGraphicsDevice  *device,
      glBindFramebuffer( GL_FRAMEBUFFER, drv->fbo );
 #endif
 
+     glDisable( GL_CULL_FACE );
+
+     glDepthMask( GL_FALSE );
+     glDisable( GL_DEPTH_TEST );
+
      return DFB_OK;
 }
 

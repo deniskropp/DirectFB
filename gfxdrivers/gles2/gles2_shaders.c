@@ -125,6 +125,8 @@ init_program(GLuint prog_obj,
 
           return DFB_FALSE;
      }
+
+     glUseProgram( prog_obj );
 }
 
 #define GET_UNIFORM_LOCATION(dev, index, name)				\
@@ -214,6 +216,9 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT, dfbTexScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT, dfbSampler);
 
+          // For now we always use texture unit 0 (GL_TEXTURE0).
+          glUniform1i(dev->progs[GLES2_BLIT].dfbSampler, 0);
+
           D_DEBUG_AT(GLES2__2D, "-> created blit_program\n");
      }
      else {
@@ -232,6 +237,9 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_MAT, dfbMVPMatrix);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_MAT, dfbTexScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_MAT, dfbSampler);
+
+          // For now we always use texture unit 0 (GL_TEXTURE0).
+          glUniform1i(dev->progs[GLES2_BLIT_MAT].dfbSampler, 0);
 
           D_DEBUG_AT(GLES2__2D, "-> created blit_mat_program\n");
      }
@@ -258,6 +266,9 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR, dfbTexScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR, dfbSampler);
 
+          // For now we always use texture unit 0 (GL_TEXTURE0).
+          glUniform1i(dev->progs[GLES2_BLIT_COLOR].dfbSampler, 0);
+
           D_DEBUG_AT(GLES2__2D, "-> created blit_color_program\n");
      }
      else {
@@ -277,6 +288,9 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR_MAT, dfbMVPMatrix);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR_MAT, dfbTexScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLOR_MAT, dfbSampler);
+
+          // For now we always use texture unit 0 (GL_TEXTURE0).
+          glUniform1i(dev->progs[GLES2_BLIT_COLOR_MAT].dfbSampler, 0);
 
           D_DEBUG_AT(GLES2__2D, "-> created blit_color_mat_program\n");
      }
@@ -304,6 +318,9 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLORKEY, dfbSampler);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLORKEY, dfbColorkey);
 
+          // For now we always use texture unit 0 (GL_TEXTURE0).
+          glUniform1i(dev->progs[GLES2_BLIT_COLORKEY].dfbSampler, 0);
+
           D_DEBUG_AT(GLES2__2D, "-> created blit_colorkey_program\n");
      }
      else {
@@ -325,6 +342,9 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLORKEY_MAT, dfbTexScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLORKEY_MAT, dfbSampler);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_COLORKEY_MAT, dfbColorkey);
+
+          // For now we always use texture unit 0 (GL_TEXTURE0).
+          glUniform1i(dev->progs[GLES2_BLIT_COLORKEY_MAT].dfbSampler, 0);
 
           D_DEBUG_AT(GLES2__2D, "-> created blit_colorkey_mat_program\n");
      }
@@ -352,6 +372,9 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_PREMULTIPLY, dfbTexScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_PREMULTIPLY, dfbSampler);
 
+          // For now we always use texture unit 0 (GL_TEXTURE0).
+          glUniform1i(dev->progs[GLES2_BLIT_PREMULTIPLY].dfbSampler, 0);
+
           D_DEBUG_AT(GLES2__2D, "-> created blit_premultiply_program\n");
      }
      else {
@@ -372,6 +395,9 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_PREMULTIPLY_MAT, dfbMVPMatrix);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_PREMULTIPLY_MAT, dfbTexScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT_PREMULTIPLY_MAT, dfbSampler);
+
+          // For now we always use texture unit 0 (GL_TEXTURE0).
+          glUniform1i(dev->progs[GLES2_BLIT_PREMULTIPLY_MAT].dfbSampler, 0);
 
           D_DEBUG_AT(GLES2__2D, "-> created blit_premultiply_mat_program\n");
      }

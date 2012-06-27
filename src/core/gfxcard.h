@@ -35,7 +35,7 @@
 
 #include <fusion/call.h>
 #include <fusion/lock.h>
-#include <fusion/property.h>
+#include <fusion/object.h>
 
 #include <core/coretypes.h>
 
@@ -580,7 +580,7 @@ typedef struct {
      CardState               *state;
      FusionID                 holder; /* Fusion ID of state owner. */
 
-     CoreSurfaceAllocation   *last_allocation;
+     FusionObjectID           last_allocation_id;
      bool                     pending_ops;
 } DFBGraphicsCoreShared;
 
