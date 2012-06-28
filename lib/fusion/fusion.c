@@ -2965,6 +2965,8 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
           }
      }
 
+     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
+
      return NULL;
 }
 
@@ -2974,6 +2976,11 @@ _fusion_event_dispatcher_process( FusionWorld *world, const FusionEventDispatche
      const int call_size = sizeof( FusionEventDispatcherCall );
 
      direct_mutex_lock( &world->event_dispatcher_mutex );
+
+     if (world->dispatch_stop) {
+          direct_mutex_unlock( &world->event_dispatcher_mutex );
+          return DR_DESTROYED;
+     }
 
      if (!world->event_dispatcher_buffers) {
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
@@ -3057,6 +3064,11 @@ _fusion_event_dispatcher_process_reactions( FusionWorld *world, FusionReactor *r
 
      direct_mutex_lock( &world->event_dispatcher_mutex );
 
+     if (world->dispatch_stop) {
+          direct_mutex_unlock( &world->event_dispatcher_mutex );
+          return DR_DESTROYED;
+     }
+
      if (!world->event_dispatcher_buffers) {
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
           D_MAGIC_SET( new_buf, FusionEventDispatcherBuffer );
@@ -3127,6 +3139,11 @@ _fusion_event_dispatcher_process_reactor_free( FusionWorld *world, FusionReactor
      msg.ret_length = 0;
 
      direct_mutex_lock( &world->event_dispatcher_mutex );
+
+     if (world->dispatch_stop) {
+          direct_mutex_unlock( &world->event_dispatcher_mutex );
+          return DR_DESTROYED;
+     }
 
      if (!world->event_dispatcher_buffers) {
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
@@ -3281,7 +3298,17 @@ fusion_exit( FusionWorld *world,
 
      fusion_shm_pool_destroy( world, world->shared->main_pool );
 
+     direct_mutex_lock( &world->event_dispatcher_mutex );
      world->dispatch_stop = 1;
+     direct_mutex_unlock( &world->event_dispatcher_mutex );
+
+     direct_waitqueue_signal( &world->event_dispatcher_call_cond );
+     direct_waitqueue_signal( &world->event_dispatcher_cond );
+
+     direct_mutex_deinit( &world->event_dispatcher_mutex );
+     direct_waitqueue_deinit( &world->event_dispatcher_cond );
+     direct_mutex_deinit( &world->event_dispatcher_call_mutex );
+     direct_waitqueue_deinit( &world->event_dispatcher_call_cond );
 
      D_MAGIC_CLEAR( world->shared );
 
