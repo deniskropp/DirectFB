@@ -64,8 +64,8 @@ dfb_main_thread( DirectThread *thread,
      int   ret;
 //   char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
 //     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug", "-a" };
-   //char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler,layer-buffer-mode=backvideo,debug=ANDROID/Main,debug=core/input,debug=core/inputevt" };
-     char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler,layer-buffer-mode=backvideo,wm-fullscreen-updates,debug=GL,debug=EGL,debug=idirectfbsurface,debug=idirectfbsurfacew" };
+   char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,wm-fullscreen-updates,no-sighandler,layer-buffer-mode=backvideo"};
+     //char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler,layer-buffer-mode=backvideo,wm-fullscreen-updates,debug,no-debug=IDFBEventBuffer,no-debug=Core/GraphicsOps,no-debug=Core/GfxState,no-debug=Fusion/Skirmish,no-debug=Direct/Serial,no-debug=Core/SurfAllocation,no-debug=Core/WM,no-debug=GLES2/2D,no-debug=Core/SurfBuffer,no-debug=Core/Layers,no-debug=Core/SurfPoolLock,no-debug=Core/Input,no-debug=Core/LayerContext,no-debug=Core/WindowStack" };
 
      LOGI( "Running main()..." );
 
@@ -74,6 +74,226 @@ dfb_main_thread( DirectThread *thread,
      LOGI( "main() has returned %d!", ret );
 
      return NULL;
+}
+
+static DFBInputDeviceKeyIdentifier
+translate_keycode( const int key_code )
+{
+     switch (key_code) {
+          case AKEYCODE_UNKNOWN:             return DIKI_UNKNOWN;
+          case AKEYCODE_SOFT_LEFT:           break;
+          case AKEYCODE_SOFT_RIGHT:          break;
+          case AKEYCODE_HOME:                break;
+          case AKEYCODE_BACK:                return DIKI_ESCAPE;
+          case AKEYCODE_CALL:                break;
+          case AKEYCODE_ENDCALL:             break;
+          case AKEYCODE_0:                   return DIKI_0;
+          case AKEYCODE_1:                   return DIKI_1;
+          case AKEYCODE_2:                   return DIKI_2;
+          case AKEYCODE_3:                   return DIKI_3;
+          case AKEYCODE_4:                   return DIKI_4;
+          case AKEYCODE_5:                   return DIKI_5;
+          case AKEYCODE_6:                   return DIKI_6;
+          case AKEYCODE_7:                   return DIKI_7;
+          case AKEYCODE_8:                   return DIKI_8;
+          case AKEYCODE_9:                   return DIKI_9;
+          case AKEYCODE_STAR:                break;
+          case AKEYCODE_POUND:               break;
+          case AKEYCODE_DPAD_UP:             return DIKI_UP;
+          case AKEYCODE_DPAD_DOWN:           return DIKI_DOWN;
+          case AKEYCODE_DPAD_LEFT:           return DIKI_LEFT;
+          case AKEYCODE_DPAD_RIGHT:          return DIKI_RIGHT;
+          case AKEYCODE_DPAD_CENTER:         break;
+          case AKEYCODE_VOLUME_UP:           break;
+          case AKEYCODE_VOLUME_DOWN:         break;
+          case AKEYCODE_POWER:               break;
+          case AKEYCODE_CAMERA:              break;
+          case AKEYCODE_CLEAR:               break;
+          case AKEYCODE_A:                   return DIKI_A;
+          case AKEYCODE_B:                   return DIKI_B;
+          case AKEYCODE_C:                   return DIKI_C;
+          case AKEYCODE_D:                   return DIKI_D;
+          case AKEYCODE_E:                   return DIKI_E;
+          case AKEYCODE_F:                   return DIKI_F;
+          case AKEYCODE_G:                   return DIKI_G;
+          case AKEYCODE_H:                   return DIKI_H;
+          case AKEYCODE_I:                   return DIKI_I;
+          case AKEYCODE_J:                   return DIKI_J;
+          case AKEYCODE_K:                   return DIKI_K;
+          case AKEYCODE_L:                   return DIKI_L;
+          case AKEYCODE_M:                   return DIKI_M;
+          case AKEYCODE_N:                   return DIKI_N;
+          case AKEYCODE_O:                   return DIKI_O;
+          case AKEYCODE_P:                   return DIKI_P;
+          case AKEYCODE_Q:                   return DIKI_Q;
+          case AKEYCODE_R:                   return DIKI_R;
+          case AKEYCODE_S:                   return DIKI_S;
+          case AKEYCODE_T:                   return DIKI_T;
+          case AKEYCODE_U:                   return DIKI_U;
+          case AKEYCODE_V:                   return DIKI_V;
+          case AKEYCODE_W:                   return DIKI_W;
+          case AKEYCODE_X:                   return DIKI_X;
+          case AKEYCODE_Y:                   return DIKI_Y;
+          case AKEYCODE_Z:                   return DIKI_Z;
+          case AKEYCODE_COMMA:               return DIKI_COMMA;
+          case AKEYCODE_PERIOD:              break;
+          case AKEYCODE_ALT_LEFT:            return DIKI_ALT_L;
+          case AKEYCODE_ALT_RIGHT:           return DIKI_ALT_R;
+          case AKEYCODE_SHIFT_LEFT:          return DIKI_SHIFT_L;
+          case AKEYCODE_SHIFT_RIGHT:         return DIKI_SHIFT_R;
+          case AKEYCODE_TAB:                 return DIKI_TAB;
+          case AKEYCODE_SPACE:               return DIKI_SPACE;
+          case AKEYCODE_SYM:                 break;
+          case AKEYCODE_EXPLORER:            break;
+          case AKEYCODE_ENVELOPE:            break;
+          case AKEYCODE_ENTER:               return DIKI_ENTER;
+          case AKEYCODE_DEL:                 return DIKI_DELETE;
+          case AKEYCODE_GRAVE:               break;
+          case AKEYCODE_MINUS:               break;
+          case AKEYCODE_EQUALS:              break;
+          case AKEYCODE_LEFT_BRACKET:        return DIKI_BRACKET_LEFT;
+          case AKEYCODE_RIGHT_BRACKET:       return DIKI_BRACKET_RIGHT;
+          case AKEYCODE_BACKSLASH:           return DIKI_BACKSLASH;
+          case AKEYCODE_SEMICOLON:           return DIKI_SEMICOLON;
+          case AKEYCODE_APOSTROPHE:          break;
+          case AKEYCODE_SLASH:               return DIKI_SLASH;
+          case AKEYCODE_AT:                  break;
+          case AKEYCODE_NUM:                 break;
+          case AKEYCODE_HEADSETHOOK:         break;
+          case AKEYCODE_FOCUS:               break;
+          case AKEYCODE_PLUS:                break;
+          case AKEYCODE_MENU:                break;
+          case AKEYCODE_NOTIFICATION:        break;
+          case AKEYCODE_SEARCH:              break;
+          case AKEYCODE_MEDIA_PLAY_PAUSE:    break;
+          case AKEYCODE_MEDIA_STOP:          break;
+          case AKEYCODE_MEDIA_NEXT:          break;
+          case AKEYCODE_MEDIA_PREVIOUS:      break;
+          case AKEYCODE_MEDIA_REWIND:        break;
+          case AKEYCODE_MEDIA_FAST_FORWARD:  break;
+          case AKEYCODE_MUTE:                break;
+          case AKEYCODE_PAGE_UP:             return DIKI_PAGE_UP;
+          case AKEYCODE_PAGE_DOWN:           return DIKI_PAGE_DOWN;
+          case AKEYCODE_PICTSYMBOLS:         break;
+          case AKEYCODE_SWITCH_CHARSET:      break;
+          case AKEYCODE_BUTTON_A:            break;
+          case AKEYCODE_BUTTON_B:            break;
+          case AKEYCODE_BUTTON_C:            break;
+          case AKEYCODE_BUTTON_X:            break;
+          case AKEYCODE_BUTTON_Y:            break;
+          case AKEYCODE_BUTTON_Z:            break;
+          case AKEYCODE_BUTTON_L1:           break;
+          case AKEYCODE_BUTTON_R1:           break;
+          case AKEYCODE_BUTTON_L2:           break;
+          case AKEYCODE_BUTTON_R2:           break;
+          case AKEYCODE_BUTTON_THUMBL:       break;
+          case AKEYCODE_BUTTON_THUMBR:       break;
+          case AKEYCODE_BUTTON_START:        break;
+          case AKEYCODE_BUTTON_SELECT:       break;
+          case AKEYCODE_BUTTON_MODE:         break;
+          case AKEYCODE_ESCAPE:              return DIKI_ESCAPE;
+          case AKEYCODE_FORWARD_DEL:         break;
+          case AKEYCODE_CTRL_LEFT:           return DIKI_CONTROL_L;
+          case AKEYCODE_CTRL_RIGHT:          return DIKI_CONTROL_R;
+          case AKEYCODE_CAPS_LOCK:           return DIKI_CAPS_LOCK;
+          case AKEYCODE_SCROLL_LOCK:         return DIKI_SCROLL_LOCK;
+          case AKEYCODE_META_LEFT:           return DIKI_META_L;
+          case AKEYCODE_META_RIGHT:          return DIKI_META_R;
+          case AKEYCODE_FUNCTION:            break;
+          case AKEYCODE_SYSRQ:               break;
+          case AKEYCODE_BREAK:               break;
+          case AKEYCODE_MOVE_HOME:           break;
+          case AKEYCODE_MOVE_END:            break;
+          case AKEYCODE_INSERT:              return DIKI_INSERT;
+          case AKEYCODE_FORWARD:             break;
+          case AKEYCODE_MEDIA_PLAY:          break;
+          case AKEYCODE_MEDIA_PAUSE:         break;
+          case AKEYCODE_MEDIA_CLOSE:         break;
+          case AKEYCODE_MEDIA_EJECT:         break;
+          case AKEYCODE_MEDIA_RECORD:        break;
+          case AKEYCODE_F1:                  return DIKI_F1;
+          case AKEYCODE_F2:                  return DIKI_F2;
+          case AKEYCODE_F3:                  return DIKI_F3;
+          case AKEYCODE_F4:                  return DIKI_F4;
+          case AKEYCODE_F5:                  return DIKI_F5;
+          case AKEYCODE_F6:                  return DIKI_F6;
+          case AKEYCODE_F7:                  return DIKI_F7;
+          case AKEYCODE_F8:                  return DIKI_F8;
+          case AKEYCODE_F9:                  return DIKI_F9;
+          case AKEYCODE_F10:                 return DIKI_F10;
+          case AKEYCODE_F11:                 return DIKI_F11;
+          case AKEYCODE_F12:                 return DIKI_F12;
+          case AKEYCODE_NUM_LOCK:            return DIKI_NUM_LOCK;
+          case AKEYCODE_NUMPAD_0:            return DIKI_KP_0;
+          case AKEYCODE_NUMPAD_1:            return DIKI_KP_1;
+          case AKEYCODE_NUMPAD_2:            return DIKI_KP_2;
+          case AKEYCODE_NUMPAD_3:            return DIKI_KP_3;
+          case AKEYCODE_NUMPAD_4:            return DIKI_KP_4;
+          case AKEYCODE_NUMPAD_5:            return DIKI_KP_5;
+          case AKEYCODE_NUMPAD_6:            return DIKI_KP_6;
+          case AKEYCODE_NUMPAD_7:            return DIKI_KP_7;
+          case AKEYCODE_NUMPAD_8:            return DIKI_KP_8;
+          case AKEYCODE_NUMPAD_9:            return DIKI_KP_9;
+          case AKEYCODE_NUMPAD_DIVIDE:       return DIKI_KP_DIV;
+          case AKEYCODE_NUMPAD_MULTIPLY:     return DIKI_KP_MULT;
+          case AKEYCODE_NUMPAD_SUBTRACT:     return DIKI_KP_MINUS;
+          case AKEYCODE_NUMPAD_ADD:          return DIKI_KP_PLUS;
+          case AKEYCODE_NUMPAD_DOT:          break;
+          case AKEYCODE_NUMPAD_COMMA:        return DIKI_COMMA;
+          case AKEYCODE_NUMPAD_ENTER:        return DIKI_KP_ENTER;
+          case AKEYCODE_NUMPAD_EQUALS:       return DIKI_KP_EQUAL;
+          case AKEYCODE_NUMPAD_LEFT_PAREN:   break;
+          case AKEYCODE_NUMPAD_RIGHT_PAREN:  break;
+          case AKEYCODE_VOLUME_MUTE:         break;
+          case AKEYCODE_INFO:                break;
+          case AKEYCODE_CHANNEL_UP:          break;
+          case AKEYCODE_CHANNEL_DOWN:        break;
+          case AKEYCODE_ZOOM_IN:             break;
+          case AKEYCODE_ZOOM_OUT:            break;
+          case AKEYCODE_TV:                  break;
+          case AKEYCODE_WINDOW:              break;
+          case AKEYCODE_GUIDE:               break;
+          case AKEYCODE_DVR:                 break;
+          case AKEYCODE_BOOKMARK:            break;
+          case AKEYCODE_CAPTIONS:            break;
+          case AKEYCODE_SETTINGS:            break;
+          case AKEYCODE_TV_POWER:            break;
+          case AKEYCODE_TV_INPUT:            break;
+          case AKEYCODE_STB_POWER:           break;
+          case AKEYCODE_STB_INPUT:           break;
+          case AKEYCODE_AVR_POWER:           break;
+          case AKEYCODE_AVR_INPUT:           break;
+          case AKEYCODE_PROG_RED:            break;
+          case AKEYCODE_PROG_GREEN:          break;
+          case AKEYCODE_PROG_YELLOW:         break;
+          case AKEYCODE_PROG_BLUE:           break;
+          case AKEYCODE_APP_SWITCH:          break;
+          case AKEYCODE_BUTTON_1:            break;
+          case AKEYCODE_BUTTON_2:            break;
+          case AKEYCODE_BUTTON_3:            break;
+          case AKEYCODE_BUTTON_4:            break;
+          case AKEYCODE_BUTTON_5:            break;
+          case AKEYCODE_BUTTON_6:            break;
+          case AKEYCODE_BUTTON_7:            break;
+          case AKEYCODE_BUTTON_8:            break;
+          case AKEYCODE_BUTTON_9:            break;
+          case AKEYCODE_BUTTON_10:           break;
+          case AKEYCODE_BUTTON_11:           break;
+          case AKEYCODE_BUTTON_12:           break;
+          case AKEYCODE_BUTTON_13:           break;
+          case AKEYCODE_BUTTON_14:           break;
+          case AKEYCODE_BUTTON_15:           break;
+          case AKEYCODE_BUTTON_16:           break;
+          case AKEYCODE_LANGUAGE_SWITCH:     break;
+          case AKEYCODE_MANNER_MODE:         break;
+          case AKEYCODE_3D_MODE:             break;
+          case AKEYCODE_CONTACTS:            break;
+          case AKEYCODE_CALENDAR:            break;
+          case AKEYCODE_MUSIC:               break;
+          case AKEYCODE_CALCULATOR:          break;
+          default:                           break;
+     }
+     return DIKI_UNKNOWN;
 }
 
 /**
@@ -221,226 +441,7 @@ native_handle_input( struct android_app *app, AInputEvent *event )
 
           evt.flags    = DIEF_KEYCODE | DIEF_KEYID;
           evt.key_code = AKeyEvent_getKeyCode( event );
-
-          switch (evt.key_code) {
-               case AKEYCODE_DPAD_UP:
-                    evt.key_id = DIKI_UP;
-                    break;
-               case AKEYCODE_DPAD_DOWN:
-                    evt.key_id = DIKI_DOWN;
-                    break;
-               case AKEYCODE_DPAD_LEFT:
-                    evt.key_id = DIKI_LEFT;
-                    break;
-               case AKEYCODE_DPAD_RIGHT:
-                    evt.key_id = DIKI_RIGHT;
-                    break;
-               case AKEYCODE_BACK:
-                    evt.key_id = DIKI_ESCAPE;
-                    break;
-               case AKEYCODE_1:
-                    evt.key_id = DIKI_1;
-                    break;
-               case AKEYCODE_2:
-                    evt.key_id = DIKI_2;
-                    break;
-               case AKEYCODE_3:
-                    evt.key_id = DIKI_3;
-                    break;
-               case AKEYCODE_4:
-                    evt.key_id = DIKI_4;
-                    break;
-               case AKEYCODE_5:
-                    evt.key_id = DIKI_5;
-                    break;
-               case AKEYCODE_6:
-                    evt.key_id = DIKI_6;
-                    break;
-               case AKEYCODE_7:
-                    evt.key_id = DIKI_7;
-                    break;
-               case AKEYCODE_8:
-                    evt.key_id = DIKI_8;
-                    break;
-               case AKEYCODE_9:
-                    evt.key_id = DIKI_9;
-                    break;
-               case AKEYCODE_0:
-                    evt.key_id = DIKI_0;
-                    break;
-               case AKEYCODE_MINUS:
-                    evt.key_id = DIKI_MINUS_SIGN;
-                    break;
-               case AKEYCODE_TAB:
-                    evt.key_id = DIKI_TAB;
-                    break;
-               case AKEYCODE_Q:
-                    evt.key_id = DIKI_Q;
-                    break;
-               case AKEYCODE_W:
-                    evt.key_id = DIKI_W;
-                    break;
-               case AKEYCODE_E:
-                    evt.key_id = DIKI_E;
-                    break;
-               case AKEYCODE_R:
-                    evt.key_id = DIKI_R;
-                    break;
-               case AKEYCODE_T:
-                    evt.key_id = DIKI_T;
-                    break;
-               case AKEYCODE_Y:
-                    evt.key_id = DIKI_Y;
-                    break;
-               case AKEYCODE_U:
-                    evt.key_id = DIKI_U;
-                    break;
-               case AKEYCODE_I:
-                    evt.key_id = DIKI_I;
-                    break;
-               case AKEYCODE_O:
-                    evt.key_id = DIKI_O;
-                    break;
-               case AKEYCODE_P:
-                    evt.key_id = DIKI_P;
-                    break;
-               case AKEYCODE_LEFT_BRACKET:
-                    evt.key_id = DIKI_BRACKET_LEFT;
-                    break;
-               case AKEYCODE_RIGHT_BRACKET:
-                    evt.key_id = DIKI_BRACKET_RIGHT;
-                    break;
-               case AKEYCODE_ENTER:
-                    evt.key_id = DIKI_ENTER;
-                    break;
-               case AKEYCODE_A:
-                    evt.key_id = DIKI_A;
-                    break;
-               case AKEYCODE_S:
-                    evt.key_id = DIKI_S;
-                    break;
-               case AKEYCODE_D:
-                    evt.key_id = DIKI_D;
-                    break;
-               case AKEYCODE_F:
-                    evt.key_id = DIKI_F;
-                    break;
-               case AKEYCODE_G:
-                    evt.key_id = DIKI_G;
-                    break;
-               case AKEYCODE_H:
-                    evt.key_id = DIKI_H;
-                    break;
-               case AKEYCODE_J:
-                    evt.key_id = DIKI_J;
-                    break;
-               case AKEYCODE_K:
-                    evt.key_id = DIKI_K;
-                    break;
-               case AKEYCODE_L:
-                    evt.key_id = DIKI_L;
-                    break;
-               case AKEYCODE_SEMICOLON:
-                    evt.key_id = DIKI_SEMICOLON;
-                    break;
-               case AKEYCODE_APOSTROPHE:
-                    evt.key_id = 0;
-                    break;
-               case AKEYCODE_GRAVE:
-                    evt.key_id = 0;
-                    break;
-               case AKEYCODE_SHIFT_LEFT:
-                    evt.key_id = DIKI_SHIFT_L;
-                    break;
-               case AKEYCODE_SHIFT_RIGHT:
-                    evt.key_id = DIKI_SHIFT_R;
-                    break;
-               case AKEYCODE_ALT_LEFT:
-                    evt.key_id = DIKI_ALT_L;
-                    break;
-               case AKEYCODE_ALT_RIGHT:
-                    evt.key_id = DIKI_ALT_R;
-                    break;
-               case AKEYCODE_CTRL_LEFT:
-                    evt.key_id = DIKI_CONTROL_L;
-                    break;
-               case AKEYCODE_CTRL_RIGHT:
-                    evt.key_id = DIKI_CONTROL_R;
-                    break;
-               case AKEYCODE_BACKSLASH:
-                    evt.key_id = DIKI_BACKSLASH;
-                    break;
-               case AKEYCODE_Z:
-                    evt.key_id = DIKI_Z;
-                    break;
-               case AKEYCODE_X:
-                    evt.key_id = DIKI_X;
-                    break;
-               case AKEYCODE_C:
-                    evt.key_id = DIKI_C;
-                    break;
-               case AKEYCODE_V:
-                    evt.key_id = DIKI_V;
-                    break;
-               case AKEYCODE_B:
-                    evt.key_id = DIKI_B;
-                    break;
-               case AKEYCODE_N:
-                    evt.key_id = DIKI_N;
-                    break;
-               case AKEYCODE_M:
-                    evt.key_id = DIKI_M;
-                    break;
-               case AKEYCODE_COMMA:
-                    evt.key_id = DIKI_COMMA;
-                    break;
-               case AKEYCODE_SLASH:
-                    evt.key_id = DIKI_SLASH;
-                    break;
-               case AKEYCODE_SPACE:
-                    evt.key_id = DIKI_SPACE;
-                    break;
-               case AKEYCODE_F1:
-                    evt.key_id = DIKI_F1;
-                    break;
-               case AKEYCODE_F2:
-                    evt.key_id = DIKI_F2;
-                    break;
-               case AKEYCODE_F3:
-                    evt.key_id = DIKI_F3;
-                    break;
-               case AKEYCODE_F4:
-                    evt.key_id = DIKI_F4;
-                    break;
-               case AKEYCODE_F5:
-                    evt.key_id = DIKI_F5;
-                    break;
-               case AKEYCODE_F6:
-                    evt.key_id = DIKI_F6;
-                    break;
-               case AKEYCODE_F7:
-                    evt.key_id = DIKI_F7;
-                    break;
-               case AKEYCODE_F8:
-                    evt.key_id = DIKI_F8;
-                    break;
-               case AKEYCODE_F9:
-                    evt.key_id = DIKI_F9;
-                    break;
-               case AKEYCODE_F10:
-                    evt.key_id = DIKI_F10;
-                    break;
-               case AKEYCODE_F11:
-                    evt.key_id = DIKI_F11;
-                    break;
-               case AKEYCODE_F12:
-                    evt.key_id = DIKI_F12;
-                    break;
-
-               default:
-                    D_DEBUG_AT( ANDROID_MAIN, "unhandled key event action %d key_code %d", action, evt.key_code );
-                    return 0;
-          }
+          evt.key_id   = translate_keycode( evt.key_code );
 
           dfb_input_dispatch( m_data->input, &evt );
 

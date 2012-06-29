@@ -873,8 +873,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      state->mod_hw   |= state->modified;
      state->modified  = SMF_ALL;
 
-     if (shared->last_allocation != state->dst.allocation) {
-          shared->last_allocation = state->dst.allocation;
+     if (shared->last_allocation_id != state->dst.allocation->object.id) {
+          shared->last_allocation_id = state->dst.allocation->object.id;
 
           /* start command processing if not already running */
           if (card->shared->pending_ops && card->funcs.EmitCommands)
@@ -3132,10 +3132,12 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      /* simple prechecks */
-     if (!(state->render_options & DSRO_MATRIX) &&
-         (x > state->clip.x2 || y > state->clip.y2 ||
-          y + font->height <= state->clip.y1)) {
-          return;
+     if (!(font->description.flags & DFDESC_ROTATION) || !font->description.rotation) {
+          if (!(state->render_options & DSRO_MATRIX) &&
+              (x > state->clip.x2 || y > state->clip.y2 ||
+               y + font->height <= state->clip.y1)) {
+               return;
+          }
      }
 
      /* Decode string to character indices. */

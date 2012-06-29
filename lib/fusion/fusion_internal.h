@@ -107,10 +107,14 @@ struct __Fusion_FusionWorldShared {
 typedef struct {
      DirectLink link;
 
+     int magic;
+
      char       buffer[EVENT_DISPATCHER_BUFFER_LENGTH];
      int        read_pos;
      int        write_pos;
      int        can_free;
+     int        sync_calls;
+     int        pending;
 } FusionEventDispatcherBuffer;
 
 typedef struct
@@ -128,6 +132,7 @@ typedef struct
      unsigned int         ret_size;
      unsigned int         ret_length;
      int                  processed;
+     
 } FusionEventDispatcherCall;
 
 //pass fusion calls to single-app dispatcher thread
@@ -188,6 +193,7 @@ struct __Fusion_FusionWorld {
      DirectMutex          event_dispatcher_mutex;
      DirectWaitQueue      event_dispatcher_cond;
      DirectLink          *event_dispatcher_buffers;
+     DirectLink          *event_dispatcher_buffers_remove;
      DirectMutex          event_dispatcher_call_mutex;
      DirectWaitQueue      event_dispatcher_call_cond;
 #endif
