@@ -93,6 +93,7 @@ __D_conf_deinit()
      if (config_options) {
           direct_map_iterate( config_options, config_option_free, NULL );
           direct_map_destroy( config_options );
+          config_options = NULL;
      }
 }
 
