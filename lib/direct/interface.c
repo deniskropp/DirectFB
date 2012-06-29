@@ -77,6 +77,16 @@ __D_interface_deinit()
      direct_mutex_deinit( &implementations_mutex );
 }
 
+
+void workaround_func(void);
+
+__attribute__((noinline))
+void
+workaround_func(void)
+{
+}
+
+
 static inline int
 probe_interface( DirectInterfaceImplementation  *impl,
                  DirectInterfaceFuncs          **funcs,
@@ -328,6 +338,8 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                          }
                     }
 
+                    workaround_func();
+
                     /* Open it if needed and check. */
                     if (!handle) {
                          handle = dlopen( buf, RTLD_NOW );
@@ -400,6 +412,8 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                    break;
                }
           }
+
+          workaround_func(); // this "fixes" problems with gcc-4.6.3 on x86-64 and x86
 
           /* Open it if needed and check. */
           if (!handle) {
