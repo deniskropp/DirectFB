@@ -2925,6 +2925,7 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
                     direct_list_foreach_safe( reaction, link, reactor->reactions ) {
                          if ((long)reaction->node_link == msg->call_arg) {
+//D_INFO("dispatch reaction %p channel %d func %p\n", reaction, msg->call_arg, reaction->func);
                               if (RS_REMOVE == reaction->func( msg->ptr, reaction->ctx ))
                                    direct_list_remove( &reactor->reactions, &reaction->link );
                          }
@@ -2955,6 +2956,8 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
                buf->pending--;
           }
+
+          direct_waitqueue_signal( &world->event_dispatcher_process_cond );
 
           if (world->event_dispatcher_buffers_remove) {
                buf = (FusionEventDispatcherBuffer *)world->event_dispatcher_buffers_remove;
@@ -2991,6 +2994,11 @@ _fusion_event_dispatcher_process( FusionWorld *world, const FusionEventDispatche
      if (world->dispatch_stop) {
           direct_mutex_unlock( &world->event_dispatcher_mutex );
           return DR_DESTROYED;
+     }
+
+
+     while (call->call_handler3 && (call->flags & FCEF_ONEWAY) && direct_list_count_elements_EXPENSIVE( world->event_dispatcher_buffers ) > 4) {
+          direct_waitqueue_wait( &world->event_dispatcher_process_cond, &world->event_dispatcher_mutex );
      }
 
      if (!world->event_dispatcher_buffers) {
@@ -3241,6 +3249,7 @@ DirectResult fusion_enter( int               world_index,
 
      direct_mutex_init( &world->event_dispatcher_mutex );
      direct_waitqueue_init( &world->event_dispatcher_cond );
+     direct_waitqueue_init( &world->event_dispatcher_process_cond );
      direct_mutex_init( &world->event_dispatcher_call_mutex );
      direct_waitqueue_init( &world->event_dispatcher_call_cond );
      world->event_dispatcher_thread = direct_thread_create( DTT_MESSAGING, event_dispatcher_loop, world, "Fusion Dispatch" );

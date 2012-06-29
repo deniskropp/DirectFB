@@ -192,6 +192,7 @@ struct __Fusion_FusionWorld {
      DirectThread        *event_dispatcher_thread;
      DirectMutex          event_dispatcher_mutex;
      DirectWaitQueue      event_dispatcher_cond;
+     DirectWaitQueue      event_dispatcher_process_cond;
      DirectLink          *event_dispatcher_buffers;
      DirectLink          *event_dispatcher_buffers_remove;
      DirectMutex          event_dispatcher_call_mutex;
