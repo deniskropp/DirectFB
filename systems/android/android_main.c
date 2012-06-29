@@ -84,7 +84,7 @@ translate_keycode( const int key_code )
           case AKEYCODE_SOFT_LEFT:           break;
           case AKEYCODE_SOFT_RIGHT:          break;
           case AKEYCODE_HOME:                break;
-          case AKEYCODE_BACK:                break;
+          case AKEYCODE_BACK:                return DIKI_ESCAPE;
           case AKEYCODE_CALL:                break;
           case AKEYCODE_ENDCALL:             break;
           case AKEYCODE_0:                   return DIKI_0;
