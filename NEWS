@@ -1,3 +1,55 @@
+1.6.1
+-----
+
+Core:
+- Set async attribute for CoreSurfaceClient::FrameAck(). This helps especially in always-indirect mode
+- Call InitIDirectFB_Async() synchronously if 'always-indirect' is not used, fixes calls from non-main in master
+- Fix preclipping for rotated text
+- Check surface identity when looking up surface.
+- Fix pointer being used instead of ID when comparing current with last allocation in acceleration code.
+
+Fusion:
+- Fix single app dispatch cleanup by calling it. (Fixes cursor motion in single app mode)
+- Add dispatcher thread for single-app which makes always-indirect mode work
+- Add reference counting for synchronous call pending in despatcher to avoid freeing call buffers too early
+
+Default WM
+- Allow fullscreen updates when wm-fullscreen-updates option is set
+
+libdirect:
+- workaround for interface loading problems with gcc-4.6 on x86 and x86-64 with no debug
+
+Android System
+- Add gralloc surface pool (disabled by default, does not work on adreno based devices)
+- Add more examples, cleanup makefiles
+- Fixes to the android imageprovider
+- no longer hardcode pixelformat (ARGB/ABGR) and resolution
+- Use extra fbo for primary if ANDROID_USE_FBO_FOR_PRIMARY is set
+- force always-indirect
+- fix event handling (button up/down need to be prefixed by motion x/y)
+- Added update region callback to layer
+- handle all possible keycodes
+
+PVR2D System
+- Fix error by making sure source rectangle is at least 1x1 in pvr2DStretchBlit
+- Add support for DSBLIT_BLEND_COLORALPHA
+
+EGL System
+- allow other buffer modes than DLBM_FRONTONLY
+
+GLES2 gfxdriver
+- Mirror y-coordinates for primary
+- Invert clipping coordinates when not rendering to an FBO.
+- Put color multiplication onto same line with gl_FragColor assignment, blending speed up by factor four!
+- Various fixes, optimizations and cleanups
+
+configure
+- Include GLES2_CFLAGS/LIBS also with EGL system.
+
+tests
+- dfbtest_flip: Add test for frame or time based animation using double/triple buffering.
+
+
 1.6.0
 -----
 
