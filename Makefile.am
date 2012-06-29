@@ -40,7 +40,9 @@ SUBDIRS = \
 	$(PROXY_DIR)		\
 	$(TESTS_DIR)		\
 	patches			\
-	rules
+	rules			\
+	build-android
+
 
 bin_SCRIPTS = directfb-config
 

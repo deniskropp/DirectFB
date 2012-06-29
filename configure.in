@@ -2055,6 +2055,8 @@ fi
 
 AC_OUTPUT([
 
+build-android/Makefile
+
 directfb-config
 directfb.pc
 directfb-internal.pc
