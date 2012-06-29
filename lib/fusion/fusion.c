@@ -2854,7 +2854,15 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
 
                buf = (FusionEventDispatcherBuffer *)world->event_dispatcher_buffers;
                D_MAGIC_ASSERT( buf, FusionEventDispatcherBuffer );
-//D_INFO("event_dispatcher_loop: 1 buffer %p free %d read %d write %d sync %d pendning %d\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending);
+
+               if (buf->can_free && buf->read_pos == buf->write_pos) {
+                    // can free buffer but will do it later
+                    direct_list_remove( &world->event_dispatcher_buffers, &buf->link );
+                    direct_list_append( &world->event_dispatcher_buffers_remove, &buf->link );
+//D_INFO("event_dispatcher_loop: remove buffer %p free %d read %d write %d sync %d pending %d\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending);
+                    continue;
+               }
+//D_INFO("event_dispatcher_loop: 1 buffer %p free %d read %d write %d sync %d pending %d\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending);
                // need to wait for new messages in current buffer?
                if (buf->read_pos >= buf->write_pos) {
 //D_INFO("waiting...\n");
@@ -2862,14 +2870,17 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
                     direct_waitqueue_wait( &world->event_dispatcher_cond, &world->event_dispatcher_mutex );
                }
 
+               buf = (FusionEventDispatcherBuffer *)world->event_dispatcher_buffers;
+               D_MAGIC_ASSERT( buf, FusionEventDispatcherBuffer );
+
                if (buf->can_free && buf->read_pos == buf->write_pos) {
                     // can free buffer but will do it later
                     direct_list_remove( &world->event_dispatcher_buffers, &buf->link );
                     direct_list_append( &world->event_dispatcher_buffers_remove, &buf->link );
-//D_INFO("event_dispatcher_loop: remove buffer %p free %d read %d write %d sync %d pendning %d\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending);
+//D_INFO("event_dispatcher_loop: remove buffer %p free %d read %d write %d sync %d pending %d\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending);
                     continue;
                }
-//D_INFO("event_dispatcher_loop: 2 buffer %p free %d read %d write %d sync %d pendning %d\n\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending);
+//D_INFO("event_dispatcher_loop: 2 buffer %p free %d read %d write %d sync %d pending %d\n\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending);
                break;
           }
 
@@ -2965,6 +2976,8 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
           }
      }
 
+     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
+
      return NULL;
 }
 
@@ -2974,6 +2987,11 @@ _fusion_event_dispatcher_process( FusionWorld *world, const FusionEventDispatche
      const int call_size = sizeof( FusionEventDispatcherCall );
 
      direct_mutex_lock( &world->event_dispatcher_mutex );
+
+     if (world->dispatch_stop) {
+          direct_mutex_unlock( &world->event_dispatcher_mutex );
+          return DR_DESTROYED;
+     }
 
      if (!world->event_dispatcher_buffers) {
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
@@ -2993,7 +3011,7 @@ _fusion_event_dispatcher_process( FusionWorld *world, const FusionEventDispatche
      }
 
      *ret = (FusionEventDispatcherCall *)&buf->buffer[buf->write_pos];
-//D_INFO("_fusion_event_dispatcher_process: buf %p free %d read %d write %d sync %d pending %d (msg %p)\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending, *ret);
+//D_INFO("_fusion_event_dispatcher_process: buf %p free %d read %d write %d sync %d pending %d (msg %p async %d)\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending, *ret, call->flags & FCEF_ONEWAY);
      // copy data and signal dispatcher
      memcpy( *ret, call, call_size );
 
@@ -3057,6 +3075,11 @@ _fusion_event_dispatcher_process_reactions( FusionWorld *world, FusionReactor *r
 
      direct_mutex_lock( &world->event_dispatcher_mutex );
 
+     if (world->dispatch_stop) {
+          direct_mutex_unlock( &world->event_dispatcher_mutex );
+          return DR_DESTROYED;
+     }
+
      if (!world->event_dispatcher_buffers) {
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
           D_MAGIC_SET( new_buf, FusionEventDispatcherBuffer );
@@ -3075,7 +3098,7 @@ _fusion_event_dispatcher_process_reactions( FusionWorld *world, FusionReactor *r
      }
 
      ret = (FusionEventDispatcherCall *)&buf->buffer[buf->write_pos];
-//D_INFO("_fusion_event_dispatcher_process_reactions: buf %p free %d read %d write %d sync %d pending %d (msg %p)\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending, ret);
+//D_INFO("_fusion_event_dispatcher_process_reactions: buf %p free %d read %d write %d sync %d pending %d (msg %p async %d)\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending, ret, msg.flags & FCEF_ONEWAY);
      // copy data and signal dispatcher
      memcpy( ret, &msg, call_size );
 
@@ -3128,6 +3151,11 @@ _fusion_event_dispatcher_process_reactor_free( FusionWorld *world, FusionReactor
 
      direct_mutex_lock( &world->event_dispatcher_mutex );
 
+     if (world->dispatch_stop) {
+          direct_mutex_unlock( &world->event_dispatcher_mutex );
+          return DR_DESTROYED;
+     }
+
      if (!world->event_dispatcher_buffers) {
           FusionEventDispatcherBuffer *new_buf = D_CALLOC( 1, sizeof(FusionEventDispatcherBuffer) );
           D_MAGIC_SET( new_buf, FusionEventDispatcherBuffer );
@@ -3146,7 +3174,7 @@ _fusion_event_dispatcher_process_reactor_free( FusionWorld *world, FusionReactor
      }
 
      ret = (FusionEventDispatcherCall *)&buf->buffer[buf->write_pos];
-//D_INFO("_fusion_event_dispatcher_process_reactor_free: buf %p free %d read %d write %d sync %d pending %d (msg %p)\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending, ret);
+//D_INFO("_fusion_event_dispatcher_process_reactor_free: buf %p free %d read %d write %d sync %d pending %d (msg %p async %d)\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending, ret, msg.flags & FCEF_ONEWAY);
      // copy data and signal dispatcher
      memcpy( ret, &msg, call_size );
 
@@ -3281,7 +3309,17 @@ fusion_exit( FusionWorld *world,
 
      fusion_shm_pool_destroy( world, world->shared->main_pool );
 
+     direct_mutex_lock( &world->event_dispatcher_mutex );
      world->dispatch_stop = 1;
+     direct_mutex_unlock( &world->event_dispatcher_mutex );
+
+     direct_waitqueue_signal( &world->event_dispatcher_call_cond );
+     direct_waitqueue_signal( &world->event_dispatcher_cond );
+
+     direct_mutex_deinit( &world->event_dispatcher_mutex );
+     direct_waitqueue_deinit( &world->event_dispatcher_cond );
+     direct_mutex_deinit( &world->event_dispatcher_call_mutex );
+     direct_waitqueue_deinit( &world->event_dispatcher_call_cond );
 
      D_MAGIC_CLEAR( world->shared );
 
