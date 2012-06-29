@@ -1,3 +1,803 @@
+commit 101cf9e44bc55faf3429e98e50e40c3133dff42a
+Merge: 8806bb4 7a6cb44
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 29 17:56:50 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.6
+
+commit 7a6cb44b86c7b1446efde815ceb9e9a3a5fd0f6d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 29 17:54:50 2012 +0200
+
+    android: add add required files to the distribution
+
+commit 8806bb4fe32f3d1d727bbe021c39d0672fc25a20
+Merge: e6fcefc 074b025
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 29 17:19:28 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.6
+
+commit 074b0255d43ce8685a78fcfef5fd9e8b72cc7dec
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 29 17:19:04 2012 +0200
+
+    build-android: update readme
+
+commit e6fcefc85ae13a2296c9e11ef6421d7ef6b7216c
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 29 17:10:01 2012 +0200
+
+    update news for 1.6.1
+
+commit bf7fba729e3c32210750f5483d47483f96af3516
+Merge: a179035 a24c158
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 29 16:34:25 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.6
+
+commit a24c158c67602f6249088c885db965cf9896da1c
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 29 16:22:36 2012 +0200
+
+    Fusion: limit dispatcher buffers to 4 for async execution3 calls
+
+commit a17903547d0ee5a4dc525e92b5d712c6d121b0f0
+Merge: 2b9384b a927bfb
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 29 15:45:27 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.6
+
+commit a927bfb4fd7bb5e8a30ab54d57ebbd98d642b7ca
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 29 14:57:53 2012 +0200
+
+    direct/interface: workaround for interface loading problems with gcc-4.6 on x86 and x86-64 with no debug
+
+commit 858e8e9ef62a082d458c1b61ca5ec1c924384c36
+Merge: 0ab8a8b f5938d7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jun 29 13:36:53 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 0ab8a8b6f0737a40e7edab14693c6144741be1c2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jun 29 13:36:16 2012 +0200
+
+    direct: Reset config_options to NULL in __D_conf_deinit() after destroying it.
+
+commit f5938d7157b74692e8db2e3eb6b14e803b9cf414
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 29 12:24:58 2012 +0200
+
+    Android: map BACK keycode to ESCAPE
+
+commit 7f80bd054a716f962eb6cbb53c072be067245a0f
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jun 28 18:26:31 2012 +0200
+
+    Android: handle all keys defined on android
+
+commit 88c324ec2a623a73f96f2375f89afd05d799b291
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jun 28 17:48:37 2012 +0200
+
+    Fusion: always check buffer status after wait condition was signalled
+
+commit c490a04e4b6b3e024430c1d94f27e2dec8ec08b9
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jun 28 16:40:30 2012 +0200
+
+    Fusion: cleanly stop dispatcher when exiting
+
+commit 8cea3ded867b96052572a4c18a29f171146a96a5
+Merge: bb3b5e8 71adea4
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jun 28 14:44:40 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit bb3b5e8890ab5eb3501e8e15a3e79e6a82b2d007
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jun 28 14:44:03 2012 +0200
+
+    Fusion: chen if buffer is valid after wait condition was signalled
+
+commit 71adea480892069c689bec9e3514d23393811de1
+Merge: 6efdf2a f4eed43
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jun 28 12:13:37 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 6efdf2ab53edb114d049f483955a33be17267957
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jun 28 12:12:24 2012 +0200
+
+    core: in  dfb_gfxcard_drawstring() check for  DFDESC_ROTATION) before trying to access CoreFont::description.rotation
+
+commit f4eed43d553c7297f3363d6d72cdf2ae6e835daf
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jun 28 12:10:13 2012 +0200
+
+    Fusion: decouple dispatcher buffers, add the ones to be removed in a separate list to not block processing of events in next buffer
+
+commit fea25333d9a3d8d8f9eedfef214a18f0865a28ff
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 27 19:56:29 2012 +0200
+
+    Fusion: added more useful outcommented debug messages
+
+commit d44769b93671c1f4a948b84365a3c4cfaa46c73d
+Merge: d483252 98b764c
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 27 19:14:53 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit d4832520e9e51bb956b9d13948d4f62bd8e77dc3
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 27 19:13:59 2012 +0200
+
+    Fusion: also wait for all async calls until freeing the buffer, still debugging dispatcher...
+
+commit 98b764ca5a5bc89d5c197a9455c2d9973d1114f3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 27 18:02:42 2012 +0200
+
+    Core: Fix pointer being used instead of ID when comparing current with last allocation in acceleration code.
+
+commit abcce465b35947a3a53a37240df4218812b8b015
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 27 17:52:15 2012 +0200
+
+    Core: Check surface identity when looking up surface.
+
+commit ee552ef25f29df0efe4660689a204653764f09b0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 27 17:31:58 2012 +0200
+
+    GLES2: Few more optimisations.
+
+commit 8959b8ca95d39cdc27d17487c400a471ab7a52f8
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 27 17:27:08 2012 +0200
+
+    dfbtest_flip: Add test for frame or time based animation using double/triple buffering.
+
+commit 7f5ab932bd3d9523f89512b102e0418af936aa90
+Merge: 4f7ba91 bfff4ed
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 27 16:51:21 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 4f7ba91a5b8f5bdc920e96f35df5c3eb8dc403d3
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 27 16:50:26 2012 +0200
+
+    Fusion: add reference counting for synchronous call pending in despatcher to avoid freeing call buffers too early
+
+commit bfff4ed478604e29bd12666695e8bc535e46823d
+Merge: b221c75 c09771a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 27 16:46:54 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit b221c75c982ae92aa47f76a6144846748733b673
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 27 16:46:33 2012 +0200
+
+    Core: Fix preclipping for rotated text.
+
+commit 2b9384bd67e3590ef6fdc25e38cb0675f8e85cf1
+Merge: 0a44b4c c09771a
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 27 15:26:08 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.6
+
+commit c09771a79ac103903166dab3a9ec460411c0fea4
+Merge: 37666f2 d0d4e23
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 27 14:28:51 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 37666f2b2d0e5d1770bea822a16ba57ef5371cf7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 27 14:28:30 2012 +0200
+
+    EGL: Make pool use FBOs for now.
+
+commit 0a44b4ce72ee79fc8933accb42017c4f021e6e6a
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 27 14:06:50 2012 +0200
+
+    version: 1.6.1
+
+commit 9fb4ee2de1885c63f7208485d9bf3f6cfcdae887
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 27 14:05:55 2012 +0200
+
+    Revert "version: 1.7.0"
+    
+    This reverts commit 53e9c7eb008967496daf11460ef19930ad52b7b7.
+
+commit d0d4e239c4fb317f630235f61943beb82f533148
+Merge: c69ed50 e70e86c
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 27 13:21:03 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit c69ed5011ed24b3a2c167041034e9e375ad2d75b
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 27 13:20:15 2012 +0200
+
+    Fusion: make reactor_free() asynchronous, added debug
+
+commit e70e86c3412a4e7305d657587dcefa5597169fb8
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 27 12:56:18 2012 +0200
+
+    build-android: no longer use ANDROID_USE_FBO_FOR_PRIMARY in df_window since we use full screen updates
+
+commit d21f61b80b6a9bfb58161032bc2e6b1ed967686e
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 27 12:29:50 2012 +0200
+
+    android: add workaround for SGX
+
+commit 1b9fbc69972798902837456692dd265bc27ec422
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Jun 26 14:39:57 2012 +0200
+
+    Android: force conversion to ARGB if no public config gets returns from Bitmap.getConfig()
+
+commit 5fe6e21d322424b6267c77e0559278ee884ecefe
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Jun 26 11:12:45 2012 +0200
+
+    Android: add a new surface pool which uses GRALLOC with software fallbacks. Stripped the old FBO pool to use a texture without SW fallbacks
+
+commit ca5a97fa014948f79337027865d2ed81699f95fd
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 25 18:46:14 2012 +0200
+
+    Android: move glFramebufferRenderbuffer back to allocation again
+
+commit b83df0637c64b7d633eb13274e60e25547dc395b
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 25 18:33:56 2012 +0200
+
+    Misc: added [no-]wm-fullscreen-updates option
+
+commit d538d30e12c8c2c5552a887b7e8217f1af2578f2
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 25 18:32:50 2012 +0200
+
+    GLES2: added GL debug
+
+commit 261fae6f203698dcf0e216a69083ed5af4d6e180
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 25 18:32:15 2012 +0200
+
+    Android: added GL debug
+
+commit df38d85a9cc73238027b1c0932074836d836a8ba
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 25 16:32:28 2012 +0200
+
+    Android: refactor render buffer binding (WIP)
+
+commit 36f6e045902a405f7d374cd24df5a6a46eac01de
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 25 16:29:32 2012 +0200
+
+    Android: added update region callback to layer
+
+commit 81f1a28ee0954346d6a2c28dd539c4610c7d559d
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 25 16:26:14 2012 +0200
+
+    WM/Default: enable fullscreen updates if desired
+
+commit 2424f0d81cd55fb5c21876009aa6fe0610b4be72
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 25 16:24:54 2012 +0200
+
+    Fusion: align single-app dispatcher calls on 4-byte boundaries
+
+commit 82c40b413d3395435fde2db11ace175da0db34bb
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 25 14:15:32 2012 +0200
+
+    Android: fix event handling (button up/down need to be prefixed by motion x/y)
+
+commit 0d6ae4cca0b1bab80b7a22d78e87b7907f344316
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jun 24 00:11:10 2012 +0200
+
+    GLES2: Several optimizations, fix FBO/Surface upside/down for all.
+    
+    - Don't glFlush or glFinish (may still be needed on other platforms!)
+    - Implement gles2BatchBlit to avoid sending too many glDrawArray calls
+    - Disable depth buffer reads/writes in case a depth buffer is attached
+    - Add separate program for non-color modulated blits to avoid a multiplication
+      in the shader for simple blitting
+
+commit c949379f819a01e02ce20fc4643d13f0200a3080
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Jun 23 19:51:46 2012 +0200
+
+    EGL: Allow other buffer modes.
+
+commit a8aec369b08b0173e7b693732965bab27e8e27e4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Jun 23 19:51:14 2012 +0200
+
+    EGL: Fix CFLAGS and LIBS in Makefile.am.
+
+commit 1105aa3cbf6a447f5e49bf2a8475a5dcd5c58f81
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Jun 23 19:50:21 2012 +0200
+
+    Core: Call InitIDirectFB_Async() synchronously if 'always-indirect' is not used, fixes calls from non-main in master.
+
+commit 2f47d3c08a105904b6f8409478dd8bc4ceabe07e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jun 22 17:19:16 2012 +0200
+
+    Fusion: Fix multi app build, changing BUILD_MULTI to FUSION_BUILD_MULTI.
+
+commit 8e14d1b8c9b8e5fff183b901c7552f1f32974425
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 16:47:29 2012 +0200
+
+    android: crash application on purpose when we loose focus.
+
+commit d2d1ecc82f8bf0f6c7432068b813b59a43ebe78f
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 16:35:47 2012 +0200
+
+    android-build: fix typo
+
+commit 8c03fb3af9c896ab7591607cdaeec6281082a004
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 15:23:19 2012 +0200
+
+    Fusion: terminate dispatcher for single-app
+
+commit 1d1de46757c0ae66da26c6701b51f8d71246433c
+Merge: 5307bea 92175b6
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 14:59:12 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 5307beac53aa56aa0f22458a06a9cededd1805f8
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 14:58:54 2012 +0200
+
+    build-android: clanbomber2
+
+commit 92175b62bc5b84a28886b5343a0ac133b0003601
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 14:36:42 2012 +0200
+
+    Android: always need ALWAYS_INDIRECT for android
+
+commit fb2a8f2228f0cb244c4c8315ec4820e26d00902c
+Merge: 57552f0 67d34d1
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 14:34:10 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 57552f0f37f913c6d44d7aae21eafc653a0a12c3
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 14:32:27 2012 +0200
+
+    Fusion: add weird hack to workaround a memorycorruption?? problem with empty structs
+
+commit 67d34d18f9f3a3e3520188b3f52cf0f779a0649b
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 14:29:46 2012 +0200
+
+    build-android: fix CPPFLAGS
+
+commit 821c952c5b0cacc089d5ab095c19aaf1fa36b044
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 14:23:42 2012 +0200
+
+    build-android: fix df_window
+
+commit 7637fecf17f7295fa908fd2bd9dc67150ad2b4b5
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 14:10:05 2012 +0200
+
+    build-android; add df_window test, symlink common files
+
+commit 4c605f1c7a51df25aa27089069617e63dc76d847
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 13:59:45 2012 +0200
+
+    build-android: add more missing files :(
+
+commit a49b7a2141a5107ce899c82c1709a4243f50d863
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 13:57:37 2012 +0200
+
+    build-android: add missing files
+
+commit 794d8e02023cda446e71a62547dc1617eb92049d
+Merge: 52dfaaf 568290f
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 13:55:09 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 52dfaafca48253a9c53c0448810c1b542ee19e4d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 22 13:54:35 2012 +0200
+
+    build-android: create a df_andi project, move common stuff.
+
+commit 568290fe0ce1be4301b7230f7ebfd7711d008936
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 12:25:43 2012 +0200
+
+    Android: remove some debug, add (EGL_ALPHA_SIZE, 8) to EGL attributes
+
+commit 379e4424d8f78f0e4e5103c340453aa6febd7ae4
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 12:23:53 2012 +0200
+
+    Android: remove handcoded screen dimension and use the real one instead, remove some debug
+
+commit 6f3e6b80ea9598c928de3a2a12207767c5debf66
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 11:07:15 2012 +0200
+
+    Android: free native buffer and close gralloc HW devide when deallocating resources
+
+commit 647bb46584c0144062fa50f2fabad34e7bc59bb2
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 11:06:37 2012 +0200
+
+    Fusion: turn some debug into warnings
+
+commit 2471f40f5abe8d437c51788547aca03ccb721362
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 10:37:54 2012 +0200
+
+    Android: remove buffersize*2 hack
+
+commit 3370d2fb9f65509d596815b4b0aed855f4dea7a9
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 10:36:32 2012 +0200
+
+    Fusion: remove debug
+
+commit a64fd9b94127cf58365b95d2971184993d76ce0e
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 10:19:58 2012 +0200
+
+    GLES2: fix build without FBO
+
+commit 6f02d59fcfed01bc2439b2a177de95077113dbdf
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 10:16:53 2012 +0200
+
+    Fusion: add dispatcher thread for single-app which makes always-indirect mode work
+
+commit 3adf142d3b198de070f9b5db0af7e045dc47f85c
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 10:13:53 2012 +0200
+
+    Android: pitch can change after ->ARGB conversion, respect this
+
+commit 53ca90a062d01aeff7e3e973a5eb855a57264c1e
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 08:49:28 2012 +0200
+
+    Revert "Android: pitch can change after ->ARGB conversion, respect this"
+    
+    This reverts commit 434a96c8f7600408a0333ada153ada780e3c8941.
+
+commit 434a96c8f7600408a0333ada153ada780e3c8941
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 22 08:45:32 2012 +0200
+
+    Android: pitch can change after ->ARGB conversion, respect this
+
+commit 33bca1c51acd4c5a291d979211341842c99c97c5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 20:40:18 2012 +0200
+
+    configure: Include GLES2_CFLAGS/LIBS also with EGL system.
+
+commit 67cd852f9b8d63a0276649c8fd02b078cdc57962
+Merge: fece24b 2a08f13
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 18:17:24 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit fece24bfc8d2a847b59ec921185ba3665227ecff
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 18:16:51 2012 +0200
+
+    Fusion: Fix single app dispatch cleanup by calling it.
+    
+    Fixes cursor motion in single app mode.
+
+commit 2a08f1392e87e50b9464804affe3867d62b5aa29
+Merge: 5727a49 a072353
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 18:03:18 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 5727a49caa76158cd192efb8ead48fcf2973df99
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 18:00:39 2012 +0200
+
+    GLES2: Invert clipping coordinates when not rendering to an FBO.
+
+commit a072353fc01d5421622239b0e804c8e520a02eab
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 20 17:18:18 2012 +0200
+
+    android: only use extra fbo for primary if ANDROID_USE_FBO_FOR_PRIMARY is set
+
+commit 2134307f91376191fe94f585c854fa628fbe9603
+Merge: 3bc89d1 071a303
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 20 17:01:07 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 3bc89d1ea61a9a9f108cc40f1583429e3f1c3cd9
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 20 17:00:33 2012 +0200
+
+    android: no not hardcode resolution, pixelformat. workaround for imageprovider (fixme!)
+
+commit 071a303d81c477b77a5ee2e37694ad421e93732d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 16:46:14 2012 +0200
+
+    GLES2: Fixes, cleanups...
+    
+    - Fix texture filter setting, moving it below source validation, setting only accel.
+    - No need for GLES2_INVALIDATE(ALL), please test on other platforms.
+    - In gles2EmitCommands() check for calls > 0 instead of higher threshold.
+    - Use dfb_simplify_blittingflags() to support certain flip/rotate combinations.
+
+commit 619a76a9f546fb07a029c4c0131f7a6f2293a364
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 16:16:34 2012 +0200
+
+    GLES2: Add CORE_CARE1 to supported systems.
+
+commit d491eadc0d18a2191294d16bc5538d68c8b310b3
+Merge: 30a818a 4d5eac4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 16:02:01 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 30a818ac2fe6900eb492a539c3b7b7abddd6bc97
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 16:01:45 2012 +0200
+
+    GLES2: Fix weird merge...
+
+commit 4d5eac40433b3f49f61d98f4433bc38a3dc737b2
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 20 15:58:22 2012 +0200
+
+    android: fix typos
+
+commit b4268cc42a15c102e34c755cacde715310850cf3
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 20 15:55:13 2012 +0200
+
+    build-android: unix line breaks
+
+commit 5f4a208fc54f951f063d40f280765aa59fc82580
+Merge: c2fccb5 01be8d1
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 20 15:53:22 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit c2fccb577e3e6a30cdd21cfa9b3e921eebe0c77d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 20 15:52:20 2012 +0200
+
+    android: add various defines for better testing
+
+commit 01be8d161717a8f02c1da3ba4f5d7cf0cfb5871b
+Merge: 2778323 78d9c8e
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 20 15:49:53 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 27783235b603410203d36ea4102da86931a5915b
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 20 15:49:29 2012 +0200
+
+    Android: missing include
+
+commit 78d9c8e6f961c83f48259b8dd1a673cd0cca30a9
+Merge: 806c22b b34dd08
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 15:49:14 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+    
+    Conflicts:
+    	gfxdrivers/gles2/gles2_shaders.h
+
+commit 806c22ba1c1cd0460c541c7b904371275983b114
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jun 20 15:47:12 2012 +0200
+
+    GLES2: Put color multiplication onto same line with gl_FragColor assignment, blending speed up by factor four!
+
+commit b34dd082196e2090fb4e1865deadf20dceb35cb5
+Merge: 8aff3cf abe91fe
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 20 15:32:50 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 8aff3cfdd92672ff3e748b80bd297678dc41df78
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jun 20 15:31:52 2012 +0200
+
+    Android: improvements (WIP)
+
+commit abe91fe608ec3e85d3412646b9c357425cf81162
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jun 20 14:21:04 2012 +0200
+
+    build-android: rename generate.sh to prepare.sh (now fetches and untars freetype2 for android), add freetype2 sources to makefile
+
+commit 780230a32a1399751ee1b522431a68a4d2917198
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Jun 19 09:50:16 2012 +0200
+
+    GLES2: mirror y-coordinates for primary
+
+commit 7ab3f1c528cec45f86cc43f2457c6c05a681b34a
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 18 18:03:13 2012 +0200
+
+    Android: code cleanup and beautifications
+
+commit f9c5590bc18b67c5ed35a7adf4998171e1dd2099
+Merge: 5a58a44 665c5a8
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jun 18 13:53:56 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 5a58a44ab516b10b6677dcdaac6221efc8cc1128
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jun 18 13:52:36 2012 +0200
+
+    PVR2D: Add support for DSBLIT_BLEND_COLORALPHA, thanks to Takanari Hayama.
+
+commit 51ca5142abf43fad78979daae65d4e7f26a9ec89
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jun 18 13:52:27 2012 +0200
+
+    PVR2D: Fix error by making sure source rectangle is at least 1x1 in pvr2DStretchBlit, thanks to Takanari Hayama.
+
+commit 665c5a82dddd530712a0b9c72ee28ac7022e1190
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jun 18 11:13:07 2012 +0200
+
+    Android: fix image conversion to ARGB
+
+commit f20446287f386f5a326f15e0c5cadcc8b66d57ed
+Merge: 2ae8f28 a0a658f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jun 17 19:52:28 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 2ae8f28831ab0f48c299b578a58d384741ac0ec2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jun 17 19:52:19 2012 +0200
+
+    version: 1.7.0
+
+commit a0a658f16680c2b3fc2e685397119d6419602338
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jun 15 17:53:35 2012 +0200
+
+    Android: use gralloc for native graphics memory; cpu access to data working;
+
+commit c9e8a299e2add03188afb9d0d85a346bd47134e6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jun 15 14:18:30 2012 +0200
+
+    Core: Set async attribute for CoreSurfaceClient::FrameAck(). This helps especially in always-indirect mode.
+
+commit 5752a45242cef23328cd874d3b6d886fee0d48e3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 14 17:56:35 2012 +0200
+
+    android: Update EXTRA_DIST to include all sources.
+
+commit 67003f534e6275997a4d1f4373811264febe9af4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 14 17:54:40 2012 +0200
+
+    debian: Update changelog.
+
+commit 315d821d739bdd000b4810e8cf95509af16682ea
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 14 17:23:50 2012 +0200
+
+    linux-one: Reset magic values to zero after non-zeroing malloc.
+
+commit 94b82934be63a872524641f3f1c7d5261736c8ef
+Merge: 267b11c 821510e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 14 16:21:46 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit 267b11cf6a521fbac7c013cea9471522ece4caea
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 14 16:21:26 2012 +0200
+
+    NEWS and ChangeLog for 1.6.0
+
+commit af28c6d4ae2ca0775f3196ff8c7202663096c103
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 14 16:19:18 2012 +0200
+
+    Core: Allow master to render to all surfaces even with always-indirect.
+
+commit 821510ec03e6b146ae7f10a3eb5bdcb8d0f80141
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jun 14 15:14:15 2012 +0200
+
+    android: add F key mappings
+
+commit 4ba9cc7536db5029fb36c4e8b968103756043159
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jun 14 14:57:00 2012 +0200
+
+    gles2: workarounds for some gl drivers
+    
+    now clanbomber2 works flawless on my galaxy tab 7" :-P
+
+commit 120bbb9d73acf8b79c2dbbabd9757c1270449969
+Merge: af3170f 601c3d4
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jun 14 13:54:38 2012 +0200
+
+    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+
+commit af3170f99a5bf2a2cd32d15979af3f5c778eb4f1
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jun 14 13:51:59 2012 +0200
+
+    mesa: better cleanup.
+
 commit 601c3d45346f358a29a71fd5ea1225cc33792d0e
 Merge: bdf0ad0 8d3b774
 Author: Denis Oliver Kropp <dok@directfb.org>
