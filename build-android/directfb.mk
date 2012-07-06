@@ -376,27 +376,28 @@ CPPFLAGS += -DDIVINE_MAJOR_VERSION=1 -DDIVINE_MINOR_VERSION=6
 #
 # SaWMan object files
 SAWMAN_SOURCES = \
-	$(DFB_SOURCE)/SaWMan/src/isawman.c					\
-	$(DFB_SOURCE)/SaWMan/src/isawmanmanager.c				\
-	$(DFB_SOURCE)/SaWMan/src/SaWMan.c					\
-	$(DFB_SOURCE)/SaWMan/src/SaWMan_real.c				\
-	$(DFB_SOURCE)/SaWMan/src/SaWManManager.c				\
-	$(DFB_SOURCE)/SaWMan/src/SaWManManager_real.c			\
-	$(DFB_SOURCE)/SaWMan/src/SaWManProcess.c				\
-	$(DFB_SOURCE)/SaWMan/src/SaWManProcess_real.c			\
-	$(DFB_SOURCE)/SaWMan/src/region.c					\
-	$(DFB_SOURCE)/SaWMan/src/sawman_c.c					\
-	$(DFB_SOURCE)/SaWMan/src/sawman_config.c				\
-	$(DFB_SOURCE)/SaWMan/src/sawman_draw.c				\
-	$(DFB_SOURCE)/SaWMan/src/sawman_updates.c				\
-	$(DFB_SOURCE)/SaWMan/src/sawman_window.c				\
-	$(DFB_SOURCE)/SaWMan/wm/sawman/sawman_wm.c
+	$(DFB_SOURCE)/../SaWMan/src/isawman.c			\
+	$(DFB_SOURCE)/../SaWMan/src/isawmanmanager.c		\
+	$(DFB_SOURCE)/../SaWMan/src/region.c			\
+	$(DFB_SOURCE)/../SaWMan/src/sawman.c			\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_config.c		\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_draw.c		\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_updates.c		\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_window.c		\
+	$(DFB_SOURCE)/../SaWMan/wm/sawman/sawman_wm.c		\
+	$(DFB_SOURCE)/../SaWMan/src/SaWMan.cpp			\
+	$(DFB_SOURCE)/../SaWMan/src/SaWMan_real.cpp		\
+	$(DFB_SOURCE)/../SaWMan/src/SaWManManager.cpp		\
+	$(DFB_SOURCE)/../SaWMan/src/SaWManManager_real.cpp	\
+	$(DFB_SOURCE)/../SaWMan/src/SaWManProcess.cpp		\
+	$(DFB_SOURCE)/../SaWMan/src/SaWManProcess_real.cpp
+
 
 #
 # SaWMan header files
 SAWMAN_INCLUDES += \
-	-I../SaWMan/include					\
-	-I../SaWMan/src
+	-I$(DFB_INCLUDE_PATH)/../SaWMan/include					\
+	-I$(DFB_INCLUDE_PATH)/../SaWMan/src
 
 CPPFLAGS += -DSAWMAN_VERSION=\"1.6.0\"
 
@@ -441,8 +442,8 @@ LOCAL_SRC_FILES := \
 	$(WM_SOURCES)							\
 	$(GFXDRIVER_SOURCES)						\
 	$(FONTPROVIDER_SOURCES)						\
+	$(SAWMAN_SOURCES)
 #	$(DIVINE_SOURCES)						\
-#	$(SAWMAN_SOURCES)						\
 #	$(FUSIONDALE_SOURCES)
 
 
