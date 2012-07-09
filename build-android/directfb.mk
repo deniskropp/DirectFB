@@ -379,7 +379,7 @@ SAWMAN_SOURCES = \
 	$(DFB_SOURCE)/../SaWMan/src/isawman.c			\
 	$(DFB_SOURCE)/../SaWMan/src/isawmanmanager.c		\
 	$(DFB_SOURCE)/../SaWMan/src/region.c			\
-	$(DFB_SOURCE)/../SaWMan/src/sawman.c			\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_core.c		\
 	$(DFB_SOURCE)/../SaWMan/src/sawman_config.c		\
 	$(DFB_SOURCE)/../SaWMan/src/sawman_draw.c		\
 	$(DFB_SOURCE)/../SaWMan/src/sawman_updates.c		\
