@@ -101,5 +101,17 @@ DFBResult dfb_layer_region_get_configuration( CoreLayerRegion       *region,
 DirectResult dfb_layer_region_lock  ( CoreLayerRegion   *region );
 DirectResult dfb_layer_region_unlock( CoreLayerRegion   *region );
 
+
+
+
+DFBResult dfb_layer_region_set( CoreLayerRegion            *region,
+                                CoreLayerRegionConfig      *config,
+                                CoreLayerRegionConfigFlags  flags,
+                                CoreSurface                *surface );
+
+DFBResult dfb_layer_region_realize( CoreLayerRegion *region );
+
+DFBResult dfb_layer_region_unrealize( CoreLayerRegion *region );
+
 #endif
 

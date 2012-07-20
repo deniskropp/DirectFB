@@ -94,5 +94,20 @@ typedef struct __DFB_CoreWindowStack         CoreWindowStack;
 typedef unsigned int CoreSurfacePoolID;
 typedef unsigned int CoreSurfacePoolBridgeID;
 
+
+
+#ifdef __cplusplus
+namespace DirectFB {
+class Renderer;
+class SurfaceTask;
+}
+#define DFB_Renderer    DirectFB::Renderer
+#define DFB_SurfaceTask DirectFB::SurfaceTask
+#else
+typedef void DFB_Renderer;
+typedef void DFB_SurfaceTask;
+#endif
+
+
 #endif
 

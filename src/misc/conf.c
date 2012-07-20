@@ -173,6 +173,8 @@ static const char *config_usage_strings[]  = {
      "  accelerator=<id>               Accelerator ID selecting graphics driver (devmem system)\n"
      "  font-resource-id=<id>          Resource ID to use for font cache row surfaces\n"
      "  resource-manager=<impl>        Use this resource manager implementation\n"
+     "  [no-]task-manager              Use experimental task manager (default: no)\n"
+     "  software-cores=<num>           Set number of threads to use for software rendering\n"
      "\n",
      "  x11-borderless[=<x>.<y>]       Disable X11 window borders, optionally position window\n"
      "  [no-]matrox-sgram              Use Matrox SGRAM features\n"
@@ -1850,6 +1852,33 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-capslock-meta" ) == 0) {
           dfb_config->capslock_meta = false;
+     } else
+     if (strcmp (name, "task-manager" ) == 0) {
+          dfb_config->task_manager = true;
+     } else
+     if (strcmp (name, "no-task-manager" ) == 0) {
+          dfb_config->task_manager = false;
+     } else
+     if (strcmp (name, "software-cores" ) == 0) {
+          if (value) {
+               int cores;
+
+               if (direct_sscanf( value, "%d", &cores ) < 1) {
+                    D_ERROR("DirectFB/Config '%s': Could not parse value!\n", name);
+                    return DFB_INVARG;
+               }
+
+               if (cores < 1) {
+                    D_ERROR("DirectFB/Config '%s': Invalid value specified!\n", name);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->software_cores = cores;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No value specified!\n", name);
+               return DFB_INVARG;
+          }
      } else
      if (strcmp (name, "resource-manager" ) == 0) {
           if (value) {

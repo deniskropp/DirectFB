@@ -47,6 +47,8 @@ D_DEBUG_DOMAIN( Core_GraphicsState, "Core/GraphicsState", "DirectFB Graphics Sta
 
 /**********************************************************************************************************************/
 
+extern void CoreGraphicsState_Destruct( CoreGraphicsState *state );
+
 static void
 state_destructor( FusionObject *object, bool zombie, void *ctx )
 {
@@ -55,6 +57,8 @@ state_destructor( FusionObject *object, bool zombie, void *ctx )
      D_MAGIC_ASSERT( state, CoreGraphicsState );
 
      D_DEBUG_AT( Core_GraphicsState, "destroying %p%s\n", state, zombie ? " (ZOMBIE)" : "");
+
+     CoreGraphicsState_Destruct( state );
 
      dfb_state_set_destination( &state->state, NULL );
      dfb_state_set_source( &state->state, NULL );

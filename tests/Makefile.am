@@ -50,6 +50,8 @@ NON_PURE_VOODOO_PROGS =
 else
 NON_PURE_VOODOO_PROGS = \
 	coretest_blit2	\
+	coretest_task	\
+	coretest_task_fillrect	\
 	fusion_call	\
 	fusion_call_bench	\
 	fusion_fork	\
@@ -114,6 +116,12 @@ endif
 
 coretest_blit2_SOURCES = coretest_blit2.c
 coretest_blit2_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+coretest_task_SOURCES = coretest_task.cpp
+coretest_task_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+coretest_task_fillrect_SOURCES = coretest_task_fillrect.cpp
+coretest_task_fillrect_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_blit_SOURCES = dfbtest_blit.c
 dfbtest_blit_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)

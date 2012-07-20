@@ -297,6 +297,9 @@ typedef struct
 
      bool          cursor_videoonly;
      u64           cursor_resource_id;
+
+     bool          task_manager;
+     unsigned int  software_cores;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

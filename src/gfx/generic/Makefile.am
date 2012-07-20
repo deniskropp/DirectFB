@@ -23,6 +23,7 @@ GENERIC_C = generic_dummy.c
 endif
 
 libdirectfb_generic_la_SOURCES = \
+	GenefxEngine.cpp		\
 	duffs_device.h			\
 	$(GENERIC_C)			\
 	generic.h			\

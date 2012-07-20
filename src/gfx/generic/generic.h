@@ -180,6 +180,9 @@ bool gAcquire ( CardState *state, DFBAccelerationMask accel );
 bool gAcquire2( CardState *state, DFBAccelerationMask accel );
 void gRelease ( CardState *state );
 
+bool gAcquireCheck( CardState *state, DFBAccelerationMask accel );
+bool gAcquireSetup( CardState *state, DFBAccelerationMask accel );
+
 void gFillRectangle ( CardState *state, DFBRectangle *rect );
 void gDrawLine      ( CardState *state, DFBRegion    *line );
 

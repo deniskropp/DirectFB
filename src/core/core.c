@@ -62,6 +62,8 @@
 #include <core/CoreDFB.h>
 #include <core/CoreSlave.h>
 
+#include <core/Task.h>
+
 #include <direct/build.h>
 #include <direct/debug.h>
 #include <direct/direct.h>
@@ -980,6 +982,27 @@ dfb_core_enum_surfaces( CoreDFB               *core,
 }
 
 DirectResult
+dfb_core_enum_graphics_states( CoreDFB               *core,
+                               FusionObjectCallback   callback,
+                               void                  *ctx )
+{
+     CoreDFBShared *shared;
+
+     D_ASSERT( core != NULL || core_dfb != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     return fusion_object_pool_enum( shared->graphics_state_pool, callback, ctx );
+}
+
+DirectResult
 dfb_core_enum_layer_contexts( CoreDFB               *core,
                               FusionObjectCallback   callback,
                               void                  *ctx )
@@ -1503,6 +1526,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      direct_mutex_deinit( &core->memory_permissions_lock );
 
+     TaskManager_Shutdown();
+
      return 0;
 }
 
@@ -1568,6 +1593,14 @@ dfb_core_initialize( CoreDFB *core )
           else
                D_DERROR( ret, "Core/Resource: Failed to load manager '%s'!\n", dfb_config->resource_manager );
      }
+
+     TaskManager_Initialise();
+
+     extern void register_myengine(void);
+     //register_myengine();
+
+     extern void register_genefx(void);
+     register_genefx();
 
      return DFB_OK;
 }

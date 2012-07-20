@@ -8496,7 +8496,7 @@ Bop_rgb32_to_Aop_rgb16_LE( GenefxState *gfxs )
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
-static bool
+bool
 gAcquireCheck( CardState *state, DFBAccelerationMask accel )
 {
      GenefxState *gfxs;
@@ -8619,7 +8619,7 @@ gAcquireUnlockBuffers( CardState *state )
      return DFB_OK;
 }
 
-static bool
+bool
 gAcquireSetup( CardState *state, DFBAccelerationMask accel )
 {
      GenefxState *gfxs;

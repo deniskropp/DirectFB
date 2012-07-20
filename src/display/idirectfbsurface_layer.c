@@ -142,7 +142,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     CoreGraphicsState_Flush( data->base.state_client.gfx_state );
+     CoreGraphicsStateClient_Flush( &data->base.state_client );
 
      ret = CoreLayerRegion_FlipUpdate( data->region, &reg, flags );
      if (ret)
@@ -219,7 +219,7 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
      D_DEBUG_AT( Surface, "  -> FLIPSTEREO %4d,%4d-%4dx%4d, %4d,%4d-%4dx%4d\n", 
           DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
-     CoreGraphicsState_Flush( data->base.state_client.gfx_state );
+     CoreGraphicsStateClient_Flush( &data->base.state_client );
 
      ret = CoreLayerRegion_FlipUpdateStereo( data->region, &l_reg, &r_reg, flags );
      if (ret)

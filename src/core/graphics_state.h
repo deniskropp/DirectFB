@@ -44,6 +44,8 @@ struct __DFB_CoreGraphicsState {
 
      CardState                state;
 
+     DFB_Renderer            *renderer;
+
      /*
       * New state logic
       */

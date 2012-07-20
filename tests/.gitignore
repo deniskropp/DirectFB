@@ -1,4 +1,6 @@
 coretest_blit2
+coretest_task
+coretest_fillrect
 dfbtest_blit
 dfbtest_blit_multi
 dfbtest_blit2

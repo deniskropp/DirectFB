@@ -141,6 +141,9 @@ DFBResult          dfb_core_get_window           ( CoreDFB            *core,
 DirectResult dfb_core_enum_surfaces      ( CoreDFB               *core,
                                            FusionObjectCallback   callback,
                                            void                  *ctx );
+DirectResult dfb_core_enum_graphics_states( CoreDFB               *core,
+                                           FusionObjectCallback   callback,
+                                           void                  *ctx );
 DirectResult dfb_core_enum_layer_contexts( CoreDFB               *core,
                                            FusionObjectCallback   callback,
                                            void                  *ctx );
