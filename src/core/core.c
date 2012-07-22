@@ -1936,6 +1936,7 @@ Core_GetIdentity()
      return 0;
 }
 
+#if FUSION_BUILD_MULTI
 void
 Core_PushCalling( void )
 {
@@ -1976,6 +1977,7 @@ Core_GetCalling( void )
 
      return 0;
 }
+#endif
 
 
 D_DEBUG_DOMAIN( Core_Resource, "Core/Resource", "Core Resource" );
