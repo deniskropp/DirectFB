@@ -241,7 +241,7 @@ IFusionDale_One_EnterComa( IFusionDale  *thiz,
      if (ret)
           return ret;
 
-     ret = funcs->Construct( interface_ptr, data->ns_qid, name, data->thread );
+     ret = funcs->Construct( thiz, interface_ptr, data->ns_qid, name, data->thread );
      if (ret)
           return ret;
 
