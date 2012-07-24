@@ -172,8 +172,10 @@ IComaComponent_One_Destruct( IComaComponent *thiz )
 
      OneQueue_WakeUp( &data->notify_qid, 1 );
 
-     direct_thread_join( data->notify_thread );
-     direct_thread_destroy( data->notify_thread );
+     if (data->notify_thread) {
+          direct_thread_join( data->notify_thread );
+          direct_thread_destroy( data->notify_thread );
+     }
 
      OneQueue_Destroy( data->notify_qid );
 
