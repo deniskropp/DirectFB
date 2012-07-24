@@ -335,6 +335,7 @@ dfb_pixel_to_components( DFBSurfacePixelFormat  format,
                *c0 = (pixel & 0xff0000) >> 16;
                *c1 = (pixel & 0x00ff00) >>  8;
                *c2 = (pixel & 0x0000ff);
+               break;
 
           case DSPF_AiRGB:
                *a  = (pixel >> 24) ^ 0xff;
