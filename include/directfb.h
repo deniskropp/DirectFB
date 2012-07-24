@@ -855,6 +855,7 @@ typedef enum {
      DFXL_FILLTRIANGLE   = 0x00000008,  /* FillTriangle() is accelerated. */
      DFXL_FILLTRAPEZOID  = 0x00000010,  /* FillTrapezoid() is accelerated. */
      DFXL_FILLQUADRANGLE = 0x00000020,  /* FillQuadrangle() is accelerated. */
+     DFXL_FILLSPAN       = 0x00000040,  /* FillSpan() is accelerated. */
 
      DFXL_DRAWMONOGLYPH  = 0x00001000,  /* DrawMonoGlyphs() is accelerated. */
 
@@ -862,6 +863,7 @@ typedef enum {
      DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit() is accelerated. */
      DFXL_TEXTRIANGLES   = 0x00040000,  /* TextureTriangles() is accelerated. */
      DFXL_BLIT2          = 0x00080000,  /* BatchBlit2() is accelerated. */
+     DFXL_TILEBLIT       = 0x00100000,  /* TileBlit() is accelerated. */
 
      DFXL_DRAWSTRING     = 0x01000000,  /* DrawString() and DrawGlyph() are accelerated. */
 
