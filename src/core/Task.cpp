@@ -39,6 +39,8 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/surface_allocation.h>
+
+#include <misc/conf.h>
 }
 
 D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
