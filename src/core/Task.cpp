@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include "Task.h"
@@ -360,7 +362,8 @@ TaskManager::Initialise()
 
      D_ASSERT( thread == NULL );
 
-     thread = direct_thread_create( DTT_CRITICAL, managerLoop, NULL, "Task Manager" );
+     if (dfb_config->task_manager)
+          thread = direct_thread_create( DTT_CRITICAL, managerLoop, NULL, "Task Manager" );
 
      return DFB_OK;
 }
