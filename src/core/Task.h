@@ -81,12 +81,14 @@ public:
      {
           direct_mutex_init( &lock );
           direct_waitqueue_init( &wq );
+          direct_waitqueue_init( &wq_empty );
      }
 
      ~FIFO()
      {
           direct_mutex_deinit( &lock );
           direct_waitqueue_deinit( &wq );
+          direct_waitqueue_deinit( &wq_empty );
      }
 
      void
@@ -114,20 +116,43 @@ public:
           e = queue.front();
           queue.pop();
 
+          if (queue.empty())
+               direct_waitqueue_broadcast( &wq_empty );
+
           direct_mutex_unlock( &lock );
 
           return e;
      }
 
      bool
-     empty() const
+     empty()
      {
-          return queue.empty();
+          bool val;
+
+          direct_mutex_lock( &lock );
+
+          val = queue.empty();
+
+          direct_mutex_unlock( &lock );
+
+          return val;
+     }
+
+     void
+     waitEmpty()
+     {
+          direct_mutex_lock( &lock );
+
+          while (!queue.empty())
+               direct_waitqueue_wait( &wq_empty, &lock );
+
+          direct_mutex_unlock( &lock );
      }
 
 private:
      DirectMutex     lock;
      DirectWaitQueue wq;
+     DirectWaitQueue wq_empty;
 
      std::queue<T>   queue;
 };
