@@ -421,13 +421,11 @@ resize_window( SaWMan       *sawman,
      }
 
      /* Send new size */
-     if (!(window->config.options & DWOP_SCALE)) {
-          evt.type = DWET_SIZE;
-          evt.w    = bounds->w;
-          evt.h    = bounds->h;
+     evt.type = DWET_SIZE;
+     evt.w    = bounds->w;
+     evt.h    = bounds->h;
 
-          sawman_post_event( sawman, sawwin, &evt );
-     }
+     sawman_post_event( sawman, sawwin, &evt );
 
      return DFB_OK;
 }
