@@ -1898,44 +1898,57 @@ process_updates( SaWMan              *sawman,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
 
-     dfb_updates_stat( &tier->left.updates, &total, &bounding );
-     dfb_updates_stat( &tier->right.updates, &n, &d );
-     total += n;
-     bounding += d;
-
-     n = tier->left.updates.max_regions - tier->left.updates.num_regions + 1;
-     n += tier->right.updates.max_regions - tier->right.updates.num_regions + 1;
-     d = n + 1;
-
-     /* Try to optimize updates. In buffer swapping modes we can save the copy by updating everything. */
-     if ((total > tier->size.w * tier->size.h) ||
-         (total > tier->size.w * tier->size.h * 3 / 5 && (tier->context->config.buffermode == DLBM_BACKVIDEO ||
-                                                          tier->context->config.buffermode == DLBM_TRIPLE)))
-     {
-          left_updates = &full_tier_region;
-          left_num     = 1;
-
-          if (tier->region->config.options & DLOP_STEREO) {
-               right_updates = &full_tier_region;
-               right_num     = 1;
+     if (dfb_config->wm_fullscreen_updates) {
+          if (tier->left.updates.num_regions > 0) {
+               repaint_tier( sawman, tier, &full_tier_region, 1, flags, false );
+               dfb_updates_reset( &tier->left.updates );
           }
-     }
-     else if (tier->left.updates.num_regions + tier->right.updates.num_regions < 2 || total < bounding * n / d) {
-          left_updates = tier->left.updates.regions;
-          left_num     = tier->left.updates.num_regions;
 
-          if (tier->region->config.options & DLOP_STEREO) {
-               right_updates = tier->right.updates.regions;
-               right_num     = tier->right.updates.num_regions;
+          if (tier->right.updates.num_regions > 0) {
+               repaint_tier( sawman, tier, &full_tier_region, 1, flags, true );
+               dfb_updates_reset( &tier->right.updates );
           }
      }
      else {
-          left_updates = &tier->left.updates.bounding;
-          left_num     = 1;
+          dfb_updates_stat( &tier->left.updates, &total, &bounding );
+          dfb_updates_stat( &tier->right.updates, &n, &d );
+          total += n;
+          bounding += d;
 
-          if (tier->region->config.options & DLOP_STEREO) {
-               right_updates = &tier->right.updates.bounding;
-               right_num     = 1;
+          n = tier->left.updates.max_regions - tier->left.updates.num_regions + 1;
+          n += tier->right.updates.max_regions - tier->right.updates.num_regions + 1;
+          d = n + 1;
+
+          /* Try to optimize updates. In buffer swapping modes we can save the copy by updating everything. */
+          if ((total > tier->size.w * tier->size.h) ||
+              (total > tier->size.w * tier->size.h * 3 / 5 && (tier->context->config.buffermode == DLBM_BACKVIDEO ||
+                                                               tier->context->config.buffermode == DLBM_TRIPLE)))
+          {
+               left_updates = &full_tier_region;
+               left_num     = 1;
+
+               if (tier->region->config.options & DLOP_STEREO) {
+                    right_updates = &full_tier_region;
+                    right_num     = 1;
+               }
+          }
+          else if (tier->left.updates.num_regions + tier->right.updates.num_regions < 2 || total < bounding * n / d) {
+               left_updates = tier->left.updates.regions;
+               left_num     = tier->left.updates.num_regions;
+
+               if (tier->region->config.options & DLOP_STEREO) {
+                    right_updates = tier->right.updates.regions;
+                    right_num     = tier->right.updates.num_regions;
+               }
+          }
+          else {
+               left_updates = &tier->left.updates.bounding;
+               left_num     = 1;
+
+               if (tier->region->config.options & DLOP_STEREO) {
+                    right_updates = &tier->right.updates.bounding;
+                    right_num     = 1;
+               }
           }
      }
 
@@ -1980,23 +1993,27 @@ process_updates( SaWMan              *sawman,
                     /* Flip the whole region. */
                     dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags | DSFLIP_WAITFORSYNC );
 
-                    /* Copy back the updated region. */
-                    if (left_num)
-                         dfb_gfx_copy_regions_stereo( tier->region->surface, CSBR_FRONT, DSSE_LEFT,
-                                                      tier->region->surface, CSBR_BACK, DSSE_LEFT,
-                                                      left_updates, left_num, 0, 0 );
+                    if (!dfb_config->wm_fullscreen_updates) {
+                         /* Copy back the updated region. */
+                         if (left_num)
+                              dfb_gfx_copy_regions_stereo( tier->region->surface, CSBR_FRONT, DSSE_LEFT,
+                                                           tier->region->surface, CSBR_BACK, DSSE_LEFT,
+                                                           left_updates, left_num, 0, 0 );
 
-                    if (right_num)
-                         dfb_gfx_copy_regions_stereo( tier->region->surface, CSBR_FRONT, DSSE_RIGHT,
-                                                      tier->region->surface, CSBR_BACK, DSSE_RIGHT,
-                                                      right_updates, right_num, 0, 0 );
+                         if (right_num)
+                              dfb_gfx_copy_regions_stereo( tier->region->surface, CSBR_FRONT, DSSE_RIGHT,
+                                                           tier->region->surface, CSBR_BACK, DSSE_RIGHT,
+                                                           right_updates, right_num, 0, 0 );
+                         }
                }
                else {
                     /* Flip the whole region. */
                     dfb_layer_region_flip_update( tier->region, NULL, flags | DSFLIP_WAITFORSYNC );
 
-                    /* Copy back the updated region. */
-                    dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
+                    if (!dfb_config->wm_fullscreen_updates) {
+                         /* Copy back the updated region. */
+                         dfb_gfx_copy_regions( tier->region->surface, CSBR_FRONT, tier->region->surface, CSBR_BACK, left_updates, left_num, 0, 0 );
+                    }
                }
                break;
 
