@@ -925,6 +925,26 @@ dfb_region_clip( DFBRegion *region,
           region->y2 = y2;
 }
 
+static __inline__ void
+dfb_regions_unite( DFBRegion       *united,
+                   const DFBRegion *regions,
+                   unsigned int     num_regions )
+{
+     unsigned int i;
+
+     D_ASSERT( united != NULL );
+     D_ASSERT( regions != NULL );
+     D_ASSERT( num_regions > 0 );
+
+     *united = regions[0];
+
+     for (i=1; i<num_regions; i++) {
+          DFB_REGION_ASSERT( &regions[i] );
+
+          dfb_region_region_union( united, &regions[i] );
+     }
+}
+
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
