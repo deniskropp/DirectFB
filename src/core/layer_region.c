@@ -539,8 +539,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                                                        layer->layer_data,
                                                        region->region_data,
                                                        surface, flags, 
-                                                       &left,
-                                                       NULL );
+                                                       update, &left,
+                                                       NULL, NULL );
 
                          /* Unlock region buffer since the lock is no longer needed. */
                          region_buffer_unlock(region, true, &left, NULL);
@@ -761,8 +761,8 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
                                                        layer->layer_data,
                                                        region->region_data,
                                                        surface, flags, 
-                                                       &left,
-                                                       &right);
+                                                       left_update, &left,
+                                                       right_update, &right);
 
                          /* Unlock region buffer since the lock is no longer needed. */
                          region_buffer_unlock(region, true, &left, &right);
