@@ -286,7 +286,10 @@ primaryFlipRegion( CoreLayer             *layer,
                    void                  *region_data,
                    CoreSurface           *surface,
                    DFBSurfaceFlipFlags    flags,
-                   CoreSurfaceBufferLock *lock )
+                   const DFBRegion       *left_update,
+                   CoreSurfaceBufferLock *left_lock,
+                   const DFBRegion       *right_update,
+                   CoreSurfaceBufferLock *right_lock )
 {
      dfb_surface_flip( surface, false );
 

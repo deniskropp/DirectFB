@@ -103,14 +103,16 @@ androidSetRegion( CoreLayer                  *layer,
 }
 
 static DFBResult
-androidFlipRegion( CoreLayer                  *layer,
-                void                       *driver_data,
-                void                       *layer_data,
-                void                       *region_data,
-                CoreSurface                *surface,
-                DFBSurfaceFlipFlags         flags,
-                CoreSurfaceBufferLock      *left_lock,
-                CoreSurfaceBufferLock      *right_lock )
+androidFlipRegion( CoreLayer             *layer,
+                   void                  *driver_data,
+                   void                  *layer_data,
+                   void                  *region_data,
+                   CoreSurface           *surface,
+                   DFBSurfaceFlipFlags    flags,
+                   const DFBRegion       *left_update,
+                   CoreSurfaceBufferLock *left_lock,
+                   const DFBRegion       *right_update,
+                   CoreSurfaceBufferLock *right_lock )
 {
      AndroidData       *android = driver_data;
      FBOAllocationData *alloc   = (FBOAllocationData *)left_lock->allocation->data;

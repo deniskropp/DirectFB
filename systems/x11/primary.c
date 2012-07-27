@@ -609,7 +609,9 @@ primaryFlipRegion( CoreLayer             *layer,
                    void                  *region_data,
                    CoreSurface           *surface,
                    DFBSurfaceFlipFlags    flags,
+                   const DFBRegion       *left_update,
                    CoreSurfaceBufferLock *left_lock,
+                   const DFBRegion       *right_update,
                    CoreSurfaceBufferLock *right_lock )
 {
      DFBX11       *x11 = driver_data;
@@ -618,6 +620,9 @@ primaryFlipRegion( CoreLayer             *layer,
      DFBRegion  region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     if (left_update)
+          DFB_REGIONS_DEBUG_AT( X11_Layer, left_update, 1 );
 
      if (x11->shared->x_error)
           return DFB_FAILURE;

@@ -180,14 +180,16 @@ mesaSetRegion( CoreLayer                  *layer,
 }
 
 static DFBResult
-mesaFlipRegion( CoreLayer                  *layer,
-                void                       *driver_data,
-                void                       *layer_data,
-                void                       *region_data,
-                CoreSurface                *surface,
-                DFBSurfaceFlipFlags         flags,
-                CoreSurfaceBufferLock      *left_lock,
-                CoreSurfaceBufferLock      *right_lock )
+mesaFlipRegion( CoreLayer             *layer,
+                void                  *driver_data,
+                void                  *layer_data,
+                void                  *region_data,
+                CoreSurface           *surface,
+                DFBSurfaceFlipFlags    flags,
+                const DFBRegion       *left_update,
+                CoreSurfaceBufferLock *left_lock,
+                const DFBRegion       *right_update,
+                CoreSurfaceBufferLock *right_lock )
 {
      int            ret;
      MesaData      *mesa = driver_data;
