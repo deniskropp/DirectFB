@@ -26,12 +26,8 @@ endif
 
 if GSTREAMER_PROVIDER
 GSTREAMER_PROVIDER_LTLIB = libidirectfbvideoprovider_gstreamer.la
-GSTREAMER_INCLUDES = -I/usr/include/gstreamer-0.10 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -I/usr/include/libxml2
-GSTREAMER_LIBS = -lgstreamer-0.10 -lgstapp-0.10 -lgobject-2.0 -lgmodule-2.0 -lgthread-2.0 -lrt -lxml2 -lglib-2.0
 else
 GSTREAMER_PROVIDER_LTLIB =
-GSTREAMER_INCLUDES =
-GSTREAMER_LIBS =
 endif
 
 INCLUDES = \
@@ -42,7 +38,7 @@ INCLUDES = \
 	-I$(top_srcdir)/src	\
 	-I$(top_srcdir)/systems	\
 	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"	\
-	$(GSTREAMER_INCLUDES)
+	$(GSTREAMER_INCL)
 
 
 idirectfbvideoprovider_LTLIBRARIES =	\

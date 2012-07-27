@@ -1012,12 +1012,26 @@ fi
 AM_CONDITIONAL(MNG_PROVIDER, test "$MNG" = "yes")
 
 dnl Allow to disable GSTREAMER support
+gstreamer=no
 AC_ARG_ENABLE(gstreamer,
-              AC_HELP_STRING([--enable-gstreamer],
-                             [build gstreamer video provider @<:@default=no@:>@]),
-              [], [enable_gstreamer=no])
+              [--enable-gstreamer            build gstreamer video provider [[default=no]]],
+              $enable_gstreamer="$enableval",
+              [enable_gstreamer=no])
 
 AM_CONDITIONAL(GSTREAMER_PROVIDER, test "$enable_gstreamer" = "yes")
+
+if test "x$enable_gstreamer" = "xyes"; then
+    GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-0.10`
+    GSTREAMER_LIBS=`$PKG_CONFIG --libs gstreamer-app-0.10`
+    gstreamer=yes
+else
+    GSTREAMER_INCL=
+    GSTREAMER_LIBS=
+    gstreamer=no
+fi
+
+AC_SUBST(GSTREAMER_LIBS)
+AC_SUBST(GSTREAMER_INCL)
 
 dnl Allow to disable GIF support
 AC_ARG_ENABLE(gif,
@@ -2284,7 +2298,7 @@ Building Video Provider Modules:
   GIF                       $enable_gif
   Video4Linux               $V4L (v2: $V4L2)
   MNG                       $MNG                 $LIBMNG_CFLAGS $LIBMNG_LIBS
-  GSTREAMER                 $enable_gstreamer
+  Gstreamer                 $gstreamer           $GSTREAMER_INCL $GSTREAMER_LIBS
 
 Building Font Modules:
   FreeType2                 $FREETYPE                 $FREETYPE_CFLAGS $FREETYPE_LIBS

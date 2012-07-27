@@ -64,7 +64,7 @@
 #endif
 
 #undef __GNUC__
-#define __GNUC__  1
+#define __GNUC__ 1
 
 #include <gst/gst.h>
 #include <glib.h>
@@ -112,8 +112,8 @@ typedef struct {
      GstElement                    *convert_audio;
      GstElement                    *resample_audio;
      GstElement                    *filter_video;
+     GstElement                    *scale_video;
      GstElement                    *decode_video;
-     GstElement                    *convert_video;
      GstElement                    *queue_audio;
      GstElement                    *queue_video;
      GstElement                    *appsink_audio;
@@ -422,7 +422,9 @@ decode_video_pad_added(GstElement *element, GstPad *pad, gpointer ptr )
 static int
 prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], char *filename )
 {
-     gst_init (&argc, &argv);
+     int max_signals = 5;
+
+     gst_init( &argc, &argv );
 
      data->pipeline       = gst_pipeline_new( "uri-decode-pipeline" );
      data->decode         = gst_element_factory_make( "uridecodebin", "uri-decode-bin" );
@@ -430,8 +432,8 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
      data->convert_audio  = gst_element_factory_make ("audioconvert", "convert-audio");
      data->resample_audio = gst_element_factory_make ("audioresample", "resample-audio");
      data->filter_video   = gst_element_factory_make( "ffmpegcolorspace", "filter-video" );
+     data->scale_video    = gst_element_factory_make ("videoscale", "scale-video");
      data->decode_video   = gst_element_factory_make( "decodebin2", "decode-video" );
-     data->convert_video  = gst_element_factory_make ("ffmpegcolorspace", "convert-video");
      data->queue_audio    = gst_element_factory_make( "queue", "queue-audio" );
      data->queue_video    = gst_element_factory_make( "queue", "queue-video" );
      data->appsink_audio  = gst_element_factory_make( "appsink", "sink-buffer-audio" );
@@ -456,33 +458,32 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
      //"width", G_TYPE_INT, 320,
      //"height", G_TYPE_INT, 240,
      NULL);
-     
-     g_object_set( G_OBJECT(data->decode), "uri", filename, NULL );
-     //g_object_set( G_OBJECT(data->filter_video), "caps", caps );
 
-     gst_bin_add_many( GST_BIN(data->pipeline), data->decode, data->filter_video, data->decode_audio, data->decode_video, data->queue_audio, data->queue_video, data->appsink_audio, data->appsink_video, NULL );
+     g_object_set( G_OBJECT(data->decode), "uri", filename, NULL );
+
+     gst_bin_add_many( GST_BIN(data->pipeline), data->decode, data->filter_video, data->scale_video, data->decode_audio, data->decode_video, data->queue_audio, data->queue_video, data->appsink_audio, data->appsink_video, NULL );
 
      //gst_element_link( data->queue_audio, data->convert_audio );
      //gst_element_link( data->convert_audio, data->resample_audio );
      //gst_element_link( data->resample_audio, data->appsink_audio );
      gst_element_link( data->queue_audio, data->appsink_audio );
-     //GstCaps *c = gst_caps_new_simple("video/x-raw-rgb", "bpp=24", NULL);
-     //gst_element_link_filtered( data->decode_video2, data->decode_video, c );
-     //gst_element_link( data->queue_video, data->convert_video );
-     
-     //gst_element_link( data->convert_video, data->appsink_video );
+
      gst_element_link( data->queue_video, data->appsink_video );
-     
-     gst_element_link_filtered( data->filter_video, data->decode_video, caps );
-     
+
+     //gst_element_link_filtered( data->filter_video, data->decode_video, caps );
+     //gst_element_link( data->filter_video, data->decode_video );
+
+     gst_element_link_filtered( data->filter_video, data->scale_video, caps );
+     gst_element_link( data->scale_video, data->decode_video );
+
      data->bus = gst_pipeline_get_bus( GST_PIPELINE(data->pipeline) );
 
      gst_element_set_state( GST_ELEMENT(data->pipeline), GST_STATE_PAUSED );
      gst_bus_add_watch( data->bus, pipeline_bus_call, data );
 
      direct_mutex_lock( &data->video_lock );
-     while ((!data->parsed_audio || !data->parsed_video) && !data->error)
-          direct_waitqueue_wait( &data->video_cond, &data->video_lock );
+     while ((!data->parsed_audio || !data->parsed_video) && !data->error && --max_signals)
+          direct_waitqueue_wait_timeout( &data->video_cond, &data->video_lock, 1000000 );
      direct_mutex_unlock( &data->video_lock );
 
      if (data->error || data->width < 1 || data->height < 1)
@@ -791,7 +792,7 @@ IDirectFBVideoProvider_GSTREAMER_GetLength( IDirectFBVideoProvider *thiz, double
      if (!seconds)
           return DFB_INVARG;
 /*
-     if (data->context->duration != AV_NOPTS_VALUE) {      
+     if (data->context->duration != AV_NOPTS_VALUE) {
           *seconds = (double)data->context->duration/AV_TIME_BASE;
           return DFB_OK;
      }
