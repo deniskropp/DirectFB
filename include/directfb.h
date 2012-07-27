@@ -3533,6 +3533,9 @@ typedef enum {
      DSFLIP_QUEUE        = 0x00000100,
      DSFLIP_FLUSH        = 0x00000200,
 
+     DSFLIP_SWAP         = 0x00000400,  /* Causes real flip even though region was specified.
+                                           Does not make sense in combination with DSFLIP_BLIT! */
+
      DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
 
