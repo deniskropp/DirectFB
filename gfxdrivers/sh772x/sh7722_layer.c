@@ -397,7 +397,10 @@ sh7722FlipRegion( CoreLayer             *layer,
                   void                  *region_data,
                   CoreSurface           *surface,
                   DFBSurfaceFlipFlags    flags,
-                  CoreSurfaceBufferLock *lock )
+                  const DFBRegion       *left_update,
+                  CoreSurfaceBufferLock *left_lock,
+                  const DFBRegion       *right_update,
+                  CoreSurfaceBufferLock *right_lock )
 {
      int                n;
      CoreSurfaceBuffer *buffer;
@@ -417,13 +420,13 @@ sh7722FlipRegion( CoreLayer             *layer,
      D_ASSERT( n >= 0 );
      D_ASSERT( n <= 2 );
 
-     buffer = lock->buffer;
+     buffer = left_lock->buffer;
      D_ASSERT( buffer != NULL );
 
      fusion_skirmish_prevail( &sdev->beu_lock );
 
      /* set new physical address for layer */
-     sdev->shbeu_src[n].s.py = lock->addr;
+     sdev->shbeu_src[n].s.py = left_lock->addr;
 
      /* libshbeu: reorder src surfaces and start blending. */
      if (sdev->input_mask) {
