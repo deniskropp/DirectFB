@@ -3913,6 +3913,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      DFBDimension      size;
      DFBRegion         updates[2];
      int               updates_count = 0;
+     DFBRegion         updates_unite;
 
      D_DEBUG_AT( SaWMan_Cursor, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, stack, wm_data, stack_data, flags );
 
@@ -4145,8 +4146,10 @@ wm_update_cursor( CoreWindowStack       *stack,
                     break;
 
                case DLBM_BACKVIDEO:
+                    dfb_regions_unite( &updates_unite, updates, updates_count );
+
                     /* Flip the whole region. */
-                    dfb_layer_region_flip_update( primary, NULL, DSFLIP_WAITFORSYNC );
+                    dfb_layer_region_flip_update( primary, &updates_unite, DSFLIP_WAITFORSYNC | DSFLIP_SWAP );
 
                     /* Copy back the updated region. */
                     dfb_gfx_copy_regions_stereo( surface, CSBR_FRONT, DSSE_LEFT,

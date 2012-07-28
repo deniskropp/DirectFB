@@ -1169,9 +1169,11 @@ sawman_flush_updating( SaWMan     *sawman,
 
      /* Flip the whole layer. */
      if (tier->region->config.options & DLOP_STEREO)
-          dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, DSFLIP_ONSYNC );
+          dfb_layer_region_flip_update_stereo( tier->region,
+                                               &tier->left.updated.bounding,
+                                               &tier->right.updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP );
      else
-          dfb_layer_region_flip_update( tier->region, NULL, DSFLIP_ONSYNC );
+          dfb_layer_region_flip_update( tier->region, &tier->left.updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP );
 
 
      if (left_num_regions) {
@@ -1894,6 +1896,8 @@ process_updates( SaWMan              *sawman,
      unsigned int     left_num  = 0;
      unsigned int     right_num = 0;
      DFBRegion        full_tier_region = { 0, 0, tier->size.w - 1, tier->size.h - 1 };
+     DFBRegion        left_united;
+     DFBRegion        right_united;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
@@ -1952,11 +1956,17 @@ process_updates( SaWMan              *sawman,
           }
      }
 
-     if (left_num)
-          repaint_tier( sawman, tier, left_updates, left_num, flags, false );
+     if (left_num) {
+          dfb_regions_unite( &left_united, left_updates, left_num );
 
-     if (right_num)
+          repaint_tier( sawman, tier, left_updates, left_num, flags, false );
+     }
+
+     if (right_num) {
+          dfb_regions_unite( &right_united, right_updates, right_num );
+
           repaint_tier( sawman, tier, right_updates, right_num, flags, true );
+     }
 
 
      switch (tier->region->config.buffermode) {
@@ -1991,7 +2001,7 @@ process_updates( SaWMan              *sawman,
           case DLBM_BACKVIDEO:
                if (tier->region->config.options & DLOP_STEREO) {
                     /* Flip the whole region. */
-                    dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags | DSFLIP_WAITFORSYNC );
+                    dfb_layer_region_flip_update_stereo( tier->region, &left_united, &right_united, flags | DSFLIP_WAITFORSYNC | DSFLIP_SWAP );
 
                     if (!dfb_config->wm_fullscreen_updates) {
                          /* Copy back the updated region. */
@@ -2008,7 +2018,7 @@ process_updates( SaWMan              *sawman,
                }
                else {
                     /* Flip the whole region. */
-                    dfb_layer_region_flip_update( tier->region, NULL, flags | DSFLIP_WAITFORSYNC );
+                    dfb_layer_region_flip_update( tier->region, &left_united, flags | DSFLIP_WAITFORSYNC | DSFLIP_SWAP );
 
                     if (!dfb_config->wm_fullscreen_updates) {
                          /* Copy back the updated region. */
