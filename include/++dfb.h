@@ -411,7 +411,6 @@ class IPPAny
 
 
 
-class DirectFB;
 class IDirectFB;
 class IDirectFBScreen;
 class IDirectFBDisplayLayer;
@@ -446,11 +445,10 @@ class IDirectFBDataBuffer;
 #define DFB_ADD_BLITTING_FLAG(b,f)  (b) = static_cast<DFBSurfaceBlittingFlags>     ((b) | (f))
 
 
-class DirectFB {
-public:
-     static void      PPDFB_API Init   (int *argc = NULL, char *(*argv[]) = NULL);
-     static IDirectFB PPDFB_API Create ();
-};
+namespace DirectFB {
+     void      PPDFB_API Init   (int *argc = NULL, char *(*argv[]) = NULL);
+     IDirectFB PPDFB_API Create ();
+}
 
 class DFBException {
 public:

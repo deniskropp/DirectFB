@@ -30,9 +30,6 @@
 #endif
 
 class IDirectFB :public IPPAny<IDirectFB, IDirectFB_C>{
-friend
-     class DirectFB;
-
 public:
      PPDFB_API IDirectFB(IDirectFB_C *myptr = NULL):IPPAny<IDirectFB, IDirectFB_C>(myptr){}
      PPDFB_API ~IDirectFB(){}

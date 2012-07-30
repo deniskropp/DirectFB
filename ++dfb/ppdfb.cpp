@@ -70,18 +70,22 @@ std::ostream &operator << (std::ostream &stream, DFBException *ex)
 }
 
 
+namespace DirectFB {
 
-void DirectFB::Init (int *argc, char *(*argv[]))
+
+void Init (int *argc, char *(*argv[]))
 {
      DFBCHECK( DirectFBInit (argc, argv) );
 }
 
-IDirectFB DirectFB::Create ()
+IDirectFB Create ()
 {
      IDirectFB_C *idirectfb;
 
      DFBCHECK( DirectFBCreate (&idirectfb) );
 
      return IDirectFB (idirectfb);
+}
+
 }
 
