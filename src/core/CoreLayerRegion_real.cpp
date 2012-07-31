@@ -209,8 +209,8 @@ protected:
                                                        layer->layer_data,
                                                        region->region_data,
                                                        surface, flags,
-                                                       &left,
-                                                       NULL );
+                                                       update, &left,
+                                                       NULL, NULL );
                          break;
                     }
 

@@ -228,7 +228,10 @@ uc_ovl_flip_region( CoreLayer             *layer,
                     void                  *region_data,
                     CoreSurface           *surface,
                     DFBSurfaceFlipFlags    flags,
-                    CoreSurfaceBufferLock *lock)
+                    const DFBRegion       *left_update,
+                    CoreSurfaceBufferLock *left_lock,
+                    const DFBRegion       *right_update,
+                    CoreSurfaceBufferLock *right_lock )
 {
     //printf("Entering %s ... \n", __PRETTY_FUNCTION__);
 
@@ -245,7 +248,7 @@ uc_ovl_flip_region( CoreLayer             *layer,
     ucovl->field = 0;
     ucovl->lock = lock;
 
-    ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface, lock);
+    ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface, left_lock);
     if (ret)
         return ret;
 
