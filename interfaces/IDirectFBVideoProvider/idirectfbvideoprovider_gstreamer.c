@@ -103,6 +103,7 @@ typedef struct {
      float                          volume;
      
      IDirectFBDataBuffer           *buffer;
+     bool                           interlaced;
      bool                           seekable;
 
      GstElement                    *pipeline;
@@ -424,6 +425,11 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
 {
      int max_signals = 5;
 
+     direct_mutex_init( &data->audio_lock );
+     direct_mutex_init( &data->video_lock );
+     direct_waitqueue_init( &data->audio_cond );
+     direct_waitqueue_init( &data->video_cond );
+
      gst_init( &argc, &argv );
 
      data->pipeline       = gst_pipeline_new( "uri-decode-pipeline" );
@@ -439,7 +445,7 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
      data->appsink_audio  = gst_element_factory_make( "appsink", "sink-buffer-audio" );
      data->appsink_video  = gst_element_factory_make( "appsink", "sink-buffer-video" );
 
-     if (!data->pipeline || !data->decode || !data->decode_audio || !data->decode_video || !data->queue_audio || !data->queue_video || !data->appsink_audio || !data->appsink_video) {
+     if (!data->pipeline || !data->decode || !data->filter_video || !data->scale_video || !data->decode_audio || !data->decode_video || !data->queue_audio || !data->queue_video || !data->appsink_audio || !data->appsink_video) {
           D_DEBUG_AT( GST, "error: failed to create some gstreamer elements\n" );
           return 0;
      }
@@ -467,23 +473,22 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
      //gst_element_link( data->convert_audio, data->resample_audio );
      //gst_element_link( data->resample_audio, data->appsink_audio );
      gst_element_link( data->queue_audio, data->appsink_audio );
-
      gst_element_link( data->queue_video, data->appsink_video );
 
-     //gst_element_link_filtered( data->filter_video, data->decode_video, caps );
-     //gst_element_link( data->filter_video, data->decode_video );
-
-     gst_element_link_filtered( data->filter_video, data->scale_video, caps );
-     gst_element_link( data->scale_video, data->decode_video );
+     //gst_element_link_filtered( data->filter_video, data->scale_video, caps );
+     //gst_element_link( data->scale_video, data->decode_video );
+     gst_element_link_filtered( data->filter_video, data->decode_video, caps );
 
      data->bus = gst_pipeline_get_bus( GST_PIPELINE(data->pipeline) );
+
+     direct_mutex_lock( &data->video_lock );
 
      gst_element_set_state( GST_ELEMENT(data->pipeline), GST_STATE_PAUSED );
      gst_bus_add_watch( data->bus, pipeline_bus_call, data );
 
-     direct_mutex_lock( &data->video_lock );
-     while ((!data->parsed_audio || !data->parsed_video) && !data->error && --max_signals)
+     while (!data->parsed_video && !data->error && --max_signals)
           direct_waitqueue_wait_timeout( &data->video_cond, &data->video_lock, 1000000 );
+
      direct_mutex_unlock( &data->video_lock );
 
      if (data->error || data->width < 1 || data->height < 1)
@@ -511,6 +516,8 @@ process_audio( DirectThread *self, void *arg )
 
           gst_buffer_unref( buffer );
      }
+
+     return 0;
 }
 
 static void *
@@ -545,6 +552,8 @@ process_video( DirectThread *self, void *arg )
           if (data->callback)
                data->callback( data->ctx );
      }
+
+     return 0;
 }
 
 /*****************************************************************************/
@@ -590,18 +599,22 @@ IDirectFBVideoProvider_GSTREAMER_GetCapabilities( IDirectFBVideoProvider *thiz, 
 
      if (!caps)
           return DFB_INVARG;
-/*
-     *caps = DVCAPS_BASIC      | DVCAPS_SCALE    | DVCAPS_SPEED     |
-             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST | DVCAPS_SATURATION;
+
+     direct_mutex_lock( &data->video_lock );
+
+     *caps = DVCAPS_BASIC | DVCAPS_SCALE | DVCAPS_SPEED;
+
      if (data->seekable)
           *caps |= DVCAPS_SEEK;
-     if (data->video.src_frame->interlaced_frame)
+
+     if (data->interlaced)
           *caps |= DVCAPS_INTERLACED;     
-#ifdef HAVE_FUSIONSOUND
-     if (data->audio.playback)
+
+     if (data->audio_thread)
           *caps |= DVCAPS_VOLUME;
-#endif
-  */   
+
+     direct_mutex_unlock( &data->video_lock );
+
      return DFB_OK;
 }
 
@@ -615,16 +628,20 @@ IDirectFBVideoProvider_GSTREAMER_GetSurfaceDescription( IDirectFBVideoProvider *
      if (!desc)
           return DFB_INVARG;
 
+     direct_mutex_lock( &data->video_lock );
+
      desc->flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-/*
-     if (data->video.src_frame->interlaced_frame) {
+
+     if (data->interlaced) {
           desc->flags |= DSDESC_CAPS;
           desc->caps = DSCAPS_INTERLACED;
      }
-*/
+
      desc->width  = data->width;
      desc->height = data->height;
      desc->pixelformat = DSPF_RGB24;
+
+     direct_mutex_unlock( &data->video_lock );
 
      return DFB_OK;
 }
@@ -639,35 +656,22 @@ IDirectFBVideoProvider_GSTREAMER_GetStreamDescription( IDirectFBVideoProvider *t
      if (!desc)
           return DFB_INVARG;
 
-     desc->caps = DVSCAPS_VIDEO;
-/*
-     direct_snputs( desc->video.encoding, data->video.codec->name,
-                    DFB_STREAM_DESC_ENCODING_LENGTH );
-     desc->video.framerate = av_q2d( data->video.st->r_frame_rate );
-     desc->video.aspect    = av_q2d( data->video.ctx->sample_aspect_ratio );
-     if (!finite( desc->video.aspect ))
-          desc->video.aspect = 0.0;
-     if (desc->video.aspect)
-          desc->video.aspect *= (double)data->video.ctx->width/(double)data->video.ctx->height;
-     desc->video.bitrate   = data->video.ctx->bit_rate;
+     direct_mutex_lock( &data->video_lock );
 
-     if (data->audio.st) {
+     desc->caps = DVSCAPS_VIDEO;
+
+     desc->video.aspect = 0.0;
+
+     if (data->audio_thread) {
           desc->caps |= DVSCAPS_AUDIO;
 
-          direct_snputs( desc->audio.encoding, data->audio.codec->name,
-                         DFB_STREAM_DESC_ENCODING_LENGTH );
-          desc->audio.samplerate = data->audio.ctx->sample_rate;
-          desc->audio.channels   = data->audio.ctx->channels;
-          desc->audio.bitrate    = data->audio.ctx->bit_rate;
+          desc->audio.samplerate = 0;
+          desc->audio.channels   = 0;
+          desc->audio.bitrate    = 0;
      }
-               
-     direct_snputs( desc->title, data->context->title, DFB_STREAM_DESC_TITLE_LENGTH );
-     direct_snputs( desc->author, data->context->author, DFB_STREAM_DESC_AUTHOR_LENGTH );
-     direct_snputs( desc->album, data->context->album, DFB_STREAM_DESC_ALBUM_LENGTH );
-     direct_snputs( desc->genre, data->context->genre, DFB_STREAM_DESC_GENRE_LENGTH );
-     direct_snputs( desc->comment, data->context->comment, DFB_STREAM_DESC_COMMENT_LENGTH );
-     desc->year = data->context->year;
-*/
+
+     direct_mutex_unlock( &data->video_lock );
+
      return DFB_OK;
 }
 
@@ -688,21 +692,28 @@ IDirectFBVideoProvider_GSTREAMER_PlayTo( IDirectFBVideoProvider *thiz, IDirectFB
 
      dest_data = dest->priv;
 
+     direct_mutex_lock( &data->video_lock );
+
      data->dest     = dest;
      data->ctx      = ctx;
      data->callback = callback;
 
-     direct_mutex_init( &data->audio_lock );
-     direct_mutex_init( &data->video_lock );
-     direct_waitqueue_init( &data->audio_cond );
-     direct_waitqueue_init( &data->video_cond );
+     if (data->parsed_audio) {
+          data->audio_thread = direct_thread_create( DTT_DEFAULT, process_audio, (void*)data, "Gstreamer Audio" );
+     } else {
+          gst_bin_remove_many( GST_BIN(data->pipeline), data->decode_audio, data->queue_audio, data->appsink_audio, NULL );
+          data->audio_thread = 0;
+     }
 
-     data->audio_thread = direct_thread_create( DTT_DEFAULT, process_audio, (void*)data, "Gstreamer Audio" );
      data->video_thread = direct_thread_create( DTT_DEFAULT, process_video, (void*)data, "Gstreamer Video" );
 
      gst_element_set_state( GST_ELEMENT(data->pipeline), GST_STATE_PLAYING );
 
      data->status = DVSTATE_PLAY;
+
+     data->speed = 1.0f;
+
+     direct_mutex_unlock( &data->video_lock );
 
      return DFB_OK;
 }
@@ -714,7 +725,11 @@ IDirectFBVideoProvider_GSTREAMER_Stop( IDirectFBVideoProvider *thiz )
 
      D_DEBUG_AT( GST, "GSTREAMER_Stop\n" );
 
+     direct_mutex_lock( &data->video_lock );
+
      gst_element_set_state( data->pipeline, GST_STATE_NULL );
+
+     direct_mutex_unlock( &data->video_lock );
 
      return DFB_OK;
 }
@@ -729,7 +744,11 @@ IDirectFBVideoProvider_GSTREAMER_GetStatus( IDirectFBVideoProvider *thiz, DFBVid
      if (!status)
           return DFB_INVARG;
 
+     direct_mutex_lock( &data->video_lock );
+
      *status = data->status;
+
+     direct_mutex_unlock( &data->video_lock );
 
      return DFB_OK;
 }
@@ -746,21 +765,10 @@ IDirectFBVideoProvider_GSTREAMER_SeekTo( IDirectFBVideoProvider *thiz, double se
 
      if (seconds < 0.0)
           return DFB_INVARG;
-/*
+
      if (!data->seekable)
           return DFB_UNSUPPORTED;
-          
-     thiz->GetPos( thiz, &pos );
-  
-     time = seconds * AV_TIME_BASE; 
-     if (data->context->duration != AV_NOPTS_VALUE &&
-         time > data->context->duration)
-          return DFB_OK;
 
-     data->input.seek_time = time;
-     data->input.seek_flag = (seconds < pos) ? AVSEEK_FLAG_BACKWARD : 0;
-     data->input.seeked    = true;
-*/   
      return DFB_OK;
 }
 
@@ -810,13 +818,8 @@ IDirectFBVideoProvider_GSTREAMER_GetColorAdjustment( IDirectFBVideoProvider *thi
      D_DEBUG_AT( GST, "GSTREAMER_GetColorAdjustment\n" );
      if (!adj)
           return DFB_INVARG;
-/*
-     adj->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_SATURATION;
-     adj->brightness = data->brightness;
-     adj->contrast   = data->contrast;
-     adj->saturation = data->saturation;
-*/ 
-     return DFB_OK;
+
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult
@@ -828,44 +831,8 @@ IDirectFBVideoProvider_GSTREAMER_SetColorAdjustment( IDirectFBVideoProvider *thi
 
      if (!adj)
           return DFB_INVARG;
-/*
-     if (adj->flags & DCAF_BRIGHTNESS)
-          data->brightness = adj->brightness;
-     if (adj->flags & DCAF_CONTRAST)
-          data->contrast = adj->contrast;
-     if (adj->flags & DCAF_SATURATION)
-          data->saturation = adj->saturation;
-          
-     pthread_mutex_lock( &data->video.lock );
-     
-     if (data->brightness != 0x8000 ||
-         data->contrast   != 0x8000 ||
-         data->saturation != 0x8000)
-     {
-          if (!data->video.colormap) {
-               data->video.colormap = D_MALLOC( sizeof(DVCColormap) );
-               if (!data->video.colormap) {
-                    pthread_mutex_unlock( &data->video.lock );
-                    return D_OOM();
-               }
-          }
-          
-          dvc_colormap_gen( data->video.colormap,
-                            ff2dvc_pixelformat(data->video.ctx->pix_fmt),
-                            data->brightness,
-                            data->contrast,
-                            data->saturation );
-     }
-     else {
-          if (data->video.colormap) {
-               D_FREE( data->video.colormap );
-               data->video.colormap = NULL;
-          }
-     }
-     
-     pthread_mutex_unlock( &data->video.lock );
-*/
-     return DFB_OK;
+
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult
@@ -877,12 +844,12 @@ IDirectFBVideoProvider_GSTREAMER_SetPlaybackFlags( IDirectFBVideoProvider *thiz,
 
      if (flags & ~DVPLAY_LOOPING)
           return DFB_UNSUPPORTED;
-/*
+
      if (flags & DVPLAY_LOOPING && !data->seekable)
           return DFB_UNSUPPORTED;
           
      data->flags = flags;
-*/   
+
      return DFB_OK;
 }
 
@@ -893,35 +860,16 @@ IDirectFBVideoProvider_GSTREAMER_SetSpeed( IDirectFBVideoProvider *thiz, double 
 
      D_DEBUG_AT( GST, "GSTREAMER_SetSpeed\n" );
 
-     if (multiplier < 0.0)
+     if (multiplier != 0.0 || multiplier != 1.0)
           return DFB_INVARG;
 
-     if (multiplier > 32.0)
-          return DFB_UNSUPPORTED;
-/* 
-     pthread_mutex_lock( &data->video.lock );
-     pthread_mutex_lock( &data->audio.lock );
-     
-     if (multiplier) {
-          multiplier = MAX( multiplier, 0.01 );
-#ifdef HAVE_FUSIONSOUND
-          if (data->audio.playback)
-               data->audio.playback->SetPitch( data->audio.playback, multiplier );
-#endif
-     }
+     direct_mutex_lock( &data->video_lock );
 
-     if (multiplier > data->speed) {
-          pthread_cond_signal( &data->video.cond );
-          pthread_cond_signal( &data->audio.cond );
-     }
-     
      data->speed = multiplier;
-     
-     dispatch_event( data, DVPET_SPEEDCHANGE );
-     
-     pthread_mutex_unlock( &data->audio.lock );
-     pthread_mutex_unlock( &data->video.lock );    
-*/
+     gst_element_set_state( GST_ELEMENT(data->pipeline), multiplier == 0.0f ? GST_STATE_PAUSED : GST_STATE_PLAYING);
+
+     direct_mutex_unlock( &data->video_lock );
+
      return DFB_OK;
 }
 
@@ -934,9 +882,13 @@ IDirectFBVideoProvider_GSTREAMER_GetSpeed( IDirectFBVideoProvider *thiz, double 
 
      if (!ret_multiplier)
           return DFB_INVARG;
-/*
+
+     direct_mutex_lock( &data->video_lock );
+
      *ret_multiplier = data->speed;
-*/   
+
+     direct_mutex_unlock( &data->video_lock );
+
      return DFB_OK;
 }
 
@@ -1114,8 +1066,8 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      data->ref    = 1;
      data->status = DVSTATE_STOP;
      data->buffer = buffer;
-     data->speed  = 1.0;
-     data->volume = 1.0;
+     data->speed  = 0.0;
+     data->volume = 0.0;
 
      data->events_mask = DVPET_NONE;
 
