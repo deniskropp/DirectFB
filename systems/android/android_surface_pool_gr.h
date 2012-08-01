@@ -58,8 +58,6 @@ typedef struct {
      GLuint                 color_rb;
      GLuint                 depth_rb;
 
-     int                    fb_ready;
-
      ANativeWindowBuffer_t *win_buf;
      const hw_module_t     *hw_mod;
      gralloc_module_t      *gralloc_mod;

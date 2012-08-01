@@ -625,7 +625,7 @@ gles2EmitCommands(void *drv, void *dev)
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
      if (gdrv->calls > 0) {
-//          glFlush();
+          glFlush();
 //           glFinish();
 
           gdrv->calls = 1;

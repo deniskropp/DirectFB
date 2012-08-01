@@ -390,7 +390,7 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      CHECK_GL_ERROR();
      EGLint eglImgAttrs[] = { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
      alloc->image = eglCreateImageKHR( eglGetDisplay( EGL_DEFAULT_DISPLAY ), EGL_NO_CONTEXT,
-                                      EGL_NATIVE_BUFFER_ANDROID, buf, 0 );
+                                       EGL_NATIVE_BUFFER_ANDROID, buf, eglImgAttrs );
      CHECK_GL_ERROR();
 
      alloc->pitch = alloc->win_buf->stride * 4;
@@ -458,20 +458,16 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
      CHECK_GL_ERROR();
 
-     if (!alloc->fb_ready) {
           D_DEBUG_AT( GL, "%s glFramebufferRenderbuffer (%d)\n", __FUNCTION__, alloc->color_rb );
 
-          glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, alloc->color_rb );
-          CHECK_GL_ERROR();
+     glFramebufferRenderbuffer( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, alloc->color_rb );
+     CHECK_GL_ERROR();
 
-          if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-               D_ERROR( "DirectFB/Mesa: Framebuffer not complete\n" );
-          }
-
-          checkFramebufferStatus();
-
-          alloc->fb_ready = 1;
+     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+          D_ERROR( "DirectFB/Mesa: Framebuffer not complete\n" );
      }
+
+     checkFramebufferStatus();
 
      D_DEBUG_AT( GL, "%s glBindFramebuffer (%d)\n", __FUNCTION__, fbo );
 
@@ -481,10 +477,12 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
      D_DEBUG_AT( GL, "%s glBindTexture (%d)\n", __FUNCTION__, tex );
 
      glBindTexture( GL_TEXTURE_2D, tex );
+     CHECK_GL_ERROR();
 
      D_DEBUG_AT( GL, "%s glBindRenderbuffer (%d)\n", __FUNCTION__, crb );
 
      glBindRenderbuffer( GL_RENDERBUFFER, crb );
+     CHECK_GL_ERROR();
 
      allocation->size = alloc->size;
 
@@ -799,15 +797,15 @@ fboWrite( CoreSurfacePool       *pool,
      // glTexImage2D(GL_TEXTURE_2D, 0,
      //              GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, buff);
      glPixelStorei( GL_UNPACK_ALIGNMENT, 8);
-     //glTexImage2D(GL_TEXTURE_2D, 0,
-     //             GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, source);
+     glTexImage2D(GL_TEXTURE_2D, 0,
+                  GL_RGBA, rect->w, rect->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, source);
 
 
      //D_FREE(buff);
 
      D_DEBUG_AT( GL, "%s glTexSubImage2D\n", __FUNCTION__ );
 
-     glTexSubImage2D( GL_TEXTURE_2D, 0, rect->x, rect->y, rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, source );
+     //glTexSubImage2D( GL_TEXTURE_2D, 0, rect->x, rect->y, rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, source );
      if ((err = glGetError()) != 0) {
           D_ERROR( "DirectFB/PVR2D: glTexSubImage2D() failed! (error = %x)\n", err );
           //return DFB_FAILURE;

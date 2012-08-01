@@ -46,6 +46,7 @@
 
 #include <core/core_system.h>
 
+#include <android/window.h>
 
 DFB_CORE_SYSTEM( android )
 
@@ -65,9 +66,76 @@ static inline void crashme()
      *a = 0;
 }
 
+static void drawit(ANativeWindow_Buffer* buffer)
+{
+    LOGI("width=%d height=%d stride=%d format=%d", buffer->width, buffer->height,
+            buffer->stride, buffer->format);    
+                                                
+                if (buffer->format == WINDOW_FORMAT_RGB_565)
+          {D_INFO("#################### 565\n");
+                        uint16_t* pixels16 = (uint16_t*)buffer->bits;
+                        int  xx;
+                        int  yy;
+                        uint16_t value=0xffff;
+                        for (yy = 0; yy < buffer->height; yy++) {
+        uint16_t*  line16 = (uint16_t*)pixels16;
+        for (xx = 0; xx < buffer->width; xx++) {
+                                *line16++=value;
+                                value += 33;
+                                 
+                                }
+                                pixels16 += buffer->stride;
+                        }
+                }   
+                else
+                {D_INFO("#################### 8888 %d %d %d\n", buffer->format, buffer->width, buffer->height);
+                        uint32_t* pixels32 = (uint32_t*)buffer->bits;
+                        uint32_t value;
+                        int  xx;
+                        int  yy;
+                        //value = 0x30ff0000;//+native_data.x;
+                        value=0x30000030;
+                        for (yy = 0; yy < buffer->height; yy++) {
+        uint32_t*  line32 = (uint32_t*)pixels32;
+        for (xx = 0; xx < buffer->width; xx++) {
+//                              *line32++=0x000000ff; // red (R)  
+//                              *line32++=0x0000ff00; // green (G)
+//                              *line32++=0x30ff0000; // blue (B)
+//                              value = 0x30ff0000 + buffer->height<<255 + buffer->width;
+             
+             //                   *line32++=value;
+              //                  value += 33;
+             *line32++=value;
+                                }
+                                pixels32 += buffer->stride;
+                        }
+                }
+}  
+   
+   
+/**
+ * Just the current frame in the display.
+ */
+static void engine_draw_frame() {
+    ANativeWindow_Buffer buffer;     
+    sleep(3);           
+    D_INFO("########### locking buffer\n");
+    if (ANativeWindow_lock(native_data.app->window, &buffer, NULL) < 0) {
+        LOGW("Unable to lock window buffer");
+        return; 
+    }           
+                D_INFO("########### drawing buffer\n");
+                drawit(&buffer);
+                D_INFO("####################1\n");
+    ANativeWindow_unlockAndPost(native_data.app->window);
+    D_INFO("####################2\n");
+}  
+
 static DFBResult
 InitLocal( AndroidData *android )
 {
+D_INFO("########## system: init local\n");
+sleep(10);
      /*
       * Here specify the attributes of the desired configuration.
       * Below, we select an EGLConfig with at least 8 bits per color
@@ -88,7 +156,15 @@ InitLocal( AndroidData *android )
           EGL_CONTEXT_CLIENT_VERSION, 2,
           EGL_NONE
      };
-
+     D_INFO("######1111111111111#############\n");
+     D_INFO("########### set buffers geometry %p\n", native_data.app->activity);
+     ANativeWindow_setBuffersGeometry(native_data.app->window, 64, 64, WINDOW_FORMAT_RGBA_8888);
+     D_INFO("########### set buffers geometry %p\n", native_data.app->activity);
+	//ANativeActivity_setWindowFlags(native_data.app->activity, (uint32_t)(AWINDOW_FLAG_FULLSCREEN), 0);	
+     D_INFO("########### set buffers geometry %p\n", native_data.app->activity);
+engine_draw_frame();
+//engine_draw_frame();
+sleep(10);
      EGLint w, h, dummy, format;
      EGLint numConfigs;
      EGLConfig config;
@@ -98,31 +174,42 @@ InitLocal( AndroidData *android )
      EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
      eglInitialize(display, 0, 0);
-
+     D_INFO("######222222222222222#############\n");
+engine_draw_frame();
      /* Here, the application chooses the configuration it desires. In this
       * sample, we have a very simplified selection process, where we pick
       * the first EGLConfig that matches our criteria */
      eglChooseConfig(display, attribs, &config, 1, &numConfigs);
-
+     D_INFO("######333333333333333333#############\n");
+engine_draw_frame();
      /* EGL_NATIVE_VISUAL_ID is an attribute of the EGLConfig that is
       * guaranteed to be accepted by ANativeWindow_setBuffersGeometry().
       * As soon as we picked a EGLConfig, we can safely reconfigure the
       * ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
      eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
+//eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+D_INFO("########### set buffers geometry %p\n", native_data.app->window);
+ANativeWindow_setBuffersGeometry(native_data.app->window, 1280, 720, format);
+//D_INFO("########### set window flags %p\n", native_data.app->activity);
+//ANativeActivity_setWindowFlags(native_data.app->activity, (uint32_t)(AWINDOW_FLAG_FULLSCREEN /*| AWINDOW_FLAG_SHOW_WHEN_LOCKED | AWINDOW_FLAG_SHOW_WALLPAPER | AWINDOW_FLAG_TURN_SCREEN_ON | AWINDOW_FLAG_KEEP_SCREEN_ON*/), 0);
 
-     ANativeWindow_setBuffersGeometry( native_data.app->window, 0, 0, format);
+//     ANativeWindow_setBuffersGeometry( native_data.app->window, 0, 0, format);
 
 //     ANativeActivity_setWindowFlags( native_data.app->window, AWINDOW_FLAG_FULLSCREEN | AWINDOW_FLAG_KEEP_SCREEN_ON , 0 );
-
+//eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+D_INFO("############### creating context 1\n");
      surface = eglCreateWindowSurface(display, config, native_data.app->window, NULL);
+     D_INFO("############### creating context 2\n");
+     
      context = eglCreateContext(display, config, NULL, ctx_attribs);
+D_INFO("############### creating context 3 curr\n");
 
      if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
-         LOGW("Unable to eglMakeCurrent");
-         return -1;
+         D_INFO("Unable to eglMakeCurrent");
+         //return -1;
      }
 
-     eglQuerySurface(display, surface, EGL_WIDTH, &w);
+     /*eglQuerySurface(display, surface, EGL_WIDTH, &w);
      eglQuerySurface(display, surface, EGL_HEIGHT, &h);
 
      android->dpy = display;
@@ -135,21 +222,22 @@ InitLocal( AndroidData *android )
           android->shared->native_pixelformat = HAL_PIXEL_FORMAT_RGBA_8888; //ANativeWindow_getFormat(native_data.app->window);
      else
           android->shared->native_pixelformat = ANativeWindow_getFormat(native_data.app->window);
-
+*/
      // Initialize GL state.
 //     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-     glEnable(GL_CULL_FACE);
+  //   glEnable(GL_CULL_FACE);
 //     glShadeModel(GL_SMOOTH);
-     glDisable(GL_DEPTH_TEST);
+  //   glDisable(GL_DEPTH_TEST);
 
 
 
      // Just fill the screen with a color.
-     glClearColor( .5, .5, .5, 1 );
-     glClear( GL_COLOR_BUFFER_BIT );
-
-     eglSwapBuffers( android->dpy, android->surface );
-
+  //   glClearColor( .5, .5, .5, .5 );
+  //   glClear( GL_COLOR_BUFFER_BIT );
+     D_INFO("######8888888888888888888#############\n");
+engine_draw_frame();
+  //   eglSwapBuffers( android->dpy, android->surface );
+sleep(10);
      return DFB_OK;
 }
 
@@ -171,7 +259,7 @@ system_initialize( CoreDFB *core, void **ret_data )
      AndroidData         *android;
      AndroidDataShared   *shared;
      FusionSHMPoolShared *pool;
-
+D_INFO("######### system initialize\n");
      D_ASSERT( m_data == NULL );
 
      android = D_CALLOC( 1, sizeof(AndroidData) );
