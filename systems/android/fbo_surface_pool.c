@@ -60,6 +60,7 @@ D_DEBUG_DOMAIN( GL, "GL", "GL" );
      int err = glGetError();                           \
      if (err) {                                        \
           D_ERROR("Android/FBO: GL_ERROR(%d)\n", err); \
+          return DFB_INCOMPLETE;                       \
      }                                                 \
 }
 
@@ -73,6 +74,7 @@ TestEGLError( const char* pszLocation )
           D_ERROR( "DirectFB/EGL: %s failed (%d).\n", pszLocation, iErr );
           return false;
      }
+     D_INFO("############################ open success!\n");
      return true;
 }
 
@@ -286,8 +288,6 @@ fboAllocateBuffer( CoreSurfacePool       *pool,
 
      (void) data;
      (void) local;
-D_INFO("##############################################################\n");
-CHECK_GL_ERROR();
 
      D_DEBUG_AT( Android_FBO, "%s( %p )\n", __FUNCTION__, buffer );
 

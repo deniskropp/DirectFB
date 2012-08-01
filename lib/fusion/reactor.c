@@ -1759,7 +1759,7 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
      reaction->node_link = (void*)(long) channel;
 
      pthread_mutex_lock( &reactor->reactions_lock );
-D_INFO("attaching reaction %p channel %d func %p\n", reaction, channel, func);
+
      direct_list_prepend( &reactor->reactions, &reaction->link );
 
      pthread_mutex_unlock( &reactor->reactions_lock );

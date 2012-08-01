@@ -168,8 +168,8 @@ static const DisplayLayerFuncs _androidLayerFuncs = {
      .InitLayer     = androidInitLayer,
      .TestRegion    = androidTestRegion,
      .SetRegion     = androidSetRegion,
-     .FlipRegion    = androidFlipRegion
-//     .UpdateRegion  = androidUpdateRegion
+     .FlipRegion    = androidFlipRegion,
+     .UpdateRegion  = androidUpdateRegion
 };
 
 const DisplayLayerFuncs *androidLayerFuncs = &_androidLayerFuncs;

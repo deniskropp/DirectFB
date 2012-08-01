@@ -26,8 +26,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <android/window.h>
-
 #include <config.h>
 
 #include <core/layers.h>
@@ -66,12 +64,12 @@ dfb_main_thread( DirectThread *thread,
      int   ret;
 //   char *argv[] = { "android-native-dfb-app", "--dfb:debug=ANDROID,debug=direct/interface" };
 //     char *argv[] = { "android-native-dfb-app", "--dfb:no-debug", "-a" };
-   char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,wm-fullscreen-updates,no-sighandler,layer-buffer-mode=backvideo,wm=sawman,no-debug,no-debug=IDFBEventBuffer,no-debug=Core/GraphicsOps,no-debug=Core/GfxState,no-debug=Fusion/Skirmish,no-debug=Direct/Serial,no-debug=Core/SurfAllocation,no-debug=Core/WM,no-debug=GLES2/2D,no-debug=Core/SurfBuffer,no-debug=Core/Layers,no-debug=Core/SurfPoolLock,no-debug=Core/Input,no-debug=Core/LayerContext,no-debug=Core/WindowStack", "--sawman:border-thickness=0"};
+   char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,wm-fullscreen-updates,no-sighandler,layer-buffer-mode=backvideo,wm=sawman"};
      //char *argv[] = { "android-native-dfb-app", "--dfb:no-cursor-updates,no-sighandler,layer-buffer-mode=backvideo,wm-fullscreen-updates,debug,no-debug=IDFBEventBuffer,no-debug=Core/GraphicsOps,no-debug=Core/GfxState,no-debug=Fusion/Skirmish,no-debug=Direct/Serial,no-debug=Core/SurfAllocation,no-debug=Core/WM,no-debug=GLES2/2D,no-debug=Core/SurfBuffer,no-debug=Core/Layers,no-debug=Core/SurfPoolLock,no-debug=Core/Input,no-debug=Core/LayerContext,no-debug=Core/WindowStack" };
 
      LOGI( "Running main()..." );
 
-     ret = main( 3, argv );
+     ret = main( 2, argv );
 
      LOGI( "main() has returned %d!", ret );
 
@@ -444,80 +442,15 @@ native_handle_input( struct android_app *app, AInputEvent *event )
           evt.flags    = DIEF_KEYCODE | DIEF_KEYID;
           evt.key_code = AKeyEvent_getKeyCode( event );
           evt.key_id   = translate_keycode( evt.key_code );
-          if (AKEYCODE_MENU == evt.key_code)
-					  return 0;
-						
-					else
-            dfb_input_dispatch( m_data->input, &evt );
+
+          dfb_input_dispatch( m_data->input, &evt );
+
           return 1;
      }
 
      return 0;
 }
-static void drawit(ANativeWindow_Buffer* buffer)
-{
-    LOGI("width=%d height=%d stride=%d format=%d", buffer->width, buffer->height,
-            buffer->stride, buffer->format);    
-                                                
-                if (buffer->format == WINDOW_FORMAT_RGB_565)
-          {D_INFO("#################### 565\n");
-                        uint16_t* pixels16 = (uint16_t*)buffer->bits;
-                        int  xx;
-                        int  yy;
-                        uint16_t value=0xffff;
-                        for (yy = 0; yy < buffer->height; yy++) {
-        uint16_t*  line16 = (uint16_t*)pixels16;
-        for (xx = 0; xx < buffer->width; xx++) {
-                                *line16++=value;
-                                value += 33;
-                                 
-                                }
-                                pixels16 += buffer->stride;
-                        }
-                }   
-                else
-                {D_INFO("#################### 8888 %d %d %d\n", buffer->format, buffer->width, buffer->height);
-                        uint32_t* pixels32 = (uint32_t*)buffer->bits;
-                        uint32_t value;
-                        int  xx;
-                        int  yy;
-                        //value = 0x30ff0000;//+native_data.x;
-                        value=0x30000030;
-                        for (yy = 0; yy < buffer->height; yy++) {
-        uint32_t*  line32 = (uint32_t*)pixels32;
-        for (xx = 0; xx < buffer->width; xx++) {
-//                              *line32++=0x000000ff; // red (R)  
-//                              *line32++=0x0000ff00; // green (G)
-//                              *line32++=0x30ff0000; // blue (B)
-//                              value = 0x30ff0000 + buffer->height<<255 + buffer->width;
-             
-             //                   *line32++=value;
-              //                  value += 33;
-             *line32++=value;
-                                }
-                                pixels32 += buffer->stride;
-                        }
-                }
-}  
-   
-   
-/**
- * Just the current frame in the display.
- */
-static void engine_draw_frame() {
-    ANativeWindow_Buffer buffer;     
-    sleep(3);           
-    D_INFO("########### locking buffer\n");
-    if (ANativeWindow_lock(native_data.app->window, &buffer, NULL) < 0) {
-        LOGW("Unable to lock window buffer");
-        return; 
-    }           
-                D_INFO("########### drawing buffer\n");
-                drawit(&buffer);
-                D_INFO("####################1\n");
-    ANativeWindow_unlockAndPost(native_data.app->window);
-    D_INFO("####################2\n");
-}  
+
 /**
  * Process the next main command.
  */
@@ -538,14 +471,8 @@ native_handle_cmd( struct android_app* app, int32_t cmd )
                //if (native_data->app->window != NULL) {
 //                    native_init_display(native_data);
 //                    native_draw_frame(native_data);
-               D_INFO("app->window=%p app->activity=%p\n", app->window, app->activity);
-		ANativeWindow_setBuffersGeometry(app->window, 64, 64, WINDOW_FORMAT_RGBA_8888);
-          ANativeActivity_setWindowFlags(app->activity, (uint32_t)(AWINDOW_FLAG_FULLSCREEN), 0);
-           engine_draw_frame();
-           engine_draw_frame();
-//		ANativeActivity_setWindowFlags(native_data->app->activity, (uint32_t)(AWINDOW_FLAG_FULLSCREEN | AWINDOW_FLAG_SHOW_WHEN_LOCKED | /*AWINDOW_FLAG_SHOW_WALLPAPER |*/ AWINDOW_FLAG_TURN_SCREEN_ON | AWINDOW_FLAG_KEEP_SCREEN_ON), 0);		
 
-                    //native_data->main_thread = direct_thread_create( DTT_DEFAULT, dfb_main_thread, native_data, "dfb-main" );
+                    native_data->main_thread = direct_thread_create( DTT_DEFAULT, dfb_main_thread, native_data, "dfb-main" );
                //}
                break;
           case APP_CMD_TERM_WINDOW:
@@ -571,7 +498,7 @@ native_handle_cmd( struct android_app* app, int32_t cmd )
                // When our app loses focus, we stop monitoring the accelerometer.
                // This is to avoid consuming battery while not being used.
 
- //              crashme();
+               crashme();
 
                if (native_data->accelerometerSensor != NULL) {
                     ASensorEventQueue_disableSensor(native_data->sensorEventQueue,

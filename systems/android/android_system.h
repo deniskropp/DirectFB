@@ -101,7 +101,7 @@ typedef struct {
  */
 typedef struct {
     struct android_app* app;
-int x;
+
     ASensorManager* sensorManager;
     const ASensor* accelerometerSensor;
     ASensorEventQueue* sensorEventQueue;

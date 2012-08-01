@@ -145,7 +145,7 @@ gles2_init_shader_programs(GLES2DeviceData *dev)
      DFBBoolean status;
 
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
-D_INFO("1\n");
+
      /*
       * First initialize program info slots to invalid values.
       */
@@ -161,7 +161,7 @@ D_INFO("1\n");
           dev->progs[i].v_flags      =  0;
           dev->progs[i].name         = "invalid program";
      }
-D_INFO("2\n");
+
      /*
       * draw_program transforms a vertex by the current model-view-projection
       * matrix and applies a constant color to all fragments.
@@ -182,7 +182,7 @@ D_INFO("2\n");
           D_ERROR("GLES2/Driver: draw_program init failed!\n");
           goto fail;
      }
-D_INFO("3\n");
+
      prog = glCreateProgram();
      status = init_program(prog, "draw_vert_mat", draw_vert_mat_src,
                            "draw_frag", draw_frag_src, DFB_FALSE);
@@ -200,7 +200,7 @@ D_INFO("3\n");
           D_ERROR("GLES2/Driver: draw_mat_program init failed!\n");
           goto fail;
      }
-D_INFO("4\n");
+
      /*
       * blit_program transforms a vertex by the current model-view-projection
       * matrix, applies texture sample colors to fragments.
@@ -211,21 +211,21 @@ D_INFO("4\n");
      if (status) {
           dev->progs[GLES2_BLIT].obj = prog;
           dev->progs[GLES2_BLIT].name = "blit";
-D_INFO("41\n");
+
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT, dfbScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT, dfbTexScale);
           GET_UNIFORM_LOCATION(dev, GLES2_BLIT, dfbSampler);
-D_INFO("42\n");
+
           // For now we always use texture unit 0 (GL_TEXTURE0).
           glUniform1i(dev->progs[GLES2_BLIT].dfbSampler, 0);
-D_INFO("43\n");
+
           D_DEBUG_AT(GLES2__2D, "-> created blit_program\n");
      }
      else {
           D_ERROR("GLES2/Driver: blit_program init failed!\n");
           goto fail;
      }
-D_INFO("5\n");
+
      prog = glCreateProgram();
      status = init_program(prog, "blit_vert_mat", blit_vert_mat_src,
                            "blit_frag", blit_frag_src, DFB_TRUE);
@@ -247,7 +247,7 @@ D_INFO("5\n");
           D_ERROR("GLES2/Driver: blit_mat_program init failed!\n");
           goto fail;
      }
-D_INFO("6\n");
+
      /*
       * blit_color_program transforms a vertex by the current model-view-projection
       * matrix, applies texture sample colors to fragments, and modulates the
@@ -275,7 +275,7 @@ D_INFO("6\n");
           D_ERROR("GLES2/Driver: blit_color_program init failed!\n");
           goto fail;
      }
-D_INFO("7\n");
+
      prog = glCreateProgram();
      status = init_program(prog, "blit_color_vert_mat", blit_vert_mat_src,
                            "blit_color_frag", blit_color_frag_src, DFB_TRUE);
@@ -298,7 +298,7 @@ D_INFO("7\n");
           D_ERROR("GLES2/Driver: blit_color_mat_program init failed!\n");
           goto fail;
      }
-D_INFO("8\n");
+
      /*
       * blit_colorkey_program does the same as blit_program with the addition
       * of source color keying.  Shaders don't have access to destination
@@ -327,7 +327,7 @@ D_INFO("8\n");
           D_ERROR("GLES2/Driver: blit_colorkey_program init failed!\n");
           goto fail;
      }
-D_INFO("9\n");
+
      prog = glCreateProgram();
      status = init_program(prog, "blit_vert_mat", blit_vert_mat_src,
                            "blit_colorkey_frag", blit_colorkey_frag_src,
@@ -352,7 +352,7 @@ D_INFO("9\n");
           D_ERROR("GLES2/Driver: blit_colorkey_mat_program init failed!\n");
           goto fail;
      }
-D_INFO("10\n");
+
      /*
       * blit_premultiply_program does the same as blit_program with the
       * addition of pre-multiplication of the source frag color by the source
@@ -381,7 +381,7 @@ D_INFO("10\n");
           D_ERROR("GLES2/Driver: blit_premultiply_program init failed!\n");
           goto fail;
      }
-D_INFO("11\n");
+
      prog = glCreateProgram();
      status = init_program(prog, "blit_vert_mat", blit_vert_mat_src,
                            "blit_premultiply_frag", blit_premultiply_frag_src,
@@ -405,7 +405,7 @@ D_INFO("11\n");
           D_ERROR("GLES2/Driver: blit_premultiply_mat_program init failed!\n");
           goto fail;
      }
-D_INFO("12\n");
+
      // No program is yet in use.
      dev->prog_index = GLES2_INVALID_PROGRAM;
      dev->prog_last  = GLES2_INVALID_PROGRAM;
@@ -416,6 +416,6 @@ D_INFO("12\n");
      // Delete all program objects.  glDeleteProgram() will ignore object id 0.
      for (i = 0; i < GLES2_NUM_PROGRAMS; i++)
           glDeleteProgram(dev->progs[i].obj);
-D_INFO("13\n");
+
      return DFB_INIT;
 }
