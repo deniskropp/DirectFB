@@ -202,7 +202,7 @@ update_status( IDirectFBVideoProvider_GSTREAMER_data *data, GstElement *elem, bo
      if (gst_element_query_duration( elem, &query, &val ))
           data->bytedur = val;*/
 
-     D_INFO( "media seconds at %f/%f\n" , data->secpos, data->secdur);
+     D_DEBUG_AT( GST, "media seconds at %f/%f\n" , data->secpos, data->secdur);
 
      if (lock) {
           direct_mutex_unlock( &data->video_lock );
@@ -555,6 +555,8 @@ process_audio( DirectThread *self, void *arg )
           gst_buffer_unref( buffer );
      }
 
+     D_DEBUG_AT( GST, "Audio thread terminated.\n" );
+
      return 0;
 }
 
@@ -592,6 +594,10 @@ process_video( DirectThread *self, void *arg )
 
           update_status( data, data->appsink_video, true );
      }
+
+     data->status = DVSTATE_FINISHED;
+
+     D_DEBUG_AT( GST, "Video thread terminated.\n" );
 
      return 0;
 }
