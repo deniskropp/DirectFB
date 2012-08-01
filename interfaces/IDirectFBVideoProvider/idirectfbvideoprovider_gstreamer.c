@@ -67,6 +67,7 @@
 #define __GNUC__ 1
 
 #include <gst/gst.h>
+#include <gst/gstutils.h>
 #include <glib.h>
 #include <gst/app/gstappsink.h>
 
@@ -100,6 +101,10 @@ typedef struct {
      DFBVideoProviderStatus         status;
      DFBVideoProviderPlaybackFlags  flags;
      double                         speed;
+     double                         secpos;
+     double                         secdur;
+     unsigned long long             bytepos;
+     unsigned long long             bytedur;
      float                          volume;
      
      IDirectFBDataBuffer           *buffer;
@@ -172,6 +177,37 @@ release_events( IDirectFBVideoProvider_GSTREAMER_data *data )
 }
 
 /*****************************************************************************/
+
+static void
+update_status( IDirectFBVideoProvider_GSTREAMER_data *data, GstElement *elem, bool lock )
+{
+     GstFormat query = GST_FORMAT_TIME;
+     gint64    val;
+
+     if (lock) {
+          direct_mutex_lock( &data->video_lock );
+     }
+
+     if (gst_element_query_position( elem, &query, &val ))
+          data->secpos = val / 1000000000.0;
+
+     if (gst_element_query_duration( elem, &query, &val ))
+          data->secdur = val / 1000000000.0;
+
+     /*query = GST_FORMAT_BYTES;
+
+     if (gst_element_query_position( elem, &query, &val ))
+          data->bytepos = val;
+
+     if (gst_element_query_duration( elem, &query, &val ))
+          data->bytedur = val;*/
+
+     D_INFO( "media seconds at %f/%f\n" , data->secpos, data->secdur);
+
+     if (lock) {
+          direct_mutex_unlock( &data->video_lock );
+     }
+}
 
 static gboolean
 pipeline_bus_call( GstBus *bus, GstMessage *msg, gpointer ptr )
@@ -494,6 +530,8 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
      if (data->error || data->width < 1 || data->height < 1)
           return 0;
 
+     update_status( data, data->pipeline, true );
+
      return 1;
 }
 
@@ -551,6 +589,8 @@ process_video( DirectThread *self, void *arg )
 
           if (data->callback)
                data->callback( data->ctx );
+
+          update_status( data, data->appsink_video, true );
      }
 
      return 0;
@@ -783,10 +823,13 @@ IDirectFBVideoProvider_GSTREAMER_GetPos( IDirectFBVideoProvider *thiz, double *s
 
      if (!seconds)
           return DFB_INVARG;
-/*
-     position = get_stream_clock( data ) - data->start_time;
-     *seconds = (position < 0) ? 0.0 : ((double)position/AV_TIME_BASE);
-*/   
+
+     direct_mutex_lock( &data->video_lock );
+
+     *seconds = data->secpos;
+
+     direct_mutex_unlock( &data->video_lock );
+
      return DFB_OK;
 }
 
@@ -799,13 +842,12 @@ IDirectFBVideoProvider_GSTREAMER_GetLength( IDirectFBVideoProvider *thiz, double
 
      if (!seconds)
           return DFB_INVARG;
-/*
-     if (data->context->duration != AV_NOPTS_VALUE) {
-          *seconds = (double)data->context->duration/AV_TIME_BASE;
-          return DFB_OK;
-     }
-*/  
-     *seconds = 9.0;
+
+     direct_mutex_lock( &data->video_lock );
+
+     *seconds = data->secdur;
+
+     direct_mutex_unlock( &data->video_lock );
 
      return DFB_UNSUPPORTED;
 }
@@ -924,9 +966,13 @@ IDirectFBVideoProvider_GSTREAMER_GetVolume( IDirectFBVideoProvider *thiz, float 
 
      if (!ret_level)
           return DFB_INVARG;
-/*
+
+     direct_mutex_lock( &data->video_lock );
+
      *ret_level = data->volume;
-*/
+
+     direct_mutex_unlock( &data->video_lock );
+
      return DFB_OK;
 }
 
@@ -1063,11 +1109,15 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
 
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_GSTREAMER )
 
-     data->ref    = 1;
-     data->status = DVSTATE_STOP;
-     data->buffer = buffer;
-     data->speed  = 0.0;
-     data->volume = 0.0;
+     data->ref     = 1;
+     data->status  = DVSTATE_STOP;
+     data->buffer  = buffer;
+     data->speed   = 0.0;
+     data->secpos  = 0.0;
+     data->secdur  = 0.0;
+     data->bytepos = 0;
+     data->bytedur = 0;
+     data->volume  = 0.0;
 
      data->events_mask = DVPET_NONE;
 
