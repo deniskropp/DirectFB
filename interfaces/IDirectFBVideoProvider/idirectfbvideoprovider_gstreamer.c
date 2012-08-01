@@ -112,7 +112,6 @@ typedef struct {
      bool                           seekable;
 
      GstElement                    *pipeline;
-     GstBus                        *bus;
      GstElement                    *decode;
      GstElement                    *decode_audio;
      GstElement                    *convert_audio;
@@ -459,7 +458,8 @@ decode_video_pad_added(GstElement *element, GstPad *pad, gpointer ptr )
 static int
 prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], char *filename )
 {
-     int max_signals = 5;
+     GstBus *bus;
+     int     max_signals = 5;
 
      direct_mutex_init( &data->audio_lock );
      direct_mutex_init( &data->video_lock );
@@ -515,12 +515,13 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
      //gst_element_link( data->scale_video, data->decode_video );
      gst_element_link_filtered( data->filter_video, data->decode_video, caps );
 
-     data->bus = gst_pipeline_get_bus( GST_PIPELINE(data->pipeline) );
+     bus = gst_pipeline_get_bus( GST_PIPELINE(data->pipeline) );
 
      direct_mutex_lock( &data->video_lock );
 
      gst_element_set_state( GST_ELEMENT(data->pipeline), GST_STATE_PAUSED );
-     gst_bus_add_watch( data->bus, pipeline_bus_call, data );
+     gst_bus_add_watch( bus, pipeline_bus_call, data );
+     gst_object_unref( bus );
 
      while (!data->parsed_video && !data->error && --max_signals)
           direct_waitqueue_wait_timeout( &data->video_cond, &data->video_lock, 1000000 );
@@ -550,7 +551,7 @@ process_audio( DirectThread *self, void *arg )
           if (!buffer)
                break;
 
-          D_DEBUG_AT( GST, "appsink_audio_new_buffer: len %d caps '%s'\n", GST_BUFFER_SIZE(buffer), gst_caps_to_string(gst_buffer_get_caps(buffer)) );
+          //D_DEBUG_AT( GST, "appsink_audio_new_buffer: len %d caps '%s'\n", GST_BUFFER_SIZE(buffer), gst_caps_to_string(gst_buffer_get_caps(buffer)) );
 
           gst_buffer_unref( buffer );
      }
@@ -577,7 +578,7 @@ process_video( DirectThread *self, void *arg )
           if (!buffer)
                break;
 
-          D_DEBUG_AT( GST, "appsink_video_new_buffer: len %d caps '%s'\n", GST_BUFFER_SIZE(buffer), gst_caps_to_string(gst_buffer_get_caps(buffer)) );
+          //D_DEBUG_AT( GST, "appsink_video_new_buffer: len %d caps '%s'\n", GST_BUFFER_SIZE(buffer), gst_caps_to_string(gst_buffer_get_caps(buffer)) );
 
           ret = dfb_surface_lock_buffer( dst_data->surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
           if (ret)
@@ -906,9 +907,9 @@ IDirectFBVideoProvider_GSTREAMER_SetSpeed( IDirectFBVideoProvider *thiz, double 
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_GSTREAMER )
 
-     D_DEBUG_AT( GST, "GSTREAMER_SetSpeed\n" );
+     D_DEBUG_AT( GST, "################################################################### GSTREAMER_SetSpeed(%f)\n", multiplier );
 
-     if (multiplier != 0.0 || multiplier != 1.0)
+     if (multiplier != 0.0 && multiplier != 1.0)
           return DFB_INVARG;
 
      direct_mutex_lock( &data->video_lock );
