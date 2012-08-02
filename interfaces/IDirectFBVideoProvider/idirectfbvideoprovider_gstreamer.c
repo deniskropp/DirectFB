@@ -58,6 +58,8 @@
 
 #include <gfx/clip.h>
 
+//#define HAVE_FUSIONSOUND
+
 #ifdef HAVE_FUSIONSOUND
 # include <fusionsound.h>
 # include <fusionsound_limits.h>
@@ -124,9 +126,19 @@ typedef struct {
      GstElement                    *appsink_audio;
      GstElement                    *appsink_video;
 
+#ifdef HAVE_FUSIONSOUND
+     IFusionSound                  *audio_interface;
+     IFusionSoundStream            *audio_stream;
+     IFusionSoundPlayback          *audio_playback;
+#endif
+
      int                            width;
      int                            height;
      int                            format;
+     int                            audio_channels;
+     int                            audio_rate;
+     int                            audio_samplesize;
+     int                            audio_format;
      int                            error;
      int                            parsed_audio;
      int                            parsed_video;
@@ -348,10 +360,57 @@ decode_audio_pad_added( GstElement *element, GstPad *pad, gpointer ptr )
      IDirectFBVideoProvider_GSTREAMER_data *data = ptr;
      GstPadLinkReturn                       ret;
      GstPad                                *sink;
+     int                                    i;
+     int                                    depth;
+     int                                    rate;
+     int                                    channels;
+     gboolean                               sign;
      int                                    err  = 1;
+     GstCaps                               *caps = gst_pad_get_caps( pad );
 
-     D_DEBUG_AT( GST, "decode_audio_pad_added: type %s caps %s\n", GST_PAD_NAME(pad), gst_caps_to_string(gst_pad_get_caps(pad)));
+     D_DEBUG_AT( GST, "decode_audio_pad_added: type %s caps %s\n", GST_PAD_NAME(pad), gst_caps_to_string(caps) );
+#ifdef HAVE_FUSIONSSOUND
+     for (i = 0; i < gst_caps_get_size(caps); i++) {
+          const GstStructure *str = gst_caps_get_structure( caps, i );
+          if (gst_structure_get_int( str, "depth", &depth ) && gst_structure_get_int( str, "rate", &rate ) && gst_structure_get_int( str, "channels", &channels ) && gst_structure_get_boolean( str, "signed", &sign ) ) {
+               data->audio_rate     = rate;
+               data->audio_channels = channels;
+               data->audio_format   = FSSF_UNKNOWN;
 
+               switch (depth) {
+                    case 8:
+                         if (!sign) {
+                              data->audio_format = FSSF_U8;
+                              D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_U8.\n");
+                         }
+                         break;
+                    case 16:
+                         if (sign) {
+                              data->audio_format = FSSF_S16;
+                              D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_S16.\n");
+                         }
+                         break;
+                    case 24:
+                         if (sign) {
+                              data->audio_format = FSSF_S24;
+                              D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_S24.\n");
+                         }
+                         break;
+                    case 32:
+                         if (sign) {
+                              data->audio_format = FSSF_S32;
+                              D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_S32.\n");
+                         }
+                         break;
+                    default:
+                         break;
+               }
+
+               if (data->audio_format == FSSF_UNKNOWN)
+                    D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is UNKNOWN.\n" );
+          }
+     }
+#endif
      sink = gst_element_get_pad( data->queue_audio, "sink" );
      ret  = gst_pad_link( pad, sink );
      switch (ret) {
@@ -545,7 +604,7 @@ process_audio( DirectThread *self, void *arg )
      IDirectFBSurface_data                 *dst_data;
      CoreSurfaceBufferLock                  lock;
      DFBResult                              ret;
-
+#ifdef HAVE_FUSIONSOUND
      while (!data->error) {
           buffer = gst_app_sink_pull_buffer( sink );
           if (!buffer)
@@ -554,8 +613,10 @@ process_audio( DirectThread *self, void *arg )
           //D_DEBUG_AT( GST, "appsink_audio_new_buffer: len %d caps '%s'\n", GST_BUFFER_SIZE(buffer), gst_caps_to_string(gst_buffer_get_caps(buffer)) );
 
           gst_buffer_unref( buffer );
-     }
 
+          data->audio_stream->Write( data->audio_stream, GST_BUFFER_DATA(buffer), GST_BUFFER_SIZE(buffer) / data->audio_samplesize );
+     }
+#endif
      D_DEBUG_AT( GST, "Audio thread terminated.\n" );
 
      return 0;
@@ -584,7 +645,7 @@ process_video( DirectThread *self, void *arg )
           if (ret)
                break;
 
-          direct_memcpy(lock.addr, GST_BUFFER_DATA(buffer), GST_BUFFER_SIZE(buffer));
+          direct_memcpy( lock.addr, GST_BUFFER_DATA(buffer), GST_BUFFER_SIZE(buffer) );
 
           gst_buffer_unref( buffer );
 
@@ -745,12 +806,14 @@ IDirectFBVideoProvider_GSTREAMER_PlayTo( IDirectFBVideoProvider *thiz, IDirectFB
      data->ctx      = ctx;
      data->callback = callback;
 
-     if (data->parsed_audio) {
+#ifdef HAVE_FUSIONSOUND
+     if (data->parsed_audio && data->audio_playback) {
           data->audio_thread = direct_thread_create( DTT_DEFAULT, process_audio, (void*)data, "Gstreamer Audio" );
      } else {
           gst_bin_remove_many( GST_BIN(data->pipeline), data->decode_audio, data->queue_audio, data->appsink_audio, NULL );
           data->audio_thread = 0;
      }
+#endif
 
      data->video_thread = direct_thread_create( DTT_DEFAULT, process_video, (void*)data, "Gstreamer Video" );
 
@@ -907,7 +970,7 @@ IDirectFBVideoProvider_GSTREAMER_SetSpeed( IDirectFBVideoProvider *thiz, double 
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_GSTREAMER )
 
-     D_DEBUG_AT( GST, "################################################################### GSTREAMER_SetSpeed(%f)\n", multiplier );
+     D_DEBUG_AT( GST, "GSTREAMER_SetSpeed(%f)\n", multiplier );
 
      if (multiplier != 0.0 && multiplier != 1.0)
           return DFB_INVARG;
@@ -1131,7 +1194,34 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      if (!prepare( data, 0, NULL, ((IDirectFBDataBuffer_data*)buffer->priv)->filename )) {
           return DFB_UNSUPPORTED;
      }
+#ifdef HAVE_FUSIONSOUND
+     if (data->parsed_audio && idirectfb_singleton->GetInterface( idirectfb_singleton, "IFusionSound", 0, 0, (void **)&data->audio_interface ) == DFB_OK) {
+          FSStreamDescription dsc;
+          DFBResult           ret;
 
+          if (data->audio_channels > FS_MAX_CHANNELS)
+               data->audio_channels = FS_MAX_CHANNELS;
+
+          dsc.flags        = FSSDF_BUFFERSIZE | FSSDF_CHANNELS | FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
+          dsc.channels     = data->audio_channels;
+          dsc.samplerate   = data->audio_rate;
+          dsc.buffersize   = dsc.samplerate;
+          dsc.sampleformat = data->audio_format;
+
+          D_DEBUG_AT( GST, "creating stream with %d channels at rate %d\n", data->audio_channels, data->audio_rate );
+
+          ret = data->audio_interface->CreateStream( data->audio_interface, &dsc, &data->audio_stream );
+          if (ret != DFB_OK) {
+               D_INFO( "IDirectFBVideoProvider_Gstreamer: IFusionSound::CreateStream() failed! -> %s\n", DirectFBErrorString(ret) );
+               data->audio_interface->Release( data->audio_interface );
+               data->audio_interface = NULL;
+          }
+          else {
+               data->audio_stream->GetPlayback( data->audio_stream, &data->audio_playback );
+               data->audio_samplesize = 2 * dsc.channels;
+          }
+     }
+#endif
      thiz->AddRef                = IDirectFBVideoProvider_GSTREAMER_AddRef;
      thiz->Release               = IDirectFBVideoProvider_GSTREAMER_Release;
      thiz->GetCapabilities       = IDirectFBVideoProvider_GSTREAMER_GetCapabilities;
