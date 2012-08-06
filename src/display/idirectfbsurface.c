@@ -2527,8 +2527,8 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
                     if (prev && core_font->GetKerning &&
                         core_font->GetKerning( core_font, prev, current, &kx, &ky ) == DFB_OK) {
-                         xsize += kx;
-                         ysize += ky;
+                         xsize += kx << 8;
+                         ysize += ky << 8;
                     }
                }
 
@@ -2539,12 +2539,12 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
           /* Justify. */
           if (flags & DSTF_RIGHT) {
-               x -= xsize;
-               y -= ysize;
+               x -= xsize >> 8;
+               y -= ysize >> 8;
           }
           else if (flags & DSTF_CENTER) {
-               x -= xsize >> 1;
-               y -= ysize >> 1;
+               x -= xsize >> 9;
+               y -= ysize >> 9;
           }
      }
 

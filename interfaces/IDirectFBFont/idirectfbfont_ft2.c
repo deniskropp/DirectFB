@@ -699,8 +699,8 @@ get_glyph_info( CoreFont      *thiz,
           info->yadvance =   data->fixed_advance * thiz->up_unit_x;
      }
      else {
-          info->xadvance =   face->glyph->advance.x >> 6;
-          info->yadvance = - face->glyph->advance.y >> 6;
+          info->xadvance =   face->glyph->advance.x << 2;
+          info->yadvance = - face->glyph->advance.y << 2;
      }
 
      if (data->fixed_clip && info->width > data->fixed_advance)
