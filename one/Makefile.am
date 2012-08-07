@@ -38,18 +38,18 @@ endif
 
 libifusiondale_one_la_SOURCES = ifusiondale_one.c ifusiondale_one.h
 libifusiondale_one_la_LDFLAGS = -avoid-version -module
-libifusiondale_one_la_LIBADD  = $(ONE_LIBS)
+libifusiondale_one_la_LIBADD  = $(ONE_LIBS) $(top_builddir)/src/libfusiondale.la
 
 libicoma_one_la_SOURCES = icoma_one.c icoma_one.h
 libicoma_one_la_LDFLAGS = -avoid-version -module
-libicoma_one_la_LIBADD  = $(ONE_LIBS)
+libicoma_one_la_LIBADD  = $(ONE_LIBS) $(top_builddir)/src/libfusiondale.la
 
 libicomacomponent_one_la_SOURCES = icomacomponent_one.c icomacomponent_one.h
 libicomacomponent_one_la_LDFLAGS = -avoid-version -module
-libicomacomponent_one_la_LIBADD  = $(ONE_LIBS)
+libicomacomponent_one_la_LIBADD  = $(ONE_LIBS) $(top_builddir)/src/libfusiondale.la
 
 libifusiondalemessenger_one_la_SOURCES = ifusiondalemessenger_one.c ifusiondalemessenger_one.h
 libifusiondalemessenger_one_la_LDFLAGS = -avoid-version -module 
-libifusiondalemessenger_one_la_LIBADD  = $(ONE_LIBS)
+libifusiondalemessenger_one_la_LIBADD  = $(ONE_LIBS) $(top_builddir)/src/libfusiondale.la
 
 include $(top_srcdir)/rules/libobject.make
