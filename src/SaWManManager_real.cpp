@@ -373,6 +373,14 @@ ISaWManManager_Real::SetWindowConfig(
           }
           else
                window->config.bounds = config->bounds;          
+
+          if (window->surface && !(window->config.options & DWOP_SCALE)) {
+               ret = dfb_surface_reformat( window->surface,
+                                           window->config.bounds.w, window->config.bounds.h,
+                                           window->surface->config.format );
+               if (ret)
+                    return ret; //FIXME: cleanup
+          }
      }
 
      if (flags & SWMCF_SRC_GEOMETRY)
