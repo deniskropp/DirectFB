@@ -323,7 +323,8 @@ fusion_call_execute3(FusionCall          *call,
                      unsigned int         ret_size,
                      unsigned int        *ret_length)
 {
-     FusionWorld *world;
+     FusionWorld  *world;
+     DirectThread *self;
 
      D_DEBUG_AT( Fusion_Call, "%s( %p, flags 0x%x, arg %d, ptr %p, length %u, ret_ptr %p, ret_size %u )\n",
                  __FUNCTION__, call, flags, call_arg, ptr, length, ret_ptr, ret_size );
@@ -341,7 +342,7 @@ fusion_call_execute3(FusionCall          *call,
      world = _fusion_world( call->shared );
 
      if (call->fusion_id == fusion_id( world ) &&
-         (!(flags & FCEF_NODIRECT) || (fusion_dispatcher_tid( world ) == direct_thread_get_tid( direct_thread_self() ))))
+         (!(flags & FCEF_NODIRECT) || ((self = direct_thread_self()) && fusion_dispatcher_tid( world ) == direct_thread_get_tid( self ))))
      {
           FusionCallHandlerResult result;
           unsigned int            execute_length;
