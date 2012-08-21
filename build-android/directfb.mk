@@ -234,6 +234,7 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/gfx/generic/generic_stretch_blit.c	\
 	$(DFB_SOURCE)/src/gfx/generic/generic_texture_triangles.c	\
 	$(DFB_SOURCE)/src/gfx/generic/generic_util.c		\
+	$(DFB_SOURCE)/src/gfx/generic/GenefxEngine.cpp		\
 	$(DFB_SOURCE)/src/gfx/util.c				\
 	$(DFB_SOURCE)/src/idirectfb.c				\
 	$(DFB_SOURCE)/src/init.c					\
@@ -260,7 +261,7 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/CoreDFB_real.cpp			\
 	$(DFB_SOURCE)/src/core/CoreGraphicsState.cpp			\
 	$(DFB_SOURCE)/src/core/CoreGraphicsState_real.cpp		\
-	$(DFB_SOURCE)/src/core/CoreGraphicsStateClient.c		\
+	$(DFB_SOURCE)/src/core/CoreGraphicsStateClient.cpp		\
 	$(DFB_SOURCE)/src/core/CoreLayer.cpp				\
 	$(DFB_SOURCE)/src/core/CoreLayerContext.cpp			\
 	$(DFB_SOURCE)/src/core/CoreLayerContext_real.cpp		\
@@ -282,7 +283,9 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/CoreWindow.cpp			\
 	$(DFB_SOURCE)/src/core/CoreWindowStack.cpp			\
 	$(DFB_SOURCE)/src/core/CoreWindowStack_real.cpp		\
-	$(DFB_SOURCE)/src/core/CoreWindow_real.cpp
+	$(DFB_SOURCE)/src/core/CoreWindow_real.cpp		\
+	$(DFB_SOURCE)/src/core/Renderer.cpp			\
+	$(DFB_SOURCE)/src/core/Task.cpp
 
 #
 # DirectFB requestor object files
