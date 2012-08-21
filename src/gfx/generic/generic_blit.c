@@ -169,6 +169,11 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           Bop_advance = Genefx_Bop_next;
      }
      else if (rotflip_blittingflags == (DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL)) { // 270 deg ccw
+          if (gfxs->dst_bpp == 0) {
+               D_UNIMPLEMENTED();
+               return;
+          }
+
           gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
 
           Aop_X = dx;
@@ -181,6 +186,11 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           Bop_advance = Genefx_Bop_prev;
      }
      else if (rotflip_blittingflags == DSBLIT_ROTATE90) { // 90 deg ccw
+          if (gfxs->dst_bpp == 0) {
+               D_UNIMPLEMENTED();
+               return;
+          }
+
           gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
 
           Aop_X = dx;
@@ -193,6 +203,11 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           Bop_advance = Genefx_Bop_next;
      }
      else if (rotflip_blittingflags == (DSBLIT_ROTATE90 | DSBLIT_FLIP_VERTICAL)) {
+          if (gfxs->dst_bpp == 0) {
+               D_UNIMPLEMENTED();
+               return;
+          }
+
           gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
 
           Aop_X = dx + rect->h - 1;
@@ -205,6 +220,11 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           Bop_advance = Genefx_Bop_next;
      }
      else if (rotflip_blittingflags == (DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL)) {
+          if (gfxs->dst_bpp == 0) {
+               D_UNIMPLEMENTED();
+               return;
+          }
+
           gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
 
           Aop_X = dx;
