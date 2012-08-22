@@ -3,6 +3,7 @@
 SUBDIRS = \
 	ICoreResourceManager	\
 	IDirectFBFont		\
+	IDirectFBGL		\
 	IDirectFBImageProvider	\
 	IDirectFBVideoProvider	\
 	IDirectFBWindows	\
