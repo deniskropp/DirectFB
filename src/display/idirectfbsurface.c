@@ -738,7 +738,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     CoreGraphicsState_Flush( data->state_client.gfx_state );
+     CoreGraphicsStateClient_Flush( &data->state_client );
 
      if (surface->config.caps & DSCAPS_FLIPPING) {
           if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
@@ -2527,8 +2527,8 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
                     if (prev && core_font->GetKerning &&
                         core_font->GetKerning( core_font, prev, current, &kx, &ky ) == DFB_OK) {
-                         xsize += kx;
-                         ysize += ky;
+                         xsize += kx << 8;
+                         ysize += ky << 8;
                     }
                }
 
@@ -2539,12 +2539,12 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
           /* Justify. */
           if (flags & DSTF_RIGHT) {
-               x -= xsize;
-               y -= ysize;
+               x -= xsize >> 8;
+               y -= ysize >> 8;
           }
           else if (flags & DSTF_CENTER) {
-               x -= xsize >> 1;
-               y -= ysize >> 1;
+               x -= xsize >> 9;
+               y -= ysize >> 9;
           }
      }
 
@@ -3069,7 +3069,7 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
 
-     CoreGraphicsState_Flush( data->state_client.gfx_state );
+     CoreGraphicsStateClient_Flush( &data->state_client );
 
      if (data->surface->config.caps & DSCAPS_FLIPPING) {
           if (!(flags & DSFLIP_BLIT)) {

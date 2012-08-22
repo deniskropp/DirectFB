@@ -24,6 +24,12 @@ else
 MNG_PROVIDER_LTLIB =
 endif
 
+if GSTREAMER_PROVIDER
+GSTREAMER_PROVIDER_LTLIB = libidirectfbvideoprovider_gstreamer.la
+else
+GSTREAMER_PROVIDER_LTLIB =
+endif
+
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib	\
@@ -31,10 +37,12 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src	\
 	-I$(top_srcdir)/systems	\
-	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
+	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"	\
+	$(GSTREAMER_INCL)
 
 
 idirectfbvideoprovider_LTLIBRARIES =	\
+	$(GSTREAMER_PROVIDER_LTLIB)	\
 	$(GIF_PROVIDER_LTLIB)		\
 	$(MNG_PROVIDER_LTLIB)		\
 	$(V4L_PROVIDER_LTLIB)
@@ -42,6 +50,17 @@ idirectfbvideoprovider_LTLIBRARIES =	\
 if BUILD_STATIC
 idirectfbvideoprovider_DATA = $(idirectfbvideoprovider_LTLIBRARIES:.la=.o)
 endif
+
+
+libidirectfbvideoprovider_gstreamer_la_SOURCES = idirectfbvideoprovider_gstreamer.c
+
+libidirectfbvideoprovider_gstreamer_la_LDFLAGS = -avoid-version -module
+
+libidirectfbvideoprovider_gstreamer_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la \
+	$(GSTREAMER_LIBS)
 
 
 libidirectfbvideoprovider_v4l_la_SOURCES = idirectfbvideoprovider_v4l.c

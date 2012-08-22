@@ -234,6 +234,7 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/gfx/generic/generic_stretch_blit.c	\
 	$(DFB_SOURCE)/src/gfx/generic/generic_texture_triangles.c	\
 	$(DFB_SOURCE)/src/gfx/generic/generic_util.c		\
+	$(DFB_SOURCE)/src/gfx/generic/GenefxEngine.cpp		\
 	$(DFB_SOURCE)/src/gfx/util.c				\
 	$(DFB_SOURCE)/src/idirectfb.c				\
 	$(DFB_SOURCE)/src/init.c					\
@@ -260,7 +261,7 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/CoreDFB_real.cpp			\
 	$(DFB_SOURCE)/src/core/CoreGraphicsState.cpp			\
 	$(DFB_SOURCE)/src/core/CoreGraphicsState_real.cpp		\
-	$(DFB_SOURCE)/src/core/CoreGraphicsStateClient.c		\
+	$(DFB_SOURCE)/src/core/CoreGraphicsStateClient.cpp		\
 	$(DFB_SOURCE)/src/core/CoreLayer.cpp				\
 	$(DFB_SOURCE)/src/core/CoreLayerContext.cpp			\
 	$(DFB_SOURCE)/src/core/CoreLayerContext_real.cpp		\
@@ -282,7 +283,9 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/CoreWindow.cpp			\
 	$(DFB_SOURCE)/src/core/CoreWindowStack.cpp			\
 	$(DFB_SOURCE)/src/core/CoreWindowStack_real.cpp		\
-	$(DFB_SOURCE)/src/core/CoreWindow_real.cpp
+	$(DFB_SOURCE)/src/core/CoreWindow_real.cpp		\
+	$(DFB_SOURCE)/src/core/Renderer.cpp			\
+	$(DFB_SOURCE)/src/core/Task.cpp
 
 #
 # DirectFB requestor object files
@@ -376,27 +379,28 @@ CPPFLAGS += -DDIVINE_MAJOR_VERSION=1 -DDIVINE_MINOR_VERSION=6
 #
 # SaWMan object files
 SAWMAN_SOURCES = \
-	$(DFB_SOURCE)/SaWMan/src/isawman.c					\
-	$(DFB_SOURCE)/SaWMan/src/isawmanmanager.c				\
-	$(DFB_SOURCE)/SaWMan/src/SaWMan.c					\
-	$(DFB_SOURCE)/SaWMan/src/SaWMan_real.c				\
-	$(DFB_SOURCE)/SaWMan/src/SaWManManager.c				\
-	$(DFB_SOURCE)/SaWMan/src/SaWManManager_real.c			\
-	$(DFB_SOURCE)/SaWMan/src/SaWManProcess.c				\
-	$(DFB_SOURCE)/SaWMan/src/SaWManProcess_real.c			\
-	$(DFB_SOURCE)/SaWMan/src/region.c					\
-	$(DFB_SOURCE)/SaWMan/src/sawman_c.c					\
-	$(DFB_SOURCE)/SaWMan/src/sawman_config.c				\
-	$(DFB_SOURCE)/SaWMan/src/sawman_draw.c				\
-	$(DFB_SOURCE)/SaWMan/src/sawman_updates.c				\
-	$(DFB_SOURCE)/SaWMan/src/sawman_window.c				\
-	$(DFB_SOURCE)/SaWMan/wm/sawman/sawman_wm.c
+	$(DFB_SOURCE)/../SaWMan/src/isawman.c			\
+	$(DFB_SOURCE)/../SaWMan/src/isawmanmanager.c		\
+	$(DFB_SOURCE)/../SaWMan/src/region.c			\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_core.c		\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_config.c		\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_draw.c		\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_updates.c		\
+	$(DFB_SOURCE)/../SaWMan/src/sawman_window.c		\
+	$(DFB_SOURCE)/../SaWMan/wm/sawman/sawman_wm.c		\
+	$(DFB_SOURCE)/../SaWMan/src/SaWMan.cpp			\
+	$(DFB_SOURCE)/../SaWMan/src/SaWMan_real.cpp		\
+	$(DFB_SOURCE)/../SaWMan/src/SaWManManager.cpp		\
+	$(DFB_SOURCE)/../SaWMan/src/SaWManManager_real.cpp	\
+	$(DFB_SOURCE)/../SaWMan/src/SaWManProcess.cpp		\
+	$(DFB_SOURCE)/../SaWMan/src/SaWManProcess_real.cpp
+
 
 #
 # SaWMan header files
 SAWMAN_INCLUDES += \
-	-I../SaWMan/include					\
-	-I../SaWMan/src
+	-I$(DFB_INCLUDE_PATH)/../SaWMan/include					\
+	-I$(DFB_INCLUDE_PATH)/../SaWMan/src
 
 CPPFLAGS += -DSAWMAN_VERSION=\"1.6.0\"
 
@@ -441,8 +445,8 @@ LOCAL_SRC_FILES := \
 	$(WM_SOURCES)							\
 	$(GFXDRIVER_SOURCES)						\
 	$(FONTPROVIDER_SOURCES)						\
+	$(SAWMAN_SOURCES)
 #	$(DIVINE_SOURCES)						\
-#	$(SAWMAN_SOURCES)						\
 #	$(FUSIONDALE_SOURCES)
 
 

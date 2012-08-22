@@ -47,6 +47,8 @@ internalinclude_HEADERS = \
 	$(builddir)/CoreWindowStack.h		\
 	CoreWindowStack_includes.h	\
 	Interface.h		\
+	Renderer.h		\
+	Task.h			\
 	clipboard.h		\
 	colorhash.h		\
 	coredefs.h		\
@@ -96,7 +98,7 @@ libdirectfb_core_la_SOURCES = \
 	CoreSlave_real.cpp	\
 	$(builddir)/CoreGraphicsState.cpp	\
 	CoreGraphicsState_real.cpp	\
-	CoreGraphicsStateClient.c		\
+	CoreGraphicsStateClient.cpp		\
 	$(builddir)/CoreInputDevice.cpp		\
 	CoreInputDevice_real.cpp	\
 	$(builddir)/CoreLayer.cpp		\
@@ -117,6 +119,8 @@ libdirectfb_core_la_SOURCES = \
 	CoreWindow_real.cpp	\
 	$(builddir)/CoreWindowStack.cpp		\
 	CoreWindowStack_real.cpp	\
+	Renderer.cpp		\
+	Task.cpp		\
 	clipboard.c		\
 	colorhash.c		\
 	core.c			\
@@ -178,7 +182,7 @@ distclean-local:
 	rm -f CoreWindowStack.h
 
 # quirks for generated headers
-$(srcdir)/CoreGraphicsStateClient.c: CoreGraphicsState.h CoreDFB.h
+$(srcdir)/CoreGraphicsStateClient.cpp: CoreGraphicsState.h CoreDFB.h
 $(srcdir)/core.c: CoreDFB.h CoreSlave.h
 $(srcdir)/surface.c: CoreDFB.h
 $(srcdir)/graphics_state.c: CoreGraphicsState.h

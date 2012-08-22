@@ -29,6 +29,8 @@
 #include <config.h>
 
 #include "CoreGraphicsState.h"
+#include "Renderer.h"
+#include "Task.h"
 
 extern "C" {
 #include <directfb_util.h>
@@ -55,6 +57,14 @@ namespace DirectFB {
  * State
  */
 
+extern "C" {
+void
+CoreGraphicsState_Destruct( CoreGraphicsState *state )
+{
+     if (state->renderer)
+          delete state->renderer;
+}
+}
 
 DFBResult
 IGraphicsState_Real::SetDrawingFlags(
@@ -692,6 +702,8 @@ State_Enter( CoreGraphicsState   *state,
      return DFB_OK;
 }
 
+/**********************************************************************************************************************/
+
 DFBResult
 IGraphicsState_Real::DrawRectangles(
                     const DFBRectangle                        *rects,
@@ -770,6 +782,15 @@ IGraphicsState_Real::FillRectangles(
 
     if (!obj->state.destination)
          return DFB_NOCONTEXT;
+
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->FillRectangles( rects, num );
+
+         return DFB_OK;
+    }
 
     if (dfb_config->accel1) {
          ret = State_Enter( obj, DFXL_FILLRECTANGLE );
@@ -887,6 +908,15 @@ IGraphicsState_Real::Blit(
 
     D_ASSERT( rects != NULL );
     D_ASSERT( points != NULL );
+
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->Blit( rects, points, num );
+
+         return DFB_OK;
+    }
 
     if (dfb_config->accel1) {
          ret = State_Enter( obj, DFXL_BLIT );
@@ -1092,6 +1122,9 @@ IGraphicsState_Real::Flush(
 )
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    if (obj->renderer)
+        obj->renderer->Flush();
 
     if (dfb_config->accel1) {
          if (last_state == obj) {

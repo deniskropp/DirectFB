@@ -79,6 +79,8 @@ struct __DFB_CoreSurfaceBufferLock {
      unsigned int             pitch;              /* " */
 
      void*                    handle;             /* " */
+
+     DFB_SurfaceTask         *task;
 };
 
 static inline void

@@ -443,7 +443,10 @@ savageSecondaryFlipRegion( CoreLayer             *layer,
                            void                  *region_data,
                            CoreSurface           *surface,
                            DFBSurfaceFlipFlags    flags,
-                           CoreSurfaceBufferLock *lock )
+                           const DFBRegion       *left_update,
+                           CoreSurfaceBufferLock *left_lock,
+                           const DFBRegion       *right_update,
+                           CoreSurfaceBufferLock *right_lock )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
@@ -452,7 +455,7 @@ savageSecondaryFlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
-     secondary_calc_regs(sdrv, slay, layer, &slay->config, surface, lock);
+     secondary_calc_regs(sdrv, slay, layer, &slay->config, surface, left_lock);
      secondary_set_regs(sdrv, slay);
 
      if (flags & DSFLIP_WAIT)

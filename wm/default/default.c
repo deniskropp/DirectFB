@@ -1407,7 +1407,7 @@ flush_updating( StackData *data )
      D_DEBUG_AT( WM_Default, "  -> flipping the region\n" );
 
      /* Flip the whole layer. */
-     dfb_layer_region_flip_update( data->region, NULL, DSFLIP_ONSYNC );
+     dfb_layer_region_flip_update( data->region, &data->updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP );
 
 
      if (left_num_regions) {
@@ -1428,7 +1428,8 @@ repaint_stack( CoreWindowStack     *stack,
                StackData           *data,
                const DFBRegion     *updates,
                int                  num_updates,
-               DFBSurfaceFlipFlags  flags )
+               DFBSurfaceFlipFlags  flags,
+               const DFBRegion     *bounding )
 {
      int              i;
      CoreLayer       *layer;
@@ -1527,7 +1528,7 @@ repaint_stack( CoreWindowStack     *stack,
 
           case DLBM_BACKVIDEO:
                /* Flip the whole region. */
-               dfb_layer_region_flip_update( region, NULL, flags | DSFLIP_WAITFORSYNC );
+               dfb_layer_region_flip_update( region, bounding, flags | DSFLIP_WAITFORSYNC | DSFLIP_SWAP );
 
                /* Copy back the updated region. */
 
@@ -1543,7 +1544,7 @@ repaint_stack( CoreWindowStack     *stack,
 
                     DFB_REGION_ASSERT( update );
 
-                    dfb_layer_region_flip_update( region, update, flags );
+                    dfb_layer_region_flip_update( region, update, flags | DSFLIP_SWAP );
                }
                break;
      }
@@ -1577,7 +1578,7 @@ process_updates( StackData           *data,
      if (dfb_config->wm_fullscreen_updates) {
           DFBRegion reg = { 0, 0, stack->width - 1, stack->height - 1 };
 
-          repaint_stack( stack, data, &reg, 1, flags );
+          repaint_stack( stack, data, &reg, 1, flags, &reg );
 
           dfb_updates_reset( &data->updates );
 
@@ -1599,15 +1600,15 @@ process_updates( StackData           *data,
 //          if (context->config.buffermode == DLBM_FRONTONLY)
 //               dfb_region_transpose(&region, context->rotation);
 
-          repaint_stack( stack, data, &region, 1, flags );
+          repaint_stack( stack, data, &region, 1, flags, &data->updates.bounding );
      }
      else if (data->updates.num_regions < 2 || total < bounding * n / d)
-          repaint_stack( stack, data, data->updates.regions, data->updates.num_regions, flags );
+          repaint_stack( stack, data, data->updates.regions, data->updates.num_regions, flags, &data->updates.bounding );
      else {
 //          direct_log_printf( NULL, "%s() <- %d regions, total %d, bounding %d (%d/%d: %d)\n",
 //                             __FUNCTION__, data->updates.num_regions, total, bounding, n, d, bounding*n/d );
 
-          repaint_stack( stack, data, &data->updates.bounding, 1, flags );
+          repaint_stack( stack, data, &data->updates.bounding, 1, flags, &data->updates.bounding );
      }
 
      dfb_updates_reset( &data->updates );
@@ -4175,6 +4176,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      DFBResult         ret;
      DFBRegion         old_dest;
      DFBRegion         old_region;
+     DFBRegion         united;
      WMData           *wmdata   = wm_data;
      StackData        *data     = stack_data;
      bool              restored = false;
@@ -4383,8 +4385,10 @@ wm_update_cursor( CoreWindowStack       *stack,
                     break;
 
                case DLBM_BACKVIDEO:
+                    dfb_regions_unite( &united, updates, updates_count );
+
                     /* Flip the whole region. */
-                    dfb_layer_region_flip_update( primary, NULL, DSFLIP_WAITFORSYNC );
+                    dfb_layer_region_flip_update( primary, &united, DSFLIP_WAITFORSYNC | DSFLIP_SWAP );
 
                     /* Copy back the updated region. */
                     dfb_gfx_copy_regions( surface, CSBR_FRONT, surface, CSBR_BACK, updates, updates_count, 0, 0 );

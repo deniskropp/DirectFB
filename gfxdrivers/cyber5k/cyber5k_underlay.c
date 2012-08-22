@@ -193,14 +193,17 @@ udlFlipRegion( CoreLayer             *layer,
                void                  *region_data,
                CoreSurface           *surface,
                DFBSurfaceFlipFlags    flags,
-               CoreSurfaceBufferLock *lock )
+               const DFBRegion       *left_update,
+               CoreSurfaceBufferLock *left_lock,
+               const DFBRegion       *right_update,
+               CoreSurfaceBufferLock *right_lock )
 {
      CyberDriverData        *cdrv = (CyberDriverData*) driver_data;
      CyberUnderlayLayerData *cudl = (CyberUnderlayLayerData*) layer_data;
 
      dfb_surface_flip( surface, false );
 
-     udl_set_all( cdrv, cudl, &cudl->config, surface, lock );
+     udl_set_all( cdrv, cudl, &cudl->config, surface, left_lock );
 
      return DFB_OK;
 }

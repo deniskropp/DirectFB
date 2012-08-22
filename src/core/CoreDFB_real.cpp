@@ -51,6 +51,10 @@ extern "C" {
 #include <idirectfb.h>
 }
 
+#include <core/Renderer.h>
+#include <core/Task.h>
+
+
 D_DEBUG_DOMAIN( DirectFB_CoreDFB, "DirectFB/Core", "DirectFB Core" );
 
 /*********************************************************************************************************************/
@@ -140,6 +144,19 @@ ICore_Real::CreateState(
     return dfb_graphics_state_create( core, ret_state );
 }
 
+static bool
+State_ObjectCallback( FusionObjectPool *pool,
+                      FusionObject     *object,
+                      void             *ctx )
+{
+     CoreGraphicsState *state = (CoreGraphicsState *) object;
+
+     if (state->renderer && state->object.identity == Core_GetIdentity())
+          state->renderer->Flush();
+
+     return true;
+}
+
 DFBResult
 ICore_Real::WaitIdle(
 
@@ -148,6 +165,10 @@ ICore_Real::WaitIdle(
     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
 
     D_MAGIC_ASSERT( obj, CoreDFB );
+
+    dfb_core_enum_graphics_states( core, State_ObjectCallback, this );
+
+    TaskManager::Sync();
 
     return dfb_gfxcard_sync();
 }

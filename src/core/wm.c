@@ -1119,8 +1119,10 @@ dfb_wm_remove_window( CoreWindowStack *stack,
                                           stack->stack_data, window, window->window_data );
 
      /* Deallocate shared stack data. */
-     if (window->window_data)
+     if (window->window_data) {
           SHFREE( wm_shared->shmpool, window->window_data );
+          window->window_data = NULL;
+     }
 
      return ret;
 }

@@ -313,8 +313,10 @@ ovlFlipRegion(  CoreLayer             *layer,
                 void                  *region_data,
                 CoreSurface           *surface,
                 DFBSurfaceFlipFlags    flags,
-                CoreSurfaceBufferLock *left_lock,
-                CoreSurfaceBufferLock *right_lock )
+                const DFBRegion       *left_update,
+			 CoreSurfaceBufferLock *left_lock,
+			 const DFBRegion       *right_update,
+			 CoreSurfaceBufferLock *right_lock )
 {
 	I810DriverData       *i810drv = (I810DriverData *) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;

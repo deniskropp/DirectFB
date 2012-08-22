@@ -141,6 +141,9 @@ DFBResult          dfb_core_get_window           ( CoreDFB            *core,
 DirectResult dfb_core_enum_surfaces      ( CoreDFB               *core,
                                            FusionObjectCallback   callback,
                                            void                  *ctx );
+DirectResult dfb_core_enum_graphics_states( CoreDFB               *core,
+                                           FusionObjectCallback   callback,
+                                           void                  *ctx );
 DirectResult dfb_core_enum_layer_contexts( CoreDFB               *core,
                                            FusionObjectCallback   callback,
                                            void                  *ctx );
@@ -357,9 +360,15 @@ void      Core_PopIdentity ( void );
 
 FusionID  Core_GetIdentity ( void );
 
+#if FUSION_BUILD_MULTI
 void      Core_PushCalling ( void );
 void      Core_PopCalling  ( void );
 int       Core_GetCalling  ( void );
+#else
+#define Core_PushCalling(x)
+#define Core_PopCalling(x)
+#define Core_GetCalling(x) (0)
+#endif
 
 /*
  * Resource management

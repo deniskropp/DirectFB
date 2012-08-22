@@ -191,7 +191,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      }
 #endif
 
-     CoreGraphicsState_Flush( data->base.state_client.gfx_state );
+     CoreGraphicsStateClient_Flush( &data->base.state_client );
 
      if (data->window->region) {
           ret = CoreLayerRegion_FlipUpdate( data->window->region, &reg, flags );
@@ -302,7 +302,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
      }
 #endif
 
-     CoreGraphicsState_Flush( data->base.state_client.gfx_state );
+     CoreGraphicsStateClient_Flush( &data->base.state_client );
 
      if (data->window->region) {
           /* TODO STEREO: Add support for hardware windows. */

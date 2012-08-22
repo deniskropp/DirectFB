@@ -28,6 +28,7 @@
 
 #include <config.h>
 
+extern "C" {
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -38,15 +39,70 @@
 #include <core/state.h>
 #include <core/surface.h>
 
+#include <fusion/conf.h>
+
+#include <core/CoreGraphicsStateClient.h>
+}
+
 #include <core/CoreDFB.h>
 #include <core/CoreGraphicsState.h>
-#include <core/CoreGraphicsStateClient.h>
-
-#include <fusion/conf.h>
+#include <core/Renderer.h>
 
 D_DEBUG_DOMAIN( Core_GraphicsStateClient, "Core/GfxState/Client", "DirectFB Core Graphics State Client" );
 
 /**********************************************************************************************************************/
+
+class ClientList {
+public:
+     ClientList()
+     {
+          direct_mutex_init( &lock );
+     }
+
+     ~ClientList()
+     {
+          direct_mutex_deinit( &lock );
+     }
+
+     void AddClient( CoreGraphicsStateClient *client )
+     {
+          direct_mutex_lock( &lock );
+
+          clients.push_back( client );
+
+          direct_mutex_unlock( &lock );
+     }
+
+     void RemoveClient( CoreGraphicsStateClient *client )
+     {
+          direct_mutex_lock( &lock );
+
+          clients.remove( client );
+
+          direct_mutex_unlock( &lock );
+     }
+
+     void FlushAll()
+     {
+          direct_mutex_lock( &lock );
+
+          for (std::list<CoreGraphicsStateClient*>::const_iterator it = clients.begin(); it != clients.end(); ++it) {
+               if ((*it)->renderer)
+                    (*it)->renderer->Flush();
+          }
+
+          direct_mutex_unlock( &lock );
+     }
+
+private:
+     DirectMutex                         lock;
+     std::list<CoreGraphicsStateClient*> clients;
+};
+
+static ClientList client_list;
+
+
+extern "C" {
 
 DFBResult
 CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
@@ -67,7 +123,14 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      if (ret)
           return ret;
 
+     if (dfb_config->task_manager) {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion))
+               client->renderer = new DirectFB::Renderer( client->state );
+     }
+
      D_MAGIC_SET( client, CoreGraphicsStateClient );
+
+     client_list.AddClient( client );
 
      return DFB_OK;
 }
@@ -79,9 +142,35 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
+     if (client->renderer)
+          delete client->renderer;
+
      dfb_graphics_state_unref( client->gfx_state );
 
+     client_list.RemoveClient( client );
+
      D_MAGIC_CLEAR( client );
+}
+
+void
+CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client )
+{
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     if (client->renderer)
+          client->renderer->Flush();
+     else
+          CoreGraphicsState_Flush( client->gfx_state );
+}
+
+void
+CoreGraphicsStateClient_FlushAll()
+{
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s()\n", __FUNCTION__ );
+
+     client_list.FlushAll();
 }
 
 DFBResult
@@ -221,7 +310,7 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
                                 CardState               *state )
 {
      DFBResult              ret;
-     StateModificationFlags flags = SMF_TO | SMF_DESTINATION | SMF_CLIP | SMF_RENDER_OPTIONS;
+     StateModificationFlags flags = (StateModificationFlags)(SMF_TO | SMF_DESTINATION | SMF_CLIP | SMF_RENDER_OPTIONS);
 
      D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
 
@@ -235,57 +324,57 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
       * FIXME: Add GetAccelerationMask() to CoreGraphicsState flux
       *        and do not load the graphics driver at slaves anymore.
       */
-     state->modified |= state->mod_hw;
-     state->mod_hw    = 0;
+     state->modified = (StateModificationFlags)(state->modified | state->mod_hw);
+     state->mod_hw   = SMF_NONE;
 
      if (state->render_options & DSRO_MATRIX)
-          flags |= SMF_MATRIX;
+          flags = (StateModificationFlags)(flags | SMF_MATRIX);
 
      if (DFB_DRAWING_FUNCTION( accel )) {
-          flags |= SMF_DRAWING_FLAGS | SMF_COLOR;
+          flags = (StateModificationFlags)(flags | SMF_DRAWING_FLAGS | SMF_COLOR);
 
           if (state->drawingflags & DSDRAW_BLEND)
-               flags |= SMF_SRC_BLEND | SMF_DST_BLEND;
+               flags = (StateModificationFlags)(flags | SMF_SRC_BLEND | SMF_DST_BLEND);
 
           if (state->drawingflags & DSDRAW_DST_COLORKEY)
-               flags |= SMF_DST_COLORKEY;
+               flags = (StateModificationFlags)(flags | SMF_DST_COLORKEY);
      }
      else {
-          flags |= SMF_BLITTING_FLAGS | SMF_FROM | SMF_SOURCE;
+          flags = (StateModificationFlags)(flags | SMF_BLITTING_FLAGS | SMF_FROM | SMF_SOURCE);
 
           if (accel == DFXL_BLIT2)
-               flags |= SMF_FROM | SMF_SOURCE2;
+               flags = (StateModificationFlags)(flags | SMF_FROM | SMF_SOURCE2);
 
           if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                       DSBLIT_COLORIZE |
                                       DSBLIT_SRC_PREMULTCOLOR))
-               flags |= SMF_COLOR;
+               flags = (StateModificationFlags)(flags | SMF_COLOR);
 
           if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                       DSBLIT_BLEND_COLORALPHA))
-               flags |= SMF_SRC_BLEND | SMF_DST_BLEND;
+               flags = (StateModificationFlags)(flags | SMF_SRC_BLEND | SMF_DST_BLEND);
 
           if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-               flags |= SMF_SRC_COLORKEY;
+               flags = (StateModificationFlags)(flags | SMF_SRC_COLORKEY);
 
           if (state->blittingflags & DSBLIT_DST_COLORKEY)
-               flags |= SMF_DST_COLORKEY;
+               flags = (StateModificationFlags)(flags | SMF_DST_COLORKEY);
 
           if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR))
-               flags |= SMF_FROM | SMF_SOURCE_MASK | SMF_SOURCE_MASK_VALS;
+               flags = (StateModificationFlags)(flags | SMF_FROM | SMF_SOURCE_MASK | SMF_SOURCE_MASK_VALS);
 
           if (state->blittingflags & DSBLIT_INDEX_TRANSLATION)
-               flags |= SMF_INDEX_TRANSLATION;
+               flags = (StateModificationFlags)(flags | SMF_INDEX_TRANSLATION);
 
           if (state->blittingflags & DSBLIT_COLORKEY_PROTECT)
-               flags |= SMF_COLORKEY;
+               flags = (StateModificationFlags)(flags | SMF_COLORKEY);
      }
 
-     ret = CoreGraphicsStateClient_SetState( client, state, state->modified & flags );
+     ret = CoreGraphicsStateClient_SetState( client, state, (StateModificationFlags)(state->modified & flags) );
      if (ret)
           return ret;
 
-     state->modified &= ~flags;
+     state->modified = (StateModificationFlags)(state->modified & ~flags);
 
      return DFB_OK;
 }
@@ -358,7 +447,10 @@ CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
      D_ASSERT( rects != NULL );
 
      if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          dfb_gfxcard_fillrectangles( rects, num, client->state );
+          if (client->renderer)
+               client->renderer->FillRectangles( rects, num );
+          else
+               dfb_gfxcard_fillrectangles( rects, num, client->state );
      }
      else {
           DFBResult ret;
@@ -466,8 +558,11 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
      D_ASSERT( points != NULL );
 
      if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          // FIXME: will overwrite rects, points
-          dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, client->state );
+          if (client->renderer)
+               client->renderer->Blit( rects, points, num );
+          else
+               // FIXME: will overwrite rects, points
+               dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, client->state );
      }
      else {
           DFBResult ret;
@@ -605,5 +700,7 @@ CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
      }
 
      return DFB_OK;
+}
+
 }
 

@@ -59,6 +59,12 @@ extern AndroidNativeData native_data;
 
 /**********************************************************************************************************************/
 
+static inline void crashme()
+{
+     char* a = 0;
+     *a = 0;
+}
+
 static DFBResult
 InitLocal( AndroidData *android )
 {
@@ -249,8 +255,10 @@ system_shutdown( bool emergency )
 {
      DFBResult   ret;
 
-     AndroidDataShared *shared;
+     // for now just crash until we implement a clean shutdown
+     crashme();
 
+     AndroidDataShared *shared;
      D_ASSERT( m_data != NULL );
 
      shared = m_data->shared;
@@ -276,7 +284,6 @@ system_leave( bool emergency )
      DFBResult   ret;
 
      AndroidDataShared *shared;
-
      D_ASSERT( m_data != NULL );
 
      shared = m_data->shared;

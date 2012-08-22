@@ -3150,8 +3150,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      dfb_font_lock( font );
 
      for (l=layers-1; l>=0; l--) {
-          x = ox;
-          y = oy;
+          x = ox << 8;
+          y = oy << 8;
 
           if (layers > 1)
                dfb_state_set_color( state, &state->colors[l] );
@@ -3170,8 +3170,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                }
 
                if (prev && font->GetKerning && font->GetKerning( font, prev, current, &kern_x, &kern_y) == DFB_OK) {
-                    x += kern_x;
-                    y += kern_y;
+                    x += kern_x << 8;
+                    y += kern_y << 8;
                }
 
                if (glyph->width) {
@@ -3185,7 +3185,7 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
                               dfb_state_set_source( state, glyph->surface );
                     }
 
-                    points[num_blits] = (DFBPoint){ x + glyph->left, y + glyph->top };
+                    points[num_blits] = (DFBPoint){ (x >> 8) + glyph->left, (y >> 8) + glyph->top };
                     rects[num_blits]  = (DFBRectangle){ glyph->start, 0, glyph->width, glyph->height };
 
                     num_blits++;

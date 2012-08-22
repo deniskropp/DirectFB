@@ -323,7 +323,9 @@ ovFlipRegion( CoreLayer             *layer,
               void                  *region_data,
               CoreSurface           *surface,
               DFBSurfaceFlipFlags    flags,
+              const DFBRegion       *left_update,
               CoreSurfaceBufferLock *left_lock,
+              const DFBRegion       *right_update,
               CoreSurfaceBufferLock *right_lock )
 
 {
