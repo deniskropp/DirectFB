@@ -207,6 +207,16 @@ IFusionDale_One_Destruct( IFusionDale *thiz )
 /**************************************************************************************************/
 
 static DirectResult
+IFusionDale_One_AddRef( IFusionDale *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA (IFusionDale_One);
+
+     data->base.ref++;
+
+     return DR_OK;
+}
+
+static DirectResult
 IFusionDale_One_Release( IFusionDale *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IFusionDale_One)
@@ -1039,6 +1049,7 @@ Construct( IFusionDale *thiz, const char *host, int session )
 
      direct_tls_register( &data->tlshm_key, tlshm_destroy );
 
+     thiz->AddRef          = IFusionDale_One_AddRef;
      thiz->Release         = IFusionDale_One_Release;
      thiz->EnterComa       = IFusionDale_One_EnterComa;
      thiz->CreateMessenger = IFusionDale_One_CreateMessenger;
