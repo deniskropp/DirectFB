@@ -96,6 +96,9 @@ struct __FS_CoreSoundShared {
      FusionCall             call;              /* master calls */
      float                  call_arg;          /* call argument */
      FusionSkirmish         call_lock;
+
+     __fsf                  master_feedback_left;
+     __fsf                  master_feedback_right;
 };
 
 struct __FS_CoreSound {
@@ -587,6 +590,27 @@ fs_core_set_local_volume( CoreSound *core, float level )
 }
 
 DirectResult
+fs_core_get_master_feedback( CoreSound *core,
+                             float     *ret_left,
+                             float     *ret_right )
+{
+     CoreSoundShared *shared;
+
+     D_ASSERT( core != NULL );
+
+     shared = core->shared;
+     D_ASSERT( shared != NULL );
+
+     if (ret_left)
+          *ret_left = fsf_to_float( shared->master_feedback_left );
+
+     if (ret_right)
+          *ret_right = fsf_to_float( shared->master_feedback_right );
+
+     return DR_OK;
+}
+
+DirectResult
 fs_core_suspend( CoreSound *core )
 {
      DirectResult ret;
@@ -857,6 +881,9 @@ sound_thread( DirectThread *thread, void *arg )
           __fsf      *src    = mixing;
           int         length = 0;
           int         delay;
+          int         i;
+          __fsf       l_min = FSF_MAX, l_max = FSF_MIN;
+          __fsf       r_min = FSF_MAX, r_max = FSF_MIN;
           DirectLink *next, *l;
           
           direct_thread_testcancel( thread );
@@ -871,6 +898,9 @@ sound_thread( DirectThread *thread, void *arg )
           fusion_skirmish_prevail( &shared->playlist.lock );
           
           if (!shared->playlist.entries) {
+               shared->master_feedback_left  = 0;
+               shared->master_feedback_right = 0;
+
                if (fusion_skirmish_wait( &shared->playlist.lock, delay ? 1 : 0 )) {
                     fusion_skirmish_dismiss( &shared->playlist.lock );
                     continue;
@@ -899,6 +929,37 @@ sound_thread( DirectThread *thread, void *arg )
           }
 
           fusion_skirmish_dismiss( &shared->playlist.lock );
+
+          if (FS_CHANNELS_FOR_MODE(shared->config.mode) == 1) {
+               for (i=0; i<length; i++) {
+                    if (mixing[i] < l_min)
+                         l_min = mixing[i];
+
+                    if (mixing[i] > l_max)
+                         l_max = mixing[i];
+               }
+
+               r_min = l_min;
+               r_max = l_max;
+          }
+          else {
+               for (i=0; i<length*FS_CHANNELS_FOR_MODE(shared->config.mode); i+=FS_CHANNELS_FOR_MODE(shared->config.mode)) {
+                    if (mixing[i] < l_min)
+                         l_min = mixing[i];
+
+                    if (mixing[i] > l_max)
+                         l_max = mixing[i];
+
+                    if (mixing[i+1] < r_min)
+                         r_min = mixing[i];
+
+                    if (mixing[i+1] > r_max)
+                         r_max = mixing[i];
+               }
+          }
+
+          shared->master_feedback_left  = l_max - l_min;
+          shared->master_feedback_right = r_max - r_min;
 
           while (length) {
                u8           *dst;
@@ -1303,6 +1364,8 @@ fs_core_arena_initialize( FusionArena *arena,
      
      /* Register fork() callback. */
      fusion_world_set_fork_callback( core->world, fs_fork_callback );
+
+     fusion_world_activate( core->world );
 
      return DR_OK;
 }

@@ -117,6 +117,13 @@ DirectResult fs_core_get_local_volume( CoreSound *core, float *level );
 DirectResult fs_core_set_local_volume( CoreSound *core, float level );
 
 /*
+ * Returns the master feedback.
+ */
+DirectResult fs_core_get_master_feedback( CoreSound *core,
+                                          float     *ret_left,
+                                          float     *ret_right );
+
+/*
  * Suspends playback.
  */
 DirectResult fs_core_suspend( CoreSound *core );

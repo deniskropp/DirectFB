@@ -576,6 +576,20 @@ DEFINE_INTERFACE( IFusionSound,
      DirectResult (*Resume) (
           IFusionSound               *thiz
      );
+
+
+   /** Monitoring **/
+
+     /*
+      * Get master volume feedback.
+      *
+      * Get the actual volume level produced on master output.
+      */
+     DirectResult (*GetMasterFeedback) (
+          IFusionSound               *thiz,
+          float                      *ret_left,
+          float                      *ret_right
+     );
 )
 
 /*

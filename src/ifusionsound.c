@@ -417,6 +417,16 @@ IFusionSound_Resume( IFusionSound *thiz )
      
      return fs_core_resume( data->core );
 }
+
+static DirectResult
+IFusionSound_GetMasterFeedback( IFusionSound *thiz,
+                                float        *ret_left,
+                                float        *ret_right )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
+
+     return fs_core_get_master_feedback( data->core, ret_left, ret_right );
+}
      
 
 DirectResult
@@ -453,6 +463,7 @@ IFusionSound_Construct( IFusionSound *thiz )
      thiz->SetLocalVolume       = IFusionSound_SetLocalVolume;
      thiz->Suspend              = IFusionSound_Suspend;
      thiz->Resume               = IFusionSound_Resume;
+     thiz->GetMasterFeedback    = IFusionSound_GetMasterFeedback;
 
      return DR_OK;
 }
