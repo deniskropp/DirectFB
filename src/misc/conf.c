@@ -153,6 +153,7 @@ static const char *config_usage_strings[]  = {
      "  layer-src-key=AARRGGBB         Enable color keying (hex)\n"
      "  layer-palette-<index>=AARRGGBB Set palette entry at index (hex)\n"
      "  layer-rotate=<degree>          Set the layer rotation for double buffer mode (0,90,180,270)\n"
+     "  image-format=<pixelformat>     Set the pixel format for loading images\n"
      "  [no-]wm-fullscreen-updates     Force fullscreen updates in window manager\n"
      "  [no-]smooth-upscale            Enable/disable smooth upscaling per default\n"
      "  [no-]smooth-downscale          Enable/disable smooth downscaling per default\n"
@@ -1575,6 +1576,23 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("DirectFB/Config '%s': No value specified!\n", name);
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "image-format" ) == 0) {
+          if (value) {
+               DFBSurfacePixelFormat format;
+
+               format = dfb_config_parse_pixelformat( value );
+               if (format == DSPF_UNKNOWN) {
+                    D_ERROR("DirectFB/Config '%s': Could not parse format!\n", name);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->image_format = format;
+          }
+          else {
+               D_ERROR("DirectFB/Config '%s': No format specified!\n", name);
                return DFB_INVARG;
           }
      } else
