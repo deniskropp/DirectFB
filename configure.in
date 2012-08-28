@@ -238,6 +238,9 @@ case "$target_or_host" in
   *arm*)
     have_arm=yes
 	AC_DEFINE(ARCH_ARM,1,[Define to 1 if you are compiling for ARM.])
+    if test -n "`echo $CFLAGS | grep 'march=armv7\-a'`"; then
+      AC_DEFINE(ARCH_ARMv7,1,[Define to 1 if you are compiling for ARMv7.])
+    fi
     ;;
 
   *mips*)
