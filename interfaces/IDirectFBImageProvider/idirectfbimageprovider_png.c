@@ -500,10 +500,15 @@ IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
      dsc->width  = data->width;
      dsc->height = data->height;
 
-     if (data->color_type & PNG_COLOR_MASK_ALPHA)
-          dsc->pixelformat = DFB_PIXELFORMAT_HAS_ALPHA(primary_format) ? primary_format : DSPF_ARGB;
-     else
-          dsc->pixelformat = primary_format;
+     if (dfb_config->image_format) {
+          dsc->pixelformat = dfb_config->image_format;
+     }
+     else {
+          if (data->color_type & PNG_COLOR_MASK_ALPHA)
+               dsc->pixelformat = DFB_PIXELFORMAT_HAS_ALPHA(primary_format) ? primary_format : DSPF_ARGB;
+          else
+               dsc->pixelformat = primary_format;
+     }
 
      if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
           dsc->flags |= DSDESC_PALETTE;
