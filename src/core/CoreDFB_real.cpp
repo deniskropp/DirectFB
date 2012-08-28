@@ -264,6 +264,9 @@ ICore_Real::GetSurface( u32           surface_id,
                dfb_surface_unref( surface );
                return ret;
           }
+
+          // FIXME: access to this object needs to be given for other places like using as a blitting source
+          surface->object.owner = Core_GetIdentity();
      }
 
      *ret_surface = surface;
