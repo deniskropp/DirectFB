@@ -7266,6 +7266,19 @@ D_DEFINE_INTERFACE(   IDirectFBVideoProvider,
           IDirectFBVideoProvider   *thiz,
           DFBBufferThresholds      *ret_thresh
      );
+
+   /** Playback **/
+
+     /*
+      * Update the video rendering into the specified rectangle
+      * of the destination surface.
+      */
+     DFBResult (*SetDestination) (
+          IDirectFBVideoProvider   *thiz,
+          IDirectFBSurface         *destination,
+          const DFBRectangle       *destination_rect
+     );
+
 )
 
 /***********************

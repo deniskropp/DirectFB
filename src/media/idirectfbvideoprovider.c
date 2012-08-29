@@ -130,6 +130,14 @@ IDirectFBVideoProvider_PlayTo( IDirectFBVideoProvider *thiz,
 }
 
 static DFBResult
+IDirectFBVideoProvider_SetDestination( IDirectFBVideoProvider *thiz,
+                                       IDirectFBSurface       *destination,
+                                       const DFBRectangle     *destination_rect )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
 IDirectFBVideoProvider_Stop( IDirectFBVideoProvider *thiz )
 {
      return DFB_UNIMPLEMENTED;
@@ -309,6 +317,7 @@ IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
      thiz->SetBufferThresholds   = IDirectFBVideoProvider_SetBufferThresholds;
      thiz->GetBufferThresholds   = IDirectFBVideoProvider_GetBufferThresholds;
      thiz->PlayTo                = IDirectFBVideoProvider_PlayTo;
+     thiz->SetDestination        = IDirectFBVideoProvider_SetDestination;
      thiz->Stop                  = IDirectFBVideoProvider_Stop;
      thiz->GetStatus             = IDirectFBVideoProvider_GetStatus;
      thiz->SeekTo                = IDirectFBVideoProvider_SeekTo;
