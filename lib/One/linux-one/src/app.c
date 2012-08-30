@@ -58,6 +58,9 @@ OneAppTarget_Destroy( OneTarget *target )
           OnePacket_Free( packet );
      }
 
+     if (data->link.prev)
+          direct_list_remove( &data->app->recv_data, &data->link );
+
      OneTarget_Destroy( target );
 }
 
