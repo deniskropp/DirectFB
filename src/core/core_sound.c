@@ -193,7 +193,10 @@ fs_core_create( CoreSound **ret_core )
           return DR_NOLOCALMEMORY;
      }
 
+     bool old_secure = fusion_config->secure_fusion;
+     fusion_config->secure_fusion = false;
      ret = fusion_enter( fs_config->session, FUSIONSOUND_CORE_ABI, FER_ANY, &core->world );
+     fusion_config->secure_fusion = old_secure;
      if (ret) {
           D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
