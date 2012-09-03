@@ -635,7 +635,7 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
 
           len = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 
-#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+#if (LIBAVFORMAT_VERSION_MAJOR >= 52)
           decoded = avcodec_decode_audio3( data->codec,
                                           (s16*)data->buf, &len, &pkt);
 
