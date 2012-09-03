@@ -198,15 +198,17 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      }
      else {
           if (data->base.surface->config.caps & DSCAPS_FLIPPING) {
-               if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
-                   reg.x2 == data->base.surface->config.size.w  - 1 &&
-                   reg.y2 == data->base.surface->config.size.h - 1)
-               {
-                    ret = CoreSurface_Flip( data->base.surface, false );
-                    if (ret)
-                        return ret;
-               }
-               else
+               if (!(flags & DSFLIP_BLIT)) {
+                    if ((flags & DSFLIP_SWAP) ||
+                        (reg.x1 == 0 && reg.y1 == 0 &&
+                         reg.x2 == data->base.surface->config.size.w  - 1 &&
+                         reg.y2 == data->base.surface->config.size.h - 1))
+                    {
+                         ret = CoreSurface_Flip( data->base.surface, false );
+                         if (ret)
+                             return ret;
+                    }
+               } else
                     CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
           }
 
@@ -312,12 +314,13 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
      else {
           if (data->base.surface->config.caps & DSCAPS_FLIPPING) {
                if (!(flags & DSFLIP_BLIT)) {
-                    if (l_reg.x1 == 0 && l_reg.y1 == 0 &&
-                        l_reg.x2 == data->base.surface->config.size.w  - 1 &&
-                        l_reg.y2 == data->base.surface->config.size.h - 1 &&
-                        r_reg.x1 == 0 && r_reg.y1 == 0 &&
-                        r_reg.x2 == data->base.surface->config.size.w  - 1 &&
-                        r_reg.y2 == data->base.surface->config.size.h - 1)
+                    if ((flags & DSFLIP_SWAP) ||
+                        (l_reg.x1 == 0 && l_reg.y1 == 0 &&
+                         l_reg.x2 == data->base.surface->config.size.w  - 1 &&
+                         l_reg.y2 == data->base.surface->config.size.h - 1 &&
+                         r_reg.x1 == 0 && r_reg.y1 == 0 &&
+                         r_reg.x2 == data->base.surface->config.size.w  - 1 &&
+                         r_reg.y2 == data->base.surface->config.size.h - 1))
                     {
                          CoreSurface_Flip( data->base.surface, false );
                     }
