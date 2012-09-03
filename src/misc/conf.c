@@ -1012,6 +1012,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "linux-input-ir-only" ) == 0) {
           dfb_config->linux_input_ir_only = true;
      } else
+     if (strcmp (name, "linux-input-touch-abs" ) == 0) {
+          dfb_config->linux_input_touch_abs = true;
+     } else
+     if (strcmp (name, "no-linux-input-touch-abs" ) == 0) {
+          dfb_config->linux_input_touch_abs = false;
+     } else
      if (strcmp (name, "linux-input-grab" ) == 0) {
           dfb_config->linux_input_grab = true;
      } else

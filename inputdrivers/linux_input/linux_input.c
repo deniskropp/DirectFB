@@ -1908,7 +1908,7 @@ driver_get_axis_info( CoreInputDevice              *device,
 {
      LinuxInputData *data = (LinuxInputData*) driver_data;
 
-     if (data->touchpad)
+     if (data->touchpad && !dfb_config->linux_input_touch_abs)
           return DFB_OK;
 
      if (axis <= ABS_PRESSURE && axis < DIAI_LAST) {
@@ -2115,7 +2115,7 @@ touchpad_translate( struct touchpad_fsm_state *state,
      struct touchpad_axis *axis = NULL;
      int abs, rel;
 
-     devt->flags     = DIEF_TIMESTAMP | DIEF_AXISREL;
+     devt->flags     = DIEF_TIMESTAMP | (dfb_config->linux_input_touch_abs ? DIEF_AXISABS : DIEF_AXISREL);
      devt->timestamp = levt->time;
      devt->type      = DIET_AXISMOTION;
 
@@ -2148,6 +2148,7 @@ touchpad_translate( struct touchpad_fsm_state *state,
 
      axis->old     = abs;
      devt->axisrel = rel;
+     devt->axisabs = levt->value;
 
      return 1;
 }
