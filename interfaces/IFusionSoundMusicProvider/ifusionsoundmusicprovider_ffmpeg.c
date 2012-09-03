@@ -44,6 +44,18 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
+
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+#include <libavutil/mathematics.h>
+struct AVDictionary {
+    int count;
+    AVDictionaryEntry *elems;
+};
+#endif
+
+#include <libavutil/avutil.h>
+
+
 static DirectResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
 
@@ -64,12 +76,17 @@ typedef struct {
 
      DirectStream                 *stream;
 
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+     AVIOContext                   pb;
+#else
      ByteIOContext                 pb;
+#endif
+
      AVFormatContext              *ctx;
      AVStream                     *st;
      void                         *iobuf;
-     
      AVCodecContext               *codec;
+
      u8                           *buf;
      s64                           pts;
 
@@ -78,7 +95,7 @@ typedef struct {
      DirectThread                 *thread;
      pthread_mutex_t               lock;
      pthread_cond_t                cond;
-     
+
      FSMusicProviderStatus         status;
      int                           finished;
      int                           seeked;
@@ -103,10 +120,10 @@ av_read_callback( void *opaque, uint8_t *buf, int size )
      IFusionSoundMusicProvider_FFmpeg_data *data = opaque;
      unsigned int                           len  = 0;
      DirectResult                           ret;
-     
+
      if (!buf || size < 0)
           return -1;
-     
+
      while (size) {
           unsigned int read = 0;
           direct_stream_wait( data->stream, size, NULL );
@@ -119,7 +136,7 @@ av_read_callback( void *opaque, uint8_t *buf, int size )
           len += read;
           size -= read;
      }
-          
+
      return len;
 }
 
@@ -129,7 +146,7 @@ av_seek_callback( void *opaque, int64_t offset, int whence )
      IFusionSoundMusicProvider_FFmpeg_data *data = opaque;
      unsigned int                           pos  = 0;
      DirectResult                           ret;
-    
+
      switch (whence) {
           case SEEK_SET:
                ret = direct_stream_seek( data->stream, offset );
@@ -150,12 +167,12 @@ av_seek_callback( void *opaque, int64_t offset, int whence )
                ret = DR_UNSUPPORTED;
                break;
      }
-     
+
      if (ret != DR_OK)
           return -1;
-          
+
      return direct_stream_offset( data->stream );
-}     
+}
 
 /*****************************************************************************/
 
@@ -362,7 +379,7 @@ static void
 FFmpeg_Stop( IFusionSoundMusicProvider_FFmpeg_data *data, bool now )
 {
      data->status = FMSTATE_STOP;
-     
+
      /* stop thread */
      if (data->thread) {
           if (!direct_thread_is_joined( data->thread )) {
@@ -380,7 +397,7 @@ FFmpeg_Stop( IFusionSoundMusicProvider_FFmpeg_data *data, bool now )
           direct_thread_destroy( data->thread );
           data->thread = NULL;
      }
-     
+
      /* release previous destination stream */
      if (data->dest.stream) {
           data->dest.stream->Release( data->dest.stream );
@@ -392,8 +409,8 @@ FFmpeg_Stop( IFusionSoundMusicProvider_FFmpeg_data *data, bool now )
           data->dest.buffer->Release( data->dest.buffer );
           data->dest.buffer = NULL;
      }
-   
-     /* release output buffer */  
+
+     /* release output buffer */
      if (data->buf) {
           D_FREE( data->buf );
           data->buf = NULL;
@@ -409,8 +426,8 @@ IFusionSoundMusicProvider_FFmpeg_Destruct( IFusionSoundMusicProvider *thiz )
 
      if (data->codec)
           avcodec_close( data->codec );
-          
-     if (data->ctx) { 
+
+     if (data->ctx) {
           AVInputFormat *iformat = data->ctx->iformat;
           /* Ugly hack to fix a bug (segfault) in url_fclose() */
           if (!(iformat->flags & AVFMT_NOFILE)) {
@@ -422,7 +439,7 @@ IFusionSoundMusicProvider_FFmpeg_Destruct( IFusionSoundMusicProvider *thiz )
                av_close_input_file( data->ctx );
           }
      }
-     
+
      if (data->iobuf)
           D_FREE( data->iobuf );
 
@@ -439,9 +456,9 @@ static DirectResult
 IFusionSoundMusicProvider_FFmpeg_AddRef( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      data->ref++;
-     
+
      return DR_OK;
 }
 
@@ -449,10 +466,10 @@ static DirectResult
 IFusionSoundMusicProvider_FFmpeg_Release( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (--data->ref == 0)
           IFusionSoundMusicProvider_FFmpeg_Destruct( thiz );
-     
+
      return DR_OK;
 }
 
@@ -461,14 +478,14 @@ IFusionSoundMusicProvider_FFmpeg_GetCapabilities( IFusionSoundMusicProvider   *t
                                                   FSMusicProviderCapabilities *caps )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (!caps)
           return DR_INVARG;
-          
+
      *caps = FMCAPS_BASIC;
      if (direct_stream_seekable( data->stream ))
           *caps |= FMCAPS_SEEK;
-     
+
      return DR_OK;
 }
 
@@ -477,19 +494,41 @@ IFusionSoundMusicProvider_FFmpeg_GetTrackDescription( IFusionSoundMusicProvider 
                                                       FSTrackDescription        *desc )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (!desc)
           return DR_INVARG;
 
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+     if (data->ctx->metadata) {
+          AVDictionaryEntry *tag = NULL;
+
+          tag = av_dict_get( data->ctx->metadata, "artist", NULL, 0 );
+          if (tag && tag->value) direct_snputs( desc->artist, tag->value, FS_TRACK_DESC_ARTIST_LENGTH );
+
+          tag = av_dict_get( data->ctx->metadata, "title", NULL, 0 );
+          if (tag && tag->value) direct_snputs( desc->title, tag->value, FS_TRACK_DESC_TITLE_LENGTH );
+
+          tag = av_dict_get( data->ctx->metadata, "album", NULL, 0 );
+          if (tag && tag->value) direct_snputs( desc->album, tag->value, FS_TRACK_DESC_ALBUM_LENGTH );
+
+          tag = av_dict_get( data->ctx->metadata, "genre", NULL, 0 );
+          if (tag && tag->value) direct_snputs( desc->genre, tag->value, FS_TRACK_DESC_GENRE_LENGTH );
+
+          tag = av_dict_get( data->ctx->metadata, "date", NULL, 0 );
+          if (tag && tag->value) desc->year = atoi(tag->value);
+     }
+#else
      direct_snputs( desc->artist, data->ctx->author, FS_TRACK_DESC_ARTIST_LENGTH );
      direct_snputs( desc->title, data->ctx->title, FS_TRACK_DESC_TITLE_LENGTH );
      direct_snputs( desc->album, data->ctx->album, FS_TRACK_DESC_ALBUM_LENGTH );
      direct_snputs( desc->genre, data->ctx->genre, FS_TRACK_DESC_GENRE_LENGTH );
-     direct_snputs( desc->encoding, data->codec->codec->name, FS_TRACK_DESC_ENCODING_LENGTH );
      desc->year = data->ctx->year;
+#endif
+     direct_snputs( desc->encoding, data->codec->codec->name, FS_TRACK_DESC_ENCODING_LENGTH );
+
      desc->bitrate = data->codec->bit_rate;
      desc->replaygain = desc->replaygain_album = 0;
-     
+
      return DR_OK;
 }
 
@@ -498,17 +537,17 @@ IFusionSoundMusicProvider_FFmpeg_GetStreamDescription( IFusionSoundMusicProvider
                                                        FSStreamDescription       *desc )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (!desc)
           return DR_INVARG;
-          
+
      desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  |
                           FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
      desc->samplerate   = data->codec->sample_rate;
      desc->channels     = MIN(data->codec->channels, FS_MAX_CHANNELS);
      desc->sampleformat = FSSF_S16;
      desc->buffersize   = desc->samplerate/8;
-     
+
      return DR_OK;
 }
 
@@ -517,10 +556,10 @@ IFusionSoundMusicProvider_FFmpeg_GetBufferDescription( IFusionSoundMusicProvider
                                                 FSBufferDescription       *desc )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (!desc)
           return DR_INVARG;
-          
+
      desc->flags        = FSBDF_SAMPLERATE   | FSBDF_CHANNELS |
                           FSBDF_SAMPLEFORMAT | FSBDF_LENGTH;
      desc->samplerate   = data->codec->sample_rate;
@@ -530,7 +569,7 @@ IFusionSoundMusicProvider_FFmpeg_GetBufferDescription( IFusionSoundMusicProvider
           desc->length = MIN(data->st->nb_frames, FS_MAX_FRAMES);
      else
           desc->length = MIN((s64)data->ctx->duration*desc->samplerate/AV_TIME_BASE, FS_MAX_FRAMES);
-     
+
      return DR_OK;
 }
 
@@ -538,22 +577,22 @@ static void*
 FFmpegStreamThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_FFmpeg_data *data = ctx;
-     
+
      AVPacket  pkt;
      u8       *pkt_data = NULL;
      int       pkt_size = 0;
      s64       pkt_pts  = AV_NOPTS_VALUE;
-     
+
      while (data->status == FMSTATE_PLAY) {
           int len, decoded, size = 0;
-          
+
           pthread_mutex_lock( &data->lock );
-          
+
           if (data->status != FMSTATE_PLAY) {
                pthread_mutex_unlock( &data->lock );
                break;
           }
-          
+
           if (data->seeked) {
                data->dest.stream->Flush( data->dest.stream );
                if (pkt_size > 0) {
@@ -563,7 +602,7 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
                avcodec_flush_buffers( data->codec );
                data->seeked = false;
           }
-          
+
           if (pkt_size <= 0) {
                if (av_read_frame( data->ctx, &pkt ) < 0) {
                     //if (url_feof( data->ctx->pb )) {
@@ -577,13 +616,13 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
                     pthread_mutex_unlock( &data->lock );
                     continue;
                }
-               
+
                if (pkt.stream_index != data->st->index) {
                     av_free_packet( &pkt );
                     pthread_mutex_unlock( &data->lock );
                     continue;
                }
-               
+
                pkt_data = pkt.data;
                pkt_size = pkt.size;
                pkt_pts  = pkt.pts;
@@ -593,42 +632,50 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
                     data->pts = av_rescale_q( pkt_pts, data->st->time_base, AV_TIME_BASE_Q );
                }
           }
-          
+
           len = AVCODEC_MAX_AUDIO_FRAME_SIZE;
-          decoded = avcodec_decode_audio2( data->codec, 
+
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+          decoded = avcodec_decode_audio3( data->codec,
+                                          (s16*)data->buf, &len, &pkt);
+
+#else
+          decoded = avcodec_decode_audio2( data->codec,
                                           (s16*)data->buf, &len, pkt_data, pkt_size );
+
+#endif
           if (decoded < 0) {
                av_free_packet( &pkt );
                pkt_size = 0;
           }
-          else {    
+          else {
                pkt_data += decoded;
                pkt_size -= decoded;
                if (pkt_size <= 0)
                     av_free_packet( &pkt );
-               
+
                if (len > 0) {
                     size = len / (data->codec->channels * 2);
                     data->pts += (s64)size * AV_TIME_BASE / data->codec->sample_rate;
                }
           }
-          
+
           pthread_mutex_unlock( &data->lock );
-          
+
           if (data->dest.format != FSSF_S16 ||
               FS_CHANNELS_FOR_MODE(data->dest.mode) != data->codec->channels) {
                int  num = FS_BYTES_PER_SAMPLE(data->dest.format)*FS_CHANNELS_FOR_MODE(data->dest.mode);
                u8   dst[1152*num];
                s16 *buf = (s16*)data->buf;
-               
+
                while (size) {
                     len = MIN(size, 1152);
-                    
-                    ffmpeg_mix_audio( buf, dst, len, data->dest.format, 
+
+                    ffmpeg_mix_audio( buf, dst, len, data->dest.format,
                                       data->codec->channels, data->dest.mode );
-                    
+
                     data->dest.stream->Write( data->dest.stream, dst, len );
-                    
+
                     size -= len;
                     buf  += len * data->codec->channels;
                }
@@ -637,33 +684,33 @@ FFmpegStreamThread( DirectThread *thread, void *ctx )
                data->dest.stream->Write( data->dest.stream, data->buf, size );
           }
      }
-     
+
      if (pkt_size > 0)
           av_free_packet( &pkt );
-     
+
      return (void*)0;
-}                             
+}
 
 static DirectResult
 IFusionSoundMusicProvider_FFmpeg_PlayToStream( IFusionSoundMusicProvider *thiz,
                                                IFusionSoundStream        *destination )
 {
      FSStreamDescription desc;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!destination)
           return DR_INVARG;
-          
+
      if (data->dest.stream == destination)
           return DR_OK;
-          
+
      destination->GetDescription( destination, &desc );
-     
+
      /* check whether destination samplerate is supported */
      if (desc.samplerate != data->codec->sample_rate)
           return DR_UNSUPPORTED;
-          
+
      /* check whether destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
@@ -675,7 +722,7 @@ IFusionSoundMusicProvider_FFmpeg_PlayToStream( IFusionSoundMusicProvider *thiz,
           default:
                return DR_UNSUPPORTED;
      }
-     
+
      /* check whether destination mode is supported */
      switch (desc.channelmode) {
           case FSCM_MONO:
@@ -695,11 +742,11 @@ IFusionSoundMusicProvider_FFmpeg_PlayToStream( IFusionSoundMusicProvider *thiz,
           default:
                return DR_UNSUPPORTED;
      }
-     
+
      pthread_mutex_lock( &data->lock );
-     
+
      FFmpeg_Stop( data, false );
-     
+
      if (data->finished) {
           if (av_seek_frame( data->ctx, -1, 0, AVSEEK_FLAG_BACKWARD ) < 0) {
                pthread_mutex_unlock( &data->lock );
@@ -707,7 +754,7 @@ IFusionSoundMusicProvider_FFmpeg_PlayToStream( IFusionSoundMusicProvider *thiz,
           }
           data->finished = false;
      }
-     
+
      if (!data->buf) {
           data->buf = D_MALLOC( AVCODEC_MAX_AUDIO_FRAME_SIZE );
           if (!data->buf) {
@@ -715,16 +762,16 @@ IFusionSoundMusicProvider_FFmpeg_PlayToStream( IFusionSoundMusicProvider *thiz,
                return DR_NOLOCALMEMORY;
           }
      }
-     
+
      destination->AddRef( destination );
      data->dest.stream    = destination;
      data->dest.format    = desc.sampleformat;
      data->dest.mode      = desc.channelmode;
      data->dest.framesize = desc.channels * FS_BYTES_PER_SAMPLE(desc.sampleformat);
-     
+
      data->status = FMSTATE_PLAY;
      pthread_cond_broadcast( &data->cond );
-     
+
      /* start thread */
      data->thread = direct_thread_create( DTT_DEFAULT, FFmpegStreamThread, data, "FFmpeg" );
 
@@ -737,24 +784,24 @@ static void*
 FFmpegBufferThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_FFmpeg_data *data = ctx;
-     
+
      AVPacket  pkt;
      u8       *pkt_data = NULL;
      int       pkt_size = 0;
      s64       pkt_pts  = AV_NOPTS_VALUE;
      int       pos      = 0;
-     
+
      while (data->status == FMSTATE_PLAY) {
           s16 *buf;
           int  len, decoded, size = 0;
-          
+
           pthread_mutex_lock( &data->lock );
-          
+
           if (data->status != FMSTATE_PLAY) {
                pthread_mutex_unlock( &data->lock );
                break;
           }
-          
+
           if (data->seeked) {
                if (pkt_size > 0) {
                     av_free_packet( &pkt );
@@ -763,7 +810,7 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                avcodec_flush_buffers( data->codec );
                data->seeked = false;
           }
-          
+
           if (pkt_size <= 0) {
                if (av_read_frame( data->ctx, &pkt ) < 0) {
                     //if (url_feof( data->ctx->pb )) {
@@ -782,13 +829,13 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                     pthread_mutex_unlock( &data->lock );
                     continue;
                }
-          
+
                if (pkt.stream_index != data->st->index) {
                     av_free_packet( &pkt );
                     pthread_mutex_unlock( &data->lock );
                     continue;
                }
-               
+
                pkt_data = pkt.data;
                pkt_size = pkt.size;
                pkt_pts  = pkt.pts;
@@ -798,47 +845,56 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                     data->pts = av_rescale_q( pkt_pts, data->st->time_base, AV_TIME_BASE_Q );
                }
           }
-          
+
           len = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+          decoded = avcodec_decode_audio3( data->codec,
+                                          (s16*)data->buf, &len, &pkt);
+
+#else
           decoded = avcodec_decode_audio2( data->codec,
                                           (s16*)data->buf, &len, pkt_data, pkt_size );
+
+#endif
+
           if (decoded < 0) {
                av_free_packet( &pkt );
                pkt_size = 0;
           }
-          else {    
+          else {
                pkt_data += decoded;
                pkt_size -= decoded;
                if (pkt_size <= 0)
                     av_free_packet( &pkt );
-               
+
                if (len > 0) {
                     size = len / (data->codec->channels * 2);
                     data->pts += (s64)size * AV_TIME_BASE / data->codec->sample_rate;
                }
           }
-          
+
           buf = (s16*)data->buf;
           while (size) {
                void *dst;
                int   num;
-               
+
                if (data->dest.buffer->Lock( data->dest.buffer, &dst, &len, NULL ))
                     break;
                dst += pos * data->dest.framesize;
                len -= pos;
-                
-               num = MIN( size, len );  
-               ffmpeg_mix_audio( buf, dst, num, data->dest.format, 
+
+               num = MIN( size, len );
+               ffmpeg_mix_audio( buf, dst, num, data->dest.format,
                                  data->codec->channels, data->dest.mode );
                size -= num;
                buf  += num * data->codec->channels;
-               
+
                pos += num;
-               len -= num;           
-               
+               len -= num;
+
                data->dest.buffer->Unlock( data->dest.buffer );
-               
+
                if (!len) {
                     if (data->callback) {
                          if (data->callback( pos, data->callback_data )) {
@@ -849,14 +905,14 @@ FFmpegBufferThread( DirectThread *thread, void *ctx )
                     }
                     pos = 0;
                }
-          }                                   
-          
+          }
+
           pthread_mutex_unlock( &data->lock );
      }
-     
+
      if (pkt_size > 0)
           av_free_packet( &pkt );
-     
+
      return (void*)0;
 }
 
@@ -867,21 +923,21 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                                                void                      *ctx )
 {
      FSBufferDescription desc;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!destination)
           return DR_INVARG;
-          
+
      if (data->dest.buffer == destination)
           return DR_OK;
-          
+
      destination->GetDescription( destination, &desc );
-     
+
      /* check whether destination samplerate is supported */
      if (desc.samplerate != data->codec->sample_rate)
           return DR_UNSUPPORTED;
-          
+
      /* check whether destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
@@ -893,7 +949,7 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           default:
                return DR_UNSUPPORTED;
      }
-     
+
      /* check whether destination mode is supported */
      switch (desc.channelmode) {
           case FSCM_MONO:
@@ -913,11 +969,11 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           default:
                return DR_UNSUPPORTED;
      }
-     
+
      pthread_mutex_lock( &data->lock );
-     
+
      FFmpeg_Stop( data, false );
-     
+
      if (data->finished) {
           if (av_seek_frame( data->ctx, -1, 0, AVSEEK_FLAG_BACKWARD ) < 0) {
                pthread_mutex_unlock( &data->lock );
@@ -925,7 +981,7 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           }
           data->finished = false;
      }
-     
+
      if (!data->buf) {
           data->buf = D_MALLOC( AVCODEC_MAX_AUDIO_FRAME_SIZE );
           if (!data->buf) {
@@ -933,19 +989,19 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                return DR_NOLOCALMEMORY;
           }
      }
-     
+
      destination->AddRef( destination );
      data->dest.buffer    = destination;
      data->dest.format    = desc.sampleformat;
      data->dest.mode      = desc.channelmode;
      data->dest.framesize = desc.channels * FS_BYTES_PER_SAMPLE(desc.sampleformat);
-     
+
      data->callback      = callback;
      data->callback_data = ctx;
-     
+
      data->status = FMSTATE_PLAY;
      pthread_cond_broadcast( &data->cond );
-     
+
      /* start thread */
      data->thread = direct_thread_create( DTT_DEFAULT, FFmpegBufferThread, data, "FFmpeg" );
 
@@ -958,11 +1014,11 @@ static DirectResult
 IFusionSoundMusicProvider_FFmpeg_Stop( IFusionSoundMusicProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-          
+
      pthread_mutex_lock( &data->lock );
-     
+
      FFmpeg_Stop( data, false );
-     
+
      pthread_cond_broadcast( &data->cond );
 
      pthread_mutex_unlock( &data->lock );
@@ -975,10 +1031,10 @@ IFusionSoundMusicProvider_FFmpeg_GetStatus( IFusionSoundMusicProvider *thiz,
                                             FSMusicProviderStatus     *status )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (!status)
           return DR_INVARG;
-          
+
      *status = data->status;
 
      return DR_OK;
@@ -990,22 +1046,22 @@ IFusionSoundMusicProvider_FFmpeg_SeekTo( IFusionSoundMusicProvider *thiz,
 {
      DirectResult ret;
      s64       time;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (seconds < 0.0)
           return DR_INVARG;
-     
+
      if (!direct_stream_seekable( data->stream ))
           return DR_UNSUPPORTED;
-          
+
      time = seconds * AV_TIME_BASE;
      if (data->ctx->duration != AV_NOPTS_VALUE && time > data->ctx->duration)
           return DR_OK;
-     
+
      pthread_mutex_lock( &data->lock );
-     
-     if (av_seek_frame( data->ctx, -1, time, 
+
+     if (av_seek_frame( data->ctx, -1, time,
                        (time < data->pts) ? AVSEEK_FLAG_BACKWARD : 0 ) >= 0) {
           data->seeked = true;
           data->finished = false;
@@ -1015,9 +1071,9 @@ IFusionSoundMusicProvider_FFmpeg_SeekTo( IFusionSoundMusicProvider *thiz,
      else {
           ret = DR_FAILURE;
      }
-     
+
      pthread_mutex_unlock( &data->lock );
- 
+
      return ret;
 }
 
@@ -1026,12 +1082,12 @@ IFusionSoundMusicProvider_FFmpeg_GetPos( IFusionSoundMusicProvider *thiz,
                                          double                    *seconds )
 {
      s64 pos;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (!seconds)
           return DR_INVARG;
-      
+
      pos = data->pts;
      if (data->dest.stream) {
           int delay = 0;
@@ -1039,9 +1095,9 @@ IFusionSoundMusicProvider_FFmpeg_GetPos( IFusionSoundMusicProvider *thiz,
           pos -= delay * 1000ll;
      }
      pos = MAX( pos, 0 );
-     
-     *seconds = (double)pos / AV_TIME_BASE; 
-     
+
+     *seconds = (double)pos / AV_TIME_BASE;
+
      return DR_OK;
 }
 
@@ -1050,17 +1106,17 @@ IFusionSoundMusicProvider_FFmpeg_GetLength( IFusionSoundMusicProvider *thiz,
                                             double                    *seconds )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (!seconds)
           return DR_INVARG;
-          
-     if (data->ctx->duration > 0) {      
+
+     if (data->ctx->duration > 0) {
           *seconds = (double)data->ctx->duration / AV_TIME_BASE;
           return DR_OK;
      }
-     
+
      *seconds = 0.0;
-     
+
      return DR_UNSUPPORTED;
 }
 
@@ -1069,12 +1125,12 @@ IFusionSoundMusicProvider_FFmpeg_SetPlaybackFlags( IFusionSoundMusicProvider    
                                                    FSMusicProviderPlaybackFlags  flags )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (flags & ~FMPLAY_LOOPING)
           return DR_UNSUPPORTED;
-          
+
      data->flags = flags;
-     
+
      return DR_OK;
 }
 
@@ -1084,28 +1140,28 @@ IFusionSoundMusicProvider_FFmpeg_WaitStatus( IFusionSoundMusicProvider *thiz,
                                              unsigned int               timeout )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
-     
+
      if (!mask || mask & ~FMSTATE_ALL)
           return DR_INVARG;
-          
+
      if (timeout) {
           struct timespec t;
           long long       s;
-          
+
           s = direct_clock_get_abs_micros() + timeout * 1000ll;
           t.tv_sec  = (s / 1000000);
           t.tv_nsec = (s % 1000000) * 1000;
-          
+
 #ifdef HAVE_PTHREAD_MUTEX_TIMEDLOCK
           if (pthread_mutex_timedlock( &data->lock, &t ))
                return DR_TIMEOUT;
-#else          
+#else
           while (pthread_mutex_trylock( &data->lock )) {
                usleep( 1000 );
                if (direct_clock_get_abs_micros() >= s)
                     return DR_TIMEOUT;
           }
-#endif     
+#endif
           while (!(data->status & mask)) {
                if (pthread_cond_timedwait( &data->cond, &data->lock, &t ) == ETIMEDOUT) {
                     pthread_mutex_unlock( &data->lock );
@@ -1115,13 +1171,13 @@ IFusionSoundMusicProvider_FFmpeg_WaitStatus( IFusionSoundMusicProvider *thiz,
      }
      else {
           pthread_mutex_lock( &data->lock );
-          
+
           while (!(data->status & mask))
                pthread_cond_wait( &data->cond, &data->lock );
      }
-     
+
      pthread_mutex_unlock( &data->lock );
-     
+
      return DR_OK;
 }
 
@@ -1132,22 +1188,26 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
      AVProbeData    pd;
      AVInputFormat *format;
-          
+
      av_register_all();
-          
+
      pd.filename = ctx->filename;
      pd.buf      = ctx->header;
      pd.buf_size = sizeof(ctx->header);
-     
+
+     printf("probe\n");
      format = av_probe_input_format( &pd, 1 );
      if (format && format->name) {
           if (!strcmp( format->name, "asf" ) || // wma
               !strcmp( format->name, "rm" )  || // real audio
               !strcmp( format->name, "aac" ) ||
+              !strcmp( format->name, "mp3" ) ||
+              !strcmp( format->name, "mov,mp4,m4a,3gp,3g2,mj2" ) ||
               !strcmp( format->name, "ac3" ) ||
               !strcmp( format->name, "flac" ))
                return DR_OK;
      }
+     printf("unsupp\n");
 
      return DR_UNSUPPORTED;
 }
@@ -1162,64 +1222,68 @@ Construct( IFusionSoundMusicProvider *thiz,
      AVCodec       *c;
      unsigned char  buf[64];
      unsigned int   i, len = 0;
-      
+
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_FFmpeg )
-     
+
      data->ref    = 1;
      data->stream = direct_stream_dup( stream );
      data->status = FMSTATE_STOP;
-     
+
      direct_stream_peek( stream, sizeof(buf), 0, &buf[0], &len );
-     
+
      pd.filename = filename;
      pd.buf      = &buf[0];
      pd.buf_size = len;
-     
+
      fmt = av_probe_input_format( &pd, 1 );
      if (!fmt) {
           IFusionSoundMusicProvider_FFmpeg_Destruct( thiz );
           return DR_INIT;
      }
-     
+
      data->iobuf = D_MALLOC( 4096 );
      if (!data->iobuf) {
           IFusionSoundMusicProvider_FFmpeg_Destruct( thiz );
           return D_OOM();
      }
-     
-     if (init_put_byte( &data->pb, data->iobuf, 4096, 0, 
+
+     if (init_put_byte( &data->pb, data->iobuf, 4096, 0,
                         (void*)data, av_read_callback, NULL,
                         direct_stream_seekable( stream ) ? av_seek_callback : NULL ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_FFmpeg: init_put_byte() failed!\n" );
           IFusionSoundMusicProvider_FFmpeg_Destruct( thiz );
           return DR_INIT;
      }
-     
+
      if (av_open_input_stream( &data->ctx, &data->pb, filename, fmt, NULL ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_FFmpeg: av_open_input_stream() failed!\n" );
           IFusionSoundMusicProvider_FFmpeg_Destruct( thiz );
           return DR_FAILURE;
      }
-     
+
      if (av_find_stream_info( data->ctx ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_FFmpeg: couldn't find stream info!\n" );
           IFusionSoundMusicProvider_FFmpeg_Destruct( thiz );
           return DR_FAILURE;
      }
-     
+
      for (i = 0; i < data->ctx->nb_streams; i++) {
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+          if (data->ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+#else
           if (data->ctx->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO) {
+#endif
                if (!data->st || data->st->codec->bit_rate < data->ctx->streams[i]->codec->bit_rate)
                     data->st = data->ctx->streams[i];
           }
      }
-     
+
      if (!data->st) {
           D_ERROR( "IFusionSoundMusicProvider_FFmpeg: couldn't find audio stream!\n" );
           IFusionSoundMusicProvider_FFmpeg_Destruct( thiz );
           return DR_FAILURE;
      }
-     
+
      data->codec = data->st->codec;
      c = avcodec_find_decoder( data->codec->codec_id );
      if (!c || avcodec_open( data->codec, c ) < 0) {
@@ -1227,10 +1291,10 @@ Construct( IFusionSoundMusicProvider *thiz,
           IFusionSoundMusicProvider_FFmpeg_Destruct( thiz );
           return DR_FAILURE;
      }
-     
+
      direct_util_recursive_pthread_mutex_init( &data->lock );
      pthread_cond_init( &data->cond, NULL );
-     
+
      /* initialize function pointers */
      thiz->AddRef               = IFusionSoundMusicProvider_FFmpeg_AddRef;
      thiz->Release              = IFusionSoundMusicProvider_FFmpeg_Release;
@@ -1249,4 +1313,4 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->WaitStatus           = IFusionSoundMusicProvider_FFmpeg_WaitStatus;
 
      return DR_OK;
-} 
+}
