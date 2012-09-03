@@ -805,6 +805,13 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               wd.posy = (config.height - height) / 2;
                          }
 
+                         if (!(caps & (DSCAPS_VIDEOONLY | DSCAPS_SYSTEMONLY))) {
+                              if (dfb_config->window_policy == CSP_SYSTEMONLY)
+                                   caps |= DSCAPS_SYSTEMONLY;
+                              else if (dfb_config->window_policy == CSP_VIDEOONLY)
+                                   caps |= DSCAPS_VIDEOONLY;
+                         }
+
                          wd.width        = width;
                          wd.height       = height;
                          wd.pixelformat  = format;
