@@ -80,11 +80,13 @@ typedef struct {
 static DFBInputEvent motionX = {
      .type    = DIET_UNKNOWN,
      .axisabs = 0,
+     .min     = 0,
 };
 
 static DFBInputEvent motionY = {
      .type    = DIET_UNKNOWN,
      .axisabs = 0,
+     .min     = 0,
 };
 
 static void
@@ -118,12 +120,16 @@ motion_realize( X11InputData *data )
           if (motionY.type != DIET_UNKNOWN)
                motionX.flags |= DIEF_FOLLOW;
 
+          motionX.max = data->x11->shared->update.xw->width - 1; // FIXME
+
           dfb_input_dispatch( data->device, &motionX );
 
           motionX.type = DIET_UNKNOWN;
      }
 
      if (motionY.type != DIET_UNKNOWN) {
+          motionY.max = data->x11->shared->update.xw->height - 1; // FIXME
+
           dfb_input_dispatch( data->device, &motionY );
 
           motionY.type = DIET_UNKNOWN;
