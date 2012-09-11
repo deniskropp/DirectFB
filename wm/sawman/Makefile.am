@@ -25,7 +25,7 @@ libdirectfbwm_sawman_la_SOURCES = \
 	sawman_wm.c
 
 libdirectfbwm_sawman_la_LIBADD = \
-	../../src/libsawman.la	\
+	$(top_builddir)/src/libsawman.la	\
 	$(DIRECTFB_LIBS)
 
 
