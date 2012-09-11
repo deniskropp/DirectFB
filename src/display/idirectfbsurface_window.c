@@ -208,7 +208,11 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                          if (ret)
                              return ret;
                     }
-               } else
+                    else
+                         CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
+
+               }
+               else
                     CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
           }
 
