@@ -710,21 +710,23 @@ sawman_withdraw_window( SaWMan       *sawman,
           sawman->pointer_window = NULL;
 
      /* Release all implicit key grabs. */
-     for (i=0; i<SAWMAN_MAX_IMPLICIT_KEYGRABS; i++) {
-          if (sawman->keys[i].code != -1 && sawman->keys[i].owner == sawwin) {
-               if (!DFB_WINDOW_DESTROYED( window )) {
-                    DFBWindowEvent we;
-
-                    we.type       = DWET_KEYUP;
-                    we.key_code   = sawman->keys[i].code;
-                    we.key_id     = sawman->keys[i].id;
-                    we.key_symbol = sawman->keys[i].symbol;
-
-                    sawman_post_event( sawman, sawwin, &we );
+     if (!sawman_config->keep_implicit_key_grabs) {
+          for (i=0; i<SAWMAN_MAX_IMPLICIT_KEYGRABS; i++) {
+               if (sawman->keys[i].code != -1 && sawman->keys[i].owner == sawwin) {
+                    if (!DFB_WINDOW_DESTROYED( window )) {
+                         DFBWindowEvent we;
+     
+                         we.type       = DWET_KEYUP;
+                         we.key_code   = sawman->keys[i].code;
+                         we.key_id     = sawman->keys[i].id;
+                         we.key_symbol = sawman->keys[i].symbol;
+     
+                         sawman_post_event( sawman, sawwin, &we );
+                    }
+     
+                    sawman->keys[i].code  = -1;
+                    sawman->keys[i].owner = NULL;
                }
-
-               sawman->keys[i].code  = -1;
-               sawman->keys[i].owner = NULL;
           }
      }
 

@@ -55,6 +55,8 @@ typedef struct {
      bool                  static_layer;
 
      int                   update_region_mode;
+
+     bool                  keep_implicit_key_grabs;
 } SaWManConfig;
 
 

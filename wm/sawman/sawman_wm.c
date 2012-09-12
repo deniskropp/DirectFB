@@ -2338,6 +2338,7 @@ wm_remove_window( CoreWindowStack *stack,
                   void            *window_data )
 {
      DFBResult     ret;
+     int           i;
      WMData       *wmdata = wm_data;
      SaWManWindow *sawwin = window_data;
      SaWManWindow *child;
@@ -2431,6 +2432,16 @@ wm_remove_window( CoreWindowStack *stack,
           default:
                direct_list_append( &sawman->windows, &sawwin->link );
                break;
+     }
+
+     /* Finally, Release all implicit key grabs here, but keep the keys muted until UP event. */
+     if (sawman_config->keep_implicit_key_grabs) {
+          for (i=0; i<SAWMAN_MAX_IMPLICIT_KEYGRABS; i++) {
+               if (sawman->keys[i].code != -1 && sawman->keys[i].owner == sawwin) {
+                    //sawman->keys[i].code  = -1;
+                    sawman->keys[i].owner = NULL;
+               }
+          }
      }
 
      if (tier->single_window == sawwin)

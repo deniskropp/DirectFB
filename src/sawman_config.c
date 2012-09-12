@@ -66,6 +66,7 @@ static const char *config_usage =
      "  resolution=<width>x<height>        Set virtual SaWMan resolution\n"
      "  [no-]static-layer                  Disable layer reconfiguration\n"
      "  update-region-mode=<num>           Set internal update region mode (1-3, default 2)\n"
+     "  keep-implicit-key-grabs            Causes implicit key grabs to stay even when window is withdrawn\n"
      "\n";
 
 
@@ -383,6 +384,9 @@ sawman_config_set( const char *name, const char *value )
                D_ERROR("SaWMan/Config '%s': No value specified!\n", name);
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "keep-implicit-key-grabs") == 0) {
+          sawman_config->keep_implicit_key_grabs = true;
      } else
           return DFB_UNSUPPORTED;
 
