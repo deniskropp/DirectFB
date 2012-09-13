@@ -195,11 +195,13 @@ fs_core_create( CoreSound **ret_core )
 
      bool old_secure = fusion_config->secure_fusion;
      fusion_config->secure_fusion = false;
+
      ret = fusion_enter( fs_config->session, FUSIONSOUND_CORE_ABI, FER_ANY, &core->world );
-     fusion_config->secure_fusion = old_secure;
      if (ret) {
           D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
+          fusion_config->secure_fusion = old_secure;
+
           return ret;
      }
 
@@ -228,9 +230,14 @@ fs_core_create( CoreSound **ret_core )
           fusion_exit( core->world, false );
           D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
+
+          fusion_config->secure_fusion = old_secure;
+
           return ret ? ret : DR_FUSION;
      }
-     
+
+     fusion_config->secure_fusion = old_secure;
+
      if (fs_config->deinit_check)
           direct_cleanup_handler_add( fs_core_deinit_check, core, &core->cleanup_handler );
 
