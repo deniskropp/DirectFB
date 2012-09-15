@@ -77,14 +77,15 @@ struct _PixopsFilter {
 
 
 static void write_argb_span (u32 *src, u8 *dst[], int len,
-                             int dx, int dy, CoreSurface *dst_surface)
+                             int dx, int dy, CoreSurface *dst_surface,
+                             bool premultiply)
 {
      CorePalette *palette = dst_surface->palette;
      u8          *d       = dst[0];
      u8          *d1,*d2;
      int          i, j;
 
-     if (dst_surface->config.caps & DSCAPS_PREMULTIPLIED) {
+     if (premultiply && (dst_surface->config.caps & DSCAPS_PREMULTIPLIED)) {
           for (i = 0; i < len; i++) {
                const u32 s = src[i];
                const u32 a = (s >> 24) + 1;
@@ -678,7 +679,7 @@ void dfb_copy_buffer_32( u32 *src,
                     d[2] = LINE_PTR( dst2, dst_surface->config.caps, y/2,
                                      dst_surface->config.size.h/2, dpitch/2 ) + x/2;
 
-                    write_argb_span( src, d, drect->w, x, y, dst_surface );
+                    write_argb_span( src, d, drect->w, x, y, dst_surface, true );
 
                     src += sw;
                }
@@ -698,7 +699,7 @@ void dfb_copy_buffer_32( u32 *src,
                     d[2] = LINE_PTR( dst2, dst_surface->config.caps, y,
                                      dst_surface->config.size.h, dpitch/2 ) + x/2;
 
-                    write_argb_span( src, d, drect->w, x, y, dst_surface );
+                    write_argb_span( src, d, drect->w, x, y, dst_surface, true );
 
                     src += sw;
                }
@@ -716,7 +717,7 @@ void dfb_copy_buffer_32( u32 *src,
                     d[1] = LINE_PTR( dst1, dst_surface->config.caps, y/2,
                                      dst_surface->config.size.h/2, dpitch ) + (x&~1);
 
-                    write_argb_span( src, d, drect->w, x, y, dst_surface );
+                    write_argb_span( src, d, drect->w, x, y, dst_surface, true );
 
                     src += sw;
                }
@@ -733,7 +734,7 @@ void dfb_copy_buffer_32( u32 *src,
                     d[1] = LINE_PTR( dst1, dst_surface->config.caps, y,
                                      dst_surface->config.size.h, dpitch ) + (x&~1);
 
-                    write_argb_span( src, d, drect->w, x, y, dst_surface );
+                    write_argb_span( src, d, drect->w, x, y, dst_surface, true );
 
                     src += sw;
                }
@@ -753,7 +754,7 @@ void dfb_copy_buffer_32( u32 *src,
                     d[2] = LINE_PTR( dst2, dst_surface->config.caps, y,
                                      dst_surface->config.size.h, dpitch ) + x;
 
-                    write_argb_span( src, d, drect->w, x, y, dst_surface );
+                    write_argb_span( src, d, drect->w, x, y, dst_surface, true );
 
                     src += sw;
             }
@@ -767,7 +768,7 @@ void dfb_copy_buffer_32( u32 *src,
                                      y, dst_surface->config.size.h, dpitch ) +
                            DFB_BYTES_PER_LINE( dst_surface->config.format, x );
 
-                    write_argb_span( src, d, drect->w, x, y, dst_surface );
+                    write_argb_span( src, d, drect->w, x, y, dst_surface, true );
 
                     src += sw;
                }
@@ -1135,7 +1136,7 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
                     break;
           }
 
-          write_argb_span( buf, d, drect->w, drect->x, i, dst_surface );
+          write_argb_span( buf, d, drect->w, drect->x, i, dst_surface, false );
      }
 
      D_FREE(filter.weights);
