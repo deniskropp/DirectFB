@@ -365,7 +365,8 @@ dfb_window_create( CoreWindowStack             *stack,
      surface_caps = desc->surface_caps & (DSCAPS_INTERLACED    | DSCAPS_SEPARATED  |
                                           DSCAPS_PREMULTIPLIED | DSCAPS_DEPTH      |
                                           DSCAPS_STATIC_ALLOC  | DSCAPS_SYSTEMONLY |
-                                          DSCAPS_VIDEOONLY     | DSCAPS_TRIPLE);
+                                          DSCAPS_VIDEOONLY     | DSCAPS_TRIPLE     |
+                                          DSCAPS_GL);
      toplevel_id  = (desc->flags & DWDESC_TOPLEVEL_ID) ? desc->toplevel_id : 0;
 
      if (toplevel_id != 0)

@@ -238,6 +238,9 @@ case "$target_or_host" in
   *arm*)
     have_arm=yes
 	AC_DEFINE(ARCH_ARM,1,[Define to 1 if you are compiling for ARM.])
+    if test -n "`echo $CFLAGS | grep 'march=armv7\-a'`"; then
+      AC_DEFINE(ARCH_ARMv7,1,[Define to 1 if you are compiling for ARMv7.])
+    fi
     ;;
 
   *mips*)
@@ -783,6 +786,24 @@ if test "$enable_egl" = "yes"; then
 fi
 
 AM_CONDITIONAL(EGL_CORE, test "$enable_egl" = "yes")
+
+AC_SUBST(EGL_LIBS)
+AC_SUBST(EGL_CFLAGS)
+
+
+dnl Test for EGL
+AC_ARG_ENABLE(idirectfbgl-egl,
+              AC_HELP_STRING([--enable-idirectfbgl-egl],
+                             [build with EGL support @<:@default=no@:>@]),
+              [], [enable_idirectfbgl_egl=no])
+if test "$enable_idirectfbgl_egl" = "yes"; then
+  PKG_CHECK_MODULES(EGL, [gl egl], [enable_idirectfbgl_egl=yes], [enable_idirectfbgl_egl=no
+    AC_MSG_WARN([
+*** gl egl packages not found -- Building without IDirectFBGL-EGL support.])
+    ])
+fi
+
+AM_CONDITIONAL(IDIRECTFBGL_EGL, test "$enable_idirectfbgl_egl" = "yes")
 
 AC_SUBST(EGL_LIBS)
 AC_SUBST(EGL_CFLAGS)
@@ -2202,6 +2223,8 @@ inputdrivers/wm97xx_ts/Makefile
 interfaces/Makefile
 interfaces/ICoreResourceManager/Makefile
 interfaces/IDirectFBFont/Makefile
+interfaces/IDirectFBGL/Makefile
+interfaces/IDirectFBGL/EGL/Makefile
 interfaces/IDirectFBImageProvider/Makefile
 interfaces/IDirectFBImageProvider/mpeg2/Makefile
 interfaces/IDirectFBVideoProvider/Makefile
@@ -2271,7 +2294,7 @@ Building System Modules:
   Generic /dev/mem support  $enable_devmem
   Mesa/DRM/KMS support      $enable_mesa                $MESA_CFLAGS $MESA_LIBS
   PVR2D                     $enable_pvr2d               $PVR2D_CFLAGS $PVR2D_LIBS
-  EGL                       $enable_egl                 $EGL $EGL_LIBS
+  EGL                       $enable_egl                 $EGL_CFLAGS $EGL_LIBS
   X11 support               $enable_x11                 $X11_CFLAGS $X11_LIBS
   X11/VDPAU support         $enable_x11vdpau            $X11VDPAU_CFLAGS $X11VDPAU_LIBS
   OSX support               $enable_osx                 $OSX_CFLAGS $OSX_LIBS
@@ -2335,6 +2358,8 @@ Building Graphics Drivers:
   OpenGL                    $gl (GLX: $glx)
   OpenGL ES 2.0             $gles2 (Mesa:  $enable_mesa, PVR2D: $enable_pvr2d)
                                        $GLES2_CFLAGS $GLES2_LIBS
+
+  IDirectFBGL-EGL           $enable_idirectfbgl_egl       $EGL_CFLAGS $EGL_LIBS
 
 Building Input Drivers:
   DBox2 Remote              $enable_dbox2remote

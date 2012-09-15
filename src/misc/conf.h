@@ -300,6 +300,10 @@ typedef struct
 
      bool          task_manager;
      unsigned int  software_cores;
+
+     DFBSurfacePixelFormat image_format;
+
+     bool          linux_input_touch_abs;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

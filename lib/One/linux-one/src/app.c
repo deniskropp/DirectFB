@@ -58,6 +58,9 @@ OneAppTarget_Destroy( OneTarget *target )
           OnePacket_Free( packet );
      }
 
+     if (data->link.prev)
+          direct_list_remove( &data->app->recv_data, &data->link );
+
      OneTarget_Destroy( target );
 }
 
@@ -314,10 +317,12 @@ OneApp_Receive( OneApp             *oneapp,
       * If data is available and we got woken up we just return the data.
       */
      while (!received && !wakeup) {
+          DirectLink *next;
+
           /*
            * Check each receiving target against passed Queue IDs
            */
-          direct_list_foreach (data, oneapp->recv_data) {
+          direct_list_foreach_safe (data, next, oneapp->recv_data) {
                for (i=0; i<ids_count; i++) {
                     if (data->queue_id == ids[i]) {
                          size_t rec = 0;
