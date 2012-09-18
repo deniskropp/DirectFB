@@ -28,6 +28,10 @@
 
 #include <config.h>
 
+#ifdef USE_ZLIB
+#include <zlib.h>
+#endif
+
 #include <direct/debug.h>
 
 #include <core/core.h>
