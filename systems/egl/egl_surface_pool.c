@@ -608,6 +608,141 @@ eglWrite( CoreSurfacePool       *pool,
 }
 
 
+static DFBResult
+fboRead( CoreSurfacePool       *pool,
+           void                  *pool_data,
+           void                  *pool_local,
+           CoreSurfaceAllocation *allocation,
+           void                  *alloc_data,
+           void                  *destination,
+           int                    pitch,
+           const DFBRectangle    *rect )
+{
+     EGLAllocationData *alloc = alloc_data;
+     GLuint            *buff, *sline, *dline, *s, *d;
+     GLuint             pixel, w, h, pixels_per_line;
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+     D_MAGIC_ASSERT( alloc, EGLAllocationData );
+
+     D_INFO( "%s( %p, %dx%d, type 0x%08x )\n", __FUNCTION__, allocation->buffer, allocation->config.size.w, allocation->config.size.h,
+             allocation->type );
+
+     D_DEBUG_AT( EGL_SurfLock, "%s( %p )\n", __FUNCTION__, allocation->buffer );
+
+     (void) alloc;
+
+
+     buff = (GLuint *)D_MALLOC(rect->w * rect->h * 4);
+     if (!buff) {
+          D_ERROR("EGL: failed to allocate %d bytes for texture download!\n",
+                  rect->w * rect->h);
+          return D_OOM();
+     }
+
+
+     int fbo;
+
+     glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+
+     glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
+
+     glReadPixels(rect->x, rect->y,
+                  rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, buff);
+
+     glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+
+
+     pixels_per_line = pitch/4;
+
+     sline = buff;
+     dline = (GLuint *)destination;// + rect->x + (rect->y * pixels_per_line);
+
+     h = rect->h;
+     while (h--) {
+          s = sline;
+          d = dline;
+          w = rect->w;
+          while (w--) {
+               pixel = *s++;
+               *d++ = (pixel & 0xff00ff00) |
+                      ((pixel >> 16) & 0x000000ff) |
+                      ((pixel << 16) & 0x00ff0000);
+          }
+          sline += rect->w;
+          dline += pixels_per_line;
+     }
+
+     D_FREE(buff);
+
+     return DFB_OK;
+}
+
+static DFBResult
+fboWrite( CoreSurfacePool       *pool,
+            void                  *pool_data,
+            void                  *pool_local,
+            CoreSurfaceAllocation *allocation,
+            void                  *alloc_data,
+            const void            *source,
+            int                    pitch,
+            const DFBRectangle    *rect )
+{
+     EGLAllocationData *alloc = alloc_data;
+     CoreSurface         *surface;
+     GLuint            *buff, *sline, *dline, *s, *d;
+     GLuint             pixel, w, h, pixels_per_line;
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+     D_MAGIC_ASSERT( alloc, EGLAllocationData );
+
+     surface = allocation->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     D_INFO( "%s( %p, %dx%d, type 0x%08x )\n", __FUNCTION__, allocation->buffer, allocation->config.size.w, allocation->config.size.h,
+             allocation->type );
+
+//     direct_trace_print_stack(NULL);
+
+     D_DEBUG_AT( EGL_SurfLock, "%s( %p )\n", __FUNCTION__, allocation->buffer );
+     D_DEBUG_AT( EGL_SurfLock, "  -> " DFB_RECT_FORMAT "\n", DFB_RECTANGLE_VALS(rect) );
+
+
+     EGLint err;
+
+
+     int tex;
+
+     glGetIntegerv( GL_TEXTURE_BINDING_2D, &tex );
+
+
+     glBindTexture( GL_TEXTURE_2D, alloc->texture );
+
+     glPixelStorei( GL_UNPACK_ALIGNMENT, 8 );
+
+     if (allocation->config.format == DSPF_ABGR) {
+          glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->w, rect->h, GL_RGBA, GL_UNSIGNED_BYTE, source);
+     }
+     else {
+          glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->w, rect->h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, source);
+     }
+
+     if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/PVR2D: glTexSubImage2D() failed! (error = %x)\n", err );
+          //return DFB_FAILURE;
+     }
+
+     glBindTexture( GL_TEXTURE_2D, tex );
+
+     D_INFO( "%s( %p, %dx%d, type 0x%08x ) done\n", __FUNCTION__, allocation->buffer, allocation->config.size.w, allocation->config.size.h,
+             allocation->type );
+
+     return DFB_OK;
+}
+
+
 static const SurfacePoolFuncs _eglSurfacePoolFuncs = {
      PoolDataSize:       eglPoolDataSize,
      PoolLocalDataSize:  eglPoolLocalDataSize,
@@ -626,8 +761,8 @@ static const SurfacePoolFuncs _eglSurfacePoolFuncs = {
      Lock:               eglLock,
      Unlock:             eglUnlock,
 
-//     Read:               eglRead,
-     Write:              eglWrite,
+     Read:               fboRead,
+     Write:              fboWrite,
 };
 
 const SurfacePoolFuncs *eglSurfacePoolFuncs = &_eglSurfacePoolFuncs;
