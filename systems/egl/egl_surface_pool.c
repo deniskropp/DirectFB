@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <directfb_util.h>
@@ -312,8 +314,8 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
      
 #if 1
      EGLint err;
-     int    fbo;
-     int    tex;
+     int    fbo = 0;
+     int    tex = 0;
 
 #if 0
         
@@ -345,16 +347,31 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
 #endif
 
      glGetIntegerv( GL_FRAMEBUFFER_BINDING, &fbo );
+     if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/EGL: glGetIntegerv( GL_FRAMEBUFFER_BINDING ) failed! (error = %x)\n", err );
+          //return DFB_FAILURE;
+     }
      glGetIntegerv( GL_TEXTURE_BINDING_2D, &tex );
+     if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/EGL: glGetIntegerv( GL_TEXTURE_BINDING_2D ) failed! (error = %x)\n", err );
+          //return DFB_FAILURE;
+     }
 
 
      /*
       * Texture
       */
-     glGenTextures( 1, &alloc->texture );
      if ((err = glGetError()) != 0) {
-          D_ERROR( "DirectFB/EGL: glGenTextures() failed! (error = %x)\n", err );
-          return DFB_FAILURE;
+          D_ERROR( "DirectFB/EGL: Error before glGenTextures()! (error = %x)\n", err );
+          //return DFB_FAILURE;
+     }
+
+     while (!alloc->texture) {
+          glGenTextures( 1, &alloc->texture );
+          if ((err = glGetError()) != 0) {
+               D_ERROR( "DirectFB/EGL: glGenTextures() failed! (error = %x)\n", err );
+               //return DFB_FAILURE;
+          }
      }
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
@@ -367,7 +384,7 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
 
 //     glEGLImageTargetTexture2DOES( GL_TEXTURE_2D, alloc->eglImage );
      if ((err = eglGetError()) != EGL_SUCCESS) {
-          D_ERROR( "DirectFB/EGL: glEGLImageTargetTexture2DOES() failed! (error = %x)\n", err );
+          D_ERROR( "DirectFB/EGL: glTexImage2D() failed! (error = %x)\n", err );
           return DFB_FAILURE;
      }
 
@@ -377,10 +394,18 @@ eglAllocateBuffer( CoreSurfacePool       *pool,
      glGenFramebuffers( 1, &alloc->fbo );
      glBindFramebuffer( GL_FRAMEBUFFER, alloc->fbo );
      glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, alloc->texture, 0 );
+     if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/EGL: glFramebufferTexture2D() failed! (error = %x)\n", err );
+         return DFB_FAILURE;
+     }
 
      
      glBindTexture( GL_TEXTURE_2D, tex );
      glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+     if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/EGL: glBindFramebuffer() failed! (error = %x)\n", err );
+         return DFB_FAILURE;
+     }
 #endif
      allocation->size   = alloc->size;
      allocation->offset = alloc->offset;
@@ -417,6 +442,8 @@ eglDeallocateBuffer( CoreSurfacePool       *pool,
      egl = local->egl;
      D_ASSERT( egl != NULL );
 
+     glDeleteFramebuffers( 1, &alloc->fbo );
+     glDeleteTextures( 1, &alloc->texture );
      
      if (allocation->type & CSTF_LAYER) {
      }
@@ -701,7 +728,7 @@ fboWrite( CoreSurfacePool       *pool,
      surface = allocation->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     D_INFO( "%s( %p, %dx%d, type 0x%08x )\n", __FUNCTION__, allocation->buffer, allocation->config.size.w, allocation->config.size.h,
+//     D_INFO( "%s( %p, %dx%d, type 0x%08x )\n", __FUNCTION__, allocation->buffer, allocation->config.size.w, allocation->config.size.h,
              allocation->type );
 
 //     direct_trace_print_stack(NULL);
@@ -716,7 +743,6 @@ fboWrite( CoreSurfacePool       *pool,
      int tex;
 
      glGetIntegerv( GL_TEXTURE_BINDING_2D, &tex );
-
 
      glBindTexture( GL_TEXTURE_2D, alloc->texture );
 
@@ -736,8 +762,8 @@ fboWrite( CoreSurfacePool       *pool,
 
      glBindTexture( GL_TEXTURE_2D, tex );
 
-     D_INFO( "%s( %p, %dx%d, type 0x%08x ) done\n", __FUNCTION__, allocation->buffer, allocation->config.size.w, allocation->config.size.h,
-             allocation->type );
+//     D_INFO( "%s( %p, %dx%d, type 0x%08x ) done\n", __FUNCTION__, allocation->buffer, allocation->config.size.w, allocation->config.size.h,
+//             allocation->type );
 
      return DFB_OK;
 }
