@@ -1,3 +1,47 @@
+1.6.2
+-----
+IDirectFB
+- When creating a windowed primary, translate window-surface-policy option to DSCAPS_SYSTEMONLY/VIDEOONLY.
+
+Core
+- Stub out Core_Push/Pop/GetCalling in case of single app build, thanks to Mike Nelis!
+- Temporary solution for permissions not being granted to a surface from GetSurface().
+- prevent segfault when calls are launched from non-dfb threads.
+- Reset flip counter to zero when changing buffer mode.
+- When creating a window pass through DSCAPS_GL.
+
+Util
+- Add dfb_regions_unite() to calculate bounds of one or more regions.
+
+Genefx
+- Avoid division by zero with rotation and formats < 1 byte per pixel.
+
+gfxutil
+- Avoid double premultiplication when loading an image scaled.
+
+One:
+- Use direct_list_foreach_safe() when iterating through receiving list.
+- In OneAppTarget_Destroy() remove from receiving list if needed.
+
+fonts
+- Make x and y advances 24.8 fixed point to fix font rotation.
+
+X11
+- Set max value for absolute motion events.
+
+EGL
+- Support ARGB directly in fboWrite(), add fboRead().
+
+Android
+- Use sawman wm.
+- Force quit by segfaulting on purpose.
+
+Video Provider
+- Add WIP gstreamer video provider.
+
+Tools
+- dfbg: Add option '-p' to create a surface with DSCAPS_PREMULTIPLIED.
+
 1.6.1
 -----
 
