@@ -1677,6 +1677,8 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
                                  const DFBRectangle *rects,
                                  unsigned int        num_rects )
 {
+     unsigned int i;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p, %p [%d] )\n", __FUNCTION__, thiz, rects, num_rects );
@@ -1698,7 +1700,6 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
           return DFB_INVARG;
 
      if (data->area.wanted.x || data->area.wanted.y) {
-          unsigned int  i;
           DFBRectangle *local_rects;
           bool          malloced = (num_rects > 256);
 
@@ -1714,13 +1715,20 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
                local_rects[i].h = rects[i].h;
           }
 
-          CoreGraphicsStateClient_FillRectangles( &data->state_client, local_rects, num_rects );
+          for (i=0; i<num_rects; i+=200) {
+               CoreGraphicsStateClient_FillRectangles( &data->state_client, &local_rects[i],
+                                                       MIN(200, num_rects-i) );
+          }
 
           if (malloced)
                D_FREE( local_rects );
      }
-     else
-          CoreGraphicsStateClient_FillRectangles( &data->state_client, rects, num_rects );
+     else {
+          for (i=0; i<num_rects; i+=200) {
+               CoreGraphicsStateClient_FillRectangles( &data->state_client, &rects[i],
+                                                       MIN(200, num_rects-i) );
+          }
+     }
 
      return DFB_OK;
 }
