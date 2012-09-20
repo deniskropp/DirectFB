@@ -301,6 +301,12 @@ CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
                return ret;
      }
 
+     if (flags & SMF_SRC_CONVOLUTION) {
+          ret = CoreGraphicsState_SetSrcConvolution( client->gfx_state, &state->src_convolution );
+          if (ret)
+               return ret;
+     }
+
      return DFB_OK;
 }
 
@@ -368,6 +374,9 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
 
           if (state->blittingflags & DSBLIT_COLORKEY_PROTECT)
                flags = (StateModificationFlags)(flags | SMF_COLORKEY);
+
+          if (state->blittingflags & DSBLIT_SRC_CONVOLUTION)
+               flags = (StateModificationFlags)(flags | SMF_SRC_CONVOLUTION);
      }
 
      ret = CoreGraphicsStateClient_SetState( client, state, (StateModificationFlags)(state->modified & flags) );
