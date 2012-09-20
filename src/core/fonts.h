@@ -153,6 +153,15 @@ typedef struct {
 } CoreFontEncoding;
 
 
+typedef enum {
+     CFF_NONE             = 0x00000000,
+
+     CFF_SUBPIXEL_ADVANCE = 0x00000001,
+
+     CFF_ALL              = 0x00000001,
+} CoreFontFlags;
+
+
 #define DFB_FONT_MAX_LAYERS 2
 
 /*
@@ -215,6 +224,8 @@ struct _CoreFont {
 
      int                           underline_position;
      int                           underline_thickness;
+
+     CoreFontFlags                 flags;
 };
 
 #define CORE_FONT_DEBUG_AT(Domain, font)                                             \
