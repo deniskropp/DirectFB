@@ -186,6 +186,8 @@ main( int argc, char *argv[] )
      while (true) {
           long long now;
 
+          dest->Clear( dest, 0, 0, 0, 0 );
+
           for (i=0; i<100000; i++) {
                dest->SetColor( dest, rand()%256, rand()%256, rand()%256, rand()%256 );
                dest->FillRectangle( dest, rand()%100, rand()%100, rand()%100, rand()%100 );
