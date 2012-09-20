@@ -729,7 +729,7 @@ fboWrite( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( surface, CoreSurface );
 
 //     D_INFO( "%s( %p, %dx%d, type 0x%08x )\n", __FUNCTION__, allocation->buffer, allocation->config.size.w, allocation->config.size.h,
-             allocation->type );
+//             allocation->type );
 
 //     direct_trace_print_stack(NULL);
 
