@@ -1109,6 +1109,7 @@ Construct( IDirectFBFont               *thiz,
      }
 
      font->attributes = attributes;
+     font->flags      = CFF_SUBPIXEL_ADVANCE;
 
      D_ASSERT( font->pixel_format == DSPF_ARGB ||
                font->pixel_format == DSPF_ABGR ||

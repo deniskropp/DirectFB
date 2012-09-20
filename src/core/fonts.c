@@ -886,6 +886,11 @@ retry:
           goto out;
      }
 
+     if (!(font->flags & CFF_SUBPIXEL_ADVANCE)) {
+          data->xadvance <<= 8;
+          data->yadvance <<= 8;
+     }
+
      if (data->width < 1 || data->height < 1) {
           D_DEBUG_AT( Core_Font, "  -> zero size glyph bitmap!\n" );
           data->start = data->width = data->height = 0;
