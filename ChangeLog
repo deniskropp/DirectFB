@@ -1,3 +1,255 @@
+commit fe1036982b1377ccae383bda683b27635c092158
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 20 18:09:03 2012 +0200
+
+    update news
+
+commit 7fe23b1824ea8a30a489d0474e59234ac81ac051
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 20 18:05:36 2012 +0200
+
+    add news (fixme)
+
+commit a3fdacdd98ec7c67350723a580cb715df1f2a384
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 17:06:42 2012 +0200
+
+    dfbg: Add option '-p' to create a surface with DSCAPS_PREMULTIPLIED.
+
+commit 7dc2d2fae4428f7be5157bb85fdf1422a634cff3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 17:01:54 2012 +0200
+
+    DGIFF: Fix advance by adding subpixel accuracy.
+
+commit 756bd70a8c55dc839b7c0bd91c455b892cc5693d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 17:01:26 2012 +0200
+
+    FT2: Set CFF_SUBPIXEL_ADVANCE.
+
+commit 339ff05a72e2092cda13c3d7f76157413bd1131c
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Sep 20 16:16:52 2012 +0200
+
+    videoprovider: also support gstreamer-1.0
+
+commit f60b70c5fe09ec75a9f104945647e497b71c8728
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 17:00:12 2012 +0200
+
+    Core: Fix compatibility with older font modules. Adjust advance when new flag CFF_SUBPIXEL_ADVANCE is not set.
+
+commit df4198c3dc5bce2eea8bb4947457925a24a708af
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 20 16:22:52 2012 +0200
+
+    set version to 1.6.2, require fluxcomp 1.4.2
+
+commit 85e1db5c2294f2bd426edea27374c7ca124e81b0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 18 12:07:09 2012 +0200
+
+    EGL: Support ARGB directly in fboWrite(), add fboRead().
+
+commit 852bdba9983393486dc9472fa3a575909666ea8e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 18 21:10:25 2012 +0200
+
+    Core: Include zlib.h where it was missing.
+
+commit f12653151f270be449899595a506a7e6b236d1b0
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Sep 4 14:10:03 2012 +0200
+
+    x11/input: set max value for absolute motion events
+
+commit 267fb22b531956bf3c7e9c016f39255060993fba
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Sep 3 21:53:40 2012 +0200
+
+    IDirectFB: When creating a windowed primary, translate window-surface-policy option to DSCAPS_SYSTEMONLY/VIDEOONLY.
+
+commit 29e8e9019f1b0bc7e7981e1ba54b5924d7618e10
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Aug 31 00:49:37 2012 +0200
+
+    One: In OneAppTarget_Destroy() remove from receiving list if needed.
+
+commit 30a5e9c29c25325f4820b1f370a2021545e438ff
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Aug 28 12:16:37 2012 +0200
+
+    configure: Check for armv7-a in CFLAGS.
+
+commit fe4d7318cf193b0596cd2d6fcff4f922017fcb6c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Aug 28 11:44:13 2012 +0200
+
+    One: Use direct_list_foreach_safe() when iterating through receiving list.
+
+commit e4a8684955a3453a2017f56584bbc14fc91fb6ce
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Aug 28 11:42:57 2012 +0200
+
+    Core: When creating a window pass through DSCAPS_GL.
+
+commit 92e0bc2cfd93cceb7cf817c28c5398b89f2eed25
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Aug 17 18:02:08 2012 +0200
+
+    fusion: prevent segfault when calls are originated from non-dfb threads
+
+commit 44b0281aec0f915849b76d865033191897b93a71
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Aug 22 14:31:41 2012 +0200
+
+    Core: Reset flip counter to zero when changing buffer mode.
+
+commit c5a6ab0f2c0625292f743a3696a2c16ea1de2138
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Sep 15 20:14:50 2012 +0200
+
+    gfx_util: Avoid double premultiplication when loading an image scaled.
+
+commit f3ec847c0fb4e7c4f4dfa08a3d9215803d7ae388
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Aug 17 18:00:26 2012 +0200
+
+    core: prevent segfault when calls are launched from non-dfb threads
+
+commit f858265233b4dfde0e2f7cd8f8e69fb461a1a7a3
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Aug 6 20:44:47 2012 +0200
+
+    fonts: make x and y advances 24.8 fixed point  to fix font rotation
+
+commit 83044751539ac4537078b58810e4b0f5563eaf4a
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Aug 2 09:24:02 2012 +0200
+
+    VideoProvider: use FusionSound for audio playback
+
+commit 1fc18f62bdf15d91699cc9fcb35e0ec7db2acce3
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Aug 1 14:02:33 2012 +0200
+
+    videoprovider: make bus local, fix setting speed
+
+commit 9776ca90e61450bc13bb57b515203aeb9d0289fe
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Aug 1 10:52:19 2012 +0200
+
+    videoprovider: set finished when no more data is available
+
+commit dcedfaca847eda861b31384e439a184903a49c78
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Aug 1 10:22:24 2012 +0200
+
+    videoprovider: update curr timepos and duration during playback
+
+commit d77752f6a52b1bd29258cf23d2c1bd615df5eb41
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Jul 31 16:20:10 2012 +0200
+
+    videoprovider: WIP set speed, scaling
+
+commit 5d5ab0e73f7be4af1b3ae703f723a567d6645d75
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Aug 21 20:29:52 2012 +0200
+
+    Genefx: Avoid division by zero with rotation and formats < 1 byte per pixel
+
+commit 60c193d3afa11f100602aff40556fc86edcaee3b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Aug 21 20:21:42 2012 +0200
+
+    Core: Set window_data to NULL after freeing in dfb_wm_remove_window().
+
+commit 82200d85b1de52b407bc8522d99f2ea4412d82d3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jul 27 23:20:26 2012 +0200
+
+    Util: Add dfb_regions_unite() to calculate bounds of one or more regions.
+
+commit 6455e764deedf73221c80273d7a8c5eb5eab95eb
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Aug 28 00:27:00 2012 +0200
+
+    Core: Temporary solution for permissions not being granted to a surface from GetSurface().
+
+commit 47f55a318580d33d1a61fb1c51938e5685169991
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jul 27 15:06:04 2012 +0200
+
+    VideoProvider: use pkg-config
+
+commit 611f76e08fba5559e1925b7bdadc93ac147dd2d9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 25 14:47:57 2012 +0200
+
+    configure: Disable gstreamer by default.
+
+commit d3640018895584255331ca38c059758ff23b6e03
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Jul 24 10:56:19 2012 +0200
+
+    VideoProvider: added basic gstreamer implementation (WIP, only when --enable-gstreamer is passed to configure)
+
+commit 0fd005b3401af4a2b41f4bb4d1b2aa12fe247527
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 22 14:40:37 2012 +0200
+
+    Core: Stub out Core_Push/Pop/GetCalling in case of single app build, thanks to Mike Nelis!
+
+commit 435c695cd98a462e391b69643e2a55593412d3eb
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jul 12 17:47:00 2012 +0200
+
+    Android: add switch for no-debug builds
+
+commit b7dcd3ce8bc81c54dc53ab530a09b0318cb7b0aa
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jul 12 13:12:23 2012 +0200
+
+    Android: force quit when core is shutting down
+
+commit fc4a245057636ba4efee2fca8f4c7c1db4311961
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Jul 9 09:42:41 2012 +0200
+
+    Android: follow sawman.c renaming to allow build on windows
+
+commit 9bea27836f1a52ac6641bbba5315b676e8c2e055
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jul 6 13:19:47 2012 +0200
+
+    Android: use sawman wm
+
+commit 4ad1edcc29cbd50bbe9145f555e91b976e59d147
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jul 6 13:15:34 2012 +0200
+
+    Android: build in sawman wm
+
+commit a85e0f459d05f4850d68fd960525bbfa8b8a39c6
+Author: André Draszik <andre.draszik@st.com>
+Date:   Tue Jul 24 15:59:37 2012 +0100
+
+    convert: add missing break in dfb_pixel_to_components() for DSPF_ABGR
+
+commit 3541e029655a5cd78cd3ebfaf34107982e45e1fd
+Author: André Draszik <andre.draszik@st.com>
+Date:   Tue Jul 24 15:53:16 2012 +0100
+
+    convert: add missing break in dfb_pixel_to_color() for DSPF_ABGR
+
+commit fa0e5f6dd2981866bb15edf396ea10adcf28ebd7
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jun 29 18:00:26 2012 +0200
+
+    update changelog
+
 commit 101cf9e44bc55faf3429e98e50e40c3133dff42a
 Merge: 8806bb4 7a6cb44
 Author: Andreas Shimokawa <andi@directfb.org>
