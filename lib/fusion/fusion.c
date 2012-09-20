@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -1111,7 +1113,7 @@ static void *
 fusion_dispatch_loop( DirectThread *thread, void *arg )
 {
      int          len = 0;
-     char         buf[FUSION_MESSAGE_SIZE];
+     char        *buf = malloc(FUSION_MESSAGE_SIZE*4);     // FIXME: Use free()!
      FusionWorld *world = arg;
 
      D_DEBUG_AT( Fusion_Main_Dispatch, "%s() running...\n", __FUNCTION__ );
@@ -1121,7 +1123,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
           D_MAGIC_ASSERT( world, FusionWorld );
 
-          len = read( world->fusion_fd, buf, FUSION_MESSAGE_SIZE );
+          len = read( world->fusion_fd, buf, FUSION_MESSAGE_SIZE*4 );
           if (len < 0) {
                if (errno == EINTR)
                     continue;
@@ -1207,11 +1209,14 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
           if (!world->refs) {
                D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
+               free( buf );
                return NULL;
           }
      }
 
      D_PERROR( "Fusion/Receiver: reading from fusion device failed!\n" );
+
+     free( buf );
 
      return NULL;
 }
