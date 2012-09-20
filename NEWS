@@ -1,5 +1,6 @@
 1.6.2
 -----
+
 IDirectFB
 - When creating a windowed primary, translate window-surface-policy option to DSCAPS_SYSTEMONLY/VIDEOONLY.
 
@@ -19,7 +20,7 @@ Genefx
 gfxutil
 - Avoid double premultiplication when loading an image scaled.
 
-One:
+One
 - Use direct_list_foreach_safe() when iterating through receiving list.
 - In OneAppTarget_Destroy() remove from receiving list if needed.
 
@@ -41,6 +42,7 @@ Video Provider
 
 Tools
 - dfbg: Add option '-p' to create a surface with DSCAPS_PREMULTIPLIED.
+
 
 1.6.1
 -----
