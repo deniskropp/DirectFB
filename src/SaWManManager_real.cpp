@@ -378,8 +378,16 @@ ISaWManManager_Real::SetWindowConfig(
                ret = dfb_surface_reformat( window->surface,
                                            window->config.bounds.w, window->config.bounds.h,
                                            window->surface->config.format );
-               if (ret)
+               if (ret) {
+                    D_DERROR( ret, "WM/SaWMan: Could not resize surface "
+                                   "(%dx%d -> %dx%d)!\n",
+                              window->surface->config.size.w,
+                              window->surface->config.size.h,
+                              window->config.bounds.w,
+                              window->config.bounds.h );
+
                     return ret; //FIXME: cleanup
+               }
           }
      }
 
