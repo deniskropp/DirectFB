@@ -450,7 +450,7 @@ main( int argc, char *argv[] )
 
      printf( "\n" );
      if (data->sawman->unselkeys_window) {
-          CoreWindow *window = data->sawman->unselkeys_window;
+          CoreWindow *window = data->sawman->unselkeys_window->window;
 
           printf( "Collector window: ID %d (%d,%d-%dx%d, caps 0x%08x)\n", window->id,
                   DFB_RECTANGLE_VALS( &window->config.bounds ), window->caps );
