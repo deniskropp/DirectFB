@@ -1023,9 +1023,23 @@ AC_ARG_ENABLE(gstreamer,
 
 AM_CONDITIONAL(GSTREAMER_PROVIDER, test "$enable_gstreamer" = "yes")
 
+HAVE_GSTREAMER_1_0=no
 if test "x$enable_gstreamer" = "xyes"; then
-    GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-0.10`
-    GSTREAMER_LIBS=`$PKG_CONFIG --libs gstreamer-app-0.10`
+    AC_MSG_CHECKING(for Gstreamer >= 1.0)
+    if $PKG_CONFIG --atleast-version "0.11" gstreamer-app-1.0 ; then
+      AC_MSG_RESULT([found])
+      HAVE_GSTREAMER_1_0=yes
+    else
+      AC_MSG_RESULT([not found])
+    fi
+    if test "$HAVE_GSTREAMER_1_0" = "no"; then
+      GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-0.10` 
+      GSTREAMER_LIBS=`$PKG_CONFIG --libs gstreamer-app-0.10`
+    else
+      GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-1.0`
+      GSTREAMER_INCL="$GSTREAMER_INCL -DHAVE_GSTREAMER_1_0_API"
+      GSTREAMER_LIBS=`$PKG_CONFIG --libs gstreamer-app-1.0`
+    fi
     gstreamer=yes
 else
     GSTREAMER_INCL=
@@ -2301,7 +2315,7 @@ Building Video Provider Modules:
   GIF                       $enable_gif
   Video4Linux               $V4L (v2: $V4L2)
   MNG                       $MNG                 $LIBMNG_CFLAGS $LIBMNG_LIBS
-  Gstreamer                 $gstreamer           $GSTREAMER_INCL $GSTREAMER_LIBS
+  Gstreamer                 $gstreamer (v1: $HAVE_GSTREAMER_1_0)       $GSTREAMER_INCL $GSTREAMER_LIBS
 
 Building Font Modules:
   FreeType2                 $FREETYPE                 $FREETYPE_CFLAGS $FREETYPE_LIBS
