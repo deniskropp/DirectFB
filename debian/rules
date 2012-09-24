@@ -15,6 +15,7 @@ BUILD_DIST := directfb-build
 #conf_script_env := LDFLAGS="-wl,--as-needed"
 
 DEB_HOST_ARCH_OS   ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
+DEB_HOST_ARCH_CPU   ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_CPU)
 DEB_HOST_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
 DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
 
@@ -38,6 +39,15 @@ else
   conf_options := \
     --with-gfxdrivers=none \
     --with-inputdrivers=ps2mouse
+endif
+
+ifeq ($(DEB_HOST_ARCH_CPU), i386)
+  conf_options += \
+    --with-gfxdrivers=vdpau \
+    --enable-x11vdpau
+else
+  conf_options := \
+    --with-gfxdrivers=none
 endif
 
 %:

@@ -82,7 +82,7 @@ Description: DirectFB - x11 system module
  This package contains the X11 system module.
 
 Package: libdirectfb-1.7-system-x11vdpau
-Architecture: any
+Architecture: i386 amd64
 Depends: libdirectfb-1.7 (= ${binary:Version}),
  ${shlibs:Depends}, ${misc:Depends}
 Replaces: libdirectfb-system-x11vdpau
