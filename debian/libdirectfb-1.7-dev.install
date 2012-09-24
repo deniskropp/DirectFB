@@ -1,6 +1,5 @@
 usr/bin/directfb-config
 usr/bin/directfb-csource
-usr/bin/fluxcomp
 usr/include/directfb-internal/*.h
 usr/include/directfb-internal/core/*.h
 usr/include/directfb-internal/devmem/*.h
