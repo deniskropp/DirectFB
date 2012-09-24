@@ -46,7 +46,7 @@ ifeq ($(DEB_HOST_ARCH_CPU), i386)
     --with-gfxdrivers=vdpau \
     --enable-x11vdpau
 else
-  conf_options := \
+  conf_options += \
     --with-gfxdrivers=none
 endif
 
