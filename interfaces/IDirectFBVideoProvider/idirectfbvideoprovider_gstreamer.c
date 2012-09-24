@@ -63,8 +63,6 @@
 
 #include <gfx/clip.h>
 
-#undef HAVE_FUSIONSOUND
-
 #ifdef HAVE_FUSIONSOUND
 # include <fusionsound.h>
 # include <fusionsound_limits.h>
@@ -80,6 +78,8 @@ static DFBResult Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *b
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, GSTREAMER )
 
 D_DEBUG_DOMAIN( GST, "VideoProvider/GST", "DirectFB VideoProvider Gstreamer" );
+
+#define AUDIO_BUFSIZE 4096
 
 static DirectThread *gmain_thread;
 static int           gmain_initialised;
@@ -301,10 +301,10 @@ decode_pad_added( GstElement *element, GstPad *srcpad, gpointer ptr )
      int                                    i;
      int                                    width;
      int                                    height;
-     int                                    depth;
+     int                                    depth = 16;
      int                                    rate;
      int                                    channels;
-     gboolean                               sign;
+     gboolean                               sign = 1;
 
      D_DEBUG_AT( GST, "decode_pad_added: type %s (caps %s)\n", GST_PAD_NAME(srcpad), caps );
 
@@ -330,9 +330,15 @@ decode_pad_added( GstElement *element, GstPad *srcpad, gpointer ptr )
           ret = gst_pad_link( srcpad, sink );
           gst_object_unref( sink );
 
+          data->parsed_audio = 1;
+
           for (i = 0; i < gst_caps_get_size(pad_caps); i++) {
                const GstStructure *str = gst_caps_get_structure( pad_caps, i );
-               if (gst_structure_get_int( str, "depth", &depth ) && gst_structure_get_int( str, "rate", &rate ) && gst_structure_get_int( str, "channels", &channels ) && gst_structure_get_boolean( str, "signed", &sign ) ) {
+
+               gst_structure_get_int( str, "depth", &depth );
+               gst_structure_get_boolean( str, "signed", &sign );
+
+               if (gst_structure_get_int( str, "rate", &rate ) && gst_structure_get_int( str, "channels", &channels )) {
                     data->audio_rate     = rate;
                     data->audio_channels = channels;
                     data->audio_format   = FSSF_UNKNOWN;
@@ -512,8 +518,10 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
           D_DEBUG_AT( GST, "error: preparation was not successful\n" );
           return 0;
      }
-
+sleep(1);
      update_status( data, data->pipeline, true );
+
+     D_DEBUG_AT( GST, "prepare: parsed a/v = %d/%d\n", data->parsed_audio, data->parsed_video );
 
      return 1;
 }
@@ -527,24 +535,41 @@ process_audio( DirectThread *self, void *arg )
      GstSample                             *sample;
 #endif
      GstBuffer                             *buffer;
-     IDirectFBSurface_data                 *dst_data;
-     CoreSurfaceBufferLock                  lock;
-     DFBResult                              ret;
+     char                                   buf[AUDIO_BUFSIZE];
+     int                                    buflen;
+     int                                    offset = 0;
+     int                                    len;
+     int                                    copied;
 #ifdef HAVE_FUSIONSOUND
      while (!data->error) {
 #ifdef HAVE_GSTREAMER_1_0_API
           sample = gst_app_sink_pull_sample( sink );
           buffer = gst_sample_get_buffer( sample );
+          buflen = gst_buffer_get_size( buffer );
 #else
           buffer = gst_app_sink_pull_buffer( sink );
 #endif
           if (!buffer)
                break;
 
-          //D_DEBUG_AT( GST, "appsink_audio_new_buffer: len %d caps '%s'\n", GST_BUFFER_SIZE(buffer), gst_caps_to_string(gst_buffer_get_caps(buffer)) );
-
+#ifdef HAVE_GSTREAMER_1_0_API
+          D_DEBUG_AT( GST, "appsink_audio_new_buffer: len %d caps '%s'\n", (int)gst_buffer_get_size(buffer), gst_caps_to_string(gst_sample_get_caps(sample)) );
+#else
+          D_DEBUG_AT( GST, "appsink_audio_new_buffer: len %d caps '%s'\n", GST_BUFFER_SIZE(buffer), gst_caps_to_string(gst_buffer_get_caps(buffer)) );
+#endif
+#ifdef HAVE_GSTREAMER_1_0_API
+          while (buflen > 0) {
+               len = buflen > AUDIO_BUFSIZE ? AUDIO_BUFSIZE : buflen;
+               copied = gst_buffer_extract( buffer, offset, buf, len );
+               if (copied > 0 && copied < len)
+                    len = copied;
+               data->audio_stream->Write( data->audio_stream, buf, len / data->audio_samplesize );
+               buflen -= len;
+               offset += len;
+          }
+#else
           data->audio_stream->Write( data->audio_stream, GST_BUFFER_DATA(buffer), GST_BUFFER_SIZE(buffer) / data->audio_samplesize );
-
+#endif
           gst_buffer_unref( buffer );
      }
 #endif
