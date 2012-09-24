@@ -12,7 +12,7 @@ DESTDIR_DIST := $(CURDIR)/debian/tmp
 
 BUILD_DIST := directfb-build
 
-conf_script_env := LDFLAGS="-wl,--as-needed"
+#conf_script_env := LDFLAGS="-wl,--as-needed"
 
 DEB_HOST_ARCH_OS   ?= $(shell dpkg-architecture -qDEB_HOST_ARCH_OS)
 DEB_HOST_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
