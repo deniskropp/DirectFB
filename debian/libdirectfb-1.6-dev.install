@@ -12,7 +12,6 @@ usr/include/directfb-internal/input/*.h
 usr/include/directfb-internal/media/*.h
 usr/include/directfb-internal/misc/*.h
 usr/include/directfb-internal/windows/*.h
-usr/include/directfb-internal/x11vdpau/*.h
 usr/include/directfb/*.h
 usr/include/directfb/direct/*.h
 usr/include/directfb/direct/os/*.h  
@@ -20,7 +19,6 @@ usr/include/directfb/direct/os/linux/glibc/*.h
 usr/include/directfb/fusion/*.h
 usr/include/directfb/fusion/shm/*.h
 usr/include/directfb/voodoo/*.h
-usr/lib/directfb-*/gfxdrivers/libdirectfb_vdpau.a
 usr/lib/directfb-*/inputdrivers/libdirectfb_joystick.a
 usr/lib/directfb-*/inputdrivers/libdirectfb_keyboard.a
 usr/lib/directfb-*/inputdrivers/libdirectfb_linux_input.a
