@@ -38,7 +38,8 @@ INCLUDES = \
 	-I$(top_srcdir)/src	\
 	-I$(top_srcdir)/systems	\
 	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"	\
-	$(GSTREAMER_INCL)
+	$(GSTREAMER_INCL) \
+	$(FUSIONSOUND_INCL)
 
 
 idirectfbvideoprovider_LTLIBRARIES =	\
@@ -60,7 +61,8 @@ libidirectfbvideoprovider_gstreamer_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/lib/fusion/libfusion.la \
 	$(top_builddir)/src/libdirectfb.la \
-	$(GSTREAMER_LIBS)
+	$(GSTREAMER_LIBS) \
+	$(FUSIONSOUND_LIBS)
 
 
 libidirectfbvideoprovider_v4l_la_SOURCES = idirectfbvideoprovider_v4l.c

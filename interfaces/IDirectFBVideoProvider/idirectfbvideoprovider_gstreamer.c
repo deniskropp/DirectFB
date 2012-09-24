@@ -63,7 +63,7 @@
 
 #include <gfx/clip.h>
 
-//#define HAVE_FUSIONSOUND
+#undef HAVE_FUSIONSOUND
 
 #ifdef HAVE_FUSIONSOUND
 # include <fusionsound.h>
@@ -112,15 +112,11 @@ typedef struct {
      IDirectFBDataBuffer           *buffer;
      bool                           interlaced;
      bool                           seekable;
+     bool                           playing;
 
      GstElement                    *pipeline;
      GstElement                    *decode;
-     GstElement                    *decode_audio;
-     GstElement                    *convert_audio;
-     GstElement                    *resample_audio;
-     GstElement                    *filter_video;
-     GstElement                    *scale_video;
-     GstElement                    *decode_video;
+     GstElement                    *convert_video;
      GstElement                    *queue_audio;
      GstElement                    *queue_video;
      GstElement                    *appsink_audio;
@@ -281,19 +277,11 @@ pipeline_bus_call( GstBus *bus, GstMessage *msg, gpointer ptr )
 }
 
 static void
-decode_video_unknown_type( GstBin *bin, GstPad *pad, GstCaps *caps, gpointer ptr )
+decode_unknown_type( GstBin *bin, GstPad *pad, GstCaps *caps, gpointer ptr )
 {
      IDirectFBVideoProvider_GSTREAMER_data *data = ptr;
 
-     D_DEBUG_AT( GST, "decode_video_unknown_type: type %s caps %s\n", GST_PAD_NAME(pad), gst_caps_to_string(caps) );
-}
-
-static void
-decode_audio_unknown_type( GstBin *bin, GstPad *pad, GstCaps *caps, gpointer ptr )
-{
-     IDirectFBVideoProvider_GSTREAMER_data *data = ptr;
-
-     D_DEBUG_AT( GST, "decode_audio_unknown_type: type %s caps %s\n", GST_PAD_NAME(pad), gst_caps_to_string(caps) );
+     D_DEBUG_AT( GST, "decode_unknown_type: type %s caps %s\n", GST_PAD_NAME(pad), gst_caps_to_string(caps) );
 }
 
 static void
@@ -310,21 +298,80 @@ decode_pad_added( GstElement *element, GstPad *srcpad, gpointer ptr )
 #endif
      char                                  *caps = gst_caps_to_string( pad_caps );
      int                                    err  = 1;
+     int                                    i;
+     int                                    width;
+     int                                    height;
+     int                                    depth;
+     int                                    rate;
+     int                                    channels;
+     gboolean                               sign;
 
      D_DEBUG_AT( GST, "decode_pad_added: type %s (caps %s)\n", GST_PAD_NAME(srcpad), caps );
 
      if (strstr( caps, "video" ) || strstr( caps, "image" )) {
           D_DEBUG_AT( GST, "decode_pad_added: linking video pad '%s' caps '%s'\n", type, caps );
-          sink = gst_element_get_static_pad( data->filter_video, "sink" );
+          sink = gst_element_get_static_pad( data->convert_video, "sink" );
           ret = gst_pad_link( srcpad, sink );
           gst_object_unref( sink );
+
+          for (i = 0; i < gst_caps_get_size(pad_caps); i++) {
+               const GstStructure *str = gst_caps_get_structure( pad_caps, i );
+               if (gst_structure_get_int( str, "width", &width ) && gst_structure_get_int( str, "height", &height )) {
+                    data->width  = width;
+                    data->height = height;
+                    data->parsed_video = 1;
+               }
+          }
      }
+#ifdef HAVE_FUSIONSOUND
      else if (strstr( caps, "audio" )) {
           D_DEBUG_AT( GST, "decode_pad_added: linking audio pad '%s' caps '%s'\n", type, caps );
-          sink = gst_element_get_static_pad( data->decode_audio, "sink" );
+          sink = gst_element_get_static_pad( data->queue_audio, "sink" );
           ret = gst_pad_link( srcpad, sink );
           gst_object_unref( sink );
+
+          for (i = 0; i < gst_caps_get_size(pad_caps); i++) {
+               const GstStructure *str = gst_caps_get_structure( pad_caps, i );
+               if (gst_structure_get_int( str, "depth", &depth ) && gst_structure_get_int( str, "rate", &rate ) && gst_structure_get_int( str, "channels", &channels ) && gst_structure_get_boolean( str, "signed", &sign ) ) {
+                    data->audio_rate     = rate;
+                    data->audio_channels = channels;
+                    data->audio_format   = FSSF_UNKNOWN;
+     
+                    switch (depth) {
+                         case 8:
+                              if (!sign) {
+                                   data->audio_format = FSSF_U8;
+                                   D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_U8.\n");
+                              }
+                              break;
+                         case 16:
+                              if (sign) {
+                                   data->audio_format = FSSF_S16;
+                                   D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_S16.\n");
+                              }
+                              break;
+                         case 24:
+                              if (sign) {
+                                   data->audio_format = FSSF_S24;
+                                   D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_S24.\n");
+                              }
+                              break;
+                         case 32:
+                              if (sign) {
+                                   data->audio_format = FSSF_S32;
+                                   D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_S32.\n");
+                              }
+                              break;
+                         default:
+                              break;
+                    }
+     
+                    if (data->audio_format == FSSF_UNKNOWN)
+                         D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is UNKNOWN.\n" );
+               }
+          }
      }
+#endif
      else {
           D_DEBUG_AT( GST, "decode_pad_added: unhandled pad '%s' caps '%s'\n", type, caps );
           return;
@@ -358,178 +405,9 @@ decode_pad_added( GstElement *element, GstPad *srcpad, gpointer ptr )
                break;
      }
 
-     if (err) {
-          direct_mutex_lock( &data->video_lock );
-          data->error = 1;
-          direct_waitqueue_signal( &data->video_cond );
-          direct_mutex_unlock( &data->video_lock );
-     }
-}
-
-static void
-decode_audio_pad_added( GstElement *element, GstPad *pad, gpointer ptr )
-{
-     IDirectFBVideoProvider_GSTREAMER_data *data = ptr;
-     GstPadLinkReturn                       ret;
-     GstPad                                *sink;
-     int                                    i;
-     int                                    depth;
-     int                                    rate;
-     int                                    channels;
-     gboolean                               sign;
-     int                                    err  = 1;
-#ifdef HAVE_GSTREAMER_1_0_API
-     GstCaps                               *caps = gst_pad_query_caps( pad, NULL );
-#else
-     GstCaps                               *caps = gst_pad_get_caps( pad );
-#endif
-
-     D_DEBUG_AT( GST, "decode_audio_pad_added: type %s caps %s\n", GST_PAD_NAME(pad), gst_caps_to_string(caps) );
-#ifdef HAVE_FUSIONSSOUND
-     for (i = 0; i < gst_caps_get_size(caps); i++) {
-          const GstStructure *str = gst_caps_get_structure( caps, i );
-          if (gst_structure_get_int( str, "depth", &depth ) && gst_structure_get_int( str, "rate", &rate ) && gst_structure_get_int( str, "channels", &channels ) && gst_structure_get_boolean( str, "signed", &sign ) ) {
-               data->audio_rate     = rate;
-               data->audio_channels = channels;
-               data->audio_format   = FSSF_UNKNOWN;
-
-               switch (depth) {
-                    case 8:
-                         if (!sign) {
-                              data->audio_format = FSSF_U8;
-                              D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_U8.\n");
-                         }
-                         break;
-                    case 16:
-                         if (sign) {
-                              data->audio_format = FSSF_S16;
-                              D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_S16.\n");
-                         }
-                         break;
-                    case 24:
-                         if (sign) {
-                              data->audio_format = FSSF_S24;
-                              D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_S24.\n");
-                         }
-                         break;
-                    case 32:
-                         if (sign) {
-                              data->audio_format = FSSF_S32;
-                              D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is FSSF_S32.\n");
-                         }
-                         break;
-                    default:
-                         break;
-               }
-
-               if (data->audio_format == FSSF_UNKNOWN)
-                    D_DEBUG_AT( GST, "decode_audio_pad_added: audio format is UNKNOWN.\n" );
-          }
-     }
-#endif
-     sink = gst_element_get_static_pad( data->queue_audio, "sink" );
-     ret  = gst_pad_link( pad, sink );
-     switch (ret) {
-          case GST_PAD_LINK_OK:
-               D_DEBUG_AT( GST, "gst_pad_link --> OK\n" );
-               err = 0;
-               break;
-          case GST_PAD_LINK_WRONG_HIERARCHY:
-               D_DEBUG_AT( GST, "gst_pad_link --> WRONG_HIERARCHY\n" );
-               break;
-          case GST_PAD_LINK_WAS_LINKED:
-               D_DEBUG_AT( GST, "gst_pad_link --> WAS_LINKED\n" );
-               break;
-          case GST_PAD_LINK_WRONG_DIRECTION:
-               D_DEBUG_AT( GST, "gst_pad_link --> WRONG_DIRECTION\n" );
-               break;
-          case GST_PAD_LINK_NOFORMAT:
-               D_DEBUG_AT( GST, "gst_pad_link --> NOFORMAT\n" );
-               break;
-          case GST_PAD_LINK_NOSCHED:
-               D_DEBUG_AT( GST, "gst_pad_link --> NOSCHED\n" );
-               break;
-          case GST_PAD_LINK_REFUSED:
-               D_DEBUG_AT( GST, "gst_pad_link --> REFUSED\n" );
-               break;
-          default:
-               D_DEBUG_AT( GST, "gst_pad_link --> '%d'\n", ret );
-               break;
-     }
-
-     gst_object_unref( sink );
-
      direct_mutex_lock( &data->video_lock );
      if (err)
           data->error = 1;
-     else
-          data->parsed_audio = 1;
-     direct_waitqueue_signal( &data->video_cond );
-     direct_mutex_unlock( &data->video_lock );
-}
-
-static void
-decode_video_pad_added(GstElement *element, GstPad *pad, gpointer ptr )
-{
-     IDirectFBVideoProvider_GSTREAMER_data *data = ptr;
-     GstPadLinkReturn                       ret;
-     GstPad                                *sink;
-     int                                    i;
-     int                                    width;
-     int                                    height;
-     int                                    err  = 1;
-#ifdef HAVE_GSTREAMER_1_0_API
-     GstCaps                               *caps = gst_pad_query_caps( pad, NULL );
-#else
-     GstCaps                               *caps = gst_pad_get_caps( pad );
-#endif
-
-     D_DEBUG_AT( GST, "decode_video_pad_added: type %s caps %s\n", GST_PAD_NAME(pad), gst_caps_to_string(caps) );
-
-     for (i = 0; i < gst_caps_get_size(caps); i++) {
-          const GstStructure *str = gst_caps_get_structure( caps, i );
-          if (gst_structure_get_int( str, "width", &width ) && gst_structure_get_int( str, "height", &height )) {
-               data->width  = width;
-               data->height = height;
-          }
-     }
-
-     sink = gst_element_get_static_pad( data->queue_video, "sink" );
-     ret  = gst_pad_link( pad, sink );
-     switch (ret) {
-          case GST_PAD_LINK_OK:
-               D_DEBUG_AT( GST, "gst_pad_link --> OK\n" );
-               err = 0;
-               break;
-          case GST_PAD_LINK_WRONG_HIERARCHY:
-               D_DEBUG_AT( GST, "gst_pad_link --> WRONG_HIERARCHY\n" );
-               break;
-          case GST_PAD_LINK_WAS_LINKED:
-               D_DEBUG_AT( GST, "gst_pad_link --> WAS_LINKED\n" );
-               break;
-          case GST_PAD_LINK_WRONG_DIRECTION:
-               D_DEBUG_AT( GST, "gst_pad_link --> WRONG_DIRECTION\n" );
-               break;
-          case GST_PAD_LINK_NOFORMAT:
-               D_DEBUG_AT( GST, "gst_pad_link --> NOFORMAT\n" );
-               break;
-          case GST_PAD_LINK_NOSCHED:
-               D_DEBUG_AT( GST, "gst_pad_link --> NOSCHED\n" );
-               break;
-          case GST_PAD_LINK_REFUSED:
-               D_DEBUG_AT( GST, "gst_pad_link --> REFUSED\n" );
-               break;
-          default:
-               D_DEBUG_AT( GST, "gst_pad_link --> '%d'\n", ret );
-               break;
-     }
-
-     gst_object_unref( sink );
-     direct_mutex_lock( &data->video_lock );
-     if (err)
-          data->error = 1;
-     else
-          data->parsed_video = 1;
      direct_waitqueue_signal( &data->video_cond );
      direct_mutex_unlock( &data->video_lock );
 }
@@ -585,49 +463,37 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
      data->pipeline       = gst_pipeline_new( "uri-decode-pipeline" );
      data->decode         = gst_element_factory_make( "uridecodebin", "uri-decode-bin" );
 #ifdef HAVE_GSTREAMER_1_0_API
-     data->decode_audio   = gst_element_factory_make( "decodebin", "decode-audio" );
-     data->filter_video   = gst_element_factory_make( "videoconvert", "filter-video" );
-     data->decode_video   = gst_element_factory_make( "decodebin", "decode-video" );
+     data->convert_video  = gst_element_factory_make( "videoconvert", "convert-video" );
 #else
-     data->decode_audio   = gst_element_factory_make( "decodebin2", "decode-audio" );
-     data->filter_video   = gst_element_factory_make( "ffmpegcolorspace", "filter-video" );
-     data->decode_video   = gst_element_factory_make( "decodebin2", "decode-video" );
+     data->convert_video  = gst_element_factory_make( "ffmpegcolorspace", "convert-video" );
 #endif
-     data->scale_video    = gst_element_factory_make( "videoscale", "scale-video" );
      data->queue_audio    = gst_element_factory_make( "queue", "queue-audio" );
      data->queue_video    = gst_element_factory_make( "queue", "queue-video" );
      data->appsink_audio  = gst_element_factory_make( "appsink", "sink-buffer-audio" );
      data->appsink_video  = gst_element_factory_make( "appsink", "sink-buffer-video" );
 
-     if (!data->pipeline || !data->decode || !data->filter_video || !data->scale_video || !data->decode_audio || !data->decode_video || !data->queue_audio || !data->queue_video || !data->appsink_audio || !data->appsink_video) {
-          D_DEBUG_AT( GST, "error: failed to create some gstreamer elements %p, %p, %p, %p, %p, %p, %p, %p, %p, %p\n", data->pipeline, data->decode, data->filter_video, data->scale_video, data->decode_audio, data->decode_video, data->queue_audio, data->queue_video, data->appsink_audio, data->appsink_video );
+     if (!data->pipeline || !data->decode || !data->queue_audio || !data->queue_video || !data->appsink_audio || !data->appsink_video) {
+          D_DEBUG_AT( GST, "error: failed to create some gstreamer elements %p, %p, %p, %p, %p, %p\n", data->pipeline, data->decode, data->queue_audio, data->queue_video, data->appsink_audio, data->appsink_video );
           return 0;
      }
 
      g_signal_connect( data->decode, "pad-added", G_CALLBACK(decode_pad_added), data );
-     g_signal_connect( data->decode_audio, "unknown-type", G_CALLBACK(decode_audio_unknown_type), data );
-     g_signal_connect( data->decode_audio, "pad-added", G_CALLBACK(decode_audio_pad_added), data );
-     g_signal_connect( data->decode_video, "unknown-type", G_CALLBACK(decode_video_unknown_type), data );
-     g_signal_connect( data->decode_video, "pad-added", G_CALLBACK(decode_video_pad_added), data );
+     g_signal_connect( data->decode, "unknown-type", G_CALLBACK(decode_unknown_type), data );
 #ifdef HAVE_GSTREAMER_1_0_API
-     GstCaps *caps = gst_caps_new_simple( "video/x-raw", "format", G_TYPE_STRING, "ARGB", NULL );
+     GstCaps *caps = gst_caps_new_simple( "video/x-raw", "format", G_TYPE_STRING, "BGRA", NULL );
 #else
      GstCaps *caps = gst_caps_new_simple( "video/x-raw-rgb", NULL );
 #endif
      g_object_set( G_OBJECT(data->decode), "uri", filename, NULL );
 
-     gst_bin_add_many( GST_BIN(data->pipeline), data->decode, data->filter_video, data->scale_video, data->decode_audio, data->decode_video, data->queue_audio, data->queue_video, data->appsink_audio, data->appsink_video, NULL );
-
-     //gst_element_link( data->queue_audio, data->convert_audio );
-     //gst_element_link( data->convert_audio, data->resample_audio );
-     //gst_element_link( data->resample_audio, data->appsink_audio );
+#ifdef HAVE_FUSIONSOUND
+     gst_bin_add_many( GST_BIN(data->pipeline), data->decode, data->convert_video, data->queue_video, data->appsink_video, data->queue_audio, data->appsink_audio, NULL );
      gst_element_link( data->queue_audio, data->appsink_audio );
+#else
+     gst_bin_add_many( GST_BIN(data->pipeline), data->decode, data->convert_video, data->queue_video, data->appsink_video, NULL );
+#endif
+     gst_element_link_filtered( data->convert_video, data->queue_video, caps );
      gst_element_link( data->queue_video, data->appsink_video );
-
-     //gst_element_link_filtered( data->filter_video, data->scale_video, caps );
-     //gst_element_link( data->scale_video, data->decode_video );
-
-     gst_element_link_filtered( data->filter_video, data->decode_video, caps );
 
      bus = gst_pipeline_get_bus( GST_PIPELINE(data->pipeline) );
 
@@ -642,8 +508,10 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
 
      direct_mutex_unlock( &data->video_lock );
 
-     if (data->error || data->width < 1 || data->height < 1)
+     if (data->error || data->width < 1 || data->height < 1) {
+          D_DEBUG_AT( GST, "error: preparation was not successful\n" );
           return 0;
+     }
 
      update_status( data, data->pipeline, true );
 
@@ -709,9 +577,11 @@ process_video( DirectThread *self, void *arg )
 #endif
           if (!buffer)
                break;
-
-          //D_DEBUG_AT( GST, "appsink_video_new_buffer: len %d caps '%s'\n", GST_BUFFER_SIZE(buffer), gst_caps_to_string(gst_buffer_get_caps(buffer)) );
-
+#ifdef HAVE_GSTREAMER_1_0_API
+          D_DEBUG_AT( GST, "appsink_video_new_buffer: len %d caps '%s'\n", (int)gst_buffer_get_size(buffer), gst_caps_to_string(gst_sample_get_caps(sample)) );
+#else
+          D_DEBUG_AT( GST, "appsink_video_new_buffer: len %d caps '%s'\n", GST_BUFFER_SIZE(buffer), gst_caps_to_string(gst_buffer_get_caps(buffer)) );
+#endif
           ret = dfb_surface_lock_buffer( dst_data->surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
           if (ret)
                break;
@@ -820,7 +690,7 @@ IDirectFBVideoProvider_GSTREAMER_GetSurfaceDescription( IDirectFBVideoProvider *
 
      desc->width  = data->width;
      desc->height = data->height;
-     desc->pixelformat = DSPF_RGB24;
+     desc->pixelformat = DSPF_ARGB;
 
      direct_mutex_unlock( &data->video_lock );
 
@@ -874,7 +744,6 @@ IDirectFBVideoProvider_GSTREAMER_PlayTo( IDirectFBVideoProvider *thiz, IDirectFB
      dest_data = dest->priv;
 
      direct_mutex_lock( &data->video_lock );
-
      data->dest     = dest;
      data->ctx      = ctx;
      data->callback = callback;
@@ -883,7 +752,7 @@ IDirectFBVideoProvider_GSTREAMER_PlayTo( IDirectFBVideoProvider *thiz, IDirectFB
      if (data->parsed_audio && data->audio_playback) {
           data->audio_thread = direct_thread_create( DTT_DEFAULT, process_audio, (void*)data, "Gstreamer Audio" );
      } else {
-          gst_bin_remove_many( GST_BIN(data->pipeline), data->decode_audio, data->queue_audio, data->appsink_audio, NULL );
+          gst_bin_remove_many( GST_BIN(data->pipeline), data->queue_audio, data->appsink_audio, NULL );
           data->audio_thread = 0;
      }
 #endif
@@ -892,11 +761,22 @@ IDirectFBVideoProvider_GSTREAMER_PlayTo( IDirectFBVideoProvider *thiz, IDirectFB
 
      gst_element_set_state( GST_ELEMENT(data->pipeline), GST_STATE_PLAYING );
 
-     data->status = DVSTATE_PLAY;
-
-     data->speed = 1.0f;
+     data->status  = DVSTATE_PLAY;
+     data->speed   = 1.0f;
+     data->playing = true;
 
      direct_mutex_unlock( &data->video_lock );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GSTREAMER_SetDestination( IDirectFBVideoProvider *thiz, IDirectFBSurface *dest, const DFBRectangle *dest_rect )
+{
+
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_GSTREAMER )
+
+     D_DEBUG_AT( GST, "GSTREAMER_SetDestination %d,%d - %d,%d\n", dest_rect->x, dest_rect->y, dest_rect->w, dest_rect->h );
 
      return DFB_OK;
 }
@@ -1049,6 +929,12 @@ IDirectFBVideoProvider_GSTREAMER_SetSpeed( IDirectFBVideoProvider *thiz, double 
           return DFB_INVARG;
 
      direct_mutex_lock( &data->video_lock );
+
+     if (!data->playing) {
+          D_DEBUG_AT( GST, "GSTREAMER_SetSpeed(%f) no possible, playback not yet triggered\n", multiplier );
+          direct_mutex_unlock( &data->video_lock );
+          return DFB_INVARG;
+     }
 
      data->speed = multiplier;
      gst_element_set_state( GST_ELEMENT(data->pipeline), multiplier == 0.0f ? GST_STATE_PAUSED : GST_STATE_PLAYING);
@@ -1301,6 +1187,7 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      thiz->GetSurfaceDescription = IDirectFBVideoProvider_GSTREAMER_GetSurfaceDescription;
      thiz->GetStreamDescription  = IDirectFBVideoProvider_GSTREAMER_GetStreamDescription;
      thiz->PlayTo                = IDirectFBVideoProvider_GSTREAMER_PlayTo;
+     thiz->SetDestination        = IDirectFBVideoProvider_GSTREAMER_SetDestination;
      thiz->Stop                  = IDirectFBVideoProvider_GSTREAMER_Stop;
      thiz->GetStatus             = IDirectFBVideoProvider_GSTREAMER_GetStatus;
      thiz->SeekTo                = IDirectFBVideoProvider_GSTREAMER_SeekTo;
