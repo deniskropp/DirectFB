@@ -10,7 +10,6 @@ usr/lib/directfb-*/inputdrivers/libdirectfb_sonypi.so
 usr/lib/directfb-*/inputdrivers/libdirectfb_tslib.so
 usr/lib/directfb-*/inputdrivers/libdirectfb_wm97xx_ts.so
 usr/lib/directfb-*/wm/libdirectfbwm_default.so
-usr/lib/directfb-*/wm/libdirectfbwm_unique.so
 usr/lib/directfb-*/interfaces/IDirectFBSurface/libidirectfbsurface_dispatcher.so
 usr/lib/directfb-*/interfaces/IDirectFBInputDevice/libidirectfbinputdevice_dispatcher.so
 usr/lib/directfb-*/interfaces/IDirectFBFont/libidirectfbfont_dispatcher.so
@@ -37,5 +36,4 @@ usr/lib/libdirect-*.so.*
 usr/lib/libdirectfb-*.so.*
 usr/lib/libfusion-*.so.*
 usr/lib/libvoodoo-*.so.*
-usr/lib/libuniquewm-*.so.*
 usr/share/directfb-*/cursor.dat

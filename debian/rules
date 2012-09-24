@@ -59,7 +59,7 @@ override_dh_auto_configure:
 		--localstatedir=/var \
 		$(conf_options) \
 		--enable-static \
-		--enable-unique \
+		--disable-unique \
 		--disable-sdl \
 		--enable-vnc \
 		--enable-x11
