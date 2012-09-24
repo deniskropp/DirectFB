@@ -95,6 +95,20 @@ Description: DirectFB - x11vdpau system module
  .
  This package contains the X11VDPAU system module.
 
+Package: libdirectfb-1.7-system-x11vdpau-dev
+Architecture: i386 amd64
+Depends: libdirectfb-1.7-dev (= ${binary:Version}),
+ ${shlibs:Depends}, ${misc:Depends}
+Replaces: libdirectfb-system-x11vdpau-dev
+Conflicts: libdirectfb-system-x11vdpau-dev
+Provides: libdirectfb-1.7-system-dev
+Description: DirectFB - x11vdpau system module
+ DirectFB is a graphics library which was designed with embedded systems
+ in mind. It offers maximum hardware accelerated performance at a minimum
+ of resource usage and overhead.
+ .
+ This package contains the X11VDPAU system module development files.
+
 Package: libdirectfb-1.7-system-devmem
 Architecture: any
 Depends: libdirectfb-1.7 (= ${binary:Version}),
