@@ -509,8 +509,20 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
      gst_bus_add_watch( bus, pipeline_bus_call, data );
      gst_object_unref( bus );
 
-     while (!data->parsed_video && !data->error && --max_signals)
+     while (1) {
           direct_waitqueue_wait_timeout( &data->video_cond, &data->video_lock, 1000000 );
+
+          if (data->error || --max_signals < 0)
+               break;
+
+          if (data->parsed_video) {
+               if (!data->parsed_audio) {
+                    max_signals = 0;
+                    continue;
+               }
+               break;
+          }
+     }
 
      direct_mutex_unlock( &data->video_lock );
 
@@ -518,7 +530,7 @@ prepare( IDirectFBVideoProvider_GSTREAMER_data *data, int argc, char *argv[], ch
           D_DEBUG_AT( GST, "error: preparation was not successful\n" );
           return 0;
      }
-sleep(1);
+
      update_status( data, data->pipeline, true );
 
      D_DEBUG_AT( GST, "prepare: parsed a/v = %d/%d\n", data->parsed_audio, data->parsed_video );
@@ -777,6 +789,8 @@ IDirectFBVideoProvider_GSTREAMER_PlayTo( IDirectFBVideoProvider *thiz, IDirectFB
      if (data->parsed_audio && data->audio_playback) {
           data->audio_thread = direct_thread_create( DTT_DEFAULT, process_audio, (void*)data, "Gstreamer Audio" );
      } else {
+          gst_element_set_state( data->queue_audio, GST_STATE_NULL );
+          gst_element_set_state( data->appsink_audio, GST_STATE_NULL );
           gst_bin_remove_many( GST_BIN(data->pipeline), data->queue_audio, data->appsink_audio, NULL );
           data->audio_thread = 0;
      }
