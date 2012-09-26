@@ -66,6 +66,16 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+#include <libavutil/mathematics.h>
+struct AVDictionary {
+    int count;
+    AVDictionaryEntry *elems;
+};
+#endif
+
+#include <libavutil/avutil.h>
+
 #include "dvc.h"
 
 
@@ -115,8 +125,11 @@ typedef struct {
      IDirectFBDataBuffer           *buffer;
      bool                           seekable;
      void                          *iobuf;
- 
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+     AVIOContext                    pb;
+#else
      ByteIOContext                  pb;
+#endif
      AVFormatContext               *context;
      
      s64                            start_time;
@@ -640,11 +653,15 @@ FFmpegVideo( DirectThread *self, void *arg )
                data->video.seeked = false;
                framecnt = 0;
           }
-               
-          avcodec_decode_video( data->video.ctx, 
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+          avcodec_decode_video2( data->video.ctx,
+                                 data->video.src_frame,
+                                 &done, &pkt );
+#else
+          avcodec_decode_video( data->video.ctx,
                                 data->video.src_frame,
                                 &done, pkt.data, pkt.size );
-
+#endif
           if (done && !drop) {
                FFmpegPutFrame( data );
           
@@ -748,9 +765,14 @@ FFmpegAudio( DirectThread *self, void *arg )
           }
           
           for (pkt_data = pkt.data, pkt_size = pkt.size; pkt_size > 0;) {
-               decoded = avcodec_decode_audio2( data->audio.ctx, 
-                                                (s16*)&buf[size], &len, 
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+               decoded = avcodec_decode_audio3( data->audio.ctx,
+                                                (s16*)&buf[size], &len, &pkt );
+#else
+               decoded = avcodec_decode_audio2( data->audio.ctx,
+                                                (s16*)&buf[size], &len,
                                                 pkt_data, pkt_size );
+#endif
                if (decoded < 0)
                     break;
                        
@@ -1012,12 +1034,12 @@ IDirectFBVideoProvider_FFmpeg_GetStreamDescription( IDirectFBVideoProvider *thiz
           desc->audio.bitrate    = data->audio.ctx->bit_rate;
      }
                
-     direct_snputs( desc->title, data->context->title, DFB_STREAM_DESC_TITLE_LENGTH );
-     direct_snputs( desc->author, data->context->author, DFB_STREAM_DESC_AUTHOR_LENGTH );
-     direct_snputs( desc->album, data->context->album, DFB_STREAM_DESC_ALBUM_LENGTH );
-     direct_snputs( desc->genre, data->context->genre, DFB_STREAM_DESC_GENRE_LENGTH );
-     direct_snputs( desc->comment, data->context->comment, DFB_STREAM_DESC_COMMENT_LENGTH );
-     desc->year = data->context->year;
+//     direct_snputs( desc->title, data->context->title, DFB_STREAM_DESC_TITLE_LENGTH );
+//     direct_snputs( desc->author, data->context->author, DFB_STREAM_DESC_AUTHOR_LENGTH );
+//     direct_snputs( desc->album, data->context->album, DFB_STREAM_DESC_ALBUM_LENGTH );
+//     direct_snputs( desc->genre, data->context->genre, DFB_STREAM_DESC_GENRE_LENGTH );
+//     direct_snputs( desc->comment, data->context->comment, DFB_STREAM_DESC_COMMENT_LENGTH );
+//     desc->year = data->context->year;
 
      return DFB_OK;
 }
@@ -1643,13 +1665,21 @@ Construct( IDirectFBVideoProvider *thiz,
      
      for (i = 0; i < data->context->nb_streams; i++) {
           switch (data->context->streams[i]->codec->codec_type) {
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+               case AVMEDIA_TYPE_VIDEO:
+#else
                case CODEC_TYPE_VIDEO:
+#endif
                     if (!data->video.st || 
                          data->video.st->codec->bit_rate < 
                          data->context->streams[i]->codec->bit_rate)
                          data->video.st = data->context->streams[i];
                     break;
+#if (LIBAVFORMAT_VERSION_MAJOR >= 53)
+               case AVMEDIA_TYPE_AUDIO:
+#else
                case CODEC_TYPE_AUDIO:
+#endif
                     if (!data->audio.st ||
                          data->audio.st->codec->bit_rate <
                          data->context->streams[i]->codec->bit_rate)
