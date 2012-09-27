@@ -1097,7 +1097,8 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      }
 
      data->status = DVSTATE_PLAY;
-     
+     data->speed  = 1;
+
      if (!data->input.thread) {
           data->input.thread = direct_thread_create( DTT_DEFAULT, FFmpegInput,
                                                     (void*)data, "FFmpeg Input" );
