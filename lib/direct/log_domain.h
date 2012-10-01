@@ -119,7 +119,7 @@ direct_log_domain_config_level( const char     *name,
      direct_log_domain_configure( name, &config );
 }
   
-bool DIRECT_API direct_log_domain_check( DirectLogDomain *domain );
+bool DIRECT_API direct_log_domain_check( DirectLogDomain *domain );   // TODO: for non-debug builds use macro for better optimisations
 
 /**********************************************************************************************************************/
 
