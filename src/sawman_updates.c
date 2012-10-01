@@ -1016,6 +1016,8 @@ update_region4_r( SaWMan          *sawman,
                /* recursion ends on opaque window */
                update_region4_r( sawman, tier, state, -1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, region.y1, region.x2, region.y2, i + 1) );
           }
+
+          free( bin );
      }
      else {
           /* recursion already ended */
