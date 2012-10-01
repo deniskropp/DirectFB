@@ -61,8 +61,9 @@ fusion_call_init (FusionCall        *call,
 {
      FusionCallNew call_new;
 
-     D_DEBUG_AT( Fusion_Call, "%s( %p, %p <%s>, %p, %p )\n", __FUNCTION__, call, handler,
-                 direct_trace_lookup_symbol_at( handler ), ctx, world );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "%s( %p, %p <%s>, %p, %p )\n", __FUNCTION__, call, handler,
+                      direct_trace_lookup_symbol_at( handler ), ctx, world );
 
      D_ASSERT( call != NULL );
      D_ASSERT( handler != NULL );
@@ -112,8 +113,9 @@ fusion_call_init3 (FusionCall         *call,
 {
      FusionCallNew call_new;
 
-     D_DEBUG_AT( Fusion_Call, "%s( %p, %p <%s>, %p, %p )\n", __FUNCTION__, call, handler3,
-                 direct_trace_lookup_symbol_at( handler3 ), ctx, world );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "%s( %p, %p <%s>, %p, %p )\n", __FUNCTION__, call, handler3,
+                      direct_trace_lookup_symbol_at( handler3 ), ctx, world );
 
      D_ASSERT( call != NULL );
      D_ASSERT( handler3 != NULL );
@@ -194,7 +196,8 @@ fusion_call_execute (FusionCall          *call,
      if (!call->handler)
           return DR_DESTROYED;
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 
      if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
           int                     ret;
@@ -259,7 +262,8 @@ fusion_call_execute2(FusionCall          *call,
 //     if (!call->handler)
 //          return DR_DESTROYED;
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 
      if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
           int                     ret;
@@ -337,7 +341,8 @@ fusion_call_execute3(FusionCall          *call,
 //     if (!call->handler)
 //          return DR_DESTROYED;
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler3 ) );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler3 ) );
 
      world = _fusion_world( call->shared );
 
@@ -496,7 +501,8 @@ fusion_call_return( FusionCall   *call,
 
      D_ASSERT( call != NULL );
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 
      D_ASSUME( serial != 0 );
      if (!serial)
@@ -542,7 +548,8 @@ fusion_call_return3( FusionCall   *call,
 
      D_ASSERT( call != NULL );
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 
      D_ASSUME( serial != 0 );
      if (!serial)
@@ -616,7 +623,8 @@ fusion_call_destroy (FusionCall *call)
      D_ASSERT( call != NULL );
      D_ASSERT( call->handler != NULL || call->handler3 != NULL );
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 
      while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_DESTROY, &call->call_id)) {
           switch (errno) {
@@ -685,7 +693,8 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg, v
 
      call_handler = msg->handler;
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
 
      result = call_handler( msg->caller, msg->call_arg, ptr ? ptr : msg->call_ptr, msg->ctx, msg->serial, &call_ret.val );
 
@@ -738,7 +747,8 @@ _fusion_call_process3( FusionWorld *world, int call_id, FusionCallMessage3 *msg,
 
      call_handler = msg->handler;
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
+     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
 
      if (msg->ret_length > FUSION_CALL_RETURN_DATA_MAX) {
           D_ERROR( "Fusion/Call: Maximum return data length (%u) exceeded (%u)!\n", FUSION_CALL_RETURN_DATA_MAX, msg->ret_length );
