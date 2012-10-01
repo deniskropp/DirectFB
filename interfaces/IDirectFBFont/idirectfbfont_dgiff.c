@@ -253,7 +253,6 @@ Construct( IDirectFBFont               *thiz,
      font->maxadvance   = face->max_advance;
      font->pixel_format = face->pixelformat;
      font->surface_caps = DSCAPS_NONE;
-     font->flags        = CFF_SUBPIXEL_ADVANCE;
 
 
      data = D_CALLOC( 1, sizeof(DGIFFImplData) );
@@ -340,7 +339,7 @@ Construct( IDirectFBFont               *thiz,
           glyph_data->height   = glyph->height;
           glyph_data->left     = glyph->left;
           glyph_data->top      = glyph->top;
-          glyph_data->xadvance = glyph->advance << 8;
+          glyph_data->xadvance = glyph->advance;
           glyph_data->yadvance = 0;
 
           D_MAGIC_SET( glyph_data, CoreGlyphData );
