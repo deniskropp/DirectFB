@@ -167,7 +167,7 @@ main( int argc, char *argv[] )
 
           surfaces[i]->GetID( surfaces[i], &surface_id );
 
-          surfaces[i]->AllowAccess( surfaces[i], "/opt/dfb/bin/df_andi" );
+          surfaces[i]->AllowAccess( surfaces[i], "*" );
 
           D_INFO( "DFBTest/SurfaceCompositor: Surface %d has ID %d\n", i+1, surface_id );
 
