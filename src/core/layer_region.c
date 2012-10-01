@@ -511,11 +511,12 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
           case DLBM_TRIPLE:
           case DLBM_BACKVIDEO:
                /* Check if simply swapping the buffers is possible... */
-               if (!(flags & DSFLIP_BLIT) && !surface->rotation &&
-                   (!update || (update->x1 == 0 &&
-                                update->y1 == 0 &&
-                                update->x2 == surface->config.size.w - 1 &&
-                                update->y2 == surface->config.size.h - 1)))
+               if ((flags & DSFLIP_SWAP) ||
+                   (!(flags & DSFLIP_BLIT) && !surface->rotation &&
+                    (!update || (update->x1 == 0 &&
+                                 update->y1 == 0 &&
+                                 update->x2 == surface->config.size.w - 1 &&
+                                 update->y2 == surface->config.size.h - 1))))
                {
                     D_DEBUG_AT( Core_Layers, "  -> Going to swap buffers...\n" );
 
@@ -728,16 +729,17 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
           case DLBM_TRIPLE:
           case DLBM_BACKVIDEO:
                /* Check if simply swapping the buffers is possible... */
-               if (!(flags & DSFLIP_BLIT) && !surface->rotation &&
-                   ((!left_update && !right_update) ||      // FIXME: below code crashes if only one is set
-                    ((left_update->x1 == 0 &&
-                      left_update->y1 == 0 &&
-                      left_update->x2 == surface->config.size.w - 1 &&
-                      left_update->y2 == surface->config.size.h - 1) &&
-                     (right_update->x1 == 0 &&
-                      right_update->y1 == 0 &&
-                      right_update->x2 == surface->config.size.w - 1 &&
-                      right_update->y2 == surface->config.size.h - 1))))
+               if ((flags & DSFLIP_SWAP) ||
+                   (!(flags & DSFLIP_BLIT) && !surface->rotation &&
+                    ((!left_update && !right_update) ||      // FIXME: below code crashes if only one is set
+                     ((left_update->x1 == 0 &&
+                       left_update->y1 == 0 &&
+                       left_update->x2 == surface->config.size.w - 1 &&
+                       left_update->y2 == surface->config.size.h - 1) &&
+                      (right_update->x1 == 0 &&
+                       right_update->y1 == 0 &&
+                       right_update->x2 == surface->config.size.w - 1 &&
+                       right_update->y2 == surface->config.size.h - 1)))))
                {
                     D_DEBUG_AT( Core_Layers, "  -> Going to swap buffers...\n" );
 
