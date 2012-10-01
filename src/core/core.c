@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#define DIRECT_DEBUG_ENABLE
+
 #include <config.h>
 
 #include <stdlib.h>
@@ -2195,7 +2197,8 @@ Core_Resource_DisposeIdentity( FusionID fusion_id )
                D_MAGIC_ASSERT( cleanup, CoreResourceCleanup );
 
                D_DEBUG_AT( Core_Resource, "  -> running cleanup callback %p\n", cleanup->callback );
-               D_DEBUG_AT( Core_Resource, "  -> '%s'\n", direct_trace_lookup_symbol_at( cleanup->callback ) );
+               if (direct_log_domain_check( &Core_Resource )) // avoid call to direct_trace_lookup_symbol_at
+                    D_DEBUG_AT( Core_Resource, "  -> '%s'\n", direct_trace_lookup_symbol_at( cleanup->callback ) );
 
                cleanup->callback( cleanup->ctx, cleanup->ctx2 );
 
