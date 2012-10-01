@@ -190,15 +190,7 @@ direct_log_domain_configure( const char *name, const DirectLogDomainConfig *conf
 bool
 direct_log_domain_check( DirectLogDomain *domain )
 {
-     bool enabled;
-
-     direct_mutex_lock( &domains_lock );
-
-     enabled = check_domain( domain );
-
-     direct_mutex_unlock( &domains_lock );
-
-     return enabled;
+     return check_domain( domain );
 }
 
 /**********************************************************************************************************************/
