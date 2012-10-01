@@ -50,6 +50,8 @@
 #include <core/layers_internal.h>
 #include <core/system.h>
 
+#include <core/Task.h>
+
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/thread.h>
@@ -506,6 +508,9 @@ handle_expose_Async( void *ctx,
                                                     false, &region ) == DFB_OK)
           {
                CoreSurfaceBufferLock left, right;
+
+               // FIXME: use real task, this is a hotfix!
+               TaskManager_Sync();
 
                /* Lock the region to avoid tearing due to concurrent updates. */
                dfb_layer_region_lock( region );
