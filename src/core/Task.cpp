@@ -31,6 +31,7 @@
 #include <config.h>
 
 #include "Task.h"
+#include "Util.h"
 
 extern "C" {
 #include <directfb.h>
@@ -103,12 +104,47 @@ SurfaceTask_Flush( SurfaceTask *task )
      task->Flush();
 }
 
+void
+SurfaceTask_Done( SurfaceTask *task )
+{
+     D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
+
+     task->Done();
 }
 
+}
 
+/*********************************************************************************************************************/
+
+static inline const char *
+state_name( TaskState state )
+{
+     switch (state) {
+          case TASK_NEW:
+               return "NEW";
+
+          case TASK_FLUSHED:
+               return "FLUSHED";
+
+          case TASK_READY:
+               return "READY";
+
+          case TASK_RUNNING:
+               return "RUNNING";
+
+          case TASK_DONE:
+               return "DONE";
+     }
+
+     return "invalid";
+}
+
+/*********************************************************************************************************************/
 
 Task::Task()
      :
+     state( TASK_NEW ),
+     flags( TASK_FLAG_NONE ),
      block_count(0),
      slaves( 0 ),
      master( NULL ),
@@ -116,8 +152,6 @@ Task::Task()
      finished( false )
 {
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
-
-     state = TASK_NEW;
 }
 
 
@@ -160,7 +194,7 @@ Task::Flush()
 }
 
 DFBResult
-Task::emit()
+Task::emit( bool following )
 {
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
 
@@ -183,6 +217,23 @@ Task::emit()
 
           // FIXME: error handling
           slave->Push();
+     }
+
+     if (flags & TASK_FLAG_EMITNOTIFIES) {
+          notifyAll();
+     }
+     else if (following) {
+          std::vector<TaskNotify>::iterator it = notifies.begin();
+     
+          while (it != notifies.end()) {
+               if ((*it).second) {
+                    (*it).first->handleNotify( false );
+     
+                    it = notifies.erase( it );
+               }
+               else
+                    ++it;
+          }
      }
 
      return DFB_OK;
@@ -241,9 +292,13 @@ Task::finish()
                delete slave;
           }
 
-          delete shutdown;
-
           D_SYNC_ADD( &TaskManager::task_count, -1 );
+
+          if (!(flags & TASK_FLAG_NOSYNC))
+               D_SYNC_ADD( &TaskManager::task_count_sync, -1 );
+
+          TaskManager::tasks.remove( shutdown );
+          delete shutdown;
      }
 
      return DFB_OK;
@@ -304,15 +359,42 @@ Task::Finalise()
      D_ASSERT( state == TASK_DONE );
 }
 
+std::string
+Task::Describe()
+{
+     return Util::PrintF( "0x%08lx   %-7s  0x%04x   %2d   %2d   %2d   %s   %s",
+                          (unsigned long) this, state_name(state), flags, notifies.size(), block_count,
+                          slaves, master ? "><" : "  ", finished ? "YES" : "no" );
+}
+
 void
-Task::addNotify( Task *task )
+Task::addNotify( Task *task,
+                 bool  follow )
 {
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
+
+     if (task == this) {
+          D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, this is myself!\n" );
+          D_ASSERT( state == TASK_FLUSHED );
+          return;
+     }
 
      D_ASSERT( state != TASK_NEW );
      D_ASSERT( state != TASK_FLUSHED );
 
-     notifies.push_back( task );
+     if (follow && (state == TASK_RUNNING || state == TASK_DONE)) {
+          D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, following running task!\n" );
+
+          return;
+     }
+
+     if (state == TASK_RUNNING && (flags & TASK_FLAG_EMITNOTIFIES)) {
+          D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, running task notified on emit!\n" );
+
+          return;
+     }
+
+     notifies.push_back( TaskNotify( task, follow ) );
 
      task->block_count++;
 }
@@ -322,14 +404,16 @@ Task::notifyAll()
 {
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
 
-     D_ASSERT( state == TASK_DONE );
+     D_ASSERT( state == TASK_DONE || (state == TASK_RUNNING && (flags & TASK_FLAG_EMITNOTIFIES)) );
 
-     for (std::vector<Task*>::const_iterator it = notifies.begin(); it != notifies.end(); ++it)
-          (*it)->handleNotify();
+     for (std::vector<TaskNotify>::const_iterator it = notifies.begin(); it != notifies.end(); ++it)
+          (*it).first->handleNotify( true );
+
+     notifies.clear();
 }
 
 void
-Task::handleNotify()
+Task::handleNotify( bool following )
 {
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
 
@@ -341,20 +425,21 @@ Task::handleNotify()
 
           t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
-          emit();
+          emit( following );
 
           t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
           if (t2 - t1 >= 5000)
-               D_WARN( "Task::Emit took more than 5ms (%lld)", (t2 - t1) / 1000 );
+               ;//D_WARN( "Task::Emit took more than 5ms (%lld)", (t2 - t1) / 1000 );
      }
 }
 
-
 /*********************************************************************************************************************/
 
-DirectThread *TaskManager::thread;
-FIFO<Task*>   TaskManager::fifo;
-unsigned int  TaskManager::task_count;
+DirectThread     *TaskManager::thread;
+FIFO<Task*>       TaskManager::fifo;
+unsigned int      TaskManager::task_count;
+unsigned int      TaskManager::task_count_sync;
+std::list<Task*>  TaskManager::tasks;
 
 
 DFBResult
@@ -388,11 +473,21 @@ TaskManager::Shutdown()
 void
 TaskManager::Sync()
 {
+     int timeout = 20000;
+
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
+//direct_trace_print_stack(NULL);
 
      // FIXME: this is a hack, will avoid Sync() at all
-     while (task_count)
+     while (task_count_sync) {
+          if (!--timeout) {
+               D_ERROR( "TaskManager: Timeout while syncing (task count %d, nosync %d)!\n", task_count_sync, task_count );
+               dumpTasks();
+               return;
+          }
+
           usleep( 1000 );
+     }
 }
 
 void
@@ -400,8 +495,14 @@ TaskManager::pushTask( Task *task )
 {
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s( %p )\n", __FUNCTION__, task );
 
-     if (task->state == TASK_FLUSHED)
+     if (task->state == TASK_FLUSHED) {
           D_SYNC_ADD( &task_count, 1 );
+
+          if (!(task->flags & TASK_FLAG_NOSYNC))
+               D_SYNC_ADD( &task_count_sync, 1 );
+
+          tasks.push_back( task );
+     }
 
      fifo.push( task );
 }
@@ -437,13 +538,13 @@ TaskManager::handleTask( Task *task )
 
                t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
                if (t2 - t1 >= 5000)
-                    D_WARN( "Task::Setup took more than 5ms (%lld)", (t2 - t1) / 1000 );
+                    ;//D_WARN( "Task::Setup took more than 5ms (%lld)", (t2 - t1) / 1000 );
 
 
                if (task->block_count == 0) {
                     t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
-                    ret = task->emit();
+                    ret = task->emit( true );
                     if (ret) {
                          D_DERROR( ret, "DirectFB/TaskManager: Task::Emit() failed!\n" );
                          task->state = TASK_DONE;
@@ -452,10 +553,8 @@ TaskManager::handleTask( Task *task )
 
                     t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
                     if (t2 - t1 >= 5000)
-                         D_WARN( "Task::Emit took more than 5ms (%lld)", (t2 - t1) / 1000 );
+                         ;//D_WARN( "Task::Emit took more than 5ms (%lld)", (t2 - t1) / 1000 );
                }
-
-               // TODO: also emit subsequent tasks if possible, e.g. same accelerator having another FIFO anyways
                break;
 
           case TASK_DONE:
@@ -489,6 +588,20 @@ TaskManager::managerLoop( DirectThread *thread,
      return NULL;
 }
 
+void
+TaskManager::dumpTasks()
+{
+     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
+
+     direct_log_printf( NULL, "task       | state   | flags | no | bl | sl | is | finished\n" );
+
+     for (std::list<Task*>::const_iterator it = tasks.begin(); it != tasks.end(); it++) {
+          Task *task = *it;
+
+          direct_log_printf( NULL, "%s\n", task->Describe().c_str() );
+     }
+}
+
 /*********************************************************************************************************************/
 
 
@@ -517,6 +630,10 @@ SurfaceTask::AddAccess( CoreSurfaceAllocation  *allocation,
 
      accesses.push_back( SurfaceAllocationAccess( allocation, flags ) );
 
+//     printf("adding..., count %d\n", allocation->task_count);
+     D_SYNC_ADD( &allocation->task_count, 1 );
+//     printf("%p added, count %d\n", allocation, allocation->task_count);
+
      return DFB_OK;
 }
 
@@ -528,11 +645,10 @@ SurfaceTask::Setup()
      D_ASSERT( state == TASK_FLUSHED );
 
      for (std::vector<SurfaceAllocationAccess>::const_iterator it = accesses.begin(); it != accesses.end(); ++it) {
-          SurfaceAllocationAccess  access     = *it;
-          CoreSurfaceAllocation   *allocation = access.first;
-          CoreSurfaceAccessFlags   flags      = access.second;
+          CoreSurfaceAllocation   *allocation = (*it).first;
+          CoreSurfaceAccessFlags   flags      = (*it).second;
 
-          // TODO: implement cache invalidate / flush tagging incl. optimisation for subsequent tasks of same accessor
+          // TODO: implement cache invalidate / flush tagging
 
           D_DEBUG_AT( DirectFB_Task, "  -> allocation %p, task count %d\n", allocation, allocation->task_count );
 
@@ -541,7 +657,7 @@ SurfaceTask::Setup()
 //               return DFB_BUSY;
 //          }
 
-          allocation->task_count++;
+//          allocation->task_count++;
 
           if ((flags & CSAF_WRITE) != 0) {
                SurfaceTask *read_task;
@@ -552,7 +668,7 @@ SurfaceTask::Setup()
                     int index;
 
                     fusion_vector_foreach (read_task, index, allocation->read_tasks) {
-                         read_task->addNotify( this );
+                         read_task->addNotify( this, read_task->accessor == accessor );
                     }
 
                     // FIXME: reset vector (free array)?
@@ -562,8 +678,7 @@ SurfaceTask::Setup()
                else if (allocation->write_task) {
                     SurfaceTask *write_task = (SurfaceTask *)allocation->write_task;
 
-                    //if (write_task->accessor != accessor)
-                         write_task->addNotify( this );
+                    write_task->addNotify( this, write_task->accessor == accessor );
                }
 
                allocation->write_task = this;
@@ -574,8 +689,7 @@ SurfaceTask::Setup()
                if (allocation->write_task) {
                     SurfaceTask *write_task = (SurfaceTask *)allocation->write_task;
 
-                    //if (write_task->accessor != accessor)
-                         write_task->addNotify( this );
+                    write_task->addNotify( this, write_task->accessor == accessor );
                }
 
                fusion_vector_add( &allocation->read_tasks, this );
@@ -602,7 +716,7 @@ SurfaceTask::Finalise()
           if (allocation->write_task == this) {
                allocation->write_task = NULL;
 
-               D_ASSERT( fusion_vector_index_of( &allocation->read_tasks, this ) < 0 );
+               //D_ASSERT( fusion_vector_index_of( &allocation->read_tasks, this ) < 0 );
           }
           else {
                index = fusion_vector_index_of( &allocation->read_tasks, this );
@@ -610,12 +724,20 @@ SurfaceTask::Finalise()
                     fusion_vector_remove( &allocation->read_tasks, index );
           }
 
-          allocation->task_count--;
+//          allocation->task_count--;
+          D_SYNC_ADD( &allocation->task_count, -1 );
+//          printf("%p subbed, count %d\n", allocation, allocation->task_count);
 
           dfb_surface_allocation_unref( allocation );
      }
 
      accesses.clear();
+}
+
+std::string
+SurfaceTask::Describe()
+{
+     return Task::Describe() + Util::PrintF( "  accessor 0x%02x, accesses %d", accessor, accesses.size() );
 }
 
 }

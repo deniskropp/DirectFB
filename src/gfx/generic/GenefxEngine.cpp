@@ -26,7 +26,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define DIRECT_ENABLE_DEBUG
+//#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
 
@@ -39,6 +39,7 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/core.h>
+#include <core/palette.h>
 #include <core/state.h>
 #include <core/surface_allocation.h>
 #include <core/surface_pool.h>
@@ -58,13 +59,13 @@ namespace DirectFB {
 
 
 
-D_DEBUG_DOMAIN( DirectFB_GenefxEngine, "DirectFB/GenefxEngine", "DirectFB GenefxEngine" );
-D_DEBUG_DOMAIN( DirectFB_GenefxTask,   "DirectFB/GenefxTask",   "DirectFB GenefxTask" );
+D_DEBUG_DOMAIN( DirectFB_GenefxEngine, "DirectFB/Genefx/Engine", "DirectFB Genefx Engine" );
+D_DEBUG_DOMAIN( DirectFB_GenefxTask,   "DirectFB/Genefx/Task",   "DirectFB Genefx Task" );
 
 
 
 
-
+// TODO: use fixed size array instead of std::vector
 
 
 
@@ -105,8 +106,12 @@ private:
           TYPE_SET_SRC_BLEND,
           TYPE_SET_DST_BLEND,
           TYPE_SET_SRC_COLORKEY,
+          TYPE_SET_DESTINATION_PALETTE,
+          TYPE_SET_SOURCE_PALETTE,
           TYPE_FILL_RECTS,
-          TYPE_BLIT
+          TYPE_DRAW_LINES,
+          TYPE_BLIT,
+          TYPE_STRETCHBLIT
      } Type;
 
      std::vector<u32> commands;
@@ -122,7 +127,11 @@ public:
 
           D_ASSERT( cores > 0 );
 
-          this->cores = cores < 8 ? cores : 8;
+          caps.software       = true;
+          caps.cores          = cores < 8 ? cores : 8;
+          caps.clipping       = (DFBAccelerationMask)(DFXL_FILLRECTANGLE | DFXL_DRAWLINE | DFXL_BLIT);
+          caps.render_options = (DFBSurfaceRenderOptions)(DSRO_SMOOTH_DOWNSCALE | DSRO_SMOOTH_UPSCALE);
+          caps.max_operations = 1000;
 
           for (unsigned int i=0; i<cores; i++) {
                char name[] = "GenefxX";
@@ -145,18 +154,17 @@ public:
           return DFB_OK;
      }
 
-     virtual DFBResult CheckState    ( DirectFB::SurfaceTask  *task,
-                                       CardState              *state,
+     virtual DFBResult check         ( Renderer::Setup        *setup )
+     {
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
+
+          return DFB_OK;
+     }
+
+     virtual DFBResult CheckState    ( CardState              *state,
                                        DFBAccelerationMask     accel )
      {
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( task %p )\n", __FUNCTION__, task );
-
-          if (task) {
-               GenefxTask *mytask = (GenefxTask *)task;
-
-               if (mytask->commands.size() > 20000)
-                    return DFB_LIMITEXCEEDED;
-          }
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
 
           if (!gAcquireCheck( state, accel ))
                return DFB_UNSUPPORTED;
@@ -176,6 +184,8 @@ public:
           // TODO: maybe validate lazily as in CoreGraphicsStateClient
 
           if (modified & SMF_DESTINATION) {
+               D_DEBUG_AT( DirectFB_GenefxEngine, "  -> destination %p (%d)\n", state->dst.addr, state->dst.pitch );
+
                mytask->commands.push_back( GenefxTask::TYPE_SET_DESTINATION );
                mytask->commands.push_back( (long long)(long)state->dst.addr >> 32 );
                mytask->commands.push_back( (u32)(long)state->dst.addr );
@@ -184,9 +194,22 @@ public:
                mytask->commands.push_back( state->destination->config.size.h );
                mytask->commands.push_back( state->destination->config.format );
                mytask->commands.push_back( state->destination->config.caps );
+
+               if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->config.format )) {
+                    mytask->commands.push_back( GenefxTask::TYPE_SET_DESTINATION_PALETTE );
+
+                    mytask->commands.push_back( state->destination->palette->num_entries );
+
+                    for (unsigned int i=0; i<state->destination->palette->num_entries; i++) {
+                         mytask->commands.push_back( *(u32*)&state->destination->palette->entries[i] );
+                         mytask->commands.push_back( *(u32*)&state->destination->palette->entries_yuv[i] );
+                    }
+               }
           }
 
           if (modified & SMF_CLIP) {
+               D_DEBUG_AT( DirectFB_GenefxEngine, "  -> clip %d,%d-%dx%d\n", DFB_RECTANGLE_VALS_FROM_REGION(&state->clip) );
+
                mytask->commands.push_back( GenefxTask::TYPE_SET_CLIP );
                mytask->commands.push_back( state->clip.x1 );
                mytask->commands.push_back( state->clip.y1 );
@@ -197,6 +220,8 @@ public:
           }
 
           if (modified & SMF_SOURCE && state->source) {
+               D_DEBUG_AT( DirectFB_GenefxEngine, "  -> source %p (%d)\n", state->src.addr, state->src.pitch );
+
                mytask->commands.push_back( GenefxTask::TYPE_SET_SOURCE );
                mytask->commands.push_back( (long long)(long)state->src.addr >> 32 );
                mytask->commands.push_back( (u32)(long)state->src.addr );
@@ -205,6 +230,17 @@ public:
                mytask->commands.push_back( state->source->config.size.h );
                mytask->commands.push_back( state->source->config.format );
                mytask->commands.push_back( state->source->config.caps );
+
+               if (DFB_PIXELFORMAT_IS_INDEXED( state->source->config.format )) {
+                    mytask->commands.push_back( GenefxTask::TYPE_SET_SOURCE_PALETTE );
+
+                    mytask->commands.push_back( state->source->palette->num_entries );
+
+                    for (unsigned int i=0; i<state->source->palette->num_entries; i++) {
+                         mytask->commands.push_back( *(u32*)&state->source->palette->entries[i] );
+                         mytask->commands.push_back( *(u32*)&state->source->palette->entries_yuv[i] );
+                    }
+               }
           }
 
           if (modified & SMF_COLOR) {
@@ -277,6 +313,39 @@ public:
      }
 
 
+     virtual DFBResult DrawLines( DirectFB::SurfaceTask *task,
+                                  const DFBRegion       *lines,
+                                  unsigned int           num_lines )
+     {
+          GenefxTask *mytask = (GenefxTask *)task;
+          u32         count  = 0;
+          u32         index;
+
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num_lines );
+
+          mytask->commands.push_back( GenefxTask::TYPE_DRAW_LINES );
+          mytask->commands.push_back( num_lines );
+          index = mytask->commands.size() - 1;
+
+          for (unsigned int i=0; i<num_lines; i++) {
+               DFBRegion line = lines[i];
+
+               if (dfb_clip_line( &mytask->clip, &line )) {
+                    mytask->commands.push_back( line.x1 );
+                    mytask->commands.push_back( line.y1 );
+                    mytask->commands.push_back( line.x2 );
+                    mytask->commands.push_back( line.y2 );
+
+                    count++;
+               }
+          }
+
+          mytask->commands[index] = count;
+
+          return DFB_OK;
+     }
+
+
      virtual DFBResult Blit( DirectFB::SurfaceTask  *task,
                              const DFBRectangle     *rects,
                              const DFBPoint         *points,
@@ -306,6 +375,43 @@ public:
                     mytask->commands.push_back( rect.h );
                     mytask->commands.push_back( dx );
                     mytask->commands.push_back( dy );
+
+                    count++;
+               }
+          }
+
+          mytask->commands[index] = count;
+
+          return DFB_OK;
+     }
+
+
+     virtual DFBResult StretchBlit( DirectFB::SurfaceTask  *task,
+                                    const DFBRectangle     *srects,
+                                    const DFBRectangle     *drects,
+                                    u32                     num )
+     {
+          GenefxTask *mytask = (GenefxTask *)task;
+          u32         count  = 0;
+          u32         index;
+
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num );
+
+          mytask->commands.push_back( GenefxTask::TYPE_STRETCHBLIT );
+          mytask->commands.push_back( num );
+          index = mytask->commands.size() - 1;
+
+          for (unsigned int i=0; i<num; i++) {
+               if (dfb_clip_blit_precheck( &mytask->clip, drects[i].w, drects[i].h, drects[i].x, drects[i].y )) {
+                    mytask->commands.push_back( srects[i].x );
+                    mytask->commands.push_back( srects[i].y );
+                    mytask->commands.push_back( srects[i].w );
+                    mytask->commands.push_back( srects[i].h );
+
+                    mytask->commands.push_back( drects[i].x );
+                    mytask->commands.push_back( drects[i].y );
+                    mytask->commands.push_back( drects[i].w );
+                    mytask->commands.push_back( drects[i].h );
 
                     count++;
                }
@@ -348,6 +454,8 @@ GenefxTask::Push()
 {
      D_DEBUG_AT( DirectFB_GenefxTask, "GenefxTask::%s()\n", __FUNCTION__ );
 
+     engine->fifo.waitMost( engine->caps.cores * 2 );
+
      engine->fifo.push( this );
 
      return DFB_OK;
@@ -362,11 +470,16 @@ GenefxTask::Run()
      u32         num;
      size_t      size;
      CoreSurface dest;
+     CorePalette dest_palette;
+     DFBColor    dest_entries[256];
+     DFBColorYUV dest_entries_yuv[256];
      CoreSurface source;
+     CorePalette source_palette;
+     DFBColor    source_entries[256];
+     DFBColorYUV source_entries_yuv[256];
+     CardState   state;
 
      D_DEBUG_AT( DirectFB_GenefxTask, "GenefxTask::%s()\n", __FUNCTION__ );
-
-     CardState state;
 
      dfb_state_init( &state, core_dfb );
 
@@ -400,7 +513,7 @@ GenefxTask::Run()
                          dest.config.format = (DFBSurfacePixelFormat) buffer[++i];
                          dest.config.caps   = (DFBSurfaceCapabilities) buffer[++i];
 
-                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> size %dx%d\n", dest.config.size.w, dest.config.size.w );
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> size %dx%d\n", dest.config.size.w, dest.config.size.h );
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> format %s\n", dfb_pixelformat_name( dest.config.format ) );
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> caps 0x%08x\n", dest.config.caps );
                          break;
@@ -433,7 +546,7 @@ GenefxTask::Run()
                          source.config.format = (DFBSurfacePixelFormat) buffer[++i];
                          source.config.caps   = (DFBSurfaceCapabilities) buffer[++i];
 
-                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> size %dx%d\n", source.config.size.w, source.config.size.w );
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> size %dx%d\n", source.config.size.w, source.config.size.h );
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> format %s\n", dfb_pixelformat_name( source.config.format ) );
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> caps 0x%08x\n", source.config.caps );
                          break;
@@ -485,6 +598,46 @@ GenefxTask::Run()
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> 0x%08x\n", state.src_colorkey );
                          break;
 
+                    case GenefxTask::TYPE_SET_DESTINATION_PALETTE:
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> SET_DESTINATION_PALETTE\n" );
+
+                         num = buffer[++i];
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> num %d\n", num );
+
+                         D_ASSERT( num <= 256 );
+
+                         for (u32 n=0; n<num; n++) {
+                              dest_entries[n]     = *(DFBColor*)&buffer[++i];
+                              dest_entries_yuv[n] = *(DFBColorYUV*)&buffer[++i];
+                         }
+
+                         dest_palette.num_entries = num;
+                         dest_palette.entries     = dest_entries;
+                         dest_palette.entries_yuv = dest_entries_yuv;
+
+                         dest.palette = &dest_palette;
+                         break;
+
+                    case GenefxTask::TYPE_SET_SOURCE_PALETTE:
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> SET_SOURCE_PALETTE\n" );
+
+                         num = buffer[++i];
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> num %d\n", num );
+
+                         D_ASSERT( num <= 256 );
+
+                         for (u32 n=0; n<num; n++) {
+                              source_entries[n]     = *(DFBColor*)&buffer[++i];
+                              source_entries_yuv[n] = *(DFBColorYUV*)&buffer[++i];
+                         }
+
+                         source_palette.num_entries = num;
+                         source_palette.entries     = source_entries;
+                         source_palette.entries_yuv = source_entries_yuv;
+
+                         source.palette = &source_palette;
+                         break;
+
                     case GenefxTask::TYPE_FILL_RECTS:
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> FILL_RECTS\n" );
 
@@ -506,6 +659,33 @@ GenefxTask::Run()
                                    };
 
                                    gFillRectangle( &state, &rect );
+                              }
+                         }
+                         else
+                              i += num * 4;
+                         break;
+
+                    case GenefxTask::TYPE_DRAW_LINES:
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> DRAW_LINES\n" );
+
+                         num = buffer[++i];
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> num %d\n", num );
+
+                         // TODO: run gAcquireSetup in Engine, requires lots of Genefx changes :(
+                         if (gAcquireSetup( &state, DFXL_DRAWLINE )) {
+                              for (u32 n=0; n<num; n++) {
+                                   int x1 = buffer[++i];
+                                   int y1 = buffer[++i];
+                                   int x2 = buffer[++i];
+                                   int y2 = buffer[++i];
+
+                                   D_DEBUG_AT( DirectFB_GenefxTask, "  -> %4d,%4d-%4dx%4d\n", x1, y1, x2, y2 );
+
+                                   DFBRegion line = {
+                                        x1, y1, x2, y2
+                                   };
+
+                                   gDrawLine( &state, &line );
                               }
                          }
                          else
@@ -539,6 +719,39 @@ GenefxTask::Run()
                          }
                          else
                               i += num * 6;
+                         break;
+
+                    case GenefxTask::TYPE_STRETCHBLIT:
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> STRETCHBLIT\n" );
+
+                         num = buffer[++i];
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> num %d\n", num );
+
+                         // TODO: run gAcquireSetup in Engine, requires lots of Genefx changes :(
+                         if (gAcquireSetup( &state, DFXL_STRETCHBLIT )) {
+                              for (u32 n=0; n<num; n++) {
+                                   DFBRectangle srect;
+                                   DFBRectangle drect;
+
+                                   srect.x = buffer[++i];
+                                   srect.y = buffer[++i];
+                                   srect.w = buffer[++i];
+                                   srect.h = buffer[++i];
+
+                                   drect.x = buffer[++i];
+                                   drect.y = buffer[++i];
+                                   drect.w = buffer[++i];
+                                   drect.h = buffer[++i];
+
+                                   D_DEBUG_AT( DirectFB_GenefxTask, "  -> %4d,%4d-%4dx%4d -> %4d,%4d-%4dx%4d\n",
+                                               srect.x, srect.y, srect.w, srect.h,
+                                               drect.x, drect.y, drect.w, drect.h );
+
+                                   gStretchBlit( &state, &srect, &drect );
+                              }
+                         }
+                         else
+                              i += num * 8;
                          break;
 
                     default:

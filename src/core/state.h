@@ -219,6 +219,8 @@ struct _CardState {
 
      u32                      source_flip_count;
      bool                     source_flip_count_used;
+
+     void                    *client;
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );

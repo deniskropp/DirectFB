@@ -142,7 +142,9 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     CoreGraphicsStateClient_Flush( &data->base.state_client );
+     //CoreGraphicsStateClient_FlushAll();
+     CoreGraphicsStateClient_FlushAllDst( data->base.surface );
+     //CoreGraphicsStateClient_Flush( &data->base.state_client );
 
      ret = CoreLayerRegion_FlipUpdate( data->region, &reg, flags );
      if (ret)

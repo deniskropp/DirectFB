@@ -31,6 +31,8 @@
 
 #include <core/surface.h>
 
+#include <core/CoreGraphicsStateClient.h>
+
 void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect );
 void dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect, int x, int y, bool from_back );
 void dfb_gfx_copy_stereo( CoreSurface         *source,
@@ -82,6 +84,18 @@ void dfb_gfx_copy_regions_stereo( CoreSurface           *source,
                                   unsigned int           num,
                                   int                    x,
                                   int                    y );
+
+void dfb_gfx_copy_regions_client( CoreSurface             *source,
+                                  CoreSurfaceBufferRole    from,
+                                  DFBSurfaceStereoEye      source_eye,
+                                  CoreSurface             *destination,
+                                  CoreSurfaceBufferRole    to,
+                                  DFBSurfaceStereoEye      destination_eye,
+                                  const DFBRegion         *regions,
+                                  unsigned int             num,
+                                  int                      x,
+                                  int                      y,
+                                  CoreGraphicsStateClient *client );
 
 /*
  * Simplyfy blitting flags

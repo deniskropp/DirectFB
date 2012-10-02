@@ -95,6 +95,7 @@ dfb_surface_buffer_lock_reset( CoreSurfaceBufferLock *lock )
      lock->offset     = ~0;
      lock->pitch      = 0;
      lock->handle     = 0;
+     lock->task       = NULL;
 }
 
 static inline void
@@ -162,6 +163,8 @@ struct __DFB_CoreSurfaceBuffer {
      CoreSurfaceConfig        config;        /* Configuration of its surface at the time of the buffer creation */
      CoreSurfaceTypeFlags     type;
      unsigned long            resource_id;   /* layer id, window id, or user specified */
+     
+     int                      index;
 };
 
 #define CORE_SURFACE_BUFFER_ASSERT(buffer)                                                     \
@@ -173,6 +176,7 @@ struct __DFB_CoreSurfaceBuffer {
 DFBResult dfb_surface_buffer_create ( CoreDFB                 *core,
                                       CoreSurface             *surface,
                                       CoreSurfaceBufferFlags   flags,
+                                      int                      index,
                                       CoreSurfaceBuffer      **ret_buffer );
 
 DFBResult dfb_surface_buffer_decouple( CoreSurfaceBuffer       *buffer );
@@ -209,26 +213,9 @@ dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,
 static inline int
 dfb_surface_buffer_index( CoreSurfaceBuffer *buffer )
 {
-     int          index;
-     CoreSurface *surface;
-
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     for (index=0; index<MAX_SURFACE_BUFFERS; index++) {
-          if (surface->left_buffers[index] == buffer)
-               return index;
-
-          if (surface->config.caps & DSCAPS_STEREO) 
-               if (surface->right_buffers[index] == buffer)
-                    return index;
-     }
-
-     D_ASSERT( index<MAX_SURFACE_BUFFERS );
-
-     return 0;
+     return buffer->index;
 }
 
 

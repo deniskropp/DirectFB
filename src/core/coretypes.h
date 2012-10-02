@@ -100,12 +100,15 @@ typedef unsigned int CoreSurfacePoolBridgeID;
 namespace DirectFB {
 class Renderer;
 class SurfaceTask;
+class DisplayTask;
 }
 #define DFB_Renderer    DirectFB::Renderer
 #define DFB_SurfaceTask DirectFB::SurfaceTask
+#define DFB_DisplayTask DirectFB::DisplayTask
 #else
 typedef void DFB_Renderer;
 typedef void DFB_SurfaceTask;
+typedef void DFB_DisplayTask;
 #endif
 
 

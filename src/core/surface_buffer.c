@@ -125,6 +125,7 @@ DFBResult
 dfb_surface_buffer_create( CoreDFB                 *core,
                            CoreSurface             *surface,
                            CoreSurfaceBufferFlags   flags,
+                           int                      index,
                            CoreSurfaceBuffer      **ret_buffer )
 {
      DFBResult          ret;
@@ -154,6 +155,7 @@ dfb_surface_buffer_create( CoreDFB                 *core,
      buffer->config      = surface->config;
      buffer->type        = surface->type;
      buffer->resource_id = surface->resource_id;
+     buffer->index       = index;
 
      if (surface->config.caps & DSCAPS_VIDEOONLY)
           buffer->policy = CSP_VIDEOONLY;

@@ -34,6 +34,7 @@
 extern "C" {
 #endif
 
+#include <direct/fifo.h>
 #include <direct/thread.h>
 
 #include <core/surface.h>
@@ -51,6 +52,7 @@ DFBResult        SurfaceTask_AddAccess( DFB_SurfaceTask        *task,
                                         CoreSurfaceAllocation  *allocation,
                                         CoreSurfaceAccessFlags  flags );
 void             SurfaceTask_Flush    ( DFB_SurfaceTask        *task );
+void             SurfaceTask_Done     ( DFB_SurfaceTask        *task );
 
 
 #ifdef __cplusplus
@@ -66,7 +68,9 @@ extern "C" {
 }
 
 
+#include <list>
 #include <queue>
+#include <string>
 #include <vector>
 
 
@@ -116,7 +120,7 @@ public:
           e = queue.front();
           queue.pop();
 
-          if (queue.empty())
+//          if (queue.empty())
                direct_waitqueue_broadcast( &wq_empty );
 
           direct_mutex_unlock( &lock );
@@ -149,12 +153,92 @@ public:
           direct_mutex_unlock( &lock );
      }
 
+     void
+     waitMost( size_t count )
+     {
+          direct_mutex_lock( &lock );
+
+          while (queue.size() > count)
+               direct_waitqueue_wait( &wq_empty, &lock );
+
+          direct_mutex_unlock( &lock );
+     }
+
+     size_t
+     count()
+     {
+          size_t count;
+
+          direct_mutex_lock( &lock );
+
+          count = queue.size();
+
+          direct_mutex_unlock( &lock );
+
+          return count;
+     }
+
 private:
      DirectMutex     lock;
      DirectWaitQueue wq;
      DirectWaitQueue wq_empty;
 
      std::queue<T>   queue;
+};
+
+
+template <typename T>
+class FastFIFO
+{
+class Element {
+public:
+     DirectFifoItem item;
+     T              val;
+};
+
+public:
+     FastFIFO()
+     {
+          direct_fifo_init( &fifo );
+     }
+
+     ~FastFIFO()
+     {
+          direct_fifo_destroy( &fifo );
+     }
+
+     void
+     push( T e )
+     {
+          Element *element = new Element;
+
+          element->item.magic = 0;
+          element->val        = e;
+
+          direct_fifo_push( &fifo, &element->item );
+     }
+
+     T
+     pull()
+     {
+          Element *element;
+          T        val;
+
+          do {
+               element = (Element*) direct_fifo_pull( &fifo );
+               if (!element)
+                    direct_fifo_wait( &fifo );
+          } while (!element);
+
+          val = element->val;
+
+          delete element;
+
+          return val;
+     }
+
+private:
+     DirectFifo      fifo;
 };
 
 
@@ -169,8 +253,22 @@ typedef enum {
      TASK_DONE
 } TaskState;
 
+typedef enum {
+     TASK_FLAG_NONE         = 0x00000000,
 
+     TASK_FLAG_NOSYNC       = 0x00000001,     /* Task is not accounted when TaskManager::Sync() is called */
+     TASK_FLAG_EMITNOTIFIES = 0x00000002,     /* Task runs notifyAll(0 already on emit(), not on finish() */
+
+     TASK_FLAG_ALL          = 0x00000003,
+} TaskFlags;
+
+
+class Task;
 class TaskManager;
+
+class DisplayTask;
+
+typedef std::pair<Task*,bool> TaskNotify;
 
 class Task
 {
@@ -184,34 +282,36 @@ public:
      void      Done();
 
 protected:
-     virtual DFBResult Setup();
-     virtual DFBResult Push();
-     virtual DFBResult Run();
-     virtual void      Finalise();
+     virtual DFBResult   Setup();
+     virtual DFBResult   Push();
+     virtual DFBResult   Run();
+     virtual void        Finalise();
+     virtual std::string Describe();
 
 protected:
      TaskState state;
+     TaskFlags flags;
 
-     DFBResult emit();
+     DFBResult emit( bool following );
      DFBResult finish();
 
-     void addNotify( Task *task );
+     void addNotify( Task *task,
+                     bool  follow );
      void notifyAll();
-     void handleNotify();
+     void handleNotify( bool following );
 
 private:
      friend class TaskManager;
+     friend class DisplayTask;
 
-     TaskManager        *manager;
+     std::vector<TaskNotify>  notifies;
+     unsigned int             block_count;
 
-     std::vector<Task*>  notifies;
-     unsigned int        block_count;
+     unsigned int             slaves;
+     Task                    *master;
+     Task                    *next_slave;
 
-     unsigned int        slaves;
-     Task               *master;
-     Task               *next_slave;
-
-     bool                finished;
+     bool                     finished;
 };
 
 
@@ -228,6 +328,9 @@ private:
      static DirectThread      *thread;
      static FIFO<Task*>        fifo;
      static unsigned int       task_count;
+     static unsigned int       task_count_sync;
+
+     static std::list<Task*>   tasks;
 
      static void       pushTask  ( Task *task );
      static Task      *pullTask  ();
@@ -235,6 +338,9 @@ private:
 
      static void      *managerLoop( DirectThread *thread,
                                     void         *arg );
+
+public:
+     static void       dumpTasks();
 };
 
 
@@ -253,11 +359,45 @@ public:
      CoreSurfaceAccessorID                   accessor;
 
 protected:
-     virtual DFBResult Setup();
-     virtual void      Finalise();
+     virtual DFBResult   Setup();
+     virtual void        Finalise();
+     virtual std::string Describe();
 
 private:
      std::vector<SurfaceAllocationAccess>    accesses;
+};
+
+
+
+class DisplayTask : public SurfaceTask
+{
+public:
+     DisplayTask( CoreLayerRegion       *region,
+                  const DFBRegion       *update,
+                  DFBSurfaceFlipFlags    flip_flags,
+                  CoreSurfaceAllocation *allocation );
+
+     ~DisplayTask();
+
+     static DFBResult Generate( CoreLayerRegion     *region,
+                                const DFBRegion     *update,
+                                DFBSurfaceFlipFlags  flags );
+
+protected:
+     virtual DFBResult Setup();
+     virtual void Finalise();
+     virtual DFBResult Run();
+     virtual std::string Describe();
+
+private:
+     CoreLayerRegion       *region;
+     DFBRegion             *update;
+     DFBRegion              update_region;
+     DFBSurfaceFlipFlags    flip_flags;
+     CoreSurfaceAllocation *allocation;
+     CoreLayer             *layer;
+     CoreLayerContext      *context;
+     int                    index;
 };
 
 

@@ -43,6 +43,8 @@ extern "C" {
 
 // C Wrapper
 
+void Renderer_TLS__init( void );
+void Renderer_TLS__deinit( void );
 
 #ifdef __cplusplus
 }
@@ -70,12 +72,10 @@ namespace DirectFB {
 
 TODO
   - clipping
-  - other render ops
-  - transfers
   - locking in engine / task
   - allocations in e.g. GL thread
 
-  - port Genefx to Engine
+  - finish port Genefx to Engine
   - triangle to rectangle filling
   - rectangle drawing to filling
 
@@ -125,16 +125,17 @@ typedef std::map<SurfaceAllocationKey,CoreSurfaceAllocation*>  SurfaceAllocation
 typedef std::pair<SurfaceAllocationKey,CoreSurfaceAllocation*> SurfaceAllocationMapPair;
 
 
-
 class Renderer
 {
 public:
      class Setup
      {
      public:
-          unsigned int           tiles;
-          SurfaceTask          **tasks;
-          DFBRegion             *clips;
+          unsigned int   tiles;
+          SurfaceTask  **tasks;
+          DFBRegion     *clips;
+          DFBRegion     *clips_clipped;
+          unsigned int   task_mask;
 
           Setup( int width, int height, unsigned int tiles = 1 )
                :
@@ -142,8 +143,9 @@ public:
           {
                D_ASSERT( tiles > 0 );
 
-               tasks = new SurfaceTask*[tiles];
-               clips = new DFBRegion[tiles];
+               tasks         = new SurfaceTask*[tiles];
+               clips         = new DFBRegion[tiles*2];
+               clips_clipped = clips + tiles;
 
                memset( tasks, 0, sizeof(SurfaceTask*) * tiles );
 
@@ -187,28 +189,64 @@ public:
 
      void Flush();
 
-     void FillRectangles( const DFBRectangle *rects,
-                          unsigned int        num_rects );
 
-     // TODO: Add other drawing functions
+     void DrawRectangles  ( const DFBRectangle     *rects,
+                            unsigned int            num_rects );
 
-     void Blit          ( const DFBRectangle *rects,
-                          const DFBPoint     *points,
-                          u32                 num );
+     void DrawLines       ( const DFBRegion        *lines,
+                            unsigned int            num_lines );
 
-     // TODO: Add other blitting functions
+     void FillRectangles  ( const DFBRectangle     *rects,
+                            unsigned int            num_rects );
+
+     void FillTriangles   ( const DFBTriangle      *tris,
+                            unsigned int            num_tris );
+
+     void FillTrapezoids  ( const DFBTrapezoid     *traps,
+                            unsigned int            num_traps );
+
+     void FillSpans       ( int                     y,
+                            const DFBSpan          *spans,
+                            unsigned int            num_spans );
+
+
+     void Blit            ( const DFBRectangle     *rects,
+                            const DFBPoint         *points,
+                            u32                     num );
+
+     void Blit2           ( const DFBRectangle     *rects,
+                            const DFBPoint         *points1,
+                            const DFBPoint         *points2,
+                            u32                     num );
+
+     void StretchBlit     ( const DFBRectangle     *srects,
+                            const DFBRectangle     *drects,
+                            u32                     num );
+
+     void TileBlit        ( const DFBRectangle     *rects,
+                            const DFBPoint         *points1,
+                            const DFBPoint         *points2,
+                            u32                     num );
+
+     void TextureTriangles( const DFBVertex        *vertices,
+                            int                     num,
+                            DFBTriangleFormation    formation );
+
 
 
 private:
      CardState             *state;
+     StateModificationFlags state_mod;
 
      Engine                *engine;
      Setup                 *setup;
+     unsigned int           operations;
 
      SurfaceAllocationMap   allocations;
 
 
-     bool      checkEngine ( DFBAccelerationMask  accel );
+     bool      checkEngine ( DFBAccelerationMask  accel,
+                             unsigned int         num );
 
      DFBResult bindEngine  ( Engine              *engine );
      void      unbindEngine();
@@ -244,42 +282,103 @@ public:
 class Engine {
      friend class Renderer;
 
+public:
+     class Capabilities {
+     public:
+          bool                     software;
+          unsigned int             cores;
+          DFBAccelerationMask      clipping;
+          DFBSurfaceRenderOptions  render_options;
+          unsigned int             max_scale_down_x;
+          unsigned int             max_scale_down_y;
+          unsigned int             max_operations;
+
+          Capabilities()
+          {
+               software         = false;
+               cores            = 1;
+               clipping         = DFXL_NONE;
+               render_options   = DSRO_NONE;
+               max_scale_down_x = UINT_MAX;
+               max_scale_down_y = UINT_MAX;
+               max_operations   = UINT_MAX;
+          }
+     };
+
 protected:
-     unsigned int cores;
+     Capabilities caps;
 
      Engine()
-          :
-          cores( 1 )
      {
      }
 
 public:
-     virtual DFBResult bind          ( Renderer::Setup        *setup ) = 0;
+     virtual DFBResult bind            ( Renderer::Setup        *setup ) = 0;
+     virtual DFBResult check           ( Renderer::Setup        *setup ) = 0;
 
-     virtual DFBResult CheckState    ( DirectFB::SurfaceTask  *task,
-                                       CardState              *state,
-                                       DFBAccelerationMask     accel ) = 0;
+     virtual DFBResult CheckState      ( CardState              *state,    // FIXME: make const
+                                         DFBAccelerationMask     accel ) = 0;
 
-     virtual DFBResult SetState      ( SurfaceTask            *task,
-                                       CardState              *state,
-                                       StateModificationFlags  modified,
-                                       DFBAccelerationMask     accel ) = 0;
-
-
-
-     virtual DFBResult FillRectangles( SurfaceTask            *task,
-                                       const DFBRectangle     *rects,
-                                       unsigned int            num_rects );
-
-     // TODO: Add other drawing functions
+     virtual DFBResult SetState        ( SurfaceTask            *task,
+                                         CardState              *state,
+                                         StateModificationFlags  modified,
+                                         DFBAccelerationMask     accel ) = 0;
 
 
-     virtual DFBResult Blit          ( SurfaceTask            *task,
-                                       const DFBRectangle     *rects,
-                                       const DFBPoint         *points,
-                                       u32                     num );
 
-     // TODO: Add other blitting functions
+     virtual DFBResult DrawRectangles  ( SurfaceTask            *task,
+                                         const DFBRectangle     *rects,
+                                         unsigned int            num_rects );
+
+     virtual DFBResult DrawLines       ( SurfaceTask            *task,
+                                         const DFBRegion        *lines,
+                                         unsigned int            num_lines );
+
+     virtual DFBResult FillRectangles  ( SurfaceTask            *task,
+                                         const DFBRectangle     *rects,
+                                         unsigned int            num_rects );
+
+     virtual DFBResult FillTriangles   ( SurfaceTask            *task,
+                                         const DFBTriangle      *tris,
+                                         unsigned int            num_tris );
+
+     virtual DFBResult FillTrapezoids  ( SurfaceTask            *task,
+                                         const DFBTrapezoid     *traps,
+                                         unsigned int            num_traps );
+
+     virtual DFBResult FillSpans       ( SurfaceTask            *task,
+                                         int                     y,
+                                         const DFBSpan          *spans,
+                                         unsigned int            num_spans );
+
+
+
+     virtual DFBResult Blit            ( SurfaceTask            *task,
+                                         const DFBRectangle     *rects,
+                                         const DFBPoint         *points,
+                                         u32                     num );
+
+     virtual DFBResult Blit2           ( SurfaceTask            *task,
+                                         const DFBRectangle     *rects,
+                                         const DFBPoint         *points1,
+                                         const DFBPoint         *points2,
+                                         u32                     num );
+
+     virtual DFBResult StretchBlit     ( SurfaceTask            *task,
+                                         const DFBRectangle     *srects,
+                                         const DFBRectangle     *drects,
+                                         u32                     num );
+
+     virtual DFBResult TileBlit        ( SurfaceTask            *task,
+                                         const DFBRectangle     *rects,
+                                         const DFBPoint         *points1,
+                                         const DFBPoint         *points2,
+                                         u32                     num );
+
+     virtual DFBResult TextureTriangles( SurfaceTask            *task,
+                                         const DFBVertex        *vertices,
+                                         int                     num,
+                                         DFBTriangleFormation    formation );
 };
 
 

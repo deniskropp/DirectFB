@@ -26,10 +26,13 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include "CoreLayerRegion.h"
 #include "Task.h"
+#include "Util.h"
 
 extern "C" {
 #include <directfb_util.h>
@@ -96,171 +99,216 @@ D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
 
 
 
-class DisplayTask : public SurfaceTask
+DisplayTask::DisplayTask( CoreLayerRegion       *region,
+                          const DFBRegion       *update,
+                          DFBSurfaceFlipFlags    flip_flags,
+                          CoreSurfaceAllocation *allocation )
+     :
+     SurfaceTask( region->surface_accessor ),
+     region( region ),
+     update( NULL ),
+     flip_flags( flip_flags ),
+     allocation( allocation )
 {
-public:
-     DisplayTask( CoreLayerRegion       *region,
-                  const DFBRegion       *update,
-                  DFBSurfaceFlipFlags    flags,
-                  CoreSurfaceAllocation *allocation )
-          :
-          SurfaceTask( region->surface_accessor ),
-          region( region ),
-          update( NULL ),
-          flags( flags ),
-          allocation( allocation )
-     {
-          if (update) {
-               this->update = new DFBRegion;
+     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
-               *this->update = *update;
-          }
+     context = region->context;
+     layer   = dfb_layer_at( context->layer_id );
+     index   = dfb_surface_buffer_index( allocation->buffer );
+
+     if (update) {
+          this->update = &this->update_region;
+
+          *this->update = *update;
      }
 
-     ~DisplayTask()
-     {
-          if (update)
-               delete update;
-     }
+     D_DEBUG_AT( Core_Layers, "  -> index %d\n", index );
 
-     static DFBResult Generate( CoreLayerRegion     *region,
-                                const DFBRegion     *update,
-                                DFBSurfaceFlipFlags  flags )
-     {
-          DFBResult              ret;
-          CoreSurface           *surface;
-          CoreSurfaceBuffer     *buffer;
-          CoreSurfaceAllocation *allocation;
+     flags = (TaskFlags)(flags | TASK_FLAG_NOSYNC /*| TASK_FLAG_EMITNOTIFIES*/);
+}
 
-          surface = region->surface;
+DisplayTask::~DisplayTask()
+{
+}
 
-          // FIXME: move to helper class
-          //
+DFBResult
+DisplayTask::Generate( CoreLayerRegion     *region,
+                       const DFBRegion     *update,
+                       DFBSurfaceFlipFlags  flags )
+{
+     DFBResult              ret;
+     CoreSurface           *surface;
+     CoreSurfaceBuffer     *buffer;
+     CoreSurfaceAllocation *allocation;
 
-          buffer = dfb_surface_get_buffer3( surface, CSBR_BACK, DSSE_LEFT, surface->flips );
+     surface = region->surface;
 
-          allocation = dfb_surface_buffer_find_allocation( buffer, region->surface_accessor, CSAF_READ, true );
-          if (!allocation) {
-               /* If no allocation exists, create one. */
-               ret = dfb_surface_pools_allocate( buffer, region->surface_accessor, CSAF_READ, &allocation );
-               if (ret) {
-                    D_DERROR( ret, "Core/LayerRegion: Buffer allocation failed!\n" );
-                    return ret;
-               }
-          }
+     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( region %p, surface %p, flip %d )\n", __FUNCTION__, region, surface, surface->flips );
 
-          // FIXME: sync allocation
+     // FIXME: move to helper class
+     //
 
-          DisplayTask *task = new DisplayTask( region, update, flags, allocation );
+     buffer = dfb_surface_get_buffer3( surface, CSBR_BACK, DSSE_LEFT, surface->flips );
 
-          task->AddAccess( allocation, CSAF_READ );
-
-          task->Flush();
-
-          return DFB_OK;
-     }
-
-protected:
-     virtual DFBResult Run()
-     {
-          DFBResult                ret;
-          DFBRegion                rotated;
-          DFBRegion                unrotated;
-          CoreLayer               *layer;
-          CoreLayerContext        *context;
-          CoreSurface             *surface;
-          const DisplayLayerFuncs *funcs;
-          CoreSurfaceBufferLock    left;
-
-          context = region->context;
-          surface = region->surface;
-          layer   = dfb_layer_at( context->layer_id );
-
-          D_ASSERT( layer->funcs != NULL );
-
-          funcs = layer->funcs;
-
-          D_ASSUME( funcs->FlipRegion != NULL );
-
-          dfb_surface_buffer_lock_init( &left, accessor, CSAF_READ );
-
-          ret = dfb_surface_pool_lock( allocation->pool, allocation, &left );
+     allocation = dfb_surface_buffer_find_allocation( buffer, region->surface_accessor, CSAF_READ, true );
+     if (!allocation) {
+          /* If no allocation exists, create one. */
+          ret = dfb_surface_pools_allocate( buffer, region->surface_accessor, CSAF_READ, &allocation );
           if (ret) {
-               dfb_layer_region_unlock( region );
+               D_DERROR( ret, "Core/LayerRegion: Buffer allocation failed!\n" );
                return ret;
           }
-
-          /* Depending on the buffer mode... */
-          switch (region->config.buffermode) {
-               case DLBM_TRIPLE:
-               case DLBM_BACKVIDEO:
-                    /* Check if simply swapping the buffers is possible... */
-                    if (!(flags & DSFLIP_BLIT) && !surface->rotation &&
-                        (!update || (update->x1 == 0 &&
-                                     update->y1 == 0 &&
-                                     update->x2 == surface->config.size.w - 1 &&
-                                     update->y2 == surface->config.size.h - 1)))
-                    {
-                         D_DEBUG_AT( Core_Layers, "  -> Flipping region using driver...\n" );
-
-                         if (funcs->FlipRegion)
-                              ret = funcs->FlipRegion( layer,
-                                                       layer->driver_data,
-                                                       layer->layer_data,
-                                                       region->region_data,
-                                                       surface, flags,
-                                                       update, &left,
-                                                       NULL, NULL );
-                         break;
-                    }
-
-                    /* fall through */
-
-               case DLBM_BACKSYSTEM:
-               case DLBM_FRONTONLY:
-                    /* Tell the driver about the update if the region is realized. */
-                    if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-                         const DFBRegion *_update = update;
-
-                         D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
-
-                         if( !_update ) {
-                              unrotated = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
-                                             region->config.width, region->config.height );
-                              _update    = &unrotated;
-                         }
-                         dfb_region_from_rotated( &rotated, _update, &surface->config.size, surface->rotation );
-
-                         ret = funcs->UpdateRegion( layer,
-                                                    layer->driver_data,
-                                                    layer->layer_data,
-                                                    region->region_data,
-                                                    surface,
-                                                    &rotated, &left,
-                                                    NULL, NULL );
-                    }
-                    break;
-
-               default:
-                    D_BUG("unknown buffer mode");
-                    ret = DFB_BUG;
-          }
-
-          /* Unlock region buffer since the lock is no longer needed. */
-          dfb_surface_pool_unlock( left.allocation->pool, left.allocation, &left );
-          dfb_surface_buffer_lock_deinit( &left );
-
-          Done();   // FIXME: call Done() only when buffer has been displayed (when next buffer's notify_display is called)
-
-          return DFB_OK;
      }
 
-private:
-     CoreLayerRegion       *region;
-     DFBRegion             *update;
-     DFBSurfaceFlipFlags    flags;
-     CoreSurfaceAllocation *allocation;
-};
+     dfb_surface_allocation_update( allocation, CSAF_READ );
+
+     DisplayTask *task = new DisplayTask( region, update, flags, allocation );
+
+     task->AddAccess( allocation, CSAF_READ );
+
+     D_DEBUG_AT( Core_Layers, "  -> flushing task %p\n", task );
+
+     task->Flush();
+
+     return DFB_OK;
+}
+
+DFBResult
+DisplayTask::Setup()
+{
+     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+
+     if (layer->display_task)
+          layer->display_task->addNotify( this, true );
+
+     layer->display_task = this;
+
+     return SurfaceTask::Setup();
+}
+
+void
+DisplayTask::Finalise()
+{
+     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+
+//     D_ASSERT( layer->display_tasks[index] == this );
+
+//     layer->display_tasks[index] = NULL;
+
+     if (layer->display_task == this)
+          layer->display_task = NULL;
+
+     SurfaceTask::Finalise();
+}
+
+DFBResult
+DisplayTask::Run()
+{
+     DFBResult                ret;
+     DFBRegion                rotated;
+     DFBRegion                unrotated;
+     CoreLayer               *layer;
+     CoreLayerContext        *context;
+     CoreSurface             *surface;
+     const DisplayLayerFuncs *funcs;
+     CoreSurfaceBufferLock    left;
+
+     context = region->context;
+     surface = region->surface;
+     layer   = dfb_layer_at( context->layer_id );
+
+     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+
+     D_ASSERT( layer->funcs != NULL );
+     //D_ASSERT( layer->display_tasks[index] == NULL );
+
+     funcs = layer->funcs;
+
+     D_ASSUME( funcs->FlipRegion != NULL );
+
+     dfb_surface_buffer_lock_init( &left, accessor, CSAF_READ );
+
+     left.task = this;
+
+     ret = dfb_surface_pool_lock( allocation->pool, allocation, &left );
+     if (ret) {
+          dfb_layer_region_unlock( region );
+          return ret;
+     }
+
+     D_DEBUG_AT( Core_Layers, "  -> setting task for index %d\n", index );
+
+//     layer->display_tasks[index] = this;
+
+     /* Depending on the buffer mode... */
+     switch (region->config.buffermode) {
+          case DLBM_TRIPLE:
+          case DLBM_BACKVIDEO:
+               /* Check if simply swapping the buffers is possible... */
+               if ((flip_flags & DSFLIP_SWAP) ||
+                   (!(flip_flags & DSFLIP_BLIT) && !surface->rotation &&
+                    (!update || (update->x1 == 0 &&
+                                 update->y1 == 0 &&
+                                 update->x2 == surface->config.size.w - 1 &&
+                                 update->y2 == surface->config.size.h - 1))))
+               {
+                    D_DEBUG_AT( Core_Layers, "  -> Flipping region using driver...\n" );
+
+                    if (funcs->FlipRegion)
+                         ret = funcs->FlipRegion( layer,
+                                                  layer->driver_data,
+                                                  layer->layer_data,
+                                                  region->region_data,
+                                                  surface, flip_flags,
+                                                  update, &left,
+                                                  NULL, NULL );
+                    break;
+               }
+
+               /* fall through */
+
+          case DLBM_BACKSYSTEM:
+          case DLBM_FRONTONLY:
+               /* Tell the driver about the update if the region is realized. */
+               if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+                    const DFBRegion *_update = update;
+
+                    D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
+
+                    if( !_update ) {
+                         unrotated = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
+                                        region->config.width, region->config.height );
+                         _update    = &unrotated;
+                    }
+                    dfb_region_from_rotated( &rotated, _update, &surface->config.size, surface->rotation );
+
+                    ret = funcs->UpdateRegion( layer,
+                                               layer->driver_data,
+                                               layer->layer_data,
+                                               region->region_data,
+                                               surface,
+                                               &rotated, &left,
+                                               NULL, NULL );
+               }
+               break;
+
+          default:
+               D_BUG("unknown buffer mode");
+               ret = DFB_BUG;
+     }
+
+     /* Unlock region buffer since the lock is no longer needed. */
+     dfb_surface_pool_unlock( left.allocation->pool, left.allocation, &left );
+     dfb_surface_buffer_lock_deinit( &left );
+
+     return DFB_OK;
+}
+
+std::string
+DisplayTask::Describe()
+{
+     return SurfaceTask::Describe() + Util::PrintF( "  index %d", index );
+}
 
 
 
@@ -345,11 +393,12 @@ dfb_layer_region_flip_update_TASK( CoreLayerRegion     *region,
           case DLBM_TRIPLE:
           case DLBM_BACKVIDEO:
                /* Check if simply swapping the buffers is possible... */
-               if (!(flags & DSFLIP_BLIT) && !surface->rotation &&
-                   (!update || (update->x1 == 0 &&
-                                update->y1 == 0 &&
-                                update->x2 == surface->config.size.w - 1 &&
-                                update->y2 == surface->config.size.h - 1)))
+               if ((flags & DSFLIP_SWAP) ||
+                   (!(flags & DSFLIP_BLIT) && !surface->rotation &&
+                    (!update || (update->x1 == 0 &&
+                                 update->y1 == 0 &&
+                                 update->x2 == surface->config.size.w - 1 &&
+                                 update->y2 == surface->config.size.h - 1))))
                {
                     dfb_surface_lock( surface );
 

@@ -1044,7 +1044,8 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
           DFBRectangle rect;
 
           /* Check for acceleration and setup execution. */
-          if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+          if (!dfb_config->task_manager &&
+              dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
               dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
           {
                /*
@@ -1265,6 +1266,7 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
          !dfb_clip_needed( &state->clip, rect ))
      {
           if (rect->w <= card->limits.dst_max.w && rect->h <= card->limits.dst_max.h &&
+              !dfb_config->task_manager &&
               dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
               dfb_gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE ))
           {
@@ -1283,7 +1285,8 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
                return;
           }
 
-          if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+          if (!dfb_config->task_manager &&
+              dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
               dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
           {
                for (; i<num; i++) {
@@ -1364,7 +1367,8 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_DRAWLINE ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_DRAWLINE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_DRAWLINE ))
      {
           for (; i<num_lines; i++) {
@@ -1418,7 +1422,8 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
      {
           if (card->funcs.BatchFill) {
@@ -1750,7 +1755,8 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
@@ -1805,6 +1811,7 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
 
           /* try hardware accelerated rectangle filling */
           if (!(card->caps.flags & CCF_NOTRIEMU) &&
+              !dfb_config->task_manager &&
               dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
               dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
           {
@@ -1860,7 +1867,8 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_FILLTRAPEZOID ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_FILLTRAPEZOID ) &&
          dfb_gfxcard_state_acquire( state, DFXL_FILLTRAPEZOID ))
      {
           if (D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) ||
@@ -1883,7 +1891,8 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
      if (!hw && i < num) {
           /* otherwise use two triangles */
 
-          if ( dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
+          if ( !dfb_config->task_manager &&
+               dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
                dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
           {
                for (; i < num; i++) {
@@ -2018,7 +2027,8 @@ dfb_gfxcard_fillquadrangles( DFBPoint *points, int num, CardState *state )
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_FILLQUADRANGLE ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_FILLQUADRANGLE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_FILLQUADRANGLE ))
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
@@ -2092,7 +2102,8 @@ void dfb_gfxcard_draw_mono_glyphs( const void                   *glyph[],
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_DRAWMONOGLYPH ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_DRAWMONOGLYPH ) &&
          dfb_gfxcard_state_acquire( state, DFXL_DRAWMONOGLYPH ))
      {
           for( i = 0; i < num; i++ ) {
@@ -2233,7 +2244,8 @@ static void dfb_gfxcard_blit_locked( DFBRectangle *rect,
           return;
      }
 
-     if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
@@ -2397,7 +2409,8 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
      {
           if (card->funcs.BatchBlit) {
@@ -2588,7 +2601,8 @@ void dfb_gfxcard_batchblit2( DFBRectangle *rects, DFBPoint *points, DFBPoint *po
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_BLIT2 ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_BLIT2 ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT2 ))
      {
           for (; i<num; i++) {
@@ -2711,7 +2725,8 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
 
      odx = dx1;
 
-     if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
+     if (!dfb_config->task_manager &&
+         dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
           bool hw = true;
 
@@ -2870,7 +2885,8 @@ void dfb_gfxcard_batchstretchblit( DFBRectangle *srects, DFBRectangle *drects,
           DFBRectangle *drect = &drects[i];
 
           if (!acquired) {
-               if (!dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT )
+               if (dfb_config->task_manager ||
+                   !dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT )
                    || !dfb_gfxcard_state_acquire( state, DFXL_STRETCHBLIT ))
                     break;
 
@@ -3006,6 +3022,7 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
      dfb_state_start_drawing( state, card );
 
      if ((D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) || D_FLAGS_IS_SET( card->caps.clip, DFXL_TEXTRIANGLES )) &&
+         !dfb_config->task_manager &&
          dfb_gfxcard_state_check( state, DFXL_TEXTRIANGLES ) &&
          dfb_gfxcard_state_acquire( state, DFXL_TEXTRIANGLES ))
      {

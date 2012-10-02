@@ -317,6 +317,11 @@ typedef struct _GraphicsDeviceFuncs {
      DFBResult (*CalcBufferSize)( void *driver_data, void *device_data,
                                   CoreSurfaceBuffer  *buffer,
                                   int *ret_pitch, int *ret_length );
+
+     bool (*FillSpans) ( void *driver_data, void *device_data,
+                         int                     y,
+                         const DFBSpan          *spans,
+                         unsigned int            num_spans );
 } GraphicsDeviceFuncs;
 
 typedef struct {

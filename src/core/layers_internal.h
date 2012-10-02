@@ -95,6 +95,9 @@ struct __DFB_CoreLayer {
      const DisplayLayerFuncs *funcs;
 
      CardState                state;
+
+     DFB_SurfaceTask         *display_task;
+     DFB_SurfaceTask         *display_task_onscreen;
 };
 
 typedef enum {

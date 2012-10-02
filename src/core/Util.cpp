@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -28,55 +28,59 @@
 
 #include <config.h>
 
-#include <direct/util.h>
+#include "Util.h"
 
-#include <core/core.h>
-#include <core/Renderer.h>
-
-#include "init.h"
-
-
-void DFBResult__init( void );
-void DFBResult__deinit( void );
-
-/**********************************************************************************************************************/
-
-typedef void (*Func)( void );
-
-
-static Func init_funcs[] = {
-      DFBResult__init,
-#if !DIRECTFB_BUILD_PURE_VOODOO
-      Core_TLS__init,
-      Renderer_TLS__init,
-#endif
-};
-
-static Func deinit_funcs[] = {
-#if !DIRECTFB_BUILD_PURE_VOODOO
-      Renderer_TLS__deinit,
-      Core_TLS__deinit,
-#endif
-      DFBResult__deinit,
-};
-
-/**********************************************************************************************************************/
-
-void
-__DFB_init_all()
-{
-     size_t i;
-
-     for (i=0; i<D_ARRAY_SIZE(init_funcs); i++)
-          init_funcs[i]();
+extern "C" {
+#include <stdlib.h>
+#include <string.h>
 }
 
-void
-__DFB_deinit_all()
-{
-     size_t i;
 
-     for (i=0; i<D_ARRAY_SIZE(deinit_funcs); i++)
-          deinit_funcs[i]();
+
+namespace DirectFB {
+
+namespace Util {
+
+
+std::string
+PrintF( const char *format, ... )
+{
+     va_list  args;
+     size_t   len;
+     char     buf[200];
+     char    *ptr = buf;
+
+     va_start( args, format );
+     len = vsnprintf( buf, sizeof(buf), format, args );
+     va_end( args );
+
+     if (len < 0)
+          abort();
+
+     if (len >= sizeof(buf)) {
+          ptr = (char*) malloc( len+1 );
+          if (!ptr)
+               abort();
+
+          va_start( args, format );
+          len = vsnprintf( ptr, len+1, format, args );
+          va_end( args );
+
+          if (len < 0) {
+               free( ptr );
+               abort();
+          }
+     }
+
+     std::string str( ptr );
+
+     if (ptr != buf)
+          free( ptr );
+
+     return str;
+}
+
+}
+
 }
 

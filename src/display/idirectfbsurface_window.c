@@ -191,7 +191,9 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      }
 #endif
 
-     CoreGraphicsStateClient_Flush( &data->base.state_client );
+     //CoreGraphicsStateClient_FlushAll();
+     CoreGraphicsStateClient_FlushAllDst( data->base.surface );
+     //CoreGraphicsStateClient_Flush( &data->base.state_client );
 
      if (data->window->region) {
           ret = CoreLayerRegion_FlipUpdate( data->window->region, &reg, flags );
@@ -208,12 +210,20 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                          if (ret)
                              return ret;
                     }
-                    else
-                         CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
+                    else {
+                         //CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
+                         dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
+                                                      data->base.surface, CSBR_FRONT, DSSE_LEFT,
+                                                      &reg, 1, 0, 0, &data->base.state_client );
+                    }
 
                }
-               else
-                    CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
+               else {
+                    //CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
+                    dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
+                                                 data->base.surface, CSBR_FRONT, DSSE_LEFT,
+                                                 &reg, 1, 0, 0, &data->base.state_client );
+               }
           }
 
           dfb_surface_dispatch_update( data->base.surface, &reg, &reg );

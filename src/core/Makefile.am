@@ -49,6 +49,7 @@ internalinclude_HEADERS = \
 	Interface.h		\
 	Renderer.h		\
 	Task.h			\
+	Util.h			\
 	clipboard.h		\
 	colorhash.h		\
 	coredefs.h		\
@@ -121,6 +122,7 @@ libdirectfb_core_la_SOURCES = \
 	CoreWindowStack_real.cpp	\
 	Renderer.cpp		\
 	Task.cpp		\
+	Util.cpp		\
 	clipboard.c		\
 	colorhash.c		\
 	core.c			\
@@ -144,7 +146,7 @@ libdirectfb_core_la_SOURCES = \
 	shared_surface_pool.c	\
 	state.c			\
 	surface.c		\
-	surface_allocation.c	\
+	surface_allocation.cpp	\
 	surface_buffer.c	\
 	surface_client.c	\
 	surface_core.c		\

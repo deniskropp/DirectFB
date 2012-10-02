@@ -715,6 +715,15 @@ IGraphicsState_Real::DrawRectangles(
     if (!obj->state.destination)
          return DFB_NOCONTEXT;
 
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->DrawRectangles( rects, num );
+
+         return DFB_OK;
+    }
+
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
     }
@@ -739,6 +748,15 @@ IGraphicsState_Real::DrawLines(
 
     if (!obj->state.destination)
          return DFB_NOCONTEXT;
+
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->DrawLines( lines, num );
+
+         return DFB_OK;
+    }
 
     if (dfb_config->accel1) {
          ret = State_Enter( obj, DFXL_DRAWLINE );
@@ -833,6 +851,15 @@ IGraphicsState_Real::FillTriangles(
     if (!obj->state.destination)
          return DFB_NOCONTEXT;
 
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->FillTriangles( triangles, num );
+
+         return DFB_OK;
+    }
+
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
     }
@@ -854,6 +881,15 @@ IGraphicsState_Real::FillTrapezoids(
 
     if (!obj->state.destination)
          return DFB_NOCONTEXT;
+
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->FillTrapezoids( trapezoids, num );
+
+         return DFB_OK;
+    }
 
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
@@ -877,6 +913,15 @@ IGraphicsState_Real::FillSpans(
 
     if (!obj->state.destination)
          return DFB_NOCONTEXT;
+
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->FillSpans( y, spans, num );
+
+         return DFB_OK;
+    }
 
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
@@ -977,6 +1022,15 @@ IGraphicsState_Real::Blit2(
     D_ASSERT( points1 != NULL );
     D_ASSERT( points2 != NULL );
 
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->Blit2( rects, points1, points2, num );
+
+         return DFB_OK;
+    }
+
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
     }
@@ -1008,6 +1062,15 @@ IGraphicsState_Real::StretchBlit(
 
     D_ASSERT( srects != NULL );
     D_ASSERT( drects != NULL );
+
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->StretchBlit( srects, drects, num );
+
+         return DFB_OK;
+    }
 
     if (dfb_config->accel1) {
          ret = State_Enter( obj, DFXL_STRETCHBLIT );
@@ -1071,6 +1134,15 @@ IGraphicsState_Real::TileBlit(
     D_ASSERT( points1 != NULL );
     D_ASSERT( points2 != NULL );
 
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->TileBlit( rects, points1, points2, num );
+
+         return DFB_OK;
+    }
+
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();
     }
@@ -1100,6 +1172,15 @@ IGraphicsState_Real::TextureTriangles(
          return DFB_NOCONTEXT;
 
     D_ASSERT( vertices != NULL );
+
+    if (dfb_config->task_manager) {
+         if (!obj->renderer)
+              obj->renderer = new Renderer( &obj->state );
+
+         obj->renderer->TextureTriangles( vertices, num, formation );
+
+         return DFB_OK;
+    }
 
     if (dfb_config->accel1) {
          D_UNIMPLEMENTED();

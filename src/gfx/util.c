@@ -293,6 +293,135 @@ dfb_gfx_copy_regions_stereo( CoreSurface           *source,
      }
 }
 
+void
+dfb_gfx_copy_regions_client_( CoreSurface             *source,
+                             CoreSurfaceBufferRole    from,
+                             DFBSurfaceStereoEye      source_eye,
+                             CoreSurface             *destination,
+                             CoreSurfaceBufferRole    to,
+                             DFBSurfaceStereoEye      destination_eye,
+                             const DFBRegion         *regions,
+                             unsigned int             num,
+                             int                      x,
+                             int                      y,
+                             CoreGraphicsStateClient *client )
+{
+     unsigned int  i, n = 0;
+     DFBRectangle  rect = { 0, 0, source->config.size.w, source->config.size.h };
+     DFBRectangle  rects[num];
+     DFBPoint      points[num];
+     CardState    *state = client->state;
+
+     for (i=0; i<num; i++) {
+          DFB_REGION_ASSERT( &regions[i] );
+
+          rects[n] = DFB_RECTANGLE_INIT_FROM_REGION( &regions[i] );
+
+          if (dfb_rectangle_intersect( &rects[n], &rect )) {
+               points[n].x = x + rects[n].x;
+               points[n].y = y + rects[n].y;
+
+               n++;
+          }
+     }
+
+     if (n > 0) {
+          state->modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO | SMF_BLITTING_FLAGS;
+
+          state->clip.x1     = 0;
+          state->clip.y1     = 0;
+          state->clip.x2     = destination->config.size.w - 1;
+          state->clip.y2     = destination->config.size.h - 1;
+          state->source      = source;
+          state->destination = destination;
+          state->from        = from;
+          state->from_eye    = source_eye;
+          state->to          = to;
+          state->to_eye      = destination_eye;
+          state->blittingflags = DSBLIT_NOFX;
+
+          //dfb_gfxcard_batchblit( rects, points, n, state );
+          CoreGraphicsStateClient_Blit( client, rects, points, n );
+
+          state->destination = NULL;
+          state->source      = NULL;
+     }
+}
+
+void
+dfb_gfx_copy_regions_client( CoreSurface             *source,
+                             CoreSurfaceBufferRole    from,
+                             DFBSurfaceStereoEye      source_eye,
+                             CoreSurface             *destination,
+                             CoreSurfaceBufferRole    to,
+                             DFBSurfaceStereoEye      destination_eye,
+                             const DFBRegion         *regions,
+                             unsigned int             num,
+                             int                      x,
+                             int                      y,
+                             CoreGraphicsStateClient *client )
+{
+     unsigned int  i, n = 0;
+     DFBRectangle  rect = { 0, 0, source->config.size.w, source->config.size.h };
+     DFBRectangle  rects[num];
+     DFBPoint      points[num];
+     CardState    *state = client->state;
+     CardState     backup;
+
+     for (i=0; i<num; i++) {
+          DFB_REGION_ASSERT( &regions[i] );
+
+          rects[n] = DFB_RECTANGLE_INIT_FROM_REGION( &regions[i] );
+
+          if (dfb_rectangle_intersect( &rects[n], &rect )) {
+               points[n].x = x + rects[n].x;
+               points[n].y = y + rects[n].y;
+
+               n++;
+          }
+     }
+
+     if (n > 0) {
+          backup.clip          = state->clip;
+          backup.source        = state->source;
+          backup.destination   = state->destination;
+          backup.from          = state->from;
+          backup.from_eye      = state->from_eye;
+          backup.to            = state->to;
+          backup.to_eye        = state->to_eye;
+          backup.blittingflags = state->blittingflags;
+
+
+          state->modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO | SMF_BLITTING_FLAGS;
+
+          state->clip.x1     = 0;
+          state->clip.y1     = 0;
+          state->clip.x2     = destination->config.size.w - 1;
+          state->clip.y2     = destination->config.size.h - 1;
+          state->source      = source;
+          state->destination = destination;
+          state->from        = from;
+          state->from_eye    = source_eye;
+          state->to          = to;
+          state->to_eye      = destination_eye;
+          state->blittingflags = DSBLIT_NOFX;
+
+          CoreGraphicsStateClient_Blit( client, rects, points, n );
+
+
+          state->modified     |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO | SMF_BLITTING_FLAGS;
+
+          state->clip          = backup.clip;
+          state->source        = backup.source;
+          state->destination   = backup.destination;
+          state->from          = backup.from;
+          state->from_eye      = backup.from_eye;
+          state->to            = backup.to;
+          state->to_eye        = backup.to_eye;
+          state->blittingflags = backup.blittingflags;
+     }
+}
+
 /*********************************************************************************************************************/
 
 static void

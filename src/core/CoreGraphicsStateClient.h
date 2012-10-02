@@ -58,6 +58,7 @@ void      CoreGraphicsStateClient_Deinit          ( CoreGraphicsStateClient *cli
 
 void      CoreGraphicsStateClient_Flush           ( CoreGraphicsStateClient *client );
 void      CoreGraphicsStateClient_FlushAll        ( void );
+void      CoreGraphicsStateClient_FlushAllDst     ( CoreSurface             *surface );
 
 DFBResult CoreGraphicsStateClient_SetState        ( CoreGraphicsStateClient *client,
                                                     CardState               *state,

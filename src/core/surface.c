@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #ifdef USE_ZLIB
@@ -40,6 +42,8 @@
 #include <core/surface_pool.h>
 
 #include <core/system.h>
+
+#include <core/Task.h>
 
 #include <fusion/conf.h>
 #include <fusion/shmalloc.h>
@@ -336,7 +340,7 @@ dfb_surface_create( CoreDFB                  *core,
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<buffers; i++) {
-               ret = dfb_surface_buffer_create( core, surface, CSBF_NONE, &surface->buffers[i] );
+               ret = dfb_surface_buffer_create( core, surface, CSBF_NONE, i, &surface->buffers[i] );
                if (ret) {
                     D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
                     dfb_surface_unlock( surface );
@@ -500,17 +504,43 @@ DFBResult
 dfb_surface_notify_display( CoreSurface       *surface,
                             CoreSurfaceBuffer *buffer )
 {
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     return dfb_surface_notify_display2( surface, dfb_surface_buffer_index( buffer ), NULL );
+}
+
+DFBResult
+dfb_surface_notify_display2( CoreSurface     *surface,
+                             int              index,
+                             DFB_DisplayTask *task )
+{
      CoreSurfaceNotification notification;
 
-     D_MAGIC_ASSERT( surface, CoreSurface );
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-//     FUSION_SKIRMISH_ASSERT( &surface->lock );
+     D_DEBUG_AT( Core_Surface, "%s( %p, %d )\n", __FUNCTION__, surface, index );
 
-//     direct_serial_increase( &surface->serial );
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( index >= 0 );
+     D_ASSERT( index < surface->num_buffers );
+
+     if (surface->type & CSTF_LAYER) {
+          CoreLayer *layer = dfb_layer_at( surface->resource_id );
+
+          D_DEBUG_AT( Core_Surface, "  -> LAYER %d\n", surface->resource_id );
+
+          D_DEBUG_AT( Core_Surface, "  -> previous task %p\n", layer->display_task_onscreen );
+          D_DEBUG_AT( Core_Surface, "  -> current task %p\n", task );
+
+          if (layer->display_task_onscreen) {
+               SurfaceTask_Done( layer->display_task_onscreen );
+               layer->display_task_onscreen = NULL;
+          }
+
+          layer->display_task_onscreen = task;
+     }
 
      notification.flags   = CSNF_DISPLAY;
      notification.surface = surface;
-     notification.index   = dfb_surface_buffer_index( buffer );
+     notification.index   = index;
 
      return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
 }
@@ -583,6 +613,8 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
 {
      unsigned int back, front;
 
+     D_DEBUG_AT( Core_Surface, "%s( %p, %sswap )\n", __FUNCTION__, surface, swap ? "" : "NO " );
+
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      FUSION_SKIRMISH_ASSERT( &surface->lock );
@@ -607,6 +639,8 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
      }
      else
           surface->flips++;
+
+     D_DEBUG_AT( Core_Surface, "  -> flips %d\n", surface->flips );
 
      dfb_surface_notify( surface, CSNF_FLIP );
 
@@ -770,7 +804,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
           for (i=0; i<buffers; i++) {
                CoreSurfaceBuffer *buffer;
      
-               ret = dfb_surface_buffer_create( core_dfb, surface, CSBF_NONE, &buffer );
+               ret = dfb_surface_buffer_create( core_dfb, surface, CSBF_NONE, i, &buffer );
                if (ret) {
                     D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
                     goto error;

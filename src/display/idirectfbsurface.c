@@ -738,7 +738,9 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     CoreGraphicsStateClient_Flush( &data->state_client );
+     //CoreGraphicsStateClient_FlushAll();
+     CoreGraphicsStateClient_FlushAllDst( data->surface );
+     //CoreGraphicsStateClient_Flush( &data->state_client );
 
      if (surface->config.caps & DSCAPS_FLIPPING) {
           if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
@@ -746,8 +748,12 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
           {
                ret = CoreSurface_Flip( data->surface, false );
           }
-          else
-               CoreSurface_BackToFrontCopy( data->surface, DSSE_LEFT, &reg, NULL );
+          else {
+               //CoreSurface_BackToFrontCopy( data->surface, DSSE_LEFT, &reg, NULL );
+               dfb_gfx_copy_regions_client( data->surface, CSBR_BACK, DSSE_LEFT,
+                                            data->surface, CSBR_FRONT, DSSE_LEFT,
+                                            &reg, 1, 0, 0, &data->state_client );
+          }
      }
 
      dfb_surface_dispatch_update( data->surface, &reg, &reg );

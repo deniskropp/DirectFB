@@ -30,6 +30,8 @@
 
 #include <config.h>
 
+
+extern "C" {
 #include <string.h>
 
 #include <sys/types.h>
@@ -60,6 +62,10 @@
 #include <misc/conf.h>
 
 #include <gfx/convert.h>
+}
+
+
+#include <core/Task.h>
 
 
 D_DEBUG_DOMAIN( Core_SurfAllocation, "Core/SurfAllocation", "DirectFB Core Surface Allocation" );
@@ -150,7 +156,7 @@ dfb_surface_allocation_create( CoreDFB                *core,
      if (pool->alloc_data_size) {
           allocation->data = SHCALLOC( pool->shmpool, 1, pool->alloc_data_size );
           if (!allocation->data) {
-               ret = D_OOSHM();
+               ret = (DFBResult) D_OOSHM();
                goto error;
           }
      }
@@ -241,8 +247,8 @@ dfb_surface_allocation_decouple( CoreSurfaceAllocation *allocation )
 
 static void
 transfer_buffer( CoreSurfaceBuffer *buffer,
-                 const void        *src,
-                 void              *dst,
+                 const char        *src,
+                 char              *dst,
                  int                srcpitch,
                  int                dstpitch )
 {
@@ -372,14 +378,14 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
           return ret;
      }
 
-     transfer_buffer( buffer, src.addr, dst.addr, src.pitch, dst.pitch );
+     transfer_buffer( buffer, (char*) src.addr, (char*) dst.addr, src.pitch, dst.pitch );
 
      /*
       * Track that the CPU wrote to the destination buffer allocation and that it read
       * from the source buffer allocation so that proper cache flushing will occur.
       */
-     allocation->accessed[CSAID_CPU] |= CSAF_WRITE;
-     source->accessed[CSAID_CPU] |= CSAF_READ;
+     allocation->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_CPU] | CSAF_WRITE);
+     source->accessed[CSAID_CPU]     = (CoreSurfaceAccessFlags)(source->accessed[CSAID_CPU]     | CSAF_READ);
 
      dfb_surface_pool_unlock( allocation->pool, allocation, &dst );
      dfb_surface_pool_unlock( source->pool, source, &src );
@@ -425,7 +431,7 @@ allocation_update_write( CoreSurfaceAllocation *allocation,
      }
 
      /* Write to the destination allocation. */
-     ret = dfb_surface_pool_write( allocation->pool, allocation, src.addr, src.pitch, NULL );
+     ret = dfb_surface_pool_write( allocation->pool, allocation, (char*) src.addr, src.pitch, NULL );
      if (ret)
           D_DERROR( ret, "Core/SurfBuffer: Could not write from destination allocation!\n" );
 
@@ -482,6 +488,79 @@ allocation_update_read( CoreSurfaceAllocation *allocation,
      return ret;
 }
 
+
+namespace DirectFB {
+
+
+class TransferTask : public SurfaceTask
+{
+public:
+     TransferTask( CoreSurfaceAllocation *allocation,
+                   CoreSurfaceAllocation *source )
+          :
+          SurfaceTask( CSAID_CPU ), // FIXME
+          allocation( allocation ),
+          source( source )
+     {
+          D_ASSUME( allocation != source );
+          D_ASSERT( source->buffer == allocation->buffer );
+     }
+
+     static DFBResult Generate( CoreSurfaceAllocation *allocation,
+                                CoreSurfaceAllocation *source )
+     {
+          TransferTask *task = new TransferTask( allocation, source );
+
+          task->AddAccess( allocation, CSAF_WRITE );
+          task->AddAccess( source, CSAF_READ );
+
+          task->Flush();
+
+          return DFB_OK;
+     }
+
+protected:
+     virtual DFBResult Run()
+     {
+          DFBResult ret;
+
+          D_DEBUG_AT( Core_SurfAllocation, "  -> updating allocation %p from %p...\n", allocation, source );
+
+          D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
+
+          ret = dfb_surface_pool_bridges_transfer( NULL, source, allocation, NULL, 0 );
+          if (ret) {
+               if ((source->access[CSAID_CPU] & CSAF_READ) && (allocation->access[CSAID_CPU] & CSAF_WRITE))
+                    ret = allocation_update_copy( allocation, source );
+               else if (source->access[CSAID_CPU] & CSAF_READ)
+                    ret = allocation_update_write( allocation, source );
+               else if (allocation->access[CSAID_CPU] & CSAF_WRITE)
+                    ret = allocation_update_read( allocation, source );
+               else {
+                    D_UNIMPLEMENTED();
+                    ret = DFB_UNSUPPORTED;
+               }
+          }
+
+          if (ret) {
+               D_DERROR( ret, "Core/SurfaceBuffer: Updating allocation failed!\n" );
+               return ret;
+          }
+
+          Done();
+
+          return DFB_OK;
+     }
+
+private:
+     CoreSurfaceAllocation *allocation;
+     CoreSurfaceAllocation *source;
+};
+
+
+
+extern "C" {
+
 DFBResult
 dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
                                CoreSurfaceAccessFlags  access )
@@ -504,28 +583,33 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
 
           D_ASSUME( allocation != source );
 
-          D_DEBUG_AT( Core_SurfAllocation, "  -> updating allocation %p from %p...\n", allocation, source );
-
           D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
           D_ASSERT( source->buffer == allocation->buffer );
 
-          ret = dfb_surface_pool_bridges_transfer( buffer, source, allocation, NULL, 0 );
-          if (ret) {
-               if ((source->access[CSAID_CPU] & CSAF_READ) && (allocation->access[CSAID_CPU] & CSAF_WRITE))
-                    ret = allocation_update_copy( allocation, source );
-               else if (source->access[CSAID_CPU] & CSAF_READ)
-                    ret = allocation_update_write( allocation, source );
-               else if (allocation->access[CSAID_CPU] & CSAF_WRITE)
-                    ret = allocation_update_read( allocation, source );
-               else {
-                    D_UNIMPLEMENTED();
-                    ret = DFB_UNSUPPORTED;
-               }
+          if (dfb_config->task_manager) {
+               DirectFB::TransferTask::Generate( allocation, source );
           }
+          else {
+               D_DEBUG_AT( Core_SurfAllocation, "  -> updating allocation %p from %p...\n", allocation, source );
 
-          if (ret) {
-               D_DERROR( ret, "Core/SurfaceBuffer: Updating allocation failed!\n" );
-               return ret;
+               ret = dfb_surface_pool_bridges_transfer( buffer, source, allocation, NULL, 0 );
+               if (ret) {
+                    if ((source->access[CSAID_CPU] & CSAF_READ) && (allocation->access[CSAID_CPU] & CSAF_WRITE))
+                         ret = allocation_update_copy( allocation, source );
+                    else if (source->access[CSAID_CPU] & CSAF_READ)
+                         ret = allocation_update_write( allocation, source );
+                    else if (allocation->access[CSAID_CPU] & CSAF_WRITE)
+                         ret = allocation_update_read( allocation, source );
+                    else {
+                         D_UNIMPLEMENTED();
+                         ret = DFB_UNSUPPORTED;
+                    }
+               }
+
+               if (ret) {
+                    D_DERROR( ret, "Core/SurfaceBuffer: Updating allocation failed!\n" );
+                    return ret;
+               }
           }
      }
 
@@ -568,5 +652,10 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
      }
 
      return DFB_OK;
+}
+
+}
+
+
 }
 
