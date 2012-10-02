@@ -297,6 +297,10 @@ DFBResult dfb_surface_notify        ( CoreSurface                  *surface,
 DFBResult dfb_surface_notify_display( CoreSurface                  *surface,
                                       CoreSurfaceBuffer            *buffer);
 
+DFBResult dfb_surface_notify_display2( CoreSurface                  *surface,
+                                       int                           index,
+                                       DFB_DisplayTask              *task );
+
 DFBResult dfb_surface_notify_frame  ( CoreSurface                  *surface,
                                       unsigned int                  flip_count );
 
