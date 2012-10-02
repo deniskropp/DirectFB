@@ -1232,5 +1232,20 @@ IGraphicsState_Real::ReleaseSource(
 }
 
 
+DFBResult
+IGraphicsState_Real::SetSrcConvolution(
+                    const DFBConvolutionFilter               *filter
+)
+{
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    D_ASSERT( filter != NULL );
+
+    dfb_state_set_src_convolution( &obj->state, filter );
+
+    return DFB_OK;
+}
+
+
 }
 

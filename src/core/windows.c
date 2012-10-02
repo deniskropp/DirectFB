@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <stdio.h>
@@ -73,7 +75,8 @@
 #include <core/windows_internal.h>
 
 
-D_DEBUG_DOMAIN( Core_Windows, "Core/Windows", "DirectFB Window Core" );
+D_DEBUG_DOMAIN( Core_Windows,        "Core/Windows",        "DirectFB Window Core" );
+D_DEBUG_DOMAIN( Core_Windows_Events, "Core/Windows/Events", "DirectFB Window Core Events" );
 
 
 typedef struct {
@@ -1779,6 +1782,22 @@ dfb_window_post_event( CoreWindow     *window,
      D_ASSERT( event != NULL );
 
      D_ASSUME( !DFB_WINDOW_DESTROYED( window ) || event->type == DWET_DESTROYED );
+
+     switch (event->type) {
+          case DWET_BUTTONDOWN:
+          case DWET_BUTTONUP:
+               D_DEBUG_AT( Core_Windows_Events, "%s( window id %u )\n", __FUNCTION__, window->object.id );
+               D_DEBUG_AT( Core_Windows_Events, "  -> TYPE    0x%08x\n", event->type );
+
+               D_DEBUG_AT( Core_Windows_Events, "  => BUTTON%s\n", event->type == DWET_BUTTONDOWN ? "DOWN" : "UP" );
+               D_DEBUG_AT( Core_Windows_Events, "     -> button  %d\n", event->button );
+               D_DEBUG_AT( Core_Windows_Events, "     -> x, y    %d,%d\n", event->x, event->y );
+               D_DEBUG_AT( Core_Windows_Events, "     -> cx, cy  %d,%d\n", event->cx, event->cy );
+               break;
+
+          default:
+               break;
+     }
 
      if (! (event->type & window->config.events))
           return;

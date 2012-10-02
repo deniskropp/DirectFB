@@ -63,6 +63,7 @@ static EGLData *m_data;    /* FIXME: Fix Core System API to pass data in all fun
 static DFBResult
 InitEGL( EGLData *egl )
 {
+     int    err;
      EGLint iMajorVersion, iMinorVersion;
      EGLint ai32ContextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
 
@@ -155,6 +156,11 @@ InitEGL( EGLData *egl )
      eglSwapInterval( egl->eglDisplay, 1 );
      if (!TestEGLError("eglSwapInterval"))
           return DFB_INIT;
+
+     if ((err = glGetError()) != 0) {
+          D_ERROR( "DirectFB/EGL: Error at end of InitEGL! (error = %x)\n", err );
+          //return DFB_FAILURE;
+     }
 
      return DFB_OK;
 }

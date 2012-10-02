@@ -607,5 +607,18 @@ interface {
 		async  	  yes
 		queue     yes
 	}
+
+	method {
+		name      SetSrcConvolution
+		async  	  yes
+		queue     yes
+
+		arg {
+			name      filter
+			direction input
+			type      struct
+			typename  DFBConvolutionFilter
+		}
+	}
 }
 

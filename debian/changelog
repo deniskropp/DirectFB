@@ -1,3 +1,9 @@
+directfb (1.7.0-20120924) precise; urgency=low
+
+  * new upstream version
+
+ -- Andreas Shimokawa <andi@directfb.org>  Mon, 24 Sep 2012 13:38:51 +0100
+
 directfb (1.6.0-1) natty; urgency=low
 
   * new upstream version
