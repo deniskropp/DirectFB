@@ -6,4 +6,10 @@ else
 UNIQUE_DIR =
 endif
 
-SUBDIRS = default $(UNIQUE_DIR)
+if ENABLE_SAWMAN
+SAWMAN_DIR = sawman
+else
+SAWMAN_DIR =
+endif
+
+SUBDIRS = default $(UNIQUE_DIR) $(SAWMAN_DIR)

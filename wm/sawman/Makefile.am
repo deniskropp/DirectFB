@@ -3,8 +3,11 @@
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/src		\
+	-I$(top_builddir)/lib/sawman	\
 	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/src		\
+	-I$(top_srcdir)/lib		\
+	-I$(top_srcdir)/lib/sawman	\
 	$(DIRECTFB_CFLAGS)
 
 
@@ -25,7 +28,7 @@ libdirectfbwm_sawman_la_SOURCES = \
 	sawman_wm.c
 
 libdirectfbwm_sawman_la_LIBADD = \
-	$(top_builddir)/src/libsawman.la	\
+	$(top_builddir)/lib/sawman/libsawman.la	\
 	$(DIRECTFB_LIBS)
 
 

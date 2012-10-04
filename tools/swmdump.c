@@ -527,7 +527,7 @@ main( int argc, char *argv[] )
 static void
 print_usage (const char *prg_name)
 {
-     fprintf (stderr, "\nSaWMan Dump (version %s)\n\n", SAWMAN_VERSION);
+     fprintf (stderr, "\nSaWMan Dump (version %s)\n\n", DIRECTFB_VERSION);
      fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
      fprintf (stderr, "Options:\n");
      fprintf (stderr, "   -g, --geometry     Show advanced geometry settings\n");
@@ -552,7 +552,7 @@ parse_command_line( int argc, char *argv[] )
           }
 
           if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0) {
-               fprintf (stderr, "swmdump version %s\n", SAWMAN_VERSION);
+               fprintf (stderr, "swmdump version %s\n", DIRECTFB_VERSION);
                return DFB_FALSE;
           }
 

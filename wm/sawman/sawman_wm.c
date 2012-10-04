@@ -74,11 +74,11 @@
 
 #include <core/wm_module.h>
 
-#include <sawman_config.h>
+#include <sawman/sawman_config.h>
 
-#include "sawman_draw.h"
-#include "sawman_updates.h"
-#include "sawman_window.h"
+#include <sawman/sawman_draw.h>
+#include <sawman/sawman_updates.h>
+#include <sawman/sawman_window.h>
 
 
 DFB_WINDOW_MANAGER( sawman )
