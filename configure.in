@@ -653,7 +653,7 @@ fi
 AC_ARG_ENABLE(sawman,
               AC_HELP_STRING([--enable-sawman],
                              [enable SaWMan (window manager and application mananger) @<:@default=no@:>@]),
-              [], [enable_one=no])
+              [], [enable_sawman=no])
 if test "$enable_sawman" = "yes"; then
     DIRECTFB_BUILD_SAWMAN=1
     DEP_SAWMAN=sawman
