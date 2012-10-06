@@ -324,3 +324,50 @@ Description: DirectFB graphics library - development files
  This package contains the files needed to compile and link programs
  which use DirectFB.
 
+Package: libdirectfb-1.7-wm-sawman
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Provides: libdirectfb-1.7-wm
+Description: DirectFB - sawman window mananger module
+ DirectFB is a graphics library which was designed with embedded systems
+ in mind. It offers maximum hardware accelerated performance at a minimum
+ of resource usage and overhead.
+ .
+ This package contains the sawman window manager module
+
+Package: libsawman-1.7
+Architecture: any
+Depends: libdirectfb-1.7,
+ ${shlibs:Depends}, ${misc:Depends}
+Description: SaWMan - DirectFB Shared application and Window Manager (shared library)
+ SaWMan is a new window manager module for use with DirectFB. Its main
+ difference to the default module is that it allows one process to be an
+ application and window manager, implementing all kinds of diversity, while
+ SaWMan is only the working horse.
+
+Package: libsawman-1.7-dev
+Architecture: any
+Depends: libsawman-1.7
+ ${shlibs:Depends}, ${misc:Depends}
+Provides: libsawman-dev
+Conflicts: libsawman-dev
+Description: SaWMan - DirectFB Shared application and Window Manager (development package)
+ SaWMan is a new window manager module for use with DirectFB. Its main
+ difference to the default module is that it allows one process to be an
+ application and window manager, implementing all kinds of diversity, while
+ SaWMan is only the working horse.
+
+Package: sawman-bin-1.7
+Architecture: any
+Depends: libsawman-1.7,
+ ${shlibs:Depends}, ${misc:Depends}
+Provides: sawman-spooky
+Conflicts: sawman-spooky
+Description: SaWMan - DirectFB Shared application and Window Manager (examples and tools)
+ SaWMan is a new window manager module for use with DirectFB. Its main
+ difference to the default module is that it allows one process to be an
+ application and window manager, implementing all kinds of diversity, while
+ SaWMan is only the working horse.
+ .
+ This package contains testman, testrun and swmdump
+

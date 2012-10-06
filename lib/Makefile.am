@@ -8,5 +8,9 @@ if ENABLE_VOODOO
 VOODOO_DIR = voodoo
 endif
 
-SUBDIRS = direct fusion $(ONE_DIR) $(VOODOO_DIR)
+if ENABLE_SAWMAN
+SAWMAN_DIR = sawman
+endif
+
+SUBDIRS = direct fusion $(ONE_DIR) $(VOODOO_DIR) $(SAWMAN_DIR)
 

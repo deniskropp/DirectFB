@@ -1,0 +1,73 @@
+SaWMan
+-------
+
+DirectFB proudly presents SaWMan, the Shared application and Window Manager,
+as a co-development of Royal Philips and Denis Oliver Kropp.
+
+SaWMan is a new window manager module for use with DirectFB. Its main difference
+to the default module is that it allows one process to be an application and window
+manager, implementing all kinds of diversity, while SaWMan is only the working horse.
+
+On its own, SaWMan will behave similar to the default window manager, but as soon as
+there's an application manager, SaWMan will do synchronous RPCs to that application in
+relevant functions of the window manager module. That means it switches to the process
+and continues after it has completed the requested call and returned a result. The data
+which those calls operate on is already in shared memory, e.g. a window configuration.
+
+The application manager can hook itself into several operations with this, e.g. it can
+forbid or modify requested window configurations right before they're actually applied
+by SaWMan.
+
+For non-desktop and especially non-pointer environments like TVs, it is important to
+provide a simple and convenient layout and focus management. The layout of all windows
+can be completely overridden by the application manager, e.g. to implement a screen
+tiling mode.
+
+The integration of application management allows easy definition and handling of
+application specific constraints. The manager has a list of applications identified
+by their name. Launching applications is usually initiated by the application manager
+itself, e.g. based on global keys grabbed by an input only window. However, the public
+SaWMan interfaces provide a way to send launch/shutdown requests from any application
+to the application manager.
+
+While the key grabbing only provides asynchronous notification about keys which are
+then handled in the manager's main loop, SaWMan provides a hook to let the manager
+basically filter every single input event in a synchronous way, similar to the window
+configuration. Critical operations like layout and focus switching are best done in
+this callback.
+
+[...]
+
+For more information you can check the more or less documented header files in the
+include/ directory, or have a look at 'testman' - a minimal example of a manager
+implementation in the samples/ directory. You'll also find a small test program
+called 'testrun' which demonstrates launching of applications from another application.
+
+
+Running testman
+----------------
+
+Once you have a session running after setting the option "wm = sawman" you'll notice
+that there's nothing new, except the old window manager hacks (builtin keys) are gone.
+
+However, if you start 'testman' from the samples/ directory, you'll see windows being
+tiled on the screen, unless these windows have the DWCAPS_NODECORATION flag, e.g. LiTE
+and XDirectFB use that.
+
+You can try running "df_andi --dfb:force-windowed" or even simply run df_window.
+
+Hitting F9 cycles the focus through managed windows.
+F10 would switch layout modes, but there's only one implemented in the test code.
+F11 switches between "smooth software" or "standard (hw/sw)" scaling (for windows only).
+
+The smooth scaling algorithms have also been developed in the scope of this project.
+
+
+Using testrun
+--------------
+
+The command "testrun <name>" will start/stop an application.
+
+Available in the test code are:
+	Penguins	df_andi --dfb:mode=640x480,force-windowed
+	Windows		df_windows

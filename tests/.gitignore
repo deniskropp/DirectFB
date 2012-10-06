@@ -1,11 +1,13 @@
 coretest_blit2
 coretest_task
 coretest_fillrect
+coretest_task_fillrect
 dfbtest_blit
 dfbtest_blit_multi
 dfbtest_blit2
 dfbtest_clipboard
 dfbtest_fillrect
+dfbtest_flip
 dfbtest_font
 dfbtest_gl1
 dfbtest_gl2
@@ -40,6 +42,9 @@ fusion_fork
 fusion_reactor
 fusion_skirmish
 fusion_stream
+sample1
+testman
+testrun
 voodoo_bench
 voodoo_bench_client
 voodoo_bench_client_unix

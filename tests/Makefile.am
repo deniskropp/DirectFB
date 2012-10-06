@@ -21,13 +21,23 @@ VOODOO_PROGS = \
 	voodoo_bench_server_unix
 endif
 
+if DIRECTFB_BUILD_SAWMAN
+SAWMAN_PROGS = \
+	sample1	\
+	testrun	\
+	testman
+endif
+
 
 INCLUDES = \
 	-I$(top_builddir)/include \
 	-I$(top_builddir)/lib \
+	-I$(top_builddir)/lib/One \
+	-I$(top_builddir)/lib/sawman \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/lib/One	\
+	-I$(top_srcdir)/lib/sawman	\
 	-I$(top_srcdir)/src	\
 	-DLINUX_2_6
 
@@ -94,7 +104,8 @@ bin_PROGRAMS = \
 	direct_stream	\
 	direct_test	\
 	$(ONE_PROGS)	\
-	$(VOODOO_PROGS)
+	$(VOODOO_PROGS) \
+	$(SAWMAN_PROGS)
 
 libdirectfb = $(top_builddir)/src/libdirectfb.la
 libfusion = $(top_builddir)/lib/fusion/libfusion.la
@@ -112,6 +123,13 @@ libone = \
         ../lib/One/libone.la
 else
 libone =
+endif
+
+if DIRECTFB_BUILD_SAWMAN
+libsawman = \
+        ../lib/sawman/libsawman.la
+else
+libsawman =
 endif
 
 coretest_blit2_SOURCES = coretest_blit2.c
@@ -269,3 +287,12 @@ voodoo_bench_client_unix_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfu
 
 voodoo_bench_server_unix_SOURCES = voodoo_bench_server_unix.c
 voodoo_bench_server_unix_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+testman_SOURCES = testman.c
+testman_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(libsawman)
+
+testrun_SOURCES = testrun.c
+testrun_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(libsawman)
+
+sample1_SOURCES = sample1.c
+sample1_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(libsawman)

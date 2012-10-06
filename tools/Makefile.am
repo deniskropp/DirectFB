@@ -3,9 +3,11 @@
 INCLUDES = \
 	-I$(top_builddir)/include \
 	-I$(top_builddir)/lib \
+	-I$(top_builddir)/lib/sawman \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/lib	\
+	-I$(top_srcdir)/lib/sawman	\
 	-I$(top_srcdir)/src
 
 AM_CPPFLAGS = -DBINDIR=\"@bindir@\" -DDATADIR=\"@DATADIR@\"
@@ -35,6 +37,11 @@ VOODOO_PROGS = \
 	voodooplay			\
 	voodooplay_client		\
 	voodooplay_server
+endif
+
+if ENABLE_SAWMAN
+SAWMAN_PROGS = \
+	swmdump
 endif
 
 if PNG_PROVIDER
@@ -68,7 +75,8 @@ bin_PROGRAMS = \
 	dfbpenmount			\
 	$(PNG_PROGS)			\
 	$(FREETYPE_PROGS)		\
-	$(VOODOO_PROGS)
+	$(VOODOO_PROGS)			\
+	$(SAWMAN_PROGS)
 
 
 if DIRECTFB_BUILD_PURE_VOODOO
@@ -99,6 +107,13 @@ libvoodoo = \
         ../lib/voodoo/libvoodoo.la
 else
 libvoodoo =
+endif
+
+if DIRECTFB_BUILD_SAWMAN
+libsawman = \
+        ../lib/sawman/libsawman.la
+else
+libsawman =
 endif
 
 dfbdump_SOURCES = dfbdump.c
@@ -163,6 +178,9 @@ voodooplay_client_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $
 
 voodooplay_server_SOURCES = voodooplay_server.c
 voodooplay_server_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
+
+swmdump_SOURCES = swmdump.c
+swmdump_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(libsawman)
 
 
 EXTRA_DIST = \
