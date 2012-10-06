@@ -499,7 +499,13 @@ player_save_info( VoodooPlayer            *player,
                     direct_snputs( node->addr, addr, sizeof(node->addr) );
                }
 
+               node->version   = msg->version;
+               node->info      = msg->info;
+
                node->last_seen = direct_clock_get_abs_millis();
+               node->broadcast = player->broadcast;
+
+               direct_snputs( node->addr, addr, sizeof(node->addr) );
 
                return;
           }
