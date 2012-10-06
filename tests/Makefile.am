@@ -75,6 +75,7 @@ bin_PROGRAMS = \
 	$(NON_PURE_VOODOO_PROGS)	\
 	dfbtest_blit	\
 	dfbtest_blit_multi	\
+	dfbtest_blit_threads	\
 	dfbtest_blit2	\
 	dfbtest_clipboard	\
 	dfbtest_fillrect	\
@@ -90,6 +91,7 @@ bin_PROGRAMS = \
 	dfbtest_scale_nv21	\
 	dfbtest_stereo_window	\
 	dfbtest_surface_compositor	\
+	dfbtest_surface_compositor_threads	\
 	dfbtest_surface_updates	\
 	dfbtest_sync	\
 	dfbtest_video	\
@@ -146,6 +148,9 @@ dfbtest_blit_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libd
 
 dfbtest_blit_multi_SOURCES = dfbtest_blit_multi.c
 dfbtest_blit_multi_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_blit_threads_SOURCES = dfbtest_blit_threads.c
+dfbtest_blit_threads_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_blit2_SOURCES = dfbtest_blit2.c
 dfbtest_blit2_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
@@ -207,6 +212,9 @@ dfbtest_stereo_window_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusio
 
 dfbtest_surface_compositor_SOURCES = dfbtest_surface_compositor.c
 dfbtest_surface_compositor_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_surface_compositor_threads_SOURCES = dfbtest_surface_compositor_threads.c
+dfbtest_surface_compositor_threads_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_surface_updates_SOURCES = dfbtest_surface_updates.c
 dfbtest_surface_updates_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
