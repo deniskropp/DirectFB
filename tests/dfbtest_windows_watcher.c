@@ -98,6 +98,7 @@ Test_Watcher_WindowConfig( void                  *context,
 {
      D_INFO( "%s( ID %u )\n", __FUNCTION__, window_id );
      D_INFO( "  -> flags        0x%08x\n", flags );
+     D_INFO( "  -> cursor flags 0x%08x\n", config->cursor_flags );
 
      dump_config( config );
 }
