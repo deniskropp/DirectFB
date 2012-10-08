@@ -21,8 +21,8 @@ DIRECTFB_INTERFACE_AGE=0
 DIRECTFB_BINARY_AGE=0
 DIRECTFB_VERSION=$DIRECTFB_MAJOR_VERSION.$DIRECTFB_MINOR_VERSION.$DIRECTFB_MICRO_VERSION
 
-#fluxcomp 1.4.1
-FLUXCOMP_REQUIRED_VERSIONCODE=1004001
+#fluxcomp 1.4.2
+FLUXCOMP_REQUIRED_VERSIONCODE=1004002
 
 AC_SUBST(DIRECTFB_MAJOR_VERSION)
 AC_SUBST(DIRECTFB_MINOR_VERSION)
@@ -1968,6 +1968,16 @@ fi
 
 
 
+# How big of a buffer fluxed code uses for static args (times two with return)
+AC_ARG_WITH(args-size,
+            AC_HELP_STRING([--with-args-size=SIZE],
+                           [allow static args up to SIZE bytes @<:@default=1024@:>@]),
+            [], [with_args_size=no])
+test x"$with_args_size" = x"no" && with_args_size=1024
+FLUXED_ARGS_BYTES=$with_args_size
+AC_SUBST(FLUXED_ARGS_BYTES)
+
+
 # How big of a buffer fusion uses to read messages from the fusion device
 AC_ARG_WITH(message-size,
             AC_HELP_STRING([--with-message-size=SIZE],
@@ -2325,6 +2335,7 @@ Misc options:
   Multi Application Core    $enable_multi
   Fusion Kernel Device      $linux_fusion
   Fusion message size       $with_message_size
+  Fluxed args size          $with_args_size
   One (IPC)                 $enable_one
   Voodoo (network support)  $enable_voodoo
   Pure Voodoo (net only)    $enable_pure_voodoo

@@ -1,2 +1,2 @@
 $(builddir)/%.cpp $(builddir)/%.h: $(srcdir)/%.flux
-	fluxcomp $<
+	fluxcomp --static-args-bytes=FLUXED_ARGS_BYTES $<

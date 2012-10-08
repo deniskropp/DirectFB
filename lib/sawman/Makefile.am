@@ -14,7 +14,8 @@ INCLUDES = \
 AM_CPPFLAGS = \
 	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"	\
 	-DMODULEDIR=\"${RUNTIME_SYSROOT}@MODULEDIR@\"	\
-	-DSYSCONFDIR=\"@sysconfdir@\"
+	-DSYSCONFDIR=\"@sysconfdir@\" \
+	-DFLUXED_ARGS_BYTES=@FLUXED_ARGS_BYTES@
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = sawman.pc

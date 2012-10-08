@@ -8,6 +8,8 @@ INCLUDES = \
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src
 
+AM_CPPFLAGS = \
+	-DFLUXED_ARGS_BYTES=@FLUXED_ARGS_BYTES@
 
 internalincludedir = $(INTERNALINCLUDEDIR)/media
 
@@ -57,6 +59,6 @@ libdirectfb_media_la_SOURCES = \
 libdirectfb_media_la_LIBADD = $(LIBM)
 
 
-FLUX_ARGS = -i --no-direct
+FLUX_ARGS = -i --no-direct --static-args-bytes=FLUXED_ARGS_BYTES
 
 include $(top_srcdir)/rules/flux_comp.make
