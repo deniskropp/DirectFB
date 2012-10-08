@@ -1126,6 +1126,38 @@ dfb_surface_pool_write( CoreSurfacePool       *pool,
 }
 
 DFBResult
+dfb_surface_pool_cache_op( CoreSurfacePool         *pool,
+                           CoreSurfaceAllocation   *allocation,
+                           CoreSurfaceAccessorID    accessor,
+                           bool                     flush,
+                           bool                     invalidate )
+{
+     DFBResult               ret;
+     const SurfacePoolFuncs *funcs;
+     CoreSurface            *surface;
+     DFBRectangle            area;
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     D_DEBUG_AT( Core_SurfPoolLock, "%s( %p [%d - %s], %p )\n", __FUNCTION__, pool, pool->pool_id, pool->desc.name, allocation );
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+     D_ASSERT( pool == allocation->pool );
+
+     funcs = get_funcs( pool );
+     D_ASSERT( funcs != NULL );
+
+     if (!funcs->CacheOp)
+          return DFB_UNSUPPORTED;
+
+     ret = funcs->CacheOp( pool, pool->data, get_local(pool), allocation, allocation->data, accessor, flush, invalidate );
+     if (ret)
+          D_DERROR( ret, "Core/SurfacePool: CacheOp in %s failed!\n", pool->desc.name );
+
+     return ret;
+}
+
+DFBResult
 dfb_surface_pool_enumerate ( CoreSurfacePool          *pool,
                              CoreSurfaceAllocCallback  callback,
                              void                     *ctx )

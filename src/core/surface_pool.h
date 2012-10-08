@@ -195,6 +195,18 @@ typedef struct {
                             void                        *pool_local,
                             const DFBSurfaceDescription *description,
                             CoreSurfaceConfig           *config );
+
+     /*
+      * Cache operations
+      */
+     DFBResult (*CacheOp) ( CoreSurfacePool        *pool,
+                            void                   *pool_data,
+                            void                   *pool_local,
+                            CoreSurfaceAllocation  *allocation,
+                            void                   *alloc_data,
+                            CoreSurfaceAccessorID   accessor,
+                            bool                    flush,
+                            bool                    invalidate );
 } SurfacePoolFuncs;
 
 
@@ -310,6 +322,12 @@ DFBResult dfb_surface_pool_write     ( CoreSurfacePool         *pool,
                                        const void              *data,
                                        int                      pitch,
                                        const DFBRectangle      *rect );
+
+DFBResult dfb_surface_pool_cache_op  ( CoreSurfacePool         *pool,
+                                       CoreSurfaceAllocation   *allocation,
+                                       CoreSurfaceAccessorID    accessor,
+                                       bool                     flush,
+                                       bool                     invalidate );
 
 DFBResult dfb_surface_pool_enumerate ( CoreSurfacePool         *pool,
                                        CoreSurfaceAllocCallback  callback,
