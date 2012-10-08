@@ -1859,7 +1859,7 @@ dfb_layer_context_allocate_surface( CoreLayer             *layer,
      else
           surface->rotation = (context->rotation == 180) ? 180 : 0;
 
-     if (dfb_config->layers_clear)
+     if (dfb_config->layers_clear && !dfb_config->surface_clear)
           dfb_surface_clear_buffers( surface );
 
      /* Tell the region about its new surface (adds a global reference). */
@@ -1990,7 +1990,7 @@ dfb_layer_context_reallocate_surface( CoreLayer             *layer,
      else
           surface->rotation = (context->rotation == 180) ? 180 : 0;
 
-     if (dfb_config->layers_clear)
+     if (dfb_config->layers_clear && !dfb_config->surface_clear)
           dfb_surface_clear_buffers( surface );
 
      dfb_surface_unlock( surface );

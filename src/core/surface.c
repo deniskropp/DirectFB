@@ -371,6 +371,9 @@ dfb_surface_create( CoreDFB                  *core,
 
      fusion_object_activate( &surface->object );
 
+     if (dfb_config->surface_clear)
+          dfb_surface_clear_buffers( surface );
+
      *ret_surface = surface;
 
      return DFB_OK;
@@ -829,6 +832,9 @@ dfb_surface_reconfig( CoreSurface             *surface,
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      dfb_surface_notify( surface, CSNF_SIZEFORMAT );
+
+     if (dfb_config->surface_clear)
+          dfb_surface_clear_buffers( surface );
 
      fusion_skirmish_dismiss( &surface->lock );
 

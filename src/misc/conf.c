@@ -141,6 +141,7 @@ static const char *config_usage_strings[]  = {
      "  wm=<wm>                        Window manager module ('default' or 'unique')\n"
      "  init-layer=<id>                Initialize layer with ID (following layer- options apply)\n"
      "  [no-]layers-clear              Clear layer surface buffers after creation\n"
+     "  [no-]surface-clear             Clear all surface buffers after creation\n"
      "  layer-size=<width>x<height>    Set the pixel resolution\n"
      "  layer-format=<pixelformat>     Set the pixel format\n"
      "  layer-depth=<pixeldepth>       Set the pixel depth\n"
@@ -1607,6 +1608,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-layers-clear" ) == 0) {
           dfb_config->layers_clear = false;
+     } else
+     if (strcmp (name, "surface-clear" ) == 0) {
+          dfb_config->surface_clear = true;
+     } else
+     if (strcmp (name, "no-surface-clear" ) == 0) {
+          dfb_config->surface_clear = false;
      } else
      if (strcmp (name, "input-hub" ) == 0) {
           if (value) {
