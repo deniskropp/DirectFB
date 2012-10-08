@@ -131,11 +131,6 @@ Renderer::~Renderer()
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
      Flush();
-
-     RendererTLS *tls = Renderer_GetTLS();
-
-     if (tls->last_renderer == this)
-          tls->last_renderer = NULL;
 }
 
 
@@ -144,8 +139,14 @@ Renderer::Flush()
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
-     if (engine)
+     if (engine) {
           unbindEngine();
+
+          RendererTLS *tls = Renderer_GetTLS();
+
+          if (tls->last_renderer == this)
+               tls->last_renderer = NULL;
+     }
 }
 
 
