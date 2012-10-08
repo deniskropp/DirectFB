@@ -219,7 +219,7 @@ public:
                mytask->clip = state->clip;
           }
 
-          if (modified & SMF_SOURCE && state->source) {
+          if (modified & SMF_SOURCE && DFB_BLITTING_FUNCTION(accel)) {
                D_DEBUG_AT( DirectFB_GenefxEngine, "  -> source %p (%d)\n", state->src.addr, state->src.pitch );
 
                mytask->commands.push_back( GenefxTask::TYPE_SET_SOURCE );
@@ -241,6 +241,8 @@ public:
                          mytask->commands.push_back( *(u32*)&state->source->palette->entries_yuv[i] );
                     }
                }
+
+               state->mod_hw = (StateModificationFlags)(state->mod_hw & ~SMF_SOURCE);
           }
 
           if (modified & SMF_COLOR) {
@@ -273,7 +275,7 @@ public:
                mytask->commands.push_back( state->src_colorkey );
           }
 
-          state->mod_hw = SMF_NONE;
+          state->mod_hw = (StateModificationFlags)(state->mod_hw & SMF_SOURCE);
           state->set    = DFXL_ALL;
 
           return DFB_OK;
