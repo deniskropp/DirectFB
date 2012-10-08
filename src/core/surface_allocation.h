@@ -98,6 +98,8 @@ struct __DFB_CoreSurfaceAllocation {
      FusionVector                   read_tasks;
 
      unsigned int                   task_count;
+
+     int                            index;
 };
 
 #define CORE_SURFACE_ALLOCATION_ASSERT(alloc)                                                  \

@@ -152,6 +152,7 @@ dfb_surface_allocation_create( CoreDFB                *core,
      allocation->type        = buffer->type;
      allocation->resource_id = buffer->resource_id;
      allocation->flags       = CSALF_INITIALIZING;
+     allocation->index       = buffer->index;
 
      if (pool->alloc_data_size) {
           allocation->data = SHCALLOC( pool->shmpool, 1, pool->alloc_data_size );
