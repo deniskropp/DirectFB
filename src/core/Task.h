@@ -254,12 +254,14 @@ typedef enum {
 } TaskState;
 
 typedef enum {
-     TASK_FLAG_NONE         = 0x00000000,
+     TASK_FLAG_NONE             = 0x00000000,
 
-     TASK_FLAG_NOSYNC       = 0x00000001,     /* Task is not accounted when TaskManager::Sync() is called */
-     TASK_FLAG_EMITNOTIFIES = 0x00000002,     /* Task runs notifyAll(0 already on emit(), not on finish() */
+     TASK_FLAG_NOSYNC           = 0x00000001,     /* Task is not accounted when TaskManager::Sync() is called */
+     TASK_FLAG_EMITNOTIFIES     = 0x00000002,     /* Task runs notifyAll(0 already on emit(), not on finish() */
+     TASK_FLAG_CACHE_FLUSH      = 0x00000004,     /*  */
+     TASK_FLAG_CACHE_INVALIDATE = 0x00000008,     /*  */
 
-     TASK_FLAG_ALL          = 0x00000003,
+     TASK_FLAG_ALL              = 0x0000000F,
 } TaskFlags;
 
 
@@ -410,8 +412,6 @@ Tasks
 
 Run()
  - cache invalidate when flag is set
-
-Done()
  - cache flush when flag is set
 
 

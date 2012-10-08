@@ -222,7 +222,7 @@ Task::emit( bool following )
      if (flags & TASK_FLAG_EMITNOTIFIES) {
           notifyAll();
      }
-     else if (following) {
+     else if (following && !slaves) {
           std::vector<TaskNotify>::iterator it = notifies.begin();
      
           while (it != notifies.end()) {
@@ -428,7 +428,7 @@ Task::handleNotify( bool following )
           emit( following );
 
           t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-          if (t2 - t1 >= 5000)
+          if (t2 - t1 >= 2000)
                ;//D_WARN( "Task::Emit took more than 5ms (%lld)", (t2 - t1) / 1000 );
      }
 }
@@ -537,7 +537,7 @@ TaskManager::handleTask( Task *task )
                }
 
                t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-               if (t2 - t1 >= 5000)
+               if (t2 - t1 >= 2000)
                     ;//D_WARN( "Task::Setup took more than 5ms (%lld)", (t2 - t1) / 1000 );
 
 
@@ -552,7 +552,7 @@ TaskManager::handleTask( Task *task )
                     }
 
                     t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-                    if (t2 - t1 >= 5000)
+                    if (t2 - t1 >= 2000)
                          ;//D_WARN( "Task::Emit took more than 5ms (%lld)", (t2 - t1) / 1000 );
                }
                break;
@@ -599,6 +599,10 @@ TaskManager::dumpTasks()
           Task *task = *it;
 
           direct_log_printf( NULL, "%s\n", task->Describe().c_str() );
+
+          for (std::vector<TaskNotify>::const_iterator it = task->notifies.begin(); it != task->notifies.end(); it++) {
+               direct_log_printf( NULL, "                       %p\n", (*it).first );
+          }
      }
 }
 
