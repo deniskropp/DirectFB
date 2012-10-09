@@ -34,6 +34,7 @@ INCLUDES = \
 	-I$(top_builddir)/lib \
 	-I$(top_builddir)/lib/One \
 	-I$(top_builddir)/lib/sawman \
+	-I$(top_builddir)/src	\
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/lib/One	\
