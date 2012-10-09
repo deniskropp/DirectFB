@@ -97,10 +97,12 @@ idirectfbpalette_DATA       = libidirectfbpalette_dispatcher.o
 idirectfbscreen_DATA        = libidirectfbscreen_dispatcher.o
 idirectfbsurface_DATA       = libidirectfbsurface_dispatcher.o
 idirectfbwindow_DATA        = libidirectfbwindow_dispatcher.o
+if ENABLE_FUSIONSOUND
 ifusionsound_DATA           = libifusionsound_dispatcher.o
 ifusionsoundbuffer_DATA     = libifusionsoundbuffer_dispatcher.o
 ifusionsoundplayback_DATA   = libifusionsoundplaybackdispatcher.o
 ifusionsoundstream_DATA     = libifusionsoundstreamdispatcher.o
+endif
 endif
 
 libidirectfb_dispatcher_la_SOURCES = idirectfb_dispatcher.c idirectfb_dispatcher.h

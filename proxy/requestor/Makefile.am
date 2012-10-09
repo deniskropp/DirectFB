@@ -96,11 +96,12 @@ idirectfbpalette_DATA       = libidirectfbpalette_requestor.o
 idirectfbscreen_DATA        = libidirectfbscreen_requestor.o
 idirectfbsurface_DATA       = libidirectfbsurface_requestor.o
 idirectfbwindow_DATA        = libidirectfbwindow_requestor.o
-
+if ENABLE_FUSIONSOUND
 ifusionsound_DATA           = libifusionsound_requestor.o
 ifusionsoundstream_DATA     = libifusionsoundstream_requestor.o
 ifusionsoundbuffer_DATA     = libifusionsoundbuffer_requestor.o
 ifusionsoundplayback_DATA   = libifusionsoundplayback_requestor.o
+endif
 endif
 
 
