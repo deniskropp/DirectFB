@@ -20,7 +20,7 @@ AM_CPPFLAGS = \
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = sawman.pc
 
-includedir = @INCLUDEDIR@/sawman
+includedir = @GENERIC_INCLUDEDIR@/sawman
 
 include_HEADERS = \
 	sawman.h	\

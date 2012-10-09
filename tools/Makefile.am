@@ -124,7 +124,7 @@ else
 libvoodoo =
 endif
 
-if DIRECTFB_BUILD_SAWMAN
+if ENABLE_SAWMAN
 libsawman = \
         ../lib/sawman/libsawman.la
 else

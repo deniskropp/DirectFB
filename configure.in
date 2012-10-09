@@ -654,14 +654,6 @@ AC_ARG_ENABLE(sawman,
               AC_HELP_STRING([--enable-sawman],
                              [enable SaWMan (window manager and application mananger) @<:@default=no@:>@]),
               [], [enable_sawman=no])
-if test "$enable_sawman" = "yes"; then
-    DIRECTFB_BUILD_SAWMAN=1
-    DEP_SAWMAN=sawman
-else
-    DIRECTFB_BUILD_SAWMAN=0
-    enable_sawman=no
-    DEP_SAWMAN=
-fi
 
 AC_ARG_ENABLE(fusionsound,
               AC_HELP_STRING([--enable-fusionsound],
@@ -970,12 +962,8 @@ AM_CONDITIONAL(DIRECTFB_BUILD_VOODOO, test "$DIRECTFB_BUILD_VOODOO" = "1")
 AC_SUBST(DIRECTFB_BUILD_PURE_VOODOO)
 AM_CONDITIONAL(DIRECTFB_BUILD_PURE_VOODOO, test "$DIRECTFB_BUILD_PURE_VOODOO" = "1")
 
-AC_SUBST(DIRECTFB_BUILD_SAWMAN)
-AM_CONDITIONAL(DIRECTFB_BUILD_SAWMAN, test "$DIRECTFB_BUILD_SAWMAN" = "1")
-
 AC_SUBST(DEP_ONE)
 AC_SUBST(DEP_VOODOO)
-AC_SUBST(DEP_SAWMAN)
 
 dnl If we're not building a pure voodoo lib, we need sqrt sin cos for
 dnl various files

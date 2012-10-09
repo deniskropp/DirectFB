@@ -21,7 +21,7 @@ VOODOO_PROGS = \
 	voodoo_bench_server_unix
 endif
 
-if DIRECTFB_BUILD_SAWMAN
+if ENABLE_SAWMAN
 SAWMAN_PROGS = \
 	sample1	\
 	testrun	\
@@ -127,7 +127,7 @@ else
 libone =
 endif
 
-if DIRECTFB_BUILD_SAWMAN
+if ENABLE_SAWMAN
 libsawman = \
         ../lib/sawman/libsawman.la
 else
