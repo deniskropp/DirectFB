@@ -40,6 +40,8 @@
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 
+#include <core/Task.h>
+
 #include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -624,12 +626,20 @@ primaryFlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
-     dfb_surface_notify_display( surface, left_lock->buffer );
+     dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
 
      if (lds->config.options & DLOP_STEREO)
-          dfb_surface_notify_display( surface, right_lock->buffer );
+          dfb_surface_notify_display2( surface, right_lock->allocation->index, right_lock->task );
 
-     return dfb_x11_update_screen( x11, lds, &region, &region, left_lock, right_lock );
+     dfb_x11_update_screen( x11, lds, &region, &region, left_lock, right_lock );
+
+     if (left_lock->task)
+          SurfaceTask_Done( left_lock->task );
+
+     if (lds->config.options & DLOP_STEREO && right_lock->task)
+          SurfaceTask_Done( right_lock->task );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -660,7 +670,15 @@ primaryUpdateRegion( CoreLayer             *layer,
      if (right_update && !dfb_region_region_intersect( &right_region, right_update ))
           return DFB_OK;
 
-     return dfb_x11_update_screen( x11, lds, &left_region, &right_region, left_lock, right_lock );
+     dfb_x11_update_screen( x11, lds, &left_region, &right_region, left_lock, right_lock );
+
+     if (left_lock->task)
+          SurfaceTask_Done( left_lock->task );
+
+     if (lds->config.options & DLOP_STEREO && right_lock->task)
+          SurfaceTask_Done( right_lock->task );
+
+     return DFB_OK;
 }
 
 static DisplayLayerFuncs primaryLayerFuncs = {
@@ -688,7 +706,6 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
      void                  *src;
      unsigned int           offset = 0;
      XImage                *ximage;
-     CoreSurface           *surface;
      CoreSurfaceAllocation *allocation;
      DFBX11Shared          *shared;
      DFBRectangle           rect;
@@ -713,9 +730,6 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
      allocation = lock->allocation;
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
-
-     surface = allocation->surface;
-     D_ASSERT( surface != NULL );
 
 
      rect.x = rect.y = 0;
@@ -775,7 +789,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
           xw->ximage_offset = (offset ? 0 : ximage->height / 2);
 
           /* make sure the 16-bit input formats are properly 2-pixel-clipped */
-          switch (surface->config.format) {
+          switch (allocation->config.format) {
                case DSPF_I420:
                case DSPF_YV12:
                case DSPF_NV12:
@@ -797,25 +811,25 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
           }
 
           dst = xw->virtualscreen + rect.x * xw->bpp + (rect.y + offset) * ximage->bytes_per_line;
-          src = lock->addr + DFB_BYTES_PER_LINE( surface->config.format, rect.x ) + rect.y * lock->pitch;
+          src = lock->addr + DFB_BYTES_PER_LINE( allocation->config.format, rect.x ) + rect.y * lock->pitch;
 
           switch (xw->depth) {
                case 32:
-                    dfb_convert_to_argb( surface->config.format, src, lock->pitch,
-                                         surface->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
+                    dfb_convert_to_argb( allocation->config.format, src, lock->pitch,
+                                         allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                case 24:
-                    dfb_convert_to_rgb32( surface->config.format, src, lock->pitch,
-                                          surface->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
+                    dfb_convert_to_rgb32( allocation->config.format, src, lock->pitch,
+                                          allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                case 16:
-                    if (surface->config.format == DSPF_LUT8) {
+                    if (allocation->config.format == DSPF_LUT8) {
                          int width = rect.w; int height = rect.h;
                          const u8    *src8    = src;
                          u16         *dst16   = dst;
-                         CorePalette *palette = surface->palette;
+                         CorePalette *palette = allocation->surface->palette;//FIXME
                          int          x;
                          while (height--) {
 
@@ -829,14 +843,14 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                          }
                     }
                     else {
-                    dfb_convert_to_rgb16( surface->config.format, src, lock->pitch,
-                                          surface->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
+                    dfb_convert_to_rgb16( allocation->config.format, src, lock->pitch,
+                                          allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     }
                     break;
 
                case 15:
-                    dfb_convert_to_rgb555( surface->config.format, src, lock->pitch,
-                                           surface->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
+                    dfb_convert_to_rgb555( allocation->config.format, src, lock->pitch,
+                                           allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                default:
@@ -865,7 +879,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                      rect.x, rect.y + offset, rect.x, rect.y, rect.w, rect.h );
 
      /* Wait for display if single buffered and not converted... */
-     if (direct && !(surface->config.caps & DSCAPS_FLIPPING))
+     if (direct && !(allocation->config.caps & DSCAPS_FLIPPING))
           XSync( x11->display, False );
 
      XUnlockDisplay( x11->display );
