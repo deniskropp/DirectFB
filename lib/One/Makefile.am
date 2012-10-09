@@ -21,7 +21,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = one.pc
 
 
-includedir = @INCLUDEDIR@/One
+includedir = @GENERIC_INCLUDEDIR@/One
 
 include_HEADERS = \
 	One.h	\
