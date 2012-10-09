@@ -58,7 +58,8 @@
  */
 typedef enum {
      DENUM_OK       = 0x00000000,  /* Proceed with enumeration */
-     DENUM_CANCEL   = 0x00000001   /* Cancel enumeration */
+     DENUM_CANCEL   = 0x00000001,  /* Cancel enumeration */
+     DENUM_REMOVE   = 0x00000002,  /* Remove item */
 } DirectEnumerationResult;
 
 
