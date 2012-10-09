@@ -3,11 +3,11 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 moduledir=@MODULEDIR@
 moduledirname=@MODULEDIRNAME@
-includedir=@includedir@
+includedir=@GENERIC_INCLUDEDIR@
 
 Name: One
 Description: One IPC library
 Version: @VERSION@
 Requires: direct
 Libs: -L${libdir} -lone
-Cflags: -I@INCLUDEDIR@ -I@INCLUDEDIR@/One/dist
+Cflags: -I@GENERIC_INCLUDEDIR@/One

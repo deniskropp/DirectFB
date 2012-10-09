@@ -35,5 +35,6 @@ usr/lib/directfb-*/interfaces/IDirectFBDisplayLayer/libidirectfbdisplaylayer_req
 usr/lib/libdirect-*.so.*
 usr/lib/libdirectfb-*.so.*
 usr/lib/libfusion-*.so.*
+usr/lib/libone-*.so.*
 usr/lib/libvoodoo-*.so.*
 usr/share/directfb-*/cursor.dat

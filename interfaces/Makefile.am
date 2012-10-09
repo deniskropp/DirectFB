@@ -1,5 +1,10 @@
 ## Makefile.am for DirectFB/interfaces
 
+if ENABLE_FUSIONSOUND
+FUSIONSOUND_DIRS =	IFusionSound \
+			IFusionSoundMusicProvider
+endif
+
 SUBDIRS = \
 	ICoreResourceManager	\
 	IDirectFBFont		\
@@ -7,4 +12,5 @@ SUBDIRS = \
 	IDirectFBImageProvider	\
 	IDirectFBVideoProvider	\
 	IDirectFBWindows	\
-	IWater
+	IWater			\
+	$(FUSIONSOUND_DIRS)

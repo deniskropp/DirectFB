@@ -13,6 +13,7 @@ usr/include/directfb-internal/media/*.h
 usr/include/directfb-internal/misc/*.h
 usr/include/directfb-internal/windows/*.h
 usr/include/directfb/*.h
+usr/include/One/*.h
 usr/include/directfb/direct/*.h
 usr/include/directfb/direct/os/*.h  
 usr/include/directfb/direct/os/linux/glibc/*.h  
@@ -70,11 +71,14 @@ usr/lib/libdirectfb.a
 usr/lib/libdirectfb.so
 usr/lib/libfusion.a
 usr/lib/libfusion.so
+usr/lib/libone.a
+usr/lib/libone.so
 usr/lib/libvoodoo.a
 usr/lib/libvoodoo.so
 usr/lib/pkgconfig/direct.pc
 usr/lib/pkgconfig/directfb-internal.pc
 usr/lib/pkgconfig/directfb.pc
 usr/lib/pkgconfig/fusion.pc
+usr/lib/pkgconfig/one.pc
 usr/lib/pkgconfig/voodoo.pc
 usr/share/man/man1/directfb-csource.1

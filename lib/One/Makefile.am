@@ -1,6 +1,10 @@
 ## Makefile.am for DirectFB/lib/One
 
+if ENABLE_ONE_MODULE
 SUBDIRS = linux-one
+else
+SUBDIRS =
+endif
 
 INCLUDES = \
 	-I$(top_builddir)/include	\
@@ -17,7 +21,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = one.pc
 
 
-includedir = @INCLUDEDIR@/One
+includedir = @GENERIC_INCLUDEDIR@/One
 
 include_HEADERS = \
 	One.h	\

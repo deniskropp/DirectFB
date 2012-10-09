@@ -11,6 +11,11 @@ dfbproxy
 dfbscreen
 dfbsummon
 directfb-csource
+fsdump
+fsmaster
+fsplay
+fsproxy
+fsvolume
 fusion_bench
 mkdfiff
 mkdgiff

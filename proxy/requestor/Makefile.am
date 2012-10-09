@@ -15,13 +15,21 @@ idirectfbsurfacedir       = $(INTERFACES_DIR)/IDirectFBSurface
 idirectfbwindowdir        = $(INTERFACES_DIR)/IDirectFBWindow
 idirectfbvideoproviderdir = $(INTERFACES_DIR)/IDirectFBVideoProvider
 
+ifusionsounddir         = $(INTERFACES_DIR)/IFusionSound
+ifusionsoundstreamdir   = $(INTERFACES_DIR)/IFusionSoundStream
+ifusionsoundbufferdir   = $(INTERFACES_DIR)/IFusionSoundBuffer
+ifusionsoundplaybackdir = $(INTERFACES_DIR)/IFusionSoundPlayback
+
 INCLUDES = \
 	-I$(top_builddir)/include		\
 	-I$(top_builddir)/lib			\
+	-I$(top_builddir)/lib/fusionsound	\
 	-I$(top_srcdir)/include			\
 	-I$(top_srcdir)/lib			\
+	-I$(top_srcdir)/lib/fusionsound		\
 	-I$(top_srcdir)/src 			\
 	-I$(top_srcdir)/proxy/dispatcher	\
+	-I$(top_srcdir)/proxy/compressor	\
 	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
 
 LIBS = \
@@ -62,6 +70,20 @@ idirectfbsurface_LTLIBRARIES = \
 idirectfbwindow_LTLIBRARIES = \
 	libidirectfbwindow_requestor.la
 
+if ENABLE_FUSIONSOUND
+ifusionsound_LTLIBRARIES = \
+	libifusionsound_requestor.la
+
+ifusionsoundstream_LTLIBRARIES = \
+	libifusionsoundstream_requestor.la
+
+ifusionsoundbuffer_LTLIBRARIES = \
+	libifusionsoundbuffer_requestor.la
+
+ifusionsoundplayback_LTLIBRARIES = \
+	libifusionsoundplayback_requestor.la
+endif
+
 if BUILD_STATIC
 idirectfb_DATA              = libidirectfb_requestor.o
 idirectfbdatabuffer_DATA    = libidirectfbdatabuffer_requestor.o
@@ -74,6 +96,12 @@ idirectfbpalette_DATA       = libidirectfbpalette_requestor.o
 idirectfbscreen_DATA        = libidirectfbscreen_requestor.o
 idirectfbsurface_DATA       = libidirectfbsurface_requestor.o
 idirectfbwindow_DATA        = libidirectfbwindow_requestor.o
+if ENABLE_FUSIONSOUND
+ifusionsound_DATA           = libifusionsound_requestor.o
+ifusionsoundstream_DATA     = libifusionsoundstream_requestor.o
+ifusionsoundbuffer_DATA     = libifusionsoundbuffer_requestor.o
+ifusionsoundplayback_DATA   = libifusionsoundplayback_requestor.o
+endif
 endif
 
 
@@ -120,6 +148,22 @@ libidirectfbsurface_requestor_la_LIBADD  = $(LIBS)
 libidirectfbwindow_requestor_la_SOURCES = idirectfbwindow_requestor.c idirectfbwindow_requestor.h
 libidirectfbwindow_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbwindow_requestor_la_LIBADD  = $(LIBS)
+
+libifusionsound_requestor_la_SOURCES = ifusionsound_requestor.c
+libifusionsound_requestor_la_LDFLAGS = -avoid-version -module
+libifusionsound_requestor_la_LIBADD  = $(LIBS)
+
+libifusionsoundstream_requestor_la_SOURCES = ifusionsoundstream_requestor.c
+libifusionsoundstream_requestor_la_LDFLAGS = -avoid-version -module
+libifusionsoundstream_requestor_la_LIBADD  = $(LIBS) ../compressor/libfusionsound_compressor.la
+
+libifusionsoundbuffer_requestor_la_SOURCES = ifusionsoundbuffer_requestor.c
+libifusionsoundbuffer_requestor_la_LDFLAGS = -avoid-version -module
+libifusionsoundbuffer_requestor_la_LIBADD  = $(LIBS) ../compressor/libfusionsound_compressor.la
+
+libifusionsoundplayback_requestor_la_SOURCES = ifusionsoundplayback_requestor.c
+libifusionsoundplayback_requestor_la_LDFLAGS = -avoid-version -module
+libifusionsoundplayback_requestor_la_LIBADD  = $(LIBS)
 
 
 include $(top_srcdir)/rules/libobject.make

@@ -33,6 +33,7 @@ ifeq ($(DEB_HOST_ARCH_OS), linux)
     --enable-video4linux2 \
     --enable-multi \
     --enable-voodoo \
+    --enable-fusionsound \
     --enable-sawman \
     --disable-unique \
     --disable-mesa
@@ -50,6 +51,15 @@ else
   conf_options += \
     --with-gfxdrivers=none
 endif
+
+ifeq ($(DEB_HOST_ARCH_CPU), armhf)
+  conf_options += \
+    --enable-egl \
+    --with-gfxdrivers=gles2 \
+    EGL_CFLAGS='-I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads' \
+    EGL_LIBS='-L/opt/vc/lib -lGLESv2 -lEGL'
+endif
+
 
 %:
 	dh --parallel $@
@@ -70,13 +80,16 @@ override_dh_auto_configure:
 		--localstatedir=/var \
 		$(conf_options) \
 		--enable-static \
+		--enable-one \
+		--disable-one-module \
+		--with-tests \
 		--disable-unique \
 		--disable-sdl \
 		--enable-vnc \
 		--enable-x11
 
 override_dh_auto_build:
-	$(MAKE) $(CROSS) -C $(BUILD_DIST)
+	$(MAKE) -j8 $(CROSS) -C $(BUILD_DIST)
 
 override_dh_clean:
 	rm -rf $(BUILD_DIST)

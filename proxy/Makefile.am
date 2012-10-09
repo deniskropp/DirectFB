@@ -1,3 +1,7 @@
 ## Makefile.am for DirectFB/proxy
 
-SUBDIRS = dispatcher requestor
+if ENABLE_FUSIONSOUND
+FUSIONSOUND_DIR = compressor
+endif
+
+SUBDIRS = $(FUSIONSOUND_DIR) dispatcher requestor
