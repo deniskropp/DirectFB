@@ -1,10 +1,10 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 moduledir=@MODULEDIR@
-includedir=@INTERNALINCLUDEDIR@
+includedir=@GENERIC_INCLUDEDIR@/fusionsound-internal
 
 Name: FusionSound-Internal
 Description: Third party module support package for FusionSound.
 Version: @VERSION@
 Requires: fusionsound = @VERSION@
-Cflags: -I@INTERNALINCLUDEDIR@
+Cflags: -I@GENERIC_INCLUDEDIR@/fusionsound-internal

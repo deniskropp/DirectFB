@@ -128,7 +128,7 @@ usage( const char *progname )
               "   -v, --version     Print version and quit\n"
               "   -k, --keep-alive  Keep listening for new connections\n"
               "\n",
-              FUSIONSOUND_VERSION, progname );
+              DIRECTFB_VERSION, progname );
 }
 
 static bool
@@ -142,7 +142,7 @@ parse_command_line( int argc, char *argv[] )
                return false;
           }
           else if (!strcmp( argv[i], "-v" ) || !strcmp( argv[i], "--version" )) {
-               puts( FUSIONSOUND_VERSION );
+               puts( DIRECTFB_VERSION );
                exit( 0 );
           }
           else if (!strcmp( argv[i], "-k" ) || !strcmp( argv[i], "--keep-alive" )) {

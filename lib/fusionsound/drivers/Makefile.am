@@ -1,8 +1,12 @@
-# Makefile.am for FusionSound/drivers
+# Makefile.am for lib/fusionsound/drivers
 
 INCLUDES = \
+	-I$(top_builddir)/include \
+	-I$(top_builddir)/lib	\
+	-I$(top_builddir)/lib/fusionsound	\
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/src	\
+	-I$(top_srcdir)/lib	\
+	-I$(top_srcdir)/lib/fusionsound	\
 	$(FUSION_CFLAGS)	\
 	$(ALSA_CFLAGS)
 
@@ -28,21 +32,21 @@ drivers_LTLIBRARIES = \
 
 libfusionsound_oss_la_SOURCES = oss.c
 
-libfusionsound_oss_la_LIBADD = $(DIRECT_LIBS) ../src/libfusionsound.la
+libfusionsound_oss_la_LIBADD = $(DIRECT_LIBS)
 
 libfusionsound_oss_la_LDFLAGS = -export-dynamic -avoid-version -module
 
 
 libfusionsound_alsa_la_SOURCES = alsa.c
 
-libfusionsound_alsa_la_LIBADD = $(DIRECT_LIBS) ../src/libfusionsound.la $(ALSA_LIBS)
+libfusionsound_alsa_la_LIBADD = $(DIRECT_LIBS) $(ALSA_LIBS)
 
 libfusionsound_alsa_la_LDFLAGS = -export-dynamic -avoid-version -module
 
 
 libfusionsound_wave_la_SOURCES = wave.c
 
-libfusionsound_wave_la_LIBADD = $(DIRECT_LIBS) ../src/libfusionsound.la
+libfusionsound_wave_la_LIBADD = $(DIRECT_LIBS)
 
 libfusionsound_wave_la_LDFLAGS = -export-dynamic -avoid-version -module
 

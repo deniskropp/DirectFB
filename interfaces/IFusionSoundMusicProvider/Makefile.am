@@ -4,9 +4,13 @@ ifusionsoundmusicproviderdir = $(MODULEDIR)/interfaces/IFusionSoundMusicProvider
 
 INCLUDES = \
 	-I$(top_builddir)/include	\
+	-I$(top_builddir)/src	\
+	-I$(top_builddir)/lib	\
+	-I$(top_builddir)/lib/fusionsound	\
 	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src 	\
-	$(FUSION_CFLAGS)	\
+	-I$(top_srcdir)/src	\
+	-I$(top_srcdir)/lib	\
+	-I$(top_srcdir)/lib/fusionsound	\
 	$(TIMIDITY_CFLAGS)	\
 	$(VORBISFILE_CFLAGS)	\
 	$(CDDB_CFLAGS) 		\
@@ -60,14 +64,14 @@ libifusionsoundmusicprovider_timidity_la_LDFLAGS = -avoid-version -module
 
 libifusionsoundmusicprovider_wave_la_SOURCES = ifusionsoundmusicprovider_wave.c
 
-libifusionsoundmusicprovider_wave_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/src/libfusionsound.la
+libifusionsoundmusicprovider_wave_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/lib/fusionsound/libfusionsound.la
 
 libifusionsoundmusicprovider_wave_la_LDFLAGS = -avoid-version -module
 
 
 libifusionsoundmusicprovider_vorbis_la_SOURCES = ifusionsoundmusicprovider_vorbis.c
 
-libifusionsoundmusicprovider_vorbis_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/src/libfusionsound.la $(VORBISFILE_LIBS)
+libifusionsoundmusicprovider_vorbis_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/lib/fusionsound/libfusionsound.la $(VORBISFILE_LIBS)
 
 libifusionsoundmusicprovider_vorbis_la_LDFLAGS = -avoid-version -module
 
@@ -88,14 +92,14 @@ libifusionsoundmusicprovider_cdda_la_LDFLAGS = -avoid-version -module
 
 libifusionsoundmusicprovider_playlist_la_SOURCES = ifusionsoundmusicprovider_playlist.c
 
-libifusionsoundmusicprovider_playlist_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/src/libfusionsound.la
+libifusionsoundmusicprovider_playlist_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/lib/fusionsound/libfusionsound.la
 
 libifusionsoundmusicprovider_playlist_la_LDFLAGS = -avoid-version -module
 
 
 libifusionsoundmusicprovider_ffmpeg_la_SOURCES = ifusionsoundmusicprovider_ffmpeg.c
 
-libifusionsoundmusicprovider_ffmpeg_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/src/libfusionsound.la $(FFMPEG_LIBS)
+libifusionsoundmusicprovider_ffmpeg_la_LIBADD = $(DIRECT_LIBS) $(top_builddir)/lib/fusionsound/libfusionsound.la $(FFMPEG_LIBS)
 
 libifusionsoundmusicprovider_ffmpeg_la_LDFLAGS = -avoid-version -module
 

@@ -111,7 +111,7 @@ usage( const char *progname )
                       "  [/]   decrease playback speed\n"
                       "  [*]   increase playback speed\n"
                       "  [q]   quit\n"
-                      "\n", FUSIONSOUND_VERSION, progname );
+                      "\n", DIRECTFB_VERSION, progname );
      exit( 1 );
 }
 
@@ -128,7 +128,7 @@ parse_options( int argc, char **argv )
                usage( argv[0] );
           }
           else if (!strcmp( opt, "-v" ) || !strcmp( opt, "--version" )) {
-               puts( FUSIONSOUND_VERSION );
+               puts( DIRECTFB_VERSION );
                exit( 0 );
           }
           else if (!strcmp( opt, "-q" ) || !strcmp( opt, "--quiet" )) {

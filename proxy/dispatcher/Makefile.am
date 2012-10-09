@@ -15,13 +15,22 @@ idirectfbsurfacedir       = $(INTERFACES_DIR)/IDirectFBSurface
 idirectfbwindowdir        = $(INTERFACES_DIR)/IDirectFBWindow
 idirectfbvideoproviderdir = $(INTERFACES_DIR)/IDirectFBVideoProvider
 
+ifusionsounddir           = $(INTERFACES_DIR)/IFusionSound
+ifusionsoundstreamdir     = $(INTERFACES_DIR)/IFusionSoundStream
+ifusionsoundbufferdir     = $(INTERFACES_DIR)/IFusionSoundBuffer
+ifusionsoundplaybackdir   = $(INTERFACES_DIR)/IFusionSoundPlayback
+
+
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib		\
+	-I$(top_builddir)/lib/fusionsound \
 	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/lib		\
+	-I$(top_srcdir)/lib/fusionsound	\
 	-I$(top_srcdir)/src 		\
 	-I$(top_srcdir)/proxy/requestor	\
+	-I$(top_srcdir)/proxy/compressor	\
 	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
 
 LIBS = \
@@ -62,6 +71,20 @@ idirectfbsurface_LTLIBRARIES = \
 idirectfbwindow_LTLIBRARIES = \
 	libidirectfbwindow_dispatcher.la
 
+if ENABLE_FUSIONSOUND
+ifusionsound_LTLIBRARIES = \
+	libifusionsound_dispatcher.la
+
+ifusionsoundstream_LTLIBRARIES = \
+	libifusionsoundstream_dispatcher.la
+
+ifusionsoundbuffer_LTLIBRARIES = \
+	libifusionsoundbuffer_dispatcher.la
+
+ifusionsoundplayback_LTLIBRARIES = \
+	libifusionsoundplayback_dispatcher.la
+endif
+
 if BUILD_STATIC
 idirectfb_DATA              = libidirectfb_dispatcher.o
 idirectfbdatabuffer_DATA    = libidirectfbdatabuffer_dispatcher.o
@@ -74,6 +97,10 @@ idirectfbpalette_DATA       = libidirectfbpalette_dispatcher.o
 idirectfbscreen_DATA        = libidirectfbscreen_dispatcher.o
 idirectfbsurface_DATA       = libidirectfbsurface_dispatcher.o
 idirectfbwindow_DATA        = libidirectfbwindow_dispatcher.o
+ifusionsound_DATA           = libifusionsound_dispatcher.o
+ifusionsoundbuffer_DATA     = libifusionsoundbuffer_dispatcher.o
+ifusionsoundplayback_DATA   = libifusionsoundplaybackdispatcher.o
+ifusionsoundstream_DATA     = libifusionsoundstreamdispatcher.o
 endif
 
 libidirectfb_dispatcher_la_SOURCES = idirectfb_dispatcher.c idirectfb_dispatcher.h
@@ -120,5 +147,20 @@ libidirectfbwindow_dispatcher_la_SOURCES = idirectfbwindow_dispatcher.c idirectf
 libidirectfbwindow_dispatcher_la_LDFLAGS = -avoid-version -module
 libidirectfbwindow_dispatcher_la_LIBADDD = $(LIBS)
 
+libifusionsound_dispatcher_la_SOURCES = ifusionsound_dispatcher.c ifusionsound_dispatcher.h
+libifusionsound_dispatcher_la_LDFLAGS = -avoid-version -module
+libifusionsound_dispatcher_la_LIBADDD = $(LIBS)
+ 
+libifusionsoundbuffer_dispatcher_la_SOURCES = ifusionsoundbuffer_dispatcher.c ifusionsoundbuffer_dispatcher.h
+libifusionsoundbuffer_dispatcher_la_LDFLAGS = -avoid-version -module
+libifusionsoundbuffer_dispatcher_la_LIBADDD = $(LIBS) ../compressor/libfusionsound_compressor.la
+
+libifusionsoundplayback_dispatcher_la_SOURCES = ifusionsoundplayback_dispatcher.c ifusionsoundplayback_dispatcher.h
+libifusionsoundplayback_dispatcher_la_LDFLAGS = -avoid-version -module
+libifusionsoundplayback_dispatcher_la_LIBADDD = $(LIBS)
+
+libifusionsoundstream_dispatcher_la_SOURCES = ifusionsoundstream_dispatcher.c ifusionsoundstream_dispatcher.h
+libifusionsoundstream_dispatcher_la_LDFLAGS = -avoid-version -module
+libifusionsoundstream_dispatcher_la_LIBADDD = $(LIBS) ../compressor/libfusionsound_compressor.la
 
 include $(top_srcdir)/rules/libobject.make

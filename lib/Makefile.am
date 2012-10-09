@@ -12,5 +12,9 @@ if ENABLE_SAWMAN
 SAWMAN_DIR = sawman
 endif
 
-SUBDIRS = direct fusion $(ONE_DIR) $(VOODOO_DIR) $(SAWMAN_DIR)
+if ENABLE_FUSIONSOUND
+FUSIONSOUND_DIR = fusionsound
+endif
+
+SUBDIRS = direct fusion $(ONE_DIR) $(VOODOO_DIR) $(SAWMAN_DIR) $(FUSIONSOUND_DIR)
 

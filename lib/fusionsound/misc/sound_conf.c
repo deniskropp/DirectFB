@@ -51,7 +51,7 @@
 FSConfig *fs_config = NULL;
 
 static const char *config_usage =
-     "FusionSound version " FUSIONSOUND_VERSION "\n"
+     "FusionSound version " DIRECTFB_VERSION "\n"
      "\n"
      " --fs-help                        Output FusionSound usage information and exit\n"
      " --fs:<option>[,<option>]...      Pass options to FusionSound (see below)\n"

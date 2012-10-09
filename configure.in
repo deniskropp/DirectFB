@@ -663,6 +663,304 @@ else
     DEP_SAWMAN=
 fi
 
+AC_ARG_ENABLE(fusionsound,
+              AC_HELP_STRING([--enable-fusionsound],
+                             [enable FusionSound @<:@default=no@:>@]),
+              [], [enable_fusionsound=no])
+
+#
+# fusionsound options
+#
+
+AC_ARG_ENABLE(fs-ieee-floats,
+  [  --enable-fs-ieee-floats    enable using IEEE floats for internal mixing routines [[default=no]]],,
+  fs_enable_ieee_floats=no)
+if test "x$fs_enable_ieee_floats" = xyes; then
+  AC_DEFINE(FS_USE_IEEE_FLOATS,1,[Define to 1 to enable IEEE floats for mixing routines.])
+fi
+
+AC_ARG_ENABLE(fs-precision,
+  [  --enable-fs-precision      privilege precision over speed [[default=auto]]],,
+  fs_enable_precision=auto)
+if test "x$fs_enable_precision" = xauto; then
+  if test "x$have_x86" = xyes || test "x$have_ppc" = xyes; then
+    fs_enable_precision=yes
+  else
+    fs_enable_precision=no
+  fi
+fi
+if test "x$fs_enable_precision" = xyes; then
+  AC_DEFINE(FS_ENABLE_PRECISION,1,[Define to 1 to enable precision.])
+fi
+
+AC_ARG_ENABLE(fs-linear-filter,
+  [  --enable-fs-linear-filter  enable linear filtering [[default=yes]]],,
+  fs_enable_linear_filter=yes)
+if test "x$fs_enable_linear_filter" = xyes; then
+  AC_DEFINE(FS_ENABLE_LINEAR_FILTER,1,[Define to 1 to enable linear filter.])
+fi
+
+AC_ARG_ENABLE(fs-multichannel,
+  [  --disable-fs-multichannel  disable support for more than 2 channels [[default=no]]],,
+  fs_enable_multichannel=yes)
+if test "x$fs_enable_multichannel" = xyes; then
+  FS_MAX_CHANNELS=6
+else
+  FS_MAX_CHANNELS=2
+fi
+AC_SUBST(FS_MAX_CHANNELS)  
+
+
+# Check for fusionsound drivers
+#
+fsdriver_oss=no
+fsdriver_alsa=no
+fsdriver_wave=no
+
+AC_MSG_CHECKING(which fusionsound drivers should be built)
+AC_ARG_WITH(fs-drivers,
+[  --with-fs-drivers=<list>     compile fusionsound drivers in <list> ]
+[                               drivers may be comma separated ]
+[                               'all' builds all drivers (default), 'none' builds none ]
+[                               Possible drivers are: ]
+[                               oss,alsa,wave], fsdrivers="$withval",[fsdrivers="all"])
+
+if test "$fsdrivers" = "all"; then
+  checkfor_oss=yes
+  checkfor_alsa=yes
+  checkfor_wave=yes
+else
+  if test "$fsdrivers" != "none"; then
+    fsdrivers=`echo $fsdrivers | sed 's/,/ /g'`
+    for fsdriver in $fsdrivers
+    do
+      case "$fsdriver" in
+        oss)
+            checkfor_oss=yes
+            ;;
+        alsa)
+            checkfor_alsa=yes
+            ;;
+        wave)
+            checkfor_wave=yes
+            ;;
+        *)
+            ;;
+      esac
+    done
+  fi
+fi
+
+AC_MSG_RESULT($fsdrivers)
+
+if test "x$checkfor_oss" = "xyes"; then
+  AC_CHECK_HEADER( [sys/soundcard.h], fsdriver_oss=yes, fsdriver_oss=no
+  AC_MSG_WARN([*** OSS driver will not be built.]))
+fi
+
+if test "x$checkfor_alsa" = "xyes"; then
+  AC_MSG_CHECKING(for alsa >= 0.9)
+  if $PKG_CONFIG --atleast-version 0.9 alsa; then
+     ALSA_CFLAGS=`$PKG_CONFIG --cflags alsa`
+     ALSA_LIBS=`$PKG_CONFIG --libs alsa`
+     fsdriver_alsa=yes
+     AC_MSG_RESULT(yes)
+  else
+     AC_MSG_RESULT(no)
+  fi
+fi
+
+if test "x$checkfor_wave" = "xyes"; then
+  wave=yes
+fi
+
+AC_SUBST(ALSA_CFLAGS)
+AC_SUBST(ALSA_LIBS)
+
+AM_CONDITIONAL(BUILD_OSS, test "x$fsdriver_oss" = "xyes")
+AM_CONDITIONAL(BUILD_ALSA, test "x$fsdriver_alsa" = "xyes")
+AM_CONDITIONAL(BUILD_WAVE, test "x$fsdriver_wave" = "xyes")
+
+
+# fusionsound music providers
+
+#
+# Check for Timidity
+#
+timidty="no"
+AC_ARG_WITH(timidity,
+  [  --with-timidity          build Timidity music provider [[default=yes]]],
+  with_timidity="$withval", with_timidity="yes")
+
+if test "x$with_timidity" = "xyes"; then
+  AC_MSG_CHECKING([for libtimidity >= 0.1.0])
+  if $PKG_CONFIG --atleast-version=0.1.0 libtimidity; then
+    AC_MSG_RESULT(yes)
+    timidity="yes"
+    TIMIDITY_CFLAGS=`$PKG_CONFIG --cflags libtimidity`
+    TIMIDITY_LIBS=`$PKG_CONFIG --libs libtimidity`
+  else
+    AC_MSG_RESULT(no)
+    AC_MSG_WARN([
+*** libtimidity is required - Timidity music provider will not be built.])
+  fi
+fi 
+
+AC_SUBST(TIMIDITY_CFLAGS)
+AC_SUBST(TIMIDITY_LIBS)
+AM_CONDITIONAL(BUILD_TIMIDITY, test "x$timidity" = "xyes")
+
+
+#
+# Check for Wave
+#
+wave="no"
+AC_ARG_WITH(wave,
+  [  --with-wave              build Wave music provider [[default=yes]]],
+  wave="$withval", wave="yes")
+AM_CONDITIONAL(BUILD_WAVE, test "x$wave" = "xyes")
+
+
+#
+# Check for Vorbis
+#
+vorbis="no"
+tremor="no"
+AC_ARG_WITH(vorbis,
+  [  --with-vorbis            build Ogg/Vorbis music provider [[default=yes]]],
+  with_vorbis="$withval", with_vorbis="yes")
+AC_ARG_WITH(tremor,
+  [  --with-tremor            build Ogg/Vorbis music provider using Tremor [[default=no]]],
+  with_tremor="$withval", with_tremor="no")
+
+if test "x$with_vorbis" = "xyes"; then
+  if test "x$with_tremor" = "xyes"; then
+    AC_CHECK_HEADER(tremor/ivorbiscodec.h, 
+      AC_CHECK_LIB(vorbisidec, ov_clear, tremor="yes", ), )
+    
+    if test "x$tremor" = "xyes"; then
+      vorbis="yes"
+      VORBISFILE_CFLAGS=""
+      VORBISFILE_LIBS="-lvorbisidec"
+      AC_DEFINE(USE_TREMOR,1,[Define to 1 to use Tremor Ogg/Vorbis decoder.])
+    else
+      AC_MSG_WARN([
+*** Tremor is required - Ogg/Vorbis music provider will not be built.])
+    fi
+  else
+    VORBIS_REQUIRED_VERSION=1.0.0
+    AC_MSG_CHECKING(for vorbisfile >= $VORBIS_REQUIRED_VERSION)
+  
+    if $PKG_CONFIG --atleast-version $VORBIS_REQUIRED_VERSION vorbisfile; then
+      vorbis="yes"
+      VORBISFILE_CFLAGS=`$PKG_CONFIG --cflags vorbisfile`
+      VORBISFILE_LIBS=`$PKG_CONFIG --libs vorbisfile`
+      AC_MSG_RESULT(yes)
+    else
+      AC_MSG_RESULT(no)
+      AC_MSG_WARN([
+*** vorbisfile $VORBIS_REQUIRED_VERSION or newer is required - Ogg/Vorbis music provider will not be built.])
+    fi
+  fi
+fi
+
+AC_SUBST(VORBISFILE_CFLAGS)
+AC_SUBST(VORBISFILE_LIBS)
+AM_CONDITIONAL(BUILD_VORBIS, test "x$vorbis" = "xyes")
+
+
+#
+# Check for MAD
+#
+mad="no"
+AC_ARG_WITH(mad,            
+  [  --with-mad               build MAD MP3 music provider [[default=yes]]],
+  with_mad="$withval", with_mad="yes")
+
+if test "x$with_mad" = "xyes"; then
+  AC_CHECK_LIB(mad, mad_timer_add, mad="yes", mad="no")
+  if test "x$mad" = "xyes"; then
+    AC_CHECK_HEADER(mad.h, mad="yes", mad="no")
+    if test "x$mad" = "xno"; then
+      AC_MSG_WARN([
+*** MAD header not found - MAD music provider will not be built.])
+    else
+      MAD_LIBS="-lmad"
+    fi
+  else
+    AC_MSG_WARN([
+*** MAD library not found - MAD music provider will not be built.])
+  fi
+fi
+
+AC_SUBST(MAD_LIBS)
+AM_CONDITIONAL(BUILD_MAD, test "x$mad" = "xyes")
+
+
+#
+# Check for CD-DA
+#
+cdda="no"
+AC_ARG_WITH(cdda,            
+  [  --with-cdda              build CD-DA music provider [[default=yes]]],
+  with_cdda="$withval", with_cdda="yes")
+
+if test "x$with_cdda" = "xyes"; then
+  cdda="yes"
+  if $PKG_CONFIG --atleast-version 1.0.0 libcddb; then
+    AC_DEFINE(HAVE_CDDB,1,[Define to 1 if you have libcddb.])
+    CDDB_CFLAGS=`$PKG_CONFIG --cflags libcddb`
+    CDDB_LIBS=`$PKG_CONFIG --libs libcddb`
+  else
+    AC_MSG_WARN([
+*** libcddb 1.0.0 or newer not found - CD-DA Music Provider will be built without CDDB support.])
+  fi
+fi
+
+AC_SUBST(CDDB_CFLAGS)
+AC_SUBST(CDDB_LIBS)
+AM_CONDITIONAL(BUILD_CDDA, test "x$cdda" = "xyes")   
+
+
+#
+# Check for FFmpeg
+#
+ffmpeg="no"
+AC_ARG_WITH(ffmpeg,
+  [  --with-ffmpeg            build FFmpeg music provider [[default=yes]]],
+    with_ffmpeg="$withval", with_ffmpeg="yes")
+    
+if test "x$with_ffmpeg" = "xyes"; then
+  AC_MSG_CHECKING([for libavcodec/libavformat])
+  if $PKG_CONFIG libavcodec libavformat libavutil; then
+    AC_MSG_RESULT(yes)
+    ffmpeg="yes"
+    FFMPEG_CFLAGS=`$PKG_CONFIG --cflags libavcodec libavformat libavutil`
+    FFMPEG_LIBS=`$PKG_CONFIG --libs libavcodec libavformat libavutil`
+  else
+    AC_MSG_RESULT(no)
+    AC_MSG_WARN([
+*** libavcodec/libavformat are required - FFmpeg music provider will not be built.])
+  fi
+fi
+
+AC_SUBST(FFMPEG_CFLAGS)
+AC_SUBST(FFMPEG_LIBS)
+AM_CONDITIONAL(BUILD_FFMPEG, test "x$ffmpeg" = "xyes")   
+
+
+#
+# Check for Playlist
+#
+AC_ARG_WITH(playlist,            
+  [  --with-playlist          build Playlist music provider [[default=yes]]],
+  playlist="$withval", playlist="yes")
+
+AM_CONDITIONAL(BUILD_PLAYLIST, test "x$playlist" = "xyes") 
+
+# fusionsound music providers end
+
+
 AC_SUBST(DIRECTFB_BUILD_ONE)
 AM_CONDITIONAL(DIRECTFB_BUILD_ONE, test "$DIRECTFB_BUILD_ONE" = "1")
 
@@ -704,8 +1002,8 @@ AC_SUBST(FUSION_BUILD_KERNEL)
 
 AM_CONDITIONAL(ENABLE_ONE, test "$enable_one" = "yes")
 AM_CONDITIONAL(ENABLE_VOODOO, test "$enable_voodoo" = "yes")
-
 AM_CONDITIONAL(ENABLE_SAWMAN, test "$enable_sawman" = "yes")
+AM_CONDITIONAL(ENABLE_FUSIONSOUND, test "$enable_fusionsound" = "yes")
 
 
 AC_ARG_ENABLE(unique,
@@ -2105,6 +2403,8 @@ DATADIR=$datadir/directfb-$VERSION
 INCLUDEDIR=$includedir/directfb
 INTERNALINCLUDEDIR=$includedir/directfb-internal
 
+GENERIC_INCLUDEDIR=$includedir
+
 SOPATH=$libdir/libdirectfb-$LT_RELEASE.so.$LT_CURRENT
 AC_SUBST(SOPATH)
 
@@ -2138,6 +2438,8 @@ AC_SUBST(MODULEDIR)
 AC_SUBST(MODULEDIRNAME)
 AC_SUBST(INCLUDEDIR)
 AC_SUBST(INTERNALINCLUDEDIR)
+
+AC_SUBST(GENERIC_INCLUDEDIR)
 
 AS_AC_EXPAND(SYSCONFDIR, $sysconfdir)
 
@@ -2196,9 +2498,20 @@ lib/voodoo/voodoo.pc
 lib/sawman/Makefile
 lib/sawman/sawman.pc
 
+lib/fusionsound/Makefile
+lib/fusionsound/core/Makefile
+lib/fusionsound/drivers/Makefile
+lib/fusionsound/media/Makefile
+lib/fusionsound/misc/Makefile
+lib/fusionsound/fusionsound.pc
+lib/fusionsound/fusionsound-internal.pc
+lib/fusionsound/fusionsound_limits.h
+lib/fusionsound/fusionsound_version.h
+
 patches/Makefile
 
 proxy/Makefile
+proxy/compressor/Makefile
 proxy/dispatcher/Makefile
 proxy/requestor/Makefile
 
@@ -2295,6 +2608,8 @@ interfaces/IDirectFBImageProvider/Makefile
 interfaces/IDirectFBImageProvider/mpeg2/Makefile
 interfaces/IDirectFBVideoProvider/Makefile
 interfaces/IDirectFBWindows/Makefile
+interfaces/IFusionSound/Makefile
+interfaces/IFusionSoundMusicProvider/Makefile
 interfaces/IWater/Makefile
 
 data/Makefile
@@ -2395,7 +2710,26 @@ Building Video Provider Modules:
 Building Font Modules:
   FreeType2                 $FREETYPE                 $FREETYPE_CFLAGS $FREETYPE_LIBS
   LinoType                  $LINOTYPE                 $LINOTYPE_CFLAGS $LINOTYPE_LIBS
-  Default font              yes]);
+  Default font              yes
+
+Building FusionSound        $enable_fusionsound
+  Options:
+    IEEE floats:            $fs_enable_ieee_floats
+    Precision:              $fs_enable_precision
+    Linear filter:          $fs_enable_linear_filter
+    Multichannel            $fs_enable_multichannel
+  Drivers:
+    OSS                     $fsdriver_oss
+    ALSA                    $fsdriver_alsa
+    WAVE                    $fsdriver_wave
+  Music Providers:
+    Timidity                $timidity
+    Wave                    $wave
+    Ogg/Vorbis              $vorbis
+    MAD                     $mad
+    CD-DA                   $cdda
+    FFmpeg                  $ffmpeg
+    Playlist                $playlist]);
 
 if test "$have_linux" = "yes"; then
 AC_MSG_RESULT([

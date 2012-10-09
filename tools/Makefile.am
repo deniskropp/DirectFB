@@ -4,10 +4,12 @@ INCLUDES = \
 	-I$(top_builddir)/include \
 	-I$(top_builddir)/lib \
 	-I$(top_builddir)/lib/sawman \
+	-I$(top_builddir)/lib/fusionsound \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/lib/sawman	\
+	-I$(top_srcdir)/lib/fusionsound	\
 	-I$(top_srcdir)/src
 
 AM_CPPFLAGS = -DBINDIR=\"@bindir@\" -DDATADIR=\"@DATADIR@\"
@@ -44,6 +46,18 @@ SAWMAN_PROGS = \
 	swmdump
 endif
 
+if ENABLE_FUSIONSOUND
+FUSIONSOUND_PROGS = \
+	fsdump	\
+	fsmaster	\
+	fsplay	\
+	fsvolume
+
+if ENABLE_VOODOO
+FUSIONSOUND_PROGS += fsproxy
+endif
+endif
+
 if PNG_PROVIDER
 PNG_PROGS = mkdfiff mkdgifft
 endif
@@ -76,7 +90,8 @@ bin_PROGRAMS = \
 	$(PNG_PROGS)			\
 	$(FREETYPE_PROGS)		\
 	$(VOODOO_PROGS)			\
-	$(SAWMAN_PROGS)
+	$(SAWMAN_PROGS)			\
+	$(FUSIONSOUND_PROGS)
 
 
 if DIRECTFB_BUILD_PURE_VOODOO
@@ -114,6 +129,13 @@ libsawman = \
         ../lib/sawman/libsawman.la
 else
 libsawman =
+endif
+
+if ENABLE_FUSIONSOUND
+libfusionsound = \
+        ../lib/fusionsound/libfusionsound.la
+else
+libfusionsound =
 endif
 
 dfbdump_SOURCES = dfbdump.c
@@ -181,6 +203,21 @@ voodooplay_server_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $
 
 swmdump_SOURCES = swmdump.c
 swmdump_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(libsawman)
+
+fsdump_SOURCES = fsdump.c
+fsdump_LDADD   = $(libfusion) $(libdirect) $(libfusionsound)
+
+fsmaster_SOURCES = fsmaster.c
+fsmaster_LDADD   = $(libfusion) $(libdirect) $(libfusionsound)
+
+fsplay_SOURCES = fsplay.c
+fsplay_LDADD   = $(libfusion) $(libdirect) $(libfusionsound)
+
+fsproxy_SOURCES = fsproxy.c
+fsproxy_LDADD   = $(libfusion) $(libdirect) $(libfusionsound) $(libvoodoo)
+
+fsvolume_SOURCES = fsvolume.c
+fsvolume_LDADD   = $(libfusion) $(libdirect) $(libfusionsound)
 
 
 EXTRA_DIST = \
