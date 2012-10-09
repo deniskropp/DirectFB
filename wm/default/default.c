@@ -1481,6 +1481,8 @@ repaint_stack( CoreWindowStack     *stack,
 
      D_DEBUG_AT( WM_Default, "repaint_stack( %d region(s), flags %x )\n", num_updates, flags );
 
+     fusion_skirmish_prevail( &data->update_skirmish );
+
      /* Set destination. */
      state->destination  = surface;
      state->modified    |= SMF_DESTINATION;
@@ -1548,8 +1550,6 @@ repaint_stack( CoreWindowStack     *stack,
      CoreGraphicsStateClient_Flush( &data->client );
 
 
-     fusion_skirmish_prevail( &data->update_skirmish );
-
      switch (region->config.buffermode) {
           case DLBM_TRIPLE:
                /* Add the updated region. */
@@ -1591,9 +1591,9 @@ repaint_stack( CoreWindowStack     *stack,
                break;
      }
 
-     fusion_skirmish_dismiss( &data->update_skirmish );
-
      CoreGraphicsStateClient_Flush( &data->client );
+
+     fusion_skirmish_dismiss( &data->update_skirmish );
 }
 
 static DFBResult
