@@ -318,8 +318,19 @@ direct_map_iterate( DirectMap             *map,
           MapEntry *entry = &map->entries[i];
 
           if (entry->object && entry->object != REMOVED) {
-               if (func( map, entry->object, ctx ) != DENUM_OK)
-                    break;
+               switch (func( map, entry->object, ctx )) {
+                    case DENUM_OK:
+                         break;
+
+                    case DENUM_CANCEL:
+                         return;
+
+                    case DENUM_REMOVE:
+                         entry->object = REMOVED;
+
+                         map->count--;
+                         map->removed++;
+               }
           }
      }
 }
