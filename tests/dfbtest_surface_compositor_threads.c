@@ -38,6 +38,51 @@
 #include <directfb_util.h>
 
 
+
+typedef struct {
+     int       magic;
+
+     int       frames;
+     float     fps;
+     long long fps_time;
+     char      fps_string[20];
+} FPSData;
+
+static inline void
+fps_init( FPSData *data )
+{
+     D_ASSERT( data != NULL );
+
+     memset( data, 0, sizeof(FPSData) );
+
+     data->fps_time = direct_clock_get_millis();
+
+     D_MAGIC_SET( data, FPSData );
+}
+
+static inline void
+fps_count( FPSData *data,
+           int      interval )
+{
+     long long diff;
+     long long now = direct_clock_get_millis();
+
+     D_MAGIC_ASSERT( data, FPSData );
+
+     data->frames++;
+
+     diff = now - data->fps_time;
+     if (diff >= interval) {
+          data->fps = data->frames * 1000 / (float) diff;
+
+          snprintf( data->fps_string, sizeof(data->fps_string), "%.1f", data->fps );
+
+          data->fps_time = now;
+          data->frames   = 0;
+     }
+}
+
+
 static int m_num = 2;
 
 /**********************************************************************************************************************/
@@ -104,6 +149,7 @@ main( int argc, char *argv[] )
      IDirectFBSurface      **sources      = NULL;
      DirectThread          **threads      = NULL;
      BlittingThreadContext  *contexts     = NULL;
+     FPSData                 fps;
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
@@ -249,6 +295,8 @@ main( int argc, char *argv[] )
           threads[i] = direct_thread_create( DTT_DEFAULT, blitting_thread_render, &contexts[i], "Blit" );
      }
 
+     fps_init( &fps );
+
      while (true) {
           DFBEvent          event;
           IDirectFBSurface *surface;
@@ -287,6 +335,11 @@ main( int argc, char *argv[] )
                primary->Flip( primary, NULL, DSFLIP_NONE );
 
                update = false;
+
+               fps_count( &fps, 1000 );
+
+               if (!fps.frames)
+                    printf( "FPS: %s\n", fps.fps_string );
           }
      }
 
