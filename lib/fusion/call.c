@@ -203,7 +203,7 @@ fusion_call_execute (FusionCall          *call,
           int                     ret;
           FusionCallHandlerResult result;
 
-          result = call->handler( _fusion_id( call->shared ), call_arg, call_ptr, call->ctx, 0, &ret );
+          result = call->handler( call->fusion_id, call_arg, call_ptr, call->ctx, 0, &ret );
 
           if (result != FCHR_RETURN)
                D_WARN( "local call handler returned FCHR_RETAIN, need FCEF_NODIRECT" );
@@ -269,7 +269,7 @@ fusion_call_execute2(FusionCall          *call,
           int                     ret;
           FusionCallHandlerResult result;
 
-          result = call->handler( _fusion_id( call->shared ), call_arg, ptr, call->ctx, 0, &ret );
+          result = call->handler( call->fusion_id, call_arg, ptr, call->ctx, 0, &ret );
 
           if (result != FCHR_RETURN)
                D_WARN( "local call handler returned FCHR_RETAIN, need FCEF_NODIRECT" );
