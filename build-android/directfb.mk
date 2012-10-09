@@ -33,7 +33,7 @@ LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid
 #
 # Version definition
 MAJOR   = 1
-MINOR   = 6
+MINOR   = 7
 TINY    = 0
 VERSION = $(MAJOR).$(MINOR).$(TINY)
 
@@ -188,7 +188,8 @@ SURFACE_CORE_SOURCES_NEW = \
 	$(DFB_SOURCE)/src/core/surface_client.c			\
 	$(DFB_SOURCE)/src/core/surface_core.c			\
 	$(DFB_SOURCE)/src/core/surface_pool.c			\
-	$(DFB_SOURCE)/src/core/surface_allocation.c
+	$(DFB_SOURCE)/src/core/surface_allocation.cpp		\
+	$(DFB_SOURCE)/src/core/Util.cpp
 
 #
 
@@ -351,6 +352,7 @@ DIRECTFB_INCLUDES += \
 	-I$(DFB_INCLUDE_PATH)/include					\
 	-I$(DFB_INCLUDE_PATH)/lib					\
 	-I$(DFB_INCLUDE_PATH)/src					\
+	-I$(DFB_INCLUDE_PATH)/src/core					\
 	-I$(DFB_INCLUDE_PATH)/proxy/requestor				\
 	-I$(DFB_INCLUDE_PATH)/proxy/dispatcher			\
 	-I$(DFB_INCLUDE_PATH)/systems				\
@@ -379,30 +381,29 @@ CPPFLAGS += -DDIVINE_MAJOR_VERSION=1 -DDIVINE_MINOR_VERSION=6
 #
 # SaWMan object files
 SAWMAN_SOURCES = \
-	$(DFB_SOURCE)/../SaWMan/src/isawman.c			\
-	$(DFB_SOURCE)/../SaWMan/src/isawmanmanager.c		\
-	$(DFB_SOURCE)/../SaWMan/src/region.c			\
-	$(DFB_SOURCE)/../SaWMan/src/sawman_core.c		\
-	$(DFB_SOURCE)/../SaWMan/src/sawman_config.c		\
-	$(DFB_SOURCE)/../SaWMan/src/sawman_draw.c		\
-	$(DFB_SOURCE)/../SaWMan/src/sawman_updates.c		\
-	$(DFB_SOURCE)/../SaWMan/src/sawman_window.c		\
-	$(DFB_SOURCE)/../SaWMan/wm/sawman/sawman_wm.c		\
-	$(DFB_SOURCE)/../SaWMan/src/SaWMan.cpp			\
-	$(DFB_SOURCE)/../SaWMan/src/SaWMan_real.cpp		\
-	$(DFB_SOURCE)/../SaWMan/src/SaWManManager.cpp		\
-	$(DFB_SOURCE)/../SaWMan/src/SaWManManager_real.cpp	\
-	$(DFB_SOURCE)/../SaWMan/src/SaWManProcess.cpp		\
-	$(DFB_SOURCE)/../SaWMan/src/SaWManProcess_real.cpp
+	$(DFB_SOURCE)/lib/sawman/isawman.c			\
+	$(DFB_SOURCE)/lib/sawman/isawmanmanager.c		\
+	$(DFB_SOURCE)/lib/sawman/region.c			\
+	$(DFB_SOURCE)/lib/sawman/sawman_core.c		\
+	$(DFB_SOURCE)/lib/sawman/sawman_config.c		\
+	$(DFB_SOURCE)/lib/sawman/sawman_draw.c		\
+	$(DFB_SOURCE)/lib/sawman/sawman_updates.c		\
+	$(DFB_SOURCE)/lib/sawman/sawman_window.c		\
+	$(DFB_SOURCE)/wm/sawman/sawman_wm.c		\
+	$(DFB_SOURCE)/lib/sawman/SaWMan.cpp			\
+	$(DFB_SOURCE)/lib/sawman/SaWMan_real.cpp		\
+	$(DFB_SOURCE)/lib/sawman/SaWManManager.cpp		\
+	$(DFB_SOURCE)/lib/sawman/SaWManManager_real.cpp	\
+	$(DFB_SOURCE)/lib/sawman/SaWManProcess.cpp		\
+	$(DFB_SOURCE)/lib/sawman/SaWManProcess_real.cpp
 
 
 #
 # SaWMan header files
 SAWMAN_INCLUDES += \
-	-I$(DFB_INCLUDE_PATH)/../SaWMan/include					\
-	-I$(DFB_INCLUDE_PATH)/../SaWMan/src
+	-I$(DFB_INCLUDE_PATH)/lib/sawman
 
-CPPFLAGS += -DSAWMAN_VERSION=\"1.6.0\"
+CPPFLAGS += -DSAWMAN_VERSION=\"1.7.0\"
 
 #
 # FusionDale object files
