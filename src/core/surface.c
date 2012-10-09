@@ -534,7 +534,7 @@ dfb_surface_notify_display2( CoreSurface     *surface,
           D_DEBUG_AT( Core_Surface, "  -> current task %p\n", task );
 
           if (layer->display_task_onscreen) {
-               SurfaceTask_Done( layer->display_task_onscreen );
+//               SurfaceTask_Done( layer->display_task_onscreen );
                layer->display_task_onscreen = NULL;
           }
 
