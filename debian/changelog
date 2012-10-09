@@ -1,3 +1,15 @@
+directfb (1.7.0-20121008) precise; urgency=low
+
+  * new upstream version
+
+ -- Andreas Shimokawa <andi@directfb.org>  Thu, 08 Oct 2012 11:37:34 +0100
+
+directfb (1.7.0-20121007) precise; urgency=low
+
+  * new upstream version
+
+ -- Andreas Shimokawa <andi@directfb.org>  Thu, 07 Oct 2012 22:38:34 +0100
+
 directfb (1.7.0-20121004) precise; urgency=low
 
   * new upstream version
