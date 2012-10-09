@@ -1,0 +1,21 @@
+FusionSound README
+------------------
+
+   FusionSound is a very powerful audio sub system in the manner of DirectFB
+   and a technical demonstration of Fusion.
+
+   FusionSound supports multiple applications using Fusion IPC.
+   It provides streams, static sound buffers and control over any number 
+   of concurrent playbacks. Sample data is always stored in shared memory, 
+   starting a playback simply adds an entry to the playlist of the mixer thread
+   in the master application.
+
+
+Build Requirements
+------------------
+   
+    - Linux kernel 2.2.x or newer with OSS or ALSA device.
+    - DirectFB with Multi Application support.
+    
+    The Ogg/Vorbis music provider requires libvorbisfile (>= 1.0.0).
+    The MP3 music provider requires libmad.
