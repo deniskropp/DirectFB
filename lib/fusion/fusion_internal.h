@@ -34,6 +34,7 @@
 
 #include <string.h>
 
+#include <direct/hash.h>
 #include <direct/list.h>
 
 #include <fusion/build.h>
@@ -96,6 +97,8 @@ struct __Fusion_FusionWorldShared {
      void                *world_root;
      
      FusionWorld         *world;
+
+     FusionCall           refs_call;
 };
 
 #if !FUSION_BUILD_MULTI
@@ -179,6 +182,9 @@ struct __Fusion_FusionWorld {
 
      DirectLink          *dispatch_cleanups;
 
+     DirectMutex          refs_lock;
+     DirectMap           *refs_map;
+
 #if FUSION_BUILD_MULTI
 # if FUSION_BUILD_KERNEL
      DirectMutex          bins_lock;
@@ -211,6 +217,28 @@ typedef struct {
 } DeferredCall;
 # endif
 #endif
+
+
+typedef struct {
+     FusionID          fusion_id;
+     int               ref_id;
+} FusionRefSlaveKey;
+
+typedef struct {
+     FusionRefSlaveKey key;
+
+     int               refs;
+
+     FusionRef        *ref;
+} FusionRefSlaveEntry;
+
+
+typedef struct {
+     int               ref_id;
+
+     int               refs_catch;
+     int               refs_local;
+} FusionRefSlaveSlaveEntry;
 
 /*******************************************
  *  Fusion internal function declarations  *

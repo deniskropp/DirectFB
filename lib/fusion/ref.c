@@ -35,6 +35,10 @@
 #include <sys/param.h>
 #include <sys/types.h>
 
+#include <direct/map.h>
+#include <direct/mem.h>
+
+
 #include <fusion/build.h>
 #include <fusion/conf.h>
 
@@ -62,6 +66,15 @@ fusion_ref_init (FusionRef         *ref,
                  const char        *name,
                  const FusionWorld *world)
 {
+     return fusion_ref_init2( ref, name, false, world );
+}
+
+DirectResult
+fusion_ref_init2(FusionRef         *ref,
+                 const char        *name,
+                 bool               user,
+                 const FusionWorld *world)
+{
      FusionEntryInfo info;
 
      D_ASSERT( ref != NULL );
@@ -70,22 +83,35 @@ fusion_ref_init (FusionRef         *ref,
 
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_init( %p, '%s' )\n", ref, name ? : "" );
 
-     while (ioctl( world->fusion_fd, FUSION_REF_NEW, &ref->multi.id )) {
-          if (errno == EINTR)
-               continue;
+     if (user) {
+          ref->multi.id   = (long) ref;
+          ref->multi.user = true;
 
-          D_PERROR( "FUSION_REF_NEW" );
-          return DR_FUSION;
+          direct_recursive_mutex_init( &ref->single.lock );
+          direct_waitqueue_init( &ref->single.cond );
+
+          ref->single.refs      = 0;
+          ref->single.destroyed = false;
+          ref->single.locked    = 0;
      }
+     else {
+          while (ioctl( world->fusion_fd, FUSION_REF_NEW, &ref->multi.id )) {
+               if (errno == EINTR)
+                    continue;
 
-     D_DEBUG_AT( Fusion_Ref, "  -> new ref %p [%d]\n", ref, ref->multi.id );
+               D_PERROR( "FUSION_REF_NEW" );
+               return DR_FUSION;
+          }
 
-     info.type = FT_REF;
-     info.id   = ref->multi.id;
+          D_DEBUG_AT( Fusion_Ref, "  -> new ref %p [%d]\n", ref, ref->multi.id );
 
-     direct_snputs( info.name, name, sizeof(info.name) );
+          info.type = FT_REF;
+          info.id   = ref->multi.id;
 
-     ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
+          direct_snputs( info.name, name, sizeof(info.name) );
+
+          ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
+     }
 
      /* Keep back pointer to shared world data. */
      ref->multi.shared  = world->shared;
@@ -102,6 +128,9 @@ fusion_ref_set_name (FusionRef  *ref,
 
      D_ASSERT( ref != NULL );
      D_ASSERT( name != NULL );
+
+     if (ref->multi.user)
+          return DR_OK;
 
      info.type = FT_REF;
      info.id   = ref->multi.id;
@@ -132,6 +161,8 @@ fusion_ref_set_name (FusionRef  *ref,
 DirectResult
 fusion_ref_up (FusionRef *ref, bool global)
 {
+     DirectResult ret = DR_OK;
+
      D_ASSERT( ref != NULL );
 
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_up( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
@@ -141,33 +172,73 @@ fusion_ref_up (FusionRef *ref, bool global)
           direct_trace_print_stack( NULL );
      }
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), global ?
-                   FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->multi.id))
-     {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EAGAIN:
-                    return DR_LOCKED;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               if (ref->single.destroyed)
+                    ret = DR_DESTROYED;
+               else if (ref->single.locked)
+                    ret = DR_LOCKED;
+               else
+                    ref->single.refs++;
+
+               direct_mutex_unlock (&ref->single.lock);
+          }
+          else {
+               FusionRefSlaveSlaveEntry *entry;
+
+               direct_mutex_lock( &world->refs_lock );
+
+               entry = direct_map_lookup( world->refs_map, &ref->multi.id );
+               if (!entry) {
+                    entry = D_CALLOC( 1, sizeof(FusionRefSlaveSlaveEntry) );
+                    if (!entry) {
+                         direct_mutex_unlock( &world->refs_lock );
+                         return D_OOM();
+                    }
+
+                    entry->ref_id = ref->multi.id;
+
+                    direct_map_insert( world->refs_map, &ref->multi.id, entry );
+               }
+
+               entry->refs_local++;
+
+               direct_mutex_unlock( &world->refs_lock );
+          }
+     }
+     else {
+          while (ioctl (_fusion_fd( ref->multi.shared ), global ?
+                        FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->multi.id))
+          {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EAGAIN:
+                         return DR_LOCKED;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               if (global)
+                    D_PERROR ("FUSION_REF_UP_GLOBAL");
+               else
+                    D_PERROR ("FUSION_REF_UP");
+
+               return DR_FAILURE;
           }
 
-          if (global)
-               D_PERROR ("FUSION_REF_UP_GLOBAL");
-          else
-               D_PERROR ("FUSION_REF_UP");
-
-          return DR_FAILURE;
+          D_DEBUG_AT( Fusion_Ref, "  -> %d references now\n",
+                      ioctl( _fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id ) );
      }
 
-     D_DEBUG_AT( Fusion_Ref, "  -> %d references now\n",
-                 ioctl( _fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id ) );
-
-     return DR_OK;
+     return ret;
 }
 
 DirectResult
@@ -184,35 +255,94 @@ fusion_ref_down (FusionRef *ref, bool global)
 
      fusion_world_flush_calls( _fusion_world( ref->multi.shared ), 1 );
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), global ?
-                   FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->multi.id))
-     {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               if (!ref->single.refs) {
+                    D_BUG( "no more references" );
+                    direct_mutex_unlock (&ref->single.lock);
+                    return DR_BUG;
+               }
+
+               if (ref->single.destroyed) {
+                    direct_mutex_unlock (&ref->single.lock);
                     return DR_DESTROYED;
-               default:
-                    break;
+               }
+
+               if (! --ref->single.refs) {
+                    if (ref->single.call) {
+                         FusionCall *call = ref->single.call;
+
+                         if (call->handler) {
+                              fusion_call_execute( call, FCEF_NODIRECT | FCEF_ONEWAY, ref->single.call_arg, NULL, NULL );
+
+                              direct_mutex_unlock( &ref->single.lock );
+
+                              return DR_OK;
+                         }
+                    }
+                    else
+                         direct_waitqueue_broadcast (&ref->single.cond);
+               }
+
+               direct_mutex_unlock (&ref->single.lock);
+          }
+          else {
+               FusionRefSlaveSlaveEntry *entry;
+
+               direct_mutex_lock( &world->refs_lock );
+
+               entry = direct_map_lookup( world->refs_map, &ref->multi.id );
+               if (!entry) {
+                    direct_mutex_unlock( &world->refs_lock );
+                    D_WARN( "ref (%d) not found", ref->multi.id );
+                    return DR_ITEMNOTFOUND;
+               }
+
+               if (!--entry->refs_local) {
+                    int i;
+
+                    for (i=0; i<entry->refs_catch; i++)
+                         fusion_call_execute( &ref->multi.shared->refs_call, FCEF_ONEWAY, ref->multi.id, NULL, NULL );
+               }
+
+               direct_mutex_unlock( &world->refs_lock );
+          }
+     }
+     else {
+          while (ioctl (_fusion_fd( ref->multi.shared ), global ?
+                        FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->multi.id))
+          {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               if (global)
+                    D_PERROR ("FUSION_REF_DOWN_GLOBAL");
+               else
+                    D_PERROR ("FUSION_REF_DOWN");
+
+               return DR_FAILURE;
           }
 
-          if (global)
-               D_PERROR ("FUSION_REF_DOWN_GLOBAL");
-          else
-               D_PERROR ("FUSION_REF_DOWN");
-
-          return DR_FAILURE;
-     }
-
-// FIMXE: the following had to be commented out as the ref down may cause a ref watcher to free the memory of 'ref' (via ioctl)
+          // FIMXE: the following had to be commented out as the ref down may cause a ref watcher to free the memory of 'ref' (via ioctl)
 #if 0
-     if (ref->multi.shared)
-          D_DEBUG_AT( Fusion_Ref, "  -> %d references now\n",
-                      ioctl( _fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id ) );
-     else
-          D_DEBUG_AT( Fusion_Ref, "  -> destroyed\n" );
+          if (ref->multi.shared)
+               D_DEBUG_AT( Fusion_Ref, "  -> %d references now\n",
+                           ioctl( _fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id ) );
+          else
+               D_DEBUG_AT( Fusion_Ref, "  -> destroyed\n" );
 #endif
+     }
 
      return DR_OK;
 }
@@ -227,20 +357,51 @@ fusion_ref_catch (FusionRef *ref)
           direct_trace_print_stack( NULL );
      }
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_CATCH, &ref->multi.id)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               D_UNIMPLEMENTED();
           }
+          else {
+               FusionRefSlaveSlaveEntry *entry;
 
-          D_PERROR ("FUSION_REF_CATCH");
+               direct_mutex_lock( &world->refs_lock );
 
-          return DR_FAILURE;
+               entry = direct_map_lookup( world->refs_map, &ref->multi.id );
+               if (!entry) {
+                    entry = D_CALLOC( 1, sizeof(FusionRefSlaveSlaveEntry) );
+                    if (!entry) {
+                         direct_mutex_unlock( &world->refs_lock );
+                         return D_OOM();
+                    }
+
+                    entry->ref_id = ref->multi.id;
+
+                    direct_map_insert( world->refs_map, &ref->multi.id, entry );
+               }
+
+               entry->refs_catch++;
+
+               direct_mutex_unlock( &world->refs_lock );
+          }
+     }
+     else {
+          while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_CATCH, &ref->multi.id)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_REF_CATCH");
+
+               return DR_FAILURE;
+          }
      }
 
      return DR_OK;
@@ -249,8 +410,6 @@ fusion_ref_catch (FusionRef *ref)
 DirectResult
 fusion_ref_throw (FusionRef *ref, FusionID catcher)
 {
-     FusionRefThrow throw_;
-
      D_ASSERT( ref != NULL );
 
      if (ref->multi.id == fusion_config->trace_ref) {
@@ -258,23 +417,61 @@ fusion_ref_throw (FusionRef *ref, FusionID catcher)
           direct_trace_print_stack( NULL );
      }
 
-     throw_.id      = ref->multi.id;
-     throw_.catcher = catcher;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_THROW, &throw_)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               FusionRefSlaveKey    key;
+               FusionRefSlaveEntry *slave;
+
+               key.fusion_id = catcher;
+               key.ref_id    = ref->multi.id;
+
+               direct_mutex_lock( &world->refs_lock );
+
+               slave = direct_map_lookup( world->refs_map, &key );
+               if (!slave) {
+                    slave = D_CALLOC( 1, sizeof(FusionRefSlaveEntry) );
+                    if (!slave) {
+                         direct_mutex_unlock( &world->refs_lock );
+                         return D_OOM();
+                    }
+
+                    slave->key = key;
+                    slave->ref = ref;
+
+                    direct_map_insert( world->refs_map, &key, slave );
+               }
+
+               slave->refs++;
+
+               direct_mutex_unlock( &world->refs_lock );
           }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
+     else {
+          FusionRefThrow throw_;
 
-          D_PERROR ("FUSION_REF_THROW");
+          throw_.id      = ref->multi.id;
+          throw_.catcher = catcher;
 
-          return DR_FAILURE;
+          while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_THROW, &throw_)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_REF_THROW");
+
+               return DR_FAILURE;
+          }
      }
 
      return DR_OK;
@@ -288,20 +485,28 @@ fusion_ref_stat (FusionRef *ref, int *refs)
      D_ASSERT( ref != NULL );
      D_ASSERT( refs != NULL );
 
-     while ((val = ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id)) < 0) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+     if (ref->multi.user) {
+          if (ref->single.destroyed)
+               return DR_DESTROYED;
+
+          val = ref->single.refs;
+     }
+     else {
+          while ((val = ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id)) < 0) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_REF_STAT");
+
+               return DR_FAILURE;
           }
-
-          D_PERROR ("FUSION_REF_STAT");
-
-          return DR_FAILURE;
      }
 
      *refs = val;
@@ -312,133 +517,253 @@ fusion_ref_stat (FusionRef *ref, int *refs)
 DirectResult
 fusion_ref_zero_lock (FusionRef *ref)
 {
+     DirectResult ret = DR_OK;
+
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_ZERO_LOCK, &ref->multi.id)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               do {
+                    if (ref->single.destroyed)
+                         ret = DR_DESTROYED;
+                    else if (ref->single.locked)
+                         ret = DR_LOCKED;
+                    else if (ref->single.refs)
+                         direct_waitqueue_wait (&ref->single.cond, &ref->single.lock);
+                    else {
+                         ref->single.locked = direct_gettid();
+                         break;
+                    }
+               } while (ret == DR_OK);
+
+               direct_mutex_unlock (&ref->single.lock);
           }
+          else {
+               D_UNIMPLEMENTED();
 
-          D_PERROR ("FUSION_REF_ZERO_LOCK");
+               return DR_UNIMPLEMENTED;
+          }
+     }
+     else {
+          while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_ZERO_LOCK, &ref->multi.id)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
 
-          return DR_FAILURE;
+               D_PERROR ("FUSION_REF_ZERO_LOCK");
+
+               return DR_FAILURE;
+          }
      }
 
-     return DR_OK;
+     return ret;
 }
 
 DirectResult
 fusion_ref_zero_trylock (FusionRef *ref)
 {
+     DirectResult ret = DR_OK;
+
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_ZERO_TRYLOCK, &ref->multi.id)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case ETOOMANYREFS:
-                    return DR_BUSY;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               if (ref->single.destroyed)
+                    ret = DR_DESTROYED;
+               else if (ref->single.locked)
+                    ret = DR_LOCKED;
+               else if (ref->single.refs)
+                    ret = DR_BUSY;
+               else
+                    ref->single.locked = direct_gettid();
+
+               direct_mutex_unlock (&ref->single.lock);
           }
+          else {
+               D_UNIMPLEMENTED();
 
-          D_PERROR ("FUSION_REF_ZERO_TRYLOCK");
+               return DR_UNIMPLEMENTED;
+          }
+     }
+     else {
+          while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_ZERO_TRYLOCK, &ref->multi.id)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case ETOOMANYREFS:
+                         return DR_BUSY;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
 
-          return DR_FAILURE;
+               D_PERROR ("FUSION_REF_ZERO_TRYLOCK");
+
+               return DR_FAILURE;
+          }
      }
 
-     return DR_OK;
+     return ret;
 }
 
 DirectResult
 fusion_ref_unlock (FusionRef *ref)
 {
+     DirectResult ret = DR_OK;
+
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_UNLOCK, &ref->multi.id)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               if (ref->single.locked == direct_gettid()) {
+                    ref->single.locked = 0;
+
+                    direct_waitqueue_broadcast (&ref->single.cond);
+               }
+               else
+                    ret = DR_ACCESSDENIED;
+
+               direct_mutex_unlock (&ref->single.lock);
           }
+          else {
+               D_UNIMPLEMENTED();
 
-          D_PERROR ("FUSION_REF_UNLOCK");
+               return DR_UNIMPLEMENTED;
+          }
+     }
+     else {
+          while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_UNLOCK, &ref->multi.id)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
 
-          return DR_FAILURE;
+               D_PERROR ("FUSION_REF_UNLOCK");
+
+               return DR_FAILURE;
+          }
      }
 
-     return DR_OK;
+     return ret;
 }
 
 DirectResult
 fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 {
-     FusionRefWatch watch;
+     DirectResult ret = DR_OK;
 
      D_ASSERT( ref != NULL );
      D_ASSERT( call != NULL );
 
-     watch.id       = ref->multi.id;
-     watch.call_id  = call->call_id;
-     watch.call_arg = call_arg;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_WATCH, &watch)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               if (ref->single.destroyed)
+                    ret = DR_DESTROYED;
+               else if (!ref->single.refs)
+                    ret = DR_BUG;
+               else if (ref->single.call)
+                    ret = DR_BUSY;
+               else {
+                    ref->single.call     = call;
+                    ref->single.call_arg = call_arg;
+               }
+
+               direct_mutex_unlock (&ref->single.lock);
           }
+          else {
+               D_UNIMPLEMENTED();
 
-          D_PERROR ("FUSION_REF_WATCH");
+               return DR_UNIMPLEMENTED;
+          }
+     }
+     else {
+          FusionRefWatch watch;
 
-          return DR_FAILURE;
+          watch.id       = ref->multi.id;
+          watch.call_id  = call->call_id;
+          watch.call_arg = call_arg;
+
+          while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_WATCH, &watch)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_REF_WATCH");
+
+               return DR_FAILURE;
+          }
      }
 
-     return DR_OK;
+     return ret;
 }
 
 DirectResult
 fusion_ref_inherit (FusionRef *ref, FusionRef *from)
 {
-     FusionRefInherit inherit;
-
      D_ASSERT( ref != NULL );
      D_ASSERT( from != NULL );
 
-     inherit.id   = ref->multi.id;
-     inherit.from = from->multi.id;
+     if (ref->multi.user) {
+          D_UNIMPLEMENTED();
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_INHERIT, &inherit)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+          return DR_UNIMPLEMENTED;
+     }
+     else {
+          FusionRefInherit inherit;
+
+          inherit.id   = ref->multi.id;
+          inherit.from = from->multi.id;
+
+          while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_INHERIT, &inherit)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_REF_INHERIT");
+
+               return DR_FAILURE;
           }
-
-          D_PERROR ("FUSION_REF_INHERIT");
-
-          return DR_FAILURE;
      }
 
      return DR_OK;
@@ -453,20 +778,39 @@ fusion_ref_destroy (FusionRef *ref)
 
      fusion_world_flush_calls( _fusion_world( ref->multi.shared ), 1 );
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_DESTROY, &ref->multi.id)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               ref->single.destroyed = true;
+
+               direct_waitqueue_broadcast (&ref->single.cond);
+
+               direct_mutex_deinit( &ref->single.lock );
+               direct_waitqueue_deinit( &ref->single.cond );
           }
+          else {
+               D_UNIMPLEMENTED();
 
-          D_PERROR ("FUSION_REF_DESTROY");
+               return DR_UNIMPLEMENTED;
+          }
+     }
+     else {
+          while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_DESTROY, &ref->multi.id)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
 
-          return DR_FAILURE;
+               D_PERROR ("FUSION_REF_DESTROY");
+
+               return DR_FAILURE;
+          }
      }
 
      return DR_OK;
@@ -477,48 +821,53 @@ fusion_ref_add_permissions( FusionRef            *ref,
                             FusionID              fusion_id,
                             FusionRefPermissions  ref_permissions )
 {
-     FusionEntryPermissions permissions;
+     if (ref->multi.user) {
 
-     permissions.type        = FT_REF;
-     permissions.id          = ref->multi.id;
-     permissions.fusion_id   = fusion_id;
-     permissions.permissions = 0;
-
-     if (ref_permissions & FUSION_REF_PERMIT_REF_UNREF_LOCAL) {
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_UP );
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_DOWN );
      }
+     else {
+          FusionEntryPermissions permissions;
 
-     if (ref_permissions & FUSION_REF_PERMIT_REF_UNREF_GLOBAL) {
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_UP_GLOBAL );
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_DOWN_GLOBAL );
-     }
+          permissions.type        = FT_REF;
+          permissions.id          = ref->multi.id;
+          permissions.fusion_id   = fusion_id;
+          permissions.permissions = 0;
 
-     if (ref_permissions & FUSION_REF_PERMIT_ZERO_LOCK_UNLOCK) {
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_ZERO_LOCK );
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_ZERO_TRYLOCK );
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_UNLOCK );
-     }
+          if (ref_permissions & FUSION_REF_PERMIT_REF_UNREF_LOCAL) {
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_UP );
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_DOWN );
+          }
 
-     if (ref_permissions & FUSION_REF_PERMIT_WATCH)
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_WATCH );
+          if (ref_permissions & FUSION_REF_PERMIT_REF_UNREF_GLOBAL) {
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_UP_GLOBAL );
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_DOWN_GLOBAL );
+          }
 
-     if (ref_permissions & FUSION_REF_PERMIT_INHERIT)
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_INHERIT );
+          if (ref_permissions & FUSION_REF_PERMIT_ZERO_LOCK_UNLOCK) {
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_ZERO_LOCK );
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_ZERO_TRYLOCK );
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_UNLOCK );
+          }
 
-     if (ref_permissions & FUSION_REF_PERMIT_DESTROY)
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_DESTROY );
+          if (ref_permissions & FUSION_REF_PERMIT_WATCH)
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_WATCH );
 
-     if (ref_permissions & FUSION_REF_PERMIT_CATCH)
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_CATCH );
+          if (ref_permissions & FUSION_REF_PERMIT_INHERIT)
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_INHERIT );
 
-     if (ref_permissions & FUSION_REF_PERMIT_THROW)
-          FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_THROW );
+          if (ref_permissions & FUSION_REF_PERMIT_DESTROY)
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_DESTROY );
 
-     while (ioctl( _fusion_fd( ref->multi.shared ), FUSION_ENTRY_ADD_PERMISSIONS, &permissions ) < 0) {
-          if (errno != EINTR) {
-               D_PERROR( "Fusion/Reactor: FUSION_ENTRY_ADD_PERMISSIONS( id %d ) failed!\n", ref->multi.id );
-               return DR_FAILURE;
+          if (ref_permissions & FUSION_REF_PERMIT_CATCH)
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_CATCH );
+
+          if (ref_permissions & FUSION_REF_PERMIT_THROW)
+               FUSION_ENTRY_PERMISSIONS_ADD( permissions.permissions, FUSION_REF_THROW );
+
+          while (ioctl( _fusion_fd( ref->multi.shared ), FUSION_ENTRY_ADD_PERMISSIONS, &permissions ) < 0) {
+               if (errno != EINTR) {
+                    D_PERROR( "Fusion/Reactor: FUSION_ENTRY_ADD_PERMISSIONS( id %d ) failed!\n", ref->multi.id );
+                    return DR_FAILURE;
+               }
           }
      }
 

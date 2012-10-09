@@ -60,6 +60,8 @@ struct __Fusion_FusionObjectPool {
      void                   *ctx;
 
      FusionCall              call;
+
+     bool                    secure;
 };
 
 static FusionCallHandlerResult
@@ -72,7 +74,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
                  __FUNCTION__, caller, call_arg, call_ptr, ctx, serial, ret_val );
 
 #if FUSION_BUILD_KERNEL
-     if (caller) {
+     if (caller && !pool->secure) {
           D_BUG( "Call not from Fusion/Kernel (caller %d)", caller );
           return FCHR_RETURN;
      }
@@ -194,6 +196,7 @@ fusion_object_pool_create( const char             *name,
      pool->message_size = message_size;
      pool->destructor   = destructor;
      pool->ctx          = ctx;
+     pool->secure       = fusion_config->secure_fusion;
 
      fusion_hash_create( shared->main_pool, HASH_INT, HASH_PTR, 17, &pool->objects );
 
@@ -363,7 +366,7 @@ fusion_object_create( FusionObjectPool  *pool,
      object->identity = identity;
 
      /* Initialize the reference counter. */
-     if (fusion_ref_init( &object->ref, pool->name, world )) {
+     if (fusion_ref_init2( &object->ref, pool->name, pool->secure, world )) {
           SHFREE( shared->main_pool, object );
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;

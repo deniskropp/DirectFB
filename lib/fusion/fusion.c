@@ -45,6 +45,7 @@
 #include <direct/clock.h>
 #include <direct/debug.h>
 #include <direct/direct.h>
+#include <direct/map.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -473,6 +474,93 @@ out:
 
 /**********************************************************************************************************************/
 
+
+static bool
+refs_map_compare( DirectMap    *map,
+                  const void   *_key,
+                  void         *object,
+                  void         *ctx )
+{
+     const FusionRefSlaveKey *key   = _key;
+     FusionRefSlaveEntry     *entry = object;
+
+     return key->fusion_id == entry->key.fusion_id && key->ref_id == entry->key.ref_id;
+}
+
+static unsigned int
+refs_map_hash( DirectMap    *map,
+               const void   *_key,
+               void         *ctx )
+{
+     const FusionRefSlaveKey *key = _key;
+
+     return key->ref_id * 131 + key->fusion_id;
+}
+
+
+static bool
+refs_map_slave_compare( DirectMap    *map,
+                        const void   *_key,
+                        void         *object,
+                        void         *ctx )
+{
+     const int *key   = _key;
+     FusionRef *entry = object;
+
+     return *key == entry->multi.id;
+}
+
+static unsigned int
+refs_map_slave_hash( DirectMap    *map,
+                     const void   *_key,
+                     void         *ctx )
+{
+     const int *key = _key;
+
+     return *key;
+}
+
+
+static FusionCallHandlerResult
+world_refs_call( int           caller,   /* fusion id of the caller */
+                 int           call_arg, /* optional call parameter */
+                 void         *call_ptr, /* optional call parameter */
+                 void         *ctx,      /* optional handler context */
+                 unsigned int  serial,
+                 int          *ret_val )
+{
+     FusionWorld         *world = ctx;
+     FusionRefSlaveKey    key;
+     FusionRefSlaveEntry *slave;
+
+     key.fusion_id = caller;
+     key.ref_id    = call_arg;
+
+     direct_mutex_lock( &world->refs_lock );
+     slave = direct_map_lookup( world->refs_map, &key );
+     direct_mutex_unlock( &world->refs_lock );
+
+     if (!slave) {
+          D_WARN( "slave (%d) ref (%d) not found", caller, call_arg );
+          return FCHR_RETURN;
+     }
+
+     fusion_ref_down( slave->ref, false );
+
+     direct_mutex_lock( &world->refs_lock );
+
+     if (!--slave->refs) {
+          direct_map_remove( world->refs_map, &key );
+
+          D_FREE( slave );
+     }
+
+     direct_mutex_unlock( &world->refs_lock );
+
+     return FCHR_RETURN;
+}
+
+
 /*
  * Enters a fusion world by joining or creating it.
  *
@@ -727,6 +815,8 @@ fusion_enter( int               world_index,
 
      D_DEBUG_AT( Fusion_Main, "  -> initializing other parts...\n" );
 
+     direct_mutex_init( &world->refs_lock );
+
      /* Initialize other parts. */
      if (enter.fusion_id == FUSION_ID_MASTER) {
           fusion_skirmish_init2( &shared->reactor_globals, "Fusion Reactor Globals", world, fusion_config->secure_fusion );
@@ -737,7 +827,13 @@ fusion_enter( int               world_index,
                                         fusion_config->debugshm, &shared->main_pool );
           if (ret)
                goto error3;
+
+          fusion_call_init( &shared->refs_call, world_refs_call, world, world );
+
+          direct_map_create( 37, refs_map_compare, refs_map_hash, world, &world->refs_map );
      }
+     else
+          direct_map_create( 37, refs_map_slave_compare, refs_map_slave_hash, world, &world->refs_map );
 
 
      D_DEBUG_AT( Fusion_Main, "  -> starting dispatcher loop...\n" );
@@ -919,8 +1015,13 @@ fusion_exit( FusionWorld *world,
      pthread_mutex_destroy( &world->deferred.lock );
      pthread_cond_destroy( &world->deferred.queue );
 
+     direct_mutex_deinit( &world->refs_lock );
+     direct_map_destroy( world->refs_map );
+
      /* Master has to deinitialize shared data. */
      if (fusion_master( world )) {
+          fusion_call_destroy( &shared->refs_call );
+
           shared->refs--;
           if (shared->refs == 0) {
                fusion_skirmish_destroy( &shared->reactor_globals );
@@ -1109,6 +1210,27 @@ handle_dispatch_cleanups( FusionWorld *world )
      world->dispatch_cleanups = NULL;
 }
 
+static DirectEnumerationResult
+refs_iterate( DirectMap    *map,
+              void         *object,
+              void         *ctx )
+{
+     FusionRefSlaveEntry *entry = object;
+
+     if (entry->key.fusion_id == *((FusionID*)ctx)) {
+          int i;
+
+          for (i=0; i<entry->refs; i++)
+               fusion_ref_down( entry->ref, false );
+
+          D_FREE( entry );
+
+          return DENUM_REMOVE;
+     }
+
+     return DENUM_OK;
+}
+
 static void *
 fusion_dispatch_loop( DirectThread *thread, void *arg )
 {
@@ -1189,6 +1311,12 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                               break;
                          case FMT_LEAVE:
                               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_LEAVE...\n" );
+
+                              if (world->fusion_id == FUSION_ID_MASTER) {
+                                   direct_mutex_lock( &world->refs_lock );
+                                   direct_map_iterate( world->refs_map, refs_iterate, data );
+                                   direct_mutex_unlock( &world->refs_lock );
+                              }
 
                               if (world->leave_callback)
                                    world->leave_callback( world, *((FusionID*)data), world->leave_ctx );

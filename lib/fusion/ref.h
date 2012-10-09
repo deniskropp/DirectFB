@@ -35,21 +35,22 @@
 #include <fusion/call.h>
 #include <fusion/lock.h>
 
-typedef union {
+typedef struct {
      /* multi app */
      struct {
           int                      id;
-          const FusionWorldShared *shared;
+          FusionWorldShared       *shared;
           FusionID                 creator;
           /* builtin impl */
-          struct {
-               int                 local;
-               int                 global;
-               FusionSkirmish      lock; 
-          
-               FusionCall         *call;
-               int                 call_arg;
-          } builtin;
+//          struct {
+//               int                 local;
+//               int                 global;
+//               FusionSkirmish      lock;
+//
+//               FusionCall         *call;
+//               int                 call_arg;
+//          } builtin;
+          bool                     user;
      } multi;
      
      /* single app */
@@ -70,6 +71,11 @@ typedef union {
  */
 DirectResult FUSION_API fusion_ref_init         (FusionRef         *ref,
                                                  const char        *name,
+                                                 const FusionWorld *world);
+
+DirectResult FUSION_API fusion_ref_init2        (FusionRef         *ref,
+                                                 const char        *name,
+                                                 bool               user,
                                                  const FusionWorld *world);
 
 DirectResult FUSION_API fusion_ref_set_name     (FusionRef         *ref,
