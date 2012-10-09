@@ -124,7 +124,7 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
 
      D_DEBUG_AT( Core_Layers, "  -> index %d\n", index );
 
-     flags = (TaskFlags)(flags | TASK_FLAG_NOSYNC /*| TASK_FLAG_EMITNOTIFIES*/);
+     flags = (TaskFlags)(flags | TASK_FLAG_NOSYNC | TASK_FLAG_EMITNOTIFIES);
 }
 
 DisplayTask::~DisplayTask()
