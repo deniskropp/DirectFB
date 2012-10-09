@@ -664,6 +664,10 @@ AC_ARG_ENABLE(fusionsound,
                              [enable FusionSound @<:@default=no@:>@]),
               [], [enable_fusionsound=no])
 
+if test "$enable_fusionsound" = "yes"; then
+  AC_DEFINE(HAVE_FUSIONSOUND,1,[Define to 1 if you want FusionSound support.])
+fi
+ 
 #
 # fusionsound options
 #
@@ -1352,7 +1356,6 @@ AC_ARG_ENABLE(gstreamer,
 AM_CONDITIONAL(GSTREAMER_PROVIDER, test "$enable_gstreamer" = "yes")
 
 HAVE_GSTREAMER_1_0=no
-have_fusionsound=no
 if test "x$enable_gstreamer" = "xyes"; then
     AC_MSG_CHECKING(for Gstreamer >= 1.0)
     if $PKG_CONFIG --atleast-version "0.11" gstreamer-app-1.0 ; then
@@ -1370,33 +1373,14 @@ if test "x$enable_gstreamer" = "xyes"; then
       GSTREAMER_LIBS=`$PKG_CONFIG --libs gstreamer-app-1.0`
     fi
     gstreamer=yes
-    #
-    # Check for FusionSound
-    #
-    FUSIONSOUND_REQUIRED_VERSION=1.1.0
-    AC_MSG_CHECKING(for FusionSound)
-    if $PKG_CONFIG --atleast-version $FUSIONSOUND_REQUIRED_VERSION fusionsound ; then
-        have_fusionsound=yes
-        FUSIONSOUND_INCL=`$PKG_CONFIG --cflags-only-I fusionsound`
-        FUSIONSOUND_LIBS=`$PKG_CONFIG --libs fusionsound`
-        AC_DEFINE(HAVE_FUSIONSOUND,1,[Define to 1 if you want FusionSound support.])
-        AC_MSG_RESULT(found)
-    else
-        AC_MSG_WARN([*** FusionSound >= $FUSIONSOUND_REQUIRED_VERSION not found, building gstreamer video provider without FusionSound support.])
-    fi
 else
     GSTREAMER_INCL=
     GSTREAMER_LIBS=
-    FUSIONSOUND_INCL=
-    FUSIONSOUND_LIBS=
     gstreamer=no
-    have_fusionsound=no
 fi
 
 AC_SUBST(GSTREAMER_LIBS)
 AC_SUBST(GSTREAMER_INCL)
-AC_SUBST(FUSIONSOUND_LIBS)
-AC_SUBST(FUSIONSOUND_INCL)
 
 AM_CONDITIONAL(HAVE_FUSIONSOUND, test "x$have_fusionsound" = xyes)
 
