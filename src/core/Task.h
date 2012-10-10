@@ -334,6 +334,8 @@ private:
 
      static std::list<Task*>   tasks;
 
+     static DirectMutex        lock;
+
      static void       pushTask  ( Task *task );
      static Task      *pullTask  ();
      static DFBResult  handleTask( Task *task );

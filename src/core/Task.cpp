@@ -292,12 +292,19 @@ Task::finish()
                delete slave;
           }
 
-          D_SYNC_ADD( &TaskManager::task_count, -1 );
+          //direct_mutex_lock( &TaskManager::lock );
 
-          if (!(flags & TASK_FLAG_NOSYNC))
+          D_SYNC_ADD( &TaskManager::task_count, -1 );
+          //TaskManager::task_count--;
+
+          if (!(shutdown->flags & TASK_FLAG_NOSYNC))
                D_SYNC_ADD( &TaskManager::task_count_sync, -1 );
+               //TaskManager::task_count_sync--;
 
           TaskManager::tasks.remove( shutdown );
+
+          //direct_mutex_unlock( &TaskManager::lock );
+
           delete shutdown;
      }
 
@@ -382,7 +389,7 @@ Task::addNotify( Task *task,
      D_ASSERT( state != TASK_NEW );
      D_ASSERT( state != TASK_FLUSHED );
 
-     if (follow && (state == TASK_RUNNING || state == TASK_DONE)) {
+     if (follow && !slaves && (state == TASK_RUNNING || state == TASK_DONE)) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, following running task!\n" );
 
           return;
@@ -440,6 +447,7 @@ FIFO<Task*>       TaskManager::fifo;
 unsigned int      TaskManager::task_count;
 unsigned int      TaskManager::task_count_sync;
 std::list<Task*>  TaskManager::tasks;
+DirectMutex       TaskManager::lock;
 
 
 DFBResult
@@ -448,6 +456,8 @@ TaskManager::Initialise()
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
 
      D_ASSERT( thread == NULL );
+
+     direct_mutex_init( &lock );
 
      if (dfb_config->task_manager)
           thread = direct_thread_create( DTT_CRITICAL, managerLoop, NULL, "Task Manager" );
@@ -462,12 +472,15 @@ TaskManager::Shutdown()
 
      if (thread != NULL) {
           // FIXME: wakeup managerLoop
+          fifo.push( NULL );
 
           direct_thread_join( thread );
           direct_thread_destroy( thread );
 
           thread = NULL;
      }
+
+     direct_mutex_deinit( &lock );
 }
 
 void
@@ -481,7 +494,7 @@ TaskManager::Sync()
      // FIXME: this is a hack, will avoid Sync() at all
      while (task_count_sync) {
           if (!--timeout) {
-               D_ERROR( "TaskManager: Timeout while syncing (task count %d, nosync %d)!\n", task_count_sync, task_count );
+               D_ERROR( "TaskManager: Timeout while syncing (task count %d, nosync %d, tasks %d)!\n", task_count_sync, task_count, tasks.size() );
                dumpTasks();
                return;
           }
@@ -496,12 +509,18 @@ TaskManager::pushTask( Task *task )
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s( %p )\n", __FUNCTION__, task );
 
      if (task->state == TASK_FLUSHED) {
+          //direct_mutex_lock( &lock );
+
           D_SYNC_ADD( &task_count, 1 );
+          //task_count++;
 
           if (!(task->flags & TASK_FLAG_NOSYNC))
                D_SYNC_ADD( &task_count_sync, 1 );
+               //task_count_sync++;
 
           tasks.push_back( task );
+
+          //direct_mutex_unlock( &lock );
      }
 
      fifo.push( task );
@@ -579,6 +598,11 @@ TaskManager::managerLoop( DirectThread *thread,
 
      while (true) {
           Task *task = TaskManager::pullTask();
+
+          if (!task) {
+               D_DEBUG_AT( DirectFB_Task, "  =-> SHUTDOWN\n" );
+               return NULL;
+          }
 
           D_DEBUG_AT( DirectFB_Task, "  =-> Task %p\n", task );
 
