@@ -131,8 +131,8 @@ endif
 if ENABLE_FUSIONSOUND
 ifusionsound_DATA           = libifusionsound_dispatcher.o
 ifusionsoundbuffer_DATA     = libifusionsoundbuffer_dispatcher.o
-ifusionsoundplayback_DATA   = libifusionsoundplaybackdispatcher.o
-ifusionsoundstream_DATA     = libifusionsoundstreamdispatcher.o
+ifusionsoundplayback_DATA   = libifusionsoundplayback_dispatcher.o
+ifusionsoundstream_DATA     = libifusionsoundstream_dispatcher.o
 endif
 if ENABLE_DIVINE
 idivine_DATA                = libidivine_dispatcher.o
