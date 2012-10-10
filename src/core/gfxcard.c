@@ -1174,67 +1174,6 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
      dfb_state_unlock( state );
 }
 
-static void
-build_clipped_rectangle_outlines( DFBRectangle    *rect,
-                                  const DFBRegion *clip,
-                                  DFBRectangle    *ret_outlines,
-                                  int             *ret_num )
-{
-     DFBEdgeFlags edges = dfb_clip_edges( clip, rect );
-     int          t     = (edges & DFEF_TOP ? 1 : 0);
-     int          tb    = t + (edges & DFEF_BOTTOM ? 1 : 0);
-     int          num   = 0;
-
-     DFB_RECTANGLE_ASSERT( rect );
-
-     D_ASSERT( ret_outlines != NULL );
-     D_ASSERT( ret_num != NULL );
-
-     if (edges & DFEF_TOP) {
-          DFBRectangle *out = &ret_outlines[num++];
-
-          out->x = rect->x;
-          out->y = rect->y;
-          out->w = rect->w;
-          out->h = 1;
-     }
-
-     if (rect->h > t) {
-          if (edges & DFEF_BOTTOM) {
-               DFBRectangle *out = &ret_outlines[num++];
-
-               out->x = rect->x;
-               out->y = rect->y + rect->h - 1;
-               out->w = rect->w;
-               out->h = 1;
-          }
-
-          if (rect->h > tb) {
-               if (edges & DFEF_LEFT) {
-                    DFBRectangle *out = &ret_outlines[num++];
-
-                    out->x = rect->x;
-                    out->y = rect->y + t;
-                    out->w = 1;
-                    out->h = rect->h - tb;
-               }
-
-               if (rect->w > 1 || !(edges & DFEF_LEFT)) {
-                    if (edges & DFEF_RIGHT) {
-                         DFBRectangle *out = &ret_outlines[num++];
-
-                         out->x = rect->x + rect->w - 1;
-                         out->y = rect->y + t;
-                         out->w = 1;
-                         out->h = rect->h - tb;
-                    }
-               }
-          }
-     }
-
-     *ret_num = num;
-}
-
 void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 {
      DFBRectangle rects[4];
@@ -1278,7 +1217,7 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      }
 
      if (!hw && !(state->render_options & DSRO_MATRIX)) {
-          build_clipped_rectangle_outlines( rect, &state->clip, rects, &num );
+          dfb_build_clipped_rectangle_outlines( rect, &state->clip, rects, &num );
 
           if (!num) {
                dfb_state_unlock( state );

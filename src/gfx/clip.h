@@ -87,6 +87,11 @@ DFBBoolean   dfb_clip_triangle( const DFBRegion   *clip,
                                 DFBPoint           buf[6],
                                 int               *num );
 
+void         dfb_build_clipped_rectangle_outlines( DFBRectangle    *rect,
+                                                   const DFBRegion *clip,
+                                                   DFBRectangle    *ret_outlines,
+                                                   int             *ret_num );
+
 /*
  * Simple check if requested blitting lies outside of the clipping region.
  * Returns true if blitting may need to be performed.
