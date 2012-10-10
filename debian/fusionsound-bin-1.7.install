@@ -1,0 +1,5 @@
+usr/bin/fsdump
+usr/bin/fsmaster
+usr/bin/fsplay
+usr/bin/fsproxy
+usr/bin/fsvolume

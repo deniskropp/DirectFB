@@ -72,3 +72,5 @@ clean-local:
 all-local:
 
 endif
+
+include $(top_srcdir)/rules/nmfile.make

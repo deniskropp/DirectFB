@@ -1,0 +1,16 @@
+usr/include/fusionsound/*
+usr/lib/libfusionsound*.a
+usr/lib/libfusionsound*.la
+usr/lib/pkgconfig/fusionsound*.pc
+usr/lib/directfb-*/snddrivers/*.a
+usr/lib/directfb-*/snddrivers/*.la
+usr/lib/directfb-*/interfaces/IFusionSound/*.a
+usr/lib/directfb-*/interfaces/IFusionSound/*.la
+usr/lib/directfb-*/interfaces/IFusionSoundBuffer/*.a
+usr/lib/directfb-*/interfaces/IFusionSoundBuffer/*.la
+usr/lib/directfb-*/interfaces/IFusionSoundPlayback/*.a
+usr/lib/directfb-*/interfaces/IFusionSoundPlayback/*.la
+usr/lib/directfb-*/interfaces/IFusionSoundStream/*.a
+usr/lib/directfb-*/interfaces/IFusionSoundStream/*.la
+usr/lib/directfb-*/interfaces/IFusionSoundMusicProvider/*.a
+usr/lib/directfb-*/interfaces/IFusionSoundMusicProvider/*.la
