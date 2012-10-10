@@ -132,9 +132,9 @@ DisplayTask::~DisplayTask()
 }
 
 DFBResult
-DisplayTask::Generate( CoreLayerRegion     *region,
-                       const DFBRegion     *update,
-                       DFBSurfaceFlipFlags  flags )
+DisplayTask::Generate( CoreLayerRegion       *region,
+                       const DFBRegion       *update,
+                       DFBSurfaceFlipFlags    flags )
 {
      DFBResult              ret;
      CoreSurface           *surface;
@@ -148,7 +148,7 @@ DisplayTask::Generate( CoreLayerRegion     *region,
      // FIXME: move to helper class
      //
 
-     buffer = dfb_surface_get_buffer3( surface, CSBR_BACK, DSSE_LEFT, surface->flips );
+     buffer = dfb_surface_get_buffer3( surface, CSBR_FRONT, DSSE_LEFT, surface->flips );
 
      allocation = dfb_surface_buffer_find_allocation( buffer, region->surface_accessor, CSAF_READ, true );
      if (!allocation) {
@@ -402,14 +402,14 @@ dfb_layer_region_flip_update_TASK( CoreLayerRegion     *region,
                {
                     dfb_surface_lock( surface );
 
+                    dfb_surface_flip( surface, false );
+
                     /* Use the driver's routine if the region is realized. */
                     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                          D_DEBUG_AT( Core_Layers, "  -> Issuing display task...\n" );
 
                          DisplayTask::Generate( region, update, flags );
                     }
-
-                    dfb_surface_flip( surface, false );
 
                     dfb_surface_unlock( surface );
                     break;
