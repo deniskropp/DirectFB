@@ -16,7 +16,7 @@ Homepage: http://www.directfb.org/
 
 Package: libdirectfb-1.7
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, linux-fusion-dkms [!armhf]
+Depends: ${shlibs:Depends}, ${misc:Depends}, linux-fusion-dkms [!armhf],
  libdirectfb-1.7-wm, libdirectfb-1.7-system
 Recommends: libdirectfb-1.7-imageprovider-gif, libdirectfb-1.7-imageprovider-png,
  libdirectfb-1.7-imageprovider-jpeg, libdirectfb-1.7-fontprovider-dgiff,

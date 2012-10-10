@@ -101,7 +101,7 @@ out:
 static void
 print_usage (const char *prg_name)
 {
-     fprintf (stderr, "\nFusionDale Coma Test (version %s)\n\n", FUSIONDALE_VERSION);
+     fprintf (stderr, "\nFusionDale Coma Test (version %s)\n\n", DIRECTFB_VERSION);
      fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
      fprintf (stderr, "Options:\n");
      fprintf (stderr, "   -h   --help                             Show this help message\n");
@@ -125,7 +125,7 @@ parse_command_line( int argc, char *argv[] )
           }
 
           if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0) {
-               fprintf (stderr, "fdtest_coma version %s\n", FUSIONDALE_VERSION);
+               fprintf (stderr, "fdtest_coma version %s\n", DIRECTFB_VERSION);
                return false;
           }
 

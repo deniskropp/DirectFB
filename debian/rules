@@ -35,6 +35,8 @@ ifeq ($(DEB_HOST_ARCH_OS), linux)
     --enable-voodoo \
     --enable-fusionsound \
     --enable-sawman \
+    --enable-fusiondale \
+    --enable-divine \
     --disable-unique \
     --disable-mesa
 else
