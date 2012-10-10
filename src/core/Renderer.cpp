@@ -335,7 +335,7 @@ Renderer::update( DFBAccelerationMask accel )
                setup->clips_clipped[i].x2 = MIN( state->clip.x2, setup->clips[i].x2 );
                setup->clips_clipped[i].y2 = MIN( state->clip.y2, setup->clips[i].y2 );
 
-               if (setup->clips_clipped[i].x1 <= setup->clips_clipped[i].x2 ||
+               if (setup->clips_clipped[i].x1 <= setup->clips_clipped[i].x2 &&
                    setup->clips_clipped[i].y1 <= setup->clips_clipped[i].y2)
                     setup->task_mask |= (1 << i);
           }
@@ -350,6 +350,9 @@ Renderer::update( DFBAccelerationMask accel )
           /// loop, clip switch, task mask (total clip)
 
           for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
                state->clip = setup->clips_clipped[i];
 
                engine->SetState( setup->tasks[i], state, modified, accel );
@@ -371,8 +374,12 @@ Renderer::DrawRectangles( const DFBRectangle *rects,
           // FIXME: clipping, transform
 
           /// loop
-          for (unsigned int i=0; i<setup->tiles; i++)
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
                engine->DrawRectangles( setup->tasks[i], rects, num_rects );
+          }
      }
 }
 
@@ -388,8 +395,12 @@ Renderer::DrawLines( const DFBRegion *lines,
           // FIXME: clipping, transform
 
           /// loop
-          for (unsigned int i=0; i<setup->tiles; i++)
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
                engine->DrawLines( setup->tasks[i], lines, num_lines );
+          }
      }
 }
 
@@ -553,8 +564,12 @@ Renderer::FillTriangles( const DFBTriangle *tris,
                // FIXME: clipping, transform
      
                /// loop
-               for (unsigned int i=0; i<setup->tiles; i++)
+               for (unsigned int i=0; i<setup->tiles; i++) {
+                    if (!(setup->task_mask & (1 << i)))
+                         continue;
+
                     engine->FillTriangles( setup->tasks[i], tris, num_tris );
+               }
           }
      }
      else {
@@ -575,8 +590,12 @@ Renderer::FillTriangles( const DFBTriangle *tris,
                          fill_tri( &tri, state, rects, &num_rects );
 
                          /// loop
-                         for (unsigned int i=0; i<setup->tiles; i++)
+                         for (unsigned int i=0; i<setup->tiles; i++) {
+                              if (!(setup->task_mask & (1 << i)))
+                                   continue;
+
                               engine->FillRectangles( setup->tasks[i], rects, num_rects );
+                         }
                     }
                }
           }
@@ -595,8 +614,12 @@ Renderer::FillTrapezoids( const DFBTrapezoid *traps,
           // FIXME: clipping, transform
 
           /// loop
-          for (unsigned int i=0; i<setup->tiles; i++)
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
                engine->FillTrapezoids( setup->tasks[i], traps, num_traps );
+          }
      }
 }
 
@@ -613,8 +636,12 @@ Renderer::FillSpans( int            y,
           // FIXME: clipping, transform
 
           /// loop
-          for (unsigned int i=0; i<setup->tiles; i++)
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
                engine->FillSpans( setup->tasks[i], y, spans, num_spans );
+          }
      }
 }
 
@@ -679,8 +706,12 @@ Renderer::Blit2( const DFBRectangle     *rects,
           // FIXME: clipping, transform
 
           /// loop
-          for (unsigned int i=0; i<setup->tiles; i++)
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
                engine->Blit2( setup->tasks[i], rects, points1, points2, num );
+          }
      }
 }
 
@@ -698,6 +729,9 @@ Renderer::StretchBlit( const DFBRectangle     *srects,
 
           /// loop
           for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
                if (srects[i].w > drects[i].w * engine->caps.max_scale_down_x || // FIXME: implement multi pass!
                    srects[i].h > drects[i].h * engine->caps.max_scale_down_y)
                     continue;
@@ -721,8 +755,12 @@ Renderer::TileBlit( const DFBRectangle     *rects,
           // FIXME: clipping, transform
 
           /// loop
-          for (unsigned int i=0; i<setup->tiles; i++)
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
                engine->TileBlit( setup->tasks[i], rects, points1, points2, num );
+          }
      }
 }
 
@@ -756,8 +794,12 @@ Renderer::TextureTriangles( const DFBVertex      *vertices,
           // FIXME: clipping, transform
 
           /// loop
-          for (unsigned int i=0; i<setup->tiles; i++)
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
                engine->TextureTriangles( setup->tasks[i], vertices, num, formation );
+          }
      }
 }
 
