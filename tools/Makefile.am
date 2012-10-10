@@ -4,10 +4,12 @@ INCLUDES = \
 	-I$(top_builddir)/include \
 	-I$(top_builddir)/lib \
 	-I$(top_builddir)/lib/sawman \
+	-I$(top_builddir)/lib/divine \
 	-I$(top_builddir)/lib/fusionsound \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/lib	\
+	-I$(top_srcdir)/lib/divine	\
 	-I$(top_srcdir)/lib/sawman	\
 	-I$(top_srcdir)/lib/fusionsound	\
 	-I$(top_srcdir)/src
@@ -58,6 +60,11 @@ FUSIONSOUND_PROGS += fsproxy
 endif
 endif
 
+if ENABLE_DIVINE
+DIVINE_PROGS = \
+	spooky
+endif
+
 if PNG_PROVIDER
 PNG_PROGS = mkdfiff mkdgifft
 endif
@@ -91,8 +98,8 @@ bin_PROGRAMS = \
 	$(FREETYPE_PROGS)		\
 	$(VOODOO_PROGS)			\
 	$(SAWMAN_PROGS)			\
-	$(FUSIONSOUND_PROGS)
-
+	$(FUSIONSOUND_PROGS)		\
+	$(DIVINE_PROGS)
 
 if DIRECTFB_BUILD_PURE_VOODOO
 NON_PURE_VOODOO_noinst_PROGS = 
@@ -109,6 +116,9 @@ noinst_PROGRAMS = \
 libdirectfb = ../src/libdirectfb.la
 libfusion = ../lib/fusion/libfusion.la
 libdirect = ../lib/direct/libdirect.la
+libsawman = ../lib/sawman/libsawman.la
+libfusionsound = ../lib/fusionsound/libfusionsound.la
+libdivine = ../lib/divine/libdivine.la
 
 if DIRECTFB_BUILD_ONE
 libone = \
@@ -124,19 +134,6 @@ else
 libvoodoo =
 endif
 
-if ENABLE_SAWMAN
-libsawman = \
-        ../lib/sawman/libsawman.la
-else
-libsawman =
-endif
-
-if ENABLE_FUSIONSOUND
-libfusionsound = \
-        ../lib/fusionsound/libfusionsound.la
-else
-libfusionsound =
-endif
 
 dfbdump_SOURCES = dfbdump.c
 dfbdump_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
@@ -219,9 +216,15 @@ fsproxy_LDADD   = $(libfusion) $(libdirect) $(libfusionsound) $(libvoodoo)
 fsvolume_SOURCES = fsvolume.c
 fsvolume_LDADD   = $(libfusion) $(libdirect) $(libfusionsound)
 
+spooky_SOURCES = spooky.c
+spooky_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(libdivine)
+
 
 EXTRA_DIST = \
 	README			\
 	gendoc.pl		\
 	mknames.sh		\
+	scroll_circle.spooky	\
+	scroll_diagonal.spooky	\
+	scroll_vertical.spooky	\
 	mkresult.sh

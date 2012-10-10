@@ -59,11 +59,14 @@ libsawman_la_SOURCES = \
 	sawman_window.h
 
 libsawman_la_LIBADD = \
-	$(DIRECTFB_LIBS)
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la
 
 libsawman_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
-	-release $(LT_RELEASE)
+	-release $(LT_RELEASE)	\
+	$(DFB_LDFLAGS)
 
 
 #

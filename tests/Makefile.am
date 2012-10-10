@@ -28,6 +28,11 @@ SAWMAN_PROGS = \
 	testman
 endif
 
+if ENABLE_DIVINE
+DIVINE_PROGS = \
+	divine_test
+endif
+
 
 INCLUDES = \
 	-I$(top_builddir)/include \
@@ -39,6 +44,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/lib/One	\
 	-I$(top_srcdir)/lib/sawman	\
+	-I$(top_srcdir)/lib/divine	\
 	-I$(top_srcdir)/src	\
 	-DLINUX_2_6
 
@@ -108,11 +114,14 @@ bin_PROGRAMS = \
 	direct_test	\
 	$(ONE_PROGS)	\
 	$(VOODOO_PROGS) \
-	$(SAWMAN_PROGS)
+	$(SAWMAN_PROGS) \
+	$(DIVINE_PROGS)
 
 libdirectfb = $(top_builddir)/src/libdirectfb.la
 libfusion = $(top_builddir)/lib/fusion/libfusion.la
 libdirect = $(top_builddir)/lib/direct/libdirect.la
+libsawman = $(top_builddir)/lib/sawman/libsawman.la
+libdivine = $(top_builddir)/lib/divine/libdivine.la
 
 if DIRECTFB_BUILD_VOODOO
 libvoodoo = \
@@ -126,13 +135,6 @@ libone = \
         ../lib/One/libone.la
 else
 libone =
-endif
-
-if ENABLE_SAWMAN
-libsawman = \
-        ../lib/sawman/libsawman.la
-else
-libsawman =
 endif
 
 coretest_blit2_SOURCES = coretest_blit2.c
@@ -305,3 +307,6 @@ testrun_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect
 
 sample1_SOURCES = sample1.c
 sample1_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(libsawman)
+
+divine_test_SOURCES = divine_test.c
+divine_test_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(libdivine)

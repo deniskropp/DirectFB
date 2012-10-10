@@ -654,6 +654,11 @@ else
     enable_pure_voodoo=no
 fi
 
+AC_ARG_ENABLE(divine,
+              AC_HELP_STRING([--enable-divine],
+                             [enable DiVine @<:@default=no@:>@]),
+              [], [enable_divine=no])
+
 AC_ARG_ENABLE(sawman,
               AC_HELP_STRING([--enable-sawman],
                              [enable SaWMan (window manager and application mananger) @<:@default=no@:>@]),
@@ -1001,6 +1006,7 @@ AM_CONDITIONAL(ENABLE_ONE_MODULE, test "$enable_one_module" = "yes")
 AM_CONDITIONAL(ENABLE_VOODOO, test "$enable_voodoo" = "yes")
 AM_CONDITIONAL(ENABLE_SAWMAN, test "$enable_sawman" = "yes")
 AM_CONDITIONAL(ENABLE_FUSIONSOUND, test "$enable_fusionsound" = "yes")
+AM_CONDITIONAL(ENABLE_DIVINE, test "$enable_divine" = "yes")
 
 
 AC_ARG_ENABLE(unique,
@@ -2485,6 +2491,9 @@ lib/fusionsound/fusionsound-internal.pc
 lib/fusionsound/fusionsound_limits.h
 lib/fusionsound/fusionsound_version.h
 
+lib/divine/Makefile
+lib/divine/divine.pc
+
 patches/Makefile
 
 proxy/Makefile
@@ -2556,6 +2565,7 @@ gfxdrivers/vmware/Makefile
 
 inputdrivers/Makefile
 inputdrivers/dbox2remote/Makefile
+inputdrivers/divine/Makefile
 inputdrivers/dreamboxremote/Makefile
 inputdrivers/dynapro/Makefile
 inputdrivers/elo/Makefile
@@ -2632,6 +2642,7 @@ Misc options:
   linux-one kernel module   $enable_one_module
   Voodoo (network support)  $enable_voodoo
   Pure Voodoo (net only)    $enable_pure_voodoo
+  DiVine (virtual input)    $enable_divine
   Debug supported           $enable_debug_support
   Debug enabled             $enable_debug
   Trace support             $enable_trace
@@ -2690,7 +2701,10 @@ Building Font Modules:
   LinoType                  $LINOTYPE                 $LINOTYPE_CFLAGS $LINOTYPE_LIBS
   Default font              yes
 
-Building FusionSound        $enable_fusionsound
+Building FusionSound        $enable_fusionsound]);
+
+if test "$enable_fusionsound" = "yes"; then
+AC_MSG_RESULT([
   Options:
     IEEE floats:            $fs_enable_ieee_floats
     Precision:              $fs_enable_precision
@@ -2708,6 +2722,7 @@ Building FusionSound        $enable_fusionsound
     CD-DA                   $cdda
     FFmpeg                  $ffmpeg
     Playlist                $playlist]);
+fi
 
 if test "$have_linux" = "yes"; then
 AC_MSG_RESULT([

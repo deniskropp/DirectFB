@@ -28,11 +28,21 @@ NON_PURE_VOODOO_SUBDIRS = \
 	$(LINUXONLY_DIRS)
 endif
 
+if ENABLE_DIVINE
+DIVINE_DIR = lib/divine
+endif
+
+if ENABLE_SAWMAN
+SAWMAN_DIR = lib/sawman
+endif
+
 SUBDIRS = \
 	data			\
 	docs			\
 	include 		\
 	lib			\
+	$(SAWMAN_DIR)		\
+	$(DIVINE_DIR)		\
 	src 			\
 	$(DVC_DIR)		\
 	$(TOOLS_DIR)		\

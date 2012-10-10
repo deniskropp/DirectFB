@@ -20,13 +20,17 @@ ifusionsoundstreamdir     = $(INTERFACES_DIR)/IFusionSoundStream
 ifusionsoundbufferdir     = $(INTERFACES_DIR)/IFusionSoundBuffer
 ifusionsoundplaybackdir   = $(INTERFACES_DIR)/IFusionSoundPlayback
 
+idivinedir = $(INTERFACES_DIR)/IDiVine
+
 
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib		\
+	-I$(top_srcdir)/lib/divine	\
 	-I$(top_builddir)/lib/fusionsound \
 	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/lib		\
+	-I$(top_srcdir)/lib/divine	\
 	-I$(top_srcdir)/lib/fusionsound	\
 	-I$(top_srcdir)/src 		\
 	-I$(top_srcdir)/proxy/requestor	\
@@ -85,6 +89,11 @@ ifusionsoundplayback_LTLIBRARIES = \
 	libifusionsoundplayback_dispatcher.la
 endif
 
+if ENABLE_DIVINE
+idivine_LTLIBRARIES = \
+	libidivine_dispatcher.la        
+endif
+
 if BUILD_STATIC
 idirectfb_DATA              = libidirectfb_dispatcher.o
 idirectfbdatabuffer_DATA    = libidirectfbdatabuffer_dispatcher.o
@@ -102,6 +111,9 @@ ifusionsound_DATA           = libifusionsound_dispatcher.o
 ifusionsoundbuffer_DATA     = libifusionsoundbuffer_dispatcher.o
 ifusionsoundplayback_DATA   = libifusionsoundplaybackdispatcher.o
 ifusionsoundstream_DATA     = libifusionsoundstreamdispatcher.o
+endif
+if ENABLE_DIVINE
+idivine_DATA                = libidivine_dispatcher.o
 endif
 endif
 
@@ -164,5 +176,9 @@ libifusionsoundplayback_dispatcher_la_LIBADDD = $(LIBS)
 libifusionsoundstream_dispatcher_la_SOURCES = ifusionsoundstream_dispatcher.c ifusionsoundstream_dispatcher.h
 libifusionsoundstream_dispatcher_la_LDFLAGS = -avoid-version -module
 libifusionsoundstream_dispatcher_la_LIBADDD = $(LIBS) ../compressor/libfusionsound_compressor.la
+
+libidivine_dispatcher_la_SOURCES = idivine_dispatcher.c idivine_dispatcher.h
+libidivine_dispatcher_la_LDFLAGS = -avoid-version -module
+libidivine_dispatcher_la_LIBADDD = $(LIBS)
 
 include $(top_srcdir)/rules/libobject.make

@@ -44,8 +44,9 @@ libfusionsound_la_LIBADD = \
 
 libfusionsound_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE) \
-	-release $(LT_RELEASE)
-	
+	-release $(LT_RELEASE) \
+	$(DFB_LDFLAGS)
+
 #
 ## and now rebuild the static version with the *correct* object files
 #

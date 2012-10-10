@@ -50,6 +50,7 @@
 #define DFB_INPUTDRIVER_HAS_AXIS_INFO
 
 #include <core/input_driver.h>
+#include <directfb_version.h>
 
 DFB_INPUT_DRIVER( divine )
 
@@ -141,8 +142,8 @@ driver_get_info( InputDriverInfo *info )
      snprintf( info->vendor,
                DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "Convergence GmbH" );
 
-     info->version.major = DIVINE_MAJOR_VERSION;
-     info->version.minor = DIVINE_MINOR_VERSION;
+     info->version.major = DIRECTFB_MAJOR_VERSION;
+     info->version.minor = DIRECTFB_MINOR_VERSION;
 }
 
 /*

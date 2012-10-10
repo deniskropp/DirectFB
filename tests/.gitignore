@@ -4,6 +4,7 @@ coretest_fillrect
 coretest_task_fillrect
 dfbtest_blit
 dfbtest_blit_multi
+dfbtest_blit_threads
 dfbtest_blit2
 dfbtest_clipboard
 dfbtest_fillrect
@@ -23,6 +24,7 @@ dfbtest_scale
 dfbtest_scale_nv21
 dfbtest_stereo_window
 dfbtest_surface_compositor
+dfbtest_surface_compositor_threads
 dfbtest_surface_updates
 dfbtest_sync
 dfbtest_video
@@ -36,6 +38,7 @@ dfbtest_window_surface
 dfbtest_windows_watcher
 direct_stream
 direct_test
+divine_test
 fusion_call
 fusion_call_bench
 fusion_fork

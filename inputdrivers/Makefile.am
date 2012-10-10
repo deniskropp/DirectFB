@@ -4,6 +4,10 @@ if DBOX2REMOTE
 DBOX2REMOTE_DIR = dbox2remote
 endif
 
+if ENABLE_DIVINE
+DIVINE_DIR = divine
+endif
+
 if DREAMBOXREMOTE
 DREAMBOXREMOTE_DIR = dreamboxremote
 endif
@@ -82,6 +86,7 @@ endif
 
 SUBDIRS = \
 	$(DBOX2REMOTE_DIR)	\
+	$(DIVINE_DIR)		\
 	$(DREAMBOXREMOTE_DIR)	\
 	$(DYNAPRO_INPUT_DIR)	\
 	$(ELO_INPUT_DIR)	\
