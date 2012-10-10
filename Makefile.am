@@ -41,9 +41,9 @@ SUBDIRS = \
 	docs			\
 	include 		\
 	lib			\
+	src 			\
 	$(SAWMAN_DIR)		\
 	$(DIVINE_DIR)		\
-	src 			\
 	$(DVC_DIR)		\
 	$(TOOLS_DIR)		\
 	$(NON_PURE_VOODOO_SUBDIRS)	\

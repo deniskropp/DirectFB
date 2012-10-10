@@ -8,9 +8,16 @@ if ENABLE_VOODOO
 VOODOO_DIR = voodoo
 endif
 
-if ENABLE_FUSIONSOUND
-VOODOO_DIR = fusionsound
+if ENABLE_FUSIONDALE
+FUSIONDALE_DIRS = fusiondale
+if ENABLE_ONE
+FUSIONDALE_DIRS += fusiondale/one
+endif
 endif
 
-SUBDIRS = direct fusion $(ONE_DIR) $(VOODOO_DIR) $(FUSIONSOUND_DIR)
+if ENABLE_FUSIONSOUND
+FUSIONSOUND_DIR = fusionsound
+endif
+
+SUBDIRS = direct fusion $(ONE_DIR) $(VOODOO_DIR) $(FUSIONDALE_DIRS) $(FUSIONSOUND_DIR)
 

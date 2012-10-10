@@ -44,8 +44,8 @@
 #include <coma/component.h>
 #include <coma/policy.h>
 
-#include "../../one/ifusiondale_one.h" // FIXME
-#include "../../one/icoma_one.h" // FIXME
+#include "one/ifusiondale_one.h" // FIXME
+#include "one/icoma_one.h" // FIXME
 
 #include <coma/icoma.h>
 #include <coma/icomacomponent.h>

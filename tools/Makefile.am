@@ -5,12 +5,14 @@ INCLUDES = \
 	-I$(top_builddir)/lib \
 	-I$(top_builddir)/lib/sawman \
 	-I$(top_builddir)/lib/divine \
+	-I$(top_builddir)/lib/fusiondale \
 	-I$(top_builddir)/lib/fusionsound \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/lib/divine	\
 	-I$(top_srcdir)/lib/sawman	\
+	-I$(top_srcdir)/lib/fusiondale	\
 	-I$(top_srcdir)/lib/fusionsound	\
 	-I$(top_srcdir)/src
 
@@ -46,6 +48,12 @@ endif
 if ENABLE_SAWMAN
 SAWMAN_PROGS = \
 	swmdump
+endif
+
+if ENABLE_FUSIONDALE
+FUSIONDALE_PROGS = \
+	fddump \
+	fdmaster
 endif
 
 if ENABLE_FUSIONSOUND
@@ -98,6 +106,7 @@ bin_PROGRAMS = \
 	$(FREETYPE_PROGS)		\
 	$(VOODOO_PROGS)			\
 	$(SAWMAN_PROGS)			\
+	$(FUSIONDALE_PROGS)		\
 	$(FUSIONSOUND_PROGS)		\
 	$(DIVINE_PROGS)
 
@@ -117,6 +126,7 @@ libdirectfb = ../src/libdirectfb.la
 libfusion = ../lib/fusion/libfusion.la
 libdirect = ../lib/direct/libdirect.la
 libsawman = ../lib/sawman/libsawman.la
+libfusiondale = ../lib/fusiondale/libfusiondale.la
 libfusionsound = ../lib/fusionsound/libfusionsound.la
 libdivine = ../lib/divine/libdivine.la
 
@@ -218,6 +228,12 @@ fsvolume_LDADD   = $(libfusion) $(libdirect) $(libfusionsound)
 
 spooky_SOURCES = spooky.c
 spooky_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(libdivine)
+
+fddump_SOURCES = fddump.c
+fddump_LDADD   = $(libfusion) $(libdirect) $(libfusiondale)
+
+fdmaster_SOURCES = fdmaster.c
+fdmaster_LDADD   = $(libfusion) $(libdirect) $(libfusiondale)
 
 
 EXTRA_DIST = \

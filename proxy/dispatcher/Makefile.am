@@ -15,6 +15,10 @@ idirectfbsurfacedir       = $(INTERFACES_DIR)/IDirectFBSurface
 idirectfbwindowdir        = $(INTERFACES_DIR)/IDirectFBWindow
 idirectfbvideoproviderdir = $(INTERFACES_DIR)/IDirectFBVideoProvider
 
+ifusiondaledir            = $(INTERFACES_DIR)/IFusionDale
+icomadir                  = $(INTERFACES_DIR)/IComa
+icomacomponentdir         = $(INTERFACES_DIR)/IComaComponent
+
 ifusionsounddir           = $(INTERFACES_DIR)/IFusionSound
 ifusionsoundstreamdir     = $(INTERFACES_DIR)/IFusionSoundStream
 ifusionsoundbufferdir     = $(INTERFACES_DIR)/IFusionSoundBuffer
@@ -27,10 +31,12 @@ INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib		\
 	-I$(top_srcdir)/lib/divine	\
+	-I$(top_builddir)/lib/fusiondale \
 	-I$(top_builddir)/lib/fusionsound \
 	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/lib/divine	\
+	-I$(top_srcdir)/lib/fusiondale	\
 	-I$(top_srcdir)/lib/fusionsound	\
 	-I$(top_srcdir)/src 		\
 	-I$(top_srcdir)/proxy/requestor	\
@@ -75,6 +81,17 @@ idirectfbsurface_LTLIBRARIES = \
 idirectfbwindow_LTLIBRARIES = \
 	libidirectfbwindow_dispatcher.la
 
+if ENABLE_FUSIONDALE
+ifusiondale_LTLIBRARIES = \
+	libifusiondale_dispatcher.la
+
+icoma_LTLIBRARIES = \
+	libicoma_dispatcher.la
+
+icomacomponent_LTLIBRARIES = \
+	libicomacomponent_dispatcher.la
+endif
+
 if ENABLE_FUSIONSOUND
 ifusionsound_LTLIBRARIES = \
 	libifusionsound_dispatcher.la
@@ -106,6 +123,11 @@ idirectfbpalette_DATA       = libidirectfbpalette_dispatcher.o
 idirectfbscreen_DATA        = libidirectfbscreen_dispatcher.o
 idirectfbsurface_DATA       = libidirectfbsurface_dispatcher.o
 idirectfbwindow_DATA        = libidirectfbwindow_dispatcher.o
+if ENABLE_FUSIONDALE
+ifusiondale_DATA    = libifusiondale_dispatcher.o
+icoma_DATA          = libicoma_dispatcher.o
+icomacomponent_DATA = libicomacomponent_dispatcher.o
+endif
 if ENABLE_FUSIONSOUND
 ifusionsound_DATA           = libifusionsound_dispatcher.o
 ifusionsoundbuffer_DATA     = libifusionsoundbuffer_dispatcher.o
@@ -161,6 +183,18 @@ libidirectfbwindow_dispatcher_la_SOURCES = idirectfbwindow_dispatcher.c idirectf
 libidirectfbwindow_dispatcher_la_LDFLAGS = -avoid-version -module
 libidirectfbwindow_dispatcher_la_LIBADDD = $(LIBS)
 
+libifusiondale_dispatcher_la_SOURCES = ifusiondale_dispatcher.c ifusiondale_dispatcher.h
+libifusiondale_dispatcher_la_LDFLAGS = -avoid-version -module
+libifusiondale_dispatcher_la_LIBADD  = $(LIBS)
+
+libicoma_dispatcher_la_SOURCES = icoma_dispatcher.c icoma_dispatcher.h
+libicoma_dispatcher_la_LDFLAGS = -avoid-version -module
+libicoma_dispatcher_la_LIBADD  = $(LIBS)
+
+libicomacomponent_dispatcher_la_SOURCES = icomacomponent_dispatcher.c icomacomponent_dispatcher.h
+libicomacomponent_dispatcher_la_LDFLAGS = -avoid-version -module
+libicomacomponent_dispatcher_la_LIBADD  = $(LIBS)
+
 libifusionsound_dispatcher_la_SOURCES = ifusionsound_dispatcher.c ifusionsound_dispatcher.h
 libifusionsound_dispatcher_la_LDFLAGS = -avoid-version -module
 libifusionsound_dispatcher_la_LIBADDD = $(LIBS)
@@ -182,3 +216,4 @@ libidivine_dispatcher_la_LDFLAGS = -avoid-version -module
 libidivine_dispatcher_la_LIBADDD = $(LIBS)
 
 include $(top_srcdir)/rules/libobject.make
+

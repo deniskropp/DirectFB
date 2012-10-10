@@ -664,6 +664,11 @@ AC_ARG_ENABLE(sawman,
                              [enable SaWMan (window manager and application mananger) @<:@default=no@:>@]),
               [], [enable_sawman=no])
 
+AC_ARG_ENABLE(fusiondale,
+              AC_HELP_STRING([--enable-fusiondale],
+                             [enable FusionDale @<:@default=no@:>@]),
+              [], [enable_fusiondale=no])
+
 AC_ARG_ENABLE(fusionsound,
               AC_HELP_STRING([--enable-fusionsound],
                              [enable FusionSound @<:@default=no@:>@]),
@@ -1005,6 +1010,7 @@ AM_CONDITIONAL(ENABLE_ONE, test "$enable_one" = "yes")
 AM_CONDITIONAL(ENABLE_ONE_MODULE, test "$enable_one_module" = "yes")
 AM_CONDITIONAL(ENABLE_VOODOO, test "$enable_voodoo" = "yes")
 AM_CONDITIONAL(ENABLE_SAWMAN, test "$enable_sawman" = "yes")
+AM_CONDITIONAL(ENABLE_FUSIONDALE, test "$enable_fusiondale" = "yes")
 AM_CONDITIONAL(ENABLE_FUSIONSOUND, test "$enable_fusionsound" = "yes")
 AM_CONDITIONAL(ENABLE_DIVINE, test "$enable_divine" = "yes")
 
@@ -2481,6 +2487,15 @@ lib/voodoo/voodoo.pc
 lib/sawman/Makefile
 lib/sawman/sawman.pc
 
+lib/fusiondale/Makefile
+lib/fusiondale/coma/Makefile
+lib/fusiondale/core/Makefile
+lib/fusiondale/messenger/Makefile
+lib/fusiondale/misc/Makefile
+lib/fusiondale/one/Makefile
+lib/fusiondale/fusiondale.pc
+lib/fusiondale/fusiondale_version.h
+
 lib/fusionsound/Makefile
 lib/fusionsound/core/Makefile
 lib/fusionsound/drivers/Makefile
@@ -2643,6 +2658,7 @@ Misc options:
   Voodoo (network support)  $enable_voodoo
   Pure Voodoo (net only)    $enable_pure_voodoo
   DiVine (virtual input)    $enable_divine
+  FusionDale                $enable_fusiondale
   Debug supported           $enable_debug_support
   Debug enabled             $enable_debug
   Trace support             $enable_trace

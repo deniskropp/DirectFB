@@ -1,10 +1,12 @@
-## Makefile.am for FusionDale/src/coma
+## Makefile.am for lib/fusiondale/coma
 
 INCLUDES = \
 	-I$(top_builddir)/include	\
+	-I$(top_builddir)/lib	\
+	-I$(top_builddir)/lib/fusiondale	\
 	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/src 	\
-	$(FUSION_CFLAGS)
+	-I$(top_srcdir)/lib	\
+	-I$(top_srcdir)/lib/fusiondale
 
 AM_CPPFLAGS = \
      -DMODULEDIR=\"${RUNTIME_SYSROOT}@MODULEDIR@\"
@@ -12,7 +14,7 @@ AM_CPPFLAGS = \
 noinst_LTLIBRARIES = \
 	libfusiondalecoma.la
 
-comaincludedir = @INCLUDEDIR@/coma
+comaincludedir = @GENERIC_INCLUDEDIR@/fusiondale/coma
 
 comainclude_HEADERS = \
 	coma.h			\

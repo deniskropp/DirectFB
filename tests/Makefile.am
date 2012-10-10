@@ -33,6 +33,14 @@ DIVINE_PROGS = \
 	divine_test
 endif
 
+if ENABLE_FUSIONDALE
+FUSIONDALE_PROGS = \
+	fdtest_bench \
+	fdtest_coma \
+	fdtest_init
+endif
+
+
 
 INCLUDES = \
 	-I$(top_builddir)/include \
@@ -115,13 +123,15 @@ bin_PROGRAMS = \
 	$(ONE_PROGS)	\
 	$(VOODOO_PROGS) \
 	$(SAWMAN_PROGS) \
-	$(DIVINE_PROGS)
+	$(DIVINE_PROGS) \
+	$(FUSIONDALE_PROGS)
 
 libdirectfb = $(top_builddir)/src/libdirectfb.la
 libfusion = $(top_builddir)/lib/fusion/libfusion.la
 libdirect = $(top_builddir)/lib/direct/libdirect.la
 libsawman = $(top_builddir)/lib/sawman/libsawman.la
 libdivine = $(top_builddir)/lib/divine/libdivine.la
+libfusiondale = $(top_builddir)/lib/fusiondale/libfusiondale.la
 
 if DIRECTFB_BUILD_VOODOO
 libvoodoo = \
@@ -310,3 +320,12 @@ sample1_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect
 
 divine_test_SOURCES = divine_test.c
 divine_test_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(libdivine)
+
+fdtest_bench_SOURCES = fdtest_bench.c
+fdtest_bench_LDADD   = $(libfusion) $(libdirect) $(libfusiondale)
+
+fdtest_coma_SOURCES = fdtest_coma.c
+fdtest_coma_LDADD   = $(libfusion) $(libdirect) $(libfusiondale)
+
+fdtest_init_SOURCES = fdtest_init.c
+fdtest_init_LDADD   = $(libfusion) $(libdirect) $(libfusiondale)

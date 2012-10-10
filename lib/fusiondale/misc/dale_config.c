@@ -50,7 +50,7 @@
 FusionDaleConfig *fusiondale_config = NULL;
 
 static const char *config_usage =
-     "FusionDale version " FUSIONDALE_VERSION "\n"
+     "FusionDale version " DIRECTFB_VERSION "\n"
      "\n"
      " --fd-help                       Output FusionDale usage information and exit\n"
      " --fd:<option>[,<option>]...     Pass options to FusionDale (see below)\n"

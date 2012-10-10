@@ -39,6 +39,9 @@ dfbtest_windows_watcher
 direct_stream
 direct_test
 divine_test
+fdtest_bench
+fdtest_coma
+fdtest_init
 fusion_call
 fusion_call_bench
 fusion_fork
