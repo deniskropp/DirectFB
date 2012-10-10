@@ -315,6 +315,43 @@ public:
      }
 
 
+     virtual DFBResult DrawRectangles( DirectFB::SurfaceTask  *task,
+                                       const DFBRectangle     *rects,
+                                       unsigned int            num_rects )
+     {
+          GenefxTask *mytask = (GenefxTask *)task;
+          u32         count  = 0;
+          u32         index;
+
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num_rects );
+
+          mytask->commands.push_back( GenefxTask::TYPE_FILL_RECTS );
+          mytask->commands.push_back( num_rects );
+          index = mytask->commands.size() - 1;
+
+          for (unsigned int i=0; i<num_rects; i++) {
+               DFBRectangle rect = rects[i];
+               DFBRectangle rects[4];
+               int          i = 0, num = 0;
+
+               dfb_build_clipped_rectangle_outlines( &rect, &mytask->clip, rects, &num );
+
+               for (; i<num; i++) {
+                    mytask->commands.push_back( rects[i].x );
+                    mytask->commands.push_back( rects[i].y );
+                    mytask->commands.push_back( rects[i].w );
+                    mytask->commands.push_back( rects[i].h );
+
+                    count++;
+               }
+          }
+
+          mytask->commands[index] = count;
+
+          return DFB_OK;
+     }
+
+
      virtual DFBResult DrawLines( DirectFB::SurfaceTask *task,
                                   const DFBRegion       *lines,
                                   unsigned int           num_lines )
