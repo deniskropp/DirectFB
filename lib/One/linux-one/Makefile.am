@@ -4,7 +4,7 @@ ONE_CPPFLAGS := \
 
 EXTRA_DIST = Makefile.static
 
-src/linux-one.ko: $(srcdir)/include/linux/one.h $(top_srcdir)/src/*.c $(top_srcdir)/src/*.h
+src/linux-one.ko: include/linux/one.h src/*.c src/*.h
 	$(MAKE) -f $(srcdir)/Makefile.static "ONE_CPPFLAGS=$(ONE_CPPFLAGS) -I`readlink -f $(srcdir)`/.."
 
 all-local:: src/linux-one.ko
