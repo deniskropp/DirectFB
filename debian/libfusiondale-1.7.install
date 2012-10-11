@@ -1,1 +1,5 @@
 usr/lib/libfusiondale-*.so.*
+usr/lib/directfb-*/interfaces/IComa/*.so
+usr/lib/directfb-*/interfaces/IComaComponent/*.so
+usr/lib/directfb-*/interfaces/IFusionDale/*.so
+usr/lib/directfb-*/interfaces/IFusionDaleMessenger/*.so

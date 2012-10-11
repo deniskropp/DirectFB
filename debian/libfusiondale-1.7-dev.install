@@ -4,3 +4,7 @@ usr/include/fusiondale/coma/*.h
 usr/lib/libfusiondale.so
 usr/lib/libfusiondale.a
 usr/lib/pkgconfig/fusiondale.pc
+usr/lib/directfb-*/interfaces/IComa/*.a
+usr/lib/directfb-*/interfaces/IComaComponent/*.a
+usr/lib/directfb-*/interfaces/IFusionDale/*.a
+usr/lib/directfb-*/interfaces/IFusionDaleMessenger/*.a

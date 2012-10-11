@@ -503,3 +503,41 @@ Description: FusionDale (tools)
  methods or listen to notifications. Multiple component managers can exist
  with each one identified globally by a string.
 
+Package: libdirectfb-1.7-inputdriver-divine
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: DirectFB - divine input driver
+ DirectFB is a graphics library which was designed with embedded systems
+ in mind. It offers maximum hardware accelerated performance at a minimum
+ of resource usage and overhead.
+ .
+ This package contains the divine input driver
+
+Package: libdivine-1.7
+Architecture: any
+Depends: libdirectfb-1.7,
+ ${shlibs:Depends}, ${misc:Depends}
+Description: DiVine - DirectFB Virtual Input extension (shared library)
+  A library that handles the connection to the input driver
+  including helper functions for generating events.
+
+Package: libdivine-1.7-dev
+Architecture: any
+Depends: libdivine-1.7
+ ${shlibs:Depends}, ${misc:Depends}
+Provides: libdivine-dev
+Conflicts: libdivine-dev
+Description: DiVine - DirectFB Virtual Input extension (development package)
+  A library that handles the connection to the input driver
+  including helper functions for generating events.
+
+Package: divine-spooky-1.7
+Architecture: any
+Depends: libdivine-1.7,
+ ${shlibs:Depends}, ${misc:Depends}
+Provides: divine-spooky
+Conflicts: divine-spooky
+Description: DiVine - DirectFB Virtual Input extension ("spooky" example)
+  A tool to generate input events using a simple script featuring button or
+   motion events, linear or circular automated motion and delays.
+
