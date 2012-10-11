@@ -1,4 +1,4 @@
-usr/lib/libfusionsound*.so*
+usr/lib/libfusionsound*.so.*
 usr/lib/directfb-*/snddrivers/*.so
 usr/lib/directfb-*/interfaces/IFusionSound/*.so
 usr/lib/directfb-*/interfaces/IFusionSoundBuffer/*.so

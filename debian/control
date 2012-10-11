@@ -420,6 +420,8 @@ Package: libfusionsound-1.7-dev
 Section: devel
 Architecture: any
 Depends: libfusionsound-1.7 (= ${Source-Version}), libdirectfb-1.7-dev, libc6-dev
+Provides: libfusionsound-dev
+Conflicts: libfusionsound-dev
 Description: sound library for DirectFB, development files
  This package contains the files needed to compile and link
  programs which use FusionSound.
