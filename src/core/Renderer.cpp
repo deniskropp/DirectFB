@@ -350,9 +350,6 @@ Renderer::update( DFBAccelerationMask accel )
           /// loop, clip switch, task mask (total clip)
 
           for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
                state->clip = setup->clips_clipped[i];
 
                engine->SetState( setup->tasks[i], state, modified, accel );
