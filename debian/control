@@ -456,3 +456,50 @@ Description: DirectFB - mad music provider
  FusionSound is a sound library for DirectFB
  .
  This package contains the mad music provider
+
+Package: libfusiondale-1.7
+Architecture: any
+Depends: libdirectfb-1.7,
+ ${shlibs:Depends}, ${misc:Depends}
+Description: FusionDale (shared library)
+ FusionDale is applied Fusion and will be a collection of different
+ services for use by applications and other libraries.
+ .
+ There's a component manager (Coma) which allows any process to create a
+ component - identified by only a string at the moment - and provide methods
+ and notifications. Other processes can get access to the component and call
+ methods or listen to notifications. Multiple component managers can exist
+ with each one identified globally by a string.
+
+Package: libfusiondale-1.7-dev
+Architecture: any
+Depends: libfusiondale-1.7
+ ${shlibs:Depends}, ${misc:Depends}
+Provides: libfusiondale-dev
+Conflicts: libfusiondale-dev
+Description: FusionDale (developer package)
+ FusionDale is applied Fusion and will be a collection of different
+ services for use by applications and other libraries.
+ .
+ There's a component manager (Coma) which allows any process to create a
+ component - identified by only a string at the moment - and provide methods
+ and notifications. Other processes can get access to the component and call
+ methods or listen to notifications. Multiple component managers can exist
+ with each one identified globally by a string.
+
+Package: fusiondale-bin-1.7
+Architecture: any
+Depends: libfusiondale-1.7,
+ ${shlibs:Depends}, ${misc:Depends}
+Provides: fusiondale-spooky
+Conflicts: fusiondale-spooky
+Description: FusionDale (tools)
+ FusionDale is applied Fusion and will be a collection of different
+ services for use by applications and other libraries.
+ .
+ There's a component manager (Coma) which allows any process to create a
+ component - identified by only a string at the moment - and provide methods
+ and notifications. Other processes can get access to the component and call
+ methods or listen to notifications. Multiple component managers can exist
+ with each one identified globally by a string.
+
