@@ -870,7 +870,6 @@ fusion_exit( FusionWorld *world,
 
      D_MAGIC_ASSERT( shared, FusionWorldShared );
 
-
      pthread_mutex_lock( &fusion_worlds_lock );
 
      D_ASSERT( world->refs > 0 );
@@ -880,7 +879,7 @@ fusion_exit( FusionWorld *world,
           return DR_OK;
      }
 
-     if (!emergency) {
+     {
           int               foo;
           FusionSendMessage msg;
 
@@ -899,10 +898,11 @@ fusion_exit( FusionWorld *world,
                     break;
                }
           }
+     }
 
+     if (!emergency) {
           /* Wait for its termination. */
           direct_thread_join( world->dispatch_loop );
-
 
           /* Wake up the deferred call thread. */
           pthread_cond_signal( &world->deferred.queue );
