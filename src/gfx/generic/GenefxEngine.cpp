@@ -332,15 +332,15 @@ public:
           for (unsigned int i=0; i<num_rects; i++) {
                DFBRectangle rect = rects[i];
                DFBRectangle rects[4];
-               int          i = 0, num = 0;
+               int          n = 0, num = 0;
 
                dfb_build_clipped_rectangle_outlines( &rect, &mytask->clip, rects, &num );
 
-               for (; i<num; i++) {
-                    mytask->commands.push_back( rects[i].x );
-                    mytask->commands.push_back( rects[i].y );
-                    mytask->commands.push_back( rects[i].w );
-                    mytask->commands.push_back( rects[i].h );
+               for (; n<num; n++) {
+                    mytask->commands.push_back( rects[n].x );
+                    mytask->commands.push_back( rects[n].y );
+                    mytask->commands.push_back( rects[n].w );
+                    mytask->commands.push_back( rects[n].h );
 
                     count++;
                }
