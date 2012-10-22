@@ -1,13 +1,10 @@
 ## Makefile.am for DirectFB/lib/One
 
-SUBDIRS = linux-one
-
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib		\
 	-I$(top_srcdir)/include		\
-	-I$(top_srcdir)/lib		\
-	-I$(srcdir)/linux-one/include
+	-I$(top_srcdir)/lib
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"	\
