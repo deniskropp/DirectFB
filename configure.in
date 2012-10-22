@@ -613,10 +613,6 @@ else
     DEP_ONE=
 fi
 
-AC_ARG_ENABLE(one-module,
-              AC_HELP_STRING([--enable-one-module],
-                             [enable linux-one kernel module (IPC) @<:@default=yes@:>@]),
-              [], [enable_one_module=yes])
 
 AC_ARG_ENABLE(voodoo,
               AC_HELP_STRING([--enable-voodoo],
@@ -1007,7 +1003,6 @@ AC_SUBST(FUSION_BUILD_MULTI)
 AC_SUBST(FUSION_BUILD_KERNEL)
 
 AM_CONDITIONAL(ENABLE_ONE, test "$enable_one" = "yes")
-AM_CONDITIONAL(ENABLE_ONE_MODULE, test "$enable_one_module" = "yes")
 AM_CONDITIONAL(ENABLE_VOODOO, test "$enable_voodoo" = "yes")
 AM_CONDITIONAL(ENABLE_SAWMAN, test "$enable_sawman" = "yes")
 AM_CONDITIONAL(ENABLE_FUSIONDALE, test "$enable_fusiondale" = "yes")
@@ -2654,7 +2649,6 @@ Misc options:
   Fusion message size       $with_message_size
   Fluxed args size          $with_args_size
   One (IPC)                 $enable_one
-  linux-one kernel module   $enable_one_module
   Voodoo (network support)  $enable_voodoo
   Pure Voodoo (net only)    $enable_pure_voodoo
   DiVine (virtual input)    $enable_divine
