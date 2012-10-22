@@ -1,4 +1,0 @@
-config LINUX_ONE
-	tristate "Linux One IPC"
-	---help---
-	  Linux One is the new IPC API used by Coma

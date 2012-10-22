@@ -1,11 +1,5 @@
 ## Makefile.am for DirectFB/lib/One
 
-if ENABLE_ONE_MODULE
-SUBDIRS = linux-one
-else
-SUBDIRS =
-endif
-
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib		\
