@@ -296,6 +296,17 @@ Description: DirectFB - v4l video provider
  .
  This package contains the V4L video provider
 
+Package: libdirectfb-1.7-videoprovider-ffmpeg
+Architecture: any
+Depends: libdirectfb-1.7,
+ ${shlibs:Depends}, ${misc:Depends}
+Description: DirectFB - ffmpeg video provider
+ DirectFB is a graphics library which was designed with embedded systems
+ in mind. It offers maximum hardware accelerated performance at a minimum
+ of resource usage and overhead.
+ .
+ This package contains the ffmpeg video provider
+
 Package: libdirectfb-1.7-fontprovider-ft2
 Architecture: any
 Depends: libdirectfb-1.7 (= ${binary:Version}),
