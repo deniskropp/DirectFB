@@ -141,7 +141,7 @@ static int config_read_cmdline( char *cmdbuf, int size, FILE *f )
 }
 
 static void 
-config_allocate()
+config_allocate( void )
 {
      if (fusiondale_config)
           return;

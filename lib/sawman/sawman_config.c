@@ -111,7 +111,7 @@ parse_args( const char *args )
 }
 
 static DFBResult
-config_allocate()
+config_allocate( void )
 {
      int i;
 
