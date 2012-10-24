@@ -1723,6 +1723,9 @@ if test "x$enable_ffmpeg" = "xyes"; then
 fi
 
 
+AC_SUBST(FFMPEG_CFLAGS)
+AC_SUBST(FFMPEG_LIBS)
+
 AM_CONDITIONAL(FFMPEG_PROVIDER, test "x$ffmpeg" = "xyes")
 AM_CONDITIONAL(BUILD_FFMPEG, test "x$ffmpeg" = "xyes")
 
