@@ -32,21 +32,22 @@ drivers_LTLIBRARIES = \
 
 libfusionsound_oss_la_SOURCES = oss.c
 
-libfusionsound_oss_la_LIBADD = $(DIRECT_LIBS)
+libfusionsound_oss_la_LIBADD = $(top_builddir)/lib/direct/libdirect.la $(top_builddir)/lib/fusionsound/libfusionsound.la
+
 
 libfusionsound_oss_la_LDFLAGS = -export-dynamic -avoid-version -module
 
 
 libfusionsound_alsa_la_SOURCES = alsa.c
 
-libfusionsound_alsa_la_LIBADD = $(DIRECT_LIBS) $(ALSA_LIBS)
+libfusionsound_alsa_la_LIBADD = $(top_builddir)/lib/direct/libdirect.la $(top_builddir)/lib/fusionsound/libfusionsound.la $(ALSA_LIBS)
 
 libfusionsound_alsa_la_LDFLAGS = -export-dynamic -avoid-version -module
 
 
 libfusionsound_wave_la_SOURCES = wave.c
 
-libfusionsound_wave_la_LIBADD = $(DIRECT_LIBS)
+libfusionsound_wave_la_LIBADD = $(top_builddir)/lib/direct/libdirect.la $(top_builddir)/lib/fusionsound/libfusionsound.la
 
 libfusionsound_wave_la_LDFLAGS = -export-dynamic -avoid-version -module
 

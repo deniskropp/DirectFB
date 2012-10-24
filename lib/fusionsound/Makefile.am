@@ -1,6 +1,6 @@
 ## Makefile.am for lib/fusionsound
 
-SUBDIRS = core media misc drivers
+SUBDIRS = core media misc
 
 INCLUDES = \
 	-I$(top_builddir)/include	\
