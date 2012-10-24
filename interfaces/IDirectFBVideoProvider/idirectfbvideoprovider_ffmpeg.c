@@ -91,6 +91,8 @@ Construct( IDirectFBVideoProvider *thiz,
 
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, FFmpeg )
 
+D_DEBUG_DOMAIN( FFMPEG, "VideoProvider/FFMPEG", "DirectFB VideoProvider FFmpeg" );
+
 typedef struct {
      DirectLink           link;
      AVPacket             packet;
@@ -812,7 +814,9 @@ static void
 IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_FFmpeg_data *data = thiz->priv;
-     
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      if (data->input.thread) {
           direct_thread_cancel( data->input.thread );
           direct_thread_join( data->input.thread );
@@ -918,11 +922,12 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetCapabilities( IDirectFBVideoProvider       *thiz,
                                                DFBVideoProviderCapabilities *caps )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (!caps)
           return DFB_INVARG;
-   
 
      *caps = DVCAPS_BASIC      | DVCAPS_SCALE    | DVCAPS_SPEED     |
              DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST | DVCAPS_SATURATION;
@@ -942,6 +947,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
                                                      DFBSurfaceDescription  *desc )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
      if (!desc)
@@ -1007,6 +1014,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetStreamDescription( IDirectFBVideoProvider *thiz,
                                                     DFBStreamDescription   *desc )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
      if (!desc)
@@ -1045,6 +1054,18 @@ IDirectFBVideoProvider_FFmpeg_GetStreamDescription( IDirectFBVideoProvider *thiz
 }
 
 static DFBResult
+IDirectFBVideoProvider_FFmpeg_SetDestination( IDirectFBVideoProvider *thiz,
+                                              IDirectFBSurface       *dest,
+                                              const DFBRectangle     *dest_rect )
+{
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
                                       IDirectFBSurface       *dest,
                                       const DFBRectangle     *dest_rect,
@@ -1053,7 +1074,9 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
 {
      IDirectFBSurface_data *dest_data;
      DFBRectangle           rect = { 0, 0, 0, 0 };
-     
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
      if (!dest)
@@ -1126,6 +1149,8 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
 static DFBResult
 IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (data->status == DVSTATE_STOP)
@@ -1175,6 +1200,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetStatus( IDirectFBVideoProvider *thiz,
                                          DFBVideoProviderStatus *status )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
      if (!status)
@@ -1194,7 +1221,9 @@ IDirectFBVideoProvider_FFmpeg_SeekTo( IDirectFBVideoProvider *thiz,
 {
      s64    time;
      double pos = 0.0;
-     
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
      if (seconds < 0.0)
@@ -1222,7 +1251,9 @@ IDirectFBVideoProvider_FFmpeg_GetPos( IDirectFBVideoProvider *thiz,
                                       double                 *seconds )
 {
      s64 position;
-                 
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (!seconds)
@@ -1237,9 +1268,11 @@ IDirectFBVideoProvider_FFmpeg_GetPos( IDirectFBVideoProvider *thiz,
 static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetLength( IDirectFBVideoProvider *thiz,
                                          double                 *seconds )
-{    
+{
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
-          
+
      if (!seconds)
           return DFB_INVARG;
      
@@ -1257,6 +1290,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetColorAdjustment( IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
      if (!adj)
@@ -1274,6 +1309,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
                                                   const DFBColorAdjustment *adj )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
      if (!adj)
@@ -1322,6 +1359,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_SetPlaybackFlags( IDirectFBVideoProvider        *thiz,
                                                 DFBVideoProviderPlaybackFlags  flags )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (flags & ~DVPLAY_LOOPING)
@@ -1339,6 +1378,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_SetSpeed( IDirectFBVideoProvider *thiz,
                                         double                  multiplier )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (multiplier < 0.0)
@@ -1377,6 +1418,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetSpeed( IDirectFBVideoProvider *thiz,
                                         double                 *ret_multiplier )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (!ret_multiplier)
@@ -1392,7 +1435,9 @@ IDirectFBVideoProvider_FFmpeg_SetVolume( IDirectFBVideoProvider *thiz,
                                          float                   level )
 {
      DFBResult ret = DFB_UNSUPPORTED;
-     
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (level < 0.0)
@@ -1413,6 +1458,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetVolume( IDirectFBVideoProvider *thiz,
                                          float                  *ret_level )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (!ret_level)
@@ -1429,7 +1476,9 @@ IDirectFBVideoProvider_FFmpeg_CreateEventBuffer( IDirectFBVideoProvider  *thiz,
 {
      IDirectFBEventBuffer *buffer;
      DFBResult             ret;
-     
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (!ret_buffer)
@@ -1454,7 +1503,9 @@ IDirectFBVideoProvider_FFmpeg_AttachEventBuffer( IDirectFBVideoProvider *thiz,
 {
      DFBResult  ret;
      EventLink *link;
-     
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (!buffer)
@@ -1485,7 +1536,9 @@ IDirectFBVideoProvider_FFmpeg_DetachEventBuffer( IDirectFBVideoProvider *thiz,
 {
      DFBResult  ret = DFB_ITEMNOTFOUND;
      EventLink *link;
-     
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (!buffer)
@@ -1512,6 +1565,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_EnableEvents( IDirectFBVideoProvider    *thiz,
                                             DFBVideoProviderEventType  mask )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (mask & ~DVPET_ALL)
@@ -1526,6 +1581,8 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_DisableEvents( IDirectFBVideoProvider    *thiz,
                                              DFBVideoProviderEventType  mask )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (mask & ~DVPET_ALL)
@@ -1548,6 +1605,8 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      unsigned char        buf[2048];
      unsigned int         len = 0;
      DFBResult            ret;
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
 
      ret = buffer->WaitForData( buffer, sizeof(buf) );
      if (ret == DFB_OK)
@@ -1598,7 +1657,9 @@ Construct( IDirectFBVideoProvider *thiz,
      unsigned char  buf[2048];
      unsigned int   len = 0;
      int            i;
-      
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_FFmpeg )
      
      data->ref    = 1;
@@ -1811,6 +1872,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->GetCapabilities       = IDirectFBVideoProvider_FFmpeg_GetCapabilities;
      thiz->GetSurfaceDescription = IDirectFBVideoProvider_FFmpeg_GetSurfaceDescription;
      thiz->GetStreamDescription  = IDirectFBVideoProvider_FFmpeg_GetStreamDescription;
+     thiz->SetDestination        = IDirectFBVideoProvider_FFmpeg_SetDestination;
      thiz->PlayTo                = IDirectFBVideoProvider_FFmpeg_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_FFmpeg_Stop;
      thiz->GetStatus             = IDirectFBVideoProvider_FFmpeg_GetStatus;
