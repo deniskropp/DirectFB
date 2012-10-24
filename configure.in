@@ -929,33 +929,6 @@ AM_CONDITIONAL(BUILD_CDDA, test "x$cdda" = "xyes")
 
 
 #
-# Check for FFmpeg
-#
-ffmpeg="no"
-AC_ARG_WITH(ffmpeg,
-  [  --with-ffmpeg            build FFmpeg music provider [[default=yes]]],
-    with_ffmpeg="$withval", with_ffmpeg="yes")
-    
-if test "x$with_ffmpeg" = "xyes"; then
-  AC_MSG_CHECKING([for libavcodec/libavformat])
-  if $PKG_CONFIG libavcodec libavformat libavutil; then
-    AC_MSG_RESULT(yes)
-    ffmpeg="yes"
-    FFMPEG_CFLAGS=`$PKG_CONFIG --cflags libavcodec libavformat libavutil`
-    FFMPEG_LIBS=`$PKG_CONFIG --libs libavcodec libavformat libavutil`
-  else
-    AC_MSG_RESULT(no)
-    AC_MSG_WARN([
-*** libavcodec/libavformat are required - FFmpeg music provider will not be built.])
-  fi
-fi
-
-AC_SUBST(FFMPEG_CFLAGS)
-AC_SUBST(FFMPEG_LIBS)
-AM_CONDITIONAL(BUILD_FFMPEG, test "x$ffmpeg" = "xyes")   
-
-
-#
 # Check for Playlist
 #
 AC_ARG_WITH(playlist,            
@@ -1300,7 +1273,7 @@ PNG=no
 AC_ARG_ENABLE(png,
               AC_HELP_STRING([--enable-png],
                              [build PNG image provider, @<:@default=yes@:>@]),
-              [], [enable_png=yes])
+              [], [enable_png="yes"])
 if test "$enable_png" = "yes"; then
   PKG_CHECK_MODULES([LIBPNG], [libpng >= 1.2.2], [PNG=yes], [PNG=no
     AC_MSG_WARN([*** PNG library not found. PNG image provider will not be built.])])
@@ -1321,8 +1294,8 @@ MNG=no
 
 AC_ARG_ENABLE(mngg,
               AC_HELP_STRING([--enable-mng],
-                             [build MNG image provider @<:@default=yes@:>@]),
-              [], [enable_mng=yes])
+                             [build MNG video provider @<:@default=no@:>@]),
+              [enable_mng="$enableval"], [enable_mng="no"])
 
 if test "$enable_mng" = "yes"; then
   if test -z "$LIBMNG"; then
@@ -1404,8 +1377,8 @@ AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
 dnl Imlib2 check
 imlib2="no"
 AC_ARG_ENABLE(imlib2,
-  [  --enable-imlib2         build Imlib2 image provider [[default=yes]]],
-  enable_imlib2="$enableval", enable_imlib2="yes")
+  [  --enable-imlib2         build Imlib2 image provider [[default=no]]],
+  enable_imlib2="$enableval", enable_imlib2="no")
 
 if test "x$enable_imlib2" = "xyes"; then
   AC_PATH_PROG(IMLIB2_CONFIG, imlib2-config, no)
@@ -1438,8 +1411,8 @@ SVGCAIRO_REQUIRED_VERSION=0.1.6
 
 svg="no"
 AC_ARG_ENABLE(svg,
-  [  --enable-svg            build SVG image provider [[default=yes]]],
-  enable_svg="$enableval", enable_svg="yes")
+  [  --enable-svg            build SVG image provider [[default=no]]],
+  enable_svg="$enableval", enable_svg="no")
 
 if test "x$enable_svg" = "xyes"; then
   AC_MSG_CHECKING(for libsvg-cairo >= $SVGCAIRO_REQUIRED_VERSION)
@@ -1535,7 +1508,7 @@ AM_CONDITIONAL(OPENQUICKTIME_PROVIDER, test "x$openquicktime" = xyes)
 avifile=no
 AC_ARG_ENABLE(avifile,
   [  --enable-avifile        build AviFile video provider [[default=no]]],
-  enable_avifile="$enableval", enable_avifile=no)
+  enable_avifile="$enableval", enable_avifile="no")
 
 if test x$enable_avifile = xyes; then
   AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
@@ -1561,7 +1534,7 @@ AM_CONDITIONAL(AVIFILE_PROVIDER, test x$avifile = xyes)
 mpeg3=no
 AC_ARG_ENABLE(libmpeg3,
   [  --enable-libmpeg3       build Libmpeg3 video provider [[default=no]]],
-  enable_mpeg3="$enableval", enable_mpeg3=no)
+  enable_mpeg3="$enableval", enable_mpeg3="no")
 
 if test x$enable_mpeg3 = xyes; then
   AC_CHECK_LIB(mpeg3, mpeg3_open,
@@ -1614,8 +1587,8 @@ AM_CONDITIONAL(FLASH_PROVIDER, test x$flash = xyes)
 #
 xine="no"
 AC_ARG_ENABLE(xine,
-  [  --enable-xine           build Xine video provider [[default=yes]]],
-  enable_xine="$enableval", enable_xine="yes")
+  [  --enable-xine           build Xine video provider [[default=no]]],
+  enable_xine="$enableval", enable_xine="no")
 
 if test "x$enable_xine" = "xyes"; then
 	AC_PATH_PROG(XINE_CONFIG, xine-config, no)
@@ -1654,8 +1627,8 @@ AM_CONDITIONAL(XINE_PROVIDER, test "x$xine" = "xyes")
 #
 xine_vdpau="no"
 AC_ARG_ENABLE(xine-vdpau,
-  [  --enable-xine-vdpau      build Xine/VDPAU video provider [[default=yes]]],
-  enable_xine_vdpau="$enableval", enable_xine_vdpau="yes")
+  [  --enable-xine-vdpau      build Xine/VDPAU video provider [[default=no]]],
+  enable_xine_vdpau="$enableval", enable_xine_vdpau="no")
 
 if test "x$enable_xine_vdpau" = "xyes"; then
 	AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
@@ -1699,8 +1672,8 @@ AM_CONDITIONAL(XINE_VDPAU_PROVIDER, test "x$xine_vdpau" = "xyes")
 #
 swfdec="no"
 AC_ARG_ENABLE(swfdec,
-  [  --enable-swfdec         build Swfdec (Flash decoder) video provider [[default=yes]]],
-  enable_swfdec="$enableval", enable_swfdec="yes")
+  [  --enable-swfdec         build Swfdec (Flash decoder) video provider [[default=no]]],
+  enable_swfdec="$enableval", enable_swfdec="no")
 
 if test "x$enable_swfdec" = "xyes"; then
     swfdec_pc="no"
@@ -1726,7 +1699,32 @@ AC_SUBST(SWFDEC_CFLAGS)
 AC_SUBST(SWFDEC_LIBS)
 
 AM_CONDITIONAL(SWFDEC_PROVIDER, test "x$swfdec" = "xyes")
+
+#
+# FFmpeg check
+#
+ffmpeg="no"
+AC_ARG_ENABLE(ffmpeg,
+  [  --enable-ffmpeg         build FFmpeg video provider [[default=no]]],
+  enable_ffmpeg="$enableval", enable_ffmpeg="no")
+
+if test "x$enable_ffmpeg" = "xyes"; then
+    AC_MSG_CHECKING([for libavcodec/libavformat/libavutil])
+    if $PKG_CONFIG libavcodec libavformat libavutil; then
+        AC_MSG_RESULT(yes)
+        ffmpeg="yes"
+        FFMPEG_CFLAGS=`$PKG_CONFIG --cflags libavcodec libavformat libavutil`
+        FFMPEG_LIBS=`$PKG_CONFIG --libs libavcodec libavformat libavutil`
+    else
+        AC_MSG_RESULT(no)
+        AC_MSG_WARN([
+*** libavcodec/libavformat/libavutil are required - FFmpeg video provider and music provider will not be built.])
+    fi
+fi
+
+
 AM_CONDITIONAL(FFMPEG_PROVIDER, test "x$ffmpeg" = "xyes")
+AM_CONDITIONAL(BUILD_FFMPEG, test "x$ffmpeg" = "xyes")
 
 
 
