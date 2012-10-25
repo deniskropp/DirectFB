@@ -2123,6 +2123,9 @@ direct_stream_create( const char    *filename,
               !strncmp( filename, "unsv://", 7 )) {
           ret = http_open( stream, filename+7 );
      }
+     else if (!strncmp( filename, "https://", 8 )) {
+          ret = http_open( stream, filename+8 );
+     }
      else if (!strncmp( filename, "ftp://", 6 )) {
           ret = ftp_open( stream, filename+6 );
      }
