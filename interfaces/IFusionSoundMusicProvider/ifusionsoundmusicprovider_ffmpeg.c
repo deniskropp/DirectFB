@@ -68,6 +68,8 @@ Construct( IFusionSoundMusicProvider *thiz,
 
 DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, FFmpeg )
 
+D_DEBUG_DOMAIN( FFMPEG, "MusicProvider/FFMPEG", "DirectFB MusicProvider FFmpeg" );
+
 /*
  * private data struct of IFusionSoundMusicProvider
  */
@@ -422,6 +424,8 @@ IFusionSoundMusicProvider_FFmpeg_Destruct( IFusionSoundMusicProvider *thiz )
 {
      IFusionSoundMusicProvider_FFmpeg_data *data = thiz->priv;
 
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      FFmpeg_Stop( data, true );
 
      if (data->codec)
@@ -465,6 +469,8 @@ IFusionSoundMusicProvider_FFmpeg_AddRef( IFusionSoundMusicProvider *thiz )
 static DirectResult
 IFusionSoundMusicProvider_FFmpeg_Release( IFusionSoundMusicProvider *thiz )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (--data->ref == 0)
@@ -477,6 +483,8 @@ static DirectResult
 IFusionSoundMusicProvider_FFmpeg_GetCapabilities( IFusionSoundMusicProvider   *thiz,
                                                   FSMusicProviderCapabilities *caps )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!caps)
@@ -493,6 +501,8 @@ static DirectResult
 IFusionSoundMusicProvider_FFmpeg_GetTrackDescription( IFusionSoundMusicProvider *thiz,
                                                       FSTrackDescription        *desc )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!desc)
@@ -536,6 +546,8 @@ static DirectResult
 IFusionSoundMusicProvider_FFmpeg_GetStreamDescription( IFusionSoundMusicProvider *thiz,
                                                        FSStreamDescription       *desc )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!desc)
@@ -555,6 +567,8 @@ static DirectResult
 IFusionSoundMusicProvider_FFmpeg_GetBufferDescription( IFusionSoundMusicProvider *thiz,
                                                 FSBufferDescription       *desc )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!desc)
@@ -696,6 +710,8 @@ IFusionSoundMusicProvider_FFmpeg_PlayToStream( IFusionSoundMusicProvider *thiz,
                                                IFusionSoundStream        *destination )
 {
      FSStreamDescription desc;
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
@@ -924,6 +940,8 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 {
      FSBufferDescription desc;
 
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!destination)
@@ -1013,6 +1031,8 @@ IFusionSoundMusicProvider_FFmpeg_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 static DirectResult
 IFusionSoundMusicProvider_FFmpeg_Stop( IFusionSoundMusicProvider *thiz )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      pthread_mutex_lock( &data->lock );
@@ -1046,6 +1066,8 @@ IFusionSoundMusicProvider_FFmpeg_SeekTo( IFusionSoundMusicProvider *thiz,
 {
      DirectResult ret;
      s64       time;
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
@@ -1083,6 +1105,8 @@ IFusionSoundMusicProvider_FFmpeg_GetPos( IFusionSoundMusicProvider *thiz,
 {
      s64 pos;
 
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!seconds)
@@ -1105,6 +1129,8 @@ static DirectResult
 IFusionSoundMusicProvider_FFmpeg_GetLength( IFusionSoundMusicProvider *thiz,
                                             double                    *seconds )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!seconds)
@@ -1124,6 +1150,8 @@ static DirectResult
 IFusionSoundMusicProvider_FFmpeg_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
                                                    FSMusicProviderPlaybackFlags  flags )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (flags & ~FMPLAY_LOOPING)
@@ -1139,6 +1167,8 @@ IFusionSoundMusicProvider_FFmpeg_WaitStatus( IFusionSoundMusicProvider *thiz,
                                              FSMusicProviderStatus      mask,
                                              unsigned int               timeout )
 {
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_FFmpeg )
 
      if (!mask || mask & ~FMSTATE_ALL)
@@ -1189,13 +1219,14 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
      AVProbeData    pd;
      AVInputFormat *format;
 
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+
      av_register_all();
 
      pd.filename = ctx->filename;
      pd.buf      = ctx->header;
      pd.buf_size = sizeof(ctx->header);
 
-     printf("probe\n");
      format = av_probe_input_format( &pd, 1 );
      if (format && format->name) {
           if (!strcmp( format->name, "asf" ) || // wma
@@ -1207,7 +1238,6 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
               !strcmp( format->name, "flac" ))
                return DR_OK;
      }
-     printf("unsupp\n");
 
      return DR_UNSUPPORTED;
 }
@@ -1222,6 +1252,8 @@ Construct( IFusionSoundMusicProvider *thiz,
      AVCodec       *c;
      unsigned char  buf[64];
      unsigned int   i, len = 0;
+
+     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
 
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_FFmpeg )
 
