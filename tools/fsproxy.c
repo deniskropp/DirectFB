@@ -51,7 +51,7 @@
 /*****************************************************************************/
 
 static bool         parse_command_line( int argc, char *argv[] );
-static DirectResult server_run();
+static DirectResult server_run( void );
 
 static bool keep_alive;
 
@@ -158,7 +158,7 @@ parse_command_line( int argc, char *argv[] )
 }
 
 static DirectResult
-server_run()
+server_run( void )
 {
      DirectResult  ret;
      VoodooServer *server;

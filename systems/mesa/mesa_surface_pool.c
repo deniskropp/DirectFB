@@ -297,7 +297,7 @@ mesaAllocateBuffer( CoreSurfacePool       *pool,
      alloc->bo = gbm_bo_create( mesa->gbm, surface->config.size.w, surface->config.size.h, GBM_BO_FORMAT_ARGB8888,
                                                                             GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING );
      alloc->handle = gbm_bo_get_handle( alloc->bo ).u32;
-     alloc->pitch  = gbm_bo_get_pitch( alloc->bo );
+     alloc->pitch  = gbm_bo_get_stride( alloc->bo );
 
      alloc->image  = eglCreateImageKHR( mesa->dpy, NULL, EGL_NATIVE_PIXMAP_KHR, alloc->bo, NULL );
 

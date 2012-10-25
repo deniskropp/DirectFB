@@ -78,7 +78,7 @@ init_fusiondale( int *argc, char **argv[] )
 }
 
 static void
-deinit_fusiondale()
+deinit_fusiondale( void )
 {
      if (dale)
           dale->Release( dale );
