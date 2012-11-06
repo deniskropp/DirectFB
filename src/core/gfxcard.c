@@ -586,7 +586,7 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      D_ASSUME( state->clip.x2 < dst->config.size.w );
      D_ASSUME( state->clip.y2 < dst->config.size.h );
 
-     cx2 = state->destination->config.size.w  - 1;
+     cx2 = state->destination->config.size.w - 1;
      cy2 = state->destination->config.size.h - 1;
 
      if (state->clip.x2 > cx2) {
@@ -781,8 +781,6 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                return false;
           }
 
-          state->flags |= CSF_SOURCE_LOCKED;
-
           /* if using a mask... */
           if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
                /* ...lock source mask for reading */
@@ -821,6 +819,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                }
 
                state->flags |= CSF_SOURCE2_LOCKED;
+               state->flags |= CSF_SOURCE_LOCKED;
           }
      }
 
@@ -845,7 +844,6 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           /* if source mask got locked this value is true */
           if (state->flags & CSF_SOURCE_MASK_LOCKED) {
                dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
-
                state->flags &= ~CSF_SOURCE_MASK_LOCKED;
           }
 
