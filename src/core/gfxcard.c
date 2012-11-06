@@ -1070,6 +1070,10 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
                /* ...force rechecking for all blitting functions. */
                state->checked &= ~DFXL_ALL_BLIT;
           }
+          else if (state->modified & SMF_SOURCE2) {
+               /* Otherwise force rechecking for blit2 function if source2 has been changed. */
+               state->checked &= ~DFXL_BLIT2;
+          }
 
           /* If drawing flags have been changed... */
           if (state->modified & SMF_DRAWING_FLAGS) {
@@ -1103,15 +1107,25 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      state->mod_hw   |= state->modified;
      state->modified  = 0;
 
-     if (fusion_skirmish_prevail( &dst->lock ))
-          return false;
+     /*
+      * Push our own identity for buffer locking calls (locality of accessor)
+      */
+     Core_PushIdentity( 0 );
 
-     dst_buffer = dfb_surface_get_buffer( dst, state->to );
+     if (fusion_skirmish_prevail( &dst->lock )) {
+          Core_PopIdentity();
+
+          return false;
+     }
+
+     dst_buffer = dfb_surface_get_buffer3( dst, state->to, state->destination->flips, state->to_eye );
 
      D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
 
      /* If back_buffer policy is 'system only' there's no acceleration available. */
-     if (dst_buffer->policy == CSP_SYSTEMONLY || /* Special check required if driver does not check itself. */
+     if ((dst_buffer->policy == CSP_SYSTEMONLY &&
+           !(card->caps.flags & CCF_READSYSMEM &&
+            card->caps.flags & CCF_WRITESYSMEM)) || /* Special check required if driver does not check itself. */
                                                  ( !(card->caps.flags & CCF_RENDEROPTS) &&
                                                     (state->render_options & DSRO_MATRIX) ))
      {
@@ -1121,6 +1135,8 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           state->accel   = DFXL_NONE;
           state->checked = DFXL_ALL;
 
+          Core_PopIdentity();
+
           return false;
      }
      else {
@@ -1128,17 +1144,23 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
           fusion_skirmish_dismiss( &dst->lock );
 
-          if (ret)
+          if (ret) {
+               Core_PopIdentity();
+
                return false;
+          }
 
           if (DFB_BLITTING_FUNCTION( accel )) {
                if (fusion_skirmish_prevail( &src->lock )) {
                     dfb_surface_unlock_buffer( dst, &state->dst );
+
+                    Core_PopIdentity();
+
                     return false;
                }
 
                /* If the front buffer policy of the source is 'system only' no accelerated blitting is available. */
-               src_buffer = dfb_surface_get_buffer( src, state->from );
+               src_buffer = dfb_surface_get_buffer3( src, state->from, state->destination->flips, state->to_eye );
 
                D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
 
@@ -1151,6 +1173,9 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
                if (!(state->accel & accel)) {
                     fusion_skirmish_dismiss( &src->lock );
                     dfb_surface_unlock_buffer( dst, &state->dst );
+
+                    Core_PopIdentity();
+
                     return false;
                }
 
@@ -1160,6 +1185,9 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
                if (ret) {
                     dfb_surface_unlock_buffer( dst, &state->dst );
+
+                    Core_PopIdentity();
+
                     return false;
                }
 
@@ -1171,6 +1199,9 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
                          D_DEBUG_AT( Core_Graphics, "Could not lock source mask for GPU access!\n" );
                          dfb_surface_unlock_buffer( src, &state->src );
                          dfb_surface_unlock_buffer( dst, &state->dst );
+
+                         Core_PopIdentity();
+
                          return false;
                     }
 
@@ -1191,6 +1222,9 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
                          dfb_surface_unlock_buffer( src, &state->src );
                          dfb_surface_unlock_buffer( dst, &state->dst );
+
+                         Core_PopIdentity();
+
                          return false;
                     }
 
@@ -1201,6 +1235,9 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           }
           else if (!(state->accel & accel)) {
                dfb_surface_unlock_buffer( dst, &state->dst );
+
+               Core_PopIdentity();
+
                return false;
           }
      }
@@ -1255,6 +1292,8 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
                dfb_surface_unlock_buffer( state->source2, &state->src2 );
                state->flags &= ~CSF_SOURCE2_LOCKED;
           }
+
+          Core_PopIdentity();
 
           return false;
      }
