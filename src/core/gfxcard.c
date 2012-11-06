@@ -809,8 +809,10 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                if (ret) {
                     D_DEBUG_AT( Core_Graphics, "Could not lock source2 for GPU access!\n" );
 
-                    if (state->flags & CSF_SOURCE_MASK_LOCKED)
-                         dfb_surface_unlock_buffer( src, &state->src_mask );
+                    if (state->flags & CSF_SOURCE_MASK_LOCKED) {
+                         dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
+                         state->flags &= ~CSF_SOURCE_MASK_LOCKED;
+                    }
 
                     dfb_surface_unlock_buffer( src, &state->src );
                     dfb_surface_unlock_buffer( dst, &state->dst );
@@ -845,6 +847,12 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
 
                state->flags &= ~CSF_SOURCE_MASK_LOCKED;
+          }
+
+          /* if source2 got locked this value is true */
+          if (state->flags & CSF_SOURCE2_LOCKED) {
+               dfb_surface_unlock_buffer( state->source2, &state->src2 );
+               state->flags &= ~CSF_SOURCE2_LOCKED;
           }
 
           Core_PopIdentity();
@@ -885,6 +893,359 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * If function hasn't been set or state is modified,
       * call the driver function to propagate the state changes.
       */
+     D_DEBUG_AT( Core_GfxState, "  -> mod_hw 0x%08x, set 0x%08x\n", state->mod_hw, state->set );
+     if (state->mod_hw || !(state->set & accel)) {
+          card->funcs.SetState( card->driver_data, card->device_data,
+                                &card->funcs, state, accel );
+
+          D_DEBUG_AT( Core_GfxState, "  => mod_hw 0x%08x, set 0x%08x\n", state->mod_hw, state->set );
+     }
+
+     if (state->modified != SMF_ALL)
+          D_ONCE( "USING OLD DRIVER! *** Use 'state->mod_hw' NOT 'modified'." );
+
+     state->modified = 0;
+
+     return true;
+}
+
+static bool
+dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
+{
+     CoreSurface            *dst;
+     CoreSurface            *src;
+     CoreSurfaceBuffer      *dst_buffer;
+     CoreSurfaceBuffer      *src_buffer;
+     DFBResult               ret;
+     DFBGraphicsCoreShared  *shared;
+     CoreSurfaceAccessFlags  access = CSAF_WRITE;
+     int                     cx2;
+     int                     cy2;
+
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+     D_MAGIC_ASSERT( state, CardState );
+     D_MAGIC_ASSERT_IF( state->destination, CoreSurface );
+     D_MAGIC_ASSERT_IF( state->source, CoreSurface );
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p, 0x%08x ) [%d,%d - %d,%d]\n",
+                 __FUNCTION__, state, accel, DFB_REGION_VALS( &state->clip ) );
+
+     D_ASSERT( state->clip.x2 >= state->clip.x1 );
+     D_ASSERT( state->clip.y2 >= state->clip.y1 );
+     D_ASSERT( state->clip.x1 >= 0 );
+     D_ASSERT( state->clip.y1 >= 0 );
+
+     if (DFB_BLITTING_FUNCTION(accel)) {
+          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  blitting %p -> %p\n", __FUNCTION__,
+                      state, accel, state->source, state->destination );
+     }
+     else {
+          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  drawing -> %p\n", __FUNCTION__,
+                      state, accel, state->destination );
+     }
+
+     if (state->clip.x1 < 0) {
+          state->clip.x1   = 0;
+          state->modified |= SMF_CLIP;
+     }
+
+     if (state->clip.y1 < 0) {
+          state->clip.y1   = 0;
+          state->modified |= SMF_CLIP;
+     }
+
+     D_DEBUG_AT( Core_GfxState, "  <- checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
+                 state->checked, state->accel, state->modified, state->mod_hw );
+
+     dst    = state->destination;
+     src    = state->source;
+     shared = card->shared;
+
+     /* Destination may have been destroyed. */
+     if (!dst) {
+          D_BUG( "no destination" );
+          return false;
+     }
+
+     /* Destination buffer may have been destroyed (suspended). i.e by a vt-switching */
+     if (dst->num_buffers == 0 )
+          return false;
+
+     /* Source may have been destroyed. */
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          if (!src) {
+               D_BUG( "no source" );
+               return false;
+          }
+
+          /* Mask may have been destroyed. */
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR) && !state->source_mask) {
+               D_BUG( "no mask" );
+               return false;
+          }
+
+          /* Source2 may have been destroyed. */
+          if (accel == DFXL_BLIT2 && !state->source2) {
+               D_BUG( "no source2" );
+               return false;
+          }
+     }
+
+     D_ASSUME( state->clip.x2 < dst->config.size.w );
+     D_ASSUME( state->clip.y2 < dst->config.size.h );
+
+     cx2 = state->destination->config.size.w - 1;
+     cy2 = state->destination->config.size.h - 1;
+
+     if (state->clip.x2 > cx2) {
+          state->clip.x2 = cx2;
+
+          if (state->clip.x1 > cx2)
+               state->clip.x1 = cx2;
+
+          state->modified |= SMF_CLIP;
+     }
+
+     if (state->clip.y2 > cy2) {
+          state->clip.y2 = cy2;
+
+          if (state->clip.y1 > cy2)
+               state->clip.y1 = cy2;
+
+          state->modified |= SMF_CLIP;
+     }
+
+     /* If there's no CheckState function there's no acceleration at all. */
+     if (!card->funcs.CheckState)
+          return false;
+
+     /* Check if this function has been disabled temporarily. */
+     if (state->disabled & accel)
+          return false;
+
+     /* If destination or blend functions have been changed... */
+     if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND | SMF_RENDER_OPTIONS)) {
+          /* ...force rechecking for all functions. */
+          state->checked = DFXL_NONE;
+     }
+     else {
+          /* If source/mask or blitting flags have been changed... */
+          if (state->modified & (SMF_SOURCE | SMF_BLITTING_FLAGS | SMF_SOURCE_MASK | SMF_SOURCE_MASK_VALS)) {
+               /* ...force rechecking for all blitting functions. */
+               state->checked &= ~DFXL_ALL_BLIT;
+          }
+
+          /* If drawing flags have been changed... */
+          if (state->modified & SMF_DRAWING_FLAGS) {
+               /* ...force rechecking for all drawing functions. */
+               state->checked &= ~DFXL_ALL_DRAW;
+          }
+     }
+
+     D_DEBUG_AT( Core_GfxState, "  -> checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
+                 state->checked, state->accel, state->modified, state->mod_hw );
+
+     /* If the function needs to be checked... */
+     if (!(state->checked & accel)) {
+          /* Unset unchecked functions. */
+          state->accel &= state->checked;
+
+          /* Call driver to (re)set the bit if the function is supported. */
+          card->funcs.CheckState( card->driver_data, card->device_data, state, accel );
+
+          /* Add the function to 'checked functions'. */
+          state->checked |= accel;
+
+          /* Add additional functions the driver might have checked, too. */
+          state->checked |= state->accel;
+     }
+
+     D_DEBUG_AT( Core_GfxState, "  -> checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
+                 state->checked, state->accel, state->modified, state->mod_hw );
+
+     /* Move modification flags to the set for drivers. */
+     state->mod_hw   |= state->modified;
+     state->modified  = 0;
+
+     if (fusion_skirmish_prevail( &dst->lock ))
+          return false;
+
+     dst_buffer = dfb_surface_get_buffer( dst, state->to );
+
+     D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
+
+     /* If back_buffer policy is 'system only' there's no acceleration available. */
+     if (dst_buffer->policy == CSP_SYSTEMONLY || /* Special check required if driver does not check itself. */
+                                                 ( !(card->caps.flags & CCF_RENDEROPTS) &&
+                                                    (state->render_options & DSRO_MATRIX) ))
+     {
+          fusion_skirmish_dismiss( &dst->lock );
+
+          /* Clear 'accelerated functions'. */
+          state->accel   = DFXL_NONE;
+          state->checked = DFXL_ALL;
+
+          return false;
+     }
+     else {
+          ret = dfb_surface_buffer_lock( dst_buffer, CSAID_GPU, access, &state->dst );
+
+          fusion_skirmish_dismiss( &dst->lock );
+
+          if (ret)
+               return false;
+
+          if (DFB_BLITTING_FUNCTION( accel )) {
+               if (fusion_skirmish_prevail( &src->lock )) {
+                    dfb_surface_unlock_buffer( dst, &state->dst );
+                    return false;
+               }
+
+               /* If the front buffer policy of the source is 'system only' no accelerated blitting is available. */
+               src_buffer = dfb_surface_get_buffer( src, state->from );
+
+               D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
+
+               if (src_buffer->policy == CSP_SYSTEMONLY && !(card->caps.flags & CCF_READSYSMEM)) {
+                    /* Clear 'accelerated blitting functions'. */
+                    state->accel   &= ~DFXL_ALL_BLIT;
+                    state->checked |=  DFXL_ALL_BLIT;
+               }
+
+               if (!(state->accel & accel)) {
+                    fusion_skirmish_dismiss( &src->lock );
+                    dfb_surface_unlock_buffer( dst, &state->dst );
+                    return false;
+               }
+
+               ret = dfb_surface_buffer_lock( src_buffer, CSAID_GPU, CSAF_READ, &state->src );
+
+               fusion_skirmish_dismiss( &src->lock );
+
+               if (ret) {
+                    dfb_surface_unlock_buffer( dst, &state->dst );
+                    return false;
+               }
+
+               /* if using a mask... */
+               if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+                    /* ...lock source mask for reading */
+                    ret = dfb_surface_lock_buffer( state->source_mask, state->from, CSAID_GPU, CSAF_READ, &state->src_mask );
+                    if (ret) {
+                         D_DEBUG_AT( Core_Graphics, "Could not lock source mask for GPU access!\n" );
+                         dfb_surface_unlock_buffer( src, &state->src );
+                         dfb_surface_unlock_buffer( dst, &state->dst );
+                         return false;
+                    }
+
+                    state->flags |= CSF_SOURCE_MASK_LOCKED;
+               }
+
+               /* if using source2... */
+               if (accel == DFXL_BLIT2) {
+                    /* ...lock source2 for reading */
+                    ret = dfb_surface_lock_buffer( state->source2, state->from, CSAID_GPU, CSAF_READ, &state->src2 );
+                    if (ret) {
+                         D_DEBUG_AT( Core_Graphics, "Could not lock source2 for GPU access!\n" );
+
+                         if (state->flags & CSF_SOURCE_MASK_LOCKED) {
+                              dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
+                              state->flags &= ~CSF_SOURCE_MASK_LOCKED;
+                         }
+
+                         dfb_surface_unlock_buffer( src, &state->src );
+                         dfb_surface_unlock_buffer( dst, &state->dst );
+                         return false;
+                    }
+
+                    state->flags |= CSF_SOURCE2_LOCKED;
+               }
+
+               state->flags |= CSF_SOURCE_LOCKED;
+          }
+          else if (!(state->accel & accel)) {
+               dfb_surface_unlock_buffer( dst, &state->dst );
+               return false;
+          }
+     }
+
+     D_DEBUG_AT( Core_GfxState, "  => checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
+                 state->checked, state->accel, state->modified, state->mod_hw );
+
+     /* find locking flags */
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                      DSBLIT_BLEND_COLORALPHA   |
+                                      DSBLIT_DST_COLORKEY))
+               access |= CSAF_READ;
+     }
+     else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
+          access |= CSAF_READ;
+
+     if (DFB_BLITTING_FUNCTION(accel)) {
+          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  blitting %p -> %p\n", __FUNCTION__,
+                      state, accel, state->source, state->destination );
+     }
+     else {
+          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  drawing -> %p\n", __FUNCTION__,
+                      state, accel, state->destination );
+     }
+
+     /*
+      * Make sure that state setting with subsequent command execution
+      * isn't done by two processes simultaneously.
+      *
+      * This will timeout if the hardware is locked by another party with
+      * the first argument being true (e.g. DRI).
+      */
+     if (dfb_gfxcard_lock( GDLF_NONE )) {
+          D_DERROR( ret, "Core/Graphics: Could not lock GPU!\n" );
+
+          dfb_surface_unlock_buffer( dst, &state->dst );
+
+          if (state->flags & CSF_SOURCE_LOCKED) {
+               dfb_surface_unlock_buffer( src, &state->src );
+               state->flags &= ~CSF_SOURCE_LOCKED;
+          }
+
+          /* if source mask got locked this value is true */
+          if (state->flags & CSF_SOURCE_MASK_LOCKED) {
+               dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
+               state->flags &= ~CSF_SOURCE_MASK_LOCKED;
+          }
+
+          /* if source2 got locked this value is true */
+          if (state->flags & CSF_SOURCE2_LOCKED) {
+               dfb_surface_unlock_buffer( state->source2, &state->src2 );
+               state->flags &= ~CSF_SOURCE2_LOCKED;
+          }
+
+          return false;
+     }
+
+     /* if we are switching to another state... */
+     if (state != shared->state || state->fusion_id != shared->holder) {
+          D_DEBUG_AT( Core_GfxState, "  -> switch from %p [%lu] to %p [%lu]\n",
+                      shared->state, shared->holder, state, state->fusion_id );
+
+          /* ...set all modification bits and clear 'set functions' */
+          state->mod_hw |= SMF_ALL;
+          state->set     = 0;
+
+          shared->state  = state;
+          shared->holder = state->fusion_id;
+     }
+
+     dfb_state_update( state, state->flags & (CSF_SOURCE_LOCKED | CSF_SOURCE_MASK_LOCKED) );
+
+     D_DEBUG_AT( Core_GfxState, "  -> mod_hw 0x%08x, modified 0x%08x\n", state->mod_hw, state->modified );
+
+     /* Move modification flags to the set for drivers. */
+     state->mod_hw   |= state->modified;
+     state->modified  = SMF_ALL;
+
+     /* If function hasn't been set or state is modified, call the driver function to propagate the state changes. */
      D_DEBUG_AT( Core_GfxState, "  -> mod_hw 0x%08x, set 0x%08x\n", state->mod_hw, state->set );
      if (state->mod_hw || !(state->set & accel)) {
           card->funcs.SetState( card->driver_data, card->device_data,
@@ -1044,8 +1405,7 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
           DFBRectangle rect;
 
           /* Check for acceleration and setup execution. */
-          if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-              dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+          if (dfb_gfxcard_state_check_acquire( state, DFXL_FILLRECTANGLE ))
           {
                /*
                 * Now everything is prepared for execution of the
@@ -1265,8 +1625,7 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
          !dfb_clip_needed( &state->clip, rect ))
      {
           if (rect->w <= card->limits.dst_max.w && rect->h <= card->limits.dst_max.h &&
-              dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
-              dfb_gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE ))
+              dfb_gfxcard_state_check_acquire( state, DFXL_DRAWRECTANGLE ))
           {
                hw = card->funcs.DrawRectangle( card->driver_data,
                                                card->device_data, rect );
@@ -1283,8 +1642,7 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
                return;
           }
 
-          if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-              dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+          if (dfb_gfxcard_state_check_acquire( state, DFXL_FILLRECTANGLE ))
           {
                for (; i<num; i++) {
                     hw = rects[i].w <= card->limits.dst_max.w && rects[i].h <= card->limits.dst_max.h
@@ -1364,8 +1722,7 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_DRAWLINE ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_DRAWLINE ))
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_DRAWLINE ))
      {
           for (; i<num_lines; i++) {
                if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
@@ -1418,8 +1775,7 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_FILLRECTANGLE ))
      {
           if (card->funcs.BatchFill) {
                unsigned int done = 0;   // FIXME: when rectangles are clipped this number does not correlate to 'num'
@@ -1750,8 +2106,7 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_FILLTRIANGLE ))
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
               !D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRIANGLE ))
@@ -1805,8 +2160,7 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
 
           /* try hardware accelerated rectangle filling */
           if (!(card->caps.flags & CCF_NOTRIEMU) &&
-              dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-              dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
+              dfb_gfxcard_state_check_acquire( state, DFXL_FILLRECTANGLE ))
           {
                for (; i < num; i++) {
                     DFBTriangle tri = tris[i];
@@ -1860,8 +2214,7 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_FILLTRAPEZOID ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_FILLTRAPEZOID ))
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_FILLTRAPEZOID ))
      {
           if (D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) ||
               D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRAPEZOID ) ||
@@ -1883,8 +2236,7 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
      if (!hw && i < num) {
           /* otherwise use two triangles */
 
-          if ( dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
-               dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
+          if (dfb_gfxcard_state_check_acquire( state, DFXL_FILLTRIANGLE ))
           {
                for (; i < num; i++) {
                     bool tri1_failed = true;
@@ -2233,8 +2585,7 @@ static void dfb_gfxcard_blit_locked( DFBRectangle *rect,
           return;
      }
 
-     if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_BLIT ))
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
               !D_FLAGS_IS_SET( card->caps.clip, DFXL_BLIT ))
@@ -2397,8 +2748,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_BLIT ))
      {
           if (card->funcs.BatchBlit) {
                unsigned int done = 0;   // FIXME: when rectangles are clipped this number does not correlate to 'num'
@@ -2588,8 +2938,7 @@ void dfb_gfxcard_batchblit2( DFBRectangle *rects, DFBPoint *points, DFBPoint *po
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_BLIT2 ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_BLIT2 ))
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_BLIT2 ))
      {
           for (; i<num; i++) {
                if ((state->render_options & DSRO_MATRIX) ||
@@ -2711,8 +3060,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
 
      odx = dx1;
 
-     if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_BLIT )) {
           bool hw = true;
 
           for (; dy1 < dy2; dy1 += rect->h) {
@@ -2870,8 +3218,7 @@ void dfb_gfxcard_batchstretchblit( DFBRectangle *srects, DFBRectangle *drects,
           DFBRectangle *drect = &drects[i];
 
           if (!acquired) {
-               if (!dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT )
-                   || !dfb_gfxcard_state_acquire( state, DFXL_STRETCHBLIT ))
+               if (!dfb_gfxcard_state_check_acquire( state, DFXL_STRETCHBLIT ))
                     break;
 
                acquired = true;
@@ -3006,8 +3353,7 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
      dfb_state_start_drawing( state, card );
 
      if ((D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) || D_FLAGS_IS_SET( card->caps.clip, DFXL_TEXTRIANGLES )) &&
-         dfb_gfxcard_state_check( state, DFXL_TEXTRIANGLES ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_TEXTRIANGLES ))
+         dfb_gfxcard_state_check_acquire( state, DFXL_TEXTRIANGLES ))
      {
           hw = card->funcs.TextureTriangles( card->driver_data,
                                              card->device_data,
