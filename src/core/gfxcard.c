@@ -2409,8 +2409,7 @@ dfb_gfxcard_fillquadrangles( DFBPoint *points, int num, CardState *state )
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_FILLQUADRANGLE ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_FILLQUADRANGLE ))
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_FILLQUADRANGLE ))
      {
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
               !D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLQUADRANGLE ) /*&&
@@ -2483,8 +2482,7 @@ void dfb_gfxcard_draw_mono_glyphs( const void                   *glyph[],
      /* Signal beginning of sequence of operations if not already done. */
      dfb_state_start_drawing( state, card );
 
-     if (dfb_gfxcard_state_check( state, DFXL_DRAWMONOGLYPH ) &&
-         dfb_gfxcard_state_acquire( state, DFXL_DRAWMONOGLYPH ))
+     if (dfb_gfxcard_state_check_acquire( state, DFXL_DRAWMONOGLYPH ))
      {
           for( i = 0; i < num; i++ ) {
                const DFBMonoGlyphAttributes *attri = &attributes[i];
