@@ -765,6 +765,9 @@ IDirectFBDisplayLayer_EnableCursor( IDirectFBDisplayLayer *thiz, int enable )
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
+     if (!data->stack)
+          return DFB_OK;
+
      return CoreWindowStack_CursorEnable( data->stack, enable );
 }
 
@@ -779,6 +782,9 @@ IDirectFBDisplayLayer_GetCursorPosition( IDirectFBDisplayLayer *thiz,
 
      if (!x && !y)
           return DFB_INVARG;
+
+     if (!data->stack)
+          return DFB_ACCESSDENIED;
 
      ret = CoreWindowStack_CursorGetPosition( data->stack, &point );
      if (ret)
@@ -803,6 +809,9 @@ IDirectFBDisplayLayer_WarpCursor( IDirectFBDisplayLayer *thiz, int x, int y )
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
+     if (!data->stack)
+          return DFB_OK;
+
      return CoreWindowStack_CursorWarp( data->stack, &point );
 }
 
@@ -819,6 +828,9 @@ IDirectFBDisplayLayer_SetCursorAcceleration( IDirectFBDisplayLayer *thiz,
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
+
+     if (!data->stack)
+          return DFB_OK;
 
      return CoreWindowStack_CursorSetAcceleration( data->stack, numerator,
                                                    denominator, threshold );
@@ -841,6 +853,9 @@ IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
+     if (!data->stack)
+          return DFB_OK;
+
      shape_data = (IDirectFBSurface_data*)shape->priv;
 
      if (hot_x < 0  ||
@@ -862,6 +877,9 @@ IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
+
+     if (!data->stack)
+          return DFB_OK;
 
      return CoreWindowStack_CursorSetOpacity( data->stack, opacity );
 }
