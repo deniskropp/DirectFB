@@ -680,8 +680,6 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
                client->renderer->StretchBlit( srects, drects, num );
           else {
                if (num == 1 && srects[0].w == drects[0].w && srects[0].h == drects[0].h) {
-                    CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
-
                     DFBPoint point = { drects[0].x, drects[0].y };
 
                     // FIXME: will overwrite rects, points
