@@ -165,8 +165,10 @@ typedef struct {
           bool                      seeked;
      
           IDirectFBSurface         *dest;
+          int                       dest_w;
+          int                       dest_h;
           DFBRectangle              rect;
-          
+
           AVFrame                  *src_frame;
           
           DVCColormap              *colormap;
@@ -339,6 +341,56 @@ flush_packets( PacketQueue *queue )
 
 /*****************************************************************************/
 
+static bool
+clip_rectangle( int x1, int y1, int x2, int y2, int *x, int *y, int *w, int *h )
+{
+     if ((x1 >= *x + *w) || (x2 < *x) || (y1 >= *y + *h) || (y2 < *y))
+          return false;
+
+     if (x1 > *x) {
+          *w += *x - x1;
+          *x = x1;
+     }
+
+     if (y1 > *y) {
+          *h += *y - y1;
+          *y = y1;
+     }
+
+     if (x2 < *x + *w - 1)
+          *w = x2 - *x + 1;
+
+     if (y2 < *y + *h - 1)
+          *h = y2 - *y + 1;
+
+     return true;
+}
+
+static void
+clip_stretchblit( int x1, int y1, int x2, int y2, int *sx, int *sy, int *sw, int *sh, int *dx, int *dy, int *dw, int *dh )
+{
+     int ox = *dx;
+     int oy = *dy;
+     int ow = *dw;
+     int oh = *dh;
+
+     clip_rectangle( x1, y1, x2, y2, dx, dy, dw, dh );
+
+     if (*dx != ox)
+          *sx += (int)( (*dx - ox) * (*sw / (float)ow) );
+
+     if (*dy != oy)
+          *sy += (int)( (*dy - oy) * (*sh / (float)oh) );
+
+     if (*dw != ow)
+          *sw = (int)( *sw * (*dw / (float)ow) );
+
+     if (*dh != oh)
+          *sh = (int)( *sh * (*dh / (float)oh) );
+}
+
+/*****************************************************************************/
+
 static void
 dispatch_event( IDirectFBVideoProvider_FFmpeg_data *data,
                 DFBVideoProviderEventType           type )
@@ -452,6 +504,7 @@ FFmpegInput( DirectThread *self, void *arg )
                     
                     flush_packets( &data->video.queue );
                     flush_packets( &data->audio.queue );
+
                     if (!data->input.buffering &&
                         url_is_streamed( data->context->pb )) {
                          data->input.buffering = true;
@@ -598,27 +651,40 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
 {
      AVFrame    *src_frame = data->video.src_frame;
      DVCPicture  picture;
-     
+
+     int src_x = 0;
+     int src_y = 0;
+     int src_w = data->video.ctx->width;
+     int src_h = data->video.ctx->height;
+     int result_x = data->video.rect.x;
+     int result_y = data->video.rect.y;
+     int result_w = data->video.rect.w;
+     int result_h = data->video.rect.h;
+
+     D_DEBUG_AT( FFMPEG, "%s: want to put surface %d,%d - %d,%d into dest layer size %d,%d\n", __FUNCTION__, result_x, result_y, result_w, result_h, data->video.dest_w, data->video.dest_h );
+
+     clip_stretchblit( 0, 0, data->video.dest_w - 1, data->video.dest_h - 1, &src_x, &src_y, &src_w, &src_h, &result_x, &result_y, &result_w, &result_h );
+
+     D_DEBUG_AT( FFMPEG, "%s clip src: want to put surface src %d,%d - %d,%d to dest %d,%d - %d,%d\n", __FUNCTION__, src_x, src_y, src_w, src_h, result_x, result_y, result_w, result_h );
+
      picture.format = ff2dvc_pixelformat( data->video.ctx->pix_fmt );
      picture.width = data->video.ctx->width;
      picture.height = data->video.ctx->height;
-     
+
      picture.base[0] = src_frame->data[0];
      picture.base[1] = src_frame->data[1];
      picture.base[2] = src_frame->data[2];
      picture.pitch[0] = src_frame->linesize[0];
      picture.pitch[1] = src_frame->linesize[1];
      picture.pitch[2] = src_frame->linesize[2];
-     
+
      picture.palette = NULL;
      picture.palette_size = 0;
-     
+
      picture.separated = false;
      picture.premultiplied = false;
-     
-     dvc_scale_to_surface( &picture, data->video.dest, 
-                           data->video.rect.w ? &data->video.rect : NULL,
-                           data->video.colormap );
+
+     dvc_scale_to_surface( &picture, data->video.dest, data->video.rect.w ? &data->video.rect : NULL, data->video.colormap );
 }
 
 static void*
@@ -1062,9 +1128,15 @@ IDirectFBVideoProvider_FFmpeg_SetDestination( IDirectFBVideoProvider *thiz,
                                               IDirectFBSurface       *dest,
                                               const DFBRectangle     *dest_rect )
 {
-     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+     D_DEBUG_AT( FFMPEG, "%s: %d,%d - %d,%d\n", __FUNCTION__, dest_rect->x, dest_rect->y, dest_rect->w, dest_rect->h );
 
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
+
+     pthread_mutex_lock( &data->input.lock );
+
+     data->video.rect = *dest_rect;
+
+     pthread_mutex_unlock( &data->input.lock );
 
      return DFB_OK;
 }
@@ -1079,7 +1151,7 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      IDirectFBSurface_data *dest_data;
      DFBRectangle           rect = { 0, 0, 0, 0 };
 
-     D_DEBUG_AT( FFMPEG, "%s:\n", __FUNCTION__ );
+     D_DEBUG_AT( FFMPEG, "%s: %d,%d - %d,%d\n", __FUNCTION__, dest_rect->x, dest_rect->y, dest_rect->w, dest_rect->h );
 
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
@@ -1117,6 +1189,8 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      data->video.rect = rect;
      data->callback   = callback;
      data->ctx        = ctx;
+
+     dest->GetSize( dest, &data->video.dest_w, &data->video.dest_h );
 
      if (data->status == DVSTATE_FINISHED) {
           data->input.seek_time = 0;
