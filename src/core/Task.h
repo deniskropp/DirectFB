@@ -367,7 +367,7 @@ protected:
      virtual void        Finalise();
      virtual std::string Describe();
 
-private:
+public://private:
      std::vector<SurfaceAllocationAccess>    accesses;
 };
 
