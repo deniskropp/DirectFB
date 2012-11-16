@@ -557,6 +557,7 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 
      /* Destination buffer may have been destroyed (suspended). i.e by a vt-switching */
      if (dst->num_buffers == 0 ) {
+          D_DEBUG_AT( Core_GfxState, "  -> no buffers in destination surface\n" );
           return false;
      }
 
@@ -611,14 +612,18 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      /*
       * If there's no CheckState function there's no acceleration at all.
       */
-     if (!card->funcs.CheckState)
+     if (!card->funcs.CheckState) {
+          D_DEBUG_AT( Core_GfxState, "  -> no acceleration available\n" );
           return false;
+     }
 
      /*
       * Check if this function has been disabled temporarily.
       */
-     if (state->disabled & accel)
+     if (state->disabled & accel) {
+          D_DEBUG_AT( Core_GfxState, "  -> acceleration disabled\n" );
           return false;
+     }
 
      /* If destination or blend functions have been changed... */
      if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND | SMF_RENDER_OPTIONS)) {
