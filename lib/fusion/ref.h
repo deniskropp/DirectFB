@@ -139,6 +139,8 @@ DirectResult FUSION_API fusion_ref_watch        (FusionRef  *ref,
 DirectResult FUSION_API fusion_ref_inherit      (FusionRef *ref,
                                                  FusionRef *from);
 
+DirectResult FUSION_API fusion_ref_set_sync     (FusionRef *ref);
+
 /*
  * Deinitialize.
  * Can be called after successful zero_lock or zero_trylock
