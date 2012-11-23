@@ -920,8 +920,8 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
      if (data->video.src_frame)
           av_free( data->video.src_frame );
 
-     if (data->video.dest)
-          data->video.dest->Release( data->video.dest );
+     //if (data->video.dest)
+     //     data->video.dest->Release( data->video.dest );
 
      if (data->video.colormap)
           D_FREE( data->video.colormap );
@@ -1180,10 +1180,10 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
 
-     if (data->video.dest)
-          data->video.dest->Release( data->video.dest );
+     //if (data->video.dest)
+     //     data->video.dest->Release( data->video.dest );
 
-     dest->AddRef( dest );
+     //dest->AddRef( dest );
 
      data->video.dest = dest;
      data->video.rect = rect;
@@ -1253,7 +1253,10 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
           direct_thread_destroy( data->video.thread );
           data->video.thread = NULL;
      }
-     
+
+     data->video.pts = 0;
+     data->audio.pts = 0;
+
      if (data->audio.thread) {
           pthread_mutex_lock( &data->audio.lock );
           pthread_cond_signal( &data->audio.cond );
@@ -1263,13 +1266,13 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
           data->audio.thread = NULL;
      }
      
-     if (data->video.dest) {
-          data->video.dest->Release( data->video.dest );
-          data->video.dest = NULL;
-     }
+     //if (data->video.dest) {
+     //     data->video.dest->Release( data->video.dest );
+     //     data->video.dest = NULL;
+     //}
 
      dispatch_event( data, DVPET_STOPPED );
-     
+
      pthread_mutex_unlock( &data->input.lock );
      
      return DFB_OK;
@@ -1796,7 +1799,7 @@ Construct( IDirectFBVideoProvider *thiz,
           IDirectFBVideoProvider_FFmpeg_Destruct( thiz );
           return DFB_FAILURE;
      }
-       
+
      if (av_find_stream_info( data->context ) < 0) {
           D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
                    "couldn't find stream info!\n" );

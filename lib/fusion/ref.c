@@ -1171,6 +1171,15 @@ fusion_ref_init (FusionRef         *ref,
 }
 
 DirectResult
+fusion_ref_init2(FusionRef         *ref,
+                 const char        *name,
+                 bool               user,
+                 const FusionWorld *world)
+{
+     return fusion_ref_init( ref, name, world );
+}
+
+DirectResult
 fusion_ref_set_name (FusionRef  *ref,
                      const char *name)
 {
