@@ -1524,7 +1524,7 @@ dfb_core_initialize( CoreDFB *core )
      shared = core->shared;
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
-     ret = fusion_shm_pool_create( core->world, "DirectFB Data Pool", 0x10000000,
+     ret = fusion_shm_pool_create( core->world, "DirectFB Data Pool", 0x1000000,
                                    fusion_config->debugshm, &shared->shmpool_data );
      if (ret)
           return ret;
