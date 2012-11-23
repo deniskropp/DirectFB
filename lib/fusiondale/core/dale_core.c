@@ -495,6 +495,9 @@ fd_core_arena_initialize( FusionArena *arena,
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
 
+     /* Let others enter the world. */
+     fusion_world_activate( core->world );
+
      return DR_OK;
 }
 
