@@ -824,8 +824,9 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                }
 
                state->flags |= CSF_SOURCE2_LOCKED;
-               state->flags |= CSF_SOURCE_LOCKED;
           }
+
+          state->flags |= CSF_SOURCE_LOCKED;
      }
 
      /*
