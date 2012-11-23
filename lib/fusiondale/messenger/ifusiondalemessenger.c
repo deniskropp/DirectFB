@@ -38,6 +38,8 @@
 
 #include "ifusiondalemessenger.h"
 
+D_DEBUG_DOMAIN( IFusionDale_Messenger, "IFusionDaleMessenger", "IFusionDaleMessenger" );
+
 /**********************************************************************************************************************/
 
 static void
@@ -83,6 +85,8 @@ IFusionDaleMessenger_RegisterEvent( IFusionDaleMessenger *thiz,
      CoreMessengerEvent *event;
 
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
+
+     D_DEBUG_AT( IFusionDale_Messenger, "%s()\n", __FUNCTION__ );
 
      /* Check arguments. */
      if (!name || !ret_id)
@@ -135,6 +139,8 @@ IFusionDaleMessenger_UnregisterEvent( IFusionDaleMessenger *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
 
+     D_DEBUG_AT( IFusionDale_Messenger, "%s()\n", __FUNCTION__ );
+
      /* Check arguments */
      if (!event_id)
           return DR_INVARG;
@@ -160,6 +166,8 @@ IFusionDaleMessenger_IsEventRegistered( IFusionDaleMessenger *thiz,
      DirectResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
+
+     D_DEBUG_AT( IFusionDale_Messenger, "%s()\n", __FUNCTION__ );
 
      /* Check arguments */
      if (!name)
@@ -187,7 +195,10 @@ IFusionDaleMessenger_RegisterListener( IFusionDaleMessenger     *thiz,
                                        FDMessengerListenerID    *ret_id )
 {
      DirectResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
+
+     D_DEBUG_AT( IFusionDale_Messenger, "%s()\n", __FUNCTION__ );
 
      /* Check arguments */
      if (!event_id || !callback || !ret_id)
@@ -211,7 +222,10 @@ IFusionDaleMessenger_UnregisterListener( IFusionDaleMessenger  *thiz,
                                          FDMessengerListenerID  listener_id )
 {
      DirectResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
+
+     D_DEBUG_AT( IFusionDale_Messenger, "%s()\n", __FUNCTION__ );
 
      /* Check arguments */
      if (!listener_id)
@@ -238,6 +252,8 @@ IFusionDaleMessenger_SendSimpleEvent( IFusionDaleMessenger *thiz,
      DirectResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
+
+     D_DEBUG_AT( IFusionDale_Messenger, "%s()\n", __FUNCTION__ );
 
      /* Check arguments */
      if (!event_id)
@@ -268,6 +284,8 @@ IFusionDaleMessenger_SendEvent( IFusionDaleMessenger *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
 
+     D_DEBUG_AT( IFusionDale_Messenger, "%s()\n", __FUNCTION__ );
+
      /* Check arguments */
      if (!event_id || !data_ptr || !data_size)
           return DR_INVARG;
@@ -295,6 +313,8 @@ IFusionDaleMessenger_AllocateData( IFusionDaleMessenger  *thiz,
      void         *data_ptr;
 
      DIRECT_INTERFACE_GET_DATA(IFusionDaleMessenger)
+
+     D_DEBUG_AT( IFusionDale_Messenger, "%s()\n", __FUNCTION__ );
 
      /* Check arguments */
      if (!data_size || !ret_data)
@@ -329,6 +349,8 @@ IFusionDaleMessenger_Construct( IFusionDaleMessenger *thiz,
 
      /* Allocate interface data. */
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionDaleMessenger );
+
+     D_DEBUG_AT( IFusionDale_Messenger, "%s()\n", __FUNCTION__ );
 
      /* Increase messenger's reference counter. */
      ret = fd_messenger_ref( messenger );
