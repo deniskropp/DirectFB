@@ -50,7 +50,6 @@ typedef struct {
      DirectMap    *event_map_listeners;
 } IFusionDaleMessenger_One_data;
 
-DirectResult IFusionDaleMessenger_Construct( IFusionDaleMessenger *thiz, void **self );
 
 #endif
 

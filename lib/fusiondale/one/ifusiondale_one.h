@@ -56,6 +56,8 @@ typedef struct {
      OneThread            *thread;
      
      DirectTLS             tlshm_key;
+
+     CoreDale             *core;
 } IFusionDale_One_data;
 
 #define FUSIONDALE_NAME_LENGTH 512

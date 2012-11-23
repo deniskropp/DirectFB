@@ -37,9 +37,14 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
+
 #include <One/One.h>
 
+#include <core/messenger.h>
+
 #include <ifusiondale.h>
+#include <messenger/ifusiondalemessenger.h>
 
 #include "ifusiondale_one.h"
 #include "icoma_one.h"
@@ -201,7 +206,13 @@ IFusionDale_One_Destruct( IFusionDale *thiz )
 
      One_Shutdown();
 
-     IFusionDale_Destruct( thiz );
+     if (data->core)
+          fd_core_destroy( data->core, false );
+
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
+
+     if (ifusiondale_singleton == thiz)
+          ifusiondale_singleton = NULL;
 }
 
 /**************************************************************************************************/
@@ -264,29 +275,58 @@ static DirectResult
 IFusionDale_One_CreateMessenger( IFusionDale           *thiz,
                                  IFusionDaleMessenger **ret_interface )
 {
-     DirectResult          ret;
-     DirectInterfaceFuncs *funcs;
-     void                 *interface_ptr;
+     D_DEBUG_AT( IFusionDale_One, "%s()\n", __FUNCTION__ );
 
-     DIRECT_INTERFACE_GET_DATA(IFusionDale_One)
+     if (fusion_config->secure_fusion) {
+          DirectResult          ret;
+          DirectInterfaceFuncs *funcs;
+          void                 *interface_ptr;
 
-     D_DEBUG_AT( IFusionDale_One, "%s\n", __FUNCTION__ );
+          DIRECT_INTERFACE_GET_DATA(IFusionDale_One)
 
-     D_ASSERT( ret_interface != NULL );
+          D_ASSERT( ret_interface != NULL );
 
-     ret = DirectGetInterface( &funcs, "IFusionDaleMessenger", "One", NULL, NULL );
-     if (ret)
-          return ret;
+          ret = DirectGetInterface( &funcs, "IFusionDaleMessenger", "One", NULL, NULL );
+          if (ret)
+               return ret;
 
-     ret = funcs->Allocate( &interface_ptr );
-     if (ret)
-          return ret;
+          ret = funcs->Allocate( &interface_ptr );
+          if (ret)
+               return ret;
 
-     ret = funcs->Construct( interface_ptr, thiz, data->thread );
-     if (ret)
-          return ret;
+          ret = funcs->Construct( interface_ptr, thiz, data->thread );
+          if (ret)
+               return ret;
 
-     *ret_interface = interface_ptr;
+          *ret_interface = interface_ptr;
+     }
+     else {
+          DirectResult          ret;
+          CoreMessenger        *messenger;
+          IFusionDaleMessenger *interface;
+
+          DIRECT_INTERFACE_GET_DATA(IFusionDale_One)
+
+          /* Check arguments */
+          if (!ret_interface)
+               return DR_INVARG;
+
+          /* Create a new messenger. */
+          ret = fd_messenger_create( data->core, &messenger );
+          if (ret)
+               return ret;
+
+          DIRECT_ALLOCATE_INTERFACE( interface, IFusionDaleMessenger );
+
+          ret = IFusionDaleMessenger_Construct( interface, data->core, messenger );
+
+          fd_messenger_unref( messenger );
+
+          if (ret)
+               return ret;
+
+          *ret_interface = interface;
+     }
 
      return DR_OK;
 }
@@ -295,7 +335,61 @@ static DirectResult
 IFusionDale_One_GetMessenger( IFusionDale           *thiz,
                               IFusionDaleMessenger **ret_interface )
 {
-     return IFusionDale_One_CreateMessenger( thiz, ret_interface );
+     D_DEBUG_AT( IFusionDale_One, "%s()\n", __FUNCTION__ );
+
+     if (fusion_config->secure_fusion) {
+          return IFusionDale_One_CreateMessenger( thiz, ret_interface );
+     }
+     else {
+          DirectResult          ret;
+          CoreMessenger        *messenger, *tmp;
+          IFusionDaleMessenger *interface;
+
+          DIRECT_INTERFACE_GET_DATA(IFusionDale_One)
+
+          /* Check arguments */
+          if (!ret_interface)
+               return DR_INVARG;
+
+          /* Try to get the messenger. */
+          ret = fd_core_get_messenger( data->core, 1, &messenger );
+          switch (ret) {
+               case DR_OK:
+                    break;
+
+               case DR_IDNOTFOUND:
+                    /* Create a temporary messenger... */
+                    ret = fd_messenger_create( data->core, &tmp );
+                    if (ret)
+                         return ret;
+
+                    /* ...but get the first messenger, to work around race conditions... */
+                    ret = fd_core_get_messenger( data->core, 1, &messenger );
+
+                    /* ...and unref our temporary (most probably the same one). */
+                    fd_messenger_unref( tmp );
+
+                    if (ret)
+                         return ret;
+                    break;
+
+               default:
+                    return ret;
+          }
+
+          DIRECT_ALLOCATE_INTERFACE( interface, IFusionDaleMessenger );
+
+          ret = IFusionDaleMessenger_Construct( interface, data->core, messenger );
+
+          fd_messenger_unref( messenger );
+
+          if (ret)
+               return ret;
+
+          *ret_interface = interface;
+     }
+
+     return DR_OK;
 }
 
 /**************************************************************************************************/
@@ -550,7 +644,7 @@ DispatchRegisterEvent( IFusionDale_One_data       *data,
           OneQueue_Destroy( qid );
 
           response.result = DR_FAILURE;
-          
+
           return OneQueue_Dispatch( request->response_qid, &response, sizeof(response) );
      }
 
@@ -584,7 +678,7 @@ DispatchUnregisterEvent( IFusionDale_One_data         *data,
      }
 
      entry->refs--;
-     
+
      if (!entry->refs) {
           OneQueue_Destroy( entry->qid );
 
@@ -1020,7 +1114,21 @@ Construct( IFusionDale *thiz, const char *host, int session )
 {
      DirectResult ret;
 
+     D_DEBUG_AT( IFusionDale_One, "%s()\n", __FUNCTION__ );
+
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionDale_One)
+
+     /* Create the core instance. */
+     if (!fusion_config->secure_fusion) {
+          ret = fd_core_create( &data->core );
+          if (ret) {
+               FusionDaleError( "FusionDale: fd_core_create() failed", ret );
+
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
+
+               return ret;
+          }
+     }
 
      ret = One_Initialize();
      if (ret) {
@@ -1047,13 +1155,19 @@ Construct( IFusionDale *thiz, const char *host, int session )
           return ret;
      }
 
+     D_DEBUG_AT( IFusionDale_One, "  -> thread created\n" );
+
      direct_tls_register( &data->tlshm_key, tlshm_destroy );
+
+     D_DEBUG_AT( IFusionDale_One, "  -> TLS registered\n" );
 
      thiz->AddRef          = IFusionDale_One_AddRef;
      thiz->Release         = IFusionDale_One_Release;
      thiz->EnterComa       = IFusionDale_One_EnterComa;
      thiz->CreateMessenger = IFusionDale_One_CreateMessenger;
      thiz->GetMessenger    = IFusionDale_One_GetMessenger;
+
+     D_DEBUG_AT( IFusionDale_One, "  -> returning\n" );
 
      return DR_OK;
 }
