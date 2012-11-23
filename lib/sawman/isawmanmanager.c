@@ -474,8 +474,6 @@ ISaWManManager_GetProcessInfo( ISaWManManager     *thiz,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
-     memset( process, 0, sizeof(*process) );
-
      process->pid       = sawwin->process.pid;
      process->fusion_id = sawwin->process.fusion_id;
      process->flags     = sawwin->process.flags;
