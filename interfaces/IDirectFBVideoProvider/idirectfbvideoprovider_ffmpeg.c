@@ -1151,7 +1151,8 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      IDirectFBSurface_data *dest_data;
      DFBRectangle           rect = { 0, 0, 0, 0 };
 
-     D_DEBUG_AT( FFMPEG, "%s: %d,%d - %d,%d\n", __FUNCTION__, dest_rect->x, dest_rect->y, dest_rect->w, dest_rect->h );
+     if (dest_rect)
+          D_DEBUG_AT( FFMPEG, "%s: %d,%d - %d,%d\n", __FUNCTION__, dest_rect->x, dest_rect->y, dest_rect->w, dest_rect->h );
 
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
 
