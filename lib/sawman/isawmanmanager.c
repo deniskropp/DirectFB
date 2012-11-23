@@ -56,6 +56,8 @@ ISaWManManager_Destruct( ISaWManManager *thiz )
 
      ISaWManManager_data *data = thiz->priv;
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
@@ -76,6 +78,8 @@ ISaWManManager_AddRef( ISaWManManager *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      data->ref++;
 
      return DFB_OK;
@@ -85,6 +89,8 @@ static DirectResult
 ISaWManManager_Release( ISaWManManager *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      if (--data->ref == 0)
           ISaWManManager_Destruct( thiz );
@@ -100,6 +106,8 @@ ISaWManManager_QueueUpdate( ISaWManManager         *thiz,
      SaWMan *sawman;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      if (!DFB_REGION_CHECK_IF( region ))
           return DFB_INVAREA;
@@ -128,6 +136,8 @@ ISaWManManager_ProcessUpdates( ISaWManManager      *thiz,
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
@@ -142,6 +152,8 @@ ISaWManManager_CloseWindow( ISaWManManager     *thiz,
      SaWManWindow   *window = (SaWManWindow*)handle;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      if (!window)
           return DFB_INVARG;
@@ -163,6 +175,8 @@ ISaWManManager_SetVisible( ISaWManManager     *thiz,
      SaWManWindow *window = (SaWManWindow*)handle;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      if (!window)
           return DFB_INVARG;
@@ -186,6 +200,8 @@ ISaWManManager_SwitchFocus( ISaWManManager     *thiz,
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      if (!window)
           return DFB_INVARG;
 
@@ -206,6 +222,8 @@ ISaWManManager_GetSize( ISaWManManager         *thiz,
      SaWManTier *tier;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      switch (stacking) {
           case DWSC_LOWER:
@@ -242,6 +260,8 @@ ISaWManManager_InsertWindow( ISaWManManager       *thiz,
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      if (!window)
           return DFB_INVARG;
 
@@ -263,6 +283,8 @@ ISaWManManager_RemoveWindow( ISaWManManager     *thiz,
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      if (!window)
           return DFB_INVARG;
 
@@ -282,6 +304,8 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      if (mode != SWMSM_STANDARD && mode != SWMSM_SMOOTH_SW)
           return DFB_INVARG;
 
@@ -300,6 +324,10 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
      SaWMan       *sawman;
      SaWManWindow *sawwin = (SaWManWindow*)handle;
 
+     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      /*
        not yet implemented:
        SWMCF_KEY_SELECTION, SWMCF_CURSOR_FLAGS, SWMCF_CURSOR_RESOLUTION
@@ -310,8 +338,6 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
 
      if (config == NULL)
           return DFB_INVARG;
-
-     DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
@@ -330,6 +356,8 @@ ISaWManManager_SendWindowEvent( ISaWManManager       *thiz,
      DFBWindowEvent  evt;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      if (!event || (handle == SAWMAN_WINDOW_NONE))
           return DFB_INVARG;
@@ -359,6 +387,8 @@ ISaWManManager_Lock( ISaWManManager *thiz )
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
@@ -374,6 +404,8 @@ ISaWManManager_Unlock( ISaWManManager *thiz )
      SaWMan *sawman;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      sawman = data->sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
@@ -394,6 +426,8 @@ ISaWManManager_GetWindowInfo( ISaWManManager     *thiz,
      CoreWindow      *window;
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      if (!info || (handle == SAWMAN_WINDOW_NONE))
           return DFB_INVARG;
@@ -431,6 +465,8 @@ ISaWManManager_GetProcessInfo( ISaWManManager     *thiz,
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      if (!process || (handle == SAWMAN_WINDOW_NONE))
           return DFB_INVARG;
 
@@ -457,6 +493,8 @@ ISaWManManager_IsWindowShowing( ISaWManManager     *thiz,
 
      DIRECT_INTERFACE_GET_DATA( ISaWManManager )
 
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
+
      if (!ret_showing)
           return DFB_INVARG;
 
@@ -474,6 +512,8 @@ ISaWManManager_Construct( ISaWManManager *thiz,
                           SaWManManager  *manager )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, ISaWManManager )
+
+     D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      data->ref     = 1;
      data->sawman  = sawman;
