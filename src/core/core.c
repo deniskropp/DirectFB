@@ -2018,7 +2018,7 @@ Core_Resource_CheckSurfaceUpdate( CoreSurface             *surface,
      D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, config->size.w, config->size.h,
                  dfb_pixelformat_name( config->format ), surface->type, (size_t)surface->resource_id, surface->object.identity );
 
-     if (surface->object.identity == core_dfb->fusion_id)
+     if (!surface->object.identity || surface->object.identity == core_dfb->fusion_id)
           return DFB_OK;
 
      if (core_dfb->resource.manager) {
@@ -2040,7 +2040,7 @@ Core_Resource_AddSurface( CoreSurface *surface )
      D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, surface->config.size.w, surface->config.size.h,
                  dfb_pixelformat_name( surface->config.format ), surface->type, (size_t)surface->resource_id, Core_GetIdentity() );
 
-     if (surface->object.identity == core_dfb->fusion_id)
+     if (!surface->object.identity || surface->object.identity == core_dfb->fusion_id)
           return DFB_OK;
 
      if (core_dfb->resource.manager) {
@@ -2062,7 +2062,7 @@ Core_Resource_RemoveSurface( CoreSurface *surface )
      D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, surface->config.size.w, surface->config.size.h,
                  dfb_pixelformat_name( surface->config.format ), surface->type, (size_t)surface->resource_id, surface->object.identity );
 
-     if (surface->object.identity == core_dfb->fusion_id)
+     if (!surface->object.identity || surface->object.identity == core_dfb->fusion_id)
           return DFB_OK;
 
      if (core_dfb->resource.manager) {
@@ -2085,7 +2085,7 @@ Core_Resource_UpdateSurface( CoreSurface             *surface,
      D_DEBUG_AT( Core_Resource, "%s( %dx%d, %s, type %d, resource id "_ZU" ) <- identity %lu\n", __FUNCTION__, config->size.w, config->size.h,
                  dfb_pixelformat_name( config->format ), surface->type, (size_t)surface->resource_id, surface->object.identity );
 
-     if (surface->object.identity == core_dfb->fusion_id)
+     if (!surface->object.identity || surface->object.identity == core_dfb->fusion_id)
           return DFB_OK;
 
      if (core_dfb->resource.manager) {
