@@ -171,7 +171,7 @@ surface_callback( FusionObjectPool *pool,
           return false;
      }
 
-     if (dump_surface && ((dump_surface < 0 && surface->type & CSTF_SHARED) ||
+     if (dump_surface && ((dump_surface < 0 /*&& surface->type & CSTF_SHARED*/) ||
                           (dump_surface == object->ref.multi.id)) && surface->num_buffers)
      {
           char buf[32];
@@ -268,81 +268,92 @@ alloc_callback( CoreSurfaceAllocation *alloc,
                 void                  *ctx )
 {
      int                i;
-     CoreSurface       *surface;
      CoreSurfaceBuffer *buffer;
+     const char        *role     = "???";
+     const char        *uptodate = " ? ";
+     int                allocs   = 0;
 
      D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
 
-     buffer  = alloc->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     buffer = alloc->buffer;
+     if (buffer) {
+          CoreSurface *surface;
 
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
+          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+          surface = buffer->surface;
+          if (surface) {
+               D_MAGIC_ASSERT( surface, CoreSurface );
+
+               role = (dfb_surface_get_buffer( surface, CSBR_FRONT ) == buffer) ? "front" :
+                      (dfb_surface_get_buffer( surface, CSBR_BACK  ) == buffer) ? "back"  :
+                      (dfb_surface_get_buffer( surface, CSBR_IDLE  ) == buffer) ? "idle"  : "";
+
+               uptodate = direct_serial_check(&alloc->serial, &buffer->serial) ? " * " : "   ";
+
+               allocs = fusion_vector_size( &buffer->allocs );
+          }
+     }
 
      printf( "%9lu %8d  ", alloc->offset, alloc->size );
 
-     printf( "%4d x %4d   ", surface->config.size.w, surface->config.size.h );
+     printf( "%4d x %4d   ", alloc->config.size.w, alloc->config.size.h );
 
      for (i=0; format_names[i].format; i++) {
-          if (surface->config.format == format_names[i].format)
+          if (alloc->config.format == format_names[i].format)
                printf( "%8s ", format_names[i].name );
      }
 
-     printf( " %-5s ",
-             (dfb_surface_get_buffer( surface, CSBR_FRONT ) == buffer) ? "front" :
-             (dfb_surface_get_buffer( surface, CSBR_BACK  ) == buffer) ? "back"  :
-             (dfb_surface_get_buffer( surface, CSBR_IDLE  ) == buffer) ? "idle"  : "" );
+     printf( " %-5s %s", role, uptodate );
 
-     printf( direct_serial_check(&alloc->serial, &buffer->serial) ? " * " : "   " );
+     printf( "%d  %2lu  ", allocs, alloc->resource_id );
 
-     printf( "%d  %2lu  ", fusion_vector_size( &buffer->allocs ), surface->resource_id );
-
-     if (surface->type & CSTF_SHARED)
+     if (alloc->type & CSTF_SHARED)
           printf( "SHARED  " );
      else
           printf( "PRIVATE " );
 
-     if (surface->type & CSTF_LAYER)
+     if (alloc->type & CSTF_LAYER)
           printf( "LAYER " );
 
-     if (surface->type & CSTF_WINDOW)
+     if (alloc->type & CSTF_WINDOW)
           printf( "WINDOW " );
 
-     if (surface->type & CSTF_CURSOR)
+     if (alloc->type & CSTF_CURSOR)
           printf( "CURSOR " );
 
-     if (surface->type & CSTF_FONT)
+     if (alloc->type & CSTF_FONT)
           printf( "FONT " );
 
      printf( " " );
 
-     if (surface->type & CSTF_INTERNAL)
+     if (alloc->type & CSTF_INTERNAL)
           printf( "INTERNAL " );
 
-     if (surface->type & CSTF_EXTERNAL)
+     if (alloc->type & CSTF_EXTERNAL)
           printf( "EXTERNAL " );
 
      printf( " " );
 
-     if (surface->config.caps & DSCAPS_SYSTEMONLY)
+     if (alloc->config.caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
 
-     if (surface->config.caps & DSCAPS_VIDEOONLY)
+     if (alloc->config.caps & DSCAPS_VIDEOONLY)
           printf( "video only   " );
 
-     if (surface->config.caps & DSCAPS_INTERLACED)
+     if (alloc->config.caps & DSCAPS_INTERLACED)
           printf( "interlaced   " );
 
-     if (surface->config.caps & DSCAPS_DOUBLE)
+     if (alloc->config.caps & DSCAPS_DOUBLE)
           printf( "double       " );
 
-     if (surface->config.caps & DSCAPS_TRIPLE)
+     if (alloc->config.caps & DSCAPS_TRIPLE)
           printf( "triple       " );
 
-     if (surface->config.caps & DSCAPS_PREMULTIPLIED)
+     if (alloc->config.caps & DSCAPS_PREMULTIPLIED)
           printf( "premultiplied" );
 
-     printf( "\n" );
+     printf( "   %d\n", alloc->object.ref.multi.id );
 
      return DFENUM_OK;
 }
