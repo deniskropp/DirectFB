@@ -57,6 +57,8 @@ typedef struct {
      int                   update_region_mode;
 
      bool                  keep_implicit_key_grabs;
+
+     DFBDimension          passive3d_mode;
 } SaWManConfig;
 
 

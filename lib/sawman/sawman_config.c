@@ -360,6 +360,23 @@ sawman_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+     if (strcmp (name, "passive3d-mode" ) == 0) {
+          if (value) {
+               int width, height;
+
+               if (sscanf( value, "%dx%d", &width, &height ) < 2) {
+                    D_ERROR("SaWMan/Config '%s': Could not parse dimension!\n", name);
+                    return DFB_INVARG;
+               }
+
+               sawman_config->passive3d_mode.w = width;
+               sawman_config->passive3d_mode.h = height;
+          }
+          else {
+               D_ERROR("SaWMan/Config '%s': No width and height specified!\n", name);
+               return DFB_INVARG;
+          }
+     } else
      if (strcmp (name, "static-layer") == 0) {
           sawman_config->static_layer = true;
      } else
