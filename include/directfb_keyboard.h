@@ -459,6 +459,13 @@ typedef enum {
      DIKS_FREEZE                   = DFB_KEY( SPECIAL, 0x6A ),
      DIKS_MOVE                     = DFB_KEY( SPECIAL, 0x6B ),
 
+     DIKS_CALL                     = DFB_KEY( SPECIAL, 0x6C ),
+     DIKS_SPEAKER                  = DFB_KEY( SPECIAL, 0x6D ),
+     DIKS_SAVE                     = DFB_KEY( SPECIAL, 0x6E ),
+     DIKS_REDIAL                   = DFB_KEY( SPECIAL, 0x6F ),
+     DIKS_FLASH                    = DFB_KEY( SPECIAL, 0x70 ),
+     DIKS_HOLD                     = DFB_KEY( SPECIAL, 0x71 ),
+
      /*
       * Unicode private area - DirectFB Function keys
       *
