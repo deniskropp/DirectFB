@@ -51,6 +51,7 @@
 
 #if FUSION_BUILD_MULTI && FUSION_BUILD_KERNEL
 
+#include <sys/types.h>
 #include <linux/fusion.h>
 
 #define FUSION_API_MAJOR_REQUIRED 8
