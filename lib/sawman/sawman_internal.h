@@ -400,6 +400,11 @@ struct __SaWMan_SaWManTier {
           unsigned int            updates;
           unsigned long long      pixels;
      } performance;
+
+     DFBDisplayLayerConfig   driver_config;
+     bool                    driver_config_set;
+
+     bool                    force_reconfig;
 };
 
 /*

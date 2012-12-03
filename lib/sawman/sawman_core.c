@@ -1049,5 +1049,52 @@ add_tier( SaWMan                *sawman,
 
      return DFB_OK;
 }
+
+DFBResult
+sawman_set_driver_config( DFBDisplayLayerID            layer_id,
+                          const DFBDisplayLayerConfig *config )
+{
+     DFBResult   ret;
+     SaWManTier *tier;
+
+     ret = sawman_lock( m_sawman );
+     if (ret)
+          return ret;
+
+     direct_list_foreach (tier, m_sawman->tiers) {
+          DFBRegion region;
+
+          D_MAGIC_ASSERT( tier, SaWManTier );
+
+          if (tier->layer_id != layer_id)
+               continue;
+
+          if (config) {
+               tier->driver_config     = *config;
+               tier->driver_config_set = true;
+          }
+          else {
+               tier->driver_config_set = false;
+          }
+
+          region.x1 = 0;
+          region.y1 = 0;
+          region.x2 = INT_MAX;
+          region.y2 = INT_MAX;
+
+          tier->force_reconfig = true;
+
+          dfb_wm_update_stack( tier->stack, &region, DSFLIP_NONE );
+
+          sawman_unlock( m_sawman );
+
+          return DFB_OK;
+     }
+
+     sawman_unlock( m_sawman );
+
+     return DFB_IDNOTFOUND;
+}
+
 #endif
 

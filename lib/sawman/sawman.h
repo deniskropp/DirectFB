@@ -591,10 +591,16 @@ DEFINE_INTERFACE(   ISaWManManager,
      );
 )
 
+/**********************************************************************************************************************/
+
+DFBResult sawman_set_driver_config( DFBDisplayLayerID            layer_id,
+                                    const DFBDisplayLayerConfig *config );
+
 
 #ifdef __cplusplus
 }
 #endif
+
 
 #endif
 
