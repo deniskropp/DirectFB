@@ -257,11 +257,21 @@ dfb_system_lookup( void )
 {
      DirectLink *l;
 
+     D_DEBUG_AT( Core_System, "%p()\n", __FUNCTION__ );
+
      direct_modules_explore_directory( &dfb_core_systems );
 
      direct_list_foreach( l, dfb_core_systems.entries ) {
           DirectModuleEntry     *module = (DirectModuleEntry*) l;
           const CoreSystemFuncs *funcs;
+
+          D_DEBUG_AT( Core_System, "module %p\n", module );
+          D_DEBUG_AT( Core_System, "  name    '%s'\n", module->name );
+          D_DEBUG_AT( Core_System, "  refs     %d\n", module->refs );
+          D_DEBUG_AT( Core_System, "  loaded   %d\n", module->loaded );
+          D_DEBUG_AT( Core_System, "  disabled %d\n", module->disabled );
+          D_DEBUG_AT( Core_System, "  dynamic  %d\n", module->dynamic );
+          D_DEBUG_AT( Core_System, "  file    '%s'\n", module->file );
 
           funcs = direct_module_ref( module );
           if (!funcs)
