@@ -1350,7 +1350,7 @@ get_single_window( SaWMan     *sawman,
           D_MAGIC_COREWINDOW_ASSERT( window );
 
           if (SAWMAN_VISIBLE_WINDOW(window) && (tier->classes & (1 << window->config.stacking))) {
-               if (sawman_config->static_layer) {
+               if (sawman_config->static_layer || tier->driver_config_set) {
                     *ret_none = false;
                     return NULL;
                }
@@ -1388,6 +1388,9 @@ get_border_only( SaWMan     *sawman,
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
      FUSION_SKIRMISH_ASSERT( sawman->lock );
+
+     if (tier->driver_config_set)
+          return false;
 
      fusion_vector_foreach_reverse (sawwin, n, sawman->layout) {
           CoreWindow *window;
@@ -1801,8 +1804,9 @@ set_config( SaWMan     *sawman,
 
      dfb_screen_get_screen_size( layer->screen, &screen_width, &screen_height );
 
-
-     if (tier->border_only)
+     if (tier->driver_config_set)
+          config = &tier->driver_config;
+     else if (tier->border_only)
           config = &tier->border_config;
      else
           config = &tier->config;
@@ -2261,10 +2265,12 @@ sawman_process_updates( SaWMan              *sawman,
           }
 
           /* Switch border/default config? */
-          if (tier->border_only != border_only) {
+          if (tier->border_only != border_only || tier->force_reconfig) {
                tier->border_only = border_only;
 
                set_config( sawman, tier );
+
+               tier->force_reconfig = false;
           }
 
           if (!tier->active) {
