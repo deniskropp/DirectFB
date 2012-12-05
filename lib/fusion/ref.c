@@ -307,6 +307,8 @@ fusion_ref_down (FusionRef *ref, bool global)
 
                     for (i=0; i<entry->refs_catch; i++)
                          fusion_call_execute( &ref->multi.shared->refs_call, FCEF_ONEWAY, ref->multi.id, NULL, NULL );
+
+                    entry->refs_catch = 0;
                }
 
                direct_mutex_unlock( &world->refs_lock );
