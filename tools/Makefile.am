@@ -227,7 +227,7 @@ fsvolume_SOURCES = fsvolume.c
 fsvolume_LDADD   = $(libfusion) $(libdirect) $(libfusionsound)
 
 spooky_SOURCES = spooky.c
-spooky_LDADD   = $(libdirectfb) $(libfusion) $(libdirect) $(libdivine)
+spooky_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(libdivine) -lm
 
 fddump_SOURCES = fddump.c
 fddump_LDADD   = $(libfusion) $(libdirect) $(libfusiondale)
