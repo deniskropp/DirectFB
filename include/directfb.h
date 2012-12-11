@@ -824,7 +824,7 @@ typedef enum {
      DSBLIT_FLIP_VERTICAL          = 0x02000000, /* flip the image vertically */
      DSBLIT_ROP                    = 0x04000000, /* use rop setting */
      DSBLIT_SRC_COLORMATRIX        = 0x08000000, /* use source color matrix setting */
-     DSBLIT_SRC_CONVOLUTION        = 0x10000000, /* use source convolution filter */
+     DSBLIT_SRC_CONVOLUTION        = 0x10000000  /* use source convolution filter */
 } DFBSurfaceBlittingFlags;
 
 /*
@@ -870,7 +870,7 @@ typedef enum {
 
      DFXL_ALL            = 0x010F003F,  /* All drawing/blitting functions. */
      DFXL_ALL_DRAW       = 0x0000103F,  /* All drawing functions. */
-     DFXL_ALL_BLIT       = 0x010F0000,  /* All blitting functions. */
+     DFXL_ALL_BLIT       = 0x010F0000   /* All blitting functions. */
 } DFBAccelerationMask;
 
 
@@ -990,7 +990,7 @@ typedef enum {
 
      DWDESC_COLORSPACE   = 0x00000800,  /* colorspace field is valid */
 
-     DWDESC_RESOURCE_ID  = 0x00001000,  /* Resource id for window surface creation has been set. */
+     DWDESC_RESOURCE_ID  = 0x00001000   /* Resource id for window surface creation has been set. */
 } DFBWindowDescriptionFlags;
 
 /*
@@ -1138,7 +1138,7 @@ typedef enum {
                                                 original shape */
      DFFA_STYLE_ITALIC        = 0x00000200,  /* load italic style */
      DFFA_VERTICAL_LAYOUT     = 0x00000400,  /* load vertical layout */
-     DFFA_STYLE_BOLD          = 0x00000800,  /* load bold style */
+     DFFA_STYLE_BOLD          = 0x00000800   /* load bold style */
 } DFBFontAttributes;
 
 /*
@@ -1156,7 +1156,7 @@ typedef enum {
      DFDESC_FRACT_WIDTH       = 0x00000040,  /* fractional width is set */
      DFDESC_OUTLINE_WIDTH     = 0x00000080,  /* outline width is set */
      DFDESC_OUTLINE_OPACITY   = 0x00000100,  /* outline opacity is set */
-     DFDESC_ROTATION          = 0x00000200,  /* rotation is set */
+     DFDESC_ROTATION          = 0x00000200   /* rotation is set */
 } DFBFontDescriptionFlags;
 
 /*
@@ -1364,7 +1364,7 @@ typedef enum {
      DSPF_LUT4      = DFB_SURFACE_PIXELFORMAT( 39,  4, 0, 1, 4, 0, 1, 0, 0, 1, 0 ),
 
      /*  16 bit   LUT (1 byte alpha and 8 bit color lookup from palette) */
-     DSPF_ALUT8     = DFB_SURFACE_PIXELFORMAT( 40,  8, 8, 1, 0, 2, 0, 0, 0, 1, 0 ),
+     DSPF_ALUT8     = DFB_SURFACE_PIXELFORMAT( 40,  8, 8, 1, 0, 2, 0, 0, 0, 1, 0 )
 
 } DFBSurfacePixelFormat;
 
@@ -1772,7 +1772,7 @@ typedef enum {
      DVCAPS_VOLUME      = 0x00000200,  /* supports Volume adjustment       */
      DVCAPS_EVENT       = 0x00000400,  /* supports the sending of events as video/audio data changes.*/
      DVCAPS_ATTRIBUTES  = 0x00000800,  /* supports dynamic changing of atrributes.*/
-     DVCAPS_AUDIO_SEL   = 0x00001000,  /* Supportes chosing audio outputs.*/
+     DVCAPS_AUDIO_SEL   = 0x00001000   /* Supportes chosing audio outputs.*/
 } DFBVideoProviderCapabilities;
 
 /*
@@ -1807,7 +1807,7 @@ typedef enum {
      DVAUDIOUNIT_TWO    = 0x00000002, /* Audio Unit Two           */
      DVAUDIOUNIT_THREE  = 0x00000004, /* Audio Unit Three         */
      DVAUDIOUNIT_FOUR   = 0x00000008, /* Audio Unit Four          */
-     DVAUDIOUNIT_ALL    = 0x0000000F, /* Audio Unit One           */
+     DVAUDIOUNIT_ALL    = 0x0000000F  /* Audio Unit One           */
 } DFBVideoProviderAudioUnits;
 
 
@@ -2449,7 +2449,7 @@ typedef enum {
      DSOC_SCART2         = 0x00000010, /* 2nd SCART connector */
      DSOC_COMPONENT      = 0x00000020, /* Component video connector */
      DSOC_HDMI           = 0x00000040, /* HDMI connector */
-     DSOC_656            = 0x00000080, /* DVO connector */
+     DSOC_656            = 0x00000080  /* DVO connector */
 } DFBScreenOutputConnectors;
 
 /*
@@ -2631,7 +2631,7 @@ typedef enum {
      DSEF_75HZ           = 0x00000020, /* 75 Hz Output. */
      DSEF_30HZ           = 0x00000040, /* 30 Hz Output. */
      DSEF_24HZ           = 0x00000080, /* 24 Hz Output. */
-     DSEF_23_976HZ       = 0x00000100, /* 23.976 Hz Output. */
+     DSEF_23_976HZ       = 0x00000100  /* 23.976 Hz Output. */
 } DFBScreenEncoderFrequency;
 
 /*
@@ -3608,7 +3608,7 @@ typedef enum {
      DSPD_DST_ATOP       = 10, /* fs: 1.0-da  fd: sa     */
      DSPD_ADD            = 11, /* fs: 1.0     fd: 1.0    */
      DSPD_XOR            = 12, /* fs: 1.0-da  fd: 1.0-sa */
-     DSPD_DST            = 13, /* fs: 0.0     fd: 1.0    */
+     DSPD_DST            = 13  /* fs: 0.0     fd: 1.0    */
 } DFBSurfacePorterDuffRule;
 
 /*
@@ -3638,7 +3638,7 @@ typedef enum {
      DSBF_INVDESTALPHA       = 8,  /* cf: 1-da           af: 1-da */
      DSBF_DESTCOLOR          = 9,  /* cf:   dc           af:   da */
      DSBF_INVDESTCOLOR       = 10, /* cf: 1-dc           af: 1-da */
-     DSBF_SRCALPHASAT        = 11, /* cf: min(sa, 1-da)  af:    1 */
+     DSBF_SRCALPHASAT        = 11  /* cf: min(sa, 1-da)  af:    1 */
 } DFBSurfaceBlendFunction;
 
 /*
@@ -3671,7 +3671,7 @@ typedef enum {
 
      DSMF_STENCIL   = 0x00000001,  /* Take <b>x</b> and <b>y</b> as fixed start coordinates in the mask. */
 
-     DSMF_ALL       = 0x00000001,  /* All of these. */
+     DSMF_ALL       = 0x00000001   /* All of these. */
 } DFBSurfaceMaskFlags;
 
 /*
@@ -3680,7 +3680,7 @@ typedef enum {
 typedef enum {
      DSROP_CLEAR              =  0x00,
      DSROP_XOR                =  0x96,
-     DSROP_SRC_COPY           =  0xCC,
+     DSROP_SRC_COPY           =  0xCC
 
      /* TODO: to be extended with all ROP codes, possibly move to separate header file */
 } DFBSurfaceRopCode;
@@ -3690,7 +3690,7 @@ typedef enum {
  */
 typedef enum {
      DSPM_8_8_MONO            =  0,
-     DSPM_32_32_MONO          =  1,
+     DSPM_32_32_MONO          =  1
 } DFBSurfacePatternMode;
 
 /*
@@ -5210,7 +5210,7 @@ typedef enum {
      DFEC_USER           = 0x03,   /* custom event for the user of this library */
      DFEC_UNIVERSAL      = 0x04,   /* universal event for custom usage with variable size */
      DFEC_VIDEOPROVIDER  = 0x05,   /* video provider event */
-     DFEC_SURFACE        = 0x06,   /* surface event */
+     DFEC_SURFACE        = 0x06    /* surface event */
 } DFBEventClass;
 
 /*
@@ -5256,7 +5256,7 @@ typedef enum {
      DIEF_FOLLOW         = 0x0800,   /* another event will follow immediately, e.g. x/y axis */
 
      DIEF_MIN            = 0x1000,   /* minimum value is set, e.g. for absolute axis motion */
-     DIEF_MAX            = 0x2000,   /* maximum value is set, e.g. for absolute axis motion */
+     DIEF_MAX            = 0x2000    /* maximum value is set, e.g. for absolute axis motion */
 } DFBInputEventFlags;
 
 /*
@@ -5467,7 +5467,7 @@ typedef enum {
      DVPEDST_AUDIO        = 0x00000001, /* Event is valid for Audio Data     */
      DVPEDST_VIDEO        = 0x00000002, /* Event is valid for Video Data     */
      DVPEDST_DATA         = 0x00000004, /* Event is valid for Data types     */
-     DVPEDST_ALL          = 0x00000007, /* Event is valid for all Data types */
+     DVPEDST_ALL          = 0x00000007  /* Event is valid for all Data types */
 
 } DFBVideoProviderEventDataSubType;
 
@@ -6899,7 +6899,7 @@ typedef struct {
  */
 typedef enum {
      DSF_ES         = 0x00000000, /* ES.  */
-     DSF_PES        = 0x00000001, /* PES. */
+     DSF_PES        = 0x00000001  /* PES. */
 } DFBStreamFormat;
 
 /*
