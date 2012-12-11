@@ -153,7 +153,7 @@ typedef enum {
      FUSION_REF_PERMIT_CATCH                 = 0x00000040,
      FUSION_REF_PERMIT_THROW                 = 0x00000080,
 
-     FUSION_REF_PERMIT_ALL                   = 0x000000FF,
+     FUSION_REF_PERMIT_ALL                   = 0x000000FF
 } FusionRefPermissions;
 
 /*

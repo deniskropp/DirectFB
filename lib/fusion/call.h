@@ -120,7 +120,7 @@ typedef enum {
 
      FUSION_CALL_PERMIT_EXECUTE           = 0x00000001,
 
-     FUSION_CALL_PERMIT_ALL               = 0x00000001,
+     FUSION_CALL_PERMIT_ALL               = 0x00000001
 } FusionCallPermissions;
 
 /*
