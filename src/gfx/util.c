@@ -282,7 +282,7 @@ dfb_gfx_copy_regions_stereo( CoreSurface           *source,
           copy_state.to_eye      = destination_eye;
 
           dfb_gfxcard_batchblit( rects, points, n, &copy_state );
-     
+
           /* Signal end of sequence. */
           dfb_state_stop_drawing( &copy_state );
 

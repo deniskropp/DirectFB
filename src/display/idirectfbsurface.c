@@ -1700,6 +1700,7 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
           return DFB_INVARG;
 
      if (data->area.wanted.x || data->area.wanted.y) {
+          unsigned int  i;
           DFBRectangle *local_rects;
           bool          malloced = (num_rects > 256);
 

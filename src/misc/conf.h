@@ -68,7 +68,7 @@ typedef enum {
 
      DCWF_ALLOCATE_BUFFER               = 0x00000010,
 
-     DCWF_ALL                           = 0x00000013,
+     DCWF_ALL                           = 0x00000013
 } DFBConfigWarnFlags;
 
 typedef struct
