@@ -234,6 +234,7 @@ static inline void dfb_linkregionpool_add_allowedpartofregion( DFBLinkRegionPool
  * We sort the list in-place: entries will be removed only.
  * We never remove the first entry.
  */
+#if 0
 static void collate( DirectLink **updates )
 {
      DFBLinkRegion *linkRegion, *lr;
@@ -266,7 +267,7 @@ static void collate( DirectLink **updates )
           }
      }
 }
-
+#endif
 
 /**********************************************************************************************************************/
 

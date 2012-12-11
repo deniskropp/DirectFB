@@ -155,7 +155,7 @@ sawman_dispatch_blit( SaWMan             *sawman,
      if (clip) {
           if (dfb_clip_blit_precheck( clip, dst->w, dst->h, dst->x, dst->y )) {
                dfb_clip_stretchblit( clip, &data.src, &data.dst );
-     
+
                fusion_reactor_dispatch( sawman->reactor, &data, true, NULL );
           }
           else
@@ -487,7 +487,7 @@ draw_window( SaWManTier   *tier,
      /* if we specified some kind of color, we will colorise. no DWCAPS_COLOR here. */
      if (window->config.color.a != 0) {
           DFBColor c;
-          
+
           flags |= DSBLIT_COLORIZE;
 
           c   = window->config.color;
@@ -758,7 +758,7 @@ sawman_draw_window( SaWManTier   *tier,
 
      /* if input only, we only draw the border */
      input = (window->caps & DWCAPS_INPUTONLY) || (window->config.options & DWOP_INPUTONLY);
-     
+
      offset = window->config.z;
      offset *= right_eye ? -1 : 1;
 
@@ -831,7 +831,7 @@ sawman_draw_two_windows( SaWManTier   *tier,
      /* if input only, we only draw the border */
      bool input1 = (window1->caps & DWCAPS_INPUTONLY) || (window1->config.options & DWOP_INPUTONLY);
      bool input2 = (window2->caps & DWCAPS_INPUTONLY) || (window2->config.options & DWOP_INPUTONLY);
-     
+
      int border1 = sawman_window_border( sawwin1 );
      int border2 = sawman_window_border( sawwin2 );
 
@@ -860,7 +860,7 @@ sawman_draw_two_windows( SaWManTier   *tier,
 
           /* scaling disallowed */
           if (    (sawwin1->src.w == sawwin1->dst.w)
-               && (sawwin1->src.h == sawwin1->dst.h) 
+               && (sawwin1->src.h == sawwin1->dst.h)
                && (caps.accel & DFXL_BLIT2) )
           {
                D_ASSUME ( border1 == 0 );
