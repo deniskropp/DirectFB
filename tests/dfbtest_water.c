@@ -47,6 +47,7 @@
 #include <directfb.h>
 #include <directfb_strings.h>
 #include <directfb_water.h>
+#include <directfb_water_strings.h>
 
 static const DirectFBPixelFormatNames( format_names );
 static const DirectFBWaterElementTypeNames( m_element_types );
