@@ -1134,8 +1134,6 @@ dfb_surface_pool_cache_op( CoreSurfacePool         *pool,
 {
      DFBResult               ret;
      const SurfacePoolFuncs *funcs;
-     CoreSurface            *surface;
-     DFBRectangle            area;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 

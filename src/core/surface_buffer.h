@@ -78,7 +78,7 @@ struct __DFB_CoreSurfaceBufferLock {
      unsigned long            offset;             /* " */
      unsigned int             pitch;              /* " */
 
-     void*                    handle;             /* " */
+     void                    *handle;             /* " */
 
      DFB_SurfaceTask         *task;
 };
