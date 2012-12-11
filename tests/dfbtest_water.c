@@ -793,9 +793,9 @@ Test_RenderShape( IWater *water, IDirectFBSurface *surface )
       */
      _T( water->RenderShape( water, surface,
                              &header,
-                             m_test_shape_attributes_red,              
+                             m_test_shape_attributes_red,
                              D_ARRAY_SIZE(m_test_shape_attributes_red),
-                             m_test_shape_elements,                    
+                             m_test_shape_elements,
                              D_ARRAY_SIZE(m_test_shape_elements) ) );
 
      return DFB_OK;
