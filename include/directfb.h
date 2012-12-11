@@ -4837,6 +4837,25 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface              *thiz,
           u32                            flip_count
      );
+
+
+   /** Debug **/
+
+     /*
+      * Dump the contents of the surface to one or two files in raw format.
+      *
+      * Creates a RAW file containing the ARGB data.
+      *
+      * The complete filename will be:
+      * <b>directory</b>/<b>prefix</b>_<i>####</i>.raw for ARGB.
+      * Example: "/directory/prefix_0000.raw". No existing files
+      * will be overwritten.
+      */
+     DFBResult (*DumpRaw) (
+          IDirectFBSurface         *thiz,
+          const char               *directory,
+          const char               *prefix
+     );
 )
 
 

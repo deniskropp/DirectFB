@@ -2888,6 +2888,35 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_DumpRaw( IDirectFBSurface   *thiz,
+                          const char         *directory,
+                          const char         *prefix )
+{
+     CoreSurface *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!directory)
+          return DFB_INVARG;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->caps & DSCAPS_SUBSURFACE) {
+          D_ONCE( "sub surface dumping not supported yet" );
+          return DFB_UNSUPPORTED;
+     }
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     return dfb_surface_dump_raw_buffer( surface, CSBR_FRONT, directory, prefix );
+}
+
+static DFBResult
 IDirectFBSurface_DisableAcceleration( IDirectFBSurface    *thiz,
                                       DFBAccelerationMask  mask )
 {
@@ -3542,6 +3571,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetGL = IDirectFBSurface_GetGL;
 
      thiz->Dump = IDirectFBSurface_Dump;
+     thiz->DumpRaw = IDirectFBSurface_DumpRaw;
      thiz->DisableAcceleration = IDirectFBSurface_DisableAcceleration;
      thiz->ReleaseSource = IDirectFBSurface_ReleaseSource;
 

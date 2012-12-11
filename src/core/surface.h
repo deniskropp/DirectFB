@@ -375,6 +375,11 @@ DFBResult dfb_surface_dump_buffer2  ( CoreSurface                  *surface,
                                       const char                   *path,
                                       const char                   *prefix );
 
+DFBResult dfb_surface_dump_raw_buffer( CoreSurface                  *surface,
+                                       CoreSurfaceBufferRole         role,
+                                       const char                   *path,
+                                       const char                   *prefix );
+
 DFBResult dfb_surface_set_palette   ( CoreSurface                  *surface,
                                       CorePalette                  *palette );
 
