@@ -719,10 +719,12 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
           DIRECT_INTERFACE_GET_DATA_FROM( data->parent, parent_data, IDirectFBSurface );
 
-          /* Signal end of sequence of operations. */
-          dfb_state_lock( &parent_data->state );
-          dfb_state_stop_drawing( &parent_data->state );
-          dfb_state_unlock( &parent_data->state );
+          if (parent_data) {
+               /* Signal end of sequence of operations. */
+               dfb_state_lock( &parent_data->state );
+               dfb_state_stop_drawing( &parent_data->state );
+               dfb_state_unlock( &parent_data->state );
+          }
      }
 
      dfb_region_from_rectangle( &reg, &data->area.current );
@@ -1338,7 +1340,8 @@ IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
 
               DIRECT_INTERFACE_GET_DATA_FROM( font, font_data, IDirectFBFont );
 
-              data->encoding = font_data->encoding;
+              if (font_data)
+                   data->encoding = font_data->encoding;
          }
 
          if (data->font)
@@ -2495,6 +2498,9 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      DIRECT_INTERFACE_GET_DATA_FROM( font, font_data, IDirectFBFont );
 
+     if(!font_data)
+          return DFB_DESTROYED;
+
      core_font = font_data->font;
 
      if (flags & DSTF_OUTLINE) {
@@ -2607,6 +2613,9 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
      font = data->font;
 
      DIRECT_INTERFACE_GET_DATA_FROM( font, font_data, IDirectFBFont );
+
+     if (!font_data)
+          return DFB_DESTROYED;
 
      core_font = font_data->font;
 
@@ -2762,6 +2771,9 @@ IDirectFBSurface_MakeSubSurface( IDirectFBSurface   *thiz,
           return DFB_DESTROYED;
 
      DIRECT_INTERFACE_GET_DATA_FROM(from, from_data, IDirectFBSurface);
+
+     if (!from_data)
+          return DFB_DESTROYED;
 
      /* Check if CoreSurface is the same */
      if (from_data->surface != surface)
@@ -2996,6 +3008,9 @@ IDirectFBSurface_SetSourceMask( IDirectFBSurface    *thiz,
           return DFB_INVARG;
 
      DIRECT_INTERFACE_GET_DATA_FROM(mask, mask_data, IDirectFBSurface);
+
+     if (!mask_data)
+          return DFB_DESTROYED;
 
      if (!mask_data->surface)
           return DFB_DESTROYED;
@@ -3436,6 +3451,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
           }
 
           DIRECT_INTERFACE_GET_DATA_FROM( parent, parent_data, IDirectFBSurface );
+
+          if(!parent_data)
+               return DFB_DESTROYED;
 
           pthread_mutex_lock( &parent_data->children_lock );
 
