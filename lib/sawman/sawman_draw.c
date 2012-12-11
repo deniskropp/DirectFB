@@ -50,6 +50,7 @@
 
 #include <sawman_config.h>
 
+#include "sawman_draw.h"
 #include "sawman_window.h"
 
 D_DEBUG_DOMAIN( SaWMan_Draw, "SaWMan/Draw", "SaWMan window manager drawing" );

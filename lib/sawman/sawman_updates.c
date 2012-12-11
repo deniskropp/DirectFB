@@ -51,6 +51,7 @@
 
 #include <sawman.h>
 
+#include "sawman_updates.h"
 #include "sawman_config.h"
 #include "sawman_draw.h"
 #include "sawman_window.h"
