@@ -83,7 +83,7 @@ typedef enum {
      WST_INTEGER         = 0x1,    /* Ordinary (pure) integer value (32 bit) */
      WST_FIXED_16_16     = 0x2,    /* Fixed point with 16 <b>sign</b>+<b>integral</b> and 16 <b>fractional</b> bits */
      WST_FIXED_24_8      = 0x3,    /* Fixed point with 24 <b>sign</b>+<b>integral</b> and 8 <b>fractional</b> bits */
-     WST_FLOAT           = 0x4,    /* Single precision floating point value (32 bit) */
+     WST_FLOAT           = 0x4     /* Single precision floating point value (32 bit) */
 } WaterScalarType;
 
 /*
@@ -105,7 +105,7 @@ typedef enum {
      WOP_ADD             = 0x1,    /* Add the value */
      WOP_SUB             = 0x2,    /* Subtract the value */
      WOP_MUL             = 0x3,    /* Multiply with the value */
-     WOP_DIV             = 0x4,    /* Divide by the value */
+     WOP_DIV             = 0x4     /* Divide by the value */
 } WaterOperator;
 
 
@@ -171,7 +171,7 @@ typedef enum {
      WTT_ROTATE_MASK     = 0xF000,
 
 
-     WTT_ALL             = 0xF3FF,
+     WTT_ALL             = 0xF3FF
 } WaterTransformType;
 
 /*
@@ -247,7 +247,7 @@ typedef enum {
      WTM_REPEAT          = 0x3,    /* Tiles are simply repeated */
      WTM_FLIP_X          = 0x4,    /* Tiles are repeated, but flipped horizontally each column */
      WTM_FLIP_Y          = 0x5,    /* Tiles are repeated, but flipped vertically each row */
-     WTM_FLIP_XY         = 0x6,    /* Tiles are flipped horizontally/vertically each column/row */
+     WTM_FLIP_XY         = 0x6     /* Tiles are flipped horizontally/vertically each column/row */
 } WaterTileMode;
 
 /*
@@ -257,7 +257,7 @@ typedef enum {
      WQL_FAIR            = 0x0,    /* Performance should be OK, quality still acceptable (use best possible and fast) */
      WQL_FAST            = 0x1,    /* Performance should be best, quality is secondary (use best possible at fastest) */
      WQL_BEST            = 0x2,    /* Quality should be best, no matter what performance will */
-     WQL_OFF             = 0x3,    /* Disable setting, always using worst quality */
+     WQL_OFF             = 0x3     /* Disable setting, always using worst quality */
 } WaterQualityLevel;
 
 /*
@@ -306,7 +306,7 @@ typedef enum {
      WBM_HSL_HUE         = 0x19,   /*  */
      WBM_HSL_SATURATION  = 0x1A,   /*  */
      WBM_HSL_COLOR       = 0x1B,   /*  */
-     WBM_HSL_LUMINOSITY  = 0x1C,   /*  */
+     WBM_HSL_LUMINOSITY  = 0x1C    /*  */
 } WaterBlendMode;
 
 /*
@@ -316,7 +316,7 @@ typedef enum {
      WFR_NONZERO         = 0x0,    /* This rule determines the "insideness" of a point on the canvas by drawing a ray
                                       from that point to infinity in any direction and then examining the places where
                                       a segment of the shape crosses the ray. */
-     WFR_EVENODD         = 0x1,    /* This rule determines the "insideness" of a point on the canvas by drawing a ray
+     WFR_EVENODD         = 0x1     /* This rule determines the "insideness" of a point on the canvas by drawing a ray
                                       from that point to infinity in any direction and counting the number of path
                                       segments from the given shape that the ray crosses. */
 } WaterFillRule;
@@ -459,7 +459,7 @@ typedef enum {
      WAT_LINE_CAPSTYLE          = 0x31, /* Change <b>line cap</b> style, see WaterLineCapStyle */
      WAT_LINE_JOINSTYLE         = 0x32, /* Change <b>line join</b> style, see WaterLineJoinStyle */
      WAT_LINE_MITER             = 0x33, /* Change <b>miter limit</b>, see WaterScalar */
-     WAT_LINE_DASHES            = 0x34, /* Change <b>dashes</b> */
+     WAT_LINE_DASHES            = 0x34  /* Change <b>dashes</b> */
 } WaterAttributeType;
 
 /*
@@ -470,7 +470,7 @@ typedef enum {
 
      WAF_OPERATOR             = 0x01,   /* Indicates that a WaterOperator is set in <b>op</b> */
 
-     WAF_ALL                  = 0x01,   /* All of these */
+     WAF_ALL                  = 0x01    /* All of these */
 } WaterAttributeFlags;
 
 /*
@@ -502,7 +502,7 @@ typedef enum {
 
      WGT_LINEAR               = 0x1,    /* Linear gradient       values:  x1 y1 x2 y2       [x color] */
      WGT_RADIAL               = 0x2,    /* Radial gradient       values:  x1 y1 r1 x2 y2 r2 [x color] */
-     WGT_CONICAL              = 0x3,    /* Conical gradient      values:  x  y  a           [x color] */
+     WGT_CONICAL              = 0x3     /* Conical gradient      values:  x  y  a           [x color] */
 } WaterGradientType;
 
 /*
@@ -539,7 +539,7 @@ typedef struct {
  * Pattern Types [4]
  */
 typedef enum {
-     WPT_SURFACE         = 0x0,    /* Surface pattern       values:  id */
+     WPT_SURFACE         = 0x0     /* Surface pattern       values:  id */
 } WaterPatternType;
 
 /*
@@ -641,7 +641,7 @@ typedef enum {
      WET_QUAD_CURVE_STRIP     = WATER_ELEMENT_TYPE( 20, 4, 2 ), /* x y [x2 y2] */
 
      WET_CUBIC_CURVE          = WATER_ELEMENT_TYPE( 21, 6, 6 ), /* x y x2 y2 x3 y3 */
-     WET_CUBIC_CURVE_STRIP    = WATER_ELEMENT_TYPE( 22, 6, 4 ), /* x y [x2 y2] x3 y3 */
+     WET_CUBIC_CURVE_STRIP    = WATER_ELEMENT_TYPE( 22, 6, 4 )  /* x y [x2 y2] x3 y3 */
 } WaterElementType;
 
 #define WATER_NUM_ELEMENT_TYPES    23
@@ -661,7 +661,7 @@ typedef enum {
      WEF_ARC_LARGE            = 0x100,  /* Large arc flag */
      WEF_ARC_SWEEP            = 0x200,  /* Sweep flag */
 
-     WEF_ALL                  = 0x333,  /* All of these */
+     WEF_ALL                  = 0x333   /* All of these */
 } WaterElementFlags;
 
 /*
@@ -699,7 +699,7 @@ typedef enum {
 
      WSF_OPACITY              = 0x10,   /* Apply opacity to the shape (all joints are lit) */
 
-     WSF_ALL                  = 0x13,   /* All of these */
+     WSF_ALL                  = 0x13    /* All of these */
 } WaterShapeFlags;
 
 typedef struct {

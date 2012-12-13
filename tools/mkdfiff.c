@@ -182,7 +182,7 @@ load_image (const char            *filename,
 
      data  = malloc (height * pitch);
      if (!data) {
-          fprintf (stderr, "Failed to allocate %lu bytes.\n", height * pitch);
+          fprintf (stderr, "Failed to allocate %lu bytes.\n", (unsigned long)(height * pitch));
           goto cleanup;
      }
 
@@ -210,7 +210,7 @@ load_image (const char            *filename,
           dest = malloc (height * d_pitch);
           if (!dest) {
                fprintf (stderr, "Failed to allocate %lu bytes.\n",
-                        height * d_pitch);
+                        (unsigned long)(height * d_pitch));
                goto cleanup;
           }
 

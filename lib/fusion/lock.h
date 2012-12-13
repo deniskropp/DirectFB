@@ -137,7 +137,7 @@ typedef enum {
      FUSION_SKIRMISH_PERMIT_NOTIFY                = 0x00000020,
      FUSION_SKIRMISH_PERMIT_DESTROY               = 0x00000040,
 
-     FUSION_SKIRMISH_PERMIT_ALL                   = 0x0000007F,
+     FUSION_SKIRMISH_PERMIT_ALL                   = 0x0000007F
 } FusionSkirmishPermissions;
 
 /*

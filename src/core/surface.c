@@ -348,10 +348,10 @@ dfb_surface_create( CoreDFB                  *core,
                }
 
                dfb_surface_buffer_globalize( surface->buffers[i] );
-     
+
                if (eye == DSSE_LEFT)
                     surface->num_buffers++;
-     
+
                switch (i) {
                     case 0:
                          surface->buffer_indices[CSBR_FRONT] = i;
@@ -528,7 +528,7 @@ dfb_surface_notify_display2( CoreSurface     *surface,
      if (surface->type & CSTF_LAYER) {
           CoreLayer *layer = dfb_layer_at( surface->resource_id );
 
-          D_DEBUG_AT( Core_Surface, "  -> LAYER %d\n", surface->resource_id );
+          D_DEBUG_AT( Core_Surface, "  -> LAYER %lu\n", surface->resource_id );
 
           D_DEBUG_AT( Core_Surface, "  -> previous task %p\n", layer->display_task_onscreen );
           D_DEBUG_AT( Core_Surface, "  -> current task %p\n", task );
@@ -624,7 +624,7 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
 
      if (surface->num_buffers == 0)
           return DFB_SUSPENDED;
-     
+
      back  = (surface->flips + CSBR_BACK)  % surface->num_buffers;
      front = (surface->flips + CSBR_FRONT) % surface->num_buffers;
 
@@ -753,7 +753,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
           new_config.format = config->format;
 
      if (config->flags & CSCONF_COLORSPACE)
-          surface->config.colorspace = config->colorspace;
+          new_config.colorspace = config->colorspace;
 
      if (config->flags & CSCONF_CAPS) {
           if (config->caps & DSCAPS_ROTATED)
@@ -806,7 +806,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<buffers; i++) {
                CoreSurfaceBuffer *buffer;
-     
+
                ret = dfb_surface_buffer_create( core_dfb, surface, CSBF_NONE, i, &buffer );
                if (ret) {
                     D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
@@ -818,7 +818,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
                surface->buffers[i] = buffer;
                if (eye == DSSE_LEFT)
                     surface->num_buffers++;
-     
+
                switch (i) {
                     case 0:
                          surface->buffer_indices[CSBR_FRONT] = i;
@@ -1146,8 +1146,6 @@ dfb_surface_write_buffer( CoreSurface            *surface,
      DFBSurfacePixelFormat  format;
      CoreSurfaceAllocation *allocation;
 
-     (void)format;
-
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( pitch > 0 || source == NULL );
      DFB_RECTANGLE_ASSERT_IF( prect );
@@ -1303,6 +1301,35 @@ dfb_surface_dump_buffer( CoreSurface           *surface,
 }
 
 DFBResult
+dfb_surface_dump_raw_buffer( CoreSurface           *surface,
+                             CoreSurfaceBufferRole  role,
+                             const char            *path,
+                             const char            *prefix )
+{
+     DFBResult          ret;
+     CoreSurfaceBuffer *buffer;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( path != NULL );
+     D_ASSERT( prefix != NULL );
+
+     if (surface->num_buffers == 0)
+          return DFB_SUSPENDED;
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
+     buffer = dfb_surface_get_buffer( surface, role );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     ret = dfb_surface_buffer_dump_raw( buffer, path, prefix );
+
+     fusion_skirmish_dismiss( &surface->lock );
+
+     return ret;
+}
+
+DFBResult
 dfb_surface_dump_buffer2( CoreSurface           *surface,
                           CoreSurfaceBufferRole  role,
                           DFBSurfaceStereoEye    eye,
@@ -1361,7 +1388,7 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
 
           dfb_surface_allocation_unref( allocation );
           return ret;
-     }     
+     }
 
      /* Check pixel format. */
      switch (lock.buffer->format) {

@@ -26,6 +26,7 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <config.h>
 #include <directfb.h>
 #include <directfb_util.h>
 
@@ -1134,8 +1135,6 @@ dfb_surface_pool_cache_op( CoreSurfacePool         *pool,
 {
      DFBResult               ret;
      const SurfacePoolFuncs *funcs;
-     CoreSurface            *surface;
-     DFBRectangle            area;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 

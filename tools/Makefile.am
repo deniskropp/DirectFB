@@ -88,6 +88,7 @@ NON_PURE_VOODOO_bin_PROGS =
 else
 NON_PURE_VOODOO_bin_PROGS = \
 	dfbdump			\
+	dfbdumpinput		\
 	dfbinput
 endif
 
@@ -153,6 +154,9 @@ dfbg_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $
 
 dfbinfo_SOURCES = dfbinfo.c
 dfbinfo_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
+
+dfbdumpinput_SOURCES = dfbdumpinput.c
+dfbdumpinput_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
 
 dfbinput_SOURCES = dfbinput.c
 dfbinput_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)

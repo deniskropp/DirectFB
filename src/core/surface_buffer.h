@@ -78,7 +78,7 @@ struct __DFB_CoreSurfaceBufferLock {
      unsigned long            offset;             /* " */
      unsigned int             pitch;              /* " */
 
-     void*                    handle;             /* " */
+     void                    *handle;             /* " */
 
      DFB_SurfaceTask         *task;
 };
@@ -203,6 +203,10 @@ DFBResult dfb_surface_buffer_write  ( CoreSurfaceBuffer       *buffer,
 DFBResult dfb_surface_buffer_dump   ( CoreSurfaceBuffer       *buffer,
                                       const char              *directory,
                                       const char              *prefix );
+
+DFBResult dfb_surface_buffer_dump_raw( CoreSurfaceBuffer       *buffer,
+                                       const char              *directory,
+                                       const char              *prefix );
 
 CoreSurfaceAllocation *
 dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,

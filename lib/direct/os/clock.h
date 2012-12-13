@@ -39,7 +39,7 @@ typedef enum {
      DIRECT_CLOCK_REALTIME              = 0,
      DIRECT_CLOCK_MONOTONIC             = 1,
      DIRECT_CLOCK_PROCESS_CPUTIME_ID    = 2,
-     DIRECT_CLOCK_THREAD_CPUTIME_ID     = 3,
+     DIRECT_CLOCK_THREAD_CPUTIME_ID     = 3
 } DirectClockType;
 
 long long    direct_clock_get_time  ( DirectClockType type );

@@ -665,13 +665,13 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      return ret;
 }
 
-DFBResult
-dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
+static DFBResult
+dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
                          const char        *directory,
-                         const char        *prefix )
+                              const char        *prefix,
+                              bool               raw )
 {
      DFBResult              ret;
-     int                    res;
      int                    num  = -1;
      int                    fd_p = -1;
      int                    fd_g = -1;
@@ -686,7 +686,9 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
      static const char     *gz_ext = ".gz";
 #else
      static const char     *gz_ext = "";
+     int                    res;
 #endif
+     char                   rgb_ext[4];
      CoreSurface           *surface;
      CorePalette           *palette = NULL;
      CoreSurfaceBufferLock  lock;
@@ -704,6 +706,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
      /* Check pixel format. */
      switch (buffer->format) {
           case DSPF_LUT8:
+          case DSPF_ALUT8:
                palette = surface->palette;
 
                if (!palette) {
@@ -768,11 +771,14 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
           return ret;
      }
 
+     /* Setup the file extension depending on whether we want the output the RAW format or not... */
+     snprintf( rgb_ext, D_ARRAY_SIZE(rgb_ext), (raw == true) ? "raw" : "ppm");
+
      if (prefix) {
           /* Find the lowest unused index. */
           while (++num < 10000) {
-               snprintf( filename, len, "%s/%s_%04d.ppm%s",
-                         directory, prefix, num, gz_ext );
+               snprintf( filename, len, "%s/%s_%04d.%s%s",
+                         directory, prefix, num, rgb_ext, gz_ext );
 
                if (access( filename, F_OK ) != 0) {
                     snprintf( filename, len, "%s/%s_%04d.pgm%s",
@@ -796,9 +802,9 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
      /* Create a file with the found index. */
      if (rgb) {
           if (prefix)
-               snprintf( filename, len, "%s/%s_%04d.ppm%s", directory, prefix, num, gz_ext );
+               snprintf( filename, len, "%s/%s_%04d.%s%s", directory, prefix, num, rgb_ext, gz_ext );
           else
-               snprintf( filename, len, "%s.ppm%s", directory, gz_ext );
+               snprintf( filename, len, "%s.%s%s", directory, rgb_ext, gz_ext );
 
           fd_p = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
           if (fd_p < 0) {
@@ -812,7 +818,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
      }
 
      /* Create a graymap for the alpha channel using the found index. */
-     if (alpha) {
+     if (alpha && !raw) {
           if (prefix)
                snprintf( filename, len, "%s/%s_%04d.pgm%s", directory, prefix, num, gz_ext );
           else
@@ -829,8 +835,8 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 
                if (rgb) {
                     close( fd_p );
-                    snprintf( filename, len, "%s/%s_%04d.ppm%s",
-                              directory, prefix, num, gz_ext );
+                    snprintf( filename, len, "%s/%s_%04d.%s%s",
+                              directory, prefix, num, rgb_ext, gz_ext );
                     unlink( filename );
                }
 
@@ -842,10 +848,12 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
      if (rgb)
           gz_p = gzdopen( fd_p, "wb" );
 
-     if (alpha)
+     if (alpha && !raw)
           gz_g = gzdopen( fd_g, "wb" );
 #endif
 
+     /* Only write the header if we are not dumping a raw image */
+     if (!raw) {
      if (rgb) {
           /* Write the pixmap header. */
           snprintf( head, 30,
@@ -868,6 +876,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
           res = write( fd_g, head, strlen(head) );
           (void)res;
 #endif
+	 }
      }
 
      /* Write the pixmap (and graymap) data. */
@@ -879,6 +888,28 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
 
           /* Write color buffer to pixmap file. */
           if (rgb) {
+               if (raw) {
+                   u8 buf_p[surface->config.size.w * 4];
+
+                   if (buffer->format == DSPF_LUT8) {
+                        for (n=0, n3=0; n<surface->config.size.w; n++, n3+=4) {
+                             buf_p[n3+0] = palette->entries[src8[n]].r;
+                             buf_p[n3+1] = palette->entries[src8[n]].g;
+                             buf_p[n3+2] = palette->entries[src8[n]].b;
+                             buf_p[n3+3] = palette->entries[src8[n]].a;
+                        }
+                   }
+                   else
+                        dfb_convert_to_argb( buffer->format, src8, lock.pitch, surface->config.size.h,
+                                             (u32 *)(&buf_p[0]), surface->config.size.w * 4, surface->config.size.w, 1 );
+#ifdef USE_ZLIB
+                   gzwrite( gz_p, buf_p, surface->config.size.w * 4 );
+#else
+                   write( fd_p, buf_p, surface->config.size.w * 4 );
+#endif
+
+               }
+               else {
                u8 buf_p[surface->config.size.w * 3];
 
                if (buffer->format == DSPF_LUT8) {
@@ -898,9 +929,10 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
                (void)res;
 #endif
           }
+          }
 
           /* Write alpha buffer to graymap file. */
-          if (alpha) {
+          if (alpha && !raw) {
                u8 buf_g[surface->config.size.w];
 
                if (buffer->format == DSPF_LUT8) {
@@ -930,7 +962,7 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
      if (rgb)
           gzclose( gz_p );
 
-     if (alpha)
+     if (alpha && !raw)
           gzclose( gz_g );
 #endif
 
@@ -939,9 +971,26 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
           close( fd_p );
 
      /* Close graymap file. */
-     if (alpha)
+     if (alpha && !raw)
           close( fd_g );
 
      return DFB_OK;
 }
 
+DFBResult
+dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
+                         const char        *directory,
+                         const char        *prefix )
+{
+     return dfb_surface_buffer_dump_type( buffer, directory, prefix, false );
+}
+
+DFBResult
+dfb_surface_buffer_dump_raw( CoreSurfaceBuffer *buffer,
+                             const char        *directory,
+                             const char        *prefix )
+{
+     return dfb_surface_buffer_dump_type( buffer, directory, prefix, true );
+}
+
+/**********************************************************************************************************************/

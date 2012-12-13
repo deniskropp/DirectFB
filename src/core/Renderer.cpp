@@ -237,7 +237,7 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
 
           dfb_surface_unlock( surface );
 
-          long long t1 = direct_clock_get_abs_millis();
+//          long long t1 = direct_clock_get_abs_millis();
           // FIXME: this is a temporary solution, slaves will be blocked via kernel module later
 //          printf("count %d\n", allocation->task_count);
           unsigned int timeout = 5000;
@@ -250,7 +250,7 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
                //printf("blocked\n");
                usleep( 1000 );
           }
-          long long t2 = direct_clock_get_abs_millis();
+//          long long t2 = direct_clock_get_abs_millis();
 //          D_INFO("blocked %lld\n", t2 - t1);
 
 
@@ -729,8 +729,8 @@ Renderer::StretchBlit( const DFBRectangle     *srects,
                if (!(setup->task_mask & (1 << i)))
                     continue;
 
-               if (srects[i].w > drects[i].w * engine->caps.max_scale_down_x || // FIXME: implement multi pass!
-                   srects[i].h > drects[i].h * engine->caps.max_scale_down_y)
+               if (srects[i].w > drects[i].w * (int)engine->caps.max_scale_down_x || // FIXME: implement multi pass!
+                   srects[i].h > drects[i].h * (int)engine->caps.max_scale_down_y)
                     continue;
 
                engine->StretchBlit( setup->tasks[i], srects, drects, num );

@@ -261,7 +261,7 @@ typedef enum {
      TASK_FLAG_CACHE_FLUSH      = 0x00000004,     /*  */
      TASK_FLAG_CACHE_INVALIDATE = 0x00000008,     /*  */
 
-     TASK_FLAG_ALL              = 0x0000000F,
+     TASK_FLAG_ALL              = 0x0000000F
 } TaskFlags;
 
 

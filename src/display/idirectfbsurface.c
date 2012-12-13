@@ -719,10 +719,12 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
           DIRECT_INTERFACE_GET_DATA_FROM( data->parent, parent_data, IDirectFBSurface );
 
-          /* Signal end of sequence of operations. */
-          dfb_state_lock( &parent_data->state );
-          dfb_state_stop_drawing( &parent_data->state );
-          dfb_state_unlock( &parent_data->state );
+          if (parent_data) {
+               /* Signal end of sequence of operations. */
+               dfb_state_lock( &parent_data->state );
+               dfb_state_stop_drawing( &parent_data->state );
+               dfb_state_unlock( &parent_data->state );
+          }
      }
 
      dfb_region_from_rectangle( &reg, &data->area.current );
@@ -1338,7 +1340,8 @@ IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
 
               DIRECT_INTERFACE_GET_DATA_FROM( font, font_data, IDirectFBFont );
 
-              data->encoding = font_data->encoding;
+              if (font_data)
+                   data->encoding = font_data->encoding;
          }
 
          if (data->font)
@@ -1706,6 +1709,7 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
           return DFB_INVARG;
 
      if (data->area.wanted.x || data->area.wanted.y) {
+          unsigned int  i;
           DFBRectangle *local_rects;
           bool          malloced = (num_rects > 256);
 
@@ -2494,6 +2498,9 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      DIRECT_INTERFACE_GET_DATA_FROM( font, font_data, IDirectFBFont );
 
+     if(!font_data)
+          return DFB_DESTROYED;
+
      core_font = font_data->font;
 
      if (flags & DSTF_OUTLINE) {
@@ -2606,6 +2613,9 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
      font = data->font;
 
      DIRECT_INTERFACE_GET_DATA_FROM( font, font_data, IDirectFBFont );
+
+     if (!font_data)
+          return DFB_DESTROYED;
 
      core_font = font_data->font;
 
@@ -2762,6 +2772,9 @@ IDirectFBSurface_MakeSubSurface( IDirectFBSurface   *thiz,
 
      DIRECT_INTERFACE_GET_DATA_FROM(from, from_data, IDirectFBSurface);
 
+     if (!from_data)
+          return DFB_DESTROYED;
+
      /* Check if CoreSurface is the same */
      if (from_data->surface != surface)
           return DFB_UNSUPPORTED;
@@ -2887,6 +2900,35 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_DumpRaw( IDirectFBSurface   *thiz,
+                          const char         *directory,
+                          const char         *prefix )
+{
+     CoreSurface *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!directory)
+          return DFB_INVARG;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->caps & DSCAPS_SUBSURFACE) {
+          D_ONCE( "sub surface dumping not supported yet" );
+          return DFB_UNSUPPORTED;
+     }
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     return dfb_surface_dump_raw_buffer( surface, CSBR_FRONT, directory, prefix );
+}
+
+static DFBResult
 IDirectFBSurface_DisableAcceleration( IDirectFBSurface    *thiz,
                                       DFBAccelerationMask  mask )
 {
@@ -2966,6 +3008,9 @@ IDirectFBSurface_SetSourceMask( IDirectFBSurface    *thiz,
           return DFB_INVARG;
 
      DIRECT_INTERFACE_GET_DATA_FROM(mask, mask_data, IDirectFBSurface);
+
+     if (!mask_data)
+          return DFB_DESTROYED;
 
      if (!mask_data->surface)
           return DFB_DESTROYED;
@@ -3407,6 +3452,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
           DIRECT_INTERFACE_GET_DATA_FROM( parent, parent_data, IDirectFBSurface );
 
+          if(!parent_data)
+               return DFB_DESTROYED;
+
           pthread_mutex_lock( &parent_data->children_lock );
 
           direct_list_append( &parent_data->children_data, &data->link );
@@ -3541,6 +3589,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetGL = IDirectFBSurface_GetGL;
 
      thiz->Dump = IDirectFBSurface_Dump;
+     thiz->DumpRaw = IDirectFBSurface_DumpRaw;
      thiz->DisableAcceleration = IDirectFBSurface_DisableAcceleration;
      thiz->ReleaseSource = IDirectFBSurface_ReleaseSource;
 

@@ -81,7 +81,7 @@ typedef struct {
 
 typedef enum {
      CSCH_NOTIFICATION,
-     CSCH_EVENT,
+     CSCH_EVENT
 } CoreSurfaceChannel;
 
 
@@ -193,7 +193,7 @@ typedef enum {
 
      _CSAID_NUM          = 0x00000018,  /* number of statically assigned IDs for usage in static arrays */
 
-     CSAID_ANY           = 0x00000100,  /* any other accessor needs to be registered using IDs starting from here */
+     CSAID_ANY           = 0x00000100   /* any other accessor needs to be registered using IDs starting from here */
 } CoreSurfaceAccessorID;
 
 typedef enum {
@@ -374,6 +374,11 @@ DFBResult dfb_surface_dump_buffer2  ( CoreSurface                  *surface,
                                       DFBSurfaceStereoEye           eye,
                                       const char                   *path,
                                       const char                   *prefix );
+
+DFBResult dfb_surface_dump_raw_buffer( CoreSurface                  *surface,
+                                       CoreSurfaceBufferRole         role,
+                                       const char                   *path,
+                                       const char                   *prefix );
 
 DFBResult dfb_surface_set_palette   ( CoreSurface                  *surface,
                                       CorePalette                  *palette );

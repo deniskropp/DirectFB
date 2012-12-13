@@ -225,7 +225,7 @@ typedef enum {
      FUSION_REACTOR_PERMIT_ATTACH_DETACH     = 0x00000001,
      FUSION_REACTOR_PERMIT_DISPATCH          = 0x00000002,
 
-     FUSION_REACTOR_PERMIT_ALL               = 0x00000003,
+     FUSION_REACTOR_PERMIT_ALL               = 0x00000003
 } FusionReactorPermissions;
 
 /*

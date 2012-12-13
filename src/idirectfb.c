@@ -889,9 +889,16 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
                          caps &= ~DSCAPS_TRIPLE;
 
+                    config.surface_caps = DSCAPS_NONE;
+
                     if (caps & DSCAPS_PREMULTIPLIED) {
                           config.flags        |= DLCONF_SURFACE_CAPS;
-                          config.surface_caps  = DSCAPS_PREMULTIPLIED;
+                          config.surface_caps |= DSCAPS_PREMULTIPLIED;
+                    }
+
+                    if (caps & DSCAPS_GL) {
+                          config.flags        |= DLCONF_SURFACE_CAPS;
+                          config.surface_caps |= DSCAPS_GL;
                     }
 
                     if (caps & DSCAPS_TRIPLE) {
