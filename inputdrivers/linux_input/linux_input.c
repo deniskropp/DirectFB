@@ -1046,8 +1046,12 @@ get_device_info( int              fd,
 
      struct input_id devinfo;
 
+     D_DEBUG_AT( Debug_LinuxInput, "%s()\n", __FUNCTION__ );
+
      /* get device name */
      ioctl( fd, EVIOCGNAME(DFB_INPUT_DEVICE_DESC_NAME_LENGTH - 1), info->desc.name );
+
+     D_DEBUG_AT( Debug_LinuxInput, "  -> name '%s'\n", __FUNCTION__, info->desc.name );
 
      /* set device vendor */
      snprintf( info->desc.vendor,
@@ -1180,9 +1184,11 @@ get_device_info( int              fd,
 
      /* Get VID and PID information */
      ioctl( fd, EVIOCGID, &devinfo );
-     
+
      info->desc.vendor_id  = devinfo.vendor;
      info->desc.product_id = devinfo.product;
+
+     D_DEBUG_AT( Debug_LinuxInput, "  -> ids %d/%d\n", __FUNCTION__, info->desc.vendor_id, info->desc.product_id );
 }
 
 static bool
@@ -1190,9 +1196,12 @@ check_device( const char *device )
 {
      int  fd;
 
+     D_DEBUG_AT( Debug_LinuxInput, "%s( '%s' )\n", __FUNCTION__, device );
+
      /* Check if we are able to open the device */
      fd = open( device, O_RDWR );
      if (fd < 0) {
+          D_DEBUG_AT( Debug_LinuxInput, "  -> open failed!\n" );
           return false;
      }
      else {
@@ -1216,13 +1225,17 @@ check_device( const char *device )
                ioctl( fd, EVIOCGRAB, 0 );
           close( fd );
 
-          if (!info.desc.caps)
+          if (!info.desc.caps) {
+              D_DEBUG_AT( Debug_LinuxInput, "  -> no caps!\n" );
               return false;
+          }
 
           if (!dfb_config->linux_input_ir_only ||
               (info.desc.type & DIDTF_REMOTE))
                return true;
      }
+
+     D_DEBUG_AT( Debug_LinuxInput, "  -> returning false!\n" );
 
      return false;
 }
@@ -1242,7 +1255,7 @@ driver_get_available( void )
      if (!(dfb_config->linux_input_force || (dfb_system_type() == CORE_FBDEV) || (dfb_system_type() == CORE_MESA) ))
           return 0;
 
-     if (dfb_system_type() == CORE_FBDEV) {
+     if (dfb_system_type() == CORE_FBDEV && !dfb_config->linux_input_force) {
           FBDev *dfb_fbdev = (FBDev*) dfb_system_data();
           D_ASSERT( dfb_fbdev );
 
@@ -1466,9 +1479,13 @@ get_capability( void )
           // Only allow USB keyboard and mouse support if the systems driver has
           // the Virtual Terminal file ("/dev/tty0") open and available for use.
           // FIXME:  Additional logic needed for system drivers not similar to fbdev?
-          if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0)
+          if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0) {
+               D_DEBUG_AT( Debug_LinuxInput, "  -> no VT\n" );
                goto exit;
+          }
      }
+
+     D_DEBUG_AT( Debug_LinuxInput, "  -> returning HOTPLUG\n" );
 
      capabilities |= IDC_HOTPLUG;
 
