@@ -75,6 +75,7 @@ symbol_name( DFBInputDeviceKeySymbol symbol )
 static IDirectFB                 *dfb;
 static IDirectFBEventBuffer      *events;
 static unsigned int               sf_to_tt = false;
+static unsigned int               spooky_output = false;
 
 /**************************************************************************************************/
 
@@ -119,6 +120,20 @@ main( int argc, char *argv[] )
           events->WaitForEvent( events );
 
           while (events->GetEvent( events, DFB_EVENT(event) ) == DFB_OK) {
+
+               static struct timeval last_timeval;
+
+               if (last_timeval.tv_sec != 0) {
+                    long long t1 = event[0].timestamp.tv_sec * 1000LL + event[0].timestamp.tv_usec / 1000LL;
+                    long long t2 = last_timeval.tv_sec       * 1000LL + last_timeval.tv_usec       / 1000LL;
+                    long long diff = t1-t2;
+                    if (diff > 0)
+                         printf( "p %lld\n", diff );
+
+               }
+
+               last_timeval = event[0].timestamp;
+
                switch (event[0].type) {
                     case DIET_AXISMOTION:
                          if (event[0].flags & DIEF_AXISABS) {
@@ -132,14 +147,39 @@ main( int argc, char *argv[] )
                          break;
                }
 
-               if (sf_to_tt) {
-                    memcpy( &event[0].timestamp+4, (char*)(&event[0].timestamp)+8, sizeof(event[0]) );
-                    memcpy( (char*)(&event[0].timestamp)+8, (char*)(&event[0].timestamp)+16, sizeof(event[0]) );
+               if (spooky_output) {
+                    switch (event[0].type) {
+                         case DIET_BUTTONPRESS:
+                              printf( "b+%d\n",event[0].button );
+                              break;
+                         case DIET_BUTTONRELEASE:
+                              printf( "b-%d\n",event[0].button );
+                              break;
+                         case DIET_AXISMOTION:
+                              if (event[0].flags & DIEF_AXISABS) {
+                                   if (event[0].axis == DIAI_X)
+                                        printf( "mx %d\n", event[0].axisabs );
+                                   if (event[0].axis == DIAI_Y)
+                                        printf( "my %d\n", event[0].axisabs );
+                                   if (event[0].axis == DIAI_Z)
+                                        printf( "mz %d\n", event[0].axisabs );
+                              }
+                              break;
+                         default:
+                              break;
 
-                    write( fileno(stdout), event, sizeof(event[0])-8 );
+                    }
                }
-               else
-                    write( fileno(stdout), event, sizeof(event[0]) );
+               else {
+                    if (sf_to_tt) {
+                         memcpy( &event[0].timestamp+4, (char*)(&event[0].timestamp)+8, sizeof(event[0]) );
+                         memcpy( (char*)(&event[0].timestamp)+8, (char*)(&event[0].timestamp)+16, sizeof(event[0]) );
+
+                         write( fileno(stdout), event, sizeof(event[0])-8 );
+                    }
+                    else
+                         write( fileno(stdout), event, sizeof(event[0]) );
+               }
           }
      }
 
@@ -211,6 +251,8 @@ parse_int( const AnyOption *option, const char *arg )
 static const AnyOption options[] = {
      { "-32",  "--convert-to-32bit",       "",           "Convert from 64bit to 32bit",
        NULL,     &sf_to_tt, true, NULL, NULL },
+     { "-s",   "--spooky-output",          "",           "output in spooky format instead of raw DFBInputEvents",
+       NULL,     &spooky_output, true, NULL, NULL },
 };
 
 /**************************************************************************************************/
