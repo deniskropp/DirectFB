@@ -1748,7 +1748,7 @@ Construct( IDirectFBVideoProvider *thiz,
      data->ref    = 1;
      data->status = DVSTATE_STOP;
      data->buffer = buffer;
-     data->speed  = 1.0;
+     data->speed  = 0.0;
      data->volume = 1.0;
      
      data->brightness =
