@@ -1532,6 +1532,8 @@ IDirectFB_SetClipboardData( IDirectFB      *thiz,
                             unsigned int    size,
                             struct timeval *timestamp )
 {
+     struct timeval tv;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
@@ -1539,8 +1541,13 @@ IDirectFB_SetClipboardData( IDirectFB      *thiz,
      if (!mime_type || !data || !size)
           return DFB_INVARG;
 
+     if(timestamp)
+          tv = *timestamp;
+     else
+          gettimeofday(&tv, NULL);
+
      return CoreDFB_ClipboardSet( data->core, mime_type, strlen(mime_type) + 1, clip_data,
-                                  size, timestamp->tv_sec * 1000000 + timestamp->tv_usec );
+                                  size, tv.tv_sec * 1000000 + tv.tv_usec );
 }
 
 static DFBResult
