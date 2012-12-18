@@ -5384,8 +5384,9 @@ typedef enum {
      DWEF_RETURNED       = 0x00000001,  /* This is a returned event, e.g. unconsumed key. */
      DWEF_RELATIVE       = 0x00000002,  /* This is a relative motion event (using DWCF_RELATIVE) */
      DWEF_REPEAT         = 0x00000010,  /* repeat event, e.g. repeating key */
+     DWEF_DEVICE_ID      = 0x00000020,  /* device_id field of DFBInputEvent is valid */
 
-     DWEF_ALL            = 0x00000013   /* all of these */
+     DWEF_ALL            = 0x00000033   /* all of these */
 } DFBWindowEventFlags;
 
 /*
@@ -5476,6 +5477,8 @@ typedef struct {
                                                     pressed buttons */
 
      struct timeval                  timestamp;  /* always set */
+
+     DFBInputDeviceID                device_id;
 } DFBWindowEvent;
 
 /*
