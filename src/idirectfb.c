@@ -506,10 +506,11 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
           }
      }
 
-     data->primary.width      = width;
-     data->primary.height     = height;
-     data->primary.format     = format;
-     data->primary.colorspace = colorspace;
+     data->primary.width          = width;
+     data->primary.height         = height;
+     data->primary.format         = format;
+     data->primary.colorspace     = colorspace;
+     data->primary.window_options = DWOP_KEEP_SIZE;
 
      return DFB_OK;
 }
@@ -793,7 +794,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          memset( &wd, 0, sizeof(wd) );
 
-                         wd.flags = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT |
+                         wd.flags = DWDESC_POSX | DWDESC_POSY | DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_OPTIONS |
                                     DWDESC_PIXELFORMAT | DWDESC_COLORSPACE | DWDESC_SURFACE_CAPS | DWDESC_CAPS | DWDESC_RESOURCE_ID;
 
                          if (dfb_config->scaled.width && dfb_config->scaled.height) {
@@ -818,6 +819,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          wd.colorspace   = colorspace;
                          wd.surface_caps = caps;
                          wd.resource_id  = resource_id;
+                         wd.options      = data->primary.window_options;
 
                          switch (format) {
                               case DSPF_ARGB8565:

@@ -60,6 +60,7 @@ typedef struct {
           bool                   focused;  /* primary's window has the focus */
 
           CoreLayerContext      *context;  /* context for fullscreen primary */
+          DFBWindowOptions       window_options;
      } primary;                            /* Used for DFSCL_NORMAL's primary. */
 
      bool                        app_focus;
