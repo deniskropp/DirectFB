@@ -119,11 +119,14 @@ send_key_event( SaWMan              *sawman,
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      D_ASSERT( event != NULL );
 
-     we.type       = (event->type == DIET_KEYPRESS) ? DWET_KEYDOWN : DWET_KEYUP;
-     we.flags      = (event->flags & DIEF_REPEAT) ? DWEF_REPEAT : 0;
-     we.key_code   = event->key_code;
-     we.key_id     = event->key_id;
-     we.key_symbol = event->key_symbol;
+     we.type        = (event->type == DIET_KEYPRESS) ? DWET_KEYDOWN : DWET_KEYUP;
+     we.flags       = (event->flags & DIEF_REPEAT) ? DWEF_REPEAT : 0;
+     we.key_code    = event->key_code;
+     we.key_id      = event->key_id;
+     we.key_symbol  = event->key_symbol;
+
+     we.flags      |= DWEF_DEVICE_ID;
+     we.device_id   = event->device_id;
 
      if (event->flags & DIEF_REPEAT)
           we.flags |= DWEF_REPEAT;
@@ -148,8 +151,11 @@ send_button_event( SaWMan              *sawman,
      window = sawwin->window;
      D_ASSERT( window != NULL );
 
-     we.type   = (event->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN : DWET_BUTTONUP;
-     we.button = event->button;
+     we.type       = (event->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN : DWET_BUTTONUP;
+     we.button     = event->button;
+
+     we.flags     |= DWEF_DEVICE_ID;
+     we.device_id  = event->device_id;
 
      sawman_window_get_cursor_position( sawman, stack, sawwin, &we.x, &we.y, &we.cx, &we.cy );
 
@@ -862,7 +868,8 @@ post_motion_event( SaWMan              *sawman,
                    SaWManWindow        *sawwin,
                    int                  x,   // SaWMan coordinates
                    int                  y,
-                   DFBWindowEventFlags  flags )
+                   DFBWindowEventFlags  flags,
+                   DFBInputDeviceID     device_id )
 {
      SaWManTier     *tier;
      DFBWindowEvent  we;
@@ -913,21 +920,25 @@ post_motion_event( SaWMan              *sawman,
      D_DEBUG_AT( SaWMan_WM, "  => %d, %d\n", x, y );
 
      /* Fill event structure */
-     we.type  = DWET_MOTION;
-     we.flags = flags;
-     we.x     = x;
-     we.y     = y;
-     we.cx    = cx;
-     we.cy    = cy;
+     we.type       = DWET_MOTION;
+     we.flags      = flags;
+     we.x          = x;
+     we.y          = y;
+     we.cx         = cx;
+     we.cy         = cy;
+
+     we.flags     |= DWEF_DEVICE_ID;
+     we.device_id  = device_id;
 
      sawman_post_event( sawman, sawwin, &we );
 }
 
 static void
-handle_motion( CoreWindowStack *stack,
-               SaWMan          *sawman,
-               int              dx,
-               int              dy )
+handle_motion( CoreWindowStack  *stack,
+               SaWMan           *sawman,
+               int               dx,
+               int               dy,
+               DFBInputDeviceID  device_id )
 {
      SaWManWindow         *sawwin = NULL;
      DFBWindowCursorFlags  flags  = DWCF_NONE;
@@ -1028,16 +1039,17 @@ handle_motion( CoreWindowStack *stack,
 
      if (sawwin) {
           if (flags & DWCF_RELATIVE)
-               post_motion_event( sawman, sawwin, dx, dy, DWEF_RELATIVE );
+               post_motion_event( sawman, sawwin, dx, dy, DWEF_RELATIVE, device_id );
           else
-               post_motion_event( sawman, sawwin, cx, cy, DWEF_NONE );
+               post_motion_event( sawman, sawwin, cx, cy, DWEF_NONE, device_id );
      }
 }
 
 static void
-handle_wheel( CoreWindowStack *stack,
-              SaWMan          *sawman,
-              int              dz )
+handle_wheel( CoreWindowStack  *stack,
+              SaWMan           *sawman,
+              int               dz,
+              DFBInputDeviceID  device_id )
 {
      DFBWindowEvent  we;
      SaWManWindow   *sawwin;
@@ -1060,8 +1072,11 @@ handle_wheel( CoreWindowStack *stack,
           D_MAGIC_ASSERT( sawwin, SaWManWindow );
           D_ASSERT( sawwin->window != NULL );
 
-          we.type = DWET_WHEEL;
-          we.step = dz;
+          we.type       = DWET_WHEEL;
+          we.step       = dz;
+
+          we.flags     |= DWEF_DEVICE_ID;
+          we.device_id  = device_id;
 
           sawman_window_get_cursor_position( sawman, stack, sawwin, &we.x, &we.y, &we.cx, &we.cy );
 
@@ -1106,7 +1121,7 @@ handle_axis_motion( CoreWindowStack     *stack,
                     break;
 
                case DIAI_Z:
-                    handle_wheel( stack, sawman, - event->axisrel );
+                    handle_wheel( stack, sawman, - event->axisrel, event->device_id );
                     break;
 
                default:
@@ -1144,7 +1159,7 @@ handle_axis_motion( CoreWindowStack     *stack,
      }
 
      if (!(event->flags & DIEF_FOLLOW) && (sawman->cursor.dx || sawman->cursor.dy)) {
-          handle_motion( stack, sawman, sawman->cursor.dx, sawman->cursor.dy );
+          handle_motion( stack, sawman, sawman->cursor.dx, sawman->cursor.dy, event->device_id );
 
           sawman->cursor.dx = 0;
           sawman->cursor.dy = 0;
