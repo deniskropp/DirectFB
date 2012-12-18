@@ -216,21 +216,25 @@ main( int argc, char *argv[] )
           /*
            * Server mode
            */
-          size_t received;
-          char   buf[128*1024];
+          size_t  received;
+          char   *buf = malloc(128*1024);
 
           ret = OneQueue_New( ONE_QUEUE_NO_FLAGS, queue_id, &queue_id );
-          if (ret)
+          if (ret) {
+               free( buf );
                return ret;
+          }
 
           D_INFO( "Server Queue ID %u, run client with '-q %u'\n", queue_id, queue_id );
 
           while (true) {
                size_t i;
 
-               ret = OneQueue_Receive( &queue_id, 1, buf, sizeof(buf), &received, false, 0 );
-               if (ret)
+               ret = OneQueue_Receive( &queue_id, 1, buf, 128*1024, &received, false, 0 );
+               if (ret) {
+                    free( buf );
                     return ret;
+               }
 
                for (i=0; i<received; ) {
                     OnePacketHeader *header  = (OnePacketHeader*)(buf + i);
@@ -247,6 +251,8 @@ main( int argc, char *argv[] )
                     }
                }
           }
+
+          free( buf );
      }
 
      return 0;
