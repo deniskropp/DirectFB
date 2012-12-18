@@ -115,12 +115,12 @@ static inline DFBUpdateBin *dfb_update_bin_get( const DFBUpdateBin *src, SaWManW
      bin->curr = size;
 
      if (src && size > 0)
-          memcpy(&bin->windows, &src->windows, size * sizeof(SaWManWindow*));
+          memcpy( &bin->windows, &src->windows, size * sizeof(SaWManWindow*) );
 
      if (window) {
           D_ASSERT(size < cap);
 
-          memcpy(&bin->windows + size, &window, sizeof(SaWManWindow*));
+          memcpy( &bin->windows + size, &window, sizeof(SaWManWindow*) );
           bin->size++;
           bin->curr++;
      }
@@ -937,7 +937,7 @@ update_region4_r( SaWMan          *sawman,
      DFBRegion     region;
      int           offset;
 
-     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, region.x1, region.y1, region.x2, region.y2 );
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, bin (%d,%d - %d,%d) )\n", __FUNCTION__, tier, start, bin->region.x1, bin->region.y1, bin->region.x2, bin->region.y2 );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( tier, SaWManTier );
@@ -959,9 +959,14 @@ update_region4_r( SaWMan          *sawman,
           region.x1 += offset;
           region.x2 += offset;
 
+          D_DEBUG_AT( SaWMan_Update, "%s --> window (%d,%d - %d,%d)\n", __FUNCTION__, region.x1, region.y1, region.x2, region.y2 );
+
           if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
-               if (dfb_region_intersect( &region, bin->region.x1, bin->region.y1, bin->region.x2, bin->region.y2))
+               D_DEBUG_AT( SaWMan_Update, "%s --> check intersection window (%d,%d - %d,%d) bin (%d,%d - %d,%d)\n", __FUNCTION__, region.x1, region.y1, region.x2, region.y2, bin->region.x1, bin->region.y1, bin->region.x2, bin->region.y2 );
+               if (dfb_region_intersect( &region, bin->region.x1, bin->region.y1, bin->region.x2, bin->region.y2)) {
+                    D_DEBUG_AT( SaWMan_Update, "%s --> intersection (%d,%d - %d,%d)\n", __FUNCTION__, region.x1, region.y1, region.x2, region.y2 );
                     break;
+               }
           }
 
           i--;
@@ -991,21 +996,38 @@ update_region4_r( SaWMan          *sawman,
           if (D_FLAGS_ARE_SET( window->config.options, DWOP_OPAQUE_REGION )) {
                DFBRegion opaque = DFB_REGION_INIT_TRANSLATED( &window->config.opaque, sawwin->bounds.x, sawwin->bounds.y );
 
-               /* continue recursion with left inner window intersection? */
-               if (opaque.x1 != region.x1)
+               D_DEBUG_AT( SaWMan_Update, "%s --> dividing region(%d,%d - %d,%d) on opaque (%d,%d - %d,%d)\n", __FUNCTION__, region.x1, region.y1, region.x2, region.y2, opaque.x1, opaque.y1, opaque.x2, opaque.y2 );
+
+               if (!dfb_region_intersect( &opaque, region.x1, region.y1, region.x2, region.y2)) {
+                    D_DEBUG_AT( SaWMan_Update, "%s: this should not happen, no intersection found!\n", __FUNCTION__);
+                    D_ASSERT( 0 );
+               }
+
+               D_DEBUG_AT( SaWMan_Update, "%s --> opaque region intersection (%d,%d - %d,%d)\n", __FUNCTION__, opaque.x1, opaque.y1, opaque.x2, opaque.y2 );
+
+               /* continue recursion with left outer intersection? */
+               if (opaque.x1 != region.x1) {
+                    D_DEBUG_AT( SaWMan_Update, "%s --> recursing left region(%d,%d - %d,%d)\n", __FUNCTION__, region.x1, opaque.y1, opaque.x1 - 1, opaque.y2 );
                     update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, opaque.y1, opaque.x1 - 1, opaque.y2, i + 1) );
+               }
 
-               /* continue recursion with upper inner window intersection? */
-               if (opaque.y1 != region.y1)
+               /* continue recursion with upper outer intersection? */
+               if (opaque.y1 != region.y1) {
+                    D_DEBUG_AT( SaWMan_Update, "%s --> recursing upper region(%d,%d - %d,%d)\n",__FUNCTION__,  region.x1, region.y1, region.x2, opaque.y1 - 1 );
                     update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, region.y1, region.x2, opaque.y1 - 1, i + 1) );
+               }
 
-               /* continue recursion with right inner window intersection? */
-               if (opaque.x2 != region.x2)
+               /* continue recursion with right outer intersection? */
+               if (opaque.x2 != region.x2) {
+                    D_DEBUG_AT( SaWMan_Update, "%s --> recursing right region(%d,%d - %d,%d)\n", __FUNCTION__, opaque.x2 + 1, opaque.y1, region.x2, opaque.y2 );
                     update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, opaque.x2 + 1, opaque.y1, region.x2, opaque.y2, i + 1) );
+               }
 
-               /* continue recursion with lower inner window intersection? */
-               if (opaque.y2 != region.y2)
+               /* continue recursion with lower outer intersection? */
+               if (opaque.y2 != region.y2) {
+                    D_DEBUG_AT( SaWMan_Update, "%s --> recursing lower region(%d,%d - %d,%d)\n", __FUNCTION__, region.x1, opaque.y2 + 1, region.x2, region.y2 );
                     update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, opaque.y2 + 1, region.x2, region.y2, i + 1) );
+               }
 
                /* recursion ends on opaque inner window */
                update_region4_r( sawman, tier, state, -1, right_eye, dfb_update_bin_get( bin, sawwin, opaque.x1, opaque.y1, opaque.x2, opaque.y2, i + 1) );
@@ -1022,6 +1044,8 @@ update_region4_r( SaWMan          *sawman,
           free( bin );
      }
      else {
+          D_DEBUG_AT( SaWMan_Update, "%s --> terminate bin->curr=%d bin->size=%d bin (%d,%d - %d,%d)\n", __FUNCTION__, bin->curr, bin->size, bin->region.x1, bin->region.y1, bin->region.x2, bin->region.y2 );
+
           /* recursion already ended */
           if (bin->size < 1) {
                sawman_draw_background( tier, state, &bin->region );
@@ -1101,6 +1125,8 @@ update_region4( SaWMan          *sawman,
      D_ASSERT( start < fusion_vector_size( &sawman->layout ) );
      D_ASSERT( x1 <= x2 );
      D_ASSERT( y1 <= y2 );
+
+     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
 
      if (start < 0) {
           DFBRegion region = { x1, y1, x2, y2 };
