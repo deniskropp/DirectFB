@@ -67,6 +67,7 @@ static const char *config_usage =
      "  [no-]static-layer                  Disable layer reconfiguration\n"
      "  update-region-mode=<num>           Set internal update region mode (1-3, default 2)\n"
      "  keep-implicit-key-grabs            Causes implicit key grabs to stay even when window is withdrawn\n"
+     "  hide-cursor-without-window         Hides the cursor when no window has control over it\n"
      "\n";
 
 
@@ -404,6 +405,9 @@ sawman_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "keep-implicit-key-grabs") == 0) {
           sawman_config->keep_implicit_key_grabs = true;
+     } else
+     if (strcmp (name, "hide-cursor-without-window") == 0) {
+          sawman_config->hide_cursor_without_window = true;
      } else
           return DFB_UNSUPPORTED;
 

@@ -2166,11 +2166,13 @@ sawman_process_updates( SaWMan              *sawman,
                D_MAGIC_ASSERT( tier, SaWManTier );
 
                if (tier->stack->cursor.opacity) {
-                    D_DEBUG_AT( SaWMan_Focus, "  -> hiding cursor...\n" );
+                    if (sawman_config->hide_cursor_without_window) {
+                         D_DEBUG_AT( SaWMan_Focus, "  -> hiding cursor...\n" );
 
-                    tier->stack->cursor.opacity = 0;
+                         tier->stack->cursor.opacity = 0;
 
-                    dfb_wm_update_cursor( tier->stack, CCUF_OPACITY );
+                         dfb_wm_update_cursor( tier->stack, CCUF_OPACITY );
+                    }
                }
                else
                     D_DEBUG_AT( SaWMan_Focus, "  -> cursor already hidden\n" );

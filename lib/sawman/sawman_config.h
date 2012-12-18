@@ -59,6 +59,8 @@ typedef struct {
      bool                  keep_implicit_key_grabs;
 
      DFBDimension          passive3d_mode;
+
+     bool                  hide_cursor_without_window;
 } SaWManConfig;
 
 
