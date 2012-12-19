@@ -127,6 +127,8 @@ struct __FS_CoreSound {
      bool                  suspended;
      
      bool                  detached;
+
+     bool                  shutdown;
 };
 
 /******************************************************************************/
@@ -887,7 +889,7 @@ sound_thread( DirectThread *thread, void *arg )
      
      caps = fs_device_get_capabilities( core->device );
      
-     while (true) {
+     while (!core->shutdown) {
           __fsf      *src    = mixing;
           int         length = 0;
           int         delay;
@@ -1235,8 +1237,12 @@ fs_core_shutdown( CoreSound *core, bool local )
      D_ASSERT( shared->playback_pool != NULL );
 
      /* Stop sound thread. */
+
+     core->shutdown = true;
      if (core->sound_thread) {
-          direct_thread_cancel( core->sound_thread );
+          fusion_skirmish_prevail( &core->shared->playlist.lock );
+          fusion_skirmish_notify( &core->shared->playlist.lock );
+          fusion_skirmish_dismiss( &core->shared->playlist.lock );
           direct_thread_join( core->sound_thread );
           direct_thread_destroy( core->sound_thread );
      }
