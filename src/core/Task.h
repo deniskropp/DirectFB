@@ -36,6 +36,7 @@ extern "C" {
 
 #include <direct/fifo.h>
 #include <direct/thread.h>
+#include <direct/trace.h>
 
 #include <core/surface.h>
 
@@ -53,11 +54,15 @@ DFBResult        SurfaceTask_AddAccess( DFB_SurfaceTask        *task,
                                         CoreSurfaceAccessFlags  flags );
 void             SurfaceTask_Flush    ( DFB_SurfaceTask        *task );
 void             SurfaceTask_Done     ( DFB_SurfaceTask        *task );
+void             SurfaceTask_Log      ( DFB_SurfaceTask        *task,
+                                        const char             *action );
 
 
 #ifdef __cplusplus
 }
 
+
+#define DFB_TASK_DEBUG   (0)
 
 extern "C" {
 #include <direct/thread.h>
@@ -250,7 +255,8 @@ typedef enum {
      TASK_FLUSHED,
      TASK_READY,
      TASK_RUNNING,
-     TASK_DONE
+     TASK_DONE,
+     TASK_INVALID
 } TaskState;
 
 typedef enum {
@@ -314,6 +320,22 @@ private:
      Task                    *next_slave;
 
      bool                     finished;
+
+#if DFB_TASK_DEBUG
+     typedef struct {
+          std::string         thread;
+          std::string         action;
+          long long           micros;
+          DirectTraceBuffer  *trace;
+     } LogEntry;
+
+     LogEntry tasklog[20];
+     u32      tasklogindex;
+#endif
+
+public:
+     void Log( const std::string &action );
+     void DumpLog( DirectLogDomain &domain, DirectLogLevel level );
 };
 
 
