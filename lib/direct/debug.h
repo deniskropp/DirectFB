@@ -369,5 +369,17 @@ void DIRECT_API direct_assumption( const char *exp,
 #define D_FLAGS_ASSERT(flags,f)    D_ASSERT( D_FLAGS_ARE_IN(flags,f) )
 
 
+#define D_INFO_LINE()                                                                                    \
+     do {                                                                                                \
+          long long micros = direct_clock_get_micros();                                                  \
+          int       indent = direct_trace_debug_indent() * 2;                                            \
+                                                                                                         \
+          D_INFO( "[%-16.16s %3lld.%03lld,%03lld] (%5d) %*s%*s %s:%d\n",                                 \
+                  direct_thread_self_name()?:"NO NAME",                                                  \
+                  micros / 1000000LL, (micros / 1000LL) % 1000LL, micros % 1000LL, direct_gettid(),      \
+                  indent, "", indent-60, __FUNCTION__, __FILE__, __LINE__ );                             \
+     } while (0)
+
+
 #endif
 
