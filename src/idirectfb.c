@@ -821,6 +821,9 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          wd.resource_id  = resource_id;
                          wd.options      = data->primary.window_options;
 
+                         if (desc->flags & (DSDESC_WIDTH | DSDESC_HEIGHT))
+                              wd.options |= DWOP_KEEP_SIZE;
+
                          switch (format) {
                               case DSPF_ARGB8565:
                               case DSPF_ARGB4444:
