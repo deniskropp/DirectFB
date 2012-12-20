@@ -25,9 +25,18 @@ WAVE_DRIVER = libfusionsound_wave.la
 endif
 
 drivers_LTLIBRARIES = \
+	libfusionsound_dummy.la	\
 	$(OSS_DRIVER)	\
 	$(ALSA_DRIVER)	\
 	$(WAVE_DRIVER)
+
+
+libfusionsound_dummy_la_SOURCES = dummy.c
+
+libfusionsound_dummy_la_LIBADD = $(top_builddir)/lib/direct/libdirect.la $(top_builddir)/lib/fusionsound/libfusionsound.la
+
+
+libfusionsound_dummy_la_LDFLAGS = -export-dynamic -avoid-version -module
 
 
 libfusionsound_oss_la_SOURCES = oss.c
