@@ -485,8 +485,8 @@ SetAttribute_Transform( State                      *state,
           D_DEBUG_AT( IWater_default, "  -> TYPE   0x%08x\n", transform->type );
 
           switch (transform->type) {
-               case WTT_NONE:
-                    D_DEBUG_AT( IWater_default, "  ->  NONE!?\n" );
+               case WTT_UNKNOWN:
+                    D_DEBUG_AT( IWater_default, "  ->  UNKNOWN!?\n" );
                     return DFB_INVARG;
 
                case WTT_ZERO:
@@ -563,9 +563,6 @@ SetAttribute_Transform( State                      *state,
                          case WTT_ROTATE_FREE:
                               D_DEBUG_AT( IWater_default, "  ->  [%d] ROTATE_FREE\n", m );
                               m++;
-                              break;
-
-                         case WTT_NONE:
                               break;
 
                          default:
