@@ -93,6 +93,11 @@ public:
 
 std::string PrintF( const char *format, ... )  D_FORMAT_PRINTF( 1 );
 
+
+
+std::string DFBAccelerationMask_Name( DFBAccelerationMask accel );
+
+
 }
 
 

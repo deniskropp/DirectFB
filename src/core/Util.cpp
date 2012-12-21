@@ -33,8 +33,9 @@
 extern "C" {
 #include <stdlib.h>
 #include <string.h>
-}
 
+#include <directfb_strings.h>
+}
 
 
 namespace DirectFB {
@@ -78,6 +79,21 @@ PrintF( const char *format, ... )
           free( ptr );
 
      return str;
+}
+
+std::string
+DFBAccelerationMask_Name( DFBAccelerationMask accel )
+{
+     static const DirectFBAccelerationMaskNames(accelerationmask_names);
+
+     std::string ret;
+
+     for (int i=0, n=0; accelerationmask_names[i].mask; i++) {
+          if (accel & accelerationmask_names[i].mask)
+               ret += PrintF( "%s%s", n++ ? "," : "", accelerationmask_names[i].name );
+     }
+
+     return ret;
 }
 
 }
