@@ -649,6 +649,9 @@ window_callback( CoreWindow *window,
      if (config->options & DWOP_GHOST)
           printf( "GHOST          " );
 
+     if (config->options & DWOP_KEEP_SIZE)
+          printf( "KEEP_SIZE      " );
+
      if (DFB_WINDOW_FOCUSED( window ))
           printf( "FOCUSED        " );
 
