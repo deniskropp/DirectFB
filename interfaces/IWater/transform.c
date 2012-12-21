@@ -84,7 +84,7 @@ TEST_Transform_TypeToMatrix_16_16( WaterTransform *transform )
      }
 
      switch (transform->type) {
-          case WTT_NONE:
+          case WTT_UNKNOWN:
           case WTT_ZERO:
                break;
 
@@ -214,7 +214,7 @@ TEST_Transform_TypeToMatrix( WaterTransform *transform )
      }
 
      switch (transform->type) {
-          case WTT_NONE:
+          case WTT_UNKNOWN:
           case WTT_ZERO:
                break;
 
@@ -401,7 +401,7 @@ TEST_Transform_Points( const WaterTransform *transform,
      }
 
      switch (type) {
-          case WTT_NONE:
+          case WTT_UNKNOWN:
                return;
 
           case WTT_ZERO:
@@ -576,7 +576,7 @@ TEST_Transform_Points( const WaterTransform *transform,
                D_UNIMPLEMENTED();
                break;
 
-          case WTT_NONE:
+          case WTT_UNKNOWN:
                break;
 
           default:
@@ -645,7 +645,7 @@ TEST_Transform_Rectangles( const WaterTransform *transform,
      }
 
      switch (type) {
-          case WTT_NONE:
+          case WTT_UNKNOWN:
                return;
 
           case WTT_ZERO:
@@ -832,7 +832,7 @@ TEST_Transform_Rectangles( const WaterTransform *transform,
                D_UNIMPLEMENTED();
                break;
 
-          case WTT_NONE:
+          case WTT_UNKNOWN:
                break;
 
           default:
@@ -865,7 +865,7 @@ TEST_Transform_Regions( const WaterTransform *transform,
           D_DEBUG_AT( IWater_TEST_Trans, "  -> TYPE   0x%08x\n", transform->type );
 
           switch (transform->type) {
-               case WTT_NONE:
+               case WTT_UNKNOWN:
                     break;
 
                case WTT_ZERO:
@@ -1067,7 +1067,7 @@ TEST_Transform_Regions( const WaterTransform *transform,
                               //m++;
                               break;
 
-                         case WTT_NONE:
+                         case WTT_UNKNOWN:
                               break;
 
                          default:
@@ -1108,7 +1108,7 @@ TEST_Transform_Triangles( const WaterTransform *transform,
           D_DEBUG_AT( IWater_TEST_Trans, "  -> TYPE   0x%08x\n", transform->type );
 
           switch (transform->type) {
-               case WTT_NONE:
+               case WTT_UNKNOWN:
                     break;
 
                case WTT_ZERO:
@@ -1322,7 +1322,7 @@ TEST_Transform_Triangles( const WaterTransform *transform,
                               //m++;
                               break;
 
-                         case WTT_NONE:
+                         case WTT_UNKNOWN:
                               break;
 
                          default:

@@ -130,10 +130,10 @@ typedef enum {
  * Common types of transformations [16]
  */
 typedef enum {
-     WTT_NONE            = 0x0000, /* No specific type, arbitrary transform */
+     WTT_IDENTITY        = 0x0000, /* No specific type, arbitrary transform */
 
-     WTT_ZERO            = 0x0001,
-     WTT_IDENTITY        = 0x0002,
+     WTT_UNKNOWN         = 0x0001,
+     WTT_ZERO            = 0x0002,
 
 
      WTT_TRANSLATE_X     = 0x0004,
