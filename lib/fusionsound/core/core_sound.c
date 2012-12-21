@@ -879,15 +879,12 @@ sound_thread( DirectThread *thread, void *arg )
 {
      CoreSound          *core    = arg;
      CoreSoundShared    *shared  = core->shared;
-     DeviceCapabilities  caps;
      
      __fsf              *mixing  = core->mixing_buffer;
      int                 frames  = shared->config.buffersize;
      FSChannelMode       mode    = shared->config.mode;
      
      fsf_dither_profiles(dither, FS_MAX_CHANNELS);
-     
-     caps = fs_device_get_capabilities( core->device );
      
      while (!core->shutdown) {
           __fsf      *src    = mixing;
