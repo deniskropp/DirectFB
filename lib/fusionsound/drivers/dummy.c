@@ -56,7 +56,7 @@ static DirectResult
 device_probe( void )
 {
      /* load only when requested */
-     if (strcmp( fs_config->driver, "dummy" ))
+     if (!fs_config->driver || strcmp( fs_config->driver, "dummy" ))
           return DR_UNSUPPORTED;
 
      return DR_OK;
