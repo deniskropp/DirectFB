@@ -33,6 +33,8 @@
 extern "C" {
 #endif
 
+#include <direct/memcpy.h>
+
 #include <directfb.h>
 
 
