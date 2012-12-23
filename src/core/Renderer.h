@@ -39,6 +39,7 @@ extern "C" {
 #include <core/surface.h>
 
 #include <directfb.h>
+#include <directfb_water.h>
 
 
 // C Wrapper
@@ -125,6 +126,13 @@ typedef std::map<SurfaceAllocationKey,CoreSurfaceAllocation*>  SurfaceAllocation
 typedef std::pair<SurfaceAllocationKey,CoreSurfaceAllocation*> SurfaceAllocationMapPair;
 
 
+namespace Primitives {
+
+class Base;
+
+}
+
+
 class Renderer
 {
 public:
@@ -199,6 +207,9 @@ public:
      void FillRectangles  ( const DFBRectangle     *rects,
                             unsigned int            num_rects );
 
+     void FillQuadrangles ( const DFBPoint         *points,
+                            unsigned int            num_quads );
+
      void FillTriangles   ( const DFBTriangle      *tris,
                             unsigned int            num_tris );
 
@@ -237,6 +248,7 @@ public:
 private:
      CardState             *state;
      StateModificationFlags state_mod;
+     WaterTransformType     transform_type;
 
      Engine                *engine;
      Setup                 *setup;
@@ -245,12 +257,18 @@ private:
      SurfaceAllocationMap   allocations;
 
 
-     bool      checkEngine ( DFBAccelerationMask  accel,
-                             unsigned int         num );
+     DFBAccelerationMask getTransformAccel( DFBAccelerationMask accel,
+                                            WaterTransformType  type );
 
-     DFBResult bindEngine  ( Engine              *engine );
+     Engine   *getEngine   ( DFBAccelerationMask  accel,
+                             WaterTransformType   transform );
+
+     DFBResult bindEngine  ( Engine              *engine,
+                             DFBAccelerationMask  accel );
      void      unbindEngine();
 
+
+     void      render    ( Primitives::Base       *primitives );
 
      void      update    ( DFBAccelerationMask     accel );
 
@@ -278,6 +296,42 @@ public:
 };
 
 
+namespace Primitives {
+
+class Base {
+public:
+     DFBAccelerationMask accel;
+     bool                clipped;
+     bool                del;
+
+     Base( DFBAccelerationMask accel,
+           bool                clipped,
+           bool                del )
+          :
+          accel( accel ),
+          clipped( clipped ),
+          del( del )
+     {
+     }
+
+     virtual ~Base() {
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix )
+     {
+          return NULL;
+     }
+
+     virtual unsigned int count() const = 0;
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine ) = 0;
+};
+
+}
+
+
 
 class Engine {
      friend class Renderer;
@@ -292,6 +346,7 @@ public:
           unsigned int             max_scale_down_x;
           unsigned int             max_scale_down_y;
           unsigned int             max_operations;
+          WaterTransformType       transforms;
 
           Capabilities()
           {
@@ -302,12 +357,13 @@ public:
                max_scale_down_x = UINT_MAX;
                max_scale_down_y = UINT_MAX;
                max_operations   = UINT_MAX;
+               transforms       = WTT_IDENTITY;
           }
      };
 
-protected:
      Capabilities caps;
 
+protected:
      Engine()
      {
      }
@@ -351,6 +407,10 @@ public:
                                          const DFBSpan          *spans,
                                          unsigned int            num_spans );
 
+     virtual DFBResult FillQuadrangles ( SurfaceTask            *task,
+                                         const DFBPoint         *points,
+                                         unsigned int            num_quads );
+
 
 
      virtual DFBResult Blit            ( SurfaceTask            *task,
@@ -377,7 +437,12 @@ public:
 
      virtual DFBResult TextureTriangles( SurfaceTask            *task,
                                          const DFBVertex        *vertices,
-                                         int                     num,
+                                         unsigned int            num,
+                                         DFBTriangleFormation    formation );
+
+     virtual DFBResult TextureTriangles( SurfaceTask            *task,
+                                         const DFBVertex1616    *vertices,
+                                         unsigned int            num,
                                          DFBTriangleFormation    formation );
 };
 

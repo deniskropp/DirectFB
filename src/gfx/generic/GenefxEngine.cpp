@@ -31,6 +31,7 @@
 #include <config.h>
 
 #include <core/Renderer.h>
+#include <core/Util.h>
 
 extern "C" {
 #include <directfb.h>
@@ -111,7 +112,8 @@ private:
           TYPE_FILL_RECTS,
           TYPE_DRAW_LINES,
           TYPE_BLIT,
-          TYPE_STRETCHBLIT
+          TYPE_STRETCHBLIT,
+          TYPE_TEXTURE_TRIANGLES
      } Type;
 
      std::vector<u32> commands;
@@ -129,9 +131,9 @@ public:
 
           caps.software       = true;
           caps.cores          = cores < 8 ? cores : 8;
-          caps.clipping       = (DFBAccelerationMask)(DFXL_FILLRECTANGLE | DFXL_DRAWLINE | DFXL_BLIT);
+          caps.clipping       = (DFBAccelerationMask)(DFXL_FILLRECTANGLE | DFXL_DRAWLINE | DFXL_BLIT | DFXL_TEXTRIANGLES);
           caps.render_options = (DFBSurfaceRenderOptions)(DSRO_SMOOTH_DOWNSCALE | DSRO_SMOOTH_UPSCALE);
-          caps.max_operations = 1000;
+          caps.max_operations = 10000;
 
           for (unsigned int i=0; i<cores; i++) {
                char name[] = "GenefxX";
@@ -158,6 +160,15 @@ public:
      {
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
 
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               GenefxTask *mytask = (GenefxTask *) setup->tasks[i];
+
+               if (mytask->commands.size() >= 0x17800) {
+                    //fprintf(stderr,"limit %zu\n",mytask->buffer.GetLength());
+                    return DFB_LIMITEXCEEDED;
+               }
+          }
+
           return DFB_OK;
      }
 
@@ -165,6 +176,18 @@ public:
                                        DFBAccelerationMask     accel )
      {
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
+
+          switch (accel) {
+               case DFXL_FILLRECTANGLE:
+               case DFXL_DRAWLINE:
+               case DFXL_BLIT:
+               case DFXL_STRETCHBLIT:
+               case DFXL_TEXTRIANGLES:
+                    break;
+
+               default:
+                    return DFB_UNSUPPORTED;
+          }
 
           if (!gAcquireCheck( state, accel ))
                return DFB_UNSUPPORTED;
@@ -462,6 +485,30 @@ public:
      }
 
 
+     virtual DFBResult TextureTriangles( SurfaceTask            *task,
+                                         const DFBVertex1616    *vertices,
+                                         unsigned int            num,
+                                         DFBTriangleFormation    formation )
+     {
+          GenefxTask *mytask = (GenefxTask *)task;
+
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num );
+
+          mytask->commands.push_back( GenefxTask::TYPE_TEXTURE_TRIANGLES );
+          mytask->commands.push_back( num );
+          mytask->commands.push_back( formation );
+
+          for (unsigned int i=0; i<num; i++) {
+               mytask->commands.push_back( vertices[i].x >> 16 );
+               mytask->commands.push_back( vertices[i].y >> 16 );
+               mytask->commands.push_back( vertices[i].s );
+               mytask->commands.push_back( vertices[i].t );
+          }
+
+          return DFB_OK;
+     }
+
+
 private:
      friend class GenefxTask;
 
@@ -503,20 +550,21 @@ GenefxTask::Push()
 DFBResult
 GenefxTask::Run()
 {
-     u32         ptr1;
-     u32         ptr2;
-     u32         color;
-     u32         num;
-     size_t      size;
-     CoreSurface dest;
-     CorePalette dest_palette;
-     DFBColor    dest_entries[256];
-     DFBColorYUV dest_entries_yuv[256];
-     CoreSurface source;
-     CorePalette source_palette;
-     DFBColor    source_entries[256];
-     DFBColorYUV source_entries_yuv[256];
-     CardState   state;
+     u32                  ptr1;
+     u32                  ptr2;
+     u32                  color;
+     u32                  num;
+     size_t               size;
+     CoreSurface          dest;
+     CorePalette          dest_palette;
+     DFBColor             dest_entries[256];
+     DFBColorYUV          dest_entries_yuv[256];
+     CoreSurface          source;
+     CorePalette          source_palette;
+     DFBColor             source_entries[256];
+     DFBColorYUV          source_entries_yuv[256];
+     DFBTriangleFormation formation;
+     CardState            state;
 
      D_DEBUG_AT( DirectFB_GenefxTask, "GenefxTask::%s()\n", __FUNCTION__ );
 
@@ -791,6 +839,33 @@ GenefxTask::Run()
                          }
                          else
                               i += num * 8;
+                         break;
+
+                    case GenefxTask::TYPE_TEXTURE_TRIANGLES:
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> TEXTURE_TRIANGLES\n" );
+
+                         num = buffer[++i];
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> num       %d\n", num );
+
+                         formation = (DFBTriangleFormation) buffer[++i];
+                         D_DEBUG_AT( DirectFB_GenefxTask, "  -> formation %d\n", formation );
+
+                         // TODO: run gAcquireSetup in Engine, requires lots of Genefx changes :(
+                         if (gAcquireSetup( &state, DFXL_TEXTRIANGLES )) {
+                              Util::TempArray<GenefxVertexAffine> v( num );
+
+                              for (u32 n=0; n<num; n++) {
+                                   v.array[n].x = buffer[++i];
+                                   v.array[n].y = buffer[++i];
+                                   v.array[n].s = buffer[++i];
+                                   v.array[n].t = buffer[++i];
+                              }
+
+                              Genefx_TextureTrianglesAffine( &state, v.array, num, formation, &state.clip );
+                         }
+                         else
+                              i += num * 4;
+
                          break;
 
                     default:

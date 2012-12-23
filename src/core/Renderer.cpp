@@ -115,6 +115,1518 @@ Renderer_GetTLS( void )
 namespace DirectFB {
 
 
+#define TRANSFORM(_x,_y,p)  \
+          (p).x = ((_x) * (matrix)[0] + (_y) * (matrix)[1] + (matrix)[2] + 0x8000) >> 16; \
+          (p).y = ((_x) * (matrix)[3] + (_y) * (matrix)[4] + (matrix)[5] + 0x8000) >> 16;
+
+#define TRANSFORM_XY(_x,_y,_nx,_ny)  \
+          (_nx) = ((_x) * (matrix)[0] + (_y) * (matrix)[1] + (matrix)[2] + 0x8000) >> 16; \
+          (_ny) = ((_x) * (matrix)[3] + (_y) * (matrix)[4] + (matrix)[5] + 0x8000) >> 16;
+
+
+
+namespace Primitives {
+
+
+class Rectangles : public Base {
+public:
+     Rectangles( const DFBRectangle  *rects,
+                 unsigned int         num_rects,
+                 DFBAccelerationMask  accel,
+                 bool                 clipped = false,
+                 bool                 del = false )
+          :
+          Base( accel, clipped, del ),
+          rects( (DFBRectangle*) rects ),
+          num_rects( num_rects )
+     {
+     }
+
+     virtual ~Rectangles() {
+          if (del)
+               delete rects;
+     }
+
+     virtual unsigned int count() const {
+          return num_rects;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBRectangle *rects;
+     unsigned int  num_rects;
+};
+
+
+
+class Blits : public Base {
+public:
+     Blits( const DFBRectangle  *rects,
+            const DFBPoint      *points,
+            unsigned int         num_rects,
+            DFBAccelerationMask  accel,
+            bool                 clipped = false,
+            bool                 del = false )
+          :
+          Base( accel, clipped, del ),
+          rects( (DFBRectangle*) rects ),
+          points( (DFBPoint*) points ),
+          num_rects( num_rects )
+     {
+     }
+
+     virtual ~Blits() {
+          if (del) {
+               delete rects;
+               delete points;
+          }
+     }
+
+     virtual unsigned int count() const {
+          return num_rects;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBRectangle *rects;
+     DFBPoint     *points;
+     unsigned int  num_rects;
+};
+
+
+
+class StretchBlits : public Base {
+public:
+     StretchBlits( const DFBRectangle  *srects,
+                   const DFBRectangle  *drects,
+                   unsigned int         num_rects,
+                   DFBAccelerationMask  accel,
+                   bool                 clipped = false,
+                   bool                 del = false )
+          :
+          Base( accel, clipped, del ),
+          srects( (DFBRectangle*) srects ),
+          drects( (DFBRectangle*) drects ),
+          num_rects( num_rects )
+     {
+     }
+
+     virtual ~StretchBlits() {
+          if (del) {
+               delete srects;
+               delete drects;
+          }
+     }
+
+     virtual unsigned int count() const {
+          return num_rects;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBRectangle *srects;
+     DFBRectangle *drects;
+     unsigned int  num_rects;
+};
+
+
+
+class Lines : public Base {
+public:
+     Lines( const DFBRegion     *lines,
+            unsigned int         num_lines,
+            DFBAccelerationMask  accel,
+            bool                 clipped = false,
+            bool                 del = false )
+          :
+          Base( accel, clipped, del ),
+          lines( (DFBRegion*) lines ),
+          num_lines( num_lines )
+     {
+     }
+
+     virtual ~Lines() {
+          if (del)
+               delete lines;
+     }
+
+     virtual unsigned int count() const {
+          return num_lines;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBRegion    *lines;
+     unsigned int  num_lines;
+};
+
+
+
+class Spans : public Base {
+public:
+     Spans( int                  y,
+            const DFBSpan       *spans,
+            unsigned int         num_spans,
+            DFBAccelerationMask  accel,
+            bool                 clipped = false,
+            bool                 del = false )
+          :
+          Base( accel, clipped, del ),
+          y( y ),
+          spans( (DFBSpan*) spans ),
+          num_spans( num_spans )
+     {
+     }
+
+     virtual ~Spans() {
+          if (del)
+               delete spans;
+     }
+
+     virtual unsigned int count() const {
+          return num_spans;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     int           y;
+     DFBSpan      *spans;
+     unsigned int  num_spans;
+};
+
+
+
+class Trapezoids : public Base {
+public:
+     Trapezoids( const DFBTrapezoid  *traps,
+                 unsigned int         num_traps,
+                 DFBAccelerationMask  accel,
+                 bool                 clipped = false,
+                 bool                 del = false )
+                 :
+                 Base( accel, clipped, del ),
+                 traps( (DFBTrapezoid*) traps ),
+                 num_traps( num_traps )
+     {
+     }
+
+     virtual ~Trapezoids() {
+          if (del)
+               delete traps;
+     }
+
+     virtual unsigned int count() const {
+          return num_traps;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBTrapezoid *traps;
+     unsigned int  num_traps;
+};
+
+
+
+class Triangles : public Base {
+public:
+     Triangles( const DFBTriangle   *tris,
+                unsigned int         num_tris,
+                DFBAccelerationMask  accel,
+                bool                 clipped = false,
+                bool                 del = false )
+          :
+          Base( accel, clipped, del ),
+          tris( (DFBTriangle*) tris ),
+          num_tris( num_tris )
+     {
+     }
+
+     virtual ~Triangles() {
+          if (del)
+               delete tris;
+     }
+
+     virtual unsigned int count() const {
+          return num_tris;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBTriangle  *tris;
+     unsigned int  num_tris;
+};
+
+
+
+class TexTriangles : public Base {
+public:
+     TexTriangles( const DFBVertex      *vertices,
+                   int                   num,
+                   DFBTriangleFormation  formation,
+                   DFBAccelerationMask   accel,
+                   bool                  clipped = false,
+                   bool                  del = false )
+          :
+          Base( accel, clipped, del ),
+          vertices( (DFBVertex*) vertices ),
+          num( num ),
+          formation( formation )
+     {
+     }
+
+     virtual ~TexTriangles() {
+          if (del)
+               delete vertices;
+     }
+
+     virtual unsigned int count() const {
+          return num;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBVertex            *vertices;
+     unsigned int          num;
+     DFBTriangleFormation  formation;
+};
+
+
+
+class TexTriangles1616 : public Base {
+public:
+     TexTriangles1616( const DFBVertex1616  *vertices,
+                       int                   num,
+                       DFBTriangleFormation  formation,
+                       DFBAccelerationMask   accel,
+                       bool                  clipped = false,
+                       bool                  del = false )
+          :
+          Base( accel, clipped, del ),
+          vertices( (DFBVertex1616*) vertices ),
+          num( num ),
+          formation( formation )
+     {
+     }
+
+     virtual ~TexTriangles1616() {
+          if (del)
+               delete vertices;
+     }
+
+     virtual unsigned int count() const {
+          return num;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBVertex1616        *vertices;
+     unsigned int          num;
+     DFBTriangleFormation  formation;
+};
+
+
+
+class Quadrangles : public Base {
+public:
+     Quadrangles( const DFBPoint      *points,
+                  unsigned int         num_quads,
+                  DFBAccelerationMask  accel,
+                  bool                 clipped = false,
+                  bool                 del = false )
+          :
+          Base( accel, clipped, del ),
+          points( (DFBPoint*) points ),
+          num_quads( num_quads )
+     {
+     }
+
+     virtual ~Quadrangles() {
+          if (del)
+               delete points;
+     }
+
+     virtual unsigned int count() const {
+          return num_quads;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBPoint     *points;
+     unsigned int  num_quads;
+};
+
+
+Base *
+Rectangles::tesselate( DFBAccelerationMask  accel,
+                       const s32           *matrix )
+{
+     switch (this->accel) {
+          case DFXL_FILLRECTANGLE:
+               switch (accel) {
+                    case DFXL_FILLRECTANGLE:
+                         /* fill rect to fill rect used for transformation only */
+                         D_ASSUME( matrix != NULL );
+                         if (!matrix)
+                              return NULL;
+
+                         {
+                              DFBRectangle *newrects = new DFBRectangle[num_rects];
+
+                              for (unsigned int i=0; i<num_rects; i++) {
+                                   DFBPoint p1, p2;
+
+                                   TRANSFORM( rects[i].x,              rects[i].y,              p1 );
+                                   TRANSFORM( rects[i].x + rects[i].w, rects[i].y + rects[i].h, p2 );
+
+                                   if (p1.x > p2.x)
+                                        D_UTIL_SWAP( p1.x, p2.x );
+
+                                   if (p1.y > p2.y)
+                                        D_UTIL_SWAP( p1.y, p2.y );
+
+                                   newrects[i].x = p1.x;
+                                   newrects[i].y = p1.y;
+                                   newrects[i].w = p2.x - p1.x;
+                                   newrects[i].h = p2.y - p1.y;
+                              }
+
+                              return new Rectangles( newrects, num_rects, DFXL_FILLRECTANGLE, clipped, true );
+                         }
+                         break;
+
+                    case DFXL_FILLQUADRANGLE:
+                         {
+                              DFBPoint *points = new DFBPoint[num_rects * 4];
+
+                              if (matrix) {
+                                   for (unsigned int i=0, n=0; i<num_rects; i++, n+=4) {
+                                        TRANSFORM( rects[i].x,              rects[i].y,              points[n+0] );
+                                        TRANSFORM( rects[i].x + rects[i].w, rects[i].y,              points[n+1] );
+                                        TRANSFORM( rects[i].x + rects[i].w, rects[i].y + rects[i].h, points[n+2] );
+                                        TRANSFORM( rects[i].x,              rects[i].y + rects[i].h, points[n+3] );
+                                   }
+                              }
+                              else {
+                                   for (unsigned int i=0, n=0; i<num_rects; i++, n+=4) {
+                                        points[n+0].x = rects[i].x;              points[n+0].y = rects[i].y;
+                                        points[n+1].x = rects[i].x + rects[i].w; points[n+1].y = rects[i].y;
+                                        points[n+2].x = rects[i].x + rects[i].w; points[n+2].y = rects[i].y + rects[i].h;
+                                        points[n+3].x = rects[i].x;              points[n+3].y = rects[i].y + rects[i].h;
+                                   }
+                              }
+
+                              return new Quadrangles( points, num_rects, DFXL_FILLQUADRANGLE, clipped, true );
+                         }
+                         break;
+
+                    default:
+                         D_UNIMPLEMENTED();
+               }
+               break;
+
+          case DFXL_DRAWRECTANGLE:
+               switch (accel) {
+                    case DFXL_DRAWLINE:
+                         {
+                              DFBRegion *lines = new DFBRegion[num_rects * 4];
+
+                              if (matrix) {
+                                   for (unsigned int i=0, n=0; i<num_rects; i++, n+=4) {
+                                        TRANSFORM_XY( rects[i].x,              rects[i].y,              lines[n+0].x1, lines[n+0].y1 );
+                                        TRANSFORM_XY( rects[i].x + rects[i].w, rects[i].y,              lines[n+0].x2, lines[n+0].y2 );
+
+                                        lines[n+1].x1 = lines[n+0].x2;
+                                        lines[n+1].y1 = lines[n+0].y2;
+                                        TRANSFORM_XY( rects[i].x + rects[i].w, rects[i].y + rects[i].h, lines[n+1].x2, lines[n+1].y2 );
+
+                                        lines[n+2].x1 = lines[n+1].x2;
+                                        lines[n+2].y1 = lines[n+1].y2;
+                                        TRANSFORM_XY( rects[i].x,              rects[i].y + rects[i].h, lines[n+2].x2, lines[n+2].y2 );
+
+                                        lines[n+3].x1 = lines[n+2].x2;
+                                        lines[n+3].y1 = lines[n+2].y2;
+                                        lines[n+3].x2 = lines[n+0].x1;
+                                        lines[n+3].y2 = lines[n+0].y1;
+                                   }
+                              }
+                              else {
+                                   for (unsigned int i=0, n=0; i<num_rects; i++, n+=4) {
+                                        lines[n+0].x1 = rects[i].x;
+                                        lines[n+0].y1 = rects[i].y;
+                                        lines[n+0].x2 = rects[i].x + rects[i].w;
+                                        lines[n+0].y2 = rects[i].y;
+
+                                        lines[n+1].x1 = lines[n+0].x2;
+                                        lines[n+1].y1 = lines[n+0].y2;
+                                        lines[n+1].x2 = rects[i].x + rects[i].w;
+                                        lines[n+1].y2 = rects[i].y + rects[i].h;
+
+                                        lines[n+2].x1 = lines[n+1].x2;
+                                        lines[n+2].y1 = lines[n+1].y2;
+                                        lines[n+2].x2 = rects[i].x;
+                                        lines[n+2].y2 = rects[i].y + rects[i].h;
+
+                                        lines[n+3].x1 = lines[n+2].x2;
+                                        lines[n+3].y1 = lines[n+2].y2;
+                                        lines[n+3].x2 = lines[n+0].x1;
+                                        lines[n+3].y2 = lines[n+0].y1;
+                                   }
+                              }
+
+                              return new Lines( lines, num_rects * 4, DFXL_DRAWLINE, clipped, true );
+                         }
+                         break;
+
+                    case DFXL_FILLRECTANGLE:
+                         {
+                              DFBRectangle *newrects = new DFBRectangle[num_rects * 4];
+                              unsigned int  num      = 0;
+
+                              for (unsigned int i=0; i<num_rects; i++) {
+                                   newrects[num].x = rects[i].x;
+                                   newrects[num].y = rects[i].y;
+                                   newrects[num].w = rects[i].w;
+                                   newrects[num].h = 1;
+
+                                   num++;
+
+
+                                   if (rects[i].h > 1) {
+                                        newrects[num].x = rects[i].x;
+                                        newrects[num].y = rects[i].y + rects[i].h - 1;
+                                        newrects[num].w = rects[i].w;
+                                        newrects[num].h = 1;
+
+                                        num++;
+
+
+                                        if (rects[i].h > 2) {
+                                             newrects[num].x = rects[i].x;
+                                             newrects[num].y = rects[i].y + 1;
+                                             newrects[num].w = 1;
+                                             newrects[num].h = rects[i].h - 2;
+
+                                             num++;
+
+
+                                             if (rects[i].w > 1) {
+                                                  newrects[num].x = rects[i].x + rects[i].w - 1;
+                                                  newrects[num].y = rects[i].y + 1;
+                                                  newrects[num].w = 1;
+                                                  newrects[num].h = rects[i].h - 2;
+
+                                                  num++;
+                                             }
+                                        }
+                                   }
+                              }
+
+                              if (matrix) {
+                                   for (unsigned int i=0; i<num; i++) {
+                                        DFBPoint p1, p2;
+
+                                        TRANSFORM( newrects[i].x,                 newrects[i].y,                 p1 );
+                                        TRANSFORM( newrects[i].x + newrects[i].w, newrects[i].y + newrects[i].h, p2 );
+
+                                        if (p1.x > p2.x)
+                                             D_UTIL_SWAP( p1.x, p2.x );
+
+                                        if (p1.y > p2.y)
+                                             D_UTIL_SWAP( p1.y, p2.y );
+
+                                        newrects[i].x = p1.x;
+                                        newrects[i].y = p1.y;
+                                        newrects[i].w = p2.x - p1.x;
+                                        newrects[i].h = p2.y - p1.y;
+                                   }
+                              }
+
+                              return new Rectangles( newrects, num_rects * 4, DFXL_FILLRECTANGLE, clipped, true );
+                         }
+                         break;
+
+                    default:
+                         D_UNIMPLEMENTED();
+               }
+               break;
+
+          default:
+               D_BUG( "unexpected accel 0x%08x", this->accel );
+     }
+
+     return NULL;
+}
+
+void
+Rectangles::render( Renderer::Setup *setup,
+                    Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_FILLRECTANGLE) {
+               engine->FillRectangles( setup->tasks[i], rects, num_rects );
+          }
+          else {
+               Util::TempArray<DFBRectangle> copied_rects( num_rects );
+               unsigned int                  copied_num = 0;
+
+               for (unsigned int n=0; n<num_rects; n++) {
+                    copied_rects.array[copied_num] = rects[n];
+
+                    if (dfb_clip_rectangle( &setup->clips_clipped[i], &copied_rects.array[copied_num] ))
+                         copied_num++;
+               }
+
+               if (copied_num)
+                    engine->FillRectangles( setup->tasks[i], copied_rects.array, copied_num );
+          }
+     }
+}
+
+
+Base *
+Blits::tesselate( DFBAccelerationMask  accel,
+                  const s32           *matrix )
+{
+     switch (this->accel) {
+          case DFXL_BLIT:
+               switch (accel) {
+                    case DFXL_BLIT:
+                         /* blit to blit used for transformation only */
+                         D_ASSUME( matrix != NULL );
+                         if (!matrix)
+                              return NULL;
+
+                         {
+                              DFBRectangle *newrects  = new DFBRectangle[num_rects];
+                              DFBPoint     *newpoints = new DFBPoint[num_rects];
+
+                              for (unsigned int i=0; i<num_rects; i++) {
+                                   DFBPoint p1, p2;
+
+                                   TRANSFORM( rects[i].x,              rects[i].y,              p1 );
+                                   TRANSFORM( rects[i].x + rects[i].w, rects[i].y + rects[i].h, p2 );
+
+                                   if (p1.x > p2.x)
+                                        D_UTIL_SWAP( p1.x, p2.x );
+
+                                   if (p1.y > p2.y)
+                                        D_UTIL_SWAP( p1.y, p2.y );
+
+                                   newrects[i].x = p1.x;
+                                   newrects[i].y = p1.y;
+                                   newrects[i].w = p2.x - p1.x;
+                                   newrects[i].h = p2.y - p1.y;
+
+                                   newpoints[i] = points[i];
+                              }
+
+                              return new Blits( newrects, newpoints, num_rects, DFXL_BLIT, clipped, true );
+                         }
+                         break;
+
+                    case DFXL_STRETCHBLIT:
+                         break;
+
+                    case DFXL_TEXTRIANGLES:
+                         /* blit to tex triangles used for transformation only */
+                         D_ASSUME( matrix != NULL );
+                         if (!matrix)
+                              return NULL;
+
+                         {
+                              DFBVertex1616 *vertices = new DFBVertex1616[num_rects * 6];
+
+                              for (unsigned int i=0, n=0; i<num_rects; i++, n+=6) {
+                                   DFBPoint p1, p2, p3, p4;
+                                   int      x1, y1, x2, y2;
+
+                                   x1 = points[i].x;
+                                   y1 = points[i].y;
+                                   x2 = points[i].x + rects[i].w;
+                                   y2 = points[i].y + rects[i].h;
+
+                                   TRANSFORM( x1, y1, p1 );
+                                   TRANSFORM( x2, y1, p2 );
+                                   TRANSFORM( x2, y2, p3 );
+                                   TRANSFORM( x1, y2, p4 );
+
+                                   vertices[n+0].x = p1.x << 16;
+                                   vertices[n+0].y = p1.y << 16;
+                                   vertices[n+0].z = 0;
+                                   vertices[n+0].w = 0x10000;
+                                   vertices[n+0].s = rects[i].x << 16;
+                                   vertices[n+0].t = rects[i].y << 16;
+
+                                   vertices[n+1].x = p2.x << 16;
+                                   vertices[n+1].y = p2.y << 16;
+                                   vertices[n+1].z = 0;
+                                   vertices[n+1].w = 0x10000;
+                                   vertices[n+1].s = (rects[i].x + rects[i].w - 1) << 16;
+                                   vertices[n+1].t = rects[i].y << 16;
+
+                                   vertices[n+2].x = p3.x << 16;
+                                   vertices[n+2].y = p3.y << 16;
+                                   vertices[n+2].z = 0;
+                                   vertices[n+2].w = 0x10000;
+                                   vertices[n+2].s = (rects[i].x + rects[i].w - 1) << 16;
+                                   vertices[n+2].t = (rects[i].y + rects[i].h - 1) << 16;
+
+                                   vertices[n+3].x = p1.x << 16;
+                                   vertices[n+3].y = p1.y << 16;
+                                   vertices[n+3].z = 0;
+                                   vertices[n+3].w = 0x10000;
+                                   vertices[n+3].s = rects[i].x << 16;
+                                   vertices[n+3].t = rects[i].y << 16;
+
+                                   vertices[n+4].x = p3.x << 16;
+                                   vertices[n+4].y = p3.y << 16;
+                                   vertices[n+4].z = 0;
+                                   vertices[n+4].w = 0x10000;
+                                   vertices[n+4].s = (rects[i].x + rects[i].w - 1) << 16;
+                                   vertices[n+4].t = (rects[i].y + rects[i].h - 1) << 16;
+
+                                   vertices[n+5].x = p4.x << 16;
+                                   vertices[n+5].y = p4.y << 16;
+                                   vertices[n+5].z = 0;
+                                   vertices[n+5].w = 0x10000;
+                                   vertices[n+5].s = rects[i].x << 16;
+                                   vertices[n+5].t = (rects[i].y + rects[i].h - 1) << 16;
+                              }
+
+                              return new TexTriangles1616( vertices, num_rects * 6, DTTF_LIST, DFXL_TEXTRIANGLES, clipped, true );
+                         }
+                         break;
+
+                    default:
+                         D_UNIMPLEMENTED();
+               }
+               break;
+
+          default:
+               D_BUG( "unexpected accel 0x%08x", this->accel );
+     }
+
+     return NULL;
+}
+
+void
+Blits::render( Renderer::Setup *setup,
+               Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_BLIT) {
+               engine->Blit( setup->tasks[i], rects, points, num_rects );
+          }
+          else {
+               Util::TempArray<DFBRectangle> copied_rects( num_rects );
+               Util::TempArray<DFBPoint>     copied_points( num_rects );
+               unsigned int                  copied_num = 0;
+
+               for (unsigned int n=0; n<num_rects; n++) {
+                    if (dfb_clip_blit_precheck( &setup->clips_clipped[i],
+                                                rects[n].w, rects[n].h,
+                                                points[n].x, points[n].y ))
+                    {
+                         copied_rects.array[copied_num]  = rects[n];
+                         copied_points.array[copied_num] = points[n];
+
+                         dfb_clip_blit( &setup->clips_clipped[i], &copied_rects.array[copied_num],
+                                        &copied_points.array[copied_num].x, &copied_points.array[copied_num].y );
+
+                         copied_num++;
+                    }
+               }
+
+               if (copied_num)
+                    engine->Blit( setup->tasks[i], copied_rects.array, copied_points.array, copied_num );
+          }
+     }
+}
+
+
+Base *
+StretchBlits::tesselate( DFBAccelerationMask  accel,
+                         const s32           *matrix )
+{
+     switch (this->accel) {
+          case DFXL_STRETCHBLIT:
+               switch (accel) {
+                    case DFXL_STRETCHBLIT:
+                         /* stretch blit to stretch blit used for transformation only */
+                         D_ASSUME( matrix != NULL );
+                         if (!matrix)
+                              return NULL;
+
+                         {
+                              DFBRectangle *newsrects = new DFBRectangle[num_rects];
+                              DFBRectangle *newdrects = new DFBRectangle[num_rects];
+
+                              for (unsigned int i=0; i<num_rects; i++) {
+                                   DFBPoint p1, p2;
+
+                                   TRANSFORM( drects[i].x,               drects[i].y,               p1 );
+                                   TRANSFORM( drects[i].x + drects[i].w, drects[i].y + drects[i].h, p2 );
+
+                                   if (p1.x > p2.x)
+                                        D_UTIL_SWAP( p1.x, p2.x );
+
+                                   if (p1.y > p2.y)
+                                        D_UTIL_SWAP( p1.y, p2.y );
+
+                                   newdrects[i].x = p1.x;
+                                   newdrects[i].y = p1.y;
+                                   newdrects[i].w = p2.x - p1.x;
+                                   newdrects[i].h = p2.y - p1.y;
+
+                                   newsrects[i] = srects[i];
+                              }
+
+                              return new StretchBlits( newsrects, newdrects, num_rects, DFXL_STRETCHBLIT, clipped, true );
+                         }
+                         break;
+
+                    case DFXL_TEXTRIANGLES:
+                         /* blit to tex triangles used for transformation only */
+                         D_ASSUME( matrix != NULL );
+                         if (!matrix)
+                              return NULL;
+
+                         {
+                              DFBVertex1616 *vertices = new DFBVertex1616[num_rects * 6];
+
+                              for (unsigned int i=0, n=0; i<num_rects; i++, n+=6) {
+                                   DFBPoint p1, p2, p3, p4;
+                                   int      x1, y1, x2, y2;
+
+                                   x1 = drects[i].x;
+                                   y1 = drects[i].y;
+                                   x2 = drects[i].x + drects[i].w;
+                                   y2 = drects[i].y + drects[i].h;
+
+                                   TRANSFORM( x1, y1, p1 );
+                                   TRANSFORM( x2, y1, p2 );
+                                   TRANSFORM( x2, y2, p3 );
+                                   TRANSFORM( x1, y2, p4 );
+
+                                   vertices[n+0].x = p1.x << 16;
+                                   vertices[n+0].y = p1.y << 16;
+                                   vertices[n+0].z = 0;
+                                   vertices[n+0].w = 0x10000;
+                                   vertices[n+0].s = srects[i].x << 16;
+                                   vertices[n+0].t = srects[i].y << 16;
+
+                                   vertices[n+1].x = p2.x << 16;
+                                   vertices[n+1].y = p2.y << 16;
+                                   vertices[n+1].z = 0;
+                                   vertices[n+1].w = 0x10000;
+                                   vertices[n+1].s = (srects[i].x + srects[i].w - 1) << 16;
+                                   vertices[n+1].t = srects[i].y << 16;
+
+                                   vertices[n+2].x = p3.x << 16;
+                                   vertices[n+2].y = p3.y << 16;
+                                   vertices[n+2].z = 0;
+                                   vertices[n+2].w = 0x10000;
+                                   vertices[n+2].s = (srects[i].x + srects[i].w - 1) << 16;
+                                   vertices[n+2].t = (srects[i].y + srects[i].h - 1) << 16;
+
+                                   vertices[n+3].x = p1.x << 16;
+                                   vertices[n+3].y = p1.y << 16;
+                                   vertices[n+3].z = 0;
+                                   vertices[n+3].w = 0x10000;
+                                   vertices[n+3].s = srects[i].x << 16;
+                                   vertices[n+3].t = srects[i].y << 16;
+
+                                   vertices[n+4].x = p3.x << 16;
+                                   vertices[n+4].y = p3.y << 16;
+                                   vertices[n+4].z = 0;
+                                   vertices[n+4].w = 0x10000;
+                                   vertices[n+4].s = (srects[i].x + srects[i].w - 1) << 16;
+                                   vertices[n+4].t = (srects[i].y + srects[i].h - 1) << 16;
+
+                                   vertices[n+5].x = p4.x << 16;
+                                   vertices[n+5].y = p4.y << 16;
+                                   vertices[n+5].z = 0;
+                                   vertices[n+5].w = 0x10000;
+                                   vertices[n+5].s = srects[i].x << 16;
+                                   vertices[n+5].t = (srects[i].y + srects[i].h - 1) << 16;
+                              }
+
+                              return new TexTriangles1616( vertices, num_rects * 6, DTTF_LIST, DFXL_TEXTRIANGLES, clipped, true );
+                         }
+                         break;
+
+                    default:
+                         D_UNIMPLEMENTED();
+               }
+               break;
+
+          default:
+               D_BUG( "unexpected accel 0x%08x", this->accel );
+     }
+
+     return NULL;
+}
+
+void
+StretchBlits::render( Renderer::Setup *setup,
+                      Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_STRETCHBLIT) {
+               engine->StretchBlit( setup->tasks[i], srects, drects, num_rects );
+          }
+          else {
+               Util::TempArray<DFBRectangle> copied_srects( num_rects );
+               Util::TempArray<DFBRectangle> copied_drects( num_rects );
+               unsigned int                  copied_num = 0;
+
+               for (unsigned int n=0; n<num_rects; n++) {
+                    if (dfb_clip_blit_precheck( &setup->clips_clipped[i],
+                                                drects[n].w, drects[n].h,
+                                                drects[n].x, drects[n].y ))
+                    {
+                         copied_srects.array[copied_num] = srects[n];
+                         copied_drects.array[copied_num] = drects[n];
+
+                         dfb_clip_stretchblit( &setup->clips_clipped[i],
+                                               &copied_srects.array[copied_num],
+                                               &copied_drects.array[copied_num] );
+
+                         copied_num++;
+                    }
+               }
+
+               if (copied_num)
+                    engine->StretchBlit( setup->tasks[i], copied_srects.array, copied_drects.array, copied_num );
+          }
+     }
+}
+
+
+Base *
+Lines::tesselate( DFBAccelerationMask  accel,
+                  const s32           *matrix )
+{
+     switch (accel) {
+          case DFXL_DRAWLINE:
+               /* draw line to draw line used for transformation only */
+               D_ASSUME( matrix != NULL );
+               if (!matrix)
+                    return NULL;
+
+               {
+                    DFBRegion *newlines = new DFBRegion[num_lines];
+
+                    for (unsigned int i=0; i<num_lines; i++) {
+                         TRANSFORM_XY( lines[i].x1, lines[i].y1, newlines[i].x1, newlines[i].y1 );
+                         TRANSFORM_XY( lines[i].x2, lines[i].y2, newlines[i].x2, newlines[i].y2 );
+                    }
+
+                    return new Lines( newlines, num_lines, DFXL_DRAWLINE, clipped, true );
+               }
+               break;
+
+          default:
+               D_UNIMPLEMENTED();
+     }
+
+     return NULL;
+}
+
+void
+Lines::render( Renderer::Setup *setup,
+               Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_DRAWLINE) {
+               engine->DrawLines( setup->tasks[i], lines, num_lines );
+          }
+          else {
+               Util::TempArray<DFBRegion> copied_lines( num_lines );
+               unsigned int               copied_num = 0;
+
+               for (unsigned int n=0; n<num_lines; n++) {
+                    copied_lines.array[copied_num] = lines[n];
+
+                    if (dfb_clip_line( &setup->clips_clipped[i], &copied_lines.array[copied_num] ))
+                         copied_num++;
+               }
+
+               if (copied_num)
+                    engine->DrawLines( setup->tasks[i], copied_lines.array, copied_num );
+          }
+     }
+}
+
+
+Base *
+Spans::tesselate( DFBAccelerationMask  accel,
+                  const s32           *matrix )
+{
+     switch (accel) {
+          case DFXL_FILLRECTANGLE:
+               {
+                    DFBRectangle *rects = new DFBRectangle[num_spans];
+
+                    if (matrix) {
+                         for (unsigned int i=0; i<num_spans; i++) {
+                              DFBPoint p1, p2;
+
+                              TRANSFORM( spans[i].x,              y + i,     p1 );
+                              TRANSFORM( spans[i].x + spans[i].w, y + i + 1, p2 );
+
+                              rects[i].x = p1.x;
+                              rects[i].y = p1.y;
+                              rects[i].w = p2.x - p1.x;
+                              rects[i].h = p2.y - p1.y;
+                         }
+                    }
+                    else {
+                         for (unsigned int i=0; i<num_spans; i++) {
+                              rects[i].x = spans[i].x;
+                              rects[i].y = y + i;
+                              rects[i].w = spans[i].w;
+                              rects[i].h = 1;
+                         }
+                    }
+
+                    return new Rectangles( rects, num_spans, DFXL_FILLRECTANGLE, clipped, true );
+               }
+               break;
+
+          case DFXL_DRAWLINE:
+               {
+                    DFBRegion *lines = new DFBRegion[num_spans];
+
+                    if (matrix) {
+                         for (unsigned int i=0; i<num_spans; i++) {
+                              DFBPoint p1, p2;
+
+                              TRANSFORM( spans[i].x,                  y + i, p1 );
+                              TRANSFORM( spans[i].x + spans[i].w - 1, y + i, p2 );
+
+                              lines[i].x1 = p1.x;
+                              lines[i].y1 = p1.y;
+                              lines[i].x2 = p2.x;
+                              lines[i].y2 = p2.y;
+                         }
+                    }
+                    else {
+                         for (unsigned int i=0; i<num_spans; i++) {
+                              lines[i].x1 = spans[i].x;
+                              lines[i].y1 = y + i;
+                              lines[i].x2 = spans[i].x + spans[i].w - 1;
+                              lines[i].y2 = y + i;
+                         }
+                    }
+
+                    return new Lines( lines, num_spans, DFXL_DRAWLINE, clipped, true );
+               }
+               break;
+
+          case DFXL_FILLTRIANGLE:
+               {
+                    DFBTriangle *tris = new DFBTriangle[num_spans*2];
+
+                    if (matrix) {
+                         for (unsigned int i=0, n=0; i<num_spans; i++, n+=2) {
+                              DFBPoint p1, p2;
+
+                              TRANSFORM( spans[i].x,              y + i,     p1 );
+                              TRANSFORM( spans[i].x + spans[i].w, y + i + 1, p2 );
+
+                              tris[n+0].x1 = p1.x;
+                              tris[n+0].y1 = p1.y;
+                              tris[n+0].x2 = p2.x;
+                              tris[n+0].y2 = p1.y;
+                              tris[n+0].x3 = p2.x;
+                              tris[n+0].y3 = p2.y;
+
+                              tris[n+1].x1 = p1.x;
+                              tris[n+1].y1 = p1.y;
+                              tris[n+1].x2 = p2.x;
+                              tris[n+1].y2 = p2.y;
+                              tris[n+1].x3 = p1.x;
+                              tris[n+1].y3 = p2.y;
+                         }
+
+                         return new Triangles( tris, num_spans*2, DFXL_FILLTRIANGLE, clipped, true );
+                    }
+                    else
+                         D_UNIMPLEMENTED();
+               }
+               break;
+
+          default:
+               D_UNIMPLEMENTED();
+     }
+
+     return NULL;
+}
+
+void
+Spans::render( Renderer::Setup *setup,
+               Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_FILLSPAN) {
+               engine->FillSpans( setup->tasks[i], y, spans, num_spans );
+          }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
+}
+
+
+typedef struct {
+   int xi;
+   int xf;
+   int mi;
+   int mf;
+   int _2dy;
+} DDA;
+
+#define SETUP_DDA(xs,ys,xe,ye,dda)         \
+     do {                                  \
+          int dx = (xe) - (xs);            \
+          int dy = (ye) - (ys);            \
+          dda.xi = (xs);                   \
+          if (dy != 0) {                   \
+               dda.mi = dx / dy;           \
+               dda.mf = 2*(dx % dy);       \
+               dda.xf = -dy;               \
+               dda._2dy = 2 * dy;          \
+               if (dda.mf < 0) {           \
+                    dda.mf += 2 * ABS(dy); \
+                    dda.mi--;              \
+               }                           \
+          }                                \
+          else {                           \
+               dda.mi = 0;                 \
+               dda.mf = 0;                 \
+               dda.xf = 0;                 \
+               dda._2dy = 0;               \
+          }                                \
+     } while (0)
+
+
+#define INC_DDA(dda)                       \
+     do {                                  \
+          dda.xi += dda.mi;                \
+          dda.xf += dda.mf;                \
+          if (dda.xf > 0) {                \
+               dda.xi++;                   \
+               dda.xf -= dda._2dy;         \
+          }                                \
+     } while (0)
+
+Base *
+Triangles::tesselate( DFBAccelerationMask  accel,
+                      const s32           *matrix )
+{
+     switch (accel) {
+          case DFXL_FILLRECTANGLE:
+               {
+                    unsigned int                 lines = 0;
+                    Util::TempArray<DFBTriangle> sorted( num_tris );
+
+                    for (unsigned int i=0; i<num_tris; i++) {
+                         if (matrix) {
+                              TRANSFORM_XY( tris[i].x1, tris[i].y1, sorted.array[i].x1, sorted.array[i].y1 );
+                              TRANSFORM_XY( tris[i].x2, tris[i].y2, sorted.array[i].x2, sorted.array[i].y2 );
+                              TRANSFORM_XY( tris[i].x3, tris[i].y3, sorted.array[i].x3, sorted.array[i].y3 );
+                         }
+                         else
+                              sorted.array[i] = tris[i];
+
+                         dfb_sort_triangle( &sorted.array[i] );
+
+                         lines += sorted.array[i].y3 - sorted.array[i].y1 + 1;
+                    }
+
+
+                    DFBRectangle *rects = new DFBRectangle[lines];
+                    unsigned int  num   = 0;
+
+                    for (unsigned int i=0; i<num_tris; i++) {
+                         int                y, yend;
+                         DDA                dda1 = { .xi = 0 }, dda2 = { .xi = 0 };
+                         const DFBTriangle *tri  = &sorted.array[i];
+
+                         y = tri->y1;
+                         yend = tri->y3;
+
+                         SETUP_DDA(tri->x1, tri->y1, tri->x3, tri->y3, dda1);
+                         SETUP_DDA(tri->x1, tri->y1, tri->x2, tri->y2, dda2);
+
+                         while (y <= yend) {
+                              DFBRectangle rect;
+
+                              if (y == tri->y2) {
+                                   if (tri->y2 == tri->y3)
+                                        break;
+                                   SETUP_DDA(tri->x2, tri->y2, tri->x3, tri->y3, dda2);
+                              }
+
+                              rect.w = ABS(dda1.xi - dda2.xi);
+                              rect.x = MIN(dda1.xi, dda2.xi);
+
+                              if (rect.w > 0) {
+                                   rect.y = y;
+                                   rect.h = 1;
+
+                                   if (rect.w > 0)
+                                        rects[num++] = rect;
+                              }
+
+                              INC_DDA(dda1);
+                              INC_DDA(dda2);
+
+                              y++;
+                         }
+                    }
+
+                    return new Rectangles( rects, num, DFXL_FILLRECTANGLE, clipped, true );
+               }
+               break;
+
+          default:
+               D_UNIMPLEMENTED();
+     }
+
+     return NULL;
+}
+
+void
+Triangles::render( Renderer::Setup *setup,
+                   Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_FILLTRIANGLE) {
+               engine->FillTriangles( setup->tasks[i], tris, num_tris );
+          }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
+}
+
+
+Base *
+Trapezoids::tesselate( DFBAccelerationMask  accel,
+                       const s32           *matrix )
+{
+     switch (accel) {
+          case DFXL_FILLRECTANGLE:
+               if (matrix) {
+                    D_UNIMPLEMENTED();
+               }
+               else {
+                    unsigned int lines = 0;
+
+                    for (unsigned int i=0; i<num_traps; i++) {
+                         lines += ABS(traps[i].y2 - traps[i].y1) + 1;
+                    }
+
+
+                    DFBRectangle *rects = new DFBRectangle[lines];
+                    unsigned int  num   = 0;
+
+                    for (unsigned int i=0; i<num_traps; i++) {
+                         int          y, yend;
+                         DDA          dda1 = { .xi = 0 }, dda2 = { .xi = 0 };
+                         DFBTrapezoid trap = traps[i];
+
+                         if (trap.y1 > trap.y2) {
+                              D_UTIL_SWAP( trap.x1, trap.x2 );
+                              D_UTIL_SWAP( trap.y1, trap.y2 );
+                              D_UTIL_SWAP( trap.w1, trap.w2 );
+                         }
+
+                         y    = trap.y1;
+                         yend = trap.y2;
+
+                         SETUP_DDA(trap.x1,           trap.y1, trap.x2,           trap.y2, dda1);
+                         SETUP_DDA(trap.x1 + trap.w1, trap.y1, trap.x2 + trap.w2, trap.y2, dda2);
+
+                         while (y <= yend) {
+                              DFBRectangle rect;
+
+                              rect.w = dda2.xi - dda1.xi;
+
+                              if (rect.w > 0) {
+                                   rect.x = dda1.xi;
+                                   rect.y = y;
+                                   rect.h = 1;
+
+                                   rects[num++] = rect;
+                              }
+
+                              INC_DDA(dda1);
+                              INC_DDA(dda2);
+
+                              y++;
+                         }
+                    }
+
+                    return new Rectangles( rects, num, DFXL_FILLRECTANGLE, clipped, true );
+               }
+               break;
+
+          case DFXL_FILLTRIANGLE:
+               if (matrix) {
+                    DFBTriangle *tris = new DFBTriangle[num_traps * 2];
+
+                    for (unsigned int i=0, n=0; i<num_traps; i++, n+=2) {
+                         DFBPoint     p1, p2, p3, p4;
+                         DFBTrapezoid trap = traps[i];
+
+                         TRANSFORM( trap.x1,           trap.y1, p1 );
+                         TRANSFORM( trap.x1 + trap.w1, trap.y1, p2 );
+                         TRANSFORM( trap.x2 + trap.w2, trap.y2, p3 );
+                         TRANSFORM( trap.x2,           trap.y2, p4 );
+
+                         tris[n+0].x1 = p1.x;
+                         tris[n+0].y1 = p1.y;
+                         tris[n+0].x2 = p2.x;
+                         tris[n+0].y2 = p2.y;
+                         tris[n+0].x3 = p3.x;
+                         tris[n+0].y3 = p3.y;
+
+                         tris[n+1].x1 = p1.x;
+                         tris[n+1].y1 = p1.y;
+                         tris[n+1].x2 = p3.x;
+                         tris[n+1].y2 = p3.y;
+                         tris[n+1].x3 = p4.x;
+                         tris[n+1].y3 = p4.y;
+                    }
+
+                    return new Triangles( tris, num_traps * 2, DFXL_FILLTRIANGLE, clipped, true );
+               }
+               else {
+                    D_UNIMPLEMENTED();
+               }
+               break;
+
+          default:
+               D_UNIMPLEMENTED();
+     }
+
+     return NULL;
+}
+
+void
+Trapezoids::render( Renderer::Setup *setup,
+                    Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_FILLTRIANGLE) {
+               engine->FillTrapezoids( setup->tasks[i], traps, num_traps );
+          }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
+}
+
+
+Base *
+TexTriangles::tesselate( DFBAccelerationMask  accel,
+                         const s32           *matrix )
+{
+     switch (accel) {
+          default:
+               D_UNIMPLEMENTED();
+     }
+
+     return NULL;
+}
+
+void
+TexTriangles::render( Renderer::Setup *setup,
+                      Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_TEXTRIANGLES) {
+               engine->TextureTriangles( setup->tasks[i], vertices, num, formation );
+          }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
+}
+
+
+Base *
+TexTriangles1616::tesselate( DFBAccelerationMask  accel,
+                             const s32           *matrix )
+{
+     switch (accel) {
+          default:
+               D_UNIMPLEMENTED();
+     }
+
+     return NULL;
+}
+
+void
+TexTriangles1616::render( Renderer::Setup *setup,
+                          Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_TEXTRIANGLES) {
+               engine->TextureTriangles( setup->tasks[i], vertices, num, formation );
+          }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
+}
+
+
+Base *
+Quadrangles::tesselate( DFBAccelerationMask  accel,
+                        const s32           *matrix )
+{
+     switch (accel) {
+          case DFXL_FILLTRIANGLE:
+               {
+                    DFBTriangle *tris = new DFBTriangle[num_quads * 2];
+
+                    for (unsigned int i=0, n=0; i<num_quads*4; i+=4, n+=2) {
+                         tris[n+0].x1 = points[i+0].x;
+                         tris[n+0].y1 = points[i+0].y;
+
+                         tris[n+0].x2 = points[i+1].x;
+                         tris[n+0].y2 = points[i+1].y;
+
+                         tris[n+0].x3 = points[i+2].x;
+                         tris[n+0].y3 = points[i+2].y;
+
+
+                         tris[n+1].x1 = points[i+0].x;
+                         tris[n+1].y1 = points[i+0].y;
+
+                         tris[n+1].x2 = points[i+2].x;
+                         tris[n+1].y2 = points[i+2].y;
+
+                         tris[n+1].x3 = points[i+3].x;
+                         tris[n+1].y3 = points[i+3].y;
+                    }
+
+                    return new Triangles( tris, num_quads * 2, DFXL_FILLTRIANGLE, clipped, true );
+               }
+               break;
+
+          default:
+               D_UNIMPLEMENTED();
+     }
+
+     return NULL;
+}
+
+void
+Quadrangles::render( Renderer::Setup *setup,
+                     Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_FILLQUADRANGLE) {
+               engine->FillQuadrangles( setup->tasks[i], points, num_quads );
+          }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
+}
+
+
+}
+
+
+
+
+
 Renderer::Renderer( CardState *state )
      :
      state( state ),
@@ -171,12 +1683,12 @@ Renderer::enterLock( CoreSurfaceBufferLock  *lock,
 DFBResult
 Renderer::leaveLock( CoreSurfaceBufferLock *lock )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
      /*
         FIXME: move to engine / task
      */
      if (lock->buffer) {
+          D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+
           dfb_surface_pool_unlock( lock->allocation->pool, lock->allocation, lock );
           dfb_surface_buffer_lock_deinit( lock );
      }
@@ -269,8 +1781,9 @@ Renderer::update( DFBAccelerationMask accel )
      CoreSurfaceAccessFlags access = CSAF_WRITE;
 
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( accel 0x%08x )\n", __FUNCTION__, accel );
-     D_DEBUG_AT( DirectFB_Renderer, "  -> modified 0x%08x\n", state->modified );
-     D_DEBUG_AT( DirectFB_Renderer, "  -> mod_hw   0x%08x\n", state->mod_hw );
+     D_DEBUG_AT( DirectFB_Renderer, "  -> modified  0x%08x\n", state->modified );
+     D_DEBUG_AT( DirectFB_Renderer, "  -> mod_hw    0x%08x\n", state->mod_hw );
+     D_DEBUG_AT( DirectFB_Renderer, "  -> state_mod 0x%08x\n", state_mod );
 
      /* find locking flags */
      if (DFB_BLITTING_FUNCTION( accel )) {
@@ -343,6 +1856,8 @@ Renderer::update( DFBAccelerationMask accel )
           state_mod = (StateModificationFlags)(state_mod & ~SMF_CLIP);
      }
 
+     D_DEBUG_AT( DirectFB_Renderer, "  -> state_mod 0x%08x\n", state_mod );
+
      if (state->mod_hw || !(state->set & accel)) {
           DFBRegion              clip     = state->clip;
           StateModificationFlags modified = state->mod_hw;
@@ -360,454 +1875,10 @@ Renderer::update( DFBAccelerationMask accel )
 }
 
 void
-Renderer::DrawRectangles( const DFBRectangle *rects,
-                          unsigned int        num_rects )
+Renderer::render( Primitives::Base *primitives )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (checkEngine( DFXL_DRAWRECTANGLE, num_rects )) {
-          update( DFXL_DRAWRECTANGLE );
-
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               engine->DrawRectangles( setup->tasks[i], rects, num_rects );
-          }
-     }
-}
-
-void
-Renderer::DrawLines( const DFBRegion *lines,
-                     unsigned int     num_lines )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (checkEngine( DFXL_DRAWLINE, num_lines )) {
-          update( DFXL_DRAWLINE );
-
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               engine->DrawLines( setup->tasks[i], lines, num_lines );
-          }
-     }
-}
-
-void
-Renderer::FillRectangles( const DFBRectangle *rects,
-                          unsigned int        num_rects )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (checkEngine( DFXL_FILLRECTANGLE, num_rects )) {
-          update( DFXL_FILLRECTANGLE );
-
-          // FIXME: transform, max rectangle size
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               if (engine->caps.clipping & DFXL_FILLRECTANGLE) {
-                    engine->FillRectangles( setup->tasks[i], rects, num_rects );
-               }
-               else {
-                    Util::TempArray<DFBRectangle> copied_rects( num_rects );
-                    unsigned int                  copied_num = 0;
-
-                    for (unsigned int n=0; n<num_rects; n++) {
-                         copied_rects.array[copied_num] = rects[n];
-
-                         if (dfb_clip_rectangle( &setup->clips_clipped[i], &copied_rects.array[copied_num] ))
-                              copied_num++;
-                    }
-
-                    if (copied_num)
-                         engine->FillRectangles( setup->tasks[i], copied_rects.array, copied_num );
-               }
-          }
-     }
-}
-
-
-
-typedef struct {
-   int xi;
-   int xf;
-   int mi;
-   int mf;
-   int _2dy;
-} DDA;
-
-#define SETUP_DDA(xs,ys,xe,ye,dda)         \
-     do {                                  \
-          int dx = (xe) - (xs);            \
-          int dy = (ye) - (ys);            \
-          dda.xi = (xs);                   \
-          if (dy != 0) {                   \
-               dda.mi = dx / dy;           \
-               dda.mf = 2*(dx % dy);       \
-               dda.xf = -dy;               \
-               dda._2dy = 2 * dy;          \
-               if (dda.mf < 0) {           \
-                    dda.mf += 2 * ABS(dy); \
-                    dda.mi--;              \
-               }                           \
-          }                                \
-          else {                           \
-               dda.mi = 0;                 \
-               dda.mf = 0;                 \
-               dda.xf = 0;                 \
-               dda._2dy = 0;               \
-          }                                \
-     } while (0)
-
-
-#define INC_DDA(dda)                       \
-     do {                                  \
-          dda.xi += dda.mi;                \
-          dda.xf += dda.mf;                \
-          if (dda.xf > 0) {                \
-               dda.xi++;                   \
-               dda.xf -= dda._2dy;         \
-          }                                \
-     } while (0)
-
-
-
-/**
- *  render a triangle using two parallel DDA's
- */
-static void
-fill_tri( DFBTriangle *tri, CardState *state, DFBRectangle *ret_rects, unsigned int *ret_num )
-{
-     int y, yend;
-     DDA dda1, dda2;
-     int clip_x1 = state->clip.x1;
-     int clip_x2 = state->clip.x2;
-
-     D_MAGIC_ASSERT( state, CardState );
-
-     dda1.xi = 0;
-     dda2.xi = 0;
-
-     *ret_num = 0;
-
-     y = tri->y1;
-     yend = tri->y3;
-
-     if (yend > state->clip.y2)
-          yend = state->clip.y2;
-
-     SETUP_DDA(tri->x1, tri->y1, tri->x3, tri->y3, dda1);
-     SETUP_DDA(tri->x1, tri->y1, tri->x2, tri->y2, dda2);
-
-     while (y <= yend) {
-          DFBRectangle rect;
-
-          if (y == tri->y2) {
-               if (tri->y2 == tri->y3)
-                    return;
-               SETUP_DDA(tri->x2, tri->y2, tri->x3, tri->y3, dda2);
-          }
-
-          rect.w = ABS(dda1.xi - dda2.xi);
-          rect.x = MIN(dda1.xi, dda2.xi);
-
-          if (clip_x2 < rect.x + rect.w)
-               rect.w = clip_x2 - rect.x + 1;
-
-          if (rect.w > 0) {
-               if (clip_x1 > rect.x) {
-                    rect.w -= (clip_x1 - rect.x);
-                    rect.x = clip_x1;
-               }
-               rect.y = y;
-               rect.h = 1;
-
-               if (rect.w > 0 && rect.y >= state->clip.y1) {
-                    ret_rects[(*ret_num)++] = rect;
-               }
-          }
-
-          INC_DDA(dda1);
-          INC_DDA(dda2);
-
-          y++;
-     }
-}
-
-
-
-void
-Renderer::FillTriangles( const DFBTriangle *tris,
-                         unsigned int       num_tris )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (0) {
-          if (checkEngine( DFXL_FILLTRIANGLE, num_tris )) {
-               update( DFXL_FILLTRIANGLE );
-     
-               // FIXME: clipping, transform
-     
-               /// loop
-               for (unsigned int i=0; i<setup->tiles; i++) {
-                    if (!(setup->task_mask & (1 << i)))
-                         continue;
-
-                    engine->FillTriangles( setup->tasks[i], tris, num_tris );
-               }
-          }
-     }
-     else {
-          if (checkEngine( DFXL_FILLRECTANGLE, num_tris )) {
-               update( DFXL_FILLRECTANGLE );
-
-               // FIXME: clipping, transform
-
-               for (unsigned int n=0; n<num_tris; n++) {
-                    DFBTriangle tri = tris[n];
-
-                    dfb_sort_triangle( &tri );
-
-                    if (tri.y3 - tri.y1 > 0) {
-                         DFBRectangle rects[tri.y3 - tri.y1 + 1];
-                         unsigned int num_rects;
-
-                         fill_tri( &tri, state, rects, &num_rects );
-
-                         /// loop
-                         for (unsigned int i=0; i<setup->tiles; i++) {
-                              if (!(setup->task_mask & (1 << i)))
-                                   continue;
-
-                              engine->FillRectangles( setup->tasks[i], rects, num_rects );
-                         }
-                    }
-               }
-          }
-     }
-}
-
-void
-Renderer::FillTrapezoids( const DFBTrapezoid *traps,
-                          unsigned int        num_traps )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (checkEngine( DFXL_FILLTRAPEZOID, num_traps )) {
-          update( DFXL_FILLTRAPEZOID );
-
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               engine->FillTrapezoids( setup->tasks[i], traps, num_traps );
-          }
-     }
-}
-
-void
-Renderer::FillSpans( int            y,
-                     const DFBSpan *spans,
-                     unsigned int   num_spans )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (checkEngine( DFXL_FILLSPAN, num_spans )) {
-          update( DFXL_FILLSPAN );
-
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               engine->FillSpans( setup->tasks[i], y, spans, num_spans );
-          }
-     }
-}
-
-void
-Renderer::Blit( const DFBRectangle     *rects,
-                const DFBPoint         *points,
-                u32                     num )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (checkEngine( DFXL_BLIT, num )) {
-          update( DFXL_BLIT );
-
-          // FIXME: transform, max blit size
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               if (engine->caps.clipping & DFXL_BLIT) {
-                    engine->Blit( setup->tasks[i], rects, points, num );
-               }
-               else {
-                    Util::TempArray<DFBRectangle> copied_rects( num );
-                    Util::TempArray<DFBPoint>     copied_points( num );
-                    unsigned int                  copied_num = 0;
-
-                    for (unsigned int n=0; n<num; n++) {
-                         if (dfb_clip_blit_precheck( &setup->clips_clipped[i],
-                                                     rects[n].w, rects[n].h,
-                                                     points[n].x, points[n].y ))
-                         {
-                              copied_rects.array[copied_num]  = rects[n];
-                              copied_points.array[copied_num] = points[n];
-
-                              dfb_clip_blit( &setup->clips_clipped[i], &copied_rects.array[copied_num],
-                                             &copied_points.array[copied_num].x, &copied_points.array[copied_num].y );
-
-                              copied_num++;
-                         }
-                    }
-
-                    if (copied_num)
-                         engine->Blit( setup->tasks[i], copied_rects.array, copied_points.array, num );
-               }
-          }
-     }
-}
-
-void
-Renderer::Blit2( const DFBRectangle     *rects,
-                 const DFBPoint         *points1,
-                 const DFBPoint         *points2,
-                 u32                     num )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (checkEngine( DFXL_BLIT2, num )) {
-          update( DFXL_BLIT2 );
-
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               engine->Blit2( setup->tasks[i], rects, points1, points2, num );
-          }
-     }
-}
-
-void
-Renderer::StretchBlit( const DFBRectangle     *srects,
-                       const DFBRectangle     *drects,
-                       u32                     num )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (checkEngine( DFXL_STRETCHBLIT, num )) {
-          update( DFXL_STRETCHBLIT );
-
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               if (srects[i].w > drects[i].w * (int)engine->caps.max_scale_down_x || // FIXME: implement multi pass!
-                   srects[i].h > drects[i].h * (int)engine->caps.max_scale_down_y)
-                    continue;
-
-               engine->StretchBlit( setup->tasks[i], srects, drects, num );
-          }
-     }
-}
-
-void
-Renderer::TileBlit( const DFBRectangle     *rects,
-                    const DFBPoint         *points1,
-                    const DFBPoint         *points2,
-                    u32                     num )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     if (checkEngine( DFXL_TILEBLIT, num )) {
-          update( DFXL_TILEBLIT );
-
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               engine->TileBlit( setup->tasks[i], rects, points1, points2, num );
-          }
-     }
-}
-
-void
-Renderer::TextureTriangles( const DFBVertex      *vertices,
-                            int                   num,
-                            DFBTriangleFormation  formation )
-{
-     unsigned int num_tris;
-
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-
-     switch (formation) {
-          case DTTF_LIST:
-               num_tris = num / 3;
-               break;
-
-          case DTTF_STRIP:
-          case DTTF_FAN:
-               num_tris = (num - 3) + 1;
-               break;
-
-          default:
-               D_BUG( "invalid formation %d", formation );
-               return;
-     }
-
-     if (checkEngine( DFXL_TEXTRIANGLES, num_tris )) {
-          update( DFXL_TEXTRIANGLES );
-
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               engine->TextureTriangles( setup->tasks[i], vertices, num, formation );
-          }
-     }
-}
-
-
-bool
-Renderer::checkEngine( DFBAccelerationMask accel,
-                       unsigned int        num )
-{
-     DFBResult ret;
-
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( accel 0x%x ) <- modified 0x%08x\n", __FUNCTION__, accel, state->modified );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( '%s' ) <- modified 0x%08x\n",
+                 __FUNCTION__, Util::DFBAccelerationMask_Name(primitives->accel).c_str(), state->modified );
 
      RendererTLS *tls = Renderer_GetTLS();
 
@@ -818,8 +1889,62 @@ Renderer::checkEngine( DFBAccelerationMask accel,
           tls->last_renderer = this;
      }
 
+     if (state->modified & (SMF_RENDER_OPTIONS | SMF_MATRIX)) {
+          if (state->render_options & DSRO_MATRIX) {
+               D_DEBUG_AT( DirectFB_Renderer, "  -> new transform 0x%04x 0x%04x 0x%04x 0x%04x 0x%04x 0x%04x\n",
+                           state->matrix[0], state->matrix[1], state->matrix[2], state->matrix[3], state->matrix[4], state->matrix[5] );
+
+               if (state->matrix[0] == 0x10000 &&
+                   state->matrix[1] == 0x00000 &&
+                   state->matrix[2] == 0x00000 &&
+                   state->matrix[3] == 0x00000 &&
+                   state->matrix[4] == 0x10000 &&
+                   state->matrix[5] == 0x00000)
+               {
+                    transform_type = WTT_IDENTITY;
+               }
+               else {
+                    transform_type = WTT_UNKNOWN;
+
+                    if (state->matrix[1] == 0 && state->matrix[3] == 0) {
+                         if (state->matrix[2] != 0)
+                              transform_type = (WaterTransformType)(transform_type | WTT_TRANSLATE_X);
+
+                         if (state->matrix[5] != 0)
+                              transform_type = (WaterTransformType)(transform_type | WTT_TRANSLATE_Y);
+
+                         if (state->matrix[0] < 0)
+                              transform_type = (WaterTransformType)(transform_type | WTT_FLIP_X);
+
+                         if (state->matrix[0] != 0x10000 && state->matrix[0] != -0x10000)
+                              transform_type = (WaterTransformType)(transform_type | WTT_SCALE_X);
+
+                         if (state->matrix[4] < 0)
+                              transform_type = (WaterTransformType)(transform_type | WTT_FLIP_Y);
+
+                         if (state->matrix[4] != 0x10000 && state->matrix[4] != -0x10000)
+                              transform_type = (WaterTransformType)(transform_type | WTT_SCALE_Y);
+
+                         if (transform_type == WTT_UNKNOWN)
+                              transform_type = WTT_IDENTITY;
+                         else
+                              transform_type = (WaterTransformType)(transform_type & ~WTT_UNKNOWN);
+                    }
+               }
+          }
+          else
+               transform_type = WTT_IDENTITY;
+
+          D_DEBUG_AT( DirectFB_Renderer, "  -> new transform type 0x%04x\n", transform_type );
+     }
+
+
+     D_DEBUG_AT( DirectFB_Renderer, "  -> state_mod 0x%08x\n", state_mod );
+
      state->mod_hw = (StateModificationFlags)(state->mod_hw | state->modified);
      state_mod     = (StateModificationFlags)(state_mod     | state->modified);
+
+     D_DEBUG_AT( DirectFB_Renderer, "  -> state_mod 0x%08x\n", state_mod );
 
      /* If destination or blend functions have been changed... */
      if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND | SMF_RENDER_OPTIONS)) {
@@ -846,30 +1971,341 @@ Renderer::checkEngine( DFBAccelerationMask accel,
 
      state->modified = SMF_NONE;
 
+     Primitives::Base    *tesselated = primitives;
+     DFBAccelerationMask  accel      = primitives->accel;
+     WaterTransformType   transform  = transform_type;
+     Engine              *next_engine;
+
+     do {
+          next_engine = getEngine( accel, transform );
+          if (!next_engine) {
+               DFBAccelerationMask next_accel = getTransformAccel( accel, transform );
+
+               D_DEBUG_AT( DirectFB_Renderer, "  -> next_accel '%s'\n", Util::DFBAccelerationMask_Name(next_accel).c_str() );
+
+               if (!next_accel) {
+                    D_WARN( "no tesselation for '%s' transform 0x%04x",
+                            Util::DFBAccelerationMask_Name(accel).c_str(), transform );
+                    goto out;
+               }
+
+
+               Primitives::Base *output = tesselated->tesselate( next_accel, transform ? state->matrix : NULL );
+
+               if (!output) {
+                    D_WARN( "no tesselation from '%s' to '%s'",
+                            Util::DFBAccelerationMask_Name(accel).c_str(), Util::DFBAccelerationMask_Name(next_accel).c_str() );
+                    goto out;
+               }
+
+               if (tesselated != primitives)
+                    delete tesselated;
+
+               tesselated = output;
+               transform  = WTT_IDENTITY;
+               accel      = next_accel;
+          }
+     } while (!next_engine);
+
+
+
+     D_DEBUG_AT( DirectFB_Renderer, "  -> next_engine %p\n", next_engine );
+     D_DEBUG_AT( DirectFB_Renderer, "  -> engine      %p\n", engine );
+
      if (engine) {
-//          printf("mod hw %d\n",state_mod & SMF_DESTINATION);
-          if (operations + num <= engine->caps.max_operations && !(state_mod & SMF_DESTINATION)) {
-               /* If the function needs to be checked... */
-               if (!(state->checked & accel)) {
-                    /* Unset unchecked functions. */
-                    state->accel = (DFBAccelerationMask)(state->accel & state->checked);
+          D_DEBUG_AT( DirectFB_Renderer, "  -> state mod 0x%08x\n", state_mod );
+          D_DEBUG_AT( DirectFB_Renderer, "  -> count %d / %d\n",
+                      operations + tesselated->count(), engine->caps.max_operations );
 
-                    /// use task[0]
-                    if (engine->CheckState( state, accel ) == DFB_OK)
-                         state->accel = (DFBAccelerationMask)(state->accel | accel);
+          if (state_mod & SMF_DESTINATION ||
+              next_engine != engine ||
+              operations + tesselated->count() > engine->caps.max_operations ||
+              engine->check( setup ))
+          {
+               unbindEngine();
+          }
+     }
 
-                    /* Add the function to 'checked functions'. */
-                    state->checked = (DFBAccelerationMask)(state->checked | state->accel);
-               }
+     if (!engine) {
+          DFBResult ret = bindEngine( next_engine, accel );
+          if (ret)
+               goto out;
+     }
 
-               if (state->accel & accel && engine->check( setup ) == DFB_OK) {
-                    operations += num;
+     operations += tesselated->count();
 
-                    return true;
-               }
+     update( accel );
+
+     tesselated->render( setup, engine );
+
+out:
+     if (tesselated != primitives)
+          delete tesselated;
+}
+
+/**********************************************************************************************************************/
+
+void
+Renderer::DrawRectangles( const DFBRectangle *rects,
+                          unsigned int        num_rects )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, rects, num_rects );
+
+     Primitives::Rectangles primitives( rects, num_rects, DFXL_DRAWRECTANGLE );
+
+     render( &primitives );
+}
+
+void
+Renderer::DrawLines( const DFBRegion *lines,
+                     unsigned int     num_lines )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+
+     Primitives::Lines primitives( lines, num_lines, DFXL_DRAWLINE );
+
+     render( &primitives );
+}
+
+void
+Renderer::FillRectangles( const DFBRectangle *rects,
+                          unsigned int        num_rects )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, rects, num_rects );
+
+     Primitives::Rectangles primitives( rects, num_rects, DFXL_FILLRECTANGLE );
+
+     render( &primitives );
+}
+
+void
+Renderer::FillQuadrangles( const DFBPoint *points,
+                           unsigned int    num_quads )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, points, num_quads );
+
+     Primitives::Quadrangles primitives( points, num_quads, DFXL_FILLQUADRANGLE );
+
+     render( &primitives );
+}
+
+void
+Renderer::FillTriangles( const DFBTriangle *tris,
+                         unsigned int       num_tris )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, tris, num_tris );
+
+     Primitives::Triangles primitives( tris, num_tris, DFXL_FILLTRIANGLE );
+
+     render( &primitives );
+}
+
+void
+Renderer::FillTrapezoids( const DFBTrapezoid *traps,
+                          unsigned int        num_traps )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, traps, num_traps );
+
+     Primitives::Trapezoids primitives( traps, num_traps, DFXL_FILLTRAPEZOID );
+
+     render( &primitives );
+}
+
+void
+Renderer::FillSpans( int            y,
+                     const DFBSpan *spans,
+                     unsigned int   num_spans )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %d, %p [%d] )\n", __FUNCTION__, y, spans, num_spans );
+
+     Primitives::Spans primitives( y, spans, num_spans, DFXL_FILLSPAN );
+
+     render( &primitives );
+}
+
+void
+Renderer::Blit( const DFBRectangle     *rects,
+                const DFBPoint         *points,
+                u32                     num )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p [%d] )\n", __FUNCTION__, rects, points, num );
+
+     Primitives::Blits primitives( rects, points, num, DFXL_BLIT );
+
+     render( &primitives );
+}
+
+void
+Renderer::Blit2( const DFBRectangle     *rects,
+                 const DFBPoint         *points1,
+                 const DFBPoint         *points2,
+                 u32                     num )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+
+#if 0
+     if (checkEngine( DFXL_BLIT2, num )) {
+          update( DFXL_BLIT2 );
+
+          // FIXME: clipping, transform
+
+          /// loop
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
+               engine->Blit2( setup->tasks[i], rects, points1, points2, num );
+          }
+     }
+#endif
+}
+
+void
+Renderer::StretchBlit( const DFBRectangle     *srects,
+                       const DFBRectangle     *drects,
+                       u32                     num )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p %p [%d] )\n", __FUNCTION__, srects, drects, num );
+
+     Primitives::StretchBlits primitives( srects, drects, num, DFXL_STRETCHBLIT );
+
+     render( &primitives );
+}
+
+void
+Renderer::TileBlit( const DFBRectangle     *rects,
+                    const DFBPoint         *points1,
+                    const DFBPoint         *points2,
+                    u32                     num )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+
+#if 0
+     if (checkEngine( DFXL_TILEBLIT, num )) {
+          update( DFXL_TILEBLIT );
+
+          // FIXME: clipping, transform
+
+          /// loop
+          for (unsigned int i=0; i<setup->tiles; i++) {
+               if (!(setup->task_mask & (1 << i)))
+                    continue;
+
+               engine->TileBlit( setup->tasks[i], rects, points1, points2, num );
+          }
+     }
+#endif
+}
+
+void
+Renderer::TextureTriangles( const DFBVertex      *vertices,
+                            int                   num,
+                            DFBTriangleFormation  formation )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d], formation %d )\n", __FUNCTION__, vertices, num, formation );
+
+     Primitives::TexTriangles primitives( vertices, num, formation, DFXL_TEXTRIANGLES );
+
+     render( &primitives );
+}
+
+/**********************************************************************************************************************/
+
+DFBAccelerationMask
+Renderer::getTransformAccel( DFBAccelerationMask accel,
+                             WaterTransformType  type )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( '%s', type 0x%04x )\n",
+                 __FUNCTION__, Util::DFBAccelerationMask_Name(accel).c_str(), type );
+
+     switch (accel) {
+          case DFXL_FILLRECTANGLE:
+               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK | WTT_FLIP_MASK)) == type)
+                    return DFXL_FILLRECTANGLE;
+
+               return DFXL_FILLQUADRANGLE;
+
+          case DFXL_DRAWRECTANGLE:
+               if (type == WTT_IDENTITY)
+                    return DFXL_FILLRECTANGLE;
+
+               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK | WTT_FLIP_MASK)) == type)
+                    return DFXL_DRAWRECTANGLE;
+
+               return DFXL_DRAWLINE;
+
+          case DFXL_DRAWLINE:
+               return DFXL_DRAWLINE;
+
+          case DFXL_FILLTRIANGLE:
+               return DFXL_FILLRECTANGLE;
+
+          case DFXL_FILLTRAPEZOID:
+               if (type == WTT_IDENTITY)
+                    return DFXL_FILLRECTANGLE;
+
+               return DFXL_FILLTRIANGLE;
+
+          case DFXL_FILLQUADRANGLE:
+               return DFXL_FILLTRIANGLE;
+
+          case DFXL_FILLSPAN:
+               if (type == WTT_IDENTITY)
+                    return DFXL_FILLRECTANGLE;
+
+               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK | WTT_FLIP_MASK)) == type)
+                    return DFXL_FILLSPAN;
+
+               return DFXL_FILLTRIANGLE;
+
+          case DFXL_BLIT:
+               if ((type & (WTT_TRANSLATE_MASK | WTT_FLIP_MASK)) == type)
+                    return DFXL_BLIT;   // FIXME: should make blits use DSBLIT_FLIP
+
+               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK | WTT_FLIP_MASK)) == type)
+                    return DFXL_STRETCHBLIT;
+
+               return DFXL_TEXTRIANGLES;
+
+          case DFXL_STRETCHBLIT:
+               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK | WTT_FLIP_MASK)) == type)
+                    return DFXL_STRETCHBLIT;
+
+               return DFXL_TEXTRIANGLES;
+
+          case DFXL_TEXTRIANGLES:
+               return DFXL_TEXTRIANGLES;
+
+          default:
+               D_BUG( "unknown accel 0x%08x", accel );
+     }
+
+     return DFXL_NONE;
+}
+
+Engine *
+Renderer::getEngine( DFBAccelerationMask  accel,
+                     WaterTransformType   transform )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( '%s', transform 0x%04x )\n", __FUNCTION__,
+                 Util::DFBAccelerationMask_Name(accel).c_str(), transform );
+
+     if (engine && (transform & engine->caps.transforms) == transform) {
+          /* If the function needs to be checked... */
+          if (!(state->checked & accel)) {
+               /* Unset unchecked functions. */
+               state->accel = (DFBAccelerationMask)(state->accel & state->checked);
+
+               /// use task[0]
+               if (engine->CheckState( state, accel ) == DFB_OK)
+                    state->accel = (DFBAccelerationMask)(state->accel | accel);
+
+               /* Add the function to 'checked functions'. */
+               state->checked = (DFBAccelerationMask)(state->checked | state->accel);
           }
 
-          unbindEngine();
+          if (state->accel & accel)
+               return engine;
      }
 
      for (std::list<Engine*>::const_iterator it = engines.begin(); it != engines.end(); ++it) {
@@ -882,27 +2318,19 @@ Renderer::checkEngine( DFBAccelerationMask accel,
                continue;
           }
 
-          if (engine->CheckState( state, accel ) == DFB_OK) {
-               state->accel   = accel;
-               state->checked = accel;
-
-               // TODO: eventually split up here, e.g. using intermediate surface for multi pass scaling
-
-
-               ret = bindEngine( engine );
-               if (ret == DFB_OK) {
-                    operations += num;
-
-                    return true;
-               }
+          if ((transform & engine->caps.transforms) == transform &&
+              engine->CheckState( state, accel ) == DFB_OK)
+          {
+               return engine;
           }
      }
 
-     return false;
+     return NULL;
 }
 
 DFBResult
-Renderer::bindEngine( Engine *engine )
+Renderer::bindEngine( Engine              *engine,
+                      DFBAccelerationMask  accel )
 {
      DFBResult ret;
 
@@ -935,6 +2363,8 @@ Renderer::bindEngine( Engine *engine )
      state->modified = SMF_NONE;
      state->mod_hw   = SMF_ALL;
      state->set      = DFXL_NONE;
+     state->accel    = accel;
+     state->checked  = accel;
 
      state_mod       = SMF_ALL;
 
@@ -956,8 +2386,8 @@ Renderer::unbindEngine()
      leaveLock( &state->src );
      leaveLock( &state->dst );
 
-     state->accel   = DFXL_NONE;
-     state->checked = DFXL_NONE;
+//     state->accel   = DFXL_NONE;
+//     state->checked = DFXL_NONE;
 
      /// par flush
      setup->tasks[0]->Flush();
@@ -1059,6 +2489,16 @@ Engine::FillSpans( SurfaceTask   *task,
 }
 
 DFBResult
+Engine::FillQuadrangles( SurfaceTask    *task,
+                         const DFBPoint *points,
+                         unsigned int    num_quads )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
+
+     return DFB_UNIMPLEMENTED;
+}
+
+DFBResult
 Engine::Blit( SurfaceTask        *task,
               const DFBRectangle *rects,
               const DFBPoint     *points,
@@ -1107,7 +2547,18 @@ Engine::TileBlit( SurfaceTask        *task,
 DFBResult
 Engine::TextureTriangles( SurfaceTask          *task,
                           const DFBVertex      *vertices,
-                          int                   num,
+                          unsigned int          num,
+                          DFBTriangleFormation  formation )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
+
+     return DFB_UNIMPLEMENTED;
+}
+
+DFBResult
+Engine::TextureTriangles( SurfaceTask          *task,
+                          const DFBVertex1616  *vertices,
+                          unsigned int          num,
                           DFBTriangleFormation  formation )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
