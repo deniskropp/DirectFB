@@ -33,6 +33,8 @@
 extern "C" {
 #endif
 
+#include <direct/debug.h>
+#include <direct/mem.h>
 #include <direct/memcpy.h>
 
 #include <directfb.h>
@@ -49,6 +51,7 @@ extern "C" {
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 
 namespace DirectFB {
@@ -98,6 +101,57 @@ std::string PrintF( const char *format, ... )  D_FORMAT_PRINTF( 1 );
 
 
 std::string DFBAccelerationMask_Name( DFBAccelerationMask accel );
+
+
+
+
+class PacketBuffer {
+public:
+     PacketBuffer( size_t block_size = 0x8000 );
+
+     ~PacketBuffer();
+
+     size_t
+     GetLength();
+
+     void *
+     GetBuffer( size_t space );
+
+     void
+     PutBuffer( void *ptr );
+
+     void
+     GetData( void *dst, size_t max );
+
+private:
+     size_t                   block_size;
+     size_t                   length;
+
+public:
+     class Buffer {
+     public:
+          Buffer( size_t size )
+               :
+               size( size ),
+               length( 0 )
+          {
+               ptr = direct_malloc( size );
+               D_ASSERT( ptr != NULL );
+          }
+
+          ~Buffer()
+          {
+               direct_free( ptr );
+          }
+
+          size_t  size;
+          size_t  length;
+          void   *ptr;
+     };
+
+     std::vector<Buffer*>     buffers;
+};
+
 
 
 }

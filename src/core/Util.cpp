@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include "Util.h"
@@ -34,6 +36,8 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
+#include <direct/memcpy.h>
+
 #include <directfb_strings.h>
 }
 
@@ -41,6 +45,8 @@ extern "C" {
 namespace DirectFB {
 
 namespace Util {
+
+D_DEBUG_DOMAIN( DirectFB_Util_PacketBuffer, "DirectFB/Util/PacketBuffer", "DirectFB Util Packet Buffer" );
 
 
 std::string
@@ -95,6 +101,111 @@ DFBAccelerationMask_Name( DFBAccelerationMask accel )
 
      return ret;
 }
+
+
+
+
+PacketBuffer::PacketBuffer( size_t block_size )
+     :
+     block_size( block_size ),
+     length( 0 )
+{
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "PacketBuffer::%s( block_size %zu )\n", __FUNCTION__, block_size );
+
+}
+
+PacketBuffer::~PacketBuffer()
+{
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "PacketBuffer::%s()\n", __FUNCTION__ );
+
+     for (std::vector<Buffer*>::const_iterator it = buffers.begin(); it != buffers.end(); ++it)
+          delete *it;
+}
+
+size_t
+PacketBuffer::GetLength()
+{
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "PacketBuffer::%s() -> %zu\n", __FUNCTION__, length );
+     return length;
+}
+
+void *
+PacketBuffer::GetBuffer( size_t space )
+{
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "PacketBuffer::%s( %zu )\n", __FUNCTION__, space );
+
+     size_t count = buffers.size();
+
+     if (count > 0) {
+          Buffer *last = buffers[count-1];
+
+          D_DEBUG_AT( DirectFB_Util_PacketBuffer, "  -> last has %d/%d\n", last->length, last->size );
+
+          if (last->length + space <= last->size)
+               return (void*)((u8*) last->ptr + last->length);
+     }
+
+     if (space < block_size)
+          space = block_size;
+
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "  -> allocating %d bytes\n", space );
+
+     Buffer *buffer = new Buffer( space );
+
+     buffers.push_back( buffer );
+
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "  => ptr %p\n", buffer->ptr );
+
+     return buffer->ptr;
+}
+
+void
+PacketBuffer::PutBuffer( void *ptr )
+{
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "PacketBuffer::%s( ptr %p )\n", __FUNCTION__, ptr );
+
+     size_t len;
+     size_t count = buffers.size();
+
+     D_ASSERT( count > 0 );
+
+     Buffer *last = buffers[count-1];
+
+     D_ASSERT( (unsigned long) ptr >= (unsigned long) last->ptr + last->length );
+     D_ASSERT( (unsigned long) ptr <= (unsigned long) last->ptr + last->size );
+
+     len = (unsigned long) ptr - (unsigned long) last->ptr;
+
+     length += len - last->length;
+
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "  -> length %d -> %d\n", last->length, len );
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "  -> total length %d\n", length );
+
+     last->length = len;
+}
+
+void
+PacketBuffer::GetData( void *dst, size_t max )
+{
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "PacketBuffer::%s( dst %p, max %zu )\n", __FUNCTION__, dst, max );
+
+     D_DEBUG_AT( DirectFB_Util_PacketBuffer, "  -> total length %d\n", length );
+
+     if (max > length)
+          max = length;
+
+     for (std::vector<Buffer*>::const_iterator it = buffers.begin(); it != buffers.end(); ++it) {
+          Buffer *buffer = *it;
+
+          D_DEBUG_AT( DirectFB_Util_PacketBuffer, "  -> copy %zu from %p to %p\n", buffer->length, buffer->ptr, dst );
+
+          direct_memcpy( dst, buffer->ptr, buffer->length );
+
+          dst = (void*)((u8*) dst + buffer->length);
+     }
+}
+
+
 
 }
 
