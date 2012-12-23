@@ -79,7 +79,7 @@ ISurface_Real::Flip(
 
      dfb_surface_lock( obj );
 
-     ret = dfb_surface_flip( obj, swap );
+     ret = dfb_surface_flip_buffers( obj, swap );
 
      dfb_surface_unlock( obj );
 

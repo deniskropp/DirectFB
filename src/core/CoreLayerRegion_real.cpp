@@ -402,7 +402,7 @@ dfb_layer_region_flip_update_TASK( CoreLayerRegion     *region,
                {
                     dfb_surface_lock( surface );
 
-                    dfb_surface_flip( surface, false );
+                    dfb_surface_flip_buffers( surface, false );
 
                     /* Use the driver's routine if the region is realized. */
                     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {

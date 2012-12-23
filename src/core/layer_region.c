@@ -551,7 +551,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
                          /* Just do the hardware independent work. */
                          dfb_surface_lock( surface );
-                         dfb_surface_flip( surface, false );
+                         dfb_surface_flip_buffers( surface, false );
                          dfb_surface_unlock( surface );
                     }
                     break;
@@ -774,7 +774,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
 
                          /* Just do the hardware independent work. */
                          dfb_surface_lock( surface );
-                         dfb_surface_flip( surface, false );
+                         dfb_surface_flip_buffers( surface, false );
                          dfb_surface_unlock( surface );
                     }
                     break;

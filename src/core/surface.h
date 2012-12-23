@@ -319,6 +319,9 @@ DFBResult dfb_surface_pool_notify   ( CoreSurface                  *surface,
 DFBResult dfb_surface_flip          ( CoreSurface                  *surface,
                                       bool                          swap );
 
+DFBResult dfb_surface_flip_buffers  ( CoreSurface                  *surface,
+                                      bool                          swap );
+
 DFBResult dfb_surface_dispatch_event( CoreSurface                  *surface,
                                       DFBSurfaceEventType           type );
 

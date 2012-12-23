@@ -614,6 +614,21 @@ dfb_surface_pool_notify( CoreSurface                    *surface,
 DFBResult
 dfb_surface_flip( CoreSurface *surface, bool swap )
 {
+     D_DEBUG_AT( Core_Surface, "%s( %p, %sswap )\n", __FUNCTION__, surface, swap ? "" : "NO " );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (dfb_config->task_manager) {
+          D_DEBUG_AT( Core_Surface, "  -> using task manager, not flipping (compatibility function)\n" );
+          return DFB_OK;
+     }
+
+     return dfb_surface_flip_buffers( surface, swap );
+}
+
+DFBResult
+dfb_surface_flip_buffers( CoreSurface *surface, bool swap )
+{
      unsigned int back, front;
 
      D_DEBUG_AT( Core_Surface, "%s( %p, %sswap )\n", __FUNCTION__, surface, swap ? "" : "NO " );
