@@ -363,7 +363,9 @@ fusion_ref_catch (FusionRef *ref)
           FusionWorld *world = _fusion_world( ref->multi.shared );
 
           if (world->fusion_id == FUSION_ID_MASTER) {
-               D_UNIMPLEMENTED();
+               /*
+                * If catcher is master, then we are most likely running in always-indirect mode!
+                */
           }
           else {
                FusionRefSlaveSlaveEntry *entry;
@@ -423,31 +425,36 @@ fusion_ref_throw (FusionRef *ref, FusionID catcher)
           FusionWorld *world = _fusion_world( ref->multi.shared );
 
           if (world->fusion_id == FUSION_ID_MASTER) {
-               FusionRefSlaveKey    key;
-               FusionRefSlaveEntry *slave;
+               /*
+                * If catcher is master, then we are most likely running in always-indirect mode!
+                */
+               if (catcher != FUSION_ID_MASTER) {
+                    FusionRefSlaveKey    key;
+                    FusionRefSlaveEntry *slave;
 
-               key.fusion_id = catcher;
-               key.ref_id    = ref->multi.id;
+                    key.fusion_id = catcher;
+                    key.ref_id    = ref->multi.id;
 
-               direct_mutex_lock( &world->refs_lock );
+                    direct_mutex_lock( &world->refs_lock );
 
-               slave = direct_map_lookup( world->refs_map, &key );
-               if (!slave) {
-                    slave = D_CALLOC( 1, sizeof(FusionRefSlaveEntry) );
+                    slave = direct_map_lookup( world->refs_map, &key );
                     if (!slave) {
-                         direct_mutex_unlock( &world->refs_lock );
-                         return D_OOM();
+                         slave = D_CALLOC( 1, sizeof(FusionRefSlaveEntry) );
+                         if (!slave) {
+                              direct_mutex_unlock( &world->refs_lock );
+                              return D_OOM();
+                         }
+
+                         slave->key = key;
+                         slave->ref = ref;
+
+                         direct_map_insert( world->refs_map, &key, slave );
                     }
 
-                    slave->key = key;
-                    slave->ref = ref;
+                    slave->refs++;
 
-                    direct_map_insert( world->refs_map, &key, slave );
+                    direct_mutex_unlock( &world->refs_lock );
                }
-
-               slave->refs++;
-
-               direct_mutex_unlock( &world->refs_lock );
           }
           else {
                D_UNIMPLEMENTED();
