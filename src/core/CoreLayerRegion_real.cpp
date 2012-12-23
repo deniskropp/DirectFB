@@ -429,7 +429,34 @@ dfb_layer_region_flip_update_TASK( CoreLayerRegion     *region,
                D_DEBUG_AT( Core_Layers, "  -> Copying content from back to front buffer...\n" );
 
                /* ...or copy updated contents from back to front buffer. */
-               dfb_back_to_front_copy_rotation( surface, update, surface->rotation );
+               if (surface->rotation) {
+                    D_UNIMPLEMENTED();
+                    // FIXME: use graphics state client
+                    dfb_back_to_front_copy_rotation( surface, update, surface->rotation );
+               }
+               else {
+                    // FIXME: don't create and destroy a client each time
+                    CardState               state;
+                    CoreGraphicsStateClient client;
+
+                    /* Initialise the graphics state used for rendering */
+                    dfb_state_init( &state, core_dfb );
+
+                    /* Create a client to use the task manager if enabled */
+                    ret = CoreGraphicsStateClient_Init( &client, &state );
+                    if (ret) {
+                         dfb_state_destroy( &state );
+                         return ret;
+                    }
+
+                    /* Make legacy functions use state client */
+                    state.client = &client;
+
+                    dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, surface, CSBR_FRONT, DSSE_LEFT, update, 1, 0, 0, &client );
+
+                    CoreGraphicsStateClient_Deinit( &client );
+                    dfb_state_destroy( &state );
+               }
 
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT) {
                     D_DEBUG_AT( Core_Layers, "  -> Waiting for VSync...\n" );
