@@ -25,7 +25,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-//#define DIRECT_ENABLE_DEBUG
+#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
 
@@ -1190,14 +1190,26 @@ wm_get_info( CoreWMInfo *info )
 static DFBResult
 wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
 {
-     WMData *data   = wm_data;
-     SaWMan *sawman = shared_data;
+     DFBResult  ret;
+     WMData    *data   = wm_data;
+     SaWMan    *sawman = shared_data;
 
      data->core   = core;
      data->world  = dfb_core_world( core );
      data->sawman = sawman;
 
      sawman_config_init( NULL, NULL );
+
+     /* Initialise the graphics state used for rendering */
+     dfb_state_init( &sawman->state, core );
+
+     /* Create a client to use the task manager if enabled */
+     ret = CoreGraphicsStateClient_Init( &sawman->client, &sawman->state );
+     if (ret)
+          return ret;
+
+     /* Make legacy functions use state client */
+     sawman->state.client = &sawman->client;
 
      return sawman_initialize( sawman, data->world, &data->process );
 }
@@ -1222,6 +1234,9 @@ wm_shutdown( bool emergency, void *wm_data, void *shared_data )
 {
      WMData *data   = wm_data;
      SaWMan *sawman = shared_data;
+
+     CoreGraphicsStateClient_Deinit( &sawman->client );
+     dfb_state_destroy( &sawman->state );
 
      return sawman_shutdown( sawman, data->world );
 }
@@ -1353,9 +1368,9 @@ sawman_surface_reaction( const void *msg_data,
                                                               DFB_RECTANGLE_VALS_FROM_REGION( &tier->left.updated.regions[i] ), i );
                                              }
 
-                                             dfb_gfx_copy_regions_stereo( tier->surface, CSBR_FRONT, DSSE_LEFT,
+                                             dfb_gfx_copy_regions_client( tier->surface, CSBR_FRONT, DSSE_LEFT,
                                                                           tier->surface, CSBR_IDLE, DSSE_LEFT,
-                                                                          tier->left.updated.regions, tier->left.updated.num_regions, 0, 0 );
+                                                                          tier->left.updated.regions, tier->left.updated.num_regions, 0, 0, &sawman->client );
                                         }
 
                                         /* Copy back the updated region. */
@@ -1367,9 +1382,9 @@ sawman_surface_reaction( const void *msg_data,
                                                               DFB_RECTANGLE_VALS_FROM_REGION( &tier->right.updated.regions[i] ), i );
                                              }
 
-                                             dfb_gfx_copy_regions_stereo( tier->surface, CSBR_FRONT, DSSE_RIGHT,
+                                             dfb_gfx_copy_regions_client( tier->surface, CSBR_FRONT, DSSE_RIGHT,
                                                                           tier->surface, CSBR_IDLE, DSSE_RIGHT,
-                                                                          tier->right.updated.regions, tier->right.updated.num_regions, 0, 0 );
+                                                                          tier->right.updated.regions, tier->right.updated.num_regions, 0, 0, &sawman->client );
                                         }
                                    }
                                    else {
@@ -1382,8 +1397,8 @@ sawman_surface_reaction( const void *msg_data,
                                                               DFB_RECTANGLE_VALS_FROM_REGION( &tier->left.updated.regions[i] ), i );
                                              }
      
-                                             dfb_gfx_copy_regions( tier->surface, CSBR_FRONT, tier->surface, CSBR_IDLE,
-                                                                   tier->left.updated.regions, tier->left.updated.num_regions, 0, 0 );
+                                             dfb_gfx_copy_regions_client( tier->surface, CSBR_FRONT, DSSE_LEFT, tier->surface, CSBR_IDLE, DSSE_LEFT,
+                                                                          tier->left.updated.regions, tier->left.updated.num_regions, 0, 0, &sawman->client );
                                         }
                                    }
                                    break;
@@ -3414,6 +3429,7 @@ update_single( SaWMan              *sawman,
           if (!regions || dfb_rectangle_intersect_by_region( &tmp, &regions[i] )) {
                DFBRegion    reg;
                DFBRectangle src = tmp;
+               DFBRegion    src_region;
                DFBRegion    cursor_visible;
 
                sawman_dispatch_blit( sawman, sawwin, right_eye, &src, &tmp, &regions[i] );
@@ -3423,18 +3439,18 @@ update_single( SaWMan              *sawman,
 
                D_ASSERT( window->surface != NULL );
 
-               dfb_gfx_copy_stereo( window->surface, right_eye ? DSSE_RIGHT : DSSE_LEFT,
-                                    tier->region->surface, right_eye ? DSSE_RIGHT : DSSE_LEFT,
-                                    &src, tmp.x, tmp.y, false );
+               dfb_region_from_rectangle( &src_region, &src );
+
+               dfb_gfx_copy_regions_client( window->surface, CSBR_FRONT, right_eye ? DSSE_RIGHT : DSSE_LEFT,
+                                            tier->region->surface, CSBR_BACK, right_eye ? DSSE_RIGHT : DSSE_LEFT,
+                                            &src_region, 1, tmp.x - src_region.x1, tmp.y - src_region.y1, &sawman->client );
 
                dfb_region_from_rectangle( &reg, &tmp );
 
                /* Update cursor? */
                cursor_visible = tier->cursor_region;
                if (tier->cursor_drawn && dfb_region_region_intersect( &cursor_visible, &reg )) {
-                    DFBRectangle  rect  = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_visible );
-                    CoreLayer    *layer = dfb_layer_at( tier->layer_id );
-                    CardState    *state = &layer->state;
+                    CardState    *state = &sawman->state;
                     int           x;
                     int           y;
                     DFBDimension  size;
@@ -3453,13 +3469,13 @@ update_single( SaWMan              *sawman,
                     D_ASSUME( tier->cursor_bs_valid );
 
                     D_DEBUG_AT( SaWMan_Cursor, "  -> saving background under cursor (%d,%d-%dx%d)\n",
-                                DFB_RECTANGLE_VALS(&rect) );
+                                DFB_RECTANGLE_VALS_FROM_REGION(&cursor_visible) );
 
-                    dfb_gfx_copy_stereo( tier->region->surface, right_eye ? DSSE_RIGHT : DSSE_LEFT,
-                                         right_eye ? tier->cursor_bs_right : tier->cursor_bs, DSSE_LEFT,
-                                         &rect,
-                                         rect.x - tier->cursor_region.x1,
-                                         rect.y - tier->cursor_region.y1, true );
+                    dfb_gfx_copy_regions_client( tier->region->surface, CSBR_BACK, right_eye ? DSSE_RIGHT : DSSE_LEFT,
+                                                 right_eye ? tier->cursor_bs_right : tier->cursor_bs, CSBR_BACK, DSSE_LEFT,
+                                                 &cursor_visible, 1,
+                                                 - tier->cursor_region.x1,
+                                                 - tier->cursor_region.y1, &sawman->client );
 
 
                     /* Set destination. */
@@ -3479,6 +3495,8 @@ update_single( SaWMan              *sawman,
                     state->destination  = NULL;
                     state->modified    |= SMF_DESTINATION;
                }
+
+               CoreGraphicsStateClient_Flush( &sawman->client );
 
                dfb_layer_region_flip_update( tier->region, &reg, flags );
           }
@@ -3940,6 +3958,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      DFBRegion         updates[2];
      int               updates_count = 0;
      DFBRegion         updates_unite;
+     StackData        *data = stack_data;
 
      D_DEBUG_AT( SaWMan_Cursor, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, stack, wm_data, stack_data, flags );
 
@@ -4003,6 +4022,7 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      /* Optimize case of invisible cursor moving. */
      if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled)) {
+          D_DEBUG_AT( SaWMan_Cursor, "  -> invisible\n" );
           sawman_unlock( sawman );
           return DFB_OK;
      }
@@ -4067,17 +4087,28 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      /* restore region under cursor */
      if (tier->cursor_drawn) {
-          DFBRectangle rect = { 0, 0,
-                                old_region.x2 - old_region.x1 + 1,
-                                old_region.y2 - old_region.y1 + 1 };
+          //DFBRectangle rect = { 0, 0,
+          //                      old_region.x2 - old_region.x1 + 1,
+          //                      old_region.y2 - old_region.y1 + 1 };
 
           D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
 
-          if (tier->active) {
-               dfb_gfx_copy_stereo( tier->cursor_bs, DSSE_LEFT, surface, DSSE_LEFT, &rect, old_region.x1, old_region.y1, false );
+          D_DEBUG_AT( SaWMan_Cursor, "  -> restore\n" );
 
-               if (primary->config.options & DLOP_STEREO)
-                    dfb_gfx_copy_stereo( tier->cursor_bs_right, DSSE_LEFT, surface, DSSE_RIGHT, &rect, old_region.x1, old_region.y1, false );
+          if (tier->active) {
+               DFBRegion region = { 0, 0,
+                                    old_region.x2 - old_region.x1,
+                                    old_region.y2 - old_region.y1 };
+
+               dfb_gfx_copy_regions_client( tier->cursor_bs, CSBR_BACK, DSSE_LEFT, surface, CSBR_BACK, DSSE_LEFT, &region, 1,
+                                            old_region.x1, old_region.y1, &sawman->client );
+
+               if (primary->config.options & DLOP_STEREO) {
+                    dfb_gfx_copy_regions_client( tier->cursor_bs_right, CSBR_BACK, DSSE_LEFT, surface, CSBR_BACK, DSSE_RIGHT, &region, 1,
+                                                 old_region.x1, old_region.y1, &sawman->client );
+               }
+
+               CoreGraphicsStateClient_Flush( &sawman->client );
 
                restored = true;
           }
@@ -4086,6 +4117,8 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
 
      if (flags & CCUF_SIZE) {
+          D_DEBUG_AT( SaWMan_Cursor, "  -> resize\n" );
+
           ret = dfb_surface_reformat( tier->cursor_bs,
                                       stack->cursor.size.w, stack->cursor.size.h,
                                       tier->cursor_bs->config.format );
@@ -4102,25 +4135,39 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
 
      if (flags & CCUF_DISABLE) {
+          D_DEBUG_AT( SaWMan_Cursor, "  -> disable\n" );
+
           dfb_surface_unlink( &tier->cursor_bs );
      }
-     else if (stack->cursor.opacity && tier->active && tier->cursor_region.x1 <= tier->cursor_region.x2) {
-          CoreLayer *layer = dfb_layer_at( context->layer_id );
-          CardState *state = &layer->state;
+     else if (stack->cursor.opacity && data->active && tier->cursor_region.x1 <= tier->cursor_region.x2) {
+          CardState *state = &sawman->state;
 
           /* backup region under cursor */
           if (!tier->cursor_bs_valid) {
-               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &tier->cursor_region );
+               //DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &tier->cursor_region );
+
+               D_DEBUG_AT( SaWMan_Cursor, "  -> backup\n" );
 
                D_ASSERT( !tier->cursor_drawn );
 
-               dfb_gfx_copy_stereo( surface, DSSE_LEFT, tier->cursor_bs, DSSE_LEFT, &rect, 0, 0, true );
+               dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, tier->cursor_bs, CSBR_BACK, DSSE_LEFT,
+                                            &tier->cursor_region, 1, -tier->cursor_region.x1, -tier->cursor_region.y1,
+                                            &sawman->client );
 
-               if (primary->config.options & DLOP_STEREO)
-                    dfb_gfx_copy_stereo( surface, DSSE_RIGHT, tier->cursor_bs_right, DSSE_LEFT, &rect, 0, 0, true );
+               if (primary->config.options & DLOP_STEREO) {
+                    dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_RIGHT, tier->cursor_bs_right, CSBR_BACK, DSSE_LEFT,
+                                                 &tier->cursor_region, 1, -tier->cursor_region.x1, -tier->cursor_region.y1,
+                                                 &sawman->client );
+               }
 
                tier->cursor_bs_valid = true;
           }
+
+          D_DEBUG_AT( SaWMan_Cursor, "  -> draw\n" );
+
+          /* Set destination. */
+          state->destination  = surface;
+          state->modified    |= SMF_DESTINATION;
 
           state->to_eye    = DSSE_LEFT;
           state->modified |= SMF_TO;
@@ -4135,6 +4182,12 @@ wm_update_cursor( CoreWindowStack       *stack,
                /* draw cursor */
                sawman_draw_cursor( stack, state, surface, &tier->cursor_region, x, y );
           }
+
+          /* Reset destination. */
+          state->destination  = NULL;
+          state->modified    |= SMF_DESTINATION;
+
+          CoreGraphicsStateClient_Flush( &sawman->client );
 
           tier->cursor_drawn = true;
 
@@ -4151,6 +4204,8 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
      else if (restored)
           updates[updates_count++] = old_region;
+
+     D_DEBUG_AT( SaWMan_Cursor, "  -> %d updates\n", updates_count );
 
      if (updates_count) {
           switch (primary->config.buffermode) {
@@ -4178,15 +4233,11 @@ wm_update_cursor( CoreWindowStack       *stack,
                     dfb_layer_region_flip_update( primary, &updates_unite, DSFLIP_WAITFORSYNC | DSFLIP_SWAP );
 
                     /* Copy back the updated region. */
-                    dfb_gfx_copy_regions_stereo( surface, CSBR_FRONT, DSSE_LEFT,
-                                                 surface, CSBR_BACK, DSSE_LEFT,
-                                                 updates, updates_count, 0, 0 );
+                    dfb_gfx_copy_regions_client( surface, CSBR_FRONT, DSSE_LEFT, surface, CSBR_BACK, DSSE_LEFT, updates, updates_count, 0, 0, &sawman->client );
 
                     if (primary->config.options & DLOP_STEREO)
                          /* Copy back the updated region. */
-                         dfb_gfx_copy_regions_stereo( surface, CSBR_FRONT, DSSE_RIGHT,
-                                                      surface, CSBR_BACK, DSSE_RIGHT,
-                                                      updates, updates_count, 0, 0 );
+                         dfb_gfx_copy_regions_client( surface, CSBR_FRONT, DSSE_RIGHT, surface, CSBR_BACK, DSSE_RIGHT, updates, updates_count, 0, 0, &sawman->client );
                     break;
 
                default:
@@ -4201,6 +4252,8 @@ wm_update_cursor( CoreWindowStack       *stack,
                     break;
           }
      }
+
+     CoreGraphicsStateClient_Flush( &sawman->client );
 
      sawman_unlock( sawman );
 

@@ -44,6 +44,8 @@ extern "C"
 #include <core/layers_internal.h> /* FIXME */
 #include <core/windows_internal.h> /* FIXME */
 
+#include <core/CoreGraphicsStateClient.h>
+
 #include "sawman_types.h"
 
 /**********************************************************************************************************************/
@@ -308,6 +310,9 @@ struct __SaWMan_SaWMan {
      FusionCall                call;
 
      FusionReactor            *reactor;
+
+     CardState                 state;
+     CoreGraphicsStateClient   client;
 };
 
 /*

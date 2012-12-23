@@ -25,6 +25,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <directfb.h>
@@ -192,6 +194,8 @@ void sawman_draw_cursor    ( CoreWindowStack *stack,
      src.w = region->x2 - region->x1 + 1;
      src.h = region->y2 - region->y1 + 1;
 
+     D_DEBUG_AT( SaWMan_Draw, "  -> cursor surface %p\n", stack->cursor.surface );
+
      /* Initialize source clipping rectangle */
      clip.x = clip.y = 0;
      clip.w = stack->cursor.surface->config.size.w;
@@ -302,7 +306,11 @@ void sawman_draw_cursor    ( CoreWindowStack *stack,
      dfb_state_set_clip( state, region );
 
      /* Blit from the window to the region being updated. */
-     dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+     DFBPoint point = {
+          region->x1, region->y1
+     };
+     D_DEBUG_AT( SaWMan_Draw, "  -> client %p\n", state->client );
+     CoreGraphicsStateClient_Blit( state->client, &src, &point, 1 );
 
      /* Reset blitting source. */
      state->source    = NULL;
@@ -391,7 +399,7 @@ draw_border( SaWManWindow    *sawwin,
                                         &colors[i*num_colors/thickness],
                                         indices[i*num_indices/thickness] );
 
-          dfb_gfxcard_drawrectangle( &rects[i], state );
+          CoreGraphicsStateClient_DrawRectangles( state->client, &rects[i], 1 );
      }
 
      /* Restore clipping region. */
@@ -635,13 +643,13 @@ draw_window( SaWManTier   *tier,
           src.x = p.x;
           src.y = p.y;
 
-          dfb_gfxcard_batchblit2( &src, &p2, &p1, 1, state );
+          CoreGraphicsStateClient_Blit2( state->client, &src, &p2, &p1, 1 );
      }
      else
 #endif
      {
           /* Scale window to the screen clipped by the region being updated. */
-          dfb_gfxcard_stretchblit( &src, &dst, state );
+          CoreGraphicsStateClient_StretchBlit( state->client, &src, &dst, 1 );
      }
 
      /* Restore clipping region. */
@@ -722,7 +730,7 @@ draw_window_color( SaWManWindow *sawwin,
      D_DEBUG_AT( SaWMan_Draw, "    => %4d,%4d-%4dx%4d\n",
                  DFB_RECTANGLE_VALS( &dst ) );
 
-     dfb_gfxcard_fillrectangles( &dst, 1, state );
+     CoreGraphicsStateClient_FillRectangles( state->client, &dst, 1 );
 
      /* Restore clipping region. */
      dfb_state_set_clip( state, &old_clip );
@@ -857,7 +865,7 @@ sawman_draw_two_windows( SaWManTier   *tier,
           /* TODO: using the card capabilities will not work if
              BLIT2 functionality is state dependant */
           CardCapabilities caps;
-          dfb_gfxcard_get_capabilities( &caps );
+          dfb_gfxcard_get_capabilities( &caps );  // FIXME
 
           /* scaling disallowed */
           if (    (sawwin1->src.w == sawwin1->dst.w)
@@ -893,12 +901,12 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
      DFBRectangle     dst;
      CoreWindowStack *stack;
 
+     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__, tier,
+                 DFB_RECTANGLE_VALS_FROM_REGION( region ) );
+
      D_MAGIC_ASSERT( tier, SaWManTier );
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( region );
-
-     D_DEBUG_AT( SaWMan_Draw, "%s( %p, %d,%d-%dx%d )\n", __FUNCTION__, tier,
-                 DFB_RECTANGLE_VALS_FROM_REGION( region ) );
 
      stack = tier->stack;
      D_ASSERT( stack != NULL );
@@ -928,8 +936,7 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
                                 state->destination->palette->entries[stack->bg.color_index].b );
 
                /* Simply fill the background. */
-               dfb_gfxcard_fillrectangles( &dst, 1, state );
-
+               CoreGraphicsStateClient_FillRectangles( state->client, &dst, 1 );
                break;
           }
 
@@ -946,7 +953,10 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
                /* Check the size of the background image. */
                if (bg->config.size.w == stack->width && bg->config.size.h == stack->height) {
                     /* Simple blit for 100% fitting background image. */
-                    dfb_gfxcard_blit( &dst, dst.x, dst.y, state );
+                    DFBPoint point = {
+                         dst.x, dst.y
+                    };
+                    CoreGraphicsStateClient_Blit( state->client, &dst, &point, 1 );
                }
                else {
                     DFBRegion    old_clip = state->clip;
@@ -965,7 +975,7 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
                     dst.h = stack->height;
 
                     /* Stretch blit for non fitting background images. */
-                    dfb_gfxcard_stretchblit( &src, &dst, state );
+                    CoreGraphicsStateClient_StretchBlit( state->client, &src, &dst, 1 );
 
                     /* Restore clipping region. */
                     dfb_state_set_clip( state, &old_clip );
@@ -994,12 +1004,11 @@ sawman_draw_background( SaWManTier *tier, CardState *state, DFBRegion *region )
                dfb_state_set_clip( state, region );
 
                /* Tiled blit (aligned). */
-               dfb_gfxcard_tileblit( &src,
-                                     (region->x1 / src.w) * src.w,
-                                     (region->y1 / src.h) * src.h,
-                                     (region->x2 / src.w + 1) * src.w,
-                                     (region->y2 / src.h + 1) * src.h,
-                                     state );
+               DFBPoint p1 = { (region->x1 / src.w) * src.w,
+                               (region->y1 / src.h) * src.h };
+               DFBPoint p2 = { (region->x2 / src.w + 1) * src.w,
+                               (region->y2 / src.h + 1) * src.h };
+               CoreGraphicsStateClient_TileBlit( state->client, &src, &p1, &p2, 1 );
 
                /* Restore clipping region. */
                dfb_state_set_clip( state, &old_clip );
