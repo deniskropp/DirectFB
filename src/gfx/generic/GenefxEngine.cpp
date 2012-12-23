@@ -50,6 +50,9 @@ extern "C" {
 #include <gfx/generic/generic.h>
 }
 
+#include <core/Util.h>
+
+
 D_DEBUG_DOMAIN( DirectFB_Renderer, "DirectFB/Renderer", "DirectFB Renderer" );
 
 /*********************************************************************************************************************/
@@ -64,12 +67,16 @@ D_DEBUG_DOMAIN( DirectFB_GenefxEngine, "DirectFB/Genefx/Engine", "DirectFB Genef
 D_DEBUG_DOMAIN( DirectFB_GenefxTask,   "DirectFB/Genefx/Task",   "DirectFB Genefx Task" );
 
 
-
-
-// TODO: use fixed size array instead of std::vector
-
-
-
+// FIXME: find better auto detection, runtime options or dynamic adjustment for the following values
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
+#define DFB_GENEFX_COMMAND_BUFFER_BLOCK_SIZE 0x40000   // 256k
+#define DFB_GENEFX_COMMAND_BUFFER_MAX_SIZE   0x130000  // 1216k
+#define DFB_GENEFX_TASK_WEIGHT_MAX           300000000
+#else
+#define DFB_GENEFX_COMMAND_BUFFER_BLOCK_SIZE 0x8000    // 32k
+#define DFB_GENEFX_COMMAND_BUFFER_MAX_SIZE   0x17800   // 94k
+#define DFB_GENEFX_TASK_WEIGHT_MAX           10000000
+#endif
 
 
 class GenefxEngine;
@@ -80,7 +87,11 @@ public:
      GenefxTask( GenefxEngine *engine )
           :
           SurfaceTask( CSAID_CPU ),
-          engine( engine )
+          engine( engine ),
+          commands( DFB_GENEFX_COMMAND_BUFFER_BLOCK_SIZE ),
+          weight( 0 ),
+          weight_shift_draw( 0 ),
+          weight_shift_blit( 0 )
      {
      }
 
@@ -116,8 +127,19 @@ private:
           TYPE_TEXTURE_TRIANGLES
      } Type;
 
-     std::vector<u32> commands;
-     DFBRegion        clip;
+     Util::PacketBuffer commands;
+     DFBRegion          clip;
+     unsigned int       weight;
+     unsigned int       weight_shift_draw;
+     unsigned int       weight_shift_blit;
+
+     inline void addDrawingWeight( unsigned int w ) {
+          weight += 10 + (w << weight_shift_draw);
+     }
+
+     inline void addBlittingWeight( unsigned int w ) {
+          weight += 10 + (w << weight_shift_blit);
+     }
 };
 
 
@@ -133,13 +155,14 @@ public:
           caps.cores          = cores < 8 ? cores : 8;
           caps.clipping       = (DFBAccelerationMask)(DFXL_FILLRECTANGLE | DFXL_DRAWLINE | DFXL_BLIT | DFXL_TEXTRIANGLES);
           caps.render_options = (DFBSurfaceRenderOptions)(DSRO_SMOOTH_DOWNSCALE | DSRO_SMOOTH_UPSCALE);
-          caps.max_operations = 10000;
+          caps.max_operations = 300000;
 
           for (unsigned int i=0; i<cores; i++) {
                char name[] = "GenefxX";
 
                name[6] = '0' + i;
 
+               // FIXME: Start thread only if needed (using task manager with software fallbacks)
                threads[i] = direct_thread_create( DTT_DEFAULT, myEngineLoop, this, name );
           }
      }
@@ -163,10 +186,9 @@ public:
           for (unsigned int i=0; i<setup->tiles; i++) {
                GenefxTask *mytask = (GenefxTask *) setup->tasks[i];
 
-               if (mytask->commands.size() >= 0x17800) {
-                    //fprintf(stderr,"limit %zu\n",mytask->buffer.GetLength());
+               if (mytask->weight >= DFB_GENEFX_TASK_WEIGHT_MAX ||
+                   mytask->commands.GetLength() >= DFB_GENEFX_COMMAND_BUFFER_MAX_SIZE)
                     return DFB_LIMITEXCEEDED;
-               }
           }
 
           return DFB_OK;
@@ -204,28 +226,43 @@ public:
 
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
 
-          // TODO: maybe validate lazily as in CoreGraphicsStateClient
+          u32 max = 8 + 5 + 8 + 2 + 2 + 2 + 2 + 2 + 2;
+
+          if ((modified & SMF_DESTINATION) && DFB_PIXELFORMAT_IS_INDEXED( state->destination->config.format ))
+               max += 2 + 2 * state->destination->palette->num_entries;
+
+          if ((modified & SMF_SOURCE) && DFB_BLITTING_FUNCTION(accel) && DFB_PIXELFORMAT_IS_INDEXED( state->source->config.format ))
+               max += 2 + 2 * state->source->palette->num_entries;
+
+
+          // TODO: validate lazily as in CoreGraphicsStateClient
+
+          u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * max );
+
+          if (!buf)
+               return DFB_NOSYSTEMMEMORY;
+
 
           if (modified & SMF_DESTINATION) {
                D_DEBUG_AT( DirectFB_GenefxEngine, "  -> destination %p (%d)\n", state->dst.addr, state->dst.pitch );
 
-               mytask->commands.push_back( GenefxTask::TYPE_SET_DESTINATION );
-               mytask->commands.push_back( (long long)(long)state->dst.addr >> 32 );
-               mytask->commands.push_back( (u32)(long)state->dst.addr );
-               mytask->commands.push_back( state->dst.pitch );
-               mytask->commands.push_back( state->destination->config.size.w ); // FIXME: maybe should use allocation->config
-               mytask->commands.push_back( state->destination->config.size.h );
-               mytask->commands.push_back( state->destination->config.format );
-               mytask->commands.push_back( state->destination->config.caps );
+               *buf++ = GenefxTask::TYPE_SET_DESTINATION;
+               *buf++ = (long long)(long)state->dst.addr >> 32;
+               *buf++ = (u32)(long)state->dst.addr;
+               *buf++ = state->dst.pitch;
+               *buf++ = state->destination->config.size.w; // FIXME: maybe should use allocation->config
+               *buf++ = state->destination->config.size.h;
+               *buf++ = state->destination->config.format;
+               *buf++ = state->destination->config.caps;
 
                if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->config.format )) {
-                    mytask->commands.push_back( GenefxTask::TYPE_SET_DESTINATION_PALETTE );
+                    *buf++ = GenefxTask::TYPE_SET_DESTINATION_PALETTE;
 
-                    mytask->commands.push_back( state->destination->palette->num_entries );
+                    *buf++ = state->destination->palette->num_entries;
 
                     for (unsigned int i=0; i<state->destination->palette->num_entries; i++) {
-                         mytask->commands.push_back( *(u32*)&state->destination->palette->entries[i] );
-                         mytask->commands.push_back( *(u32*)&state->destination->palette->entries_yuv[i] );
+                         *buf++ = *(u32*)&state->destination->palette->entries[i];
+                         *buf++ = *(u32*)&state->destination->palette->entries_yuv[i];
                     }
                }
           }
@@ -233,11 +270,11 @@ public:
           if (modified & SMF_CLIP) {
                D_DEBUG_AT( DirectFB_GenefxEngine, "  -> clip %d,%d-%dx%d\n", DFB_RECTANGLE_VALS_FROM_REGION(&state->clip) );
 
-               mytask->commands.push_back( GenefxTask::TYPE_SET_CLIP );
-               mytask->commands.push_back( state->clip.x1 );
-               mytask->commands.push_back( state->clip.y1 );
-               mytask->commands.push_back( state->clip.x2 );
-               mytask->commands.push_back( state->clip.y2 );
+               *buf++ = GenefxTask::TYPE_SET_CLIP;
+               *buf++ = state->clip.x1;
+               *buf++ = state->clip.y1;
+               *buf++ = state->clip.x2;
+               *buf++ = state->clip.y2;
 
                mytask->clip = state->clip;
           }
@@ -245,61 +282,89 @@ public:
           if (modified & SMF_SOURCE && DFB_BLITTING_FUNCTION(accel)) {
                D_DEBUG_AT( DirectFB_GenefxEngine, "  -> source %p (%d)\n", state->src.addr, state->src.pitch );
 
-               mytask->commands.push_back( GenefxTask::TYPE_SET_SOURCE );
-               mytask->commands.push_back( (long long)(long)state->src.addr >> 32 );
-               mytask->commands.push_back( (u32)(long)state->src.addr );
-               mytask->commands.push_back( state->src.pitch );
-               mytask->commands.push_back( state->source->config.size.w );
-               mytask->commands.push_back( state->source->config.size.h );
-               mytask->commands.push_back( state->source->config.format );
-               mytask->commands.push_back( state->source->config.caps );
+               *buf++ = GenefxTask::TYPE_SET_SOURCE;
+               *buf++ = (long long)(long)state->src.addr >> 32;
+               *buf++ = (u32)(long)state->src.addr;
+               *buf++ = state->src.pitch;
+               *buf++ = state->source->config.size.w;
+               *buf++ = state->source->config.size.h;
+               *buf++ = state->source->config.format;
+               *buf++ = state->source->config.caps;
 
                if (DFB_PIXELFORMAT_IS_INDEXED( state->source->config.format )) {
-                    mytask->commands.push_back( GenefxTask::TYPE_SET_SOURCE_PALETTE );
+                    *buf++ = GenefxTask::TYPE_SET_SOURCE_PALETTE;
 
-                    mytask->commands.push_back( state->source->palette->num_entries );
+                    *buf++ = state->source->palette->num_entries;
 
                     for (unsigned int i=0; i<state->source->palette->num_entries; i++) {
-                         mytask->commands.push_back( *(u32*)&state->source->palette->entries[i] );
-                         mytask->commands.push_back( *(u32*)&state->source->palette->entries_yuv[i] );
+                         *buf++ = *(u32*)&state->source->palette->entries[i];
+                         *buf++ = *(u32*)&state->source->palette->entries_yuv[i];
                     }
                }
 
                state->mod_hw = (StateModificationFlags)(state->mod_hw & ~SMF_SOURCE);
+
+               if (state->source->config.format != state->destination->config.format && state->source->config.format != DSPF_A8)
+                    mytask->weight_shift_blit |= 4;
+               else
+                    mytask->weight_shift_blit &= ~4;
           }
 
           if (modified & SMF_COLOR) {
-               mytask->commands.push_back( GenefxTask::TYPE_SET_COLOR );
-               mytask->commands.push_back( PIXEL_ARGB( state->color.a, state->color.r, state->color.g, state->color.b ) );
+               *buf++ = GenefxTask::TYPE_SET_COLOR;
+               *buf++ = PIXEL_ARGB( state->color.a, state->color.r, state->color.g, state->color.b );
           }
 
           if (modified & SMF_DRAWING_FLAGS) {
-               mytask->commands.push_back( GenefxTask::TYPE_SET_DRAWINGFLAGS );
-               mytask->commands.push_back( state->drawingflags );
+               *buf++ = GenefxTask::TYPE_SET_DRAWINGFLAGS;
+               *buf++ = state->drawingflags;
+
+               if (state->drawingflags) {
+                    if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_SRC_PREMULTIPLY | DSDRAW_DST_PREMULTIPLY | DSDRAW_DEMULTIPLY))
+                         mytask->weight_shift_draw = 6;
+                    else
+                         mytask->weight_shift_draw = 3;
+               }
+               else
+                    mytask->weight_shift_draw = 1;
           }
 
           if (modified & SMF_BLITTING_FLAGS) {
-               mytask->commands.push_back( GenefxTask::TYPE_SET_BLITTINGFLAGS );
-               mytask->commands.push_back( state->blittingflags );
+               *buf++ = GenefxTask::TYPE_SET_BLITTINGFLAGS;
+               *buf++ = state->blittingflags;
+
+               if (state->blittingflags) {
+                    if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTIPLY |
+                                                DSBLIT_DST_PREMULTIPLY | DSBLIT_DEMULTIPLY | DSBLIT_DEINTERLACE | DSBLIT_SRC_PREMULTCOLOR |
+                                                DSBLIT_SRC_COLORKEY_EXTENDED | DSBLIT_DST_COLORKEY_EXTENDED | DSBLIT_SRC_MASK_ALPHA |
+                                                DSBLIT_SRC_MASK_COLOR | DSBLIT_SRC_COLORMATRIX | DSBLIT_SRC_CONVOLUTION))
+                         mytask->weight_shift_blit = 8 | (mytask->weight_shift_blit & 4);
+                    else
+                         mytask->weight_shift_blit = 2 | (mytask->weight_shift_blit & 4);
+               }
+               else
+                    mytask->weight_shift_blit = 1 | (mytask->weight_shift_blit & 4);
           }
 
           if (modified & SMF_SRC_BLEND) {
-               mytask->commands.push_back( GenefxTask::TYPE_SET_SRC_BLEND );
-               mytask->commands.push_back( state->src_blend );
+               *buf++ = GenefxTask::TYPE_SET_SRC_BLEND;
+               *buf++ = state->src_blend;
           }
 
           if (modified & SMF_DST_BLEND) {
-               mytask->commands.push_back( GenefxTask::TYPE_SET_DST_BLEND );
-               mytask->commands.push_back( state->dst_blend );
+               *buf++ = GenefxTask::TYPE_SET_DST_BLEND;
+               *buf++ = state->dst_blend;
           }
 
           if (modified & SMF_SRC_COLORKEY) {
-               mytask->commands.push_back( GenefxTask::TYPE_SET_SRC_COLORKEY );
-               mytask->commands.push_back( state->src_colorkey );
+               *buf++ = GenefxTask::TYPE_SET_SRC_COLORKEY;
+               *buf++ = state->src_colorkey;
           }
 
           state->mod_hw = (StateModificationFlags)(state->mod_hw & SMF_SOURCE);
           state->set    = DFXL_ALL;
+
+          mytask->commands.PutBuffer( buf );
 
           return DFB_OK;
      }
@@ -311,28 +376,38 @@ public:
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
-          u32         index;
+          u32        *count_ptr;
 
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num_rects );
 
-          mytask->commands.push_back( GenefxTask::TYPE_FILL_RECTS );
-          mytask->commands.push_back( num_rects );
-          index = mytask->commands.size() - 1;
+          u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num_rects * 4) );
+
+          if (!buf)
+               return DFB_NOSYSTEMMEMORY;
+
+
+          *buf++ = GenefxTask::TYPE_FILL_RECTS;
+
+          count_ptr = buf++;
 
           for (unsigned int i=0; i<num_rects; i++) {
                DFBRectangle rect = rects[i];
 
                if (dfb_clip_rectangle( &mytask->clip, &rect )) {
-                    mytask->commands.push_back( rect.x );
-                    mytask->commands.push_back( rect.y );
-                    mytask->commands.push_back( rect.w );
-                    mytask->commands.push_back( rect.h );
+                    *buf++ = rect.x;
+                    *buf++ = rect.y;
+                    *buf++ = rect.w;
+                    *buf++ = rect.h;
 
                     count++;
+
+                    mytask->addDrawingWeight( rect.w * rect.h );
                }
           }
 
-          mytask->commands[index] = count;
+          *count_ptr = count;
+
+          mytask->commands.PutBuffer( buf );
 
           return DFB_OK;
      }
@@ -344,13 +419,19 @@ public:
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
-          u32         index;
+          u32        *count_ptr;
 
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num_rects );
 
-          mytask->commands.push_back( GenefxTask::TYPE_FILL_RECTS );
-          mytask->commands.push_back( num_rects );
-          index = mytask->commands.size() - 1;
+          u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num_rects * 4) );
+
+          if (!buf)
+               return DFB_NOSYSTEMMEMORY;
+
+
+          *buf++ = GenefxTask::TYPE_FILL_RECTS;
+
+          count_ptr = buf++;
 
           for (unsigned int i=0; i<num_rects; i++) {
                DFBRectangle rect = rects[i];
@@ -360,16 +441,20 @@ public:
                dfb_build_clipped_rectangle_outlines( &rect, &mytask->clip, rects, &num );
 
                for (; n<num; n++) {
-                    mytask->commands.push_back( rects[n].x );
-                    mytask->commands.push_back( rects[n].y );
-                    mytask->commands.push_back( rects[n].w );
-                    mytask->commands.push_back( rects[n].h );
+                    *buf++ = rects[n].x;
+                    *buf++ = rects[n].y;
+                    *buf++ = rects[n].w;
+                    *buf++ = rects[n].h;
 
                     count++;
+
+                    mytask->addDrawingWeight( rects[n].w * 2 + rects[n].h * 2 );
                }
           }
 
-          mytask->commands[index] = count;
+          *count_ptr = count;
+
+          mytask->commands.PutBuffer( buf );
 
           return DFB_OK;
      }
@@ -381,28 +466,38 @@ public:
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
-          u32         index;
+          u32        *count_ptr;
 
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num_lines );
 
-          mytask->commands.push_back( GenefxTask::TYPE_DRAW_LINES );
-          mytask->commands.push_back( num_lines );
-          index = mytask->commands.size() - 1;
+          u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num_lines * 4) );
+
+          if (!buf)
+               return DFB_NOSYSTEMMEMORY;
+
+
+          *buf++ = GenefxTask::TYPE_DRAW_LINES;
+
+          count_ptr = buf++;
 
           for (unsigned int i=0; i<num_lines; i++) {
                DFBRegion line = lines[i];
 
                if (dfb_clip_line( &mytask->clip, &line )) {
-                    mytask->commands.push_back( line.x1 );
-                    mytask->commands.push_back( line.y1 );
-                    mytask->commands.push_back( line.x2 );
-                    mytask->commands.push_back( line.y2 );
+                    *buf++ = line.x1;
+                    *buf++ = line.y1;
+                    *buf++ = line.x2;
+                    *buf++ = line.y2;
 
                     count++;
+
+                    mytask->addDrawingWeight( (line.x2 - line.x1) + (line.y2 - line.y1) );
                }
           }
 
-          mytask->commands[index] = count;
+          *count_ptr = count;
+
+          mytask->commands.PutBuffer( buf );
 
           return DFB_OK;
      }
@@ -415,13 +510,19 @@ public:
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
-          u32         index;
+          u32        *count_ptr;
 
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num );
 
-          mytask->commands.push_back( GenefxTask::TYPE_BLIT );
-          mytask->commands.push_back( num );
-          index = mytask->commands.size() - 1;
+          u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num * 6) );
+
+          if (!buf)
+               return DFB_NOSYSTEMMEMORY;
+
+
+          *buf++ = GenefxTask::TYPE_BLIT;
+
+          count_ptr = buf++;
 
           for (unsigned int i=0; i<num; i++) {
                if (dfb_clip_blit_precheck( &mytask->clip, rects[i].w, rects[i].h, points[i].x, points[i].y )) {
@@ -431,18 +532,22 @@ public:
 
                     dfb_clip_blit( &mytask->clip, &rect, &dx, &dy );
 
-                    mytask->commands.push_back( rect.x );
-                    mytask->commands.push_back( rect.y );
-                    mytask->commands.push_back( rect.w );
-                    mytask->commands.push_back( rect.h );
-                    mytask->commands.push_back( dx );
-                    mytask->commands.push_back( dy );
+                    *buf++ = rect.x;
+                    *buf++ = rect.y;
+                    *buf++ = rect.w;
+                    *buf++ = rect.h;
+                    *buf++ = dx;
+                    *buf++ = dy;
 
                     count++;
+
+                    mytask->addBlittingWeight( rect.w * rect.h );
                }
           }
 
-          mytask->commands[index] = count;
+          *count_ptr = count;
+
+          mytask->commands.PutBuffer( buf );
 
           return DFB_OK;
      }
@@ -455,31 +560,41 @@ public:
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
-          u32         index;
+          u32        *count_ptr;
 
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num );
 
-          mytask->commands.push_back( GenefxTask::TYPE_STRETCHBLIT );
-          mytask->commands.push_back( num );
-          index = mytask->commands.size() - 1;
+          u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num * 8) );
+
+          if (!buf)
+               return DFB_NOSYSTEMMEMORY;
+
+
+          *buf++ = GenefxTask::TYPE_STRETCHBLIT;
+
+          count_ptr = buf++;
 
           for (unsigned int i=0; i<num; i++) {
                if (dfb_clip_blit_precheck( &mytask->clip, drects[i].w, drects[i].h, drects[i].x, drects[i].y )) {
-                    mytask->commands.push_back( srects[i].x );
-                    mytask->commands.push_back( srects[i].y );
-                    mytask->commands.push_back( srects[i].w );
-                    mytask->commands.push_back( srects[i].h );
+                    *buf++ = srects[i].x;
+                    *buf++ = srects[i].y;
+                    *buf++ = srects[i].w;
+                    *buf++ = srects[i].h;
 
-                    mytask->commands.push_back( drects[i].x );
-                    mytask->commands.push_back( drects[i].y );
-                    mytask->commands.push_back( drects[i].w );
-                    mytask->commands.push_back( drects[i].h );
+                    *buf++ = drects[i].x;
+                    *buf++ = drects[i].y;
+                    *buf++ = drects[i].w;
+                    *buf++ = drects[i].h;
 
                     count++;
+
+                    mytask->addBlittingWeight( drects[i].w * drects[i].h * 2 );
                }
           }
 
-          mytask->commands[index] = count;
+          *count_ptr = count;
+
+          mytask->commands.PutBuffer( buf );
 
           return DFB_OK;
      }
@@ -494,16 +609,26 @@ public:
 
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num );
 
-          mytask->commands.push_back( GenefxTask::TYPE_TEXTURE_TRIANGLES );
-          mytask->commands.push_back( num );
-          mytask->commands.push_back( formation );
+          u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (3 + num * 4) );
+
+          if (!buf)
+               return DFB_NOSYSTEMMEMORY;
+
+
+          *buf++ = GenefxTask::TYPE_TEXTURE_TRIANGLES;
+          *buf++ = num;
+          *buf++ = formation;
 
           for (unsigned int i=0; i<num; i++) {
-               mytask->commands.push_back( vertices[i].x >> 16 );
-               mytask->commands.push_back( vertices[i].y >> 16 );
-               mytask->commands.push_back( vertices[i].s );
-               mytask->commands.push_back( vertices[i].t );
+               *buf++ = vertices[i].x >> 16;
+               *buf++ = vertices[i].y >> 16;
+               *buf++ = vertices[i].s;
+               *buf++ = vertices[i].t;
           }
+
+          mytask->addBlittingWeight( num * 10000 );    // FIXME: calculate weight better, maybe each diff to previous point
+
+          mytask->commands.PutBuffer( buf );
 
           return DFB_OK;
      }
@@ -554,7 +679,6 @@ GenefxTask::Run()
      u32                  ptr2;
      u32                  color;
      u32                  num;
-     size_t               size;
      CoreSurface          dest;
      CorePalette          dest_palette;
      DFBColor             dest_entries[256];
@@ -575,12 +699,15 @@ GenefxTask::Run()
 
      dest.num_buffers  = 1;
 
-     size = commands.size();
-     if (size > 0) {
-          u32 *buffer = &commands[0];
+     for (std::vector<Util::PacketBuffer::Buffer*>::const_iterator it = commands.buffers.begin(); it != commands.buffers.end(); ++it) {
+          const Util::PacketBuffer::Buffer *packet_buffer = *it;
+          const u32                        *buffer        = (const u32*) packet_buffer->ptr;
+          size_t                            size          = packet_buffer->length / 4;
+
+          D_DEBUG_AT( DirectFB_GenefxTask, " =-> buffer length %zu\n", size );
 
           for (unsigned int i=0; i<size; i++) {
-               D_DEBUG_AT( DirectFB_GenefxTask, "  -> next command at [%d]\n", i );
+               D_DEBUG_AT( DirectFB_GenefxTask, "  -> [%d]\n", i );
 
                switch (buffer[i]) {
                     case GenefxTask::TYPE_SET_DESTINATION:
