@@ -1649,7 +1649,7 @@ fill_trap( DFBTrapezoid *trap, CardState *state, bool accelerated )
      /* top left to bottom left */
      SETUP_DDA(trap->x1,                trap->y1, trap->x2,                trap->y2, dda1);
      /* top right to bottom right */
-     SETUP_DDA(trap->x1 + trap->w1 - 1, trap->y1, trap->x2 + trap->w2 - 1, trap->y2, dda2);
+     SETUP_DDA(trap->x1 + trap->w1 - 1, trap->y1, trap->x2 + trap->w2 - 1, trap->y2, dda2);    // FIMXE: should remove '-1' ?
 
      while (y <= yend) {
           DFBRectangle rect;
@@ -1850,12 +1850,12 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
                     bool tri2_failed = true;
 
                     DFBTriangle tri1 = { traps[i].x1,                   traps[i].y1,
-                                         traps[i].x1 + traps[i].w1 - 1, traps[i].y1,
+                                         traps[i].x1 + traps[i].w1 - 1, traps[i].y1, // FIXME: should remove '-1' ?
                                          traps[i].x2,                   traps[i].y2 };
 
-                    DFBTriangle tri2 = { traps[i].x1 + traps[i].w1 - 1, traps[i].y1,
+                    DFBTriangle tri2 = { traps[i].x1 + traps[i].w1 - 1, traps[i].y1, // FIXME: should remove '-1' ?
                                          traps[i].x2,                   traps[i].y2,
-                                         traps[i].x2 + traps[i].w2 - 1, traps[i].y2 };
+                                         traps[i].x2 + traps[i].w2 - 1, traps[i].y2 }; // FIXME: should remove '-1' ?
 
                     if (D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) ||
                         D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRIANGLE ) ||
