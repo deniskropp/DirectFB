@@ -3655,6 +3655,19 @@ typedef struct {
 } DFBVertex;
 
 /*
+ * Transformed vertex of a textured triangle using fixed 16.16 values.
+ */
+typedef struct {
+     int   x;   /* Destination X coordinate (in pixels) */
+     int   y;   /* Destination Y coordinate (in pixels) */
+     int   z;   /* Z coordinate */
+     int   w;   /* W coordinate */
+
+     int   s;   /* Texture S coordinate */
+     int   t;   /* Texture T coordinate */
+} DFBVertex1616;
+
+/*
  * Way of building triangles from the list of vertices.
  */
 typedef enum {
