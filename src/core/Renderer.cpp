@@ -747,8 +747,8 @@ Blits::tesselate( DFBAccelerationMask  accel,
                               for (unsigned int i=0; i<num_rects; i++) {
                                    DFBPoint p1, p2;
 
-                                   TRANSFORM( rects[i].x,              rects[i].y,              p1 );
-                                   TRANSFORM( rects[i].x + rects[i].w, rects[i].y + rects[i].h, p2 );
+                                   TRANSFORM( points[i].x,              points[i].y,              p1 );
+                                   TRANSFORM( points[i].x + rects[i].w, points[i].y + rects[i].h, p2 );
 
                                    if (p1.x > p2.x)
                                         D_UTIL_SWAP( p1.x, p2.x );
@@ -756,12 +756,15 @@ Blits::tesselate( DFBAccelerationMask  accel,
                                    if (p1.y > p2.y)
                                         D_UTIL_SWAP( p1.y, p2.y );
 
-                                   newrects[i].x = p1.x;
-                                   newrects[i].y = p1.y;
+                                   newrects[i].x = rects[i].x;
+                                   newrects[i].y = rects[i].y;
                                    newrects[i].w = p2.x - p1.x;
                                    newrects[i].h = p2.y - p1.y;
 
-                                   newpoints[i] = points[i];
+                                   D_ASSERT( newrects[i].w == rects[i].w );
+                                   D_ASSERT( newrects[i].h == rects[i].h );
+
+                                   newpoints[i] = p1;
                               }
 
                               return new Blits( newrects, newpoints, num_rects, DFXL_BLIT, clipped, true );
@@ -909,6 +912,7 @@ StretchBlits::tesselate( DFBAccelerationMask  accel,
                               DFBRectangle *newsrects = new DFBRectangle[num_rects];
                               DFBRectangle *newdrects = new DFBRectangle[num_rects];
 
+                              // TODO: can be optimised for translate only case
                               for (unsigned int i=0; i<num_rects; i++) {
                                    DFBPoint p1, p2;
 
@@ -2259,16 +2263,16 @@ Renderer::getTransformAccel( DFBAccelerationMask accel,
                return DFXL_FILLTRIANGLE;
 
           case DFXL_BLIT:
-               if ((type & (WTT_TRANSLATE_MASK | WTT_FLIP_MASK)) == type)
-                    return DFXL_BLIT;   // FIXME: should make blits use DSBLIT_FLIP
+               if ((type & (WTT_TRANSLATE_MASK /*| WTT_FLIP_MASK*/)) == type)   // FIXME: make blits use DSBLIT_FLIP when WTT_FLIP_MASK
+                    return DFXL_BLIT;
 
-               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK | WTT_FLIP_MASK)) == type)
+               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK /*| WTT_FLIP_MASK*/)) == type)   // FIXME: make blits use DSBLIT_FLIP when WTT_FLIP_MASK
                     return DFXL_STRETCHBLIT;
 
                return DFXL_TEXTRIANGLES;
 
           case DFXL_STRETCHBLIT:
-               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK | WTT_FLIP_MASK)) == type)
+               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK /*| WTT_FLIP_MASK*/)) == type)   // FIXME: make blits use DSBLIT_FLIP when WTT_FLIP_MASK
                     return DFXL_STRETCHBLIT;
 
                return DFXL_TEXTRIANGLES;
