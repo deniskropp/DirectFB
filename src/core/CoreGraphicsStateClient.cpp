@@ -88,10 +88,8 @@ public:
      {
           direct_mutex_lock( &lock );
 
-          for (std::list<CoreGraphicsStateClient*>::const_iterator it = clients.begin(); it != clients.end(); ++it) {
-               if ((*it)->renderer)
-                    (*it)->renderer->Flush();
-          }
+          for (std::list<CoreGraphicsStateClient*>::const_iterator it = clients.begin(); it != clients.end(); ++it)
+               CoreGraphicsStateClient_Flush( *it );
 
           direct_mutex_unlock( &lock );
      }
@@ -101,8 +99,8 @@ public:
           direct_mutex_lock( &lock );
 
           for (std::list<CoreGraphicsStateClient*>::const_iterator it = clients.begin(); it != clients.end(); ++it) {
-               if ((*it)->renderer && (*it)->state->destination == surface)
-                    (*it)->renderer->Flush();
+               if ((*it)->state->destination == surface)
+                    CoreGraphicsStateClient_Flush( *it );
           }
 
           direct_mutex_unlock( &lock );
