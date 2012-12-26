@@ -5492,6 +5492,8 @@ typedef struct {
      DFBRegion                        update_right;
 
      unsigned int                     flip_count; /* Serial number of frame, modulo number of buffers = buffer index */
+
+     long long                        time_stamp; /* Micro seconds from DIRECT_CLOCK_MONOTONIC */
 } DFBSurfaceEvent;
 
 /*
