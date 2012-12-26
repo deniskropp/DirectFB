@@ -57,10 +57,13 @@ ISurfaceClient_Real::FrameAck(
      CoreSurfaceClient *client;
      u32                count = 0xffffffff;
 
-     D_DEBUG_AT( DirectFB_CoreSurfaceClient, "ISurfaceClient_Real::%s( %d )\n", __FUNCTION__, flip_count );
+     D_DEBUG_AT( DirectFB_CoreSurfaceClient, "ISurfaceClient_Real::%s( count %u ) <- old count %u\n",
+                 __FUNCTION__, flip_count, obj->flip_count );
 
      surface = obj->surface;
      CORE_SURFACE_ASSERT( surface );
+
+     D_DEBUG_AT( DirectFB_CoreSurfaceClient, "  -> surface %p (id %u)\n", surface, surface->object.id );
 
      dfb_surface_lock( surface );
 
@@ -73,6 +76,8 @@ ISurfaceClient_Real::FrameAck(
           if (client->flip_count < count)
                count = client->flip_count;
      }
+
+     D_DEBUG_AT( DirectFB_CoreSurfaceClient, "  -> lowest count %u (acked %u)\n", count, surface->flips_acked );
 
      if (count > surface->flips_acked) {
           surface->flips_acked = count;
