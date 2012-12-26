@@ -58,7 +58,8 @@
 #include <gfx/util.h>
 
 
-D_DEBUG_DOMAIN( Core_Surface, "Core/Surface", "DirectFB Core Surface" );
+D_DEBUG_DOMAIN( Core_Surface,         "Core/Surface",         "DirectFB Core Surface" );
+D_DEBUG_DOMAIN( Core_Surface_Updates, "Core/Surface/Updates", "DirectFB Core Surface Updates" );
 
 /**********************************************************************************************************************/
 
@@ -554,6 +555,8 @@ dfb_surface_notify_frame( CoreSurface  *surface,
 {
      CoreSurfaceNotification notification;
 
+     D_DEBUG_AT( Core_Surface_Updates, "%s( %p, count %u )\n", __FUNCTION__, surface, flip_count );
+
      D_MAGIC_ASSERT( surface, CoreSurface );
      FUSION_SKIRMISH_ASSERT( &surface->lock );
 
@@ -687,6 +690,8 @@ dfb_surface_dispatch_update( CoreSurface     *surface,
 {
      DFBSurfaceEvent event;
 
+     D_DEBUG_AT( Core_Surface_Updates, "%s( %p [%u], %p / %p )\n", __FUNCTION__, surface, surface->object.id, update, update_right );
+
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      event.clazz      = DFEC_SURFACE;
@@ -694,7 +699,11 @@ dfb_surface_dispatch_update( CoreSurface     *surface,
      event.surface_id = surface->object.id;
      event.flip_count = surface->flips;
 
+     D_DEBUG_AT( Core_Surface_Updates, "  -> flip count %d\n", event.flip_count );
+
      if (update) {
+          D_DEBUG_AT( Core_Surface_Updates, "  -> updated %d,%d-%dx%d (left)\n", DFB_RECTANGLE_VALS_FROM_REGION(update) );
+
           event.update = *update;
      }
      else {
@@ -705,6 +714,8 @@ dfb_surface_dispatch_update( CoreSurface     *surface,
      }
 
      if (update_right) {
+          D_DEBUG_AT( Core_Surface_Updates, "  -> updated %d,%d-%dx%d (right)\n", DFB_RECTANGLE_VALS_FROM_REGION(update_right) );
+
           event.update_right = *update_right;
      }
      else {
