@@ -676,6 +676,7 @@ dfb_surface_dispatch_event( CoreSurface         *surface,
      event.clazz      = DFEC_SURFACE;
      event.type       = type;
      event.surface_id = surface->object.id;
+     event.time_stamp = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
      return dfb_surface_dispatch_channel( surface, CSCH_EVENT, &event, sizeof(DFBSurfaceEvent), NULL );
 }
@@ -693,6 +694,7 @@ dfb_surface_dispatch_update( CoreSurface     *surface,
      event.type       = DSEVT_UPDATE;
      event.surface_id = surface->object.id;
      event.flip_count = surface->flips;
+     event.time_stamp = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
      if (update) {
           event.update = *update;
