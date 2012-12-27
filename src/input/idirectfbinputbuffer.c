@@ -70,7 +70,8 @@
 #include "idirectfbinputbuffer.h"
 
 
-D_DEBUG_DOMAIN( IDFBEvBuf, "IDFBEventBuffer", "IDirectFBEventBuffer Interface" );
+D_DEBUG_DOMAIN( IDFBEvBuf,         "IDFBEventBuffer",         "IDirectFBEventBuffer Interface" );
+D_DEBUG_DOMAIN( IDFBEvBuf_Surface, "IDFBEventBuffer/Surface", "IDirectFBEventBuffer Interface Surface" );
 
 
 typedef struct {
@@ -992,7 +993,16 @@ static ReactionResult IDirectFBEventBuffer_SurfaceReact( const void *msg_data,
      IDirectFBEventBuffer_data *data = ctx;
      EventBufferItem           *item;
 
-     D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p ) <- type %06x\n", __FUNCTION__, evt, data, evt->type );
+     D_DEBUG_AT( IDFBEvBuf_Surface, "%s( %p, %p ) <- type %06x\n", __FUNCTION__, evt, data, evt->type );
+     D_DEBUG_AT( IDFBEvBuf_Surface, "  -> surface id %u\n", evt->surface_id );
+
+     if (evt->type == DSEVT_UPDATE) {
+          D_DEBUG_AT( IDFBEvBuf_Surface, "  -> updated %d,%d-%dx%d (left)\n",
+                      DFB_RECTANGLE_VALS_FROM_REGION(&evt->update) );
+          D_DEBUG_AT( IDFBEvBuf_Surface, "  -> updated %d,%d-%dx%d (right)\n",
+                      DFB_RECTANGLE_VALS_FROM_REGION(&evt->update_right) );
+          D_DEBUG_AT( IDFBEvBuf_Surface, "  -> flip count %u\n", evt->flip_count );
+     }
 
      item = D_CALLOC( 1, sizeof(EventBufferItem) );
 
