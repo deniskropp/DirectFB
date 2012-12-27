@@ -36,6 +36,7 @@
 #include <direct/log.h>
 #include <direct/messages.h>
 #include <direct/system.h>
+#include <direct/thread.h>
 #include <direct/trace.h>
 #include <direct/types.h>
 
@@ -369,6 +370,8 @@ void DIRECT_API direct_assumption( const char *exp,
 #define D_FLAGS_ASSERT(flags,f)    D_ASSERT( D_FLAGS_ARE_IN(flags,f) )
 
 
+
+#if D_DEBUG_ENABLED
 #define D_INFO_LINE()                                                                                    \
      do {                                                                                                \
           long long micros = direct_clock_get_micros();                                                  \
@@ -380,6 +383,28 @@ void DIRECT_API direct_assumption( const char *exp,
                   indent, "", indent-60, __FUNCTION__, __FILE__, __LINE__ );                             \
      } while (0)
 
+#define D_INFO_LINE_MSG(...)                                                                             \
+     do {                                                                                                \
+          long long micros = direct_clock_get_micros();                                                  \
+          int       indent = direct_trace_debug_indent() * 2;                                            \
+          char      _buf[200];                                                                           \
+                                                                                                         \
+          direct_snprintf( _buf, sizeof(_buf), __VA_ARGS__ );                                            \
+                                                                                                         \
+          D_INFO( "[%-16.16s %3lld.%03lld,%03lld] (%5d) %*s%*s  '%-40s'  %s:%d\n",                       \
+                  direct_thread_self_name()?:"NO NAME",                                                  \
+                  micros / 1000000LL, (micros / 1000LL) % 1000LL, micros % 1000LL, direct_gettid(),      \
+                  indent, "", indent-60, __FUNCTION__, _buf, __FILE__, __LINE__ );                       \
+     } while (0)
+#else
+#define D_INFO_LINE()                                                                                    \
+     do {                                                                                                \
+     } while (0)
+
+#define D_INFO_LINE_MSG(...)                                                                             \
+     do {                                                                                                \
+     } while (0)
+#endif
 
 #endif
 
