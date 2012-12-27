@@ -34,6 +34,7 @@
 #include <direct/init.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
+#include <direct/perf.h>
 #include <direct/result.h>
 #include <direct/thread.h>
 #include <direct/util.h>
@@ -59,6 +60,7 @@ static Func init_funcs[] = {
      __D_thread_init,
      __D_log_init,
      __D_log_domain_init,
+     __D_perf_init,
      __D_interface_init,
      __D_interface_dbg_init,
 };
@@ -67,6 +69,7 @@ static Func deinit_funcs[] = {
      __D_interface_dbg_deinit,
      __D_interface_deinit,
      __D_log_domain_deinit,
+     __D_perf_deinit,
      __D_thread_deinit,
      __D_mem_deinit,
      DirectResult__deinit,
