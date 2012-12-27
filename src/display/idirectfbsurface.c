@@ -75,7 +75,8 @@
 #include <gfx/util.h>
 
 
-D_DEBUG_DOMAIN( Surface, "IDirectFBSurface", "IDirectFBSurface Interface" );
+D_DEBUG_DOMAIN( Surface,         "IDirectFBSurface",         "IDirectFBSurface Interface" );
+D_DEBUG_DOMAIN( Surface_Updates, "IDirectFBSurface/Updates", "IDirectFBSurface Interface Updates" );
 
 /**********************************************************************************************************************/
 
@@ -758,6 +759,8 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
           }
      }
 
+     CoreGraphicsStateClient_Flush( &data->state_client );
+
      dfb_surface_dispatch_update( data->surface, &reg, &reg );
 
      IDirectFBSurface_WaitForBackBuffer( data );
@@ -1005,6 +1008,7 @@ IDirectFBSurface_SetColorIndex( IDirectFBSurface *thiz,
      if (index > palette->num_entries)
           return DFB_INVARG;
 
+     // FIXME: why do we call this explicitly here as opposed to other functions?
      ret = CoreGraphicsState_SetColorAndIndex( data->state_client.gfx_state, &palette->entries[index], index );
      if (ret)
           return ret;
@@ -1843,7 +1847,7 @@ IDirectFBSurface_SetBlittingFlags( IDirectFBSurface        *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, 0x%08x )\n", __FUNCTION__, thiz, flags );
 
      dfb_state_set_blitting_flags( &data->state, flags );
 
@@ -1908,6 +1912,9 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
 
      if (src_data->surface_client) {
           direct_mutex_lock( &data->surface_client_lock );
+
+          D_DEBUG_AT( Surface_Updates, "  -> blit client surface (flip count %u)\n", src_data->surface_client_flip_count );
+
           dfb_state_set_source_2( &data->state, src_data->surface, src_data->surface_client_flip_count );
      }
      else
@@ -3146,6 +3153,8 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
           }
      }
 
+     CoreGraphicsStateClient_Flush( &data->state_client );
+
      dfb_surface_dispatch_update( data->surface, &l_reg, &r_reg );
 
      IDirectFBSurface_WaitForBackBuffer( data );
@@ -3376,10 +3385,12 @@ IDirectFBSurface_MakeClient( IDirectFBSurface *thiz )
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Surface_Updates, "%s( %p [%d] )\n", __FUNCTION__, data->surface, data->surface->object.id );
 
-     if (data->surface_client)
+     if (data->surface_client) {
+          D_DEBUG_AT( Surface_Updates, "  -> ALREADY CLIENT!\n" );
           return DFB_BUSY;
+     }
 
      ret = CoreSurface_CreateClient( data->surface, &data->surface_client );
      if (ret)
@@ -3394,14 +3405,15 @@ IDirectFBSurface_FrameAck( IDirectFBSurface *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Surface_Updates, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!data->surface_client)
           return DFB_UNSUPPORTED;
 
      direct_mutex_lock( &data->surface_client_lock );
 
-     D_DEBUG_AT( Surface, "  -> flip count %d\n", flip_count );
+     D_DEBUG_AT( Surface_Updates, "  -> surface %p [%u]\n", data->surface, data->surface->object.id );
+     D_DEBUG_AT( Surface_Updates, "  -> flip count %d\n", flip_count );
 
      data->surface_client_flip_count = flip_count;
 
@@ -3679,7 +3691,7 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
      if (notification->flags & CSNF_FRAME) {
           direct_mutex_lock( &data->back_buffer_lock );
 
-          D_DEBUG_AT( Surface, "  -> frame ack %d\n", notification->flip_count );
+          D_DEBUG_AT( Surface_Updates, "  -> Got frame ack %d\n", notification->flip_count );
 
           data->frame_ack = notification->flip_count;
 
@@ -3719,7 +3731,7 @@ IDirectFBSurface_WaitForBackBuffer( IDirectFBSurface_data *data )
 {
      CoreSurface *surface;
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, data );
+     D_DEBUG_AT( Surface_Updates, "%s( %p [%u] )\n", __FUNCTION__, data, data->surface->object.id );
 
      surface = data->surface;
      CORE_SURFACE_ASSERT( surface );
@@ -3728,16 +3740,16 @@ IDirectFBSurface_WaitForBackBuffer( IDirectFBSurface_data *data )
 
      if (data->frame_ack) {
           while (surface->flips - data->frame_ack >= surface->num_buffers-1) {
-               D_DEBUG_AT( Surface, "  -> waiting for back buffer... (surface %d, notify %d)\n",
+               D_DEBUG_AT( Surface_Updates, "  -> waiting for back buffer... (surface %d, notify %d)\n",
                            surface->flips, data->frame_ack );
 
                direct_waitqueue_wait( &data->back_buffer_wq, &data->back_buffer_lock );
           }
      }
      else
-          D_DEBUG_AT( Surface, "  -> no display notify received yet\n" );
+          D_DEBUG_AT( Surface_Updates, "  -> no display notify received yet\n" );
 
-     D_DEBUG_AT( Surface, "  -> OK\n" );
+     D_DEBUG_AT( Surface_Updates, "  -> OK\n" );
 
      direct_mutex_unlock( &data->back_buffer_lock );
 }

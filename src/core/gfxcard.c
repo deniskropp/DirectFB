@@ -470,6 +470,35 @@ dfb_gfxcard_unlock( void )
      fusion_skirmish_dismiss( &card->shared->lock );
 }
 
+DFBResult
+dfb_gfxcard_flush()
+{
+     DFBResult              ret;
+     DFBGraphicsCoreShared *shared;
+     GraphicsDeviceFuncs   *funcs;
+
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+
+     shared = card->shared;
+     funcs  = &card->funcs;
+
+     ret = fusion_skirmish_prevail( &shared->lock );
+     if (ret)
+          return ret;
+
+     /* start command processing if not already running */
+     if (card->shared->pending_ops && funcs->EmitCommands) {
+          funcs->EmitCommands( card->driver_data, card->device_data );
+
+          card->shared->pending_ops = false;
+     }
+
+     fusion_skirmish_dismiss( &shared->lock );
+
+     return DFB_OK;
+}
+
 /*
  * Signal beginning of a sequence of operations using this state.
  * Any number of states can be 'drawing'.
@@ -888,8 +917,10 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           shared->last_allocation_id = state->dst.allocation->object.id;
 
           /* start command processing if not already running */
-          if (card->shared->pending_ops && card->funcs.EmitCommands)
+          if (card->shared->pending_ops && card->funcs.EmitCommands) {
                card->funcs.EmitCommands( card->driver_data, card->device_data );
+               card->shared->pending_ops = false;
+          }
      }
 
      /*

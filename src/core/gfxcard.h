@@ -359,6 +359,8 @@ typedef enum {
 DFBResult dfb_gfxcard_lock( GraphicsDeviceLockFlags flags );
 void dfb_gfxcard_unlock( void );
 
+DFBResult dfb_gfxcard_flush( void );
+
 bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
 
 void dfb_gfxcard_state_init( CardState *state );
@@ -586,6 +588,7 @@ typedef struct {
      FusionID                 holder; /* Fusion ID of state owner. */
 
      FusionObjectID           last_allocation_id;
+     DFBAccelerationMask      last_op;
      bool                     pending_ops;
 } DFBGraphicsCoreShared;
 

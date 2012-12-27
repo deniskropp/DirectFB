@@ -1214,6 +1214,8 @@ IGraphicsState_Real::Flush(
               last_state = NULL;
          }
     }
+    else
+         dfb_gfxcard_flush();
 
     return DFB_OK;
 }

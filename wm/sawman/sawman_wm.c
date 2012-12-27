@@ -25,7 +25,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define DIRECT_ENABLE_DEBUG
+//#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
 
@@ -3520,6 +3520,7 @@ wm_update_window( CoreWindow          *window,
      SaWManWindow    *sawwin = window_data;
      SaWManTier      *tier;
      CoreWindowStack *stack;
+     StackData       *data;
      DFBWindowEvent   event;
      bool             stereo_layer;
      bool             stereo_window;
@@ -3540,6 +3541,9 @@ wm_update_window( CoreWindow          *window,
 
      stack = sawwin->stack;
      D_ASSERT( stack != NULL );
+
+     data = stack->stack_data;
+     D_MAGIC_ASSERT( data, StackData );
 
      stereo_window  = window->caps & DWCAPS_STEREO;
      lr_mono_window = window->caps & DWCAPS_LR_MONO;
@@ -3584,7 +3588,7 @@ wm_update_window( CoreWindow          *window,
           sawman_post_event( sawman, sawwin, &event );
      }
 
-     if (!SAWMAN_VISIBLE_WINDOW(window))
+     if (!SAWMAN_VISIBLE_WINDOW(window) || !data->active)
           return DFB_OK;
 
      /* Lock SaWMan. */

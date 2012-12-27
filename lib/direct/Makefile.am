@@ -72,6 +72,7 @@ include_HEADERS = \
 	memcpy.h			\
 	messages.h			\
 	modules.h			\
+	perf.h				\
 	print.h				\
 	processor.h			\
 	result.h			\
@@ -112,6 +113,7 @@ libdirect_la_SOURCES = \
 	memcpy.c		\
 	messages.c		\
 	modules.c		\
+	perf.c			\
 	print.c			\
 	processor.c		\
 	result.c		\
