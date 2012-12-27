@@ -378,7 +378,8 @@ public:
           u32         count  = 0;
           u32        *count_ptr;
 
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num_rects );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )  <- clip %d,%d-%dx%d\n", __FUNCTION__, num_rects,
+                      DFB_RECTANGLE_VALS_FROM_REGION(&mytask->clip) );
 
           u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num_rects * 4) );
 
@@ -421,7 +422,8 @@ public:
           u32         count  = 0;
           u32        *count_ptr;
 
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num_rects );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )  <- clip %d,%d-%dx%d\n", __FUNCTION__, num_rects,
+                      DFB_RECTANGLE_VALS_FROM_REGION(&mytask->clip) );
 
           u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num_rects * 4) );
 
@@ -468,7 +470,8 @@ public:
           u32         count  = 0;
           u32        *count_ptr;
 
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num_lines );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )  <- clip %d,%d-%dx%d\n", __FUNCTION__, num_lines,
+                      DFB_RECTANGLE_VALS_FROM_REGION(&mytask->clip) );
 
           u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num_lines * 4) );
 
@@ -512,7 +515,8 @@ public:
           u32         count  = 0;
           u32        *count_ptr;
 
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )  <- clip %d,%d-%dx%d\n", __FUNCTION__, num,
+                      DFB_RECTANGLE_VALS_FROM_REGION(&mytask->clip) );
 
           u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num * 6) );
 
@@ -525,6 +529,9 @@ public:
           count_ptr = buf++;
 
           for (unsigned int i=0; i<num; i++) {
+               D_DEBUG_AT( DirectFB_GenefxTask, "  -> %4d,%4d-%4dx%4d -> %4d,%4d\n",
+                           rects[i].x, rects[i].y, rects[i].w, rects[i].h, points[i].x, points[i].y );
+
                if (dfb_clip_blit_precheck( &mytask->clip, rects[i].w, rects[i].h, points[i].x, points[i].y )) {
                     DFBRectangle rect = rects[i];
                     int          dx   = points[i].x;
@@ -562,7 +569,8 @@ public:
           u32         count  = 0;
           u32        *count_ptr;
 
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )  <- clip %d,%d-%dx%d\n", __FUNCTION__, num,
+                      DFB_RECTANGLE_VALS_FROM_REGION(&mytask->clip) );
 
           u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (2 + num * 8) );
 
@@ -607,7 +615,8 @@ public:
      {
           GenefxTask *mytask = (GenefxTask *)task;
 
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )\n", __FUNCTION__, num );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %d )  <- clip %d,%d-%dx%d\n", __FUNCTION__, num,
+                      DFB_RECTANGLE_VALS_FROM_REGION(&mytask->clip) );
 
           u32 *buf = (u32*) mytask->commands.GetBuffer( 4 * (3 + num * 4) );
 
