@@ -713,6 +713,14 @@ dfb_wm_get_info( CoreWMInfo *info )
      *info = wm_shared->info;
 }
 
+void *
+dfb_wm_get_data()
+{
+     D_ASSERT( wm_local != NULL );
+
+     return wm_local->data;
+}
+
 DFBResult
 dfb_wm_post_init( CoreDFB *core )
 {

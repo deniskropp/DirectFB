@@ -368,7 +368,8 @@ DFBResult dfb_wm_dispatch_WindowFocus  ( CoreDFB              *core,
 
 
 
-void dfb_wm_get_info( CoreWMInfo *info );
+void  dfb_wm_get_info( CoreWMInfo *info );
+void *dfb_wm_get_data( void );
 
 DFBResult dfb_wm_post_init          ( CoreDFB                *core );
 
