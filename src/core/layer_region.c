@@ -506,6 +506,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
           }
      }
 
+     dfb_gfxcard_flush();
+
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
           case DLBM_TRIPLE:
