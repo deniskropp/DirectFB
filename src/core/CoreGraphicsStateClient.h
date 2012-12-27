@@ -40,12 +40,12 @@
  */
 
 struct __DFB_CoreGraphicsStateClient {
-     int            magic;
+     int                magic;
 
-     CoreDFB       *core;
-     CardState     *state;
+     CoreDFB           *core;
+     CardState         *state;          /* Local state structure */
 
-     CoreGraphicsState *gfx_state;
+     CoreGraphicsState *gfx_state;      /* Remote object for rendering, syncing values from local state as needed */
 };
 
 
