@@ -150,6 +150,8 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
      if (ret)
           return ret;
 
+     CoreGraphicsStateClient_Flush( &data->base.state_client );
+
      dfb_surface_dispatch_update( data->base.surface, &reg, &reg );
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
@@ -226,6 +228,8 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
      ret = CoreLayerRegion_FlipUpdateStereo( data->region, &l_reg, &r_reg, flags );
      if (ret)
           return ret;
+
+     CoreGraphicsStateClient_Flush( &data->base.state_client );
 
      dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg );
 
