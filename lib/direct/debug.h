@@ -36,6 +36,7 @@
 #include <direct/log.h>
 #include <direct/messages.h>
 #include <direct/system.h>
+#include <direct/thread.h>
 #include <direct/trace.h>
 #include <direct/types.h>
 
