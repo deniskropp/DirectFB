@@ -1315,8 +1315,11 @@ Triangles::tesselate( DFBAccelerationMask  accel,
 
                     for (unsigned int i=0; i<num_tris; i++) {
                          int                y, yend;
-                         DDA                dda1 = { .xi = 0 }, dda2 = { .xi = 0 };
+                         DDA                dda1, dda2;
                          const DFBTriangle *tri  = &sorted.array[i];
+
+                         dda1.xi = 0;
+                         dda2.xi = 0;
 
                          y = tri->y1;
                          yend = tri->y3;
@@ -1403,8 +1406,11 @@ Trapezoids::tesselate( DFBAccelerationMask  accel,
 
                     for (unsigned int i=0; i<num_traps; i++) {
                          int          y, yend;
-                         DDA          dda1 = { .xi = 0 }, dda2 = { .xi = 0 };
+                         DDA          dda1, dda2;
                          DFBTrapezoid trap = traps[i];
+
+                         dda1.xi = 0;
+                         dda2.xi = 0;
 
                          if (trap.y1 > trap.y2) {
                               D_UTIL_SWAP( trap.x1, trap.x2 );
