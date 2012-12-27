@@ -629,7 +629,7 @@ primaryFlipRegion( CoreLayer             *layer,
      if (x11->shared->x_error)
           return DFB_FAILURE;
 
-//     dfb_surface_flip( surface, false );
+     dfb_surface_flip( surface, false );
 
      dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
 
