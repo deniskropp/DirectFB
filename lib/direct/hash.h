@@ -81,6 +81,9 @@ struct __D_DirectHash {
 
 /**********************************************************************************************************************/
 
+/*
+ * Hash iteration callback, return false to abort iteration.
+ */
 typedef bool (*DirectHashIteratorFunc)( DirectHash    *hash,
                                         unsigned long  key,
                                         void          *value,
