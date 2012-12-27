@@ -1144,7 +1144,8 @@ update_region4( SaWMan          *sawman,
 
 void
 sawman_flush_updating( SaWMan     *sawman,
-                       SaWManTier *tier )
+                       SaWManTier *tier,
+                       WMData     *wmdata )
 {
      int i;
      int left_num_regions  = 0;
@@ -1201,7 +1202,7 @@ sawman_flush_updating( SaWMan     *sawman,
 
      D_DEBUG_AT( SaWMan_Surface, "  -> flipping the region\n" );
 
-     CoreGraphicsStateClient_Flush( &sawman->client );
+     CoreGraphicsStateClient_Flush( &wmdata->client );
 
      /* Flip the whole layer. */
      if (tier->region->config.options & DLOP_STEREO)
@@ -1222,7 +1223,7 @@ sawman_flush_updating( SaWMan     *sawman,
 
           /* Copy back the updated region .*/
           dfb_gfx_copy_regions_client( tier->surface, CSBR_FRONT, DSSE_LEFT, tier->surface, CSBR_BACK,
-                                       DSSE_LEFT, tier->left.updated.regions, left_num_regions, 0, 0, &sawman->client );
+                                       DSSE_LEFT, tier->left.updated.regions, left_num_regions, 0, 0, &wmdata->client );
      }
 
      if (right_num_regions) {
@@ -1235,7 +1236,7 @@ sawman_flush_updating( SaWMan     *sawman,
 
           /* Copy back the updated region .*/
           dfb_gfx_copy_regions_client( tier->surface, CSBR_FRONT, DSSE_RIGHT, tier->surface, CSBR_BACK,
-                                       DSSE_RIGHT, tier->right.updated.regions, right_num_regions, 0, 0, &sawman->client );
+                                       DSSE_RIGHT, tier->right.updated.regions, right_num_regions, 0, 0, &wmdata->client );
      }
 }
 
@@ -1245,7 +1246,8 @@ repaint_tier( SaWMan              *sawman,
               const DFBRegion     *updates,
               int                  num_updates,
               DFBSurfaceFlipFlags  flags,
-              bool                 right_eye )
+              bool                 right_eye,
+              WMData              *wmdata )
 {
      int              i;
      CoreLayerRegion *region;
@@ -1269,7 +1271,7 @@ repaint_tier( SaWMan              *sawman,
      region = tier->region;
      D_ASSERT( region != NULL );
 
-     state   = &sawman->state;
+     state   = &wmdata->state;
      surface = region->surface;
 
      if (/*!data->active ||*/ !surface)
@@ -1346,7 +1348,7 @@ repaint_tier( SaWMan              *sawman,
                                             right_eye ? tier->cursor_bs_right : tier->cursor_bs, CSBR_BACK, DSSE_LEFT,
                                             &cursor_inter, 1,
                                             - tier->cursor_region.x1,
-                                            - tier->cursor_region.y1, &sawman->client );
+                                            - tier->cursor_region.y1, &wmdata->client );
 
                x = (s64) stack->cursor.x * (s64) tier->size.w / (s64) sawman->resolution.w;
                y = (s64) stack->cursor.y * (s64) tier->size.h / (s64) sawman->resolution.h;
@@ -1367,7 +1369,7 @@ repaint_tier( SaWMan              *sawman,
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
 
-     CoreGraphicsStateClient_Flush( &sawman->client );
+     CoreGraphicsStateClient_Flush( &wmdata->client );
 }
 
 static SaWManWindow *
@@ -1490,7 +1492,8 @@ static DFBResult
 process_single( SaWMan              *sawman,
                 SaWManTier          *tier,
                 SaWManWindow        *single,
-                DFBSurfaceFlipFlags  flags )
+                DFBSurfaceFlipFlags  flags,
+                WMData              *wmdata )
 {
      DFBResult                   ret;
      CoreWindow                 *window;
@@ -1729,17 +1732,17 @@ process_single( SaWMan              *sawman,
                sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
 
                dfb_gfx_copy_regions_client( surface, CSBR_FRONT, DSSE_LEFT, tier->region->surface, CSBR_BACK, DSSE_LEFT,
-                                            &src_region, 1, window->config.z - src_region.x1, - src_region.y1, &sawman->client );
+                                            &src_region, 1, window->config.z - src_region.x1, - src_region.y1, &wmdata->client );
 
                dfb_gfx_copy_regions_client( surface, CSBR_FRONT, (window->caps & DWCAPS_STEREO) ? DSSE_RIGHT : DSSE_LEFT, tier->region->surface, CSBR_BACK, DSSE_RIGHT,
-                                            &src_region, 1, -window->config.z - src_region.x1, - src_region.y1, &sawman->client );
+                                            &src_region, 1, -window->config.z - src_region.x1, - src_region.y1, &wmdata->client );
           }
           else {
                dfb_gfx_copy_regions_client( surface, CSBR_FRONT, DSSE_LEFT, tier->region->surface, CSBR_BACK, DSSE_LEFT,
-                                            &src_region, 1, - src_region.x1, - src_region.y1, &sawman->client );
+                                            &src_region, 1, - src_region.x1, - src_region.y1, &wmdata->client );
           }
 
-          CoreGraphicsStateClient_Flush( &sawman->client );
+          CoreGraphicsStateClient_Flush( &wmdata->client );
 
 
           tier->active = true;
@@ -1792,14 +1795,14 @@ process_single( SaWMan              *sawman,
                sawman_dispatch_blit( sawman, single, false, &single->src, &single->dst, NULL );
 
                dfb_gfx_copy_regions_client( surface, CSBR_FRONT, DSSE_LEFT, tier->region->surface, CSBR_BACK, DSSE_LEFT,
-                                            &src_region, 1, window->config.z - src_region.x1, - src_region.y1, &sawman->client );
+                                            &src_region, 1, window->config.z - src_region.x1, - src_region.y1, &wmdata->client );
 
                dfb_gfx_copy_regions_client( surface, CSBR_FRONT, (window->caps & DWCAPS_STEREO) ? DSSE_RIGHT : DSSE_LEFT, tier->region->surface, CSBR_BACK, DSSE_RIGHT,
-                                            &src_region, 1, -window->config.z - src_region.x1, - src_region.y1, &sawman->client );
+                                            &src_region, 1, -window->config.z - src_region.x1, - src_region.y1, &wmdata->client );
           }
           else {
                dfb_gfx_copy_regions_client( surface, CSBR_FRONT, DSSE_LEFT, tier->region->surface, CSBR_BACK, DSSE_LEFT,
-                                            &src_region, 1, - src_region.x1, - src_region.y1, &sawman->client );
+                                            &src_region, 1, - src_region.x1, - src_region.y1, &wmdata->client );
           }
      }
 
@@ -1818,7 +1821,7 @@ process_single( SaWMan              *sawman,
 
      tier->active = true;
 
-     CoreGraphicsStateClient_Flush( &sawman->client );
+     CoreGraphicsStateClient_Flush( &wmdata->client );
 
      if (tier->single_options & DLOP_STEREO) {
           dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags );
@@ -1945,7 +1948,8 @@ set_config( SaWMan     *sawman,
 static DFBResult
 process_updates( SaWMan              *sawman,
                  SaWManTier          *tier,
-                 DFBSurfaceFlipFlags  flags )
+                 DFBSurfaceFlipFlags  flags,
+                 WMData              *wmdata )
 {
      int              i, n, d;
      int              total;
@@ -1963,12 +1967,12 @@ process_updates( SaWMan              *sawman,
 
      if (dfb_config->wm_fullscreen_updates) {
           if (tier->left.updates.num_regions > 0) {
-               repaint_tier( sawman, tier, &full_tier_region, 1, flags, false );
+               repaint_tier( sawman, tier, &full_tier_region, 1, flags, false, wmdata );
                dfb_updates_reset( &tier->left.updates );
           }
 
           if (tier->right.updates.num_regions > 0) {
-               repaint_tier( sawman, tier, &full_tier_region, 1, flags, true );
+               repaint_tier( sawman, tier, &full_tier_region, 1, flags, true, wmdata );
                dfb_updates_reset( &tier->right.updates );
           }
      }
@@ -2018,13 +2022,13 @@ process_updates( SaWMan              *sawman,
      if (left_num) {
           dfb_regions_unite( &left_united, left_updates, left_num );
 
-          repaint_tier( sawman, tier, left_updates, left_num, flags, false );
+          repaint_tier( sawman, tier, left_updates, left_num, flags, false, wmdata );
      }
 
      if (right_num) {
           dfb_regions_unite( &right_united, right_updates, right_num );
 
-          repaint_tier( sawman, tier, right_updates, right_num, flags, true );
+          repaint_tier( sawman, tier, right_updates, right_num, flags, true, wmdata );
      }
 
 
@@ -2054,7 +2058,7 @@ process_updates( SaWMan              *sawman,
                }
 
                if (!tier->left.updated.num_regions && !tier->right.updated.num_regions)
-                    sawman_flush_updating( sawman, tier );
+                    sawman_flush_updating( sawman, tier, wmdata );
                break;
 
           case DLBM_BACKVIDEO:
@@ -2067,12 +2071,12 @@ process_updates( SaWMan              *sawman,
                          if (left_num)
                               dfb_gfx_copy_regions_client( tier->region->surface, CSBR_FRONT, DSSE_LEFT,
                                                            tier->region->surface, CSBR_BACK, DSSE_LEFT,
-                                                           left_updates, left_num, 0, 0, &sawman->client );
+                                                           left_updates, left_num, 0, 0, &wmdata->client );
 
                          if (right_num)
                               dfb_gfx_copy_regions_client( tier->region->surface, CSBR_FRONT, DSSE_RIGHT,
                                                            tier->region->surface, CSBR_BACK, DSSE_RIGHT,
-                                                           right_updates, right_num, 0, 0, &sawman->client );
+                                                           right_updates, right_num, 0, 0, &wmdata->client );
                     }
                }
                else {
@@ -2081,7 +2085,7 @@ process_updates( SaWMan              *sawman,
 
                     if (!dfb_config->wm_fullscreen_updates) {
                          /* Copy back the updated region. */
-                         dfb_gfx_copy_regions_client( tier->region->surface, CSBR_FRONT, DSSE_LEFT, tier->region->surface, CSBR_BACK, DSSE_LEFT, left_updates, left_num, 0, 0, &sawman->client );
+                         dfb_gfx_copy_regions_client( tier->region->surface, CSBR_FRONT, DSSE_LEFT, tier->region->surface, CSBR_BACK, DSSE_LEFT, left_updates, left_num, 0, 0, &wmdata->client );
                     }
                }
                break;
@@ -2122,7 +2126,7 @@ process_updates( SaWMan              *sawman,
                break;
      }
 
-     CoreGraphicsStateClient_Flush( &sawman->client );
+     CoreGraphicsStateClient_Flush( &wmdata->client );
 
 #ifdef SAWMAN_DUMP_TIER_FRAMES
      {
@@ -2177,7 +2181,8 @@ process_updates( SaWMan              *sawman,
 /* FIXME: Split up in smaller functions and clean up things like forcing reconfiguration. */
 DirectResult
 sawman_process_updates( SaWMan              *sawman,
-                        DFBSurfaceFlipFlags  flags )
+                        DFBSurfaceFlipFlags  flags,
+                        WMData              *wmdata )
 {
      DirectResult  ret;
      int           idx = -1;
@@ -2310,7 +2315,7 @@ sawman_process_updates( SaWMan              *sawman,
           }
 
           if (single && !border_only) {
-               ret = process_single( sawman, tier, single, flags );
+               ret = process_single( sawman, tier, single, flags, wmdata );
                if (ret == DR_OK)
                     continue;
           }
@@ -2350,7 +2355,7 @@ sawman_process_updates( SaWMan              *sawman,
           tier->single_window = NULL;
 
           if (tier->left.updates.num_regions || tier->right.updates.num_regions)
-               process_updates( sawman, tier, flags );
+               process_updates( sawman, tier, flags, wmdata );
      }
 
      return DFB_OK;

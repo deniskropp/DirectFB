@@ -153,7 +153,7 @@ ISaWManManager_Real::ProcessUpdates(
 
      sawman_lock( m_sawman );
 
-     ret = (DFBResult) sawman_process_updates( m_sawman, flags );
+     ret = (DFBResult) sawman_process_updates( m_sawman, flags, (WMData*) dfb_wm_get_data() );
 
      sawman_unlock( m_sawman );
 

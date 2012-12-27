@@ -35,10 +35,12 @@ extern "C"
 
 
 DirectResult sawman_process_updates( SaWMan                *sawman,
-                                     DFBSurfaceFlipFlags    flags );
+                                     DFBSurfaceFlipFlags    flags,
+                                     WMData                *wmdata );
 
 void         sawman_flush_updating ( SaWMan                *sawman,
-                                     SaWManTier            *tier );
+                                     SaWManTier            *tier,
+                                     WMData                *wmdata );
 
 
 #ifdef __cplusplus

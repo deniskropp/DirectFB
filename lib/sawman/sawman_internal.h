@@ -310,9 +310,6 @@ struct __SaWMan_SaWMan {
      FusionCall                call;
 
      FusionReactor            *reactor;
-
-     CardState                 state;
-     CoreGraphicsStateClient   client;
 };
 
 /*
@@ -471,6 +468,18 @@ struct __SaWMan_SaWManGrabbedKey {
 
      SaWManWindow                 *owner;
 };
+
+/**********************************************************************************************************************/
+
+typedef struct {
+     CoreDFB                      *core;
+     FusionWorld                  *world;
+     SaWMan                       *sawman;
+     SaWManProcess                *process;
+
+     CardState                     state;
+     CoreGraphicsStateClient       client;
+} WMData;
 
 /**********************************************************************************************************************/
 
