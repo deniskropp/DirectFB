@@ -73,6 +73,7 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/perf.h>
 #include <direct/signals.h>
 #include <direct/thread.h>
 #include <direct/util.h>
@@ -1511,6 +1512,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      fusion_object_pool_destroy( shared->surface_buffer_pool, core->world );
      fusion_object_pool_destroy( shared->surface_allocation_pool, core->world );
      fusion_object_pool_destroy( shared->palette_pool, core->world );
+
+     direct_perf_dump_all();
 
      /* Destroy remaining core parts. */
      dfb_core_part_shutdown( core, &dfb_graphics_core, emergency );
