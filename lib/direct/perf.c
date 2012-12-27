@@ -125,9 +125,11 @@ direct_perf_dump_all()
 {
      direct_mutex_lock( &counter_lock );
 
-     direct_log_printf( NULL, "Performance Counters                                               Total count    rate           start        end\n" );
+     if (direct_hash_count( &counter_hash )) {
+          direct_log_printf( NULL, "Performance Counters                                               Total count    rate           start        end\n" );
 
-     direct_hash_iterate( &counter_hash, perf_iterate, NULL );
+          direct_hash_iterate( &counter_hash, perf_iterate, NULL );
+     }
 
      direct_mutex_unlock( &counter_lock );
 }
