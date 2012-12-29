@@ -58,6 +58,8 @@ const char   *fusion_config_usage =
      "  [no-]secure-fusion             Use secure fusion, e.g. read-only shm (default=yes)\n"
      "  [no-]defer-destructors         Handle destructor calls in separate thread\n"
      "  trace-ref=<hexid>              Trace FusionRef up/down\n"
+     "  call-bin-max-num=<n>           Set maximum call number for async call buffer (default 512)\n"
+     "  call-bin-max-data=<n>          Set maximum call data size for async call buffer (default 65536)\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -65,8 +67,10 @@ const char   *fusion_config_usage =
 void
 __Fusion_conf_init()
 {
-     fusion_config->secure_fusion = true;
-     fusion_config->shmfile_gid   = -1;
+     fusion_config->secure_fusion     = true;
+     fusion_config->shmfile_gid       = -1;
+     fusion_config->call_bin_max_num  = 512;
+     fusion_config->call_bin_max_data = 65536;
 }
 
 void
@@ -154,6 +158,64 @@ fusion_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "Fusion/Config '%s': No ID specified!\n", name );
+               return DR_INVARG;
+          }
+     } else
+     if (strcmp (name, "call-bin-max-num" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long max;
+
+               max = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "Fusion/Config '%s': Error in value '%s'!\n", name, error );
+                    return DR_INVARG;
+               }
+
+               if (max < 1) {
+                    D_ERROR( "Fusion/Config '%s': Error in value '%s' (min 1)!\n", name, error );
+                    return DR_INVARG;
+               }
+
+               if (max > 16384) {
+                    D_ERROR( "Fusion/Config '%s': Error in value '%s' (max 16384)!\n", name, error );
+                    return DR_INVARG;
+               }
+
+               fusion_config->call_bin_max_num = max;
+          }
+          else {
+               D_ERROR( "Fusion/Config '%s': No value specified!\n", name );
+               return DR_INVARG;
+          }
+     } else
+     if (strcmp (name, "call-bin-max-data" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long max;
+
+               max = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "Fusion/Config '%s': Error in value '%s'!\n", name, error );
+                    return DR_INVARG;
+               }
+
+               if (max < 4096) {
+                    D_ERROR( "Fusion/Config '%s': Error in value '%s' (min 4096)!\n", name, error );
+                    return DR_INVARG;
+               }
+
+               if (max > 16777216) {
+                    D_ERROR( "Fusion/Config '%s': Error in value '%s' (max 16777216)!\n", name, error );
+                    return DR_INVARG;
+               }
+
+               fusion_config->call_bin_max_data = max;
+          }
+          else {
+               D_ERROR( "Fusion/Config '%s': No value specified!\n", name );
                return DR_INVARG;
           }
      } else

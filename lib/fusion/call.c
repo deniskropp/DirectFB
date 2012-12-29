@@ -62,9 +62,9 @@ typedef struct {
 
      FusionWorld         *world;
 
-     FusionCallExecute3   bins[EXECUTE3_BIN_CALL_MAX_NUM];
+     FusionCallExecute3  *bins;
      int                  bins_num;
-     char                 bins_data[EXECUTE3_BIN_DATA_MAX_LEN];
+     char                *bins_data;
      int                  bins_data_len;
      long long            bins_create_ts;
 } CallTLS;
@@ -105,11 +105,14 @@ Call_GetTLS( void )
 
      call_tls = direct_tls_get( call_tls_key );
      if (!call_tls) {
-          call_tls = D_CALLOC( 1, sizeof(CallTLS) );
+          call_tls = D_CALLOC( 1, sizeof(CallTLS) + sizeof(FusionCallExecute3) * fusion_config->call_bin_max_num + fusion_config->call_bin_max_data );
           if (!call_tls) {
                D_OOM();
                return NULL;
           }
+
+          call_tls->bins      = (FusionCallExecute3*) (call_tls + 1);
+          call_tls->bins_data = (char*) (call_tls->bins + fusion_config->call_bin_max_num);
 
           D_MAGIC_SET( call_tls, CallTLS );
 
@@ -442,7 +445,7 @@ fusion_call_execute3(FusionCall          *call,
 
                D_ASSERT( flags & FCEF_ONEWAY );
 
-               if (call_tls->bins_data_len + length > EXECUTE3_BIN_DATA_MAX_LEN) {
+               if (call_tls->bins_data_len + length > fusion_config->call_bin_max_data) {
                     ret = fusion_world_flush_calls( world, 0 );
                     if (ret)
                          return ret;
@@ -466,7 +469,7 @@ fusion_call_execute3(FusionCall          *call,
 
                if (call_tls->bins_num == 1)
                     call_tls->bins_create_ts = direct_clock_get_millis();
-               else if (call_tls->bins_num >= EXECUTE3_BIN_CALL_MAX_NUM || direct_clock_get_millis() - call_tls->bins_create_ts >= EXECUTE3_BIN_FLUSH_MILLIS)
+               else if (call_tls->bins_num >= fusion_config->call_bin_max_num || direct_clock_get_millis() - call_tls->bins_create_ts >= EXECUTE3_BIN_FLUSH_MILLIS)
                     ret = fusion_world_flush_calls( world, 0 );    
 
                return ret;
