@@ -306,6 +306,8 @@ typedef struct
      bool          linux_input_touch_abs;
 
      bool          surface_clear;
+
+     unsigned int  graphics_state_call_limit;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

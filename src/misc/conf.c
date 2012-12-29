@@ -200,6 +200,7 @@ static const char *config_usage_strings[]  = {
      "\n"
      "  max-font-rows=<number>         Maximum number of glyph cache rows (total for all fonts)\n"
      "  max-font-row-width=<pixels>    Maximum width of glyph cache row surface\n"
+     "  graphics-state-call-limit=<n>  Set FusionCall quota for graphics state object\n"
      "\n",
      " Window surface swapping policy:\n"
      "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
@@ -1799,6 +1800,25 @@ DFBResult dfb_config_set( const char *name, const char *value )
                }
 
                dfb_config->max_font_row_width = width;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "graphics-state-call-limit" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long limit;
+
+               limit = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->graphics_state_call_limit = limit;
           }
           else {
                D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
