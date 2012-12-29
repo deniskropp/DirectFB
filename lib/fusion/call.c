@@ -679,6 +679,37 @@ fusion_call_get_owner( FusionCall *call,
 }
 
 DirectResult
+fusion_call_set_quota( FusionCall   *call,
+                       FusionID      fusion_id,
+                       unsigned int  limit )
+{
+     FusionCallSetQuota set_quota;
+
+     D_DEBUG_AT( Fusion_Call, "%s( %p, fusion_id %lu, limit %u )\n", __FUNCTION__, call, fusion_id, limit );
+
+     D_ASSERT( call != NULL );
+
+     set_quota.call_id   = call->call_id;
+     set_quota.fusion_id = fusion_id;
+     set_quota.limit     = limit;
+
+     while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_SET_QUOTA, &set_quota)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_CALL_SET_QUOTA");
+
+          return DR_FAILURE;
+     }
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_DEBUG_AT( Fusion_Call, "%s( %p )\n", __FUNCTION__, call );
