@@ -297,6 +297,9 @@ typedef struct
 
      bool          cursor_videoonly;
      u64           cursor_resource_id;
+
+     unsigned int  graphics_state_call_limit;
+
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

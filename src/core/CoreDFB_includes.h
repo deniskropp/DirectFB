@@ -128,6 +128,9 @@ CoreGraphicsState_Throw( CoreGraphicsState *state,
                                  (FusionRefPermissions)(FUSION_REF_PERMIT_REF_UNREF_LOCAL | FUSION_REF_PERMIT_CATCH) );
      fusion_call_add_permissions( &state->call, catcher, FUSION_CALL_PERMIT_EXECUTE );
 
+     if (dfb_config->graphics_state_call_limit)
+          fusion_call_set_quota( &state->call, catcher, dfb_config->graphics_state_call_limit );
+
      if (!state->object.owner)
           state->object.owner = catcher;
 
