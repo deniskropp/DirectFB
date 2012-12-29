@@ -131,5 +131,9 @@ DirectResult  FUSION_API fusion_call_add_permissions( FusionCall            *cal
                                                       FusionCallPermissions  permissions );
 
 
+
+void __Fusion_call_init( void );
+void __Fusion_call_deinit( void );
+
 #endif
 
