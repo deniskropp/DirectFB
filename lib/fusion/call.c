@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -52,6 +54,74 @@ D_DEBUG_DOMAIN( Fusion_Call, "Fusion/Call", "Fusion Call" );
 #if FUSION_BUILD_MULTI
 
 #if FUSION_BUILD_KERNEL
+
+/*********************************************************************************************************************/
+
+typedef struct {
+     int          magic;
+
+     FusionWorld         *world;
+
+     FusionCallExecute3   bins[EXECUTE3_BIN_CALL_MAX_NUM];
+     int                  bins_num;
+     char                 bins_data[EXECUTE3_BIN_DATA_MAX_LEN];
+     int                  bins_data_len;
+     long long            bins_create_ts;
+} CallTLS;
+
+static DirectTLS call_tls_key;
+
+static void
+call_tls_destroy( void *arg )
+{
+     CallTLS *call_tls = arg;
+
+     D_MAGIC_ASSERT( call_tls, CallTLS );
+
+     fusion_world_flush_calls( call_tls->world, 0 );
+
+     D_MAGIC_CLEAR( call_tls );
+
+     D_FREE( call_tls );
+}
+
+void
+__Fusion_call_init( void )
+{
+     direct_tls_register( &call_tls_key, call_tls_destroy );
+}
+
+void
+__Fusion_call_deinit( void )
+{
+     direct_tls_unregister( &call_tls_key );
+}
+
+
+static CallTLS *
+Call_GetTLS( void )
+{
+     CallTLS *call_tls;
+
+     call_tls = direct_tls_get( call_tls_key );
+     if (!call_tls) {
+          call_tls = D_CALLOC( 1, sizeof(CallTLS) );
+          if (!call_tls) {
+               D_OOM();
+               return NULL;
+          }
+
+          D_MAGIC_SET( call_tls, CallTLS );
+
+          direct_tls_set( call_tls_key, call_tls );
+     }
+
+     D_MAGIC_ASSERT( call_tls, CallTLS );
+
+     return call_tls;
+}
+
+/*********************************************************************************************************************/
 
 DirectResult
 fusion_call_init (FusionCall        *call,
@@ -368,40 +438,36 @@ fusion_call_execute3(FusionCall          *call,
 
           // check whether we can cache this call
           if (flags & FCEF_QUEUE) {
+               CallTLS *call_tls = Call_GetTLS();
+
                D_ASSERT( flags & FCEF_ONEWAY );
 
-               direct_mutex_lock( &world->bins_lock );
-
-               if (world->bins_data_len + length > EXECUTE3_BIN_DATA_MAX_LEN) {
+               if (call_tls->bins_data_len + length > EXECUTE3_BIN_DATA_MAX_LEN) {
                     ret = fusion_world_flush_calls( world, 0 );
-                    if (ret) {
-                         direct_mutex_unlock( &world->bins_lock );
+                    if (ret)
                          return ret;
-                    }
                }
 
-               world->bins[world->bins_num].call_id    = call->call_id;
-               world->bins[world->bins_num].call_arg   = call_arg;
-               world->bins[world->bins_num].ptr        = NULL;
-               world->bins[world->bins_num].length     = length;
-               world->bins[world->bins_num].ret_ptr    = ret_ptr;
-               world->bins[world->bins_num].ret_length = ret_size;
-               world->bins[world->bins_num].flags      = flags | FCEF_FOLLOW;
+               call_tls->bins[call_tls->bins_num].call_id    = call->call_id;
+               call_tls->bins[call_tls->bins_num].call_arg   = call_arg;
+               call_tls->bins[call_tls->bins_num].ptr        = NULL;
+               call_tls->bins[call_tls->bins_num].length     = length;
+               call_tls->bins[call_tls->bins_num].ret_ptr    = ret_ptr;
+               call_tls->bins[call_tls->bins_num].ret_length = ret_size;
+               call_tls->bins[call_tls->bins_num].flags      = flags | FCEF_FOLLOW;
 
                if (length > 0) {
-                    world->bins[world->bins_num].ptr = &world->bins_data[world->bins_data_len];
-                    direct_memcpy( &world->bins_data[world->bins_data_len], ptr, length );
-                    world->bins_data_len += length;
+                    call_tls->bins[call_tls->bins_num].ptr = &call_tls->bins_data[call_tls->bins_data_len];
+                    direct_memcpy( &call_tls->bins_data[call_tls->bins_data_len], ptr, length );
+                    call_tls->bins_data_len += length;
                }
 
-               world->bins_num++;
+               call_tls->bins_num++;
 
-               if (world->bins_num == 1)
-                    world->bins_create_ts = direct_clock_get_millis();
-               else if (world->bins_num >= EXECUTE3_BIN_CALL_MAX_NUM || direct_clock_get_millis() - world->bins_create_ts >= EXECUTE3_BIN_FLUSH_MILLIS)
+               if (call_tls->bins_num == 1)
+                    call_tls->bins_create_ts = direct_clock_get_millis();
+               else if (call_tls->bins_num >= EXECUTE3_BIN_CALL_MAX_NUM || direct_clock_get_millis() - call_tls->bins_create_ts >= EXECUTE3_BIN_FLUSH_MILLIS)
                     ret = fusion_world_flush_calls( world, 0 );    
-
-               direct_mutex_unlock( &world->bins_lock );
 
                return ret;
           }
@@ -447,20 +513,20 @@ fusion_call_execute3(FusionCall          *call,
 DirectResult
 fusion_world_flush_calls( FusionWorld *world, int lock )
 {
-     DirectResult ret = DR_OK;
+     DirectResult  ret = DR_OK;
+     CallTLS      *call_tls;
 
      if (direct_thread_self() == world->dispatch_loop)
           return DR_OK;
 
-     if (lock)
-          direct_mutex_lock( &world->bins_lock );
+     call_tls = Call_GetTLS();
 
-     if (world->bins_num > 0) {
-          D_DEBUG_AT( Fusion_Call, "  -> num %d, length %u\n", world->bins_num, world->bins_data_len );
+     if (call_tls->bins_num > 0) {
+          D_DEBUG_AT( Fusion_Call, "  -> num %d, length %u\n", call_tls->bins_num, call_tls->bins_data_len );
 
-          world->bins[world->bins_num - 1].flags &= ~FCEF_FOLLOW;
+          call_tls->bins[call_tls->bins_num - 1].flags &= ~FCEF_FOLLOW;
 
-          while (ioctl( _fusion_fd( world->shared ), FUSION_CALL_EXECUTE3, world->bins )) {
+          while (ioctl( _fusion_fd( world->shared ), FUSION_CALL_EXECUTE3, call_tls->bins )) {
                switch (errno) {
                     case EINTR:
                          continue;
@@ -480,12 +546,9 @@ fusion_world_flush_calls( FusionWorld *world, int lock )
                break;
           }
 
-          world->bins_num      = 0;
-          world->bins_data_len = 0;
+          call_tls->bins_num      = 0;
+          call_tls->bins_data_len = 0;
      }
-
-     if (lock)
-          direct_mutex_unlock( &world->bins_lock );
 
      return ret;
 }
