@@ -54,9 +54,7 @@
 
 #define FUSION_MAX_WORLDS     8
 
-#define EXECUTE3_BIN_CALL_MAX_NUM   512
-#define EXECUTE3_BIN_DATA_MAX_LEN 65536
-#define EXECUTE3_BIN_FLUSH_MILLIS    20
+#define EXECUTE3_BIN_FLUSH_MILLIS    16
 
 /***************************************
  *  Fusion internal type declarations  *

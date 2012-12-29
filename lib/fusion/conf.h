@@ -49,6 +49,9 @@ struct __Fusion_FusionConfig {
      int   trace_ref;
 
      bool  fork_handler;
+
+     unsigned int call_bin_max_num;
+     unsigned int call_bin_max_data;
 };
 
 extern FusionConfig FUSION_API *fusion_config;
