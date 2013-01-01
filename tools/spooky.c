@@ -20,6 +20,8 @@ static int      m_y;
 
 static int      m_sin16_16[360 * 16];
 
+static long     m_loop_pos;
+
 
 static inline int
 sin_16_16( int deg16_16 )
@@ -301,13 +303,25 @@ static Handler m_text_special = {
 };
 
 
+static void
+process_loop( FILE *stream )
+{
+     m_loop_pos = ftell( stream );
+}
+
+static Handler m_loop = {
+     .process = process_loop
+};
+
+
 static Handler *m_handlers[] = {
      ['b'] = &m_button,
      ['m'] = &m_motion,
      ['M'] = &m_motion_special,
      ['p'] = &m_pause,
      ['t'] = &m_text,
-     ['T'] = &m_text_special
+     ['T'] = &m_text_special,
+     ['l'] = &m_loop
 };
 
 
@@ -344,6 +358,7 @@ main( int argc, char *argv[] )
                                 "                                        c l t Cr (right)\n"
                                 "                                        k     Cu (up)\n"
                                 "                                              Cd (down)\n"
+                                "  l    Loop here from end of file\n"
                                 "\n" );
 
                return -1;
@@ -370,10 +385,15 @@ main( int argc, char *argv[] )
           m_sin16_16[c] = (int)(sin( (double) c / 16.0 * M_PI / 180.0 ) * 65536.0);
 
      /* Main loop */
-     while (!feof(stream) && (c = fgetc(stream)) != '$') {
-          if (c < sizeof(m_handlers)/sizeof(m_handlers[0]) && m_handlers[c])
-               m_handlers[c]->process( stream );
-     }
+     do {
+          while (!feof(stream) && (c = fgetc(stream)) != '$') {
+               if (c < sizeof(m_handlers)/sizeof(m_handlers[0]) && m_handlers[c])
+                    m_handlers[c]->process( stream );
+          }
+
+          if (m_loop_pos)
+               fseek( stream, m_loop_pos, SEEK_SET );
+     } while (m_loop_pos);
 
      /* close the connection */
      m_divine->Release( m_divine );
