@@ -801,7 +801,6 @@ fusion_enter( int               world_index,
      world->fusion_id = enter.fusion_id;
 
      direct_mutex_init( &world->reactor_nodes_lock );
-     direct_mutex_init( &world->bins_lock );
 
      D_MAGIC_SET( world, FusionWorld );
 

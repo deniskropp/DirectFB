@@ -30,6 +30,7 @@
 
 #include <direct/util.h>
 
+#include <fusion/call.h>
 #include <fusion/conf.h>
 #include <fusion/init.h>
 
@@ -40,9 +41,11 @@ typedef void (*Func)( void );
 
 static Func init_funcs[] = {
      __Fusion_conf_init,
+     __Fusion_call_init,
 };
 
 static Func deinit_funcs[] = {
+     __Fusion_call_deinit,
      __Fusion_conf_deinit,
 };
 

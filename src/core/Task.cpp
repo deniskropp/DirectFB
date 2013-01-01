@@ -486,15 +486,21 @@ Task::handleNotify( bool following )
      D_ASSERT( block_count > 0 );
 
      if (--block_count == 0) {
+#if DFB_TASK_DEBUG
           long long t1, t2;
 
           t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
 
           emit( following );
 
+#if DFB_TASK_DEBUG
           t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-          if (t2 - t1 >= 2000)
-               ;//D_WARN( "Task::Emit took more than 5ms (%lld)", (t2 - t1) / 1000 );
+          if (t2 - t1 >= 2000) {
+               D_WARN( "Task::Emit took more than 5ms (%lld)  %s", (t2 - t1) / 1000,
+                       Describe().c_str() );
+          }
+#endif
      }
 }
 
@@ -634,7 +640,9 @@ DFBResult
 TaskManager::handleTask( Task *task )
 {
      DFBResult ret;
+#if DFB_TASK_DEBUG
      long long t1, t2;
+#endif
 
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s( %p )\n", __FUNCTION__, task );
 
@@ -642,7 +650,9 @@ TaskManager::handleTask( Task *task )
           case TASK_FLUSHED:
                D_DEBUG_AT( DirectFB_Task, "  -> FLUSHED\n" );
 
+#if DFB_TASK_DEBUG
                t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
 
                ret = task->Setup();
                if (ret) {
@@ -651,13 +661,17 @@ TaskManager::handleTask( Task *task )
                     goto finish;
                }
 
+#if DFB_TASK_DEBUG
                t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
                if (t2 - t1 >= 2000)
-                    ;//D_WARN( "Task::Setup took more than 5ms (%lld)", (t2 - t1) / 1000 );
+                    D_WARN( "Task::Setup took more than 5ms (%lld)  %s", (t2 - t1) / 1000, task->Describe().c_str() );
+#endif
 
 
                if (task->block_count == 0) {
+#if DFB_TASK_DEBUG
                     t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
 
                     ret = task->emit( true );
                     if (ret) {
@@ -666,9 +680,11 @@ TaskManager::handleTask( Task *task )
                          goto finish;
                     }
 
+#if DFB_TASK_DEBUG
                     t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
                     if (t2 - t1 >= 2000)
-                         ;//D_WARN( "Task::Emit took more than 5ms (%lld)", (t2 - t1) / 1000 );
+                         D_WARN( "Task::Emit took more than 5ms (%lld)  %s", (t2 - t1) / 1000, task->Describe().c_str() );
+#endif
                }
                break;
 

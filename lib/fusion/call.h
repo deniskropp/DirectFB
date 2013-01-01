@@ -111,6 +111,10 @@ DirectResult FUSION_API fusion_call_return3( FusionCall          *call,
 DirectResult FUSION_API fusion_call_get_owner( FusionCall          *call,
                                                FusionID            *ret_fusion_id );
 
+DirectResult FUSION_API fusion_call_set_quota( FusionCall          *call,
+                                               FusionID             fusion_id,
+                                               unsigned int         limit );
+
 DirectResult FUSION_API fusion_call_destroy( FusionCall          *call );
 
 DirectResult FUSION_API fusion_world_flush_calls( FusionWorld *world, int lock );
@@ -130,6 +134,10 @@ DirectResult  FUSION_API fusion_call_add_permissions( FusionCall            *cal
                                                       FusionID               fusion_id,
                                                       FusionCallPermissions  permissions );
 
+
+
+void __Fusion_call_init( void );
+void __Fusion_call_deinit( void );
 
 #endif
 

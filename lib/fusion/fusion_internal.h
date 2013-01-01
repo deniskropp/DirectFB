@@ -185,16 +185,7 @@ struct __Fusion_FusionWorld {
      DirectMutex          refs_lock;
      DirectMap           *refs_map;
 
-#if FUSION_BUILD_MULTI
-# if FUSION_BUILD_KERNEL
-     DirectMutex          bins_lock;
-     FusionCallExecute3   bins[EXECUTE3_BIN_CALL_MAX_NUM];
-     int                  bins_num;
-     char                 bins_data[EXECUTE3_BIN_DATA_MAX_LEN];
-     int                  bins_data_len;
-     long long            bins_create_ts;
-# endif
-#else
+#if !FUSION_BUILD_MULTI
      DirectThread        *event_dispatcher_thread;
      DirectMutex          event_dispatcher_mutex;
      DirectWaitQueue      event_dispatcher_cond;
