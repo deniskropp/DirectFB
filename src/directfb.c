@@ -190,7 +190,8 @@ DirectFBCreate( IDirectFB **interface_ptr )
           direct_log_printf( NULL,
                              "\n"
                              "   ~~~~~~~~~~~~~~~~~~~~~~~~~~| DirectFB " DIRECTFB_VERSION DIRECTFB_VERSION_VENDOR " |~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-                             "        (c) 2001-2012  The world wide DirectFB Open Source Community\n"
+                             "        (c) 2012-2013  DirectFB integrated media GmbH\n"
+                             "        (c) 2001-2013  The world wide DirectFB Open Source Community\n"
                              "        (c) 2000-2004  Convergence (integrated media) GmbH\n"
                              "      ----------------------------------------------------------------\n"
                              "\n" );
