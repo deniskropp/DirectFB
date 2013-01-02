@@ -236,7 +236,7 @@ main( int argc, char *argv[] )
           dest->SetColors( dest, color_ids, colors, 2 );
 
           dest->SetFont( dest, font );
-          dest->DrawString( dest, "Test String", -1, 100, 100, text_flags );
+          dest->DrawString( dest, "Test String AVAWA", -1, 100, 100, text_flags );
 
           dest->Flip( dest, NULL, DSFLIP_NONE );
 
