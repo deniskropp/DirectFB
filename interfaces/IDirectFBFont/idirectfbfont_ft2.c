@@ -111,9 +111,12 @@ typedef struct {
      unsigned int indices[256];
      int          outline_radius;
      int          outline_opacity;
+     float        up_unit_x;     /* unit vector pointing 'up' in for */
+     float        up_unit_y;     /* this font's rotation             */
 } FT2ImplData;
 
 typedef struct {
+     bool        initialised;
      signed char x;
      signed char y;
 } KerningCacheEntry;
@@ -736,6 +739,23 @@ get_kerning( CoreFont     *thiz,
      if (KERNING_DO_CACHE (prev, current)) {
           cache = &KERNING_CACHE_ENTRY (prev, current);
 
+          if (!cache->initialised && FT_HAS_KERNING(data->base.face)) {
+               FT_Vector vector;
+
+               pthread_mutex_lock ( &library_mutex );
+
+               /* Lookup kerning values for the character pair. */
+               FT_Get_Kerning( data->base.face,
+                               prev, current, ft_kerning_default, &vector );
+
+               cache->x = (signed char) ((int)(- vector.x*data->base.up_unit_x + vector.y*data->base.up_unit_x) >> 6);
+               cache->y = (signed char) ((int)(  vector.y*data->base.up_unit_y + vector.x*data->base.up_unit_x) >> 6);
+
+               cache->initialised = true;
+
+               pthread_mutex_unlock ( &library_mutex );
+          }
+
           if (kern_x)
                *kern_x = (int) cache->x;
 
@@ -762,30 +782,6 @@ get_kerning( CoreFont     *thiz,
           *kern_y = (int)(  vector.y*thiz->up_unit_y + vector.x*thiz->up_unit_x) >> 6;
 
      return DFB_OK;
-}
-
-static void
-init_kerning_cache( FT2ImplKerningData *data, float up_unit_x, float up_unit_y )
-{
-     int a, b;
-
-     pthread_mutex_lock ( &library_mutex );
-
-     for (a=KERNING_CACHE_MIN; a<=KERNING_CACHE_MAX; a++) {
-          for (b=KERNING_CACHE_MIN; b<=KERNING_CACHE_MAX; b++) {
-               FT_Vector          vector;
-               KerningCacheEntry *cache = &KERNING_CACHE_ENTRY( a, b );
-
-               /* Lookup kerning values for the character pair. */
-               FT_Get_Kerning( data->base.face,
-                               a, b, ft_kerning_default, &vector );
-
-               cache->x = (signed char) ((int)(- vector.x*up_unit_y + vector.y*up_unit_x) >> 6);
-               cache->y = (signed char) ((int)(  vector.y*up_unit_y + vector.x*up_unit_x) >> 6);
-          }
-     }
-
-     pthread_mutex_unlock ( &library_mutex );
 }
 
 static DFBResult
@@ -1162,9 +1158,6 @@ Construct( IDirectFBFont               *thiz,
                data->outline_opacity = 0xff;
      }
 
-     if (FT_HAS_KERNING(face) && !disable_kerning)
-          init_kerning_cache( (FT2ImplKerningData*) data, font->up_unit_x, font->up_unit_y);
-
      if (desc->flags & DFDESC_FIXEDADVANCE) {
           data->fixed_advance = desc->fixed_advance;
           font->maxadvance    = desc->fixed_advance;
@@ -1175,6 +1168,9 @@ Construct( IDirectFBFont               *thiz,
 
      for (i=0; i<256; i++)
           data->indices[i] = FT_Get_Char_Index( face, i | mask );
+
+     data->up_unit_x = font->up_unit_x;
+     data->up_unit_y = font->up_unit_y;
 
      font->impl_data = data;
 
