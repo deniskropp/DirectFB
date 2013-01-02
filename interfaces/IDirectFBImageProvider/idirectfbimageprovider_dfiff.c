@@ -107,6 +107,7 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
      const DFIFFHeader     *header;
      DFBRectangle           rect;
      DFBRectangle           clipped;
+     DFBSurfaceCapabilities caps;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
 
@@ -136,11 +137,13 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
      if (!dfb_rectangle_intersect( &clipped, &dst_data->area.current ))
           return DFB_INVAREA;
 
+     destination->GetCapabilities( destination, &caps );
+
      header = data->ptr;
 
      if (DFB_RECTANGLE_EQUAL( rect, clipped ) &&
          (unsigned)rect.w == header->width && (unsigned)rect.h == header->height &&
-         dst_surface->config.format == header->format)
+         dst_surface->config.format == header->format && !(caps & DSCAPS_PREMULTIPLIED))
      {
           ret = dfb_surface_write_buffer( dst_surface, CSBR_BACK,
                                           (u8*)data->ptr + sizeof(DFIFFHeader), header->pitch, &rect );
@@ -150,7 +153,6 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
      else {
           IDirectFBSurface      *source;
           DFBSurfaceDescription  desc;
-          DFBSurfaceCapabilities caps;
           DFBRegion              clip = DFB_REGION_INIT_FROM_RECTANGLE( &clipped );
           DFBRegion              old_clip;
 
@@ -163,8 +165,6 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
           ret = data->base.idirectfb->CreateSurface( data->base.idirectfb, &desc, &source );
           if (ret)
                return ret;
-
-          destination->GetCapabilities( destination, &caps );
 
           if (caps & DSCAPS_PREMULTIPLIED && DFB_PIXELFORMAT_HAS_ALPHA(desc.pixelformat))
                destination->SetBlittingFlags( destination, DSBLIT_SRC_PREMULTIPLY );
