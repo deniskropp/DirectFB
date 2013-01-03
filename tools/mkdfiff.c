@@ -53,8 +53,9 @@
 static DirectFBPixelFormatNames( format_names );
 
 static const char            *filename;
-static DFBSurfacePixelFormat  format    = DSPF_UNKNOWN;
-static DFBSurfacePixelFormat  rgbformat = DSPF_UNKNOWN;
+static DFBSurfacePixelFormat  format        = DSPF_UNKNOWN;
+static DFBSurfacePixelFormat  rgbformat     = DSPF_UNKNOWN;
+static bool                   premultiplied = false;
 
 /**********************************************************************************************************************/
 
@@ -199,6 +200,24 @@ load_image (const char            *filename,
      if (!dest_format)
           dest_format = src_format;
 
+     if (premultiplied) {
+          int y;
+
+          for (y=0; y<height; y++) {
+               int  x;
+               u32 *p = (u32*)(data + y * pitch);
+
+               for (x=0; x<width; x++) {
+                    const u32 s = p[x];
+                    const u32 a = (s >> 24) + 1;
+
+                    p[x] = ((((s & 0x00ff00ff) * a) >> 8) & 0x00ff00ff) |
+                           ((((s & 0x0000ff00) * a) >> 8) & 0x0000ff00) |
+                           ((((s & 0xff000000)    )     )             );
+               }
+          }
+     }
+
      if (DFB_BYTES_PER_PIXEL(src_format) != DFB_BYTES_PER_PIXEL(dest_format)) {
           unsigned char *s, *d, *dest;
           int            d_pitch, h;
@@ -294,6 +313,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "Options:\n");
      fprintf (stderr, "   -f, --format    <pixelformat>   Choose the pixel format (in all cases)\n");
      fprintf (stderr, "   -r, --rgbformat <pixelformat>   Choose the pixel format (in case of RGB)\n");
+     fprintf (stderr, "   -p, --premultiplied             Generate premultiplied pixels\n");
      fprintf (stderr, "   -h, --help                      Show this help message\n");
      fprintf (stderr, "   -v, --version                   Print version information\n");
      fprintf (stderr, "\n");
@@ -388,6 +408,11 @@ parse_command_line( int argc, char *argv[] )
                continue;
           }
 
+          if (strcmp (arg, "-p") == 0 || strcmp (arg, "--premultiplied") == 0) {
+               premultiplied = true;
+               continue;
+          }
+
           if (filename || access( arg, R_OK )) {
                print_usage (argv[0]);
                return DFB_FALSE;
@@ -443,6 +468,9 @@ main( int argc, char *argv[] )
      header.height = desc.height;
      header.format = desc.pixelformat;
      header.pitch  = desc.preallocated[0].pitch;
+
+     if (premultiplied)
+          header.flags |= DFIFF_FLAG_PREMULTIPLIED;
 
      fwrite( &header, sizeof(header), 1, stdout );
 
