@@ -38,6 +38,7 @@
 #include <inttypes.h>
 
 #define DFIFF_FLAG_LITTLE_ENDIAN   0x01
+#define DFIFF_FLAG_PREMULTIPLIED   0x02
 
 typedef struct {
      unsigned char magic[5];      /* "DFIFF" magic */
