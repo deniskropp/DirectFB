@@ -108,6 +108,8 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
      DFBRectangle           rect;
      DFBRectangle           clipped;
      DFBSurfaceCapabilities caps;
+     bool                   dfiff_premultiplied = false;
+     bool                   dest_premultiplied = false;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_DFIFF)
 
@@ -141,9 +143,16 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
 
      header = data->ptr;
 
+     if (header->flags & DFIFF_FLAG_PREMULTIPLIED)
+          dfiff_premultiplied = true;
+
+     if (caps & DSCAPS_PREMULTIPLIED)
+          dest_premultiplied = true;
+
+
      if (DFB_RECTANGLE_EQUAL( rect, clipped ) &&
          (unsigned)rect.w == header->width && (unsigned)rect.h == header->height &&
-         dst_surface->config.format == header->format && !(caps & DSCAPS_PREMULTIPLIED))
+         dst_surface->config.format == header->format && dfiff_premultiplied == dest_premultiplied)
      {
           ret = dfb_surface_write_buffer( dst_surface, CSBR_BACK,
                                           (u8*)data->ptr + sizeof(DFIFFHeader), header->pitch, &rect );
@@ -166,10 +175,12 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
           if (ret)
                return ret;
 
-          if (caps & DSCAPS_PREMULTIPLIED && DFB_PIXELFORMAT_HAS_ALPHA(desc.pixelformat))
-               destination->SetBlittingFlags( destination, DSBLIT_SRC_PREMULTIPLY );
-          else
-               destination->SetBlittingFlags( destination, DSBLIT_NOFX );
+          if (DFB_PIXELFORMAT_HAS_ALPHA(desc.pixelformat)) {
+               if (dest_premultiplied && !dfiff_premultiplied)
+                    destination->SetBlittingFlags( destination, DSBLIT_SRC_PREMULTIPLY );
+               else if (!dest_premultiplied && dfiff_premultiplied)
+                    destination->SetBlittingFlags( destination, DSBLIT_DEMULTIPLY );
+          }
 
           destination->GetClip( destination, &old_clip );
           destination->SetClip( destination, &clip );
