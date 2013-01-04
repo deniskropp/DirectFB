@@ -209,7 +209,7 @@ direct_log_domain_vprintf( DirectLogDomain *domain,
      if (check_domain( domain ) >= level) {
           char          buf[200];
           char         *ptr = buf;
-          long long     micros = direct_clock_get_micros();
+          long long     micros = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
           long long     millis = micros / 1000LL;
           DirectThread *thread = direct_thread_self();
           int           indent = direct_trace_debug_indent() * 4;
@@ -272,7 +272,7 @@ direct_log_domain_log( DirectLogDomain *domain,
      if (check_domain( domain ) >= level) {
           char          buf[200];
           char         *ptr = buf;
-          long long     micros = direct_clock_get_micros();
+          long long     micros = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
           long long     millis = micros / 1000LL;
           DirectThread *thread = direct_thread_self();
           int           indent = direct_trace_debug_indent() * 4;
