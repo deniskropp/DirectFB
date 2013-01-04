@@ -99,7 +99,7 @@ __Fusion_call_deinit( void )
 
 
 static CallTLS *
-Call_GetTLS( void )
+Call_GetTLS( FusionWorld *world )
 {
      CallTLS *call_tls;
 
@@ -111,6 +111,7 @@ Call_GetTLS( void )
                return NULL;
           }
 
+          call_tls->world     = world;
           call_tls->bins      = (FusionCallExecute3*) (call_tls + 1);
           call_tls->bins_data = (char*) (call_tls->bins + fusion_config->call_bin_max_num);
 
@@ -256,6 +257,42 @@ fusion_call_init_from( FusionCall        *call,
 }
 
 DirectResult
+fusion_call_set_name( FusionCall *call,
+                      const char *name )
+{
+     FusionEntryInfo info;
+
+     D_ASSERT( call != NULL );
+     D_ASSERT( name != NULL );
+
+     info.type = FT_CALL;
+     info.id   = call->call_id;
+
+     direct_snputs( info.name, name, sizeof(info.name) );
+
+     while (ioctl (_fusion_fd( call->shared ), FUSION_ENTRY_SET_INFO, &info)) {
+          perror("FUSION_ENTRY_SET_INFO");
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EAGAIN:
+                    return DR_LOCKED;
+               case EINVAL:
+                    D_ERROR ("Fusion/Call: invalid call\n");
+                    return DR_DESTROYED;
+               default:
+                    break;
+          }
+
+          D_PERROR ("FUSION_ENTRY_SET_NAME");
+
+          return DR_FAILURE;
+     }
+
+     return DR_OK;
+}
+
+DirectResult
 fusion_call_execute (FusionCall          *call,
                      FusionCallExecFlags  flags,
                      int                  call_arg,
@@ -308,7 +345,7 @@ fusion_call_execute (FusionCall          *call,
                          break;
                }
 
-               D_PERROR ("FUSION_CALL_EXECUTE");
+               D_PERROR ("FUSION_CALL_EXECUTE (call id 0x%08x, creator %lu)", call->call_id, call->fusion_id );
 
                return DR_FAILURE;
           }
@@ -375,7 +412,7 @@ fusion_call_execute2(FusionCall          *call,
                          break;
                }
 
-               D_PERROR ("FUSION_CALL_EXECUTE2");
+               D_PERROR ("FUSION_CALL_EXECUTE2 (call id 0x%08x, creator %lu)", call->call_id, call->fusion_id );
 
                return DR_FAILURE;
           }
@@ -441,7 +478,7 @@ fusion_call_execute3(FusionCall          *call,
 
           // check whether we can cache this call
           if (flags & FCEF_QUEUE) {
-               CallTLS *call_tls = Call_GetTLS();
+               CallTLS *call_tls = Call_GetTLS( world );
 
                D_ASSERT( flags & FCEF_ONEWAY );
 
@@ -493,7 +530,7 @@ fusion_call_execute3(FusionCall          *call,
                     case EINTR:
                          continue;
                     case EINVAL:
-//                         D_ERROR ("Fusion/Call: invalid call\n");
+                         D_ERROR ("Fusion/Call: invalid call (id 0x%08x)\n", call->call_id);
                          return DR_INVARG;
                     case EIDRM:
                          return DR_DESTROYED;
@@ -501,7 +538,7 @@ fusion_call_execute3(FusionCall          *call,
                          break;
                }
 
-               D_PERROR ("FUSION_CALL_EXECUTE3");
+               D_PERROR ("FUSION_CALL_EXECUTE3 (call id 0x%08x, creator %lu)", call->call_id, call->fusion_id );
 
                return DR_FAILURE;
           }
@@ -522,7 +559,7 @@ fusion_world_flush_calls( FusionWorld *world, int lock )
      if (direct_thread_self() == world->dispatch_loop)
           return DR_OK;
 
-     call_tls = Call_GetTLS();
+     call_tls = Call_GetTLS( world );
 
      if (call_tls->bins_num > 0) {
           D_DEBUG_AT( Fusion_Call, "  -> num %d, length %u\n", call_tls->bins_num, call_tls->bins_data_len );
@@ -543,7 +580,7 @@ fusion_world_flush_calls( FusionWorld *world, int lock )
                          break;
                }
 
-               D_PERROR ("FUSION_CALL_EXECUTE3");
+               D_PERROR ("FUSION_CALL_EXECUTE3 (num %d)", call_tls->bins_num );
 
                ret = DR_FAILURE;
                break;
@@ -1193,6 +1230,16 @@ fusion_call_init_from( FusionCall        *call,
      call->shared = world->shared;
 
      D_DEBUG_AT( Fusion_Call, "  -> call id %d\n", call->call_id );
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_call_set_name( FusionCall *call,
+                      const char *name )
+{
+     D_ASSERT( call != NULL );
+     D_ASSERT( name != NULL );
 
      return DR_OK;
 }
