@@ -503,6 +503,8 @@ sawman_register( SaWMan                 *sawman,
      if (ret)
           return ret;
 
+     fusion_call_set_name( &data.call, "SaWMan manager_call" );
+
      data.callbacks = *callbacks;
      data.context   = context;
 
