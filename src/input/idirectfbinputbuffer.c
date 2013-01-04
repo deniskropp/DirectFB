@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <stdio.h>
@@ -157,6 +159,43 @@ static void *IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg );
 static void CollectEventStatistics( DFBEventBufferStats *stats,
                                     const DFBEvent      *event,
                                     int                  incdec );
+
+
+static void
+dump_event( const DFBEvent *event )
+{
+#if D_DEBUG_ENABLED
+     switch (event->clazz) {
+          case DFEC_INPUT:
+               D_DEBUG_AT( IDFBEvBuf, "  -> INPUT %u (type 0x%08x)\n", event->input.device_id, event->input.type );
+               break;
+
+          case DFEC_WINDOW:
+               D_DEBUG_AT( IDFBEvBuf, "  -> WINDOW %u (type 0x%08x)\n", event->window.window_id, event->window.type );
+               break;
+
+          case DFEC_USER:
+               D_DEBUG_AT( IDFBEvBuf, "  -> USER (type 0x%08x, data %p)\n", event->user.type, event->user.data );
+               break;
+
+          case DFEC_VIDEOPROVIDER:
+               D_DEBUG_AT( IDFBEvBuf, "  -> VIDEOPROVIDER (type 0x%08x, data_type 0x%08x)\n", event->videoprovider.type, event->videoprovider.data_type );
+               break;
+
+          case DFEC_SURFACE:
+               D_DEBUG_AT( IDFBEvBuf, "  -> SURFACE %u (type 0x%08x)\n", event->surface.surface_id, event->surface.type );
+               break;
+
+          case DFEC_UNIVERSAL:
+               D_DEBUG_AT( IDFBEvBuf, "  -> UNIVERSAL (size %u)\n", event->universal.size );
+               break;
+
+          default:
+               D_DEBUG_AT( IDFBEvBuf, "  -> UNKNOWN EVENT CLASS 0x%08x\n", event->clazz );
+               break;
+     }
+#endif
+}
 
 
 static void
@@ -364,12 +403,15 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
 
      D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p )\n", __FUNCTION__, thiz, event );
 
-     if (data->pipe)
+     if (data->pipe) {
+          D_DEBUG_AT( IDFBEvBuf, "  -> pipe mode, returning UNSUPPORTED\n" );
           return DFB_UNSUPPORTED;
+     }
 
      direct_mutex_lock( &data->events_mutex );
 
      if (!data->events) {
+          D_DEBUG_AT( IDFBEvBuf, "  -> no events, returning BUFFEREMPTY\n" );
           direct_mutex_unlock( &data->events_mutex );
           return DFB_BUFFEREMPTY;
      }
@@ -414,7 +456,7 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
 
      direct_mutex_unlock( &data->events_mutex );
 
-     D_DEBUG_AT( IDFBEvBuf, "  -> class %d, type/size %d, data/id %p\n", event->clazz, event->user.type, event->user.data );
+     dump_event( event );
 
      return DFB_OK;
 }
@@ -472,7 +514,7 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
 
      direct_mutex_unlock( &data->events_mutex );
 
-     D_DEBUG_AT( IDFBEvBuf, "  -> class %d, type/size %d, data/id %p\n", event->clazz, event->user.type, event->user.data );
+     dump_event( event );
 
      return DFB_OK;
 }
@@ -501,6 +543,8 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
 
      D_DEBUG_AT( IDFBEvBuf, "%s( %p, %p [class %d, type/size %d, data/id %p] )\n", __FUNCTION__,
                  thiz, event, event->clazz, event->user.type, event->user.data );
+
+     dump_event( event );
 
      switch (event->clazz) {
           case DFEC_INPUT:
