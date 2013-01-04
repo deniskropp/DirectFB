@@ -828,6 +828,7 @@ fusion_enter( int               world_index,
                goto error3;
 
           fusion_call_init( &shared->refs_call, world_refs_call, world, world );
+          fusion_call_set_name( &shared->refs_call, "world_refs" );
           fusion_call_add_permissions( &shared->refs_call, 0, FUSION_CALL_PERMIT_EXECUTE );
 
           direct_map_create( 37, refs_map_compare, refs_map_hash, world, &world->refs_map );

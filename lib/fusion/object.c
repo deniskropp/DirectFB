@@ -202,6 +202,7 @@ fusion_object_pool_create( const char             *name,
 
      /* Destruction call from Fusion. */
      fusion_call_init( &pool->call, object_reference_watcher, pool, world );
+     fusion_call_set_name( &pool->call, "object_reference_watcher" );
 
      D_MAGIC_SET( pool, FusionObjectPool );
 
