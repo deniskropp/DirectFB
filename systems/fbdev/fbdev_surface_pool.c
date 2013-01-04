@@ -358,7 +358,7 @@ fbdevLock( CoreSurfacePool       *pool,
      D_DEBUG_AT( FBDev_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
 
      if (allocation->type & CSTF_LAYER && allocation->resource_id == DLID_PRIMARY) {
-          int index  = dfb_surface_buffer_index( allocation->buffer );
+          int index = allocation->index;
 
           D_DEBUG_AT( FBDev_Surfaces, "  -> primary layer buffer (index %d)\n", index );
 
