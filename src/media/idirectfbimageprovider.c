@@ -166,18 +166,6 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      if (!buffer_data)
           return DFB_DEAD;
 
-     if (fusion_config->secure_fusion && !dfb_core_is_master(core)) {
-          DIRECT_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
-
-          ret = IDirectFBImageProvider_Client_Construct( imageprovider, buffer, core );
-          if (ret)
-               return ret;
-
-          *interface = imageprovider;
-
-          return DFB_OK;
-     }
-
      /* Clear for safety, especially header data. */
      memset( &ctx, 0, sizeof(ctx) );
 
@@ -191,6 +179,27 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
 
      /* Read the first 32 bytes. */
      buffer->PeekData( buffer, 32, 0, ctx.header, NULL );
+
+     /* For secure fusion slaves we use a special client to use providers from master,
+        to allow for hardware accelerated implementations that can run in master only.
+        For other formats the benefit is that master writes data directly to surface
+        buffer of hardware, which might otherwise go via shared memory allocation.
+
+        An exception is made for DFIFF which does not work with fileless data buffer.
+      */
+     if (strncmp( (const char*) ctx.header, "DFIFF", 5 ) &&
+         fusion_config->secure_fusion && !dfb_core_is_master(core))
+     {
+          DIRECT_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
+
+          ret = IDirectFBImageProvider_Client_Construct( imageprovider, buffer, core );
+          if (ret)
+               return ret;
+
+          *interface = imageprovider;
+
+          return DFB_OK;
+     }
 
      /* Find a suitable implementation. */
      ret = DirectGetInterface( &funcs, "IDirectFBImageProvider", NULL, DirectProbeInterface, &ctx );
