@@ -1368,5 +1368,23 @@ fusion_call_add_permissions( FusionCall            *call,
      return DR_OK;
 }
 
+DirectResult
+fusion_call_set_quota( FusionCall   *call,
+                       FusionID      fusion_id,
+                       unsigned int  limit )
+{
+     return DR_OK;
+}
+
+void
+__Fusion_call_init( void )
+{
+}
+
+void
+__Fusion_call_deinit( void )
+{
+}
+
 #endif
 
