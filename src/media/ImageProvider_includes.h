@@ -15,10 +15,16 @@ extern "C" {
 #include <directfb.h>
 
 
+/*
+ * Image Provider client object
+ */
 typedef struct {
-     FusionCall              call;
+     FusionCall              call; /* copy of FusionCall from server object, using fusion_call_init_from() */
 } ImageProvider;
 
+/*
+ * Image Provider server object
+ */
 typedef struct {
      int                     magic;
 
