@@ -328,10 +328,8 @@ fusion_ref_down (FusionRef *ref, bool global)
                          break;
                }
 
-               if (global)
-                    D_PERROR ("FUSION_REF_DOWN_GLOBAL");
-               else
-                    D_PERROR ("FUSION_REF_DOWN");
+               D_PERROR ("FUSION_REF_DOWN%s (ref id 0x%08x, creator %lu)",
+                         global ? "_GLOBAL" : "", ref->multi.id, ref->multi.creator );
 
                return DR_FAILURE;
           }

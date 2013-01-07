@@ -580,7 +580,7 @@ fusion_world_flush_calls( FusionWorld *world, int lock )
                          break;
                }
 
-               D_PERROR ("FUSION_CALL_EXECUTE3 (num %d)", call_tls->bins_num );
+               D_PERROR ("FUSION_CALL_EXECUTE3 (num %d, len %d)", call_tls->bins_num, call_tls->bins_data_len );
 
                ret = DR_FAILURE;
                break;
