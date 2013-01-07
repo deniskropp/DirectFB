@@ -84,14 +84,18 @@ divineEventThread( DirectThread *thread, void *driver_data )
 
      /* wait for the next event */
      while (poll( &pfd, 1, -1 ) > 0 || errno == EINTR) {
-          direct_thread_testcancel( thread );
-
           /* read the next event from the pipe */
           if (read( data->fd, &event, sizeof(DFBInputEvent) ) == sizeof(DFBInputEvent)) {
                /* directly dispatch the event */
                dfb_input_dispatch( data->device, &event );
-          } else
+          }
+          else {
+               if (!strcmp( (const char*) &event, "STOP" ))
+                    return NULL;
+
+               // FIXME: handle poll/read errors
                usleep( 20000 ); /* avoid 100% CPU usage in case poll() doesn't work */
+          }
      }
 
      D_PERROR( "divine thread died\n" );
@@ -161,7 +165,7 @@ driver_open_device( CoreInputDevice      *device,
      DiVineData *data;
 
      /* open pipe */
-     fd = open( PIPE_PATH, O_RDONLY | O_NONBLOCK );
+     fd = open( PIPE_PATH, O_RDWR | O_NONBLOCK );
      if (fd < 0) {
           D_PERROR( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
           return DFB_INIT;
@@ -233,8 +237,9 @@ driver_close_device( void *driver_data )
 {
      DiVineData *data = (DiVineData*) driver_data;
 
+     write( data->fd, "STOP", 5 );
+
      /* stop input thread */
-     direct_thread_cancel( data->thread );
      direct_thread_join( data->thread );
      direct_thread_destroy( data->thread );
 
