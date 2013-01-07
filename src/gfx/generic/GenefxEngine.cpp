@@ -75,7 +75,7 @@ D_DEBUG_DOMAIN( DirectFB_GenefxTask,   "DirectFB/Genefx/Task",   "DirectFB Genef
 #else
 #define DFB_GENEFX_COMMAND_BUFFER_BLOCK_SIZE 0x8000    // 32k
 #define DFB_GENEFX_COMMAND_BUFFER_MAX_SIZE   0x17800   // 94k
-#define DFB_GENEFX_TASK_WEIGHT_MAX           10000000
+#define DFB_GENEFX_TASK_WEIGHT_MAX           1000000
 #endif
 
 
@@ -171,6 +171,8 @@ public:
      virtual DFBResult bind          ( Renderer::Setup        *setup )
      {
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
+
+          fifo.waitMost( caps.cores * 3 );
 
           for (unsigned int i=0; i<setup->tiles; i++) {
                setup->tasks[i] = new GenefxTask( this );
@@ -673,8 +675,6 @@ DFBResult
 GenefxTask::Push()
 {
      D_DEBUG_AT( DirectFB_GenefxTask, "GenefxTask::%s()\n", __FUNCTION__ );
-
-     engine->fifo.waitMost( engine->caps.cores * 2 );
 
      engine->fifo.push( this );
 
