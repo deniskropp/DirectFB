@@ -479,13 +479,16 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
           dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, client->state );
      }
      else {
-          DFBResult ret;
+          DFBResult    ret;
+          unsigned int i;
 
           CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
 
-          ret = CoreGraphicsState_Blit( client->gfx_state, rects, points, num );
-          if (ret)
-               return ret;
+          for (i=0; i<num; i+=200) {
+               ret = CoreGraphicsState_Blit( client->gfx_state, &rects[i], &points[i], MIN(200, num-i) );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
