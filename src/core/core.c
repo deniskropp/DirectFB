@@ -334,6 +334,7 @@ dfb_core_create( CoreDFB **ret_core )
           direct_signal_handler_add( DIRECT_SIGNAL_ANY, dfb_core_signal_handler, core, &core->signal_handler );
 
      fusion_call_init( &core_dfb->async_call, Core_AsyncCall_Handler, core, core_dfb->world );
+     fusion_call_set_name( &core_dfb->async_call, "Core_AsyncCall" );
 
      if (dfb_core_is_master( core_dfb ))
           ret = dfb_core_arena_initialize( core_dfb );
