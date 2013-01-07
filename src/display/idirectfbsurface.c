@@ -2039,7 +2039,7 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, num %d )\n", __FUNCTION__, thiz, num );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -2083,6 +2083,9 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
 
           points[i].x += rects[i].x - (source_rects[i].x + sx);
           points[i].y += rects[i].y - (source_rects[i].y + sy);
+
+          D_DEBUG_AT( Surface, "     [%3d] %4d,%4d - %dx%4d -> %4d,%4d\n",
+                      i, DFB_RECTANGLE_VALS(&source_rects[i]), dest_points[i].x, dest_points[i].y );
      }
 
      dfb_state_set_source( &data->state, src_data->surface );
