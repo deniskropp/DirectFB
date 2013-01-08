@@ -38,7 +38,7 @@
 
 #include <core/state.h>
 #include <core/gfxcard.h>
-
+#include <core/CoreSurface.h>
 #include <gfx/util.h>
 
 #include <misc/util.h>
@@ -306,6 +306,14 @@ dfb_gfx_copy_regions_client( CoreSurface             *source,
                              int                      y,
                              CoreGraphicsStateClient *client )
 {
+     // FIXME: this function is broken, just fall back when not using task-manager
+     if (!dfb_config->task_manager)
+     {
+          CoreSurface_BackToFrontCopy( source, DSSE_LEFT, regions, NULL );
+
+          return;
+     }
+
      unsigned int  i, n = 0;
      DFBRectangle  rect = { 0, 0, source->config.size.w, source->config.size.h };
      DFBRectangle  rects[num];
