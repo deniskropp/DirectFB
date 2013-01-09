@@ -407,6 +407,8 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 
      world = _fusion_world(reactor->shared);
 
+     fusion_world_flush_calls( world, 1 );
+
      /* Handle global reactions first. */
      if (channel == 0 && reactor->globals) {
           if (fusion_config->secure_fusion && !fusion_master(world)) {
