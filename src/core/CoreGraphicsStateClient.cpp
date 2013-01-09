@@ -130,8 +130,10 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( state, CardState );
      D_MAGIC_ASSERT( state->core, CoreDFB );
 
-     client->core  = state->core;
-     client->state = state;
+     client->magic    = 0;
+     client->core     = state->core;
+     client->state    = state;
+     client->renderer = NULL;
 
      ret = CoreDFB_CreateState( state->core, &client->gfx_state );
      if (ret)
