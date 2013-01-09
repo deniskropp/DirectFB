@@ -291,7 +291,7 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
      if (!x && !y)
           return DFB_INVARG;
 
-     CoreWindowStack_GetInsets( data->window->stack, data->window, &insets );
+     CoreWindow_GetInsets( data->window, &insets );
 
      if (x)
           *x = data->window->config.bounds.x-insets.l;
@@ -318,7 +318,7 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
      if (!width && !height)
           return DFB_INVARG;
 
-     CoreWindowStack_GetInsets( data->window->stack, data->window, &insets );
+     CoreWindow_GetInsets( data->window, &insets );
 
      if (width)
           *width = data->window->config.bounds.w-insets.l-insets.r;

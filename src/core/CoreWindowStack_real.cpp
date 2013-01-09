@@ -60,28 +60,6 @@ IWindowStack_Real::RepaintAll(
 
 
 DFBResult
-IWindowStack_Real::GetInsets(
-     CoreWindow                               *window,
-     DFBInsets                                *ret_insets
-)
-{
-    DFBResult ret;
-
-    D_DEBUG_AT( DirectFB_CoreWindowStack, "IWindowStack_Real::%s()\n", __FUNCTION__ );
-
-    ret = (DFBResult) dfb_layer_context_lock( obj->context );
-    if (ret)
-         return ret;
-
-    ret = dfb_wm_get_insets( obj, window, ret_insets );
-
-    dfb_layer_context_unlock( obj->context );
-
-    return ret;
-}
-
-
-DFBResult
 IWindowStack_Real::CursorEnable(
                     bool                                       enable
 )
