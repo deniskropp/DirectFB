@@ -34,6 +34,10 @@
 
 #include <config.h>
 
+
+#undef  DFB_DITHER565
+#define DFB_DITHER565 DFB_DITHER_ADVANCED
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +51,7 @@
 #include <direct/debug.h>
 
 #include <gfx/convert.h>
+#include <misc/dither565.h>
 
 #include <dfiff.h>
 
@@ -236,8 +241,27 @@ load_image (const char            *filename,
           h = height;
           switch (dest_format) {
                case DSPF_RGB16:
-                    for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
-                         dfb_argb_to_rgb16 ((u32 *) s, (u16 *) d, width);
+                    for (s = data, d = dest; h; h--, s += pitch, d += d_pitch) {
+                         /* use a pre-generated dither matrix to improve the appearance of the result */
+                         const u32    *dm  = DM_565 + ((h & (DM_565_HEIGHT - 1)) << DM_565_WIDTH_SHIFT);
+                         const u32    *src = (const u32*) s;
+                         unsigned int  i;
+
+                         for (i = 0; i < width; i++) {
+                              u32 rgb = ((src[i] & 0xFF)          |
+                                         (src[i] & 0xFF00)   << 2 |
+                                         (src[i] & 0xFF0000) << 4);
+
+                              rgb += dm[i & (DM_565_WIDTH - 1)];
+                              rgb += (0x10040100
+                                      - ((rgb & 0x1e0001e0) >> 5)
+                                      - ((rgb & 0x00070000) >> 6));
+
+                              ((u16*)d)[i] = (((rgb & 0x0f800000) >> 12) |
+                                              ((rgb & 0x0003f000) >> 7)  |
+                                              ((rgb & 0x000000f8) >> 3));
+                         }
+                    }
                     break;
                case DSPF_ARGB8565:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
