@@ -868,9 +868,9 @@ typedef enum {
      DFXL_DRAWSTRING     = 0x01000000,  /* DrawString() and DrawGlyph() are accelerated. */
 
 
-     DFXL_ALL            = 0x010F003F,  /* All drawing/blitting functions. */
-     DFXL_ALL_DRAW       = 0x0000103F,  /* All drawing functions. */
-     DFXL_ALL_BLIT       = 0x010F0000   /* All blitting functions. */
+     DFXL_ALL            = 0x011F007F,  /* All drawing/blitting functions. */
+     DFXL_ALL_DRAW       = 0x0000107F,  /* All drawing functions. */
+     DFXL_ALL_BLIT       = 0x011F0000   /* All blitting functions. */
 } DFBAccelerationMask;
 
 
