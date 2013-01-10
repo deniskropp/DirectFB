@@ -113,5 +113,7 @@ DFBResult CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *cli
                                                     int                      num,
                                                     DFBTriangleFormation     formation );
 
+void      CoreGraphicsStateClient_Flush           ( CoreGraphicsStateClient *client );
+
 #endif
 

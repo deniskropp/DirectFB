@@ -616,3 +616,12 @@ CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
      return DFB_OK;
 }
 
+void
+CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client )
+{
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     CoreGraphicsState_Flush( client->gfx_state );
+}
