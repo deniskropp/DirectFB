@@ -1083,7 +1083,7 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           return false;
      }
 
-     dst_buffer = dfb_surface_get_buffer3( dst, state->to, state->destination->flips, state->to_eye );
+     dst_buffer = dfb_surface_get_buffer3( dst, state->to, state->to_eye, state->destination->flips );
 
      D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
 
@@ -1125,7 +1125,7 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
                }
 
                /* If the front buffer policy of the source is 'system only' no accelerated blitting is available. */
-               src_buffer = dfb_surface_get_buffer3( src, state->from, state->destination->flips, state->to_eye );
+               src_buffer = dfb_surface_get_buffer3( src, state->from, state->to_eye, state->destination->flips );
 
                D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
 
