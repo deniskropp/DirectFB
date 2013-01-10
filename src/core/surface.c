@@ -43,8 +43,6 @@
 
 #include <core/system.h>
 
-#include <core/Task.h>
-
 #include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 
@@ -506,13 +504,12 @@ dfb_surface_notify_display( CoreSurface       *surface,
 {
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     return dfb_surface_notify_display2( surface, dfb_surface_buffer_index( buffer ), NULL );
+     return dfb_surface_notify_display2( surface, dfb_surface_buffer_index( buffer ));
 }
 
 DFBResult
 dfb_surface_notify_display2( CoreSurface     *surface,
-                             int              index,
-                             DFB_DisplayTask *task )
+                             int              index)
 {
      CoreSurfaceNotification notification;
 
@@ -521,22 +518,6 @@ dfb_surface_notify_display2( CoreSurface     *surface,
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( index >= 0 );
      D_ASSERT( index < surface->num_buffers );
-
-     if (surface->type & CSTF_LAYER) {
-          CoreLayer *layer = dfb_layer_at( surface->resource_id );
-
-          D_DEBUG_AT( Core_Surface, "  -> LAYER %d\n", surface->resource_id );
-
-          D_DEBUG_AT( Core_Surface, "  -> previous task %p\n", layer->display_task_onscreen );
-          D_DEBUG_AT( Core_Surface, "  -> current task %p\n", task );
-
-          if (layer->display_task_onscreen) {
-               SurfaceTask_Done( layer->display_task_onscreen );
-               layer->display_task_onscreen = NULL;
-          }
-
-          layer->display_task_onscreen = task;
-     }
 
      notification.flags   = CSNF_DISPLAY;
      notification.surface = surface;

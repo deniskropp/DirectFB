@@ -93,7 +93,6 @@ dfb_surface_buffer_lock_reset( CoreSurfaceBufferLock *lock )
      lock->offset     = ~0;
      lock->pitch      = 0;
      lock->handle     = 0;
-     lock->task       = NULL;
 }
 
 static inline void
