@@ -93,6 +93,8 @@ struct __DFB_CoreSurfaceAllocation {
      unsigned long                  resource_id;  /* layer id, window id, or user specified */
 
      CoreGraphicsSerial             gfx_serial;
+
+     int                            index;
 };
 
 #define CORE_SURFACE_ALLOCATION_ASSERT(alloc)                                                  \

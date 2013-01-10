@@ -12,7 +12,8 @@ AM_CPPFLAGS = \
 	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"		\
 	-DSOPATH=\"@SOPATH@\"		\
 	-DMODULEDIR=\"${RUNTIME_SYSROOT}@MODULEDIR@\"	\
-	"-DBUILDTIME=\"`date -u "+%Y-%m-%d %H:%M"`\""
+	"-DBUILDTIME=\"`date -u "+%Y-%m-%d %H:%M"`\"" \
+	-DFLUXED_ARGS_BYTES=@FLUXED_ARGS_BYTES@
 
 
 internalincludedir = $(INTERNALINCLUDEDIR)/core
