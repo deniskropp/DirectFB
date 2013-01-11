@@ -1514,6 +1514,8 @@ primaryFlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
+     dfb_surface_notify_display2( surface, left_lock->allocation->index );
+
      return DFB_OK;
 }
 
