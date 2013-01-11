@@ -97,7 +97,7 @@ libdirectfb_core_la_SOURCES = \
 	CoreSlave_real.cpp	\
 	$(builddir)/CoreGraphicsState.cpp	\
 	CoreGraphicsState_real.cpp	\
-	CoreGraphicsStateClient.c		\
+	CoreGraphicsStateClient.cpp		\
 	$(builddir)/CoreInputDevice.cpp		\
 	CoreInputDevice_real.cpp	\
 	$(builddir)/CoreLayer.cpp		\
@@ -179,7 +179,7 @@ distclean-local:
 	rm -f CoreWindowStack.h
 
 # quirks for generated headers
-$(srcdir)/CoreGraphicsStateClient.c: CoreGraphicsState.h CoreDFB.h
+$(srcdir)/CoreGraphicsStateClient.cpp: CoreGraphicsState.h CoreDFB.h
 $(srcdir)/core.c: CoreDFB.h CoreSlave.h
 $(srcdir)/surface.c: CoreDFB.h
 $(srcdir)/graphics_state.c: CoreGraphicsState.h
