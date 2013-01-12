@@ -345,6 +345,20 @@ void Core_TLS__init( void );
 void Core_TLS__deinit( void );
 
 
+#define CORE_TLS_IDENTITY_STACK_MAX     8
+
+typedef struct {
+     int          magic;
+
+     FusionID     identity[CORE_TLS_IDENTITY_STACK_MAX];
+     unsigned int identity_count;
+
+     int          calling;
+} CoreTLS;
+
+CoreTLS *Core_GetTLS( void );
+
+
 /*
  * Identity management
  *
