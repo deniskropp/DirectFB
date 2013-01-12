@@ -357,6 +357,8 @@ typedef struct {
      unsigned int identity_count;
 
      int          calling;
+
+     void        *call_buffer;
 } CoreTLS;
 
 CoreTLS *Core_GetTLS( void );

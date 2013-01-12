@@ -46,6 +46,7 @@ struct __DFB_CoreGraphicsStateClient {
      CardState         *state;          /* Local state structure */
 
      CoreGraphicsState *gfx_state;      /* Remote object for rendering, syncing values from local state as needed */
+     void              *requestor;
 
      DFB_Renderer      *renderer;       /* Local renderer in case of master/single process with direct calls */
 };

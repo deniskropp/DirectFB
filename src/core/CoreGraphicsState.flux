@@ -7,6 +7,7 @@ interface {
 		name      SetDrawingFlags
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      flags
@@ -20,6 +21,7 @@ interface {
 		name      SetBlittingFlags
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      flags
@@ -33,6 +35,7 @@ interface {
 		name      SetClip
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      region
@@ -46,6 +49,7 @@ interface {
 		name      SetColor
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      color
@@ -59,6 +63,7 @@ interface {
                name      SetColorAndIndex
                async     yes
                queue     yes
+		buffer    yes
 
                arg {
                        name      color
@@ -79,6 +84,7 @@ interface {
 		name      SetSrcBlend
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      function
@@ -92,6 +98,7 @@ interface {
 		name      SetDstBlend
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      function
@@ -105,6 +112,7 @@ interface {
 		name      SetSrcColorKey
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      key
@@ -118,6 +126,7 @@ interface {
 		name      SetDstColorKey
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      key
@@ -131,6 +140,7 @@ interface {
 		name      SetDestination
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      surface
@@ -144,6 +154,7 @@ interface {
 		name      SetSource
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      surface
@@ -157,6 +168,7 @@ interface {
 		name      SetSourceMask
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      surface
@@ -170,6 +182,7 @@ interface {
 		name      SetSourceMaskVals
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      offset
@@ -190,6 +203,7 @@ interface {
 		name      SetIndexTranslation
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      indices
@@ -211,6 +225,7 @@ interface {
 		name      SetColorKey
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      key
@@ -224,6 +239,7 @@ interface {
 		name      SetRenderOptions
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      options
@@ -237,6 +253,7 @@ interface {
 		name      SetMatrix
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      values
@@ -251,6 +268,7 @@ interface {
 		name      SetSource2
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      surface
@@ -264,6 +282,7 @@ interface {
 		name      SetFrom
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      role
@@ -284,6 +303,7 @@ interface {
 		name      SetTo
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      role
@@ -307,6 +327,7 @@ interface {
 		name      DrawRectangles
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      rects
@@ -328,6 +349,7 @@ interface {
 		name      DrawLines
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      lines
@@ -349,6 +371,7 @@ interface {
 		name      FillRectangles
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      rects
@@ -370,6 +393,7 @@ interface {
 		name      FillTriangles
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      triangles
@@ -391,6 +415,7 @@ interface {
 		name      FillTrapezoids
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      trapezoids
@@ -412,6 +437,7 @@ interface {
 		name      FillSpans
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      y
@@ -440,6 +466,7 @@ interface {
 		name      Blit
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      rects
@@ -469,6 +496,7 @@ interface {
 		name      Blit2
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      rects
@@ -506,6 +534,7 @@ interface {
 		name      StretchBlit
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      srects
@@ -535,6 +564,7 @@ interface {
 		name      TileBlit
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      rects
@@ -572,6 +602,7 @@ interface {
 		name      TextureTriangles
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      vertices
@@ -606,12 +637,14 @@ interface {
 		name      ReleaseSource
 		async  	  yes
 		queue     yes
+		buffer    yes
 	}
 
 	method {
 		name      SetSrcConvolution
 		async  	  yes
 		queue     yes
+		buffer    yes
 
 		arg {
 			name      filter
