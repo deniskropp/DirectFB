@@ -178,7 +178,11 @@ CallBuffer::commit( size_t len )
 
      D_DEBUG_AT( DirectFB_CallBuffer, "  -> len %zu\n", buffer_len );
 
-     //flush();
+     if (dfb_config->always_flush_callbuffer) {
+          D_DEBUG_AT( DirectFB_CallBuffer, "  -> always-flush-callbuffer option is set, flushing...\n" );
+
+          flush();
+     }
 }
 
 DFBResult

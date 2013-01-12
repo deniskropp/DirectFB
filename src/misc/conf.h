@@ -308,6 +308,8 @@ typedef struct
      bool          surface_clear;
 
      unsigned int  graphics_state_call_limit;
+
+     bool          always_flush_callbuffer;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

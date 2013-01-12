@@ -107,6 +107,7 @@ static const char *config_usage_strings[]  = {
      "  [no-]software-warn             Show warnings when doing/dropping software operations\n"
      "  [no-]software-trace            Show every stage of the software rendering pipeline\n"
      "  [no-]always-indirect           Use purely indirect Flux calls (for secure master)\n"
+     "  [no-]always-flush-callbuffer   Flush call buffer upon commit, effectively disabling it\n"
      "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n",
 #ifdef USE_MMX
@@ -1824,6 +1825,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "always-flush-callbuffer" ) == 0) {
+          dfb_config->always_flush_callbuffer = true;
+     } else
+     if (strcmp (name, "no-always-flush-callbuffer" ) == 0) {
+          dfb_config->always_flush_callbuffer = false;
      } else
      if (strcmp (name, "matrox-tv-standard" ) == 0) {
           if (value) {
