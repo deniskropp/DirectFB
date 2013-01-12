@@ -58,6 +58,12 @@ void      CoreGraphicsStateClient_Flush           ( CoreGraphicsStateClient *cli
 void      CoreGraphicsStateClient_FlushAll        ( void );
 void      CoreGraphicsStateClient_FlushAllDst     ( CoreSurface             *surface );
 
+DFBResult CoreGraphicsStateClient_ReleaseSource   ( CoreGraphicsStateClient *client );
+
+DFBResult CoreGraphicsStateClient_SetColorAndIndex( CoreGraphicsStateClient *client,
+                                                    const DFBColor          *color,
+                                                    u32                      index );
+
 DFBResult CoreGraphicsStateClient_SetState        ( CoreGraphicsStateClient *client,
                                                     CardState               *state,
                                                     StateModificationFlags   flags );

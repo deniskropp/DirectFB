@@ -1005,7 +1005,7 @@ IDirectFBSurface_SetColorIndex( IDirectFBSurface *thiz,
           return DFB_INVARG;
 
      // FIXME: why do we call this explicitly here as opposed to other functions?
-     ret = CoreGraphicsState_SetColorAndIndex( data->state_client.gfx_state, &palette->entries[index], index );
+     ret = CoreGraphicsStateClient_SetColorAndIndex( &data->state_client, &palette->entries[index], index );
      if (ret)
           return ret;
 
@@ -2932,7 +2932,7 @@ IDirectFBSurface_ReleaseSource( IDirectFBSurface *thiz )
      dfb_state_set_source_mask( &data->state, NULL );
      dfb_state_set_source2( &data->state, NULL );
 
-     CoreGraphicsState_ReleaseSource( data->state_client.gfx_state );
+     CoreGraphicsStateClient_ReleaseSource( &data->state_client );
 
      return DFB_OK;
 }

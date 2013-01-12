@@ -187,6 +187,32 @@ CoreGraphicsStateClient_FlushAllDst( CoreSurface *surface )
 }
 
 DFBResult
+CoreGraphicsStateClient_ReleaseSource( CoreGraphicsStateClient *client )
+{
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
+
+     return requestor->ReleaseSource();
+}
+
+DFBResult
+CoreGraphicsStateClient_SetColorAndIndex( CoreGraphicsStateClient *client,
+                                          const DFBColor          *color,
+                                          u32                      index )
+{
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
+
+     return requestor->SetColorAndIndex( color, index );
+}
+
+DFBResult
 CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
                                   CardState               *state,
                                   StateModificationFlags   flags )
