@@ -60,6 +60,8 @@ D_DEBUG_DOMAIN( Fusion_Call, "Fusion/Call", "Fusion Call" );
 typedef struct {
      int          magic;
 
+     bool                 dispatcher;
+
      FusionWorld         *world;
 
      FusionCallExecute3  *bins;
@@ -110,6 +112,11 @@ Call_GetTLS( FusionWorld *world )
                D_OOM();
                return NULL;
           }
+
+          DirectThread *self = direct_thread_self();
+
+          if (self)
+               call_tls->dispatcher = fusion_dispatcher_tid( world ) == direct_thread_get_tid( self );
 
           call_tls->world     = world;
           call_tls->bins      = (FusionCallExecute3*) (call_tls + 1);
@@ -437,8 +444,8 @@ fusion_call_execute3(FusionCall          *call,
                      unsigned int         ret_size,
                      unsigned int        *ret_length)
 {
-     FusionWorld  *world;
-     DirectThread *self;
+     FusionWorld *world;
+     CallTLS     *call_tls;
 
      D_DEBUG_AT( Fusion_Call, "%s( %p, flags 0x%x, arg %d, ptr %p, length %u, ret_ptr %p, ret_size %u )\n",
                  __FUNCTION__, call, flags, call_arg, ptr, length, ret_ptr, ret_size );
@@ -451,13 +458,17 @@ fusion_call_execute3(FusionCall          *call,
 //     if (!call->handler)
 //          return DR_DESTROYED;
 
+#if D_DEBUG_ENABLED
      if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
           D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler3 ) );
+#endif
 
      world = _fusion_world( call->shared );
 
+     call_tls = Call_GetTLS( world );
+
      if (call->fusion_id == fusion_id( world ) &&
-         (!(flags & FCEF_NODIRECT) || ((self = direct_thread_self()) && fusion_dispatcher_tid( world ) == direct_thread_get_tid( self ))))
+         (!(flags & FCEF_NODIRECT) || (call_tls->dispatcher)))
      {
           FusionCallHandlerResult result;
           unsigned int            execute_length;
@@ -477,9 +488,7 @@ fusion_call_execute3(FusionCall          *call,
           DirectResult        ret   = DR_OK;
 
           // check whether we can cache this call
-          if (flags & FCEF_QUEUE) {
-               CallTLS *call_tls = Call_GetTLS( world );
-
+          if (flags & FCEF_QUEUE && fusion_config->call_bin_max_num > 0) {
                D_ASSERT( flags & FCEF_ONEWAY );
 
                if (call_tls->bins_data_len + length > fusion_config->call_bin_max_data) {
@@ -525,7 +534,7 @@ fusion_call_execute3(FusionCall          *call,
 
           D_DEBUG_AT( Fusion_Call, "  -> ptr %p, length %u\n", ptr, length );
 
-          while (ioctl( _fusion_fd( call->shared ), FUSION_CALL_EXECUTE3, &execute )) {
+          while (ioctl( world->fusion_fd, FUSION_CALL_EXECUTE3, &execute )) {
                switch (errno) {
                     case EINTR:
                          continue;
@@ -556,17 +565,17 @@ fusion_world_flush_calls( FusionWorld *world, int lock )
      DirectResult  ret = DR_OK;
      CallTLS      *call_tls;
 
-     if (direct_thread_self() == world->dispatch_loop)
-          return DR_OK;
-
      call_tls = Call_GetTLS( world );
+
+     if (call_tls->dispatcher)
+          return DR_OK;
 
      if (call_tls->bins_num > 0) {
           D_DEBUG_AT( Fusion_Call, "  -> num %d, length %u\n", call_tls->bins_num, call_tls->bins_data_len );
 
           call_tls->bins[call_tls->bins_num - 1].flags &= ~FCEF_FOLLOW;
 
-          while (ioctl( _fusion_fd( world->shared ), FUSION_CALL_EXECUTE3, call_tls->bins )) {
+          while (ioctl( world->fusion_fd, FUSION_CALL_EXECUTE3, call_tls->bins )) {
                switch (errno) {
                     case EINTR:
                          continue;
