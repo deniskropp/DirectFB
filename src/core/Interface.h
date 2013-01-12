@@ -48,6 +48,31 @@ protected:
 };
 
 
+class CallBuffer {
+private:
+     int magic;
+
+public:
+     CallBuffer( size_t buffer_min );
+     virtual ~CallBuffer();
+
+     void *prepare( int    method,
+                    size_t len );
+     void  commit ( size_t len = 0 );
+
+     DFBResult flush();
+
+protected:
+     void   *buffer;
+     size_t  buffer_min;
+     size_t  buffer_size;
+     size_t  buffer_len;
+     size_t  buffer_prepared;
+
+     virtual DFBResult flushCalls() = 0;
+};
+
+
 
 }
 

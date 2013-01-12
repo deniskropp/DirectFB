@@ -121,6 +121,7 @@ libdirectfb_core_la_SOURCES = \
 	CoreWindow_real.cpp	\
 	$(builddir)/CoreWindowStack.cpp		\
 	CoreWindowStack_real.cpp	\
+	Interface.cpp		\
 	Renderer.cpp		\
 	Task.cpp		\
 	Util.cpp		\
