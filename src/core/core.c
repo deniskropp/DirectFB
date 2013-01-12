@@ -1820,17 +1820,6 @@ dfb_core_arena_leave( void *ctx,
 
 /*********************************************************************************************************************/
 
-#define CORE_TLS_IDENTITY_STACK_MAX     8
-
-typedef struct {
-     int          magic;
-
-     FusionID     identity[CORE_TLS_IDENTITY_STACK_MAX];
-     unsigned int identity_count;
-
-     int          calling;
-} CoreTLS;
-
 static DirectTLS core_tls_key;
 
 static void
@@ -1858,8 +1847,8 @@ Core_TLS__deinit( void )
 }
 
 
-static CoreTLS *
-Core_GetTLS( void )
+CoreTLS *
+Core_GetTLS()
 {
      CoreTLS *core_tls;
 
