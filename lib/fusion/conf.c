@@ -58,7 +58,7 @@ const char   *fusion_config_usage =
      "  [no-]secure-fusion             Use secure fusion, e.g. read-only shm (default=yes)\n"
      "  [no-]defer-destructors         Handle destructor calls in separate thread\n"
      "  trace-ref=<hexid>              Trace FusionRef up/down\n"
-     "  call-bin-max-num=<n>           Set maximum call number for async call buffer (default 512)\n"
+     "  call-bin-max-num=<n>           Set maximum call number for async call buffer (default 512, 0 = disable)\n"
      "  call-bin-max-data=<n>          Set maximum call data size for async call buffer (default 65536)\n"
      "\n";
 
@@ -173,7 +173,7 @@ fusion_config_set( const char *name, const char *value )
                     return DR_INVARG;
                }
 
-               if (max < 1) {
+               if (max < 0) {
                     D_ERROR( "Fusion/Config '%s': Error in value '%s' (min 1)!\n", name, error );
                     return DR_INVARG;
                }
