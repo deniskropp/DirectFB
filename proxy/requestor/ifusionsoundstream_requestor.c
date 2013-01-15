@@ -50,7 +50,7 @@
 
 #include <ifusionsoundstream_dispatcher.h>
 
-static DirectResult Probe();
+static DirectResult Probe( void );
 static DirectResult Construct( IFusionSoundStream *thiz,
                             VoodooManager      *manager,
                             VoodooInstanceID    instance,

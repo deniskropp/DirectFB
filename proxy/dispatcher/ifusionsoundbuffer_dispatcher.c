@@ -48,7 +48,7 @@
 
 #include <ifusionsoundbuffer_dispatcher.h>
 
-static DirectResult Probe();
+static DirectResult Probe( void );
 static DirectResult Construct( IFusionSoundBuffer *thiz,
                             IFusionSoundBuffer *real,
                             VoodooManager      *manager,

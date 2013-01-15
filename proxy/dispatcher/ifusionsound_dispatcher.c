@@ -49,7 +49,7 @@
 
 #include "ifusionsound_dispatcher.h"
 
-static DirectResult Probe();
+static DirectResult Probe( void );
 static DirectResult Construct( IFusionSound     *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID *ret_instance );

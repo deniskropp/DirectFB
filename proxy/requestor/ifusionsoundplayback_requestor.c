@@ -46,7 +46,7 @@
 
 #include <ifusionsoundplayback_dispatcher.h>
 
-static DirectResult Probe();
+static DirectResult Probe( void );
 static DirectResult Construct( IFusionSoundPlayback *thiz,
                             VoodooManager        *manager,
                             VoodooInstanceID      instance,
