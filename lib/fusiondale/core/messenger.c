@@ -57,7 +57,7 @@ messenger_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_MAGIC_ASSERT( messenger, CoreMessenger );
 
-     D_DEBUG_AT( DC_Mess, "%s( %p [%lu] )%s\n", __FUNCTION__, messenger, object->id, zombie ? " ZOMBIE!" : "" );
+     D_DEBUG_AT( DC_Mess, "%s( %p [%u] )%s\n", __FUNCTION__, messenger, object->id, zombie ? " ZOMBIE!" : "" );
 
      fusion_skirmish_destroy( &messenger->lock );
 
@@ -198,7 +198,7 @@ fd_messenger_destroy_event( CoreMessenger      *messenger,
      /* Remove event from hash table. */
      ret = fusion_hash_remove( messenger->hash, event->name, &old_key, &old_value );
      if (ret) {
-          D_BUG( "event '%s' [%lu] not found", event->name, event->id );
+          D_BUG( "event '%s' [%u] not found", event->name, event->id );
           return ret;
      }
 
@@ -294,7 +294,7 @@ fd_messenger_notify( CoreMessenger                  *messenger,
      D_MAGIC_ASSERT( messenger, CoreMessenger );
      D_FLAGS_ASSERT( flags, CMNF_ALL );
 
-     D_DEBUG_AT( DC_Mess, "%s( %p [%lu], 0x%08x )\n", __FUNCTION__, messenger, messenger->object.id, flags );
+     D_DEBUG_AT( DC_Mess, "%s( %p [%u], 0x%08x )\n", __FUNCTION__, messenger, messenger->object.id, flags );
 
      notification.flags     = flags;
      notification.messenger = messenger;

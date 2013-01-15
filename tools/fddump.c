@@ -110,7 +110,7 @@ messenger_callback( FusionObjectPool *pool,
 
      printf( "%3d ", refs );
 
-     printf( "%3lu", object->id );
+     printf( "%3u", object->id );
 
      printf( "  %4u ", fusion_hash_size( messenger->hash ) );
 
