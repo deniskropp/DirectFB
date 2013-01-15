@@ -40,6 +40,14 @@ if ENABLE_SAWMAN
 SAWMAN_DIR = lib/sawman
 endif
 
+if ENABLE_FUSIONDALE
+FUSIONDALE_EXAMPLES_DIRS = examples/fusiondale
+endif
+
+if ENABLE_FUSIONSOUND
+FUSIONSOUND_EXAMPLES_DIRS = examples/fusionsound
+endif
+
 SUBDIRS = \
 	data			\
 	docs			\
@@ -53,6 +61,8 @@ SUBDIRS = \
 	$(NON_PURE_VOODOO_SUBDIRS)	\
 	$(PROXY_DIR)		\
 	$(TESTS_DIR)		\
+	$(FUSIONDALE_EXAMPLES_DIR) \
+	$(FUSIONSOUND_EXAMPLES_DIR) \
 	patches			\
 	rules			\
 	build-android

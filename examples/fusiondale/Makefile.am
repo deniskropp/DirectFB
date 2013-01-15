@@ -1,23 +1,26 @@
-## Makefile.am for FusionDale/examples
+## Makefile.am for examples/fusiondale
 
 INCLUDES = \
-	-I$(top_srcdir)/include			\
-	$(FUSION_CFLAGS)			\
-	$(VOODOO_CFLAGS)
+	-I$(top_builddir)/include \
+	-I$(top_builddir)/lib \
+	-I$(top_builddir)/lib/fusiondale \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/lib     \
+	-I$(top_srcdir)/lib/fusiondale
 
 LIBADDS = \
-	$(top_builddir)/src/libfusiondale.la	\
-	$(FUSION_LIBS)				\
-	$(VOODOO_LIBS)
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/lib/fusiondale/libfusiondale.la
 
-if HAVE_VOODOO
+if ENABLE_VOODOO
 VOODOO_TESTS = fd_client fd_proxy
 else
 VOODOO_TESTS =
 endif
 
 noinst_PROGRAMS = \
-	simple			\
+	fd_simple			\
 	t2_sender		\
 	t2_receiver		\
 	data_test		\
@@ -28,8 +31,8 @@ noinst_PROGRAMS = \
 	coma_test		\
 	$(VOODOO_TESTS)
 
-simple_SOURCES = simple.c
-simple_LDADD   = $(LIBADDS)
+fd_simple_SOURCES = fd_simple.c
+fd_simple_LDADD   = $(LIBADDS)
 
 t2_sender_SOURCES = t2_sender.c
 t2_sender_LDADD   = $(LIBADDS)
@@ -56,7 +59,7 @@ coma_test_SOURCES = coma_test.c
 coma_test_LDADD   = $(LIBADDS)
 
 fd_client_SOURCES = fd_client.c
-fd_client_LDADD   = $(LIBADDS) $(VOODOO_LIBS)
+fd_client_LDADD   = $(LIBADDS) $(top_builddir)/lib/voodoo/libvoodoo.la
 
 fd_proxy_SOURCES = fd_proxy.c
-fd_proxy_LDADD   = $(LIBADDS) $(VOODOO_LIBS)
+fd_proxy_LDADD   = $(LIBADDS) $(top_builddir)/lib/voodoo/libvoodoo.la
