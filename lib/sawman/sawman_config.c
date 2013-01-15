@@ -87,7 +87,7 @@ parse_args( const char *args )
                *next++ = '\0';
 
           if (strcmp (buf, "help") == 0) {
-               fprintf( stderr, config_usage );
+               fprintf( stderr, "%s", config_usage );
                exit(1);
           }
 
@@ -540,7 +540,7 @@ sawman_config_init( int *argc, char **argv[] )
           for (i = 1; i < *argc; i++) {
 
                if (!strcmp( (*argv)[i], "--sawman-help" )) {
-                    fprintf( stderr, config_usage );
+                    fprintf( stderr, "%s", config_usage );
                     exit(1);
                }
 
