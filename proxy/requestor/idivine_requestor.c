@@ -44,7 +44,7 @@
 #include <idivine_dispatcher.h>
 
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDiVine *thiz, const char *host, int session );
 
 #include <direct/interface_implementation.h>
