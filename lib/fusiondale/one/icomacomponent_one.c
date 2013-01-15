@@ -227,7 +227,7 @@ IComaComponent_One_InitNotification( IComaComponent        *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IComaComponent_One)
 
-     D_DEBUG_AT( IComaComponent_One, "%s( id %zu, func %p, ctx %p, flags 0x%08x )\n", __FUNCTION__, id, func, ctx, flags );
+     D_DEBUG_AT( IComaComponent_One, "%s( id %lu, func %p, ctx %p, flags 0x%08x )\n", __FUNCTION__, id, func, ctx, flags );
 
      if (id >= data->num_notifications)
           return DR_INVARG;
@@ -252,7 +252,7 @@ IComaComponent_One_InitNotifications( IComaComponent             *thiz,
      D_DEBUG_AT( IComaComponent_One, "%s( inits %p, num %d, ctx %p )\n", __FUNCTION__, inits, num_inits, ctx );
 
      for (i=0; i<num_inits; i++) {
-          D_DEBUG_AT( IComaComponent_One, "  -> id %zu, func %p, ctx %p, flags 0x%08x\n",
+          D_DEBUG_AT( IComaComponent_One, "  -> id %lu, func %p, ctx %p, flags 0x%08x\n",
                       inits[i].id, inits[i].func, inits[i].ctx, inits[i].flags );
 
           if (inits[i].id >= data->num_notifications)
@@ -806,7 +806,9 @@ DispatchNotify( void                  *context,
      unsigned int            *len  = (unsigned int *)( id + 1 );
      IComa_One_data          *coma_data;
 
-     DIRECT_INTERFACE_GET_DATA_FROM( data->coma, coma_data, IComa_One );
+     D_MAGIC_ASSERT( (IAny*)data->coma, DirectInterface );
+
+     coma_data = (IComa_One_data*) data->coma->priv;
 
      D_DEBUG_AT( IComaComponent_One, "%s()\n", __FUNCTION__ );
      D_DEBUG_AT( IComaComponent_One, "  -> size %zu\n", size );
