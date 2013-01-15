@@ -228,7 +228,9 @@ Listener_Request( void *ctx,
           IComa_One_data *coma_data;
           unsigned int    length;
 
-          DIRECT_INTERFACE_GET_DATA_FROM( requestor->coma, coma_data, IComa_One );
+          D_MAGIC_ASSERT( (IAny*)requestor->coma, DirectInterface );
+
+          coma_data = (IComa_One_data*) requestor->coma->priv;
 
           ret = FusionDaleTLS_GetNotificationLength( coma_data->dale, &length );
           if (ret)

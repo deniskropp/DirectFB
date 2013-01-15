@@ -151,7 +151,7 @@ Dispatch_EnterComa( IFusionDale *thiz, IFusionDale *real,
           return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IComa",
-                                        coma, data->self, name, &instance, NULL );
+                                        coma, data->self, (char*)name, &instance, NULL );
      if (ret) {
           coma->Release( coma );
           return ret;
