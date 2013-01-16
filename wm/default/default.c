@@ -4464,13 +4464,9 @@ wm_update_cursor( CoreWindowStack       *stack,
                     break;
 
                case DLBM_BACKVIDEO:
+                    /* Flip the united region. */
                     dfb_regions_unite( &united, updates, updates_count );
-
-                    /* Flip the whole region. */
-                    dfb_layer_region_flip_update( primary, &united, DSFLIP_WAITFORSYNC | DSFLIP_SWAP );
-
-                    /* Copy back the updated region. */
-                    dfb_gfx_copy_regions_client( surface, CSBR_FRONT, DSSE_LEFT, surface, CSBR_BACK, DSSE_LEFT, updates, updates_count, 0, 0, &data->client );
+                    dfb_layer_region_flip_update( primary, &united, DSFLIP_BLIT );
                     break;
 
                default:
