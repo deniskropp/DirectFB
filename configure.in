@@ -2857,7 +2857,8 @@ data/Makefile
 tests/Makefile
 tests/voodoo/Makefile
 tools/Makefile
-
+examples/fusiondale/Makefile
+examples/fusionsound/Makefile
 docs/Makefile
 docs/dfbg.1
 docs/directfb-csource.1

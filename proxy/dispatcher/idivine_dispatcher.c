@@ -42,7 +42,7 @@
 
 #include "idivine_dispatcher.h"
 
-static DFBResult Probe();
+static DFBResult Probe( void );
 static DFBResult Construct( IDiVine          *thiz,
                             VoodooManager    *manager,
                             VoodooInstanceID *ret_instance );

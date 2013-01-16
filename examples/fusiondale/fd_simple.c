@@ -40,7 +40,7 @@ EventCallback( FDMessengerEventID  event_id,
                int                 data_size,
                void               *context )
 {
-     D_INFO( "EventCallback( %lu, %d, %p, %d, %p )\n",
+     D_INFO( "EvenCallback( %u, %d, %p, %d, %p )\n",
              event_id, param, data, data_size, context );
 }
 

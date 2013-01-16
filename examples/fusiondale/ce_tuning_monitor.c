@@ -13,13 +13,13 @@
 static void
 OnStationFound( void *ctx, void *arg )
 {
-     direct_log_printf( NULL, "AV/TuningMonitor: %s( %lu ) called!\n", __FUNCTION__, * (int*) arg );
+     direct_log_printf( NULL, "AV/TuningMonitor: %s( %d ) called!\n", __FUNCTION__, * (int*) arg );
 }
 
 static void
 OnStationLost( void *ctx, void *arg )
 {
-     direct_log_printf( NULL, "AV/TuningMonitor: %s( %lu ) called!\n", __FUNCTION__, * (int*) arg );
+     direct_log_printf( NULL, "AV/TuningMonitor: %s( %d ) called!\n", __FUNCTION__, * (int*) arg );
 }
 
 

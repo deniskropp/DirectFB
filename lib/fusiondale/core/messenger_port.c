@@ -80,6 +80,12 @@ static void fd_messenger_port_notify( CoreMessengerPort                  *port,
 static ReactionResult fd_messenger_port_reaction( const void *msg_data,
                                                   void       *ctx );
 
+DirectResult
+fd_messenger_event_dispatch( CoreMessengerEvent *event,
+                             int                 param,
+                             void               *data_ptr,
+                             unsigned int        data_size );
+
 /**********************************************************************************************************************/
 
 static void
@@ -108,7 +114,7 @@ purge_node( CoreMessengerPort *port,
      /* Remove event node from hash table. FIXME: 2nd lookup */
      ret = fusion_hash_remove( port->nodes, (void*) node->event->id, NULL, &old_value );
      if (ret)
-          D_BUG( "node for event id %lu not found", node->event->id );
+          D_BUG( "node for event id %u not found", node->event->id );
      else
           D_ASSERT( old_value == node );
 
@@ -155,7 +161,7 @@ purge_node( CoreMessengerPort *port,
                /* Remove listener from hash table. */
                ret = fusion_hash_remove( port->listeners, (void*) listener->id, NULL, &old_value );
                if (ret)
-                    D_BUG( "listener id %lu not found", listener->id );
+                    D_BUG( "listener id %u not found", listener->id );
                else
                     D_ASSERT( old_value == listener );
 
@@ -197,7 +203,7 @@ messenger_port_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_MAGIC_ASSERT( port, CoreMessengerPort );
 
-     D_DEBUG_AT( DC_MPort, "%s( %p [%lu] )%s\n", __FUNCTION__, port, object->id, zombie ? " ZOMBIE!" : "" );
+     D_DEBUG_AT( DC_MPort, "%s( %p [%u] )%s\n", __FUNCTION__, port, object->id, zombie ? " ZOMBIE!" : "" );
 
      messenger = port->messenger;
 
@@ -413,7 +419,7 @@ fd_messenger_port_remove_event( CoreMessengerPort  *port,
                purge_node( port, node );
      }
      else
-          D_BUG( "node for event id %lu not found", event_id );
+          D_BUG( "node for event id %u not found", event_id );
 
      /* Unlock port. */
      fusion_skirmish_dismiss( port->lock );
@@ -479,7 +485,7 @@ fd_messenger_port_add_listener( CoreMessengerPort        *port,
           *ret_id = listener->id;
      }
      else
-          D_BUG( "node for event id %lu not found", event_id );
+          D_BUG( "node for event id %u not found", event_id );
 
      /* Unlock port. */
      fusion_skirmish_dismiss( port->lock );
@@ -521,7 +527,7 @@ fd_messenger_port_remove_listener( CoreMessengerPort     *port,
      /* Remove listener from hash table. */
      ret = fusion_hash_remove( port->listeners, (void*) listener_id, NULL, &old_value );
      if (ret) {
-          D_BUG( "listener id %lu not found", listener_id );
+          D_BUG( "listener id %u not found", listener_id );
           fusion_skirmish_dismiss( port->lock );
           return ret;
      }
@@ -584,7 +590,7 @@ fd_messenger_port_enum_listeners( CoreMessengerPort      *port,
           }
      }
      else
-          D_BUG( "node for event id %lu not found", event_id );
+          D_BUG( "node for event id %u not found", event_id );
 
      /* Unlock port. */
      fusion_skirmish_dismiss( port->lock );
@@ -712,7 +718,7 @@ fd_messenger_port_send_event( CoreMessengerPort  *port,
      /* Lookup our event node. */
      node = fusion_hash_lookup( port->nodes, (void*) event_id );
      if (!node) {
-          D_BUG( "node for event id %lu not found", event_id );
+          D_BUG( "node for event id %u not found", event_id );
           fusion_skirmish_dismiss( port->lock );
           return DR_BUG;
      }
@@ -764,7 +770,7 @@ fd_messenger_port_reaction( const void *msg_data,
      node = fusion_hash_lookup( port->nodes, (void*) notification->event_id );
      if (!node) {
           /* Probably purged while the message was pending. */
-          D_WARN( "node for event id %lu not found", notification->event_id );
+          D_WARN( "node for event id %u not found", notification->event_id );
           fusion_skirmish_dismiss( port->lock );
           return RS_OK;
      }
@@ -871,7 +877,7 @@ fd_messenger_port_notify( CoreMessengerPort                  *port,
      D_MAGIC_ASSERT( port, CoreMessengerPort );
      D_FLAGS_ASSERT( flags, CMNF_ALL );
 
-     D_DEBUG_AT( DC_MPort, "%s( %p [%lu], 0x%08x )\n", __FUNCTION__, port, port->object.id, flags );
+     D_DEBUG_AT( DC_MPort, "%s( %p [%u], 0x%08x )\n", __FUNCTION__, port, port->object.id, flags );
 
      D_ASSERT( flags == CMPNF_EVENT );
 

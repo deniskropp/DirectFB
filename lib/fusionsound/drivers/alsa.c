@@ -326,7 +326,7 @@ device_open( void                  *device_data,
 
           if (snd_ctl_card_info( ctl, info ) == 0) {
                snprintf( device_info->name,
-                         FS_SOUND_DEVICE_INFO_NAME_LENGTH,
+                         FS_SOUND_DEVICE_INFO_NAME_LENGTH, "%s",
                          snd_ctl_card_info_get_name( info ) );
           }
 
@@ -548,8 +548,6 @@ device_handle_fork( void             *device_data,
                     FusionForkAction  action,
                     FusionForkState   state )
 {
-     AlsaDeviceData *data = device_data;
-     
      if (action == FFA_CLOSE) {
           switch (state) {
                case FFS_PREPARE:

@@ -52,7 +52,7 @@ thread_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_MAGIC_ASSERT( thread, ComaThread );
 
-     D_DEBUG_AT( Coma_Thread, "%s( %p [%lu] )%s\n", __FUNCTION__, thread, object->id, zombie ? " ZOMBIE!" : "" );
+     D_DEBUG_AT( Coma_Thread, "%s( %p [%u] )%s\n", __FUNCTION__, thread, object->id, zombie ? " ZOMBIE!" : "" );
 
      if (thread->mem)
           SHFREE( thread->shmpool, thread->mem );

@@ -39,7 +39,7 @@
 #include <fusiondale.h>
 
 
-static DirectResult server_run();
+static DirectResult server_run(void);
 
 /**********************************************************************************************************************/
 
@@ -157,7 +157,7 @@ ConstructDispatcher( VoodooServer     *server,
 /**********************************************************************************************************************/
 
 static DirectResult
-server_run()
+server_run(void)
 {
      DirectResult  ret;
      VoodooPlayer *player = NULL;

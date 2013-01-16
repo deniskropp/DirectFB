@@ -67,7 +67,7 @@ component_destructor( FusionObject *object, bool zombie, void *ctx )
 
      D_MAGIC_ASSERT( component, ComaComponent );
 
-     D_DEBUG_AT( Coma_Component, "%s( %p [%lu] )%s\n", __FUNCTION__, component, object->id, zombie ? " ZOMBIE!" : "" );
+     D_DEBUG_AT( Coma_Component, "%s( %p [%du] )%s\n", __FUNCTION__, component, object->id, zombie ? " ZOMBIE!" : "" );
 
      _coma_internal_remove_component( coma, component );
 
@@ -342,7 +342,7 @@ coma_component_notify( ComaComponent                  *component,
      D_MAGIC_ASSERT( component, ComaComponent );
      D_ASSUME( component->active );
 
-     D_DEBUG_AT( Coma_Component, "%s( %p [%lu], %lu - %p )\n", __FUNCTION__,
+     D_DEBUG_AT( Coma_Component, "%s( %p [%u], %lu - %p )\n", __FUNCTION__,
                  component, component->object.id, id, arg );
 
      D_ASSERT( id >= 0 );

@@ -48,7 +48,7 @@
 
 #include <ifusionsound_dispatcher.h>
 
-static DirectResult Probe();
+static DirectResult Probe( void );
 static DirectResult Construct( IFusionSound *thiz, const char *host, int session );
 
 #include <direct/interface_implementation.h>
