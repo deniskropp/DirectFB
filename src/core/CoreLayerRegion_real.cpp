@@ -452,7 +452,16 @@ dfb_layer_region_flip_update_TASK( CoreLayerRegion     *region,
                     /* Make legacy functions use state client */
                     state.client = &client;
 
-                    dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, surface, CSBR_FRONT, DSSE_LEFT, update, 1, 0, 0, &client );
+                    if (update) {
+                         dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, surface, CSBR_FRONT, DSSE_LEFT, update, 1, 0, 0, &client );
+                    }
+                    else {
+                         DFBRegion region = {
+                              0, 0, surface->config.size.w - 1, surface->config.size.h - 1
+                         };
+
+                         dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, surface, CSBR_FRONT, DSSE_LEFT, &region, 1, 0, 0, &client );
+                    }
 
                     CoreGraphicsStateClient_Deinit( &client );
                     dfb_state_destroy( &state );
