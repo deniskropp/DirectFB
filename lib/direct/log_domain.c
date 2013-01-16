@@ -190,7 +190,7 @@ direct_log_domain_configure( const char *name, const DirectLogDomainConfig *conf
 bool
 direct_log_domain_check( DirectLogDomain *domain )
 {
-     return check_domain( domain );
+     return check_domain( domain ) >= DIRECT_LOG_DEBUG;
 }
 
 /**********************************************************************************************************************/
