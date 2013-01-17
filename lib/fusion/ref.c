@@ -168,7 +168,7 @@ fusion_ref_up (FusionRef *ref, bool global)
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_up( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
 
      if (ref->multi.id == fusion_config->trace_ref) {
-          D_INFO( "Fusion/Ref: 0x%08x up (%s)\n", ref->multi.id, global ? "global" : "local" );
+          D_INFO( "Fusion/Ref: 0x%08x up (%s), single refs %d\n", ref->multi.id, global ? "global" : "local", ref->single.refs );
           direct_trace_print_stack( NULL );
      }
 
@@ -249,7 +249,7 @@ fusion_ref_down (FusionRef *ref, bool global)
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_down( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
 
      if (ref->multi.id == fusion_config->trace_ref) {
-          D_INFO( "Fusion/Ref: 0x%08x down (%s)\n", ref->multi.id, global ? "global" : "local" );
+          D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs %d\n", ref->multi.id, global ? "global" : "local", ref->single.refs );
           direct_trace_print_stack( NULL );
      }
 
@@ -273,8 +273,18 @@ fusion_ref_down (FusionRef *ref, bool global)
                }
 
                if (! --ref->single.refs) {
+                    if (ref->multi.id == fusion_config->trace_ref) {
+                         D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs %d, call %p\n", ref->multi.id, global ? "global" : "local", ref->single.refs,
+                                 ref->single.call );
+                    }
+
                     if (ref->single.call) {
                          FusionCall *call = ref->single.call;
+
+                         if (ref->multi.id == fusion_config->trace_ref) {
+                              D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs %d, handler %p\n", ref->multi.id, global ? "global" : "local", ref->single.refs,
+                                      call->handler );
+                         }
 
                          if (call->handler) {
                               fusion_call_execute( call, FCEF_NODIRECT | FCEF_ONEWAY, ref->single.call_arg, NULL, NULL );
