@@ -314,6 +314,25 @@ static Handler m_loop = {
 };
 
 
+static void
+process_comment( FILE *stream )
+{
+     while (!feof( stream )) {
+          switch (fgetc( stream )) {
+               case '\n':
+                    return;
+
+               default:
+                    break;
+          }
+     }
+}
+
+static Handler m_comment = {
+     .process = process_comment
+};
+
+
 static Handler *m_handlers[] = {
      ['b'] = &m_button,
      ['m'] = &m_motion,
@@ -321,7 +340,8 @@ static Handler *m_handlers[] = {
      ['p'] = &m_pause,
      ['t'] = &m_text,
      ['T'] = &m_text_special,
-     ['l'] = &m_loop
+     ['l'] = &m_loop,
+     ['#'] = &m_comment
 };
 
 
