@@ -139,6 +139,8 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      if (ret)
           return ret;
 
+     D_DEBUG_AT( Core_GraphicsStateClient, "  -> gfxstate id 0x%x\n", client->gfx_state->object.ref.multi.id );
+
      if (dfb_config->task_manager) {
           if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion))
                client->renderer = new DirectFB::Renderer( client->state );
@@ -156,7 +158,7 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
 void
 CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
 {
-     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p, gfxstate id 0x%x )\n", __FUNCTION__, client, client->gfx_state->object.ref.multi.id );
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
