@@ -57,7 +57,8 @@ CPPFLAGS +=	\
         -DPTHREADMINIT \
 	-DDATADIR=\"/mnt/sdcard/directfb\"	\
 	-DFONT=\"/mnt/sdcard/directfb/decker.ttf\"	\
-	-DSYSCONFDIR=\"/mnt/sdcard/directfb\"
+	-DSYSCONFDIR=\"/mnt/sdcard/directfb\"	\
+	-DFLUXED_ARGS_BYTES=1000
 #
 # Debug option
 ifeq ($(DEBUG),yes)
@@ -127,6 +128,7 @@ LIB_DIRECT_SOURCES = \
 	$(DFB_SOURCE)/lib/direct/memcpy.c				\
 	$(DFB_SOURCE)/lib/direct/messages.c			\
 	$(DFB_SOURCE)/lib/direct/modules.c				\
+	$(DFB_SOURCE)/lib/direct/perf.c				\
 	$(DFB_SOURCE)/lib/direct/print.c				\
 	$(DFB_SOURCE)/lib/direct/result.c				\
 	$(DFB_SOURCE)/lib/direct/serial.c				\
@@ -285,6 +287,7 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/CoreWindowStack.cpp			\
 	$(DFB_SOURCE)/src/core/CoreWindowStack_real.cpp		\
 	$(DFB_SOURCE)/src/core/CoreWindow_real.cpp		\
+	$(DFB_SOURCE)/src/core/Interface.cpp				\
 	$(DFB_SOURCE)/src/core/Renderer.cpp			\
 	$(DFB_SOURCE)/src/core/Task.cpp
 
