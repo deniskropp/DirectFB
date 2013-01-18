@@ -10,6 +10,7 @@ IDirectFBSurface
 - Split up rectangles into groups of max 200 in FillRectangles().
 - Check for data being non-NULL of passed in interfaces.
 - Add time_stamp to DFBSurfaceEvent.
+- When attaching to an event buffer, generate an update event if appropriate.
 
 IDirectFBDisplayLayer
 - Check if data->stack isn't NULL before calling any cursor routines

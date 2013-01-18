@@ -1,3 +1,946 @@
+commit 7500bf80dbaea17b2740c9e91d99e8876d257edf
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 18 15:50:17 2013 +0100
+
+    IDirectFBSurface: When attaching to an event buffer, generate an update event if appropriate.
+
+commit 7ab6eae03678a379b1d8211d110dd95fdada9d24
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jan 18 14:16:59 2013 +0100
+
+    update news
+
+commit 5d4fa10484d782d0e32b3ba4375a10f132db9c43
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jan 18 14:15:32 2013 +0100
+
+    fix broken merge
+
+commit f19c65b3b0b4a68b55f0f74f7bd95325f02b5ab8
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jan 18 12:20:16 2013 +0100
+
+    wm/default: fix bad merge
+
+commit 8ba7f4ef0f04519ae89aa4679bc34010f6242619
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Jan 16 10:02:13 2013 +0100
+
+    wm: default: blit-flip mouse cursor instead of copying update regions
+    
+    Conflicts:
+    	wm/default/default.c
+
+commit efc072f1bb62238e07e5981584f741f390b27dac
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 16 08:50:07 2013 +0100
+
+    direct: fix direct_log_domain_check()
+
+commit 00e9ca1abe9e0fc636d2188c1bc3537697b327fe
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Jan 12 06:32:32 2013 +0100
+
+    IDirectFBDisplayLayer: In SetBackgroundImage() flush graphics state client of surface.
+    
+    Fixes text on df_window background.
+
+commit 0cbd96e6af9a437aa7fd426af74770307489942f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Jan 12 05:53:23 2013 +0100
+
+    fusion: minor optimisations in fusion_call_execute3() via TLS, allow call-bin-max-num = 0 to disable it.
+
+commit de926d1a24f7108ebd3ef928e3870608de6ff3c6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Jan 12 04:36:52 2013 +0100
+
+    Core: Move CoreTLS definition and Core_GetTLS() to core header.
+
+commit a3f4ff6c40e5ae5af0cf0b7744ce6fdfc49de3a4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Jan 12 03:29:31 2013 +0100
+
+    CoreGraphicsStateClient: Add _ReleaseSource() and _SetColorAndIndex() to avoid calling generated C wrappers.
+
+commit 114f8eb9e0e0508fda95e933a186040beb58e0b3
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Jan 15 13:09:47 2013 +0100
+
+    debian: update package
+
+commit 5f43807d4baf8910734995bfaf27ec0179c3a46e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 4 14:30:04 2013 +0100
+
+    fusion: Add fusion_call_set_name().
+
+commit 39a6f5f263352e213585cb9acbee6a546d0b5689
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 11 12:48:04 2013 +0100
+
+    Graphics: Add all Flush calls, client list management as in DirectFB 1.7.
+    
+    Switches to C++ for CoreGraphicsStateClient as well.
+
+commit 9fe1e48f548b0f93fa0d62184249fbdb6cf3bfd4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 11 12:44:07 2013 +0100
+
+    Core: Fixes in dfb_gfxcard_state_check_acquire() for source flip count and other selection, and adding EmitCommands when destination allocation changes.
+
+commit af44c3919ea43372731ea4556eeeb3809217cb40
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 11 04:54:17 2013 +0100
+
+    fbdev: Call dfb_surface_notify_display2() at end of primaryFlipRegion()
+    
+    This is not the best solution. Actually, the function should be called
+    asynchronously when the buffer gets displayed, e.g. on vsync.
+
+commit 79c41521810e9df740339ea425f28ea05af407ac
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jan 10 18:44:54 2013 +0100
+
+    increase DirectFB version to 1.6.3, require fluxcomp 1.4.3, require linux-fusion 9.0
+
+commit d3ace0b3c848bec2cbe2e2750498b7961407bc60
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 9 18:11:15 2013 +0100
+
+    graphics: Fix crash due to missing initialisation of renderer pointer.
+
+commit 8463dfde8c400783870148334144aa75b645b634
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 9 16:45:27 2013 +0100
+
+    IDirectFBWindow: Use CoreWindow_GetInsets(), remove CoreWindowStack_GetInsets().
+
+commit 51fd7db8a4971c3b6cb3ef9aec0bb4dcfc9223b5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 9 15:06:28 2013 +0100
+
+    mkdfiff: add dithering to RGB16 conversion code
+
+commit 96e178d9fd1312eebbf97d716e97762832259194
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 9 14:03:25 2013 +0100
+
+    API: Fix DFXL_ALL* for DFXL_TILEBLIT and DFXL_FILLSPAN
+
+commit 72eb9d6c35a10e0f1fd5634b999d2fe9ac9f9a1e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 9 14:01:54 2013 +0100
+
+    fusion: flush buffered calls in fusion_reactor_dispatch_channel()
+
+commit 90baa1c261029107bbae5b656de8c7fbf11d3a72
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jan 7 13:10:21 2013 +0100
+
+    IDirectFBSurface: log rects/points in BatchBlit
+
+commit 077df1f6161bfefa74b8e3c02732d9f5a1fba150
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jan 7 13:06:28 2013 +0100
+
+    media: just some comments
+
+commit 28cc920ee4dad642a0053d3f64eb47ea4572947a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jan 7 12:46:50 2013 +0100
+
+    CoreGraphicsStateClient: send blits in batches of up to 200 each
+
+commit 44debaec956b450f3023967e46b5a4d8647080b7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 4 16:39:36 2013 +0100
+
+    fbdev: In fbdevLock() use allocation->index instead of dfb_surface_buffer_index(allocation->buffer).
+    
+    The buffer might already have been destroyed.
+
+commit 86bc286185b82abf86c3d0d5963d27f30f571e72
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 4 16:36:19 2013 +0100
+
+    log: Use monotonic clock for domain prints.
+
+commit 31ad1373adad5e0d82207b896b44c1b4d9fa27f4
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jan 4 13:58:23 2013 +0100
+
+    libfusion: add empty implementations of __Fusion_call_init() __Fusion_call_deinit() and fusion_call_set_quota()
+    
+    This fixes single-app builds
+
+commit ec91ee237ba7159af8a99cccea9252697e0b8d77
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 4 12:58:45 2013 +0100
+
+    DFIFF: Load image provider directly in slave in case of DFIFF header.
+
+commit b454c2532c747d72fca53ee3ec214531dd5ba9c1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jan 3 12:55:26 2013 +0100
+
+    DFIFF: Check for DFIFF_FLAG_PREMULTIPLIED and premultiply/demultiply when needed.
+
+commit f945f2be061f422f31353a18dc11f266fcc3388c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jan 3 12:52:21 2013 +0100
+
+    mkdfiff: Add option -p, --premultiplied to generate premultiplied pixel data.
+
+commit 102ec00b0440c6a842c7a7e5a5af2bb81fe19c33
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jan 3 12:50:52 2013 +0100
+
+    DFIFF: Add DFIFF_FLAG_PREMULTIPLIED to indicate premultiplied pixels.
+
+commit 42efd119c37b7269c2fa50941b4919cb2b591e79
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 2 21:43:36 2013 +0100
+
+    dfbtest_font: Append some characters to test string to check kerning.
+
+commit ab18c14693a8acd72c3f9d2b742c655ca0e9173a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 2 21:41:19 2013 +0100
+
+    FT2: Make kerning cache entries lazy, speeds up CreateFont() on average by factor 6 on an embedded device.
+
+commit 29d04c64d517d5bcba450e7d99307ed9faf386b7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 2 21:38:49 2013 +0100
+
+    dfbtest_font: Restore test string after accidental commit.
+
+commit 7077ad1fb38550b615faeb7b5c43d29cf2beb192
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 2 21:14:08 2013 +0100
+
+    DFIFF: Fix loading DFIFF to premultiplied (using DSBLIT_SRC_PREMULTIPLY).
+    
+    TODO: Add premultiplied flag to DFIFF.
+
+commit b23a207b8f0b9c8d50883f6b519bf293801d0ba6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Jan 1 15:12:38 2013 +0100
+
+    DFB: Update banner!
+
+commit 8c31d5c8fea2caaf0ab519385d078f10db97524b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Dec 29 11:29:37 2012 +0100
+
+    Options: Add 'call-bin-max-num=<n>' and 'call-bin-max-data=<n>' to configure the maximum call number/data for async call buffer.
+
+commit da4c7d31bf3634ec4d4e23888bcca8ef42106d9d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Dec 29 03:44:11 2012 +0100
+
+    fusion: Add fusion_call_set_quota() using new ioctl in linux-fusion 8.11.0.
+
+commit f8600dfc2fb7e421b0d51df5ff56512ca5e0fe3a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Dec 29 11:28:44 2012 +0100
+
+    Options: Add 'graphics-state-call-limit=<n>' to set FusionCall quota for graphics state objects.
+    
+    Conflicts:
+    	src/misc/conf.h
+
+commit 7f9f2164b1888193fe50e25ff7f989548c0027e5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Dec 29 04:16:48 2012 +0100
+
+    fusion: Move call bins to TLS to avoid blocking other threads, and prevent dead locks.
+    
+    Conflicts:
+    	lib/fusion/fusion_internal.h
+
+commit fb6ce87f7d22b906d6b1b6e5829f0fcb66d7ad98
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 27 16:24:18 2012 +0100
+
+    graphics: Add some comments to CoreGraphicsStateClient structure.
+    
+    Conflicts:
+    	src/core/CoreGraphicsStateClient.h
+
+commit a07f9ecb901c1e29ddededd35d38ba38fb32ef3d
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jan 10 18:14:29 2013 +0100
+
+    core: backport CoreGraphicsStateClient_Flush() from 1.7
+
+commit fb7e0807f2f864d89138b7f9f0668101b587d4e0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 27 04:22:41 2012 +0100
+
+    IDirectFBSurface: Add CoreGraphicsStateClient_Flush() calls in flipping functions.
+
+commit 4c2c5d6e14546d5f8b551ce60a864cd7cd061694
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 27 04:20:21 2012 +0100
+
+    Graphics: In IGraphicsState_Real::Flush() call dfb_gfxcard_flush().
+
+commit 28c69814ba848825003682791bada74c3bfbee5b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 27 04:14:21 2012 +0100
+
+    IDirectFBEventBuffer: Add some debug messages for surface updates.
+
+commit 7939b6e37232b3570ca725d9ca5735f63e057622
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 27 04:13:38 2012 +0100
+
+    Core: In dfb_layer_region_flip_update() call dfb_gfxcard_flush().
+
+commit 839dbc4334ffbb77dcf8bd8e4b3257b203b02c84
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 27 04:13:16 2012 +0100
+
+    Core: Add dfb_gfxcard_flush() to emit any pending operations.
+
+commit 00dc5b288ed468ddb50428ab5f4e2365c9a710f1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 27 04:07:05 2012 +0100
+
+    direct: Document DirectHashIteratorFunc.
+
+commit 4098d885f216981ff7678dc7e543ee5ae1ec4c8b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 27 16:09:19 2012 +0100
+
+    direct: Add D_INFO_LINE_MSG() and make D_INFO_LINE*() macros a no-op when debug is not enabled.
+
+commit 079baf30244c383eb5e5b5d7c4050372606802fe
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Dec 26 21:58:51 2012 +0100
+
+    IDirectFBSurface: Add time_stamp to DFBSurfaceEvent.
+
+commit 48b54c3fc9b13dff7279c56c438ad90cfa2eabbb
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Dec 26 22:00:58 2012 +0100
+
+    Core: Add CoreSurface surface event debug.
+
+commit 4f1adb2260673388f71450eb14c33818b9539ecc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Dec 26 22:00:25 2012 +0100
+
+    Core: Add CoreSurfaceClient_real debug.
+
+commit 6a2c7355525eda729fedf30fa3bf62c7f545db41
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Dec 23 13:53:54 2012 +0100
+
+    Util: Use dfb_gfxcard_batchstretchblit() in dfb_gfx_stretch_stereo().
+
+commit f41f989ca7562ce79d715b8263b465126b6b7e6f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Dec 23 04:45:56 2012 +0100
+
+    gfx: add some FIXME comments where I suspect an off by one error
+
+commit a32633813308c9d431342dde9498cd1dd1d991b7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Dec 21 03:27:53 2012 +0100
+
+    dfbdump: Show KEEP_SIZE option for windows.
+
+commit 57c763487539baa9b7468095bb59b4137df5f078
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Dec 21 03:26:17 2012 +0100
+
+    Water: Change WTT_NONE (0) to WTT_UNKNOWN (1), make WTT_IDENTITY = 0.
+
+commit e9ece1bc5bb412aeaf763b95ce52f159e680c1e5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 20 17:40:49 2012 +0100
+
+    IDirectFB: Use DWOP_KEEP_SIZE when width/height are specified in surface description (force-windowed).
+
+commit d807ca5ce19492faf06c73f90bfdff9a8c858f79
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Dec 19 03:52:35 2012 +0100
+
+    direct: Add D_INFO_LINE() for easy on-demand tracing.
+    
+    Example output (with three of those added to idirectfb.c):
+    
+    (*) [Main Thread        0.011,101] (24423) IDirectFB_Construct                                          idirectfb.c:2026
+    (*) [Main Thread        0.011,129] (24423) IDirectFB_Construct                                          idirectfb.c:2033
+    (*) [Main Thread        0.011,147] (24423)   InitIDirectFB_Async                                        idirectfb.c:1983
+
+commit 90771a2b7aad1a5c2c4c2b7467dd054d161b0780
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 18 19:07:01 2012 +0100
+
+    OneBench: Use malloc'ed buffer rather than a huge array on stack.
+
+commit c1bd2a0ce3edd3c87760b4ebc57ce3d9eaab5bf7
+Author: Tarik Sekmen <tarik@directfb.org>
+Date:   Mon Dec 17 18:03:15 2012 +0100
+
+    SetClipboardData: Fix for no timestamp.
+
+commit bf0e2129ea53f18863dab36c43592db29711def7
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Dec 13 18:54:09 2012 +0100
+
+    tools: add simple spooky output to dfbdumpinput (via -s option)
+
+commit 9e11e5663f9b7f1340cfa666039894ca57cc19f1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 13 15:52:23 2012 +0100
+
+    linux_input: Make linux-input-force work again with no-vt. Add some debug.
+
+commit 398e3f484a595e3c3474f3f87bd6e9c8c21bcc46
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 18 18:55:46 2012 +0100
+
+    IDirectFB: When force-windowed applications use SetVideoMode, create window with DWOP_KEEP_SIZE.
+
+commit b7e14e34c9915ae74aa078889ed7b30d032133ca
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Dec 13 14:14:46 2012 +0100
+
+    dfbdumpinput: Add tool for forwarding input events to a file or another machine.
+    
+    Usage example:   dfbdumpinput | nc 10.1.1.56 1234
+    
+    Note: if you use a 64bit system and want to forward to a 32bit system use '-32' option.
+
+commit 8c7676c97ca52ae3362551b06494c68b87c14d53
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:43:36 2012 +0100
+
+    API: Add separate directfb_water_strings.h, silence generation calls.
+
+commit 523abbd5e514507229a5aaa3f991fad17d02685b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:40:11 2012 +0100
+
+    IDirectFBSurface: Check for surface data being non-NULL of passed in interfaces.
+
+commit ce3daf2c7278999a2f4481770c0d822f9081a7cc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:38:44 2012 +0100
+
+    core: Add missing config.h include to surface_pool.c
+
+commit 145072d4b39d1d3a59087dc0f5bc97def7f4de38
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:38:18 2012 +0100
+
+    core: Fix dfb_surface_reconfig() for colorspace.
+
+commit f8c346f24b9c97dba286e41adc0e15e21af09eee
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:35:17 2012 +0100
+
+    direct: Use __typeof__ instead of typeof (for ISO C).
+
+commit cdb635f96ecbd26ef8f5956dfd9b145bf0c81ea4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:17:21 2012 +0100
+
+    IDirectFB: Configure primary layer surface with DSCAPS_GL when passed in via surface description.
+
+commit 07ad5b21d5b6f5a313fb41f2327eeb6a9eb2b04f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:11:05 2012 +0100
+
+    tools: fix warnings
+
+commit 35d204a78135ad5a476c844ce6d473d754679fa6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:10:49 2012 +0100
+
+    dfbtest_water: cleanups
+
+commit 96cc4a8d7e2ed59e49a0f428f3141012f580bb6f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:09:34 2012 +0100
+
+    core: cleanups, fix warnings
+    
+    Conflicts:
+    	src/core/Renderer.cpp
+    	src/core/Task.h
+    	src/core/surface.c
+    	src/core/surface_buffer.h
+    	src/core/surface_pool.c
+    	src/gfx/util.c
+
+commit f69c957b553d6ddc203ee4fc723f44336a433eac
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:09:01 2012 +0100
+
+    fusion: cleanups, fix warnings
+
+commit 430385291518a4ac183ecce38546e723485ebd79
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:08:53 2012 +0100
+
+    direct: cleanups, fix warnings
+    
+    Conflicts:
+    	lib/direct/types.h
+
+commit 993cfb7037ac7c36def89c2a1a86086cf30db598
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 11 02:08:12 2012 +0100
+
+    API: cleanup trailing comma in enums
+
+commit 0b6c07025edbec62cb09c7bf5788b7b0314cadb7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 4 00:22:52 2012 +0100
+
+    fusion: Include sys/types.h before linux/fusion.h.
+
+commit c7107d31c962b1cfe90fa798f48d5e7b3be6ad44
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 4 00:07:47 2012 +0100
+
+    system: Add debug to system module loading.
+
+commit f7456e4849f4e98e0c03eee26999b262072cb6a9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Nov 29 22:08:11 2012 +0100
+
+    API: Add six keys, e.g. for phones.
+
+commit 5818bb95daf45eceaf518c3254606a7ed07d819d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Nov 25 22:43:50 2012 +0100
+
+    Core: Do not consider resource manager for object without identity.
+    
+    Will add resource tracking for master soon.
+
+commit dacd0f8d91eb47b27022de7f161556fd56f879d7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Nov 25 22:42:28 2012 +0100
+
+    dfbdump: Fixes according to changes in object life cycle for buffers/surfaces.
+
+commit 455b1495170ec7ba66c1ee4241e5e9faa3576093
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Nov 23 19:42:10 2012 +0100
+
+    Graphics: Fix CSF_SOURCE_LOCKED not being set properly in all relevant cases, leading to missing unlock.
+
+commit ce9eb78e9673661f6102e533718f9509a4ddc98a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Nov 23 13:27:45 2012 +0100
+
+    Core: Reduce size of (unused?) data shm pool to 16 MB.
+
+commit fd264c91807e54c5c9c9a6412f91cf85ca01f598
+Author: Ilyes Gouta <ilyes.gouta@st.com>
+Date:   Wed Nov 7 09:10:12 2012 -0500
+
+    idirectfbdisplaylayer: check if data->stack isn't NULL before calling any cursor routines
+    
+    For example, calling IDirectFBDisplayLayer_EnableCursor() leads to a SIGSEGV within
+    dfb_windowstack_lock() because of a deference of the uninitialized CoreWindowStack *stack
+    variable.
+    
+    The patch introduces few more additional checks, just like what has been implemented in
+    IDirectFBDisplayLayer_SetBackgroundMode() and IDirectFBDisplayLayer_SetBackgroundImage().
+    
+    Signed-off-by: Ilyes Gouta <ilyes.gouta@st.com>
+
+commit ed493615d0c3e890a282d8a50eaae002ec9eaf42
+Author: Ilyes Gouta <ilyes.gouta@st.com>
+Date:   Mon Nov 12 13:39:55 2012 -0500
+
+    directfb: fix DSPF_NV16 per-pixel color bits count to 16
+    
+    (4Y + 2CbCr + 2CbCr (next line) * 8) / 4 == 16.
+    
+    Signed-off-by: Ilyes Gouta <ilyes.gouta@st.com>
+
+commit 7a0c891919e7e0d088631d1f1a707ef7c689af65
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Nov 16 11:13:53 2012 +0100
+
+    Core: Add some debug to failing acceleration cases.
+
+commit 4f3de39cdf366e719b8136527c21da645327da31
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Nov 6 14:28:35 2012 +0100
+
+    core: gfxcard: correctly recover from error conditions, fix one source locking bug
+    
+    Conflicts:
+    	src/core/gfxcard.c
+
+commit 6f2c78ab57c07ce8fa0aab6c2cdebd91da00e340
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Oct 25 13:42:24 2012 +0200
+
+    fusion: also allow https streams
+
+commit 50c78ccab53a21b09d9adf95d3befa4d314f4f28
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Oct 24 18:01:15 2012 +0200
+
+    mesa: fix compatibility with mesa 9.0
+
+commit 414497f57e129dd66f9317bddde94c5ca1b7e733
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Oct 11 13:47:22 2012 +0200
+
+    debian: fix check for armhf (raspberry pi detection hack)
+    
+    Conflicts:
+    	debian/rules
+
+commit f93d6e23abbd1ad954709eaf26913472b87aa916
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Oct 11 13:01:38 2012 +0200
+
+    debian: add missing file
+
+commit afa7194b6d11d043e4f2ad36bf9556c79655ed83
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 10 00:40:55 2012 +0200
+
+    fusion: minimal optimisation in fusion_call_execute*() using call->fusion_id instead of lookup
+
+commit d738a778fac207ede6f3374a324fcd8b886fcb7f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 9 21:49:23 2012 +0200
+
+    defaultwm: Fix update_lock placements.
+    
+    Conflicts:
+    	wm/default/default.c
+
+commit 20a219ea6a4f650c664dbfbe83eb74f1739365f1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 9 21:48:53 2012 +0200
+
+    dfbtest_surface_compositor_threads: Add FPS prints.
+
+commit ae86a3a311b812d32bbfc43bd31a348d682d646f
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jan 10 16:38:22 2013 +0100
+
+    fix previous commit for DirectFB 1.6
+
+commit 3e40a0b892b4c851a4acbcb6af8185ee5b033169
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 9 21:47:56 2012 +0200
+
+    X11: Handle display task done calls. Other fixes.
+
+commit 4f709c72b85ef1c93f03c13b4c7036b64f3bce60
+Merge: e2f2ec4 0e3cedd
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jan 10 16:33:37 2013 +0100
+
+    Merge branch 'directfb-1.6' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.6
+
+commit e2f2ec423f5a719aea132986519d52ffec716b77
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jan 10 16:33:08 2013 +0100
+
+    fix previous commit for DirectFB 1.6
+
+commit af57197fa9ee2c8dbf15b9aebbcf00ab45c2bf9e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 2 11:52:02 2012 +0200
+
+    Task: Progress with task manager, renderer, fixed bugs, optimisations...
+    
+    Implement more rendering functions in Renderer and GenefxEngine.
+    
+    Make '[no-]hardware' work with 'task-manager'.
+    
+    Add FillSpans() to graphics driver API.
+    
+    Add Util::PrintF() to generate an std::string in printf manner.
+    
+    Add Util::TempArray template to provide on-stack/heap allocation.
+    
+    Add dfb_gfx_copy_regions_client() working like dfb_gfx_copy_regions(),
+    but with a given CoreGraphicsStateClient instead of a global static state.
+    
+    Use dfb_gfx_copy_regions_client() instead of CoreSurface_BackToFrontCopy().
+    
+    Update default WM to use CoreGraphicsStateClient instead of calling core functions directly.
+
+commit 0e3ceddc6911992ddca5a9b8d007f46ce557e5b8
+Merge: abb5b02 2a835e6
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jan 10 16:19:45 2013 +0100
+
+    Merge branch 'directfb-1.6' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.6
+
+commit 2a835e6d3fbb260225c01534219ffb92a6055529
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 8 22:10:31 2012 +0200
+
+    Core: Add buffer index to surface allocation.
+    
+    Conflicts:
+    	src/core/surface_allocation.h
+
+commit abb5b02f164d295b51d10a72154f1042e151f4ea
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Jan 10 16:18:04 2013 +0100
+
+    core: fix wrong parameters order
+    
+    Thanks to Ilyes GOUTA <ilyes.gouta@st.com>
+
+commit 97c37dcedf5ff1b75c340aec70f8fba1c31ee786
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 8 20:40:35 2012 +0200
+
+    configure: Add --with-args-size= for static args allocation in fluxed code.
+    
+    Conflicts:
+    	lib/sawman/Makefile.am
+    	rules/flux_comp_sawman.make
+
+commit 184f490398f7e7f5c7c43deabf36320cf5b54386
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 6 18:19:40 2012 +0200
+
+    dfbtest_windows_watcher: print cursor_flags
+
+commit 77d77526d4cc520aead62b58479c2d79ce55a4ab
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 6 18:18:39 2012 +0200
+
+    tests: add dfbtest_blit_threads and dfbtest_surface_compositor_threads
+
+commit 7e0bebc16226700ad2c3cd099fdbf685c262e37c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Oct 6 18:16:23 2012 +0200
+
+    voodoo: update player info, address etc.
+
+commit 35d31a7eaddc61953cb95856efaf59f233148ddb
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 24 18:34:33 2012 +0200
+
+    debian: typo
+
+commit 827e7205df8d108c73fd0602cc33767d03eb5b5a
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Sep 25 11:12:06 2012 +0200
+
+    videoprovider: remove sleep(1)
+
+commit 6abf2c15ea5cfe7738fdf75d7255ec7b2c4c7db9
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Sep 24 19:00:33 2012 +0200
+
+    videoprovider: also support audio for gst-1.0 api
+
+commit a8a102241783d5d59ba36a3d6e0e3da8fceb5de7
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 24 16:16:06 2012 +0200
+
+    debian: split dev package
+    
+    Conflicts:
+    	debian/control
+
+commit 5c45da76ada5d3603b6174c7af2c8fb08e4108e1
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 24 15:55:55 2012 +0200
+
+    remove fluxcomp
+
+commit 8f0ce79d7eccf6e25817eb03e430b6cf600225b8
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 24 15:54:20 2012 +0200
+
+    debian: only build vdpau stuff on i386 and amd64
+    
+    Conflicts:
+    	debian/control
+
+commit 6f0d437a096e0d2c8886dea12c0938e511c26989
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Sep 24 15:30:59 2012 +0200
+
+    videoprovider: check for fusionsound support, various fixes for gstreamer-1.0
+
+commit 9fef0de562d21ff82e564e5488f0d6f9f0d78382
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 24 15:41:40 2012 +0200
+
+    debian: remove uwmdump
+
+commit ce6aa6ba311f39b28218bc75513c08d267058fef
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 24 14:53:47 2012 +0200
+
+    remove unique, does not build
+
+commit a19fdb1482ed9023459cb1b6b16cf848aeb461ec
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 24 14:07:04 2012 +0200
+
+    debian: remove -wl,as-needed form ldflags
+
+commit 02e1712d105b6629d296da2621423e2080e525b5
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Sep 24 13:54:19 2012 +0200
+
+    debian: do not depend on libjpeg62-dev but on libjpeg-dev
+
+commit 069fdc933355054db085b20ec4ad7601281f3f16
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 23:42:53 2012 +0200
+
+    egl: fix build
+
+commit 65635193be586291a638399674449eff4a92e5f6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 23:25:03 2012 +0200
+
+    fusion: Use malloc()ed FUSION_MESSAGE_SIZE*4 buffer for reading.
+
+commit edea17411dc6d0d2a4a17890a3e12bc110feed82
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 23:23:36 2012 +0200
+
+    Core: Implement SetSrcConvolution() via flux.
+    
+    Conflicts:
+    	src/core/CoreGraphicsStateClient.c
+
+commit e84e4cb58dd448cdcadaa465beb9ae05c83a8bbf
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 23:22:31 2012 +0200
+
+    dfbtest_fillrect: Clear first.
+
+commit 8ddb4fd404359208dc932d7a597a6bb00da40b65
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 23:21:57 2012 +0200
+
+    dfbtest_old_gl2: Set shader float precision.
+
+commit ef2355308a93a76658f650a6606aa9ce61ee4a89
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 23:21:21 2012 +0200
+
+    Core: Debug log window events, only buttons for now.
+
+commit cf4f347b620d9686ccfd9bc840fefd4963ad88f1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 23:20:29 2012 +0200
+
+    IDirectFBSurface: Split up rectangles into groups of 200.
+
+commit 3f4c5c15546b81fbed7ed741b28a1e5e622ba1c6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 23:17:13 2012 +0200
+
+    egl: better error handling, dealloc textures/fbos
+
+commit bc4a0be97a04f8285b2f330846c7d5ee0a076aa7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 1 20:06:06 2012 +0200
+
+    dfbtest_surface_compositor: allow access to offscreen surfaces for compositing to other processes
+
+commit 88a0fd15510ce15a208b286f0c99c5783fe0ebc2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 20 17:01:54 2012 +0200
+
+    DGIFF: Fix advance by adding subpixel accuracy.
+
+commit 4299ce53cab150085cf1b4704e9310c82d7f47cb
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 1 19:21:54 2012 +0200
+
+    Revert "DGIFF: Fix advance by adding subpixel accuracy."
+    
+    accidentally added a new file with this
+    
+    This reverts commit cd431afdb6a2e36b4896e359a02f22da1b71f50d.
+
+commit 34ae4e669bdcb6620146749033dcab8e36dc08e2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 1 18:21:24 2012 +0200
+
+    Core: avoid call to direct_trace_lookup_symbol_at() by calling direct_log_domain_check()
+
+commit 661ca7511b37c63c491fd37af3222fc07745c64c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 1 17:29:33 2012 +0200
+
+    Fusion: Avoid direct_trace_lookup_symbol_at() when debug domain is not enabled by calling direct_log_domain_check() first
+
+commit 24511b8195addfd2190d1b813f71e27bf58bc028
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 1 17:23:00 2012 +0200
+
+    direct: Fix double locking of domains mutex in direct_log_domain_check()
+
+commit 01c5bcdb79b731b9a1b9bc1ed89d1a053d9fcf98
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Nov 6 14:21:07 2012 +0100
+
+    core: gfxcard: fix locking also for draw_mono_glyphs() and fillquadrangles()
+
+commit 2c02d006c658bee199a3fb4adf878525c53dca2c
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Nov 6 14:17:03 2012 +0100
+
+    core: gfxcard: add pop/push identity, locking adjustments for stereo buffers
+
+commit ba8ed06f09f0033013eb4576f87a619af57221e2
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Nov 6 12:09:35 2012 +0100
+
+    core: remorked locking in gfxcard which led to segfaults in certain situations
+
+commit 555ed687ee84899657c7e471f9ead1ec2f46f572
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Oct 23 12:26:08 2012 +0200
+
+    fix build for removed linux-one
+
+commit 6db796d22e42e442bd9fab64354d273948411a09
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Mon Oct 22 14:48:23 2012 +0200
+
+    remove linux-one, it has been merged in linux-fusion
+    
+    Conflicts:
+    
+    	lib/One/Makefile.am
+
+commit b12911b56f0e719d111163fe9e0babf27b2888c3
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Oct 19 15:47:33 2012 +0200
+
+    fusion: always flush fusion calls when shutting down
+
+commit 156b650a56aa6b766218424da5bc5b501ecd2716
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Sep 20 18:09:13 2012 +0200
+
+    update changelog
+
 commit fe1036982b1377ccae383bda683b27635c092158
 Author: Andreas Shimokawa <andi@directfb.org>
 Date:   Thu Sep 20 18:09:03 2012 +0200
