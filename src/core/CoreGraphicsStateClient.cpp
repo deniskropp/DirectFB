@@ -193,9 +193,7 @@ CoreGraphicsStateClient_ReleaseSource( CoreGraphicsStateClient *client )
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
-     return requestor->ReleaseSource();
+     return CoreGraphicsState_ReleaseSource( client->gfx_state );
 }
 
 DFBResult
@@ -207,9 +205,7 @@ CoreGraphicsStateClient_SetColorAndIndex( CoreGraphicsStateClient *client,
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
-     return requestor->SetColorAndIndex( color, index );
+     return CoreGraphicsState_SetColorAndIndex( client->gfx_state, color, index );
 }
 
 DFBResult
