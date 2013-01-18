@@ -864,6 +864,30 @@ DFBResult IDirectFBEventBuffer_AttachSurface( IDirectFBEventBuffer *thiz,
      dfb_surface_attach_channel( surface, CSCH_EVENT, IDirectFBEventBuffer_SurfaceReact,
                                  data, &attached->reaction );
 
+     D_DEBUG_AT( IDFBEvBuf, "  -> flip count %u\n", surface->flips );
+
+     if (surface->flips > 0 || !(surface->config.caps & DSCAPS_FLIPPING)) {
+          EventBufferItem *item;
+
+          item = D_CALLOC( 1, sizeof(EventBufferItem) );
+          if (!item)
+               D_OOM();
+          else {
+               item->evt.surface.clazz        = DFEC_SURFACE;
+               item->evt.surface.type         = DSEVT_UPDATE;
+               item->evt.surface.surface_id   = surface->object.id;
+               item->evt.surface.update.x1    = 0;
+               item->evt.surface.update.y1    = 0;
+               item->evt.surface.update.x2    = surface->config.size.w - 1;
+               item->evt.surface.update.y2    = surface->config.size.h - 1;
+               item->evt.surface.update_right = item->evt.surface.update;
+               item->evt.surface.flip_count   = surface->flips;
+               item->evt.surface.time_stamp   = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+               IDirectFBEventBuffer_AddItem( data, item );
+          }
+     }
+
      return DFB_OK;
 }
 
