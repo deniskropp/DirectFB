@@ -4175,6 +4175,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      DFBResult         ret;
      DFBRegion         old_dest;
      DFBRegion         old_region;
+     DFBRegion         united;
      WMData           *wmdata   = wm_data;
      StackData        *data     = stack_data;
      bool              restored = false;
