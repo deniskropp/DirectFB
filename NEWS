@@ -1,3 +1,96 @@
+1.6.3
+-----
+
+IDirectFB
+- Configure primary layer surface with DSCAPS_GL when passed in via surface description.
+- When force-windowed applications use SetVideoMode, create window with DWOP_KEEP_SIZE.
+- SetClipboardData: Fix for no timestamp.
+
+IDirectFBSurface
+- Split up rectangles into groups of max 200 in FillRectangles().
+- Check for data being non-NULL of passed in interfaces.
+- Add time_stamp to DFBSurfaceEvent.
+
+IDirectFBDisplayLayer
+- Check if data->stack isn't NULL before calling any cursor routines
+
+IDirectFBEventBuffer
+- Add some debug messages for surface updates.
+
+IDirectFBWindow
+- Use CoreWindow_GetInsets(), remove CoreWindowStack_GetInsets() (fixes problems with secure-fusion mode slaves).
+
+Options
+- Add 'graphics-state-call-limit=<n>' to set FusionCall quota for graphics state objects.
+- Add 'call-bin-max-num=<n>' and 'call-bin-max-data=<n>' to configure the maximum call number/data for async call buffer.
+
+Core
+- Fix locking in gfxcard code to fix segfaults in rare situations.
+- Add debug messages for window events and surface events.
+- Implement SetSrcConvolution() via flux (fix for secure-fusion mode).
+- Add buffer index to surface allocation for faster lookup.
+- Fix DSPF_NV16 per-pixel color bits count to 16
+- Reduce size of data shm pool to 16 MB.
+- Fix dfb_surface_reconfig() for colorspace.
+- Add dfb_gfxcard_flush() to emit any pending operations.
+- Fixes in dfb_gfxcard_state_check_acquire() for source flip count and other selection, and adding EmitCommands when destination allocation changes.
+- Graphics: Add all Flush calls, client list management as in DirectFB 1.7.
+- CoreGraphicsStateClient: Add _ReleaseSource() and _SetColorAndIndex() to avoid calling generated C wrappers.
+
+libdirect
+- Fix double locking of domains mutex in direct_log_domain_check().
+- Also alow https as stream sources.
+- Add D_INFO_LINE() and D_INFO_LINE_MSG() for easy on-demand tracing.
+
+libfusion
+- Use malloc()ed FUSION_MESSAGE_SIZE*4 buffer for reading, fixes problems with small stacks
+- Move call bins to TLS to avoid blocking other threads, and prevent dead locks.
+- Add fusion_call_set_quota() using new ioctl in linux-fusion 8.11.0.
+- Add fusion_call_set_name().
+- minor optimisations in fusion_call_execute3() via TLS, allow call-bin-max-num = 0 to disable it.
+
+Default WM
+- Fix locking issue in repaint_stack().
+- use DSFLIP_BLIT for mouse cursor instead of copying update regions.
+
+Input
+-linux_input: Make linux-input-force work again with no-vt. Add some debug.
+
+EGL
+- Add better error handling.
+- Fix deallocation textures/fbos.
+
+Mesa
+- Fix compatibility with mesa 9.0
+
+FontProvider
+- Fixed advance for DGIFF by adding subpixel accuracy.
+- FT2: Make kerning cache entries lazy, speeds up CreateFont() on average by factor 6 on an embedded device.
+
+GStreamer VideoProvider
+- fix for gstreamer 1.0
+
+DIFF ImageProvider
+- Fix loading to premultiplied (using DSBLIT_SRC_PREMULTIPLY).
+- Add DFIFF_FLAG_PREMULTIPLIED to indicate premultiplied pixels.
+- Load image provider directly in slave in case of DFIFF header.
+
+Tools
+- dfbdump: Fixes according to changes in object life cycle for buffers/surfaces, show KEEP_SIZE option for windows.
+- Add dfbdumpinput (tool for forwarding raw or spooky input events to a file or another machine)
+- mkdfiff: Add option -p, --premultiplied to generate premultiplied pixel data.
+- mkdfiff: add dithering to RGB16 conversion code.
+
+Tests
+- Add dfbtest_blit_threads and dfbtest_surface_compositor_threads.
+- dfbtest_surface_compositor: allow access to offscreen surfaces for compositing to other processes
+- dfbtest_old_gl2: Set shader float precision.
+- dfbtest_fillrect: Clear first.
+- dfbtest_windows_watcher: print cursor_flags.
+- dfbtest_font: Restore test string after accidental commit.
+- OneBench: Use malloc'ed buffer rather than a huge array on stack.
+
+
 1.6.2
 -----
 
