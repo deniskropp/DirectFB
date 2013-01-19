@@ -40,14 +40,14 @@ __no_instrument_function__
 long long
 direct_clock_get_micros( void )
 {
-     return direct_clock_get_time( DIRECT_CLOCK_SESSION );
+     return direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 }
 
 __no_instrument_function__
 long long
 direct_clock_get_millis( void )
 {
-     return direct_clock_get_time( DIRECT_CLOCK_SESSION ) / 1000LL;
+     return direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ) / 1000LL;
 }
 
 __no_instrument_function__
