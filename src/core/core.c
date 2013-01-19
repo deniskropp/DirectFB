@@ -26,7 +26,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define DIRECT_DEBUG_ENABLE
+//#define DIRECT_DEBUG_ENABLE
 
 #include <config.h>
 
