@@ -395,7 +395,6 @@ dfb_surface_pool_bridges_transfer( CoreSurfaceBuffer     *buffer,
      DFBResult                     ret;
      int                           i;
      DFBRectangle                  rect;
-     CoreSurface                  *surface;
      CoreSurfacePoolBridge        *bridge = NULL;
      const SurfacePoolBridgeFuncs *funcs;
      CoreSurfacePoolTransfer      *transfer;
@@ -410,14 +409,10 @@ dfb_surface_pool_bridges_transfer( CoreSurfaceBuffer     *buffer,
                  buffer, buffer->config.size.w, buffer->config.size.h,
                  dfb_pixelformat_name( buffer->format ), from, to, num_rects );
 
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
-
      if (!rects) {
           rect.x = rect.y = 0;
-          rect.w = surface->config.size.w;
-          rect.h = surface->config.size.h;
+          rect.w = buffer->config.size.w;
+          rect.h = buffer->config.size.h;
 
           rects = &rect;
           num_rects = 1;
