@@ -550,6 +550,8 @@ wm_window_attach_callback( CoreWindow *window,
 
      CoreWM_WindowAdd add;
 
+     memset( &add, 0, sizeof(add ) );
+
      add.info.window_id   = window->id;
      add.info.caps        = window->caps;
      add.info.resource_id = window->resource_id;
