@@ -127,7 +127,7 @@ private:
           TYPE_TEXTURE_TRIANGLES
      } Type;
 
-     Util::PacketBuffer commands;
+     Util::PacketBuffer<> commands;
      DFBRegion          clip;
      unsigned int       weight;
      unsigned int       weight_shift_draw;
@@ -708,10 +708,10 @@ GenefxTask::Run()
 
      dest.num_buffers  = 1;
 
-     for (std::vector<Util::PacketBuffer::Buffer*>::const_iterator it = commands.buffers.begin(); it != commands.buffers.end(); ++it) {
-          const Util::PacketBuffer::Buffer *packet_buffer = *it;
-          const u32                        *buffer        = (const u32*) packet_buffer->ptr;
-          size_t                            size          = packet_buffer->length / 4;
+     for (std::vector<Util::HeapBuffer*>::const_iterator it = commands.buffers.begin(); it != commands.buffers.end(); ++it) {
+          const Util::HeapBuffer *packet_buffer = *it;
+          const u32              *buffer        = (const u32*) packet_buffer->ptr;
+          size_t                  size          = packet_buffer->length / 4;
 
           D_DEBUG_AT( DirectFB_GenefxTask, " =-> buffer length %zu\n", size );
 
