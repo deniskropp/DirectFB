@@ -505,6 +505,15 @@ public:
      {
           D_ASSUME( allocation != source );
           D_ASSERT( source->buffer == allocation->buffer );
+
+          buffer = source->buffer;
+
+          dfb_surface_buffer_ref( buffer );
+     }
+
+     virtual ~TransferTask()
+     {
+          dfb_surface_buffer_ref( buffer );
      }
 
      static DFBResult Generate( CoreSurfaceAllocation *allocation,
@@ -529,7 +538,7 @@ protected:
 
           D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
 
-          ret = dfb_surface_pool_bridges_transfer( NULL, source, allocation, NULL, 0 );
+          ret = dfb_surface_pool_bridges_transfer( buffer, source, allocation, NULL, 0 );
           if (ret) {
                if ((source->access[CSAID_CPU] & CSAF_READ) && (allocation->access[CSAID_CPU] & CSAF_WRITE))
                     ret = allocation_update_copy( allocation, source );
@@ -556,6 +565,7 @@ protected:
 private:
      CoreSurfaceAllocation *allocation;
      CoreSurfaceAllocation *source;
+     CoreSurfaceBuffer     *buffer;
 };
 
 
