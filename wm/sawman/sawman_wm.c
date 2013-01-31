@@ -216,7 +216,11 @@ get_keyboard_window( StackData           *data,
                /* fall through */
 
           case DWKS_NONE:
-               return sawman->unselkeys_window;
+               sawwin = sawman->unselkeys_window;
+               if (!sawwin)
+                    return NULL;
+
+               break;
      }
 
      /* key is for this window */
