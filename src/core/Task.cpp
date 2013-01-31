@@ -168,22 +168,12 @@ Task::Task()
      master( NULL ),
      next_slave( NULL ),
      finished( false )
-#if DFB_TASK_DEBUG
-     ,
-     tasklogindex( 0 )
-#endif
 {
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
 
-#if DFB_TASK_DEBUG
-     for (int i=0; i<D_ARRAY_SIZE(tasklog); i++) {
-          tasklog[i].thread = "";
-          tasklog[i].action = "";
-          tasklog[i].trace  = NULL;
-     }
-#endif
-
      TASK_LOG( "Task()" );
+
+     D_DEBUG_AT( DirectFB_Task, "  <- %p\n", this );
 }
 
 
@@ -496,8 +486,8 @@ Task::handleNotify( bool following )
 
 #if DFB_TASK_DEBUG
           t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-          if (t2 - t1 >= 2000) {
-               D_WARN( "Task::Emit took more than 5ms (%lld)  %s", (t2 - t1) / 1000,
+          if (t2 - t1 > 3000) {
+               D_WARN( "Task::Emit took more than 3ms (%lld)  %s", (t2 - t1) / 1000,
                        Describe().c_str() );
           }
 #endif
@@ -510,15 +500,17 @@ Task::Log( const std::string &action )
 #if DFB_TASK_DEBUG
      const char *name = direct_thread_self_name();
 
-     if (tasklog[tasklogindex].action != "" && tasklog[tasklogindex].trace)
-          direct_trace_free_buffer( tasklog[tasklogindex].trace );
+     LogEntry entry;
 
-     tasklog[tasklogindex].thread = name ? name : "  NO NAME  ";
-     tasklog[tasklogindex].action = action;
-     tasklog[tasklogindex].micros = direct_clock_get_micros();
-     tasklog[tasklogindex].trace  = direct_trace_copy_buffer( NULL );
+     entry.thread = name ? name : "  NO NAME  ";
+     entry.action = action;
+     entry.micros = direct_clock_get_micros();
+     entry.trace  = direct_trace_copy_buffer( NULL );
 
-     tasklogindex = (tasklogindex + 1) % D_ARRAY_SIZE(tasklog);
+
+     Util::Mutex::Lock lock( tasklog_lock );
+
+     tasklog.push_back( entry );
 #endif
 }
 
@@ -526,21 +518,19 @@ void
 Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 {
 #if DFB_TASK_DEBUG
+     Util::Mutex::Lock lock( tasklog_lock );
+
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
-                            "Task: %p (state %d, flags 0x%x, logindex %d)\n", this, state, flags, tasklogindex );
+                            "Task: %p (state %d, flags 0x%x, log size %zu)\n", this, state, flags, tasklog.size() );
 
-     for (int i=0; i<D_ARRAY_SIZE(tasklog); i++) {
-          int n = (tasklogindex + i) % D_ARRAY_SIZE(tasklog);
-
-          if (tasklog[n].action != "") {
-               direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
-                                      "  [%-16.16s %3lld.%03lld,%03lld]  %-30s\n",
-                                      tasklog[n].thread.c_str(),
-                                      tasklog[n].micros / 1000000LL,
-                                      (tasklog[n].micros / 1000LL) % 1000LL,
-                                      tasklog[n].micros % 1000LL,
-                                      tasklog[n].action.c_str() );
-          }
+     for (std::vector<LogEntry>::const_iterator it=tasklog.begin(); it!=tasklog.end(); it++) {
+          direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
+                                 "  [%-16.16s %3lld.%03lld,%03lld]  %-30s\n",
+                                 (*it).thread.c_str(),
+                                 (*it).micros / 1000000LL,
+                                 ((*it).micros / 1000LL) % 1000LL,
+                                 (*it).micros % 1000LL,
+                                 (*it).action.c_str() );
      }
 #endif
 }
@@ -663,8 +653,8 @@ TaskManager::handleTask( Task *task )
 
 #if DFB_TASK_DEBUG
                t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-               if (t2 - t1 >= 2000)
-                    D_WARN( "Task::Setup took more than 5ms (%lld)  %s", (t2 - t1) / 1000, task->Describe().c_str() );
+               if (t2 - t1 > 3000)
+                    D_WARN( "Task::Setup took more than 3ms (%lld)  %s", (t2 - t1) / 1000, task->Describe().c_str() );
 #endif
 
 
@@ -682,8 +672,8 @@ TaskManager::handleTask( Task *task )
 
 #if DFB_TASK_DEBUG
                     t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-                    if (t2 - t1 >= 2000)
-                         D_WARN( "Task::Emit took more than 5ms (%lld)  %s", (t2 - t1) / 1000, task->Describe().c_str() );
+                    if (t2 - t1 > 3000)
+                         D_WARN( "Task::Emit took more than 3ms (%lld)  %s", (t2 - t1) / 1000, task->Describe().c_str() );
 #endif
                }
                break;

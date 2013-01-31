@@ -64,14 +64,8 @@ void             SurfaceTask_Log      ( DFB_SurfaceTask        *task,
 
 #define DFB_TASK_DEBUG   (0)
 
-extern "C" {
-#include <direct/thread.h>
 
-#include <core/surface.h>
-
-#include <directfb.h>
-}
-
+#include <core/Util.h>
 
 #include <list>
 #include <queue>
@@ -278,6 +272,7 @@ class DisplayTask;
 
 typedef std::pair<Task*,bool> TaskNotify;
 
+
 class Task
 {
 public:
@@ -322,15 +317,23 @@ private:
      bool                     finished;
 
 #if DFB_TASK_DEBUG
-     typedef struct {
+     class LogEntry {
+     public:
           std::string         thread;
           std::string         action;
           long long           micros;
           DirectTraceBuffer  *trace;
-     } LogEntry;
 
-     LogEntry tasklog[20];
-     u32      tasklogindex;
+          LogEntry()
+               :
+               micros(0),
+               trace(NULL)
+          {
+          }
+     };
+
+     std::vector<LogEntry> tasklog;
+     Util::Mutex           tasklog_lock;
 #endif
 
 public:
