@@ -1204,6 +1204,22 @@ AM_CONDITIONAL(MESA_CORE, test "$enable_mesa" = "yes")
 AC_SUBST(MESA_LIBS)
 AC_SUBST(MESA_CFLAGS)
 
+dnl Test for drm/kms
+AC_ARG_ENABLE(drmkms,
+              AC_HELP_STRING([--enable-drmkms],
+                             [build with DRM/KMS support @<:@default=auto@:>@]),
+              [], [enable_drmkms=yes])
+if test "$enable_drmkms" = "yes"; then
+  PKG_CHECK_MODULES(DRMKMS, [libdrm libkms], [enable_drmkms=yes], [enable_drmkms=no
+    AC_MSG_WARN([
+*** libdrm gbm packages not found -- Building without DRM/KMS support.])
+    ])
+fi
+
+AM_CONDITIONAL(DRMKMS_CORE, test "$enable_drmkms" = "yes")
+AC_SUBST(DRMKMS_LIBS)
+AC_SUBST(DRMKMS_CFLAGS)
+
 
 
 dnl Test for libjpeg
@@ -2771,6 +2787,7 @@ systems/devmem/Makefile
 systems/dummy/Makefile
 systems/fbdev/Makefile
 systems/mesa/Makefile
+systems/drmkms/Makefile
 systems/pvr2d/Makefile
 systems/egl/Makefile
 systems/x11/Makefile
@@ -2918,6 +2935,7 @@ Building System Modules:
   Linux FBDev support       $enable_fbdev
   Generic /dev/mem support  $enable_devmem
   Mesa/DRM/KMS support      $enable_mesa                $MESA_CFLAGS $MESA_LIBS
+  DRM/KMS support           $enable_drmkms              $DRMKMS_CFLAGS $DRMKMS_LIBS
   PVR2D                     $enable_pvr2d               $PVR2D_CFLAGS $PVR2D_LIBS
   EGL                       $enable_egl                 $EGL_CFLAGS $EGL_LIBS
   X11 support               $enable_x11                 $X11_CFLAGS $X11_LIBS

@@ -54,6 +54,12 @@ else
 MESA_DIR =
 endif
 
+if DRMKMS_CORE
+DRMKMS_DIR = drmkms
+else
+DRMKMS_DIR =
+endif
+
 if VNC_CORE
 VNC_DIR = vnc
 else
@@ -69,6 +75,7 @@ SUBDIRS = \
 	$(DEVMEM_DIR) \
 	$(FBDEV_DIR) \
 	$(MESA_DIR) \
+	$(DRMKMS_DIR) \
 	$(X11_DIR) \
 	$(X11VDPAU_DIR) \
 	$(SDL_DIR) \
