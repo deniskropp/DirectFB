@@ -1252,7 +1252,7 @@ driver_get_available( void )
      int   i;
      char *tsdev;
 
-     if (!(dfb_config->linux_input_force || (dfb_system_type() == CORE_FBDEV) || (dfb_system_type() == CORE_MESA) ))
+     if (!(dfb_config->linux_input_force || (dfb_system_type() == CORE_FBDEV) || (dfb_system_type() == CORE_MESA) || (dfb_system_type() == CORE_DRMKMS)  ))
           return 0;
 
      if (dfb_system_type() == CORE_FBDEV && !dfb_config->linux_input_force) {
