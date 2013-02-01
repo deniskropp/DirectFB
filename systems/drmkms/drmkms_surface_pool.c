@@ -39,6 +39,7 @@
 
 #include <xf86drm.h>
 #include <i915_drm.h>
+#include <drm_fourcc.h>
 
 #include "drmkms_system.h"
 
@@ -54,16 +55,17 @@ typedef struct {
 typedef struct {
      int             magic;
 
-     DRMKMSData       *drmkms;
+     DRMKMSData     *drmkms;
 } DRMKMSPoolLocalData;
 
 typedef struct {
      int   magic;
 
-     int   pitch;
-     int   size;
+     unsigned int        pitch;
+     int                 size;
+     int                 offset;
 
-     int                 handle;
+     unsigned int        handle;
 #ifdef USE_GBM
      struct gbm_bo      *bo;
      struct gbm_surface *gs;
@@ -203,8 +205,8 @@ drmkmsDestroyPool( CoreSurfacePool *pool,
 
 static DFBResult
 drmkmsLeavePool( CoreSurfacePool *pool,
-               void            *pool_data,
-               void            *pool_local )
+                 void            *pool_data,
+                 void            *pool_local )
 {
      DRMKMSPoolData      *data  = pool_data;
      DRMKMSPoolLocalData *local = pool_local;
@@ -224,12 +226,12 @@ drmkmsLeavePool( CoreSurfacePool *pool,
 
 static DFBResult
 drmkmsTestConfig( CoreSurfacePool         *pool,
-                void                    *pool_data,
-                void                    *pool_local,
-                CoreSurfaceBuffer       *buffer,
-                const CoreSurfaceConfig *config )
+                  void                    *pool_data,
+                  void                    *pool_local,
+                  CoreSurfaceBuffer       *buffer,
+                  const CoreSurfaceConfig *config )
 {
-     CoreSurface       *surface;
+     CoreSurface         *surface;
      DRMKMSPoolData      *data  = pool_data;
      DRMKMSPoolLocalData *local = pool_local;
 
@@ -246,8 +248,18 @@ drmkmsTestConfig( CoreSurfacePool         *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (surface->config.format != DSPF_ARGB)
-          return DFB_UNSUPPORTED;
+     switch (surface->config.format) {
+          case DSPF_ARGB:
+          case DSPF_RGB32:
+          case DSPF_RGB16:
+          case DSPF_ARGB1555:
+          case DSPF_RGB332:
+          case DSPF_RGB24:
+               break;
+          default:
+               D_ERROR( "DirectFB/DRMKMS: unsupported pixelformat!\n" );
+               return DFB_UNSUPPORTED;
+     }
 
      return DFB_OK;
 }
@@ -267,6 +279,9 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      DRMKMSAllocationData *alloc = alloc_data;
      DRMKMSData           *drmkms;
 
+     u32 drm_format        = 0;
+     u32 drm_fb_offset     = 0;
+
      (void)data;
      (void)local;
 
@@ -282,6 +297,31 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
+
+
+     switch (surface->config.format) {
+          case DSPF_ARGB:
+               drm_format = DRM_FORMAT_ARGB8888;
+               break;
+          case DSPF_RGB32:
+               drm_format = DRM_FORMAT_XRGB8888;
+               break;
+          case DSPF_RGB16:
+               drm_format = DRM_FORMAT_RGB565;
+               break;
+          case DSPF_ARGB1555:
+               drm_format = DRM_FORMAT_ARGB1555;
+               break;
+          case DSPF_RGB332:
+               drm_format = DRM_FORMAT_RGB332;
+               break;
+          case DSPF_RGB24:
+               drm_format = DRM_FORMAT_RGB888;
+               break;
+          default:
+               D_ERROR( "DirectFB/DRMKMS: unsupported pixelformat!\n" );
+               return DFB_FAILURE;
+     }
 
 #ifdef USE_GBM
      alloc->bo = gbm_bo_create( drmkms->gbm, surface->config.size.w, surface->config.size.h, GBM_BO_FORMAT_ARGB8888,
@@ -308,9 +348,12 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      /*
       * Mode Framebuffer
       */
-     ret = drmModeAddFB( local->drmkms->fd,
-                         surface->config.size.w, surface->config.size.h,
-                         24, 32, alloc->pitch, alloc->handle, &alloc->fb_id );
+
+
+     ret = drmModeAddFB2( local->drmkms->fd,
+                         surface->config.size.w, surface->config.size.h, drm_format,
+                         &alloc->handle, &alloc->pitch, &drm_fb_offset, &alloc->fb_id, 0 );
+
      if (ret) {
           D_ERROR( "DirectFB/DRMKMS: drmModeAddFB() failed!\n" );
           return DFB_FAILURE;
