@@ -191,7 +191,7 @@ Task::AddSlave( Task *slave )
 {
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
 
-     D_ASSERT( state == TASK_NEW );
+     D_ASSERT( state == TASK_NEW || state == TASK_RUNNING );
      D_ASSERT( slave->state == TASK_NEW );
 
      slave->master = this;
@@ -275,6 +275,8 @@ Task::finish()
      Task *shutdown = NULL;
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
+
+     D_ASSERT( state == TASK_DONE );
 
      finished = true;
 
