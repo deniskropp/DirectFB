@@ -92,7 +92,7 @@ libdirectfb_la_LIBADD = \
 
 MKRESULT = $(top_srcdir)/tools/mkresult.sh
 
-directfb_result.c: $(top_srcdir)/include/directfb.h $(MKRESULT)
+directfb_result.c: $(top_srcdir)/include/dfb_types.h $(MKRESULT)
 	@echo '#include <config.h>'    		> $@
 	@echo                                   >> $@
 	@echo '#include <directfb.h>'    	>> $@
