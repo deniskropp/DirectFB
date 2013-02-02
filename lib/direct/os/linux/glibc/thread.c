@@ -71,11 +71,10 @@ init_once( void )
 DirectResult
 direct_thread_init( DirectThread *thread )
 {
-     pthread_attr_t      attr;
-     struct sched_param  param;
-     int                 policy;
-     int                 priority;
-     size_t              stack_size;
+     pthread_attr_t     attr;
+     struct sched_param param;
+     int                policy;
+     int                priority;
 
      direct_once( &thread_init_once, init_once );
 
@@ -142,21 +141,18 @@ direct_thread_init( DirectThread *thread )
                D_PERROR( "Direct/Thread: Could not set stack size to %d!\n", direct_config->thread_stack_size );
      }
 
-     /* Read (back) value. */
-     pthread_attr_getstacksize( &attr, &stack_size );
-
 
      if (pthread_create( &thread->handle.thread, &attr, direct_thread_main, thread ))
           return errno2result( errno );
 
-     D_INFO( "Direct/Thread: Started '%s' (%d) [%s %s/%s %d/%d] <%zu>...\n",
-             thread->name, thread->tid, direct_thread_type_name(thread->type),
-             direct_thread_policy_name(policy), direct_thread_scheduler_name(direct_config->thread_scheduler),
-             param.sched_priority, priority, stack_size );
-
      pthread_attr_destroy( &attr );
 
-     pthread_getschedparam( thread->handle.thread, &policy, &param );
+     /* Read (back) value. */
+     pthread_getattr_np( thread->handle.thread, &attr );
+     pthread_attr_getstacksize( &attr, &thread->stack_size );
+     pthread_attr_getschedparam( &attr, &param );
+     thread->priority = param.sched_priority;
+     pthread_attr_destroy( &attr );
 
      return DR_OK;
 }

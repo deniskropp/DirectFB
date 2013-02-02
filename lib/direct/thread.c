@@ -185,6 +185,11 @@ direct_thread_create( DirectThreadType      thread_type,
           direct_waitqueue_wait( &thread->cond, &thread->lock );
      }
 
+     D_INFO( "Direct/Thread: Started '%s' (%d) [%s - %s/%d] <%zu>...\n",
+             thread->name, thread->tid, direct_thread_type_name(thread->type),
+             direct_thread_scheduler_name(direct_config->thread_scheduler),
+             thread->priority, thread->stack_size );
+
      D_DEBUG_AT( Direct_ThreadInit, "  -> ...thread is running.\n" );
 
      /* Unlock the thread mutex. */
