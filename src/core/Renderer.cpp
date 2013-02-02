@@ -701,28 +701,66 @@ void
 Rectangles::render( Renderer::Setup *setup,
                     Engine          *engine )
 {
-     /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
-          if (!(setup->task_mask & (1 << i)))
-               continue;
+     switch (this->accel) {
+          case DFXL_FILLRECTANGLE:
+               /// loop
+               for (unsigned int i=0; i<setup->tiles; i++) {
+                    if (!(setup->task_mask & (1 << i)))
+                         continue;
 
-          if (engine->caps.clipping & DFXL_FILLRECTANGLE) {
-               engine->FillRectangles( setup->tasks[i], rects, num_rects );
-          }
-          else {
-               Util::TempArray<DFBRectangle> copied_rects( num_rects );
-               unsigned int                  copied_num = 0;
+                    if (engine->caps.clipping & DFXL_FILLRECTANGLE) {
+                         engine->FillRectangles( setup->tasks[i], rects, num_rects );
+                    }
+                    else {
+                         Util::TempArray<DFBRectangle> copied_rects( num_rects );
+                         unsigned int                  copied_num = 0;
 
-               for (unsigned int n=0; n<num_rects; n++) {
-                    copied_rects.array[copied_num] = rects[n];
+                         for (unsigned int n=0; n<num_rects; n++) {
+                              copied_rects.array[copied_num] = rects[n];
 
-                    if (dfb_clip_rectangle( &setup->clips_clipped[i], &copied_rects.array[copied_num] ))
-                         copied_num++;
+                              if (dfb_clip_rectangle( &setup->clips_clipped[i], &copied_rects.array[copied_num] ))
+                                   copied_num++;
+                         }
+
+                         if (copied_num)
+                              engine->FillRectangles( setup->tasks[i], copied_rects.array, copied_num );
+                    }
                }
+               break;
 
-               if (copied_num)
-                    engine->FillRectangles( setup->tasks[i], copied_rects.array, copied_num );
-          }
+          case DFXL_DRAWRECTANGLE:
+               /// loop
+               for (unsigned int i=0; i<setup->tiles; i++) {
+                    if (!(setup->task_mask & (1 << i)))
+                         continue;
+
+                    if (engine->caps.clipping & DFXL_DRAWRECTANGLE) {
+                         engine->DrawRectangles( setup->tasks[i], rects, num_rects );
+                    }
+                    else {
+                         Util::TempArray<DFBRectangle> copied_rects( num_rects * 4 );
+                         unsigned int                  copied_num = 0;
+
+                         for (unsigned int n=0; n<num_rects; n++) {
+                              if (dfb_rectangle_region_intersects( &rects[n], &setup->clips_clipped[i] )) {
+                                   DFBRectangle out_rects[4];
+                                   int          out_num = 0;
+
+                                   dfb_build_clipped_rectangle_outlines( &rects[n], &setup->clips_clipped[i], out_rects, &out_num );
+
+                                   for (int j=0; j<out_num; j++)
+                                        copied_rects.array[copied_num++] = out_rects[j];
+                              }
+                         }
+
+                         if (copied_num)
+                              engine->FillRectangles( setup->tasks[i], copied_rects.array, copied_num );
+                    }
+               }
+               break;
+
+          default:
+               D_BUG( "unexpected accel 0x%08x", this->accel );
      }
 }
 
@@ -1499,7 +1537,7 @@ Trapezoids::render( Renderer::Setup *setup,
           if (!(setup->task_mask & (1 << i)))
                continue;
 
-          if (engine->caps.clipping & DFXL_FILLTRIANGLE) {
+          if (engine->caps.clipping & DFXL_FILLTRAPEZOID) {
                engine->FillTrapezoids( setup->tasks[i], traps, num_traps );
           }
           else {
