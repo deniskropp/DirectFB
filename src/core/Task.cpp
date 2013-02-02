@@ -183,6 +183,8 @@ Task::~Task()
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
+     D_ASSERT( direct_thread_self() == TaskManager::thread || state == TASK_NEW );
+
      state = TASK_INVALID;
 }
 
@@ -228,6 +230,8 @@ Task::emit( bool following )
 
      D_ASSERT( state == TASK_READY );
      D_ASSERT( block_count == 0 );
+
+     D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      state = TASK_RUNNING;
 
@@ -277,6 +281,8 @@ Task::finish()
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
      D_ASSERT( state == TASK_DONE );
+
+     D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      finished = true;
 
@@ -375,6 +381,8 @@ Task::Setup()
 
      D_ASSERT( state == TASK_FLUSHED );
 
+     D_ASSERT( direct_thread_self() == TaskManager::thread );
+
      state = TASK_READY;
 
      return DFB_OK;
@@ -388,6 +396,8 @@ Task::Push()
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
 
      D_ASSERT( state == TASK_RUNNING );
+
+     D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      return Run();
 }
@@ -414,6 +424,8 @@ Task::Finalise()
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
 
      D_ASSERT( state == TASK_DONE );
+
+     D_ASSERT( direct_thread_self() == TaskManager::thread );
 }
 
 std::string
@@ -466,6 +478,8 @@ Task::notifyAll()
 
      D_ASSERT( state == TASK_DONE || (state == TASK_RUNNING && (flags & TASK_FLAG_EMITNOTIFIES)) );
 
+     D_ASSERT( direct_thread_self() == TaskManager::thread );
+
      for (std::vector<TaskNotify>::const_iterator it = notifies.begin(); it != notifies.end(); ++it)
           (*it).first->handleNotify( true );
 
@@ -479,6 +493,8 @@ Task::handleNotify( bool following )
 
      D_ASSERT( state == TASK_READY );
      D_ASSERT( block_count > 0 );
+
+     D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      if (--block_count == 0) {
 #if DFB_TASK_DEBUG
