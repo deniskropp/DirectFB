@@ -76,6 +76,9 @@ struct __D_DirectThread {
      DirectWaitQueue       cond;
 
      unsigned int          counter;
+
+     int                   priority;
+     size_t                stack_size;
 };
 
 /**********************************************************************************************************************/
