@@ -5371,7 +5371,8 @@ typedef enum {
      DSEVT_NONE           = 0x00000000,
      DSEVT_DESTROYED      = 0x00000001,  /* surface got destroyed by global deinitialization function or the application itself */
      DSEVT_UPDATE         = 0x00000002,  /*  */
-     DSEVT_ALL            = 0x00000003   /* All event types */
+     DSEVT_DISPLAY        = 0x00000004,  /*  */
+     DSEVT_ALL            = 0x00000007   /* All event types */
 } DFBSurfaceEventType;
 
 /*
@@ -5464,15 +5465,18 @@ typedef struct {
 typedef struct {
      DFBEventClass                    clazz;      /* clazz of event */
 
+     // all types
      DFBSurfaceEventType              type;       /* type of event */
-
      DFBSurfaceID                     surface_id; /* source of event */
+     long long                        time_stamp; /* Micro seconds from DIRECT_CLOCK_MONOTONIC */
+
+     // DSEVT_UPDATE
      DFBRegion                        update;
      DFBRegion                        update_right;
-
      unsigned int                     flip_count; /* Serial number of frame, modulo number of buffers = buffer index */
 
-     long long                        time_stamp; /* Micro seconds from DIRECT_CLOCK_MONOTONIC */
+     // DSEVT_DISPLAY
+     unsigned int                     index;      /* Serial number of frame, modulo number of buffers = buffer index */
 } DFBSurfaceEvent;
 
 /*
