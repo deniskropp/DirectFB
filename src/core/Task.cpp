@@ -436,8 +436,11 @@ Task::addNotify( Task *task,
           return;
      }
 
-     D_ASSERT( state != TASK_NEW );
      D_ASSERT( state != TASK_FLUSHED );
+
+     /* May only call addNotify from outside TaskManager thread when task wasn't flushed to manager yet */
+     D_ASSERT( direct_thread_self() == TaskManager::thread || state == TASK_NEW );
+     D_ASSERT( direct_thread_self() == TaskManager::thread || task->state == TASK_NEW );
 
      if (follow && !slaves && (state == TASK_RUNNING || state == TASK_DONE)) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, following running task!\n" );
