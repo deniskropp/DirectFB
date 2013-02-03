@@ -283,11 +283,15 @@ alloc_callback( CoreSurfaceAllocation *alloc,
 
           surface = buffer->surface;
           if (surface) {
+               int base;
+
                D_MAGIC_ASSERT( surface, CoreSurface );
 
-               role = (dfb_surface_get_buffer( surface, CSBR_FRONT ) == buffer) ? "front" :
-                      (dfb_surface_get_buffer( surface, CSBR_BACK  ) == buffer) ? "back"  :
-                      (dfb_surface_get_buffer( surface, CSBR_IDLE  ) == buffer) ? "idle"  : "";
+               base = surface->flips % surface->num_buffers;
+
+               role = (buffer->index == (base + CSBR_FRONT) % surface->num_buffers) ? "front" :
+                      (buffer->index == (base + CSBR_BACK)  % surface->num_buffers) ? "back"  :
+                      (buffer->index == (base + CSBR_IDLE)  % surface->num_buffers) ? "idle"  : "";
 
                uptodate = direct_serial_check(&alloc->serial, &buffer->serial) ? " * " : "   ";
 
