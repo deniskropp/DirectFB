@@ -62,6 +62,16 @@ DirectResult DIRECT_API direct_log_printf     ( DirectLog        *log,
                                                 const char       *format, ... )  D_FORMAT_PRINTF(2);
 
 /*
+ * Write to the log in a plain fashion.
+ *
+ * If log is NULL, the default log is used if it's valid,
+ * otherwise stderr is used a fallback until now.
+ */
+DirectResult DIRECT_API direct_log_write      ( DirectLog        *log,
+                                                const char       *buffer,
+                                                size_t            bytes );
+
+/*
  * Set the default log that's used when no valid log is passed.
  */
 DirectResult DIRECT_API direct_log_set_default( DirectLog        *log );
