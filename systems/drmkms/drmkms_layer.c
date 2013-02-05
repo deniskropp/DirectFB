@@ -124,7 +124,7 @@ drmkmsInitLayer( CoreLayer                  *layer,
      direct_snputs( description->name, "DRMKMS Layer", DFB_DISPLAY_LAYER_DESC_NAME_LENGTH );
 
 
-     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT;
+     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
      config->width      = dfb_config->mode.width  ?: drmkms->mode.hdisplay;
      config->height     = dfb_config->mode.height ?: drmkms->mode.vdisplay;
 
@@ -172,7 +172,7 @@ drmkmsSetRegion( CoreLayer                  *layer,
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
 
-     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT))
+     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE))
      {
           drmkms->mode = *drmkms_find_mode (config->source.w, config->source.h);
           ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle, 0, 0,
