@@ -294,19 +294,19 @@ dfb_wm_core_shutdown( DFBWMCore *data,
      D_DEBUG_AT( Core_WM, "dfb_wm_core_shutdown( %p, %semergency )\n", data, emergency ? "" : "no " );
 
      D_MAGIC_ASSERT( data, DFBWMCore );
-     D_MAGIC_ASSERT( data->shared, DFBWMCoreShared );
 
      shared = data->shared;
+     D_MAGIC_ASSERT( shared, DFBWMCoreShared );
 
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->Shutdown != NULL );
-     D_ASSERT( wm_shared != NULL );
+     D_ASSERT( wm_shared == shared );
 
-     fusion_reactor_destroy( wm_shared->reactor );
+     fusion_reactor_destroy( shared->reactor );
 
      /* Shutdown window manager. */
-     ret = wm_local->funcs->Shutdown( emergency, wm_local->data, wm_shared->data );
+     ret = wm_local->funcs->Shutdown( emergency, wm_local->data, shared->data );
 
      /* Unload the module. */
      direct_module_unref( wm_local->module );
@@ -316,11 +316,11 @@ dfb_wm_core_shutdown( DFBWMCore *data,
           D_FREE( wm_local->data );
 
      /* Deallocate shared window manager data. */
-     if (wm_shared->data)
-          SHFREE( wm_shared->shmpool, wm_shared->data );
+     if (shared->data)
+          SHFREE( shared->shmpool, shared->data );
 
      /* Free module name in shared memory. */
-     SHFREE( wm_shared->shmpool, wm_shared->name );
+     SHFREE( shared->shmpool, shared->name );
 
      wm_local = NULL;
      wm_shared = NULL;
