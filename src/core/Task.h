@@ -62,6 +62,8 @@ void             SurfaceTask_Log      ( DFB_SurfaceTask        *task,
 }
 
 
+#include <direct/String.h>
+
 #define DFB_TASK_DEBUG   (0)
 
 

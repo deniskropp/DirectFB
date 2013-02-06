@@ -41,6 +41,9 @@ extern "C" {
 #include <directfb_strings.h>
 }
 
+#include <direct/String.h>
+
+/*********************************************************************************************************************/
 
 namespace DirectFB {
 
@@ -94,7 +97,7 @@ DFBAccelerationMask_Name( DFBAccelerationMask accel )
 
      for (int i=0, n=0; accelerationmask_names[i].mask; i++) {
           if (accel & accelerationmask_names[i].mask)
-               ret += PrintF( "%s%s", n++ ? "," : "", accelerationmask_names[i].name );
+               ret += Direct::String( "%s%s", n++ ? "," : "", accelerationmask_names[i].name );
      }
 
      return ret;

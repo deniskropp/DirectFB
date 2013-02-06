@@ -307,7 +307,7 @@ DisplayTask::Run()
 std::string
 DisplayTask::Describe()
 {
-     return SurfaceTask::Describe() + Util::PrintF( "  Display buffer index %d", index );
+     return SurfaceTask::Describe() + Direct::String( "  Display buffer index %d", index ).string();
 }
 
 

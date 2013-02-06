@@ -431,9 +431,9 @@ Task::Finalise()
 std::string
 Task::Describe()
 {
-     return Util::PrintF( "0x%08lx   %-7s  0x%04x   %2d   %2d   %2d   %s   %s",
-                          (unsigned long) this, state_name(state), flags, notifies.size(), block_count,
-                          slaves, master ? "><" : "  ", finished ? "YES" : "no" );
+     return Direct::String( "0x%08lx   %-7s  0x%04x   %2zu   %2d   %2d   %s   %s",
+                            (unsigned long) this, state_name(state), flags, notifies.size(), block_count,
+                            slaves, master ? "><" : "  ", finished ? "YES" : "no" );
 }
 
 void
@@ -901,7 +901,7 @@ SurfaceTask::Finalise()
 std::string
 SurfaceTask::Describe()
 {
-     return Task::Describe() + Util::PrintF( "  accessor 0x%02x, accesses %d", accessor, accesses.size() );
+     return Task::Describe() + Direct::String( "  accessor 0x%02x, accesses %zu", accessor, accesses.size() ).string();
 }
 
 }
