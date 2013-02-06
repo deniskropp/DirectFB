@@ -41,7 +41,7 @@
 #include <direct/util.h>
 
 #include <fusion/build.h>
-#include <fusion/types.h>
+#include <fusion/conf.h>
 #include <fusion/lock.h>
 #include <fusion/shmalloc.h>
 
@@ -129,6 +129,9 @@ DirectResult
 fusion_skirmish_prevail( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
+
+     if (fusion_config->skirmish_warn_on_thread && fusion_config->skirmish_warn_on_thread == direct_thread_get_tid(direct_thread_self()))
+          D_WARN( "%s '%s' 0x%08x", __FUNCTION__, skirmish->single ? skirmish->single->name : "", skirmish->multi.id );
 
      if (skirmish->single) {
           if (direct_mutex_lock( &skirmish->single->lock ))

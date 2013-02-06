@@ -52,6 +52,7 @@ struct __Fusion_FusionConfig {
 
      unsigned int call_bin_max_num;
      unsigned int call_bin_max_data;
+     pid_t        skirmish_warn_on_thread;
 };
 
 extern FusionConfig FUSION_API *fusion_config;
