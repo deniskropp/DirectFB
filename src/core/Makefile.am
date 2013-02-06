@@ -48,6 +48,7 @@ internalinclude_HEADERS = \
 	$(builddir)/CoreWindowStack.h		\
 	CoreWindowStack_includes.h	\
 	Interface.h		\
+	PacketBuffer.h		\
 	Renderer.h		\
 	Task.h			\
 	Util.h			\

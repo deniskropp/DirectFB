@@ -30,6 +30,7 @@
 
 #include <config.h>
 
+#include <core/PacketBuffer.h>
 #include <core/Renderer.h>
 #include <core/Util.h>
 
@@ -127,7 +128,9 @@ private:
           TYPE_TEXTURE_TRIANGLES
      } Type;
 
-     Util::PacketBuffer<> commands;
+     typedef Util::PacketBuffer<> Commands;
+
+     Commands             commands;
      DFBRegion          clip;
      unsigned int       weight;
      unsigned int       weight_shift_draw;
@@ -708,7 +711,7 @@ GenefxTask::Run()
 
      dest.num_buffers  = 1;
 
-     for (std::vector<Util::HeapBuffer*>::const_iterator it = commands.buffers.begin(); it != commands.buffers.end(); ++it) {
+     for (Commands::buffer_vector::const_iterator it = commands.buffers.begin(); it != commands.buffers.end(); ++it) {
           const Util::HeapBuffer *packet_buffer = *it;
           const u32              *buffer        = (const u32*) packet_buffer->ptr;
           size_t                  size          = packet_buffer->length / 4;
