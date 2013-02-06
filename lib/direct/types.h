@@ -88,5 +88,18 @@ typedef struct __D_DirectThreadHandle        DirectThreadHandle;
 typedef struct __D_DirectThreadInitHandler   DirectThreadInitHandler;
 typedef struct __D_DirectWaitQueue           DirectWaitQueue;
 
+
+
+
+#ifdef __cplusplus
+namespace Direct {
+     class String;
+}
+#define D_String        Direct::String
+#else
+typedef void D_String;
+#endif
+
+
 #endif
 

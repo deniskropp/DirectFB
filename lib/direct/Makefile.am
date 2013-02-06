@@ -49,6 +49,7 @@ includedir = @INCLUDEDIR@/direct
 include_HEADERS = \
 	$(ppcasm_headers)		\
 	$(armasm_headers)		\
+	String.h			\
 	atomic.h			\
 	build.h				\
 	clock.h				\
@@ -94,6 +95,7 @@ lib_LTLIBRARIES = libdirect.la
 libdirect_la_SOURCES = \
 	$(ppcasm_sources)	\
 	$(armasm_sources)	\
+	String.cpp		\
 	clock.c			\
 	conf.c			\
 	debug.c			\
