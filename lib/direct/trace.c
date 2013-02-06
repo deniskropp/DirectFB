@@ -40,6 +40,8 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
+#include <direct/String.h>
+
 
 #if DIRECT_BUILD_TRACE
 
@@ -432,8 +434,9 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
 #if DIRECT_BUILD_DYNLOAD
      Dl_info info;
 #endif
-     int     i;
-     int     level;
+     int       i;
+     int       level;
+     D_String *string;
 
      if (!direct_config->trace)
           return;
@@ -457,12 +460,15 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           return;
      }
 
-//     direct_log_lock( NULL );
+     string = D_String_NewEmpty();
+     if (!string)
+          return;
+
 
      if (buffer->name)
-          direct_log_printf( NULL, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
+          D_String_PrintF( string, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
      else
-          direct_log_printf( NULL, "(-) [%5d: -STACK- ]\n", buffer->tid );
+          D_String_PrintF( string, "(-) [%5d: -STACK- ]\n", buffer->tid );
 
      for (i=level-1; i>=0; i--) {
           void *fn = buffer->trace[i].addr;
@@ -485,28 +491,31 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
                          }
                     }
 
-                    direct_log_printf( NULL, "  #%-2d 0x%08lx in %s () from %s [%p]\n",
-                                       level - i - 1, (unsigned long) fn, symbol, info.dli_fname, info.dli_fbase );
+                    D_String_PrintF( string, "  #%-2d 0x%08lx in %s () from %s [%p]\n",
+                                                level - i - 1, (unsigned long) fn, symbol, info.dli_fname, info.dli_fbase );
                }
                else if (info.dli_sname) {
-                    direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
-                                       level - i - 1, (unsigned long) fn, info.dli_sname );
+                    D_String_PrintF( string, "  #%-2d 0x%08lx in %s ()\n",
+                                                level - i - 1, (unsigned long) fn, info.dli_sname );
                }
                else
-                    direct_log_printf( NULL, "  #%-2d 0x%08lx in ?? ()\n",
-                                       level - i - 1, (unsigned long) fn );
+                    D_String_PrintF( string, "  #%-2d 0x%08lx in ?? ()\n",
+                                                level - i - 1, (unsigned long) fn );
           }
           else
 #endif
           {
                const char *symbol = direct_trace_lookup_symbol(NULL, (long)(fn));
-               direct_log_printf( NULL, "  #%-2d 0x%08lx in %s ()\n",
-                                  level - i - 1, (unsigned long) fn, symbol ? symbol : "??" );
+               D_String_PrintF( string, "  #%-2d 0x%08lx in %s ()\n",
+                                           level - i - 1, (unsigned long) fn, symbol ? symbol : "??" );
           }
      }
 
-     direct_log_printf( NULL, "\n" );
-//     direct_log_unlock( NULL );
+     D_String_PrintF( string, "\n" );
+
+     direct_log_write( NULL, D_String_Buffer( string ), D_String_Length( string ) );
+
+     D_String_Delete( string );
 
      buffer->in_trace = false;
 }
