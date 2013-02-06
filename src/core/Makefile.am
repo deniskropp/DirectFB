@@ -47,6 +47,7 @@ internalinclude_HEADERS = \
 	CoreWindow_includes.h	\
 	$(builddir)/CoreWindowStack.h		\
 	CoreWindowStack_includes.h	\
+	Fifo.h			\
 	Interface.h		\
 	PacketBuffer.h		\
 	Renderer.h		\
@@ -125,6 +126,7 @@ libdirectfb_core_la_SOURCES = \
 	Interface.cpp		\
 	Renderer.cpp		\
 	Task.cpp		\
+	TaskThreadsQ.cpp	\
 	Util.cpp		\
 	clipboard.c		\
 	colorhash.c		\
@@ -210,6 +212,7 @@ $(srcdir)/CoreLayer_real.cpp: CoreLayer.h
 $(srcdir)/CoreLayerRegion_real.cpp: CoreLayerRegion.h
 $(srcdir)/CorePalette_real.cpp: CorePalette.h
 $(srcdir)/CoreScreen_real.cpp: CoreScreen.h
+$(srcdir)/CoreSlave_real.cpp: CoreSlave.h
 $(srcdir)/CoreSurface_real.cpp: CoreSurface.h
 $(srcdir)/CoreSurfaceClient_real.cpp: CoreSurfaceClient.h
 $(srcdir)/CoreWindow_real.cpp: CoreWindow.h
