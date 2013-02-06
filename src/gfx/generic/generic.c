@@ -8555,6 +8555,8 @@ gAcquireLockBuffers( CardState *state, DFBAccelerationMask accel )
 
      CoreSurfaceAccessFlags access = CSAF_WRITE;
 
+     D_ASSERT( !dfb_config->task_manager );
+
      /*
       * Destination setup
       */
