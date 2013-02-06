@@ -56,7 +56,7 @@ CallBuffer::CallBuffer( size_t buffer_min )
 
 CallBuffer::~CallBuffer()
 {
-     D_DEBUG_AT( DirectFB_CallBuffer, "CallBuffer::%s()\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_CallBuffer, "CallBuffer::%s( %p )\n", __FUNCTION__, this );
 
      D_MAGIC_ASSERT( this, CallBuffer );
 
