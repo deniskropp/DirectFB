@@ -247,6 +247,9 @@ dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p )\n", __FUNCTION__, buffer );
 
+     D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
+
      /*
       * For preallocated surfaces, when the client specified DSCAPS_STATIC_ALLOC,
       * it is forced to always get the same preallocated buffer again on each Lock.
