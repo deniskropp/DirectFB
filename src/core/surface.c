@@ -1131,7 +1131,6 @@ dfb_surface_write_buffer( CoreSurface            *surface,
 {
      DFBResult              ret;
      DFBRectangle           rect;
-     DFBSurfacePixelFormat  format;
      CoreSurfaceAllocation *allocation;
 
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -1158,11 +1157,8 @@ dfb_surface_write_buffer( CoreSurface            *surface,
           }
      }
 
-     /* Calculate bytes per read line. */
-     format = surface->config.format;
-
      D_DEBUG_AT( Core_Surface, "  -> %d,%d - %dx%d (%s)\n", DFB_RECTANGLE_VALS(&rect),
-                 dfb_pixelformat_name( format ) );
+                 dfb_pixelformat_name( surface->config.format ) );
 
      ret = CoreSurface_PreLockBuffer2( surface, role,
                                        dfb_surface_get_stereo_eye(surface), // FIXME: make argument to dfb_surface_read_buffer
