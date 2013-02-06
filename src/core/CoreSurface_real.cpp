@@ -241,6 +241,8 @@ ISurface_Real::PreLockBuffer(
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
+     D_ASSERT( !dfb_config->task_manager );
+
      dfb_surface_lock( surface );
 
      if (surface->state & CSSF_DESTROYED) {
@@ -375,6 +377,8 @@ ISurface_Real::PreLockBuffer2(
      D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( surface %p, role %d, eye %d, accessor 0x%02x, access 0x%02x, %slock )\n",
                  __FUNCTION__, surface, role, eye, accessor, access, lock ? "" : "no " );
 
+     D_ASSERT( !dfb_config->task_manager || accessor == CSAID_CPU );
+
      ret = (DFBResult) dfb_surface_lock( surface );
      if (ret)
           return ret;
@@ -440,7 +444,9 @@ ISurface_Real::PreLockBuffer2(
 
      if (lock) {
           if (dfb_config->task_manager) {
-               
+               D_ASSERT( accessor == CSAID_CPU );
+
+               D_UNIMPLEMENTED();
           }
           else {
                ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
@@ -642,6 +648,8 @@ ISurface_Real::PreLockBuffer3(
 
      D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( surface %p, role %d, count %u, eye %d, accessor 0x%02x, access 0x%02x, %slock )\n",
                  __FUNCTION__, surface, role, flip_count, eye, accessor, access, lock ? "" : "no " );
+
+     D_ASSERT( !dfb_config->task_manager );
 
      ret = (DFBResult) dfb_surface_lock( surface );
      if (ret)
