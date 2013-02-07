@@ -47,7 +47,6 @@ internalinclude_HEADERS = \
 	CoreWindow_includes.h	\
 	$(builddir)/CoreWindowStack.h		\
 	CoreWindowStack_includes.h	\
-	Fifo.h			\
 	Interface.h		\
 	PacketBuffer.h		\
 	Renderer.h		\
@@ -126,7 +125,6 @@ libdirectfb_core_la_SOURCES = \
 	Interface.cpp		\
 	Renderer.cpp		\
 	Task.cpp		\
-	TaskThreadsQ.cpp	\
 	Util.cpp		\
 	clipboard.c		\
 	colorhash.c		\
