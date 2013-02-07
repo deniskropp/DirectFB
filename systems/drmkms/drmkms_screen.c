@@ -89,12 +89,12 @@ drmkmsInitScreen( CoreScreen           *screen,
           drmModeFreeConnector(connector);
      }
 
-     if (i == resources->count_connectors) {
-          D_ERROR( "DirectFB/DRMKMS: No currently active connector found.\n" );
-          return DFB_INIT;
+     if (i == -1) {
+          D_ERROR( "DirectFB/DRMKMS: No currently active connector found. Forcing the last found connector\n");
+          connector = drmModeGetConnector( drmkms->fd, resources->connectors[resources->count_connectors-1] );
      }
-     else
-          D_INFO( "DirectFB/DRMKMS: using connector id %d.\n", connector->connector_id );
+
+     D_INFO( "DirectFB/DRMKMS: using connector id %d.\n", connector->connector_id );
 
      for (i = resources->count_encoders-1; i >= 0; i--) {
           encoder = drmModeGetEncoder( drmkms->fd, resources->encoders[i] );
@@ -108,14 +108,13 @@ drmkmsInitScreen( CoreScreen           *screen,
           drmModeFreeEncoder(encoder);
      }
 
-//     for (i = 0; i < resources->count_crtcs; i++) {
-//          if (connector->crtc == resources->crtcs[i]) {
-//               connector->pipe = i;
-//               break;
-//          }
-//     }
-
      D_INFO( "DirectFB/DRMKMS: using encoder id %d.\n", encoder->encoder_id );
+
+     if (!encoder->crtc_id) {
+          D_ERROR( "DirectFB/DRMKMS: No crtc associated to the encoder. Forcing the last found crtc\n");
+          encoder->crtc_id = resources->crtcs[resources->count_crtcs-1];
+     }
+
      D_INFO( "DirectFB/DRMKMS: using crtc id %d.\n", encoder->crtc_id  );
 
      drmkms->connector = connector;
