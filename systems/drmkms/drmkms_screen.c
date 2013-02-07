@@ -108,6 +108,11 @@ drmkmsInitScreen( CoreScreen           *screen,
           drmModeFreeEncoder(encoder);
      }
 
+     if (i == -1) {
+          D_ERROR( "DirectFB/DRMKMS: Could not match encoder/connector. Forcing the last found encoder\n");
+          encoder = drmModeGetEncoder( drmkms->fd, resources->encoders[resources->count_encoders-1] );
+     }
+
      D_INFO( "DirectFB/DRMKMS: using encoder id %d.\n", encoder->encoder_id );
 
      if (!encoder->crtc_id) {
