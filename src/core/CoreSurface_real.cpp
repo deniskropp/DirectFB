@@ -446,7 +446,15 @@ ISurface_Real::PreLockBuffer2(
           if (dfb_config->task_manager) {
                D_ASSERT( accessor == CSAID_CPU );
 
-               D_UNIMPLEMENTED();
+               LockTask *task = new LockTask();
+
+               task->AddAccess( allocation, access );
+
+               task->Flush();
+
+               task->Wait();
+
+               task->Done();
           }
           else {
                ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
@@ -758,84 +766,6 @@ ISurface_Real::BackToFrontCopy(
 
      return DFB_OK;
 }
-
-
-
-
-
-
-
-#if 0
-
-
-extern "C" {
-
-
-DFBResult
-dfb_surface_lock_buffer_TASK( CoreSurface            *surface,
-                              CoreSurfaceBufferRole   role,
-                              CoreSurfaceAccessorID   accessor,
-                              CoreSurfaceAccessFlags  access,
-                              CoreSurfaceBufferLock  *ret_lock )
-{
-     DFBResult              ret;
-     CoreSurfaceAllocation *allocation;
-
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     D_DEBUG_AT( Core_Surface, "%s( 0x%02x 0x%02x ) <- %dx%d %s [%d]\n", __FUNCTION__, accessor, access,
-                 surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(surface->config.format),
-                 role );
-
-     ret = CoreSurface_PreLockBuffer2( surface, role,
-                                       dfb_surface_get_stereo_eye(surface), // FIXME: make argument to dfb_surface_lock_buffer
-                                       accessor, access, true, &allocation );
-     if (ret)
-          return ret;
-
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-
-     D_DEBUG_AT( Core_Surface, "  -> PreLockBuffer returned allocation %p (%s)\n", allocation, allocation->pool->desc.name );
-
-     /* Lock the allocation. */
-     dfb_surface_buffer_lock_init( ret_lock, accessor, access );
-
-     ret = dfb_surface_pool_lock( allocation->pool, allocation, ret_lock );
-     if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Locking allocation failed! [%s]\n",
-                    allocation->pool->desc.name );
-          dfb_surface_buffer_lock_deinit( ret_lock );
-
-          dfb_surface_allocation_unref( allocation );
-          return ret;
-     }
-
-     return DFB_OK;
-}
-
-DFBResult
-dfb_surface_unlock_buffer( CoreSurface           *surface,
-                           CoreSurfaceBufferLock *lock )
-{
-     DFBResult ret;
-
-     extern DFBResult dfb_surface_unlock_buffer_TASK( CoreSurface           *surface,
-                                                      CoreSurfaceBufferLock *lock );
-
-     if (dfb_config->task_manager)
-          return dfb_surface_unlock_buffer_TASK( surface, lock );
-
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     ret = dfb_surface_buffer_unlock( lock );
-
-     return ret;
-}
-
-
-}
-
-#endif
 
 
 }
