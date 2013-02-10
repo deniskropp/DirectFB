@@ -49,8 +49,11 @@ includedir = @INCLUDEDIR@/direct
 include_HEADERS = \
 	$(ppcasm_headers)		\
 	$(armasm_headers)		\
+	LockWQ.h			\
 	Mutex.h				\
+	Performer.h			\
 	String.h			\
+	TLSObject.h			\
 	atomic.h			\
 	build.h				\
 	clock.h				\
