@@ -444,7 +444,7 @@ public:
           }
 
           state->mod_hw = SMF_NONE;
-          state->set    = DFXL_ALL;
+          state->set    = (DFBAccelerationMask)(state->set | accel);
 
           mytask->commands.PutBuffer( buf );
 
@@ -614,7 +614,7 @@ public:
                D_DEBUG_AT( DirectFB_GenefxTask, "  -> %4d,%4d-%4dx%4d -> %4d,%4d\n",
                            rects[i].x, rects[i].y, rects[i].w, rects[i].h, points[i].x, points[i].y );
 
-               if (0&&dfb_clip_blit_precheck( &mytask->clip, rects[i].w, rects[i].h, points[i].x, points[i].y )) {
+               if (dfb_clip_blit_precheck( &mytask->clip, rects[i].w, rects[i].h, points[i].x, points[i].y )) {
                     DFBRectangle rect = rects[i];
                     int          dx   = points[i].x;
                     int          dy   = points[i].y;
