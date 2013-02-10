@@ -426,8 +426,10 @@ static __inline__ CoreSurfaceBuffer *
 dfb_surface_get_buffer( CoreSurface           *surface,
                         CoreSurfaceBufferRole  role )
 {
-     D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( role == CSBR_FRONT || role == CSBR_BACK || role == CSBR_IDLE );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      D_ASSERT( surface->num_buffers > 0 );
 
@@ -439,9 +441,11 @@ dfb_surface_get_buffer2( CoreSurface           *surface,
                          CoreSurfaceBufferRole  role,
                          DFBSurfaceStereoEye    eye )
 {
-     D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( role == CSBR_FRONT || role == CSBR_BACK || role == CSBR_IDLE );
      D_ASSERT( eye == DSSE_LEFT || eye == DSSE_RIGHT );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      D_ASSERT( surface->num_buffers > 0 );
 
@@ -457,9 +461,11 @@ dfb_surface_get_buffer3( CoreSurface           *surface,
                          DFBSurfaceStereoEye    eye,
                          u32                    flip_count )
 {
-     D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( role == CSBR_FRONT || role == CSBR_BACK || role == CSBR_IDLE );
      D_ASSERT( eye == DSSE_LEFT || eye == DSSE_RIGHT );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      D_ASSERT( surface->num_buffers > 0 );
 
