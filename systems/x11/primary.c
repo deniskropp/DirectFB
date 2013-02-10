@@ -639,10 +639,10 @@ primaryFlipRegion( CoreLayer             *layer,
      dfb_x11_update_screen( x11, lds, &region, &region, left_lock, right_lock );
 
      if (left_lock->task)
-          SurfaceTask_Done( left_lock->task );
+          Task_Done( left_lock->task );
 
      if (lds->config.options & DLOP_STEREO && right_lock->task)
-          SurfaceTask_Done( right_lock->task );
+          Task_Done( right_lock->task );
 
      return DFB_OK;
 }
@@ -678,10 +678,10 @@ primaryUpdateRegion( CoreLayer             *layer,
      dfb_x11_update_screen( x11, lds, &left_region, &right_region, left_lock, right_lock );
 
      if (left_lock->task)
-          SurfaceTask_Done( left_lock->task );
+          Task_Done( left_lock->task );
 
      if (lds->config.options & DLOP_STEREO && right_lock->task)
-          SurfaceTask_Done( right_lock->task );
+          Task_Done( right_lock->task );
 
      return DFB_OK;
 }
