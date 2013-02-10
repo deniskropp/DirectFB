@@ -99,54 +99,6 @@ public:
 std::string DFBAccelerationMask_Name( DFBAccelerationMask accel );
 
 
-
-class Mutex
-{
-public:
-     Mutex()
-     {
-          direct_mutex_init( &mutex );
-     }
-
-     ~Mutex()
-     {
-          direct_mutex_deinit( &mutex );
-     }
-
-     void lock()
-     {
-          direct_mutex_lock( &mutex );
-     }
-
-     void unlock()
-     {
-          direct_mutex_unlock( &mutex );
-     }
-
-     class Lock {
-     public:
-          Lock( Mutex &mutex )
-               :
-               mutex( mutex )
-          {
-               mutex.lock();
-          }
-
-          ~Lock()
-          {
-               mutex.unlock();
-          }
-
-     private:
-          Mutex &mutex;
-     };
-
-private:
-     DirectMutex mutex;
-};
-
-
-
 }
 
 
