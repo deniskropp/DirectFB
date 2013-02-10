@@ -142,7 +142,12 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      D_DEBUG_AT( Core_GraphicsStateClient, "  -> gfxstate id 0x%x\n", client->gfx_state->object.ref.multi.id );
 
      if (dfb_config->task_manager) {
-          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion))
+          if (dfb_config->call_nodirect) {
+               if (direct_thread_get_tid( direct_thread_self() ) == fusion_dispatcher_tid(state->core->world)) {
+                    client->renderer = new DirectFB::Renderer( client->state );
+               }
+          }
+          else if (!fusion_config->secure_fusion || dfb_core_is_master( client->core ))
                client->renderer = new DirectFB::Renderer( client->state );
      }
 
@@ -468,25 +473,25 @@ CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->DrawRectangles( rects, num );
-          else {
+     if (client->renderer)
+          client->renderer->DrawRectangles( rects, num );
+     else {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                unsigned int i;
 
                for (i=0; i<num; i++)
                     // FIXME: will overwrite rects
                     dfb_gfxcard_drawrectangle( (DFBRectangle*) &rects[i], client->state );
           }
-     }
-     else {
-          DFBResult ret;
+          else {
+               DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_DRAWRECTANGLE, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_DRAWRECTANGLE, client->state );
 
-          ret = requestor->DrawRectangles( rects, num );
-          if (ret)
-               return ret;
+               ret = requestor->DrawRectangles( rects, num );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
@@ -504,21 +509,22 @@ CoreGraphicsStateClient_DrawLines( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->DrawLines( lines, num );
-          else
+     if (client->renderer)
+          client->renderer->DrawLines( lines, num );
+     else {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                // FIXME: will overwrite lines
                dfb_gfxcard_drawlines( (DFBRegion*) lines, num, client->state );
-     }
-     else {
-          DFBResult ret;
+          }
+          else {
+               DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_DRAWLINE, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_DRAWLINE, client->state );
 
-          ret = requestor->DrawLines( lines, num );
-          if (ret)
-               return ret;
+               ret = requestor->DrawLines( lines, num );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
@@ -536,20 +542,21 @@ CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->FillRectangles( rects, num );
-          else
-               dfb_gfxcard_fillrectangles( rects, num, client->state );
-     }
+     if (client->renderer)
+          client->renderer->FillRectangles( rects, num );
      else {
-          DFBResult ret;
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
+               dfb_gfxcard_fillrectangles( rects, num, client->state );
+          }
+          else {
+               DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_FILLRECTANGLE, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_FILLRECTANGLE, client->state );
 
-          ret = requestor->FillRectangles( rects, num );
-          if (ret)
-               return ret;
+               ret = requestor->FillRectangles( rects, num );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
@@ -567,20 +574,21 @@ CoreGraphicsStateClient_FillTriangles( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->FillTriangles( triangles, num );
-          else
-               dfb_gfxcard_filltriangles( triangles, num, client->state );
-     }
+     if (client->renderer)
+          client->renderer->FillTriangles( triangles, num );
      else {
-          DFBResult ret;
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
+                    dfb_gfxcard_filltriangles( triangles, num, client->state );
+          }
+          else {
+               DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_FILLTRIANGLE, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_FILLTRIANGLE, client->state );
 
-          ret = requestor->FillTriangles( triangles, num );
-          if (ret)
-               return ret;
+               ret = requestor->FillTriangles( triangles, num );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
@@ -598,20 +606,21 @@ CoreGraphicsStateClient_FillTrapezoids( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->FillTrapezoids( trapezoids, num );
-          else
-               dfb_gfxcard_filltrapezoids( trapezoids, num, client->state );
-     }
+     if (client->renderer)
+          client->renderer->FillTrapezoids( trapezoids, num );
      else {
-          DFBResult ret;
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
+               dfb_gfxcard_filltrapezoids( trapezoids, num, client->state );
+          }
+          else {
+               DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_FILLTRAPEZOID, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_FILLTRAPEZOID, client->state );
 
-          ret = requestor->FillTrapezoids( trapezoids, num );
-          if (ret)
-               return ret;
+               ret = requestor->FillTrapezoids( trapezoids, num );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
@@ -630,21 +639,22 @@ CoreGraphicsStateClient_FillSpans( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->FillSpans( y, spans, num );
-          else
+     if (client->renderer)
+          client->renderer->FillSpans( y, spans, num );
+     else {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                // FIXME: may overwrite spans
                dfb_gfxcard_fillspans( y, (DFBSpan*) spans, num, client->state );
-     }
-     else {
-          DFBResult ret;
+          }
+          else {
+               DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_FILLRECTANGLE, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_FILLRECTANGLE, client->state );
 
-          ret = requestor->FillSpans( y, spans, num );
-          if (ret)
-               return ret;
+               ret = requestor->FillSpans( y, spans, num );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
@@ -664,23 +674,24 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->Blit( rects, points, num );
-          else
+     if (client->renderer)
+          client->renderer->Blit( rects, points, num );
+     else {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                // FIXME: will overwrite rects, points
                dfb_gfxcard_batchblit( (DFBRectangle*) rects, (DFBPoint*) points, num, client->state );
-     }
-     else {
-          DFBResult    ret;
-          unsigned int i;
+          }
+          else {
+               DFBResult    ret;
+               unsigned int i;
 
-          CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
 
-          for (i=0; i<num; i+=200) {
-               ret = requestor->Blit( &rects[i], &points[i], MIN(200, num-i) );
-               if (ret)
-                    return ret;
+               for (i=0; i<num; i+=200) {
+                    ret = requestor->Blit( &rects[i], &points[i], MIN(200, num-i) );
+                    if (ret)
+                         return ret;
+               }
           }
      }
 
@@ -703,21 +714,22 @@ CoreGraphicsStateClient_Blit2( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->Blit2( rects, points1, points2, num );
-          else
+     if (client->renderer)
+          client->renderer->Blit2( rects, points1, points2, num );
+     else {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                // FIXME: will overwrite rects, points
                dfb_gfxcard_batchblit2( (DFBRectangle*) rects, (DFBPoint*) points1, (DFBPoint*) points2, num, client->state );
-     }
-     else {
-          DFBResult ret;
+          }
+          else {
+               DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_BLIT2, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_BLIT2, client->state );
 
-          ret = requestor->Blit2( rects, points1, points2, num );
-          if (ret)
-               return ret;
+               ret = requestor->Blit2( rects, points1, points2, num );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
@@ -740,10 +752,10 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
      if (num == 0)
           return DFB_OK;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->StretchBlit( srects, drects, num );
-          else {
+     if (client->renderer)
+          client->renderer->StretchBlit( srects, drects, num );
+     else {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                if (num == 1 && srects[0].w == drects[0].w && srects[0].h == drects[0].h) {
                     DFBPoint point = { drects[0].x, drects[0].y };
 
@@ -755,24 +767,24 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
                     dfb_gfxcard_batchstretchblit( (DFBRectangle*) srects, (DFBRectangle*) drects, num, client->state );
                }
           }
-     }
-     else {
-          DFBResult ret;
-
-          if (num == 1 && srects[0].w == drects[0].w && srects[0].h == drects[0].h) {
-               CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
-
-               DFBPoint point = { drects[0].x, drects[0].y };
-               ret = requestor->Blit( srects, &point, 1 );
-               if (ret)
-                    return ret;
-          }
           else {
-               CoreGraphicsStateClient_Update( client, DFXL_STRETCHBLIT, client->state );
-     
-               ret = requestor->StretchBlit( srects, drects, num );
-               if (ret)
-                    return ret;
+               DFBResult ret;
+
+               if (num == 1 && srects[0].w == drects[0].w && srects[0].h == drects[0].h) {
+                    CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
+
+                    DFBPoint point = { drects[0].x, drects[0].y };
+                    ret = requestor->Blit( srects, &point, 1 );
+                    if (ret)
+                         return ret;
+               }
+               else {
+                    CoreGraphicsStateClient_Update( client, DFXL_STRETCHBLIT, client->state );
+
+                    ret = requestor->StretchBlit( srects, drects, num );
+                    if (ret)
+                         return ret;
+               }
           }
      }
 
@@ -795,25 +807,25 @@ CoreGraphicsStateClient_TileBlit( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->TileBlit( rects, points1, points2, num );
-          else {
+     if (client->renderer)
+          client->renderer->TileBlit( rects, points1, points2, num );
+     else {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                u32 i;
 
                // FIXME: will overwrite rects, points
                for (i=0; i<num; i++)
                     dfb_gfxcard_tileblit( (DFBRectangle*) &rects[i], points1[i].x, points1[i].y, points2[i].x, points2[i].y, client->state );
           }
-     }
-     else {
-          DFBResult ret;
+          else {
+               DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
 
-          ret = requestor->TileBlit( rects, points1, points2, num );
-          if (ret)
-               return ret;
+               ret = requestor->TileBlit( rects, points1, points2, num );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
@@ -832,21 +844,22 @@ CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-          if (client->renderer)
-               client->renderer->TextureTriangles( vertices, num, formation );
-          else
+     if (client->renderer)
+          client->renderer->TextureTriangles( vertices, num, formation );
+     else {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                // FIXME: may overwrite vertices
                dfb_gfxcard_texture_triangles( (DFBVertex*) vertices, num, formation, client->state );
-     }
-     else {
-          DFBResult ret;
+          }
+          else {
+               DFBResult ret;
 
-          CoreGraphicsStateClient_Update( client, DFXL_TEXTRIANGLES, client->state );
+               CoreGraphicsStateClient_Update( client, DFXL_TEXTRIANGLES, client->state );
 
-          ret = requestor->TextureTriangles( vertices, num, formation );
-          if (ret)
-               return ret;
+               ret = requestor->TextureTriangles( vertices, num, formation );
+               if (ret)
+                    return ret;
+          }
      }
 
      return DFB_OK;
