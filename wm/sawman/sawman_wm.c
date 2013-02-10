@@ -3925,7 +3925,7 @@ update_hw_cursor( SaWMan                *sawman,
                       dfb_pixelformat_name( stack->cursor.surface->config.format ),
                       stack->cursor.surface->config.caps );
 
-          config_flags |= CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SURFACE_CAPS | CLRCF_FREEZE | CLRCF_OPTIONS;
+          config_flags |= CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SURFACE_CAPS | CLRCF_OPTIONS;
 
           config.width        = config.source.w;
           config.height       = config.source.h;
@@ -3941,11 +3941,13 @@ update_hw_cursor( SaWMan                *sawman,
      if (config_flags) {
           D_DEBUG_AT( SaWMan_Cursor, "  -> reconfiguring... (flags 0x%08x)\n", config_flags );
 
-          ret = dfb_layer_region_set_configuration( sawman->cursor.region, &config, config_flags );
+          ret = dfb_layer_region_set_configuration( sawman->cursor.region, &config, config_flags | CLRCF_FREEZE );
           if (ret) {
                D_DERROR( ret, "SaWMan/Cursor: Failed to reconfigure HW Cursor layer region!\n" );
                return ret;
           }
+
+          D_ASSUME( sawman->cursor.region->state & CLRSF_FROZEN );
 
           sawman->cursor.region->config.keep_buffers = true;
 
@@ -3963,10 +3965,12 @@ update_hw_cursor( SaWMan                *sawman,
      if (flags & CCUF_ENABLE) {
           D_DEBUG_AT( SaWMan_Cursor, "  -> ENABLE\n" );
 
+          D_ASSUME( sawman->cursor.region->state & CLRSF_FROZEN );
+
           dfb_layer_region_enable( sawman->cursor.region );
      }
 
-     if (flags & (CCUF_SHAPE | CCUF_ENABLE)) {
+     if (flags & (CCUF_SHAPE | CCUF_ENABLE) || config_flags) {
           D_DEBUG_AT( SaWMan_Cursor, "  -> updating region...\n" );
 
           dfb_layer_region_flip_update( sawman->cursor.region, NULL, DSFLIP_NONE );
