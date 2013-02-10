@@ -150,14 +150,17 @@ typedef enum {
 } CoreSurfacePolicy;
 
 typedef enum {
-     CSAF_NONE           = 0x00000000,
+     CSAF_NONE             = 0x00000000,
 
-     CSAF_READ           = 0x00000001,  /* accessor may read */
-     CSAF_WRITE          = 0x00000002,  /* accessor may write */
+     CSAF_READ             = 0x00000001,  /* accessor may read */
+     CSAF_WRITE            = 0x00000002,  /* accessor may write */
 
-     CSAF_SHARED         = 0x00000010,  /* other processes can read/write at the same time (shared mapping) */
+     CSAF_SHARED           = 0x00000010,  /* other processes can read/write at the same time (shared mapping) */
 
-     CSAF_ALL            = 0x00000013
+     CSAF_CACHE_INVALIDATE = 0x00000100,  /* accessor should invalidate its cache before reading/writing */
+     CSAF_CACHE_FLUSH      = 0x00000200,  /* accessor should flush its cache after writing */
+
+     CSAF_ALL              = 0x00000313
 } CoreSurfaceAccessFlags;
 
 typedef enum {
