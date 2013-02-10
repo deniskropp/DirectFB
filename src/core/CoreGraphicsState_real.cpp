@@ -1204,18 +1204,19 @@ IGraphicsState_Real::Flush(
 {
     D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
 
-    if (obj->renderer)
-        obj->renderer->Flush();
+    if (dfb_config->task_manager) {
+        if (obj->renderer)
+            obj->renderer->Flush();
+    }
+    else if (dfb_config->accel1) {
+        if (last_state == obj) {
+            State_Leave( last_state );
 
-    if (dfb_config->accel1) {
-         if (last_state == obj) {
-              State_Leave( last_state );
-
-              last_state = NULL;
-         }
+            last_state = NULL;
+        }
     }
     else
-         dfb_gfxcard_flush();
+        dfb_gfxcard_flush();
 
     return DFB_OK;
 }
