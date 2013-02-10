@@ -153,6 +153,7 @@ D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
 
 
 #include <direct/Mutex.h>
+#include <direct/Performer.h>
 #include <direct/String.h>
 
 #include <core/Fifo.h>
