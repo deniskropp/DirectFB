@@ -84,7 +84,7 @@
 
 #define D_UTIL_SWAP(a,b)                                                   \
      do {                                                                  \
-          const typeof(a) __swap_x = (a); (a) = (b); (b) = __swap_x;       \
+          const __typeof__(a) __swap_x = (a); (a) = (b); (b) = __swap_x;       \
      } while (0)
 
 
