@@ -3264,7 +3264,7 @@ void dfb_gfxcard_batchstretchblit( DFBRectangle *srects, DFBRectangle *drects,
 
           if (!acquired) {
                if (dfb_config->task_manager ||
-                   dfb_gfxcard_state_check_acquire( state, DFXL_STRETCHBLIT ))
+                   !dfb_gfxcard_state_check_acquire( state, DFXL_STRETCHBLIT ))
                     break;
 
                acquired = true;
