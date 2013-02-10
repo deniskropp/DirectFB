@@ -2093,7 +2093,7 @@ resize_window( CoreWindow *window,
 
           ret = dfb_layer_region_set_configuration( window->region, &data->config,
                                                     CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_SURFACE |
-                                                    CLRCF_DEST  | CLRCF_SOURCE );
+                                                    CLRCF_DEST  | CLRCF_SOURCE | CLRCF_FREEZE );
           if (ret) {
                data->config.dest.w = data->config.source.w = data->config.width  = bounds->w = ow;
                data->config.dest.h = data->config.source.h = data->config.height = bounds->h = oh;
