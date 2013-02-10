@@ -207,6 +207,7 @@ struct __DFB_CoreWindowStack {
 
      DFBInputEvent           motion_x;
      DFBInputEvent           motion_y;
+     long long               motion_ts;
 };
 
 

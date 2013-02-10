@@ -839,6 +839,7 @@ WindowStack_Input_Flush( CoreWindowStack *stack )
      stack->motion_y.type = DIET_UNKNOWN;
 
      stack->motion_cleanup = NULL;
+     stack->motion_ts      = 0;
 }
 
 static void
@@ -871,9 +872,15 @@ static void
 WindowStack_Input_Add( CoreWindowStack     *stack,
                        const DFBInputEvent *event )
 {
+     long long ts = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
      if ((stack->motion_x.type && stack->motion_x.device_id != event->device_id) ||
-         (stack->motion_y.type && stack->motion_y.device_id != event->device_id))
+         (stack->motion_y.type && stack->motion_y.device_id != event->device_id) ||
+         ts - stack->motion_ts > 10000)
           WindowStack_Input_Flush( stack );
+
+     if (!stack->motion_ts)
+          stack->motion_ts = ts;
 
      switch (event->type) {
           case DIET_AXISMOTION:
