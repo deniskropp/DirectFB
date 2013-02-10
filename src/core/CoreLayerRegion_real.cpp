@@ -132,20 +132,27 @@ DisplayTask::~DisplayTask()
 }
 
 DFBResult
-DisplayTask::Generate( CoreLayerRegion       *region,
-                       const DFBRegion       *update,
-                       DFBSurfaceFlipFlags    flags )
+DisplayTask::Generate( CoreLayerRegion      *region,
+                       const DFBRegion      *update,
+                       DFBSurfaceFlipFlags   flags,
+                       DisplayTask         **ret_task )
 {
      DFBResult              ret;
      CoreSurface           *surface;
      CoreSurfaceBuffer     *buffer;
      CoreSurfaceAllocation *allocation;
 
+     D_ASSERT( region != NULL );
+     FUSION_SKIRMISH_ASSERT( &region->lock );
+
      surface = region->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
-     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( region %p, surface %p, flip %d )\n", __FUNCTION__, region, surface, surface->flips );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( region %p, surface %p, flips %d, flags 0x%04x, ret_task %p )\n",
+                 __FUNCTION__, region, surface, surface->flips, flags, ret_task );
 
-     // FIXME: move to helper class
+     // FIXME: use helper class
      //
 
      buffer = dfb_surface_get_buffer3( surface, CSBR_FRONT, DSSE_LEFT, surface->flips );
@@ -166,9 +173,16 @@ DisplayTask::Generate( CoreLayerRegion       *region,
 
      task->AddAccess( allocation, CSAF_READ );
 
-     D_DEBUG_AT( Core_Layers, "  -> flushing task %p\n", task );
+     if (ret_task) {
+          D_DEBUG_AT( DirectFB_Task_Display, "  -> returning task %p (not flushed)\n", task );
 
-     task->Flush();
+          *ret_task = task;
+     }
+     else {
+          D_DEBUG_AT( DirectFB_Task_Display, "  -> flushing task %p\n", task );
+
+          task->Flush();
+     }
 
      return DFB_OK;
 }
@@ -315,11 +329,11 @@ DisplayTask::Describe()
 
 extern "C" {
 
-
 DFBResult
-dfb_layer_region_flip_update_TASK( CoreLayerRegion     *region,
-                                   const DFBRegion     *update,
-                                   DFBSurfaceFlipFlags  flags )
+dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
+                                   const DFBRegion      *update,
+                                   DFBSurfaceFlipFlags   flags,
+                                   DisplayTask         **ret_task )
 {
      DFBResult                ret = DFB_OK;
      CoreLayer               *layer;
@@ -408,7 +422,7 @@ dfb_layer_region_flip_update_TASK( CoreLayerRegion     *region,
                     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                          D_DEBUG_AT( Core_Layers, "  -> Issuing display task...\n" );
 
-                         DisplayTask::Generate( region, update, flags );
+                         DisplayTask::Generate( region, update, flags, ret_task );
                     }
 
                     dfb_surface_unlock( surface );
@@ -482,7 +496,7 @@ dfb_layer_region_flip_update_TASK( CoreLayerRegion     *region,
 
                     dfb_surface_lock( surface );
 
-                    DisplayTask::Generate( region, update, flags );
+                    DisplayTask::Generate( region, update, flags, ret_task );
 
                     dfb_surface_unlock( surface );
                }

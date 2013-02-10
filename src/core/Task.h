@@ -57,6 +57,11 @@ void             SurfaceTask_Done     ( DFB_SurfaceTask        *task );
 void             SurfaceTask_Log      ( DFB_SurfaceTask        *task,
                                         const char             *action );
 
+DFBResult        DisplayTask_Generate ( CoreLayerRegion         *region,
+                                        const DFBRegion         *update,
+                                        DFBSurfaceFlipFlags      flags,
+                                        DFB_DisplayTask        **ret_task );
+
 
 #ifdef __cplusplus
 }
@@ -410,9 +415,10 @@ public:
 
      ~DisplayTask();
 
-     static DFBResult Generate( CoreLayerRegion     *region,
-                                const DFBRegion     *update,
-                                DFBSurfaceFlipFlags  flags );
+     static DFBResult Generate( CoreLayerRegion      *region,
+                                const DFBRegion      *update,
+                                DFBSurfaceFlipFlags   flags,
+                                DisplayTask         **ret_task );
 
 protected:
      virtual DFBResult Setup();

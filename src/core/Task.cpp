@@ -121,6 +121,18 @@ SurfaceTask_Log( DFB_SurfaceTask *task,
 #endif
 }
 
+DFBResult
+DisplayTask_Generate( CoreLayerRegion      *region,
+                      const DFBRegion      *update,
+                      DFBSurfaceFlipFlags   flags,
+                      DisplayTask         **ret_task )
+{
+     D_DEBUG_AT( DirectFB_Task, "%s( region %p, "DFB_RECT_FORMAT", flags 0x%04x, ret_task %p )\n", __FUNCTION__,
+                 region, DFB_RECTANGLE_VALS_FROM_REGION( update ), flags, ret_task );
+
+     return DisplayTask::Generate( region, update, flags, ret_task );
+}
+
 }
 
 /*********************************************************************************************************************/

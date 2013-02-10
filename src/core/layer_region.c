@@ -438,12 +438,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      CoreSurface             *surface;
      const DisplayLayerFuncs *funcs;
 
-     extern DFBResult dfb_layer_region_flip_update_TASK( CoreLayerRegion     *region,
-                                                         const DFBRegion     *update,
-                                                         DFBSurfaceFlipFlags  flags );
-
      if (dfb_config->task_manager)
-          return dfb_layer_region_flip_update_TASK( region, update, flags );
+          return dfb_layer_region_flip_update_task( region, update, flags, NULL );
 
      if (update)
           D_DEBUG_AT( Core_Layers,
