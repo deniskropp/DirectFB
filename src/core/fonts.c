@@ -952,7 +952,8 @@ retry:
           goto out;
      }
 
-     dfb_gfxcard_flush_texture_cache();
+     if (!dfb_config->task_manager)
+          dfb_gfxcard_flush_texture_cache();
 
      CORE_GLYPH_DATA_DEBUG_AT( Core_Font, data );
 
