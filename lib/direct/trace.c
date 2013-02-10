@@ -209,6 +209,8 @@ load_symbols( const char *filename )
      const char  *full_path = filename;
      char        *tmp;
 
+     D_INFO( "Direct/Trace: loading symbols of '%s'...\n", filename );
+
      if (filename) {
           ret = direct_access( filename, R_OK );
           if (ret && ret == DR_FILENOTFOUND) {
@@ -283,6 +285,8 @@ load_symbols( const char *filename )
           /* Fallback to live mode. */
           if (ret) {
                direct_snprintf( command, command_len, "nm -nC %s", full_path );
+
+               D_INFO( "Direct/Trace: running '%s'...\n", command );
 
                ret = direct_popen( &fp, command, O_RDONLY );
                if (ret) {
