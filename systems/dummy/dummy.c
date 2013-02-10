@@ -28,6 +28,8 @@
 
 #include <config.h>
 
+#include <core/Task.h>
+
 #include <core/layers.h>
 #include <core/screens.h>
 
@@ -132,10 +134,51 @@ dummySetRegion( CoreLayer                  *layer,
      return DFB_OK;
 }
 
+static DFBResult
+dummyFlipRegion( CoreLayer             *layer,
+                 void                  *driver_data,
+                 void                  *layer_data,
+                 void                  *region_data,
+                 CoreSurface           *surface,
+                 DFBSurfaceFlipFlags    flags,
+                 const DFBRegion       *left_update,
+                 CoreSurfaceBufferLock *left_lock,
+                 const DFBRegion       *right_update,
+                 CoreSurfaceBufferLock *right_lock )
+{
+     dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
+
+     if (left_lock->task)
+          Task_Done( left_lock->task );
+
+     return DFB_OK;
+}
+
+static DFBResult
+dummyUpdateRegion( CoreLayer             *layer,
+                   void                  *driver_data,
+                   void                  *layer_data,
+                   void                  *region_data,
+                   CoreSurface           *surface,
+                   const DFBRegion       *left_update,
+                   CoreSurfaceBufferLock *left_lock,
+                   const DFBRegion       *right_update,
+                   CoreSurfaceBufferLock *right_lock )
+{
+     dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
+
+     if (left_lock->task)
+          Task_Done( left_lock->task );
+
+     return DFB_OK;
+}
+
 static DisplayLayerFuncs dummyLayerFuncs = {
      .InitLayer     = dummyInitLayer,
      .TestRegion    = dummyTestRegion,
-     .SetRegion     = dummySetRegion
+     .SetRegion     = dummySetRegion,
+     .FlipRegion    = dummyFlipRegion,
+     .UpdateRegion  = dummyUpdateRegion
 };
 
 /**********************************************************************************************************************/
