@@ -171,21 +171,6 @@ CoreLayer_Unref( CoreLayer *layer )
 }
 
 static __inline__ DirectResult
-CoreLayer_Catch__( CoreDFB    *core,
-                 u32         object_id,
-                 CoreLayer **ret_layer )
-{
-     D_UNUSED_P( core );
-
-     if (object_id >= (u32) dfb_layer_num())
-          return DR_IDNOTFOUND;
-
-     *ret_layer = dfb_layer_at( object_id );
-
-     return DR_OK;
-}
-
-static __inline__ DirectResult
 CoreLayer_Throw( CoreLayer *layer,
                  FusionID   catcher,
                  u32       *ret_object_id )
