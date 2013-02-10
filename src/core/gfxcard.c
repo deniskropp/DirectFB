@@ -533,6 +533,7 @@ dfb_gfxcard_stop_drawing( CoreGraphicsDevice *device, CardState *state )
 bool
 dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 {
+     DFBResult          ret;
      CoreSurface       *dst;
      CoreSurface       *src;
      CoreSurfaceBuffer *dst_buffer;
@@ -610,8 +611,14 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           }
      }
 
+     ret = dfb_surface_lock( dst );
+     if (ret)
+          return false;
+
      dst_buffer = dfb_surface_get_buffer( dst, state->to );
      D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
+
+     dfb_surface_unlock( dst );
 
      D_ASSUME( state->clip.x2 < dst->config.size.w );
      D_ASSUME( state->clip.y2 < dst->config.size.h );
@@ -721,9 +728,14 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
            * If the front buffer policy of the source is 'system only'
            * no accelerated blitting is available.
            */
-          src_buffer = dfb_surface_get_buffer( src, state->from );
+          ret = dfb_surface_lock( src );
+          if (ret)
+               return false;
 
+          src_buffer = dfb_surface_get_buffer( src, state->from );
           D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
+
+          dfb_surface_unlock( src );
 
           if (src_buffer->policy == CSP_SYSTEMONLY && !(card->caps.flags & CCF_READSYSMEM)) {
                /* Clear 'accelerated blitting functions'. */
