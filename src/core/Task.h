@@ -43,24 +43,109 @@ extern "C" {
 #include <directfb.h>
 
 
+#define DFB_TASK_DEBUG_LOG    (0)  // Task::Log(), DumpLog() enabled
+#define DFB_TASK_DEBUG_STATE  (0)  // DFB_TASK_CHECK_STATE with warning and task log if enabled
+#define DFB_TASK_DEBUG_TASKS  (0)  // TaskManager::dumpTasks() enabled
+#define DFB_TASK_DEBUG_TIMES  (0)  // print warnings when task operations exceed time limits (set below)
+
+/* max times in micro seconds before warning appears */
+#define DFB_TASK_WARN_EMIT    3000
+#define DFB_TASK_WARN_SETUP   3000
+#define DFB_TASK_WARN_FINISH  3000
+
+
 DFBResult    TaskManager_Initialise( void );
 void         TaskManager_Shutdown( void );
 void         TaskManager_Sync( void );
 
 
-DFB_SurfaceTask *SurfaceTask_New      ( CoreSurfaceAccessorID   accessor );
-DFBResult        SurfaceTask_AddAccess( DFB_SurfaceTask        *task,
-                                        CoreSurfaceAllocation  *allocation,
-                                        CoreSurfaceAccessFlags  flags );
-void             SurfaceTask_Flush    ( DFB_SurfaceTask        *task );
-void             SurfaceTask_Done     ( DFB_SurfaceTask        *task );
-void             SurfaceTask_Log      ( DFB_SurfaceTask        *task,
-                                        const char             *action );
+void             Task_AddNotify       ( DFB_Task                *task,
+                                        DFB_Task                *notified, // Task that should block on 'task'
+                                        bool                     follow );
+void             Task_Flush           ( DFB_Task                *task );
+void             Task_Done            ( DFB_Task                *task );
+void             Task_Log             ( DFB_Task                *task,
+                                        const char              *action );
+
+
+DFB_SurfaceTask *SurfaceTask_New      ( CoreSurfaceAccessorID    accessor );
+DFBResult        SurfaceTask_AddAccess( DFB_SurfaceTask         *task,
+                                        CoreSurfaceAllocation   *allocation,
+                                        CoreSurfaceAccessFlags   flags );
 
 DFBResult        DisplayTask_Generate ( CoreLayerRegion         *region,
                                         const DFBRegion         *update,
                                         DFBSurfaceFlipFlags      flags,
                                         DFB_DisplayTask        **ret_task );
+
+
+typedef DFBResult SimpleTaskFunc( void *ctx, DFB_Task *task );
+
+DFBResult        SimpleTask_Create    ( SimpleTaskFunc          *push,     // If NULL, Push() will just call Run() in TaskManager thread!
+                                        SimpleTaskFunc          *run,      // Can be NULL, but Push() must make sure the task gets Done()
+                                        void                    *ctx,
+                                        DFB_Task               **ret_task );
+
+
+D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
+
+#if DFB_TASK_DEBUG_STATE
+
+#define DFB_TASK_CHECK_STATE( _task, _states, _ret )                                 \
+     do {                                                                            \
+          if (!((_task)->state & (_states))) {                                       \
+               D_WARN( "task state (0x%02x) does not match 0x%02x -- %s",            \
+                       (_task)->state, (_states), (_task)->Description().buffer() ); \
+                                                                                     \
+               (_task)->DumpLog( DirectFB_Task, DIRECT_LOG_INFO );                   \
+                                                                                     \
+               D_ASSERT( (_task)->state & (_states) );                               \
+                                                                                     \
+               _ret;                                                                 \
+          }                                                                          \
+     } while (0)
+
+#else
+
+#define DFB_TASK_CHECK_STATE( _task, _states, _ret )                                 \
+     do {                                                                            \
+          if (!((_task)->state & (_states))) {                                       \
+               _ret;                                                                 \
+          }                                                                          \
+     } while (0)
+
+#endif
+
+
+#if DFB_TASK_DEBUG_LOG
+#define DFB_TASK_LOG(x) Log(x)
+#else
+#define DFB_TASK_LOG(x) do {} while (0)
+#endif
+
+
+#if D_DEBUG_ENABLED
+#define DFB_TASK_ASSERT( _task, _ret )                                                    \
+     do {                                                                                 \
+          if (!D_MAGIC_CHECK( _task, Task )) {                                            \
+               if (_task) {                                                               \
+                    D_WARN( "Task '%p' magic (0x%08x) does not match 0x%08x",             \
+                            _task, (_task)->magic, D_MAGIC("Task") );                     \
+                    (_task)->DumpLog( DirectFB_Task, DIRECT_LOG_INFO );                   \
+               }                                                                          \
+               else                                                                       \
+                    D_WARN( "task is NULL" );                                             \
+          }                                                                               \
+          D_MAGIC_ASSERT( _task, Task );                                                  \
+     } while (0)
+#else
+#define DFB_TASK_ASSERT( _task, _ret )                                                    \
+     do {                                                                                 \
+          if (!D_MAGIC_CHECK( _task, Task )) {                                            \
+               _ret;                                                                      \
+          }                                                                               \
+     } while (0)
+#endif
 
 
 #ifdef __cplusplus
@@ -70,9 +155,7 @@ DFBResult        DisplayTask_Generate ( CoreLayerRegion         *region,
 #include <direct/Mutex.h>
 #include <direct/String.h>
 
-#define DFB_TASK_DEBUG   (0)
-
-
+#include <core/Fifo.h>
 #include <core/Util.h>
 
 #include <list>
@@ -84,181 +167,17 @@ DFBResult        DisplayTask_Generate ( CoreLayerRegion         *region,
 namespace DirectFB {
 
 
-template <typename T>
-class FIFO
-{
-public:
-     FIFO()
-     {
-          direct_mutex_init( &lock );
-          direct_waitqueue_init( &wq );
-          direct_waitqueue_init( &wq_empty );
-     }
-
-     ~FIFO()
-     {
-          direct_mutex_deinit( &lock );
-          direct_waitqueue_deinit( &wq );
-          direct_waitqueue_deinit( &wq_empty );
-     }
-
-     void
-     push( T e )
-     {
-          direct_mutex_lock( &lock );
-
-          queue.push( e );
-
-          direct_waitqueue_signal( &wq );
-
-          direct_mutex_unlock( &lock );
-     }
-
-     T
-     pull()
-     {
-          T e;
-
-          direct_mutex_lock( &lock );
-
-          while (queue.empty())
-               direct_waitqueue_wait( &wq, &lock );
-
-          e = queue.front();
-          queue.pop();
-
-//          if (queue.empty())
-               direct_waitqueue_broadcast( &wq_empty );
-
-          direct_mutex_unlock( &lock );
-
-          return e;
-     }
-
-     bool
-     empty()
-     {
-          bool val;
-
-          direct_mutex_lock( &lock );
-
-          val = queue.empty();
-
-          direct_mutex_unlock( &lock );
-
-          return val;
-     }
-
-     void
-     waitEmpty()
-     {
-          direct_mutex_lock( &lock );
-
-          while (!queue.empty())
-               direct_waitqueue_wait( &wq_empty, &lock );
-
-          direct_mutex_unlock( &lock );
-     }
-
-     void
-     waitMost( size_t count )
-     {
-          direct_mutex_lock( &lock );
-
-          while (queue.size() > count)
-               direct_waitqueue_wait( &wq_empty, &lock );
-
-          direct_mutex_unlock( &lock );
-     }
-
-     size_t
-     count()
-     {
-          size_t count;
-
-          direct_mutex_lock( &lock );
-
-          count = queue.size();
-
-          direct_mutex_unlock( &lock );
-
-          return count;
-     }
-
-private:
-     DirectMutex     lock;
-     DirectWaitQueue wq;
-     DirectWaitQueue wq_empty;
-
-     std::queue<T>   queue;
-};
-
-
-template <typename T>
-class FastFIFO
-{
-class Element {
-public:
-     DirectFifoItem item;
-     T              val;
-};
-
-public:
-     FastFIFO()
-     {
-          direct_fifo_init( &fifo );
-     }
-
-     ~FastFIFO()
-     {
-          direct_fifo_destroy( &fifo );
-     }
-
-     void
-     push( T e )
-     {
-          Element *element = new Element;
-
-          element->item.magic = 0;
-          element->val        = e;
-
-          direct_fifo_push( &fifo, &element->item );
-     }
-
-     T
-     pull()
-     {
-          Element *element;
-          T        val;
-
-          do {
-               element = (Element*) direct_fifo_pull( &fifo );
-               if (!element)
-                    direct_fifo_wait( &fifo );
-          } while (!element);
-
-          val = element->val;
-
-          delete element;
-
-          return val;
-     }
-
-private:
-     DirectFifo      fifo;
-};
-
-
-
-
-
 typedef enum {
-     TASK_NEW,
-     TASK_FLUSHED,
-     TASK_READY,
-     TASK_RUNNING,
-     TASK_DONE,
-     TASK_INVALID
+     TASK_STATE_NONE = 0x00000000,
+
+     TASK_NEW        = 0x00000001,
+     TASK_FLUSHED    = 0x00000002,
+     TASK_READY      = 0x00000004,
+     TASK_RUNNING    = 0x00000008,
+     TASK_DONE       = 0x00000010,
+     TASK_INVALID    = 0x00000020,
+
+     TASK_STATE_ALL  = 0x0000003F
 } TaskState;
 
 typedef enum {
@@ -268,8 +187,10 @@ typedef enum {
      TASK_FLAG_EMITNOTIFIES     = 0x00000002,     /* Task runs notifyAll(0 already on emit(), not on finish() */
      TASK_FLAG_CACHE_FLUSH      = 0x00000004,     /*  */
      TASK_FLAG_CACHE_INVALIDATE = 0x00000008,     /*  */
+     TASK_FLAG_NEED_SLAVE_PUSH  = 0x00000010,     /* Push() of master does not take care about Push() for slaves */
+     TASK_FLAG_LAST_IN_QUEUE    = 0x00000020,     /* Task has been last in queue and no next task was pushed to FIFO */
 
-     TASK_FLAG_ALL              = 0x0000000F
+     TASK_FLAG_ALL              = 0x0000003F
 } TaskFlags;
 
 
@@ -284,47 +205,67 @@ typedef std::pair<Task*,bool> TaskNotify;
 class Task
 {
 public:
+     int magic;
+
+public:
      Task();
      virtual ~Task();
 
-     void      AddSlave( Task *slave );
+     void      AddNotify( Task *notified,
+                          bool  follow );
+     void      AddSlave ( Task *slave );
 
      void      Flush();
      void      Done();
+     // TODO: Add Failed() ...
+
 
 protected:
-     virtual DFBResult   Setup();
-     virtual DFBResult   Push();
-     virtual DFBResult   Run();
-     virtual void        Finalise();
-     virtual std::string Describe();
+     virtual DFBResult Setup();
+     virtual DFBResult Push();
+     virtual DFBResult Run();
+     virtual void      Finalise();
+     virtual void      Describe( Direct::String &string );
 
 protected:
      TaskState state;
      TaskFlags flags;
 
-     DFBResult emit( bool following );
+     DFBResult emit( int following );
      DFBResult finish();
 
-     void addNotify( Task *task,
-                     bool  follow );
      void notifyAll();
-     void handleNotify( bool following );
+     void handleNotify( int following );
+     void enableDump();
+     void append( Task *task );
 
 private:
      friend class TaskManager;
-     friend class DisplayTask;
+     friend class TaskThreads;
+     friend class TaskThreadsQ;
 
+     /* building dependency tree */
      std::vector<TaskNotify>  notifies;
      unsigned int             block_count;
 
+protected:
+     /* queueing parallel tasks */
      unsigned int             slaves;
      Task                    *master;
      Task                    *next_slave;
 
-     bool                     finished;
+     /* queueing sequential tasks */
+     u64                      qid;
+     Task                    *next;
 
-#if DFB_TASK_DEBUG
+     /* allocation on hwid */
+     u32                      hwid;
+
+private:
+     bool                     finished;
+     bool                     dump;
+
+#if DFB_TASK_DEBUG_LOG
      class LogEntry {
      public:
           std::string         thread;
@@ -344,9 +285,13 @@ private:
      Direct::Mutex         tasklog_lock;
 #endif
 
+
+     Direct::String description;
+
 public:
      void Log( const std::string &action );
      void DumpLog( DirectLogDomain &domain, DirectLogLevel level );
+     Direct::String &Description();
 };
 
 
@@ -365,9 +310,10 @@ private:
      static unsigned int       task_count;
      static unsigned int       task_count_sync;
 
+#if DFB_TASK_DEBUG_TASKS
      static std::list<Task*>   tasks;
-
-     static DirectMutex        lock;
+     static DirectMutex        tasks_lock;
+#endif
 
      static void       pushTask  ( Task *task );
      static Task      *pullTask  ();
@@ -381,8 +327,120 @@ public:
 };
 
 
+class TaskThreads {
+private:
+     DirectFB::FIFO<Task*>      fifo;
+     std::vector<DirectThread*> threads;
 
-typedef std::pair<CoreSurfaceAllocation*,CoreSurfaceAccessFlags> SurfaceAllocationAccess;
+public:
+     TaskThreads( const std::string &name, size_t num, DirectThreadType type = DTT_DEFAULT )
+     {
+          for (size_t i=0; i<num; i++) {
+               DirectThread *thread = direct_thread_create( type, taskLoop, this, (num > 1) ?
+                                                            Direct::String( "%s/%zu", name.c_str(), i ).buffer() :
+                                                            Direct::String( "%s", name.c_str() ).buffer() );
+               if (!thread)
+                    break;
+
+               threads.push_back( thread );
+          }
+
+          D_ASSUME( threads.size() == num );
+     }
+
+     ~TaskThreads()
+     {
+          for (size_t i=0; i<threads.size(); i++)
+               fifo.push( NULL );
+
+          for (std::vector<DirectThread*>::const_iterator it = threads.begin(); it != threads.end(); it++) {
+               direct_thread_join( *it );
+               direct_thread_destroy( *it );
+          }
+     }
+
+     void Push( Task *task )
+     {
+          fifo.push( task );
+     }
+
+     static void *
+     taskLoop( DirectThread *thread,
+               void         *arg )
+     {
+          DFBResult    ret;
+          TaskThreads *thiz = (TaskThreads *)arg;
+          Task        *task;
+
+          D_DEBUG_AT( DirectFB_Task, "TaskThreads::%s()\n", __FUNCTION__ );
+
+          while (true) {
+               task = thiz->fifo.pull();
+               if (!task) {
+                    D_DEBUG_AT( DirectFB_Task, "TaskThreads::%s()  -> got NULL task (exit signal)\n", __FUNCTION__ );
+                    return NULL;
+               }
+
+               ret = task->Run();
+               if (ret)
+                    D_DERROR( ret, "TaskThreads: Task::Run() failed! [%s]\n", task->Description().buffer() );
+          }
+
+          return NULL;
+     }
+};
+
+class TaskThreadsQ {
+private:
+     class Runner {
+     public:
+          TaskThreadsQ *threads;
+          unsigned int  index;
+          DirectThread *thread;
+
+          Runner( TaskThreadsQ         *threads,
+                  unsigned int          index,
+                  DirectThreadType      type,
+                  const Direct::String &name );
+
+          ~Runner();
+     };
+
+public:
+     DirectFB::FIFO<Task*>              fifo;   // TODO: try to find better structure without lock
+     std::vector<Runner*>               runners;
+     std::map<u64,Task*>                queues;
+     std::map<u64,Direct::PerfCounter>  perfs;
+
+public:
+     TaskThreadsQ( const std::string &name, size_t num, DirectThreadType type = DTT_DEFAULT );
+
+     ~TaskThreadsQ();
+
+     void Push( Task *task );
+
+     void Finalise( Task *task );
+
+private:
+     static void *
+     taskLoop( DirectThread *thread,
+               void         *arg );
+};
+
+
+class SurfaceAllocationAccess {
+public:
+     CoreSurfaceAllocation  *allocation;
+     CoreSurfaceAccessFlags  flags;
+
+     SurfaceAllocationAccess( CoreSurfaceAllocation  *allocation,
+                              CoreSurfaceAccessFlags  flags )
+          :
+          allocation( allocation ),
+          flags( flags )
+     {
+     }
+};
 
 class SurfaceTask : public Task
 {
@@ -392,15 +450,16 @@ public:
      DFBResult AddAccess( CoreSurfaceAllocation  *allocation,
                           CoreSurfaceAccessFlags  flags );
 
-     // FIXME: make private if possible
-     CoreSurfaceAccessorID                   accessor;
-
 protected:
-     virtual DFBResult   Setup();
-     virtual void        Finalise();
-     virtual std::string Describe();
+     virtual DFBResult Setup();
+     virtual void      Finalise();
+     virtual void      Describe( Direct::String &string );
+
+     virtual DFBResult CacheFlush();
+     virtual DFBResult CacheInvalidate();
 
 public://private:
+     CoreSurfaceAccessorID                   accessor;
      std::vector<SurfaceAllocationAccess>    accesses;
 };
 
@@ -423,9 +482,9 @@ public:
 
 protected:
      virtual DFBResult Setup();
-     virtual void Finalise();
      virtual DFBResult Run();
-     virtual std::string Describe();
+     virtual void      Finalise();
+     virtual void      Describe( Direct::String &string );
 
 private:
      CoreLayerRegion       *region;
@@ -442,29 +501,10 @@ private:
 
 /*
 
-Tasks
-- flag if task is blocking subsequent tasks
-
-
-Run()
- - cache invalidate when flag is set
- - cache flush when flag is set
-
-
-
-
-Cache
-- add cache groups to avoid flushing between SW threads or multi core GPUs
-
-Tiles / SLI
-- allow parallel tasks, splitting allocations into parts
-- dynamic splitting to avoid overhead with normal access
-- may need pushTasks( task[] ) function to atomically push more than one task
-
-Siblings
-- parallel tasks can be connected as siblings
-- master task reponsible for notifies, but slaves need to signal master
-- could make multiple readers work like this
+Task
+- optional recycle in Creator
+- futuretime spec for emission
+- limits (memory,count,futuretime) of tasks
 
 
 

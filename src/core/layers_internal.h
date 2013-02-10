@@ -96,7 +96,7 @@ struct __DFB_CoreLayer {
 
      CardState                state;
 
-     DFB_SurfaceTask         *display_task;
+     DFB_DisplayTask         *display_task;
      DFB_SurfaceTask         *display_task_onscreen;
 };
 

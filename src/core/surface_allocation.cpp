@@ -96,7 +96,11 @@ surface_allocation_destructor( FusionObject *object, bool zombie, void *ctx )
      if (allocation->data)
           SHFREE( allocation->pool->shmpool, allocation->data );
 
-     fusion_vector_destroy( &allocation->read_tasks );
+     if (allocation->read_tasks) {
+          std::list<DirectFB::Task*> *read_tasks = (std::list<DirectFB::Task*> *) allocation->read_tasks;
+
+          delete read_tasks;
+     }
 
      direct_serial_deinit( &allocation->serial );
 
@@ -165,8 +169,6 @@ dfb_surface_allocation_create( CoreDFB                *core,
      direct_serial_init( &allocation->serial );
 
      fusion_ref_add_permissions( &allocation->object.ref, 0, FUSION_REF_PERMIT_REF_UNREF_LOCAL );
-
-     fusion_vector_init( &allocation->read_tasks, 4, surface->shmpool );
 
      D_MAGIC_SET( allocation, CoreSurfaceAllocation );
 

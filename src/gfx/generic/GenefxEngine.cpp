@@ -85,15 +85,21 @@ class GenefxEngine;
 class GenefxTask : public DirectFB::SurfaceTask
 {
 public:
-     GenefxTask( GenefxEngine *engine )
+     GenefxTask( GenefxEngine    *engine,
+                 const DFBRegion &clip,
+                 unsigned int     tile_number )
           :
           SurfaceTask( CSAID_CPU ),
           engine( engine ),
+          tile_clip( clip ),
           commands( DFB_GENEFX_COMMAND_BUFFER_BLOCK_SIZE ),
           weight( 0 ),
           weight_shift_draw( 0 ),
-          weight_shift_blit( 0 )
+          weight_shift_blit( 0 ),
+          tile_number( tile_number ),
+          modified( SMF_NONE )
      {
+          D_FLAGS_SET( flags, TASK_FLAG_NEED_SLAVE_PUSH );
      }
 
      virtual ~GenefxTask()
@@ -101,13 +107,16 @@ public:
      }
 
 protected:
+     virtual DFBResult Setup();
      virtual DFBResult Push();
      virtual DFBResult Run();
+     virtual void      Finalise();
 
 private:
      friend class GenefxEngine;
 
      GenefxEngine *engine;
+     DFBRegion     tile_clip;
 
      typedef enum {
           TYPE_SET_DESTINATION,
@@ -130,11 +139,13 @@ private:
 
      typedef Util::PacketBuffer<> Commands;
 
-     Commands             commands;
-     DFBRegion          clip;
-     unsigned int       weight;
-     unsigned int       weight_shift_draw;
-     unsigned int       weight_shift_blit;
+     Commands                 commands;
+     DFBRegion                clip;
+     unsigned int             weight;
+     unsigned int             weight_shift_draw;
+     unsigned int             weight_shift_blit;
+     unsigned int             tile_number;
+     StateModificationFlags   modified;
 
      inline void addDrawingWeight( unsigned int w ) {
           weight += 10 + (w << weight_shift_draw);
@@ -147,8 +158,15 @@ private:
 
 
 class GenefxEngine : public DirectFB::Engine {
+private:
+     friend class GenefxTask;
+
+     TaskThreadsQ        threads;
+
 public:
      GenefxEngine( unsigned int cores = 1 )
+          :
+          threads( "Genefx", cores < 8 ? cores : 8 )
      {
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( cores %d )\n", __FUNCTION__, cores );
 
@@ -156,30 +174,32 @@ public:
 
           caps.software       = true;
           caps.cores          = cores < 8 ? cores : 8;
-          caps.clipping       = (DFBAccelerationMask)(DFXL_FILLRECTANGLE | DFXL_DRAWLINE | DFXL_BLIT | DFXL_TEXTRIANGLES);
+          caps.clipping       = (DFBAccelerationMask)(DFXL_FILLRECTANGLE |
+                                                      DFXL_DRAWRECTANGLE |
+                                                      DFXL_DRAWLINE |
+                                                      DFXL_BLIT |
+                                                      DFXL_STRETCHBLIT |
+                                                      DFXL_TEXTRIANGLES);
           caps.render_options = (DFBSurfaceRenderOptions)(DSRO_SMOOTH_DOWNSCALE | DSRO_SMOOTH_UPSCALE);
           caps.max_operations = 300000;
-
-          for (unsigned int i=0; i<cores; i++) {
-               char name[] = "GenefxX";
-
-               name[6] = '0' + i;
-
-               // FIXME: Start thread only if needed (using task manager with software fallbacks)
-               threads[i] = direct_thread_create( DTT_DEFAULT, myEngineLoop, this, name );
-          }
      }
 
+
+     /*
+      * Engine API
+      */
 
      virtual DFBResult bind          ( Renderer::Setup        *setup )
      {
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
 
-          fifo.waitMost( caps.cores * 3 );
+          threads.fifo.waitMost( caps.cores * 3 );
 
           for (unsigned int i=0; i<setup->tiles; i++) {
-               setup->tasks[i] = new GenefxTask( this );
+               setup->tasks[i] = new GenefxTask( this, setup->clips[i], i );
           }
+
+          setup->tiles_render = 1;
 
           return DFB_OK;
      }
@@ -188,13 +208,13 @@ public:
      {
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
 
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               GenefxTask *mytask = (GenefxTask *) setup->tasks[i];
+//          for (unsigned int i=0; i<setup->tiles; i++) {
+               GenefxTask *mytask = (GenefxTask *) setup->tasks[0];
 
                if (mytask->weight >= DFB_GENEFX_TASK_WEIGHT_MAX ||
                    mytask->commands.GetLength() >= DFB_GENEFX_COMMAND_BUFFER_MAX_SIZE)
                     return DFB_LIMITEXCEEDED;
-          }
+//          }
 
           return DFB_OK;
      }
@@ -227,16 +247,73 @@ public:
                                        StateModificationFlags  modified,
                                        DFBAccelerationMask     accel )
      {
-          GenefxTask *mytask = (GenefxTask *)task;
+          GenefxTask             *mytask   = (GenefxTask *)task;
+          StateModificationFlags  required = (StateModificationFlags)(SMF_TO | SMF_DESTINATION | SMF_CLIP | SMF_RENDER_OPTIONS);
+          StateModificationFlags  emitting;
 
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
 
+
+          if (state->render_options & DSRO_MATRIX)
+               required = (StateModificationFlags)(required | SMF_MATRIX);
+
+          if (DFB_DRAWING_FUNCTION( accel )) {
+               required = (StateModificationFlags)(required | SMF_DRAWING_FLAGS | SMF_COLOR);
+
+               if (state->drawingflags & DSDRAW_BLEND)
+                    required = (StateModificationFlags)(required | SMF_SRC_BLEND | SMF_DST_BLEND);
+
+               if (state->drawingflags & DSDRAW_DST_COLORKEY)
+                    required = (StateModificationFlags)(required | SMF_DST_COLORKEY);
+          }
+          else {
+               required = (StateModificationFlags)(required | SMF_BLITTING_FLAGS | SMF_FROM | SMF_SOURCE);
+
+               if (accel == DFXL_BLIT2)
+                    required = (StateModificationFlags)(required | SMF_FROM | SMF_SOURCE2);
+
+               if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
+                                           DSBLIT_COLORIZE |
+                                           DSBLIT_SRC_PREMULTCOLOR))
+                    required = (StateModificationFlags)(required | SMF_COLOR);
+
+               if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                           DSBLIT_BLEND_COLORALPHA))
+                    required = (StateModificationFlags)(required | SMF_SRC_BLEND | SMF_DST_BLEND);
+
+               if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                    required = (StateModificationFlags)(required | SMF_SRC_COLORKEY);
+
+               if (state->blittingflags & DSBLIT_DST_COLORKEY)
+                    required = (StateModificationFlags)(required | SMF_DST_COLORKEY);
+
+               if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR))
+                    required = (StateModificationFlags)(required | SMF_FROM | SMF_SOURCE_MASK | SMF_SOURCE_MASK_VALS);
+
+               if (state->blittingflags & DSBLIT_INDEX_TRANSLATION)
+                    required = (StateModificationFlags)(required | SMF_INDEX_TRANSLATION);
+
+               if (state->blittingflags & DSBLIT_COLORKEY_PROTECT)
+                    required = (StateModificationFlags)(required | SMF_COLORKEY);
+
+               if (state->blittingflags & DSBLIT_SRC_CONVOLUTION)
+                    required = (StateModificationFlags)(required | SMF_SRC_CONVOLUTION);
+          }
+
+
+          D_FLAGS_SET( mytask->modified, modified );
+
+          emitting = (StateModificationFlags)(required & mytask->modified);
+
+          D_FLAGS_CLEAR( mytask->modified, emitting );
+
+
           u32 max = 8 + 5 + 8 + 2 + 2 + 2 + 2 + 2 + 2;
 
-          if ((modified & SMF_DESTINATION) && DFB_PIXELFORMAT_IS_INDEXED( state->destination->config.format ))
+          if ((emitting & SMF_DESTINATION) && DFB_PIXELFORMAT_IS_INDEXED( state->destination->config.format ))
                max += 2 + 2 * state->destination->palette->num_entries;
 
-          if ((modified & SMF_SOURCE) && DFB_BLITTING_FUNCTION(accel) && DFB_PIXELFORMAT_IS_INDEXED( state->source->config.format ))
+          if ((emitting & SMF_SOURCE) && DFB_BLITTING_FUNCTION(accel) && DFB_PIXELFORMAT_IS_INDEXED( state->source->config.format ))
                max += 2 + 2 * state->source->palette->num_entries;
 
 
@@ -248,7 +325,7 @@ public:
                return DFB_NOSYSTEMMEMORY;
 
 
-          if (modified & SMF_DESTINATION) {
+          if (emitting & SMF_DESTINATION) {
                D_DEBUG_AT( DirectFB_GenefxEngine, "  -> destination %p (%d)\n", state->dst.addr, state->dst.pitch );
 
                *buf++ = GenefxTask::TYPE_SET_DESTINATION;
@@ -272,7 +349,7 @@ public:
                }
           }
 
-          if (modified & SMF_CLIP) {
+          if (emitting & SMF_CLIP) {
                D_DEBUG_AT( DirectFB_GenefxEngine, "  -> clip %d,%d-%dx%d\n", DFB_RECTANGLE_VALS_FROM_REGION(&state->clip) );
 
                *buf++ = GenefxTask::TYPE_SET_CLIP;
@@ -284,7 +361,7 @@ public:
                mytask->clip = state->clip;
           }
 
-          if (modified & SMF_SOURCE && DFB_BLITTING_FUNCTION(accel)) {
+          if (emitting & SMF_SOURCE && DFB_BLITTING_FUNCTION(accel)) {
                D_DEBUG_AT( DirectFB_GenefxEngine, "  -> source %p (%d)\n", state->src.addr, state->src.pitch );
 
                *buf++ = GenefxTask::TYPE_SET_SOURCE;
@@ -315,12 +392,12 @@ public:
                     mytask->weight_shift_blit &= ~4;
           }
 
-          if (modified & SMF_COLOR) {
+          if (emitting & SMF_COLOR) {
                *buf++ = GenefxTask::TYPE_SET_COLOR;
                *buf++ = PIXEL_ARGB( state->color.a, state->color.r, state->color.g, state->color.b );
           }
 
-          if (modified & SMF_DRAWING_FLAGS) {
+          if (emitting & SMF_DRAWING_FLAGS) {
                *buf++ = GenefxTask::TYPE_SET_DRAWINGFLAGS;
                *buf++ = state->drawingflags;
 
@@ -334,7 +411,7 @@ public:
                     mytask->weight_shift_draw = 1;
           }
 
-          if (modified & SMF_BLITTING_FLAGS) {
+          if (emitting & SMF_BLITTING_FLAGS) {
                *buf++ = GenefxTask::TYPE_SET_BLITTINGFLAGS;
                *buf++ = state->blittingflags;
 
@@ -351,22 +428,22 @@ public:
                     mytask->weight_shift_blit = 1 | (mytask->weight_shift_blit & 4);
           }
 
-          if (modified & SMF_SRC_BLEND) {
+          if (emitting & SMF_SRC_BLEND) {
                *buf++ = GenefxTask::TYPE_SET_SRC_BLEND;
                *buf++ = state->src_blend;
           }
 
-          if (modified & SMF_DST_BLEND) {
+          if (emitting & SMF_DST_BLEND) {
                *buf++ = GenefxTask::TYPE_SET_DST_BLEND;
                *buf++ = state->dst_blend;
           }
 
-          if (modified & SMF_SRC_COLORKEY) {
+          if (emitting & SMF_SRC_COLORKEY) {
                *buf++ = GenefxTask::TYPE_SET_SRC_COLORKEY;
                *buf++ = state->src_colorkey;
           }
 
-          state->mod_hw = (StateModificationFlags)(state->mod_hw & SMF_SOURCE);
+          state->mod_hw = SMF_NONE;
           state->set    = DFXL_ALL;
 
           mytask->commands.PutBuffer( buf );
@@ -537,12 +614,13 @@ public:
                D_DEBUG_AT( DirectFB_GenefxTask, "  -> %4d,%4d-%4dx%4d -> %4d,%4d\n",
                            rects[i].x, rects[i].y, rects[i].w, rects[i].h, points[i].x, points[i].y );
 
-               if (dfb_clip_blit_precheck( &mytask->clip, rects[i].w, rects[i].h, points[i].x, points[i].y )) {
+               if (0&&dfb_clip_blit_precheck( &mytask->clip, rects[i].w, rects[i].h, points[i].x, points[i].y )) {
                     DFBRectangle rect = rects[i];
                     int          dx   = points[i].x;
                     int          dy   = points[i].y;
 
-                    dfb_clip_blit( &mytask->clip, &rect, &dx, &dy );
+                    dfb_clip_blit( &mytask->clip, &rect, &dx, &dy );  // FIXME: support rotation!
+                    //dfb_clip_blit_flipped_rotated( &mytask->clip, &rect, &drect, blittingflags );
 
                     *buf++ = rect.x;
                     *buf++ = rect.y;
@@ -554,6 +632,18 @@ public:
                     count++;
 
                     mytask->addBlittingWeight( rect.w * rect.h );
+               }
+               else {
+                    *buf++ = rects[i].x;
+                    *buf++ = rects[i].y;
+                    *buf++ = rects[i].w;
+                    *buf++ = rects[i].h;
+                    *buf++ = points[i].x;
+                    *buf++ = points[i].y;
+
+                    count++;
+
+                    mytask->addBlittingWeight( rects[i].w * rects[i].h );
                }
           }
 
@@ -647,41 +737,70 @@ public:
           return DFB_OK;
      }
 
-
-private:
-     friend class GenefxTask;
-
-     DirectFB::FIFO<GenefxTask*>  fifo;
-     DirectThread                *threads[8];
-
-     static void *
-     myEngineLoop( DirectThread *thread,
-                   void         *arg )
-     {
-          GenefxEngine *engine = (GenefxEngine *)arg;
-          GenefxTask   *task;
-
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
-
-          while (true) {
-               task = engine->fifo.pull();
-
-               task->Run();
-          }
-
-          return NULL;
-     }
 };
 
 
 DFBResult
+GenefxTask::Setup()
+{
+     D_DEBUG_AT( DirectFB_GenefxTask, "GenefxTask::%s( %p )\n", __FUNCTION__, this );
+
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return DFB_BUG );
+
+     DFB_TASK_LOG( "Genefx::Setup()" );
+
+     const std::vector<SurfaceAllocationAccess> &accesses = master ? ((SurfaceTask*) master)->accesses : this->accesses;
+
+     D_ASSERT( accesses.size() > 0 );
+     D_ASSERT( accesses[0].flags & CSAF_WRITE );
+     D_MAGIC_ASSERT( accesses[0].allocation, CoreSurfaceAllocation );
+
+     D_ASSERT( qid == 0 );
+     qid = ((u64) accesses[0].allocation->object.id << 32) | tile_number;
+
+     return SurfaceTask::Setup();
+}
+
+DFBResult
 GenefxTask::Push()
 {
-     D_DEBUG_AT( DirectFB_GenefxTask, "GenefxTask::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_GenefxTask, "GenefxTask::%s( %p )\n", __FUNCTION__, this );
 
-     engine->fifo.push( this );
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_RUNNING, return DFB_BUG );
+
+     DFB_TASK_LOG( "Genefx::Push()" );
+
+     if (master) {
+          D_MAGIC_ASSERT( master, Task );
+          D_ASSERT( ((GenefxTask*) master)->qid != 0 );
+
+          D_ASSERT( qid == 0 );
+          qid = ((u64) ((SurfaceTask*) master)->accesses[0].allocation->object.id << 32) | tile_number;
+     }
+
+     engine->threads.Push( this );
 
      return DFB_OK;
+}
+
+void
+GenefxTask::Finalise()
+{
+     D_DEBUG_AT( DirectFB_GenefxTask, "GenefxTask::%s( %p )\n", __FUNCTION__, this );
+
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
+
+     DFB_TASK_LOG( "Genefx::Finalise()" );
+
+     engine->threads.Finalise( this );
+
+     SurfaceTask::Finalise();
 }
 
 DFBResult
@@ -701,6 +820,8 @@ GenefxTask::Run()
      DFBColorYUV          source_entries_yuv[256];
      DFBTriangleFormation formation;
      CardState            state;
+     bool                 single_tile;
+     bool                 disable_rendering = false;
 
      D_DEBUG_AT( DirectFB_GenefxTask, "GenefxTask::%s()\n", __FUNCTION__ );
 
@@ -710,6 +831,15 @@ GenefxTask::Run()
      state.source      = &source;
 
      dest.num_buffers  = 1;
+
+     single_tile = !master && !slaves;
+
+     D_ASSUME( this->commands.GetLength() > 0 || master != NULL );
+
+     const Commands &commands = this->commands.GetLength() ? this->commands : ((GenefxTask*) master)->commands;
+
+     /* Call SurfaceTask::CacheInvalidate() for cache invalidation, flush takes place at the end */
+     CacheInvalidate();
 
      for (Commands::buffer_vector::const_iterator it = commands.buffers.begin(); it != commands.buffers.end(); ++it) {
           const Util::HeapBuffer *packet_buffer = *it;
@@ -753,6 +883,21 @@ GenefxTask::Run()
                          state.clip.y2 = buffer[++i];
 
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> " DFB_RECT_FORMAT "\n", DFB_RECTANGLE_VALS_FROM_REGION(&state.clip) );
+
+                         if (!single_tile) {
+                              if (dfb_region_region_intersect( &state.clip, &tile_clip )) {
+                                   disable_rendering = false;
+
+                                   D_DEBUG_AT( DirectFB_GenefxTask, "  -> " DFB_RECT_FORMAT " (tile " DFB_RECT_FORMAT ")\n",
+                                               DFB_RECTANGLE_VALS_FROM_REGION(&state.clip), DFB_RECTANGLE_VALS_FROM_REGION(&tile_clip) );
+                              }
+                              else {
+                                   disable_rendering = true;
+
+                                   D_DEBUG_AT( DirectFB_GenefxTask, "  -> NO OVERLAP WITH TILE (" DFB_RECT_FORMAT ")\n",
+                                               DFB_RECTANGLE_VALS_FROM_REGION(&tile_clip) );
+                              }
+                         }
                          break;
 
                     case GenefxTask::TYPE_SET_SOURCE:
@@ -871,7 +1016,7 @@ GenefxTask::Run()
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> num %d\n", num );
 
                          // TODO: run gAcquireSetup in Engine, requires lots of Genefx changes :(
-                         if (gAcquireSetup( &state, DFXL_FILLRECTANGLE )) {
+                         if (!disable_rendering && gAcquireSetup( &state, DFXL_FILLRECTANGLE )) {
                               for (u32 n=0; n<num; n++) {
                                    int x = buffer[++i];
                                    int y = buffer[++i];
@@ -884,7 +1029,8 @@ GenefxTask::Run()
                                         x, y, w, h
                                    };
 
-                                   gFillRectangle( &state, &rect );
+                                   if (single_tile || dfb_clip_rectangle( &state.clip, &rect ))
+                                        gFillRectangle( &state, &rect );
                               }
                          }
                          else
@@ -898,7 +1044,7 @@ GenefxTask::Run()
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> num %d\n", num );
 
                          // TODO: run gAcquireSetup in Engine, requires lots of Genefx changes :(
-                         if (gAcquireSetup( &state, DFXL_DRAWLINE )) {
+                         if (!disable_rendering && gAcquireSetup( &state, DFXL_DRAWLINE )) {
                               for (u32 n=0; n<num; n++) {
                                    int x1 = buffer[++i];
                                    int y1 = buffer[++i];
@@ -911,7 +1057,8 @@ GenefxTask::Run()
                                         x1, y1, x2, y2
                                    };
 
-                                   gDrawLine( &state, &line );
+                                   if (single_tile || dfb_clip_line( &state.clip, &line ))
+                                        gDrawLine( &state, &line );
                               }
                          }
                          else
@@ -925,7 +1072,7 @@ GenefxTask::Run()
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> num %d\n", num );
 
                          // TODO: run gAcquireSetup in Engine, requires lots of Genefx changes :(
-                         if (gAcquireSetup( &state, DFXL_BLIT )) {
+                         if (!disable_rendering && gAcquireSetup( &state, DFXL_BLIT )) {
                               for (u32 n=0; n<num; n++) {
                                    int x  = buffer[++i];
                                    int y  = buffer[++i];
@@ -940,7 +1087,14 @@ GenefxTask::Run()
                                         x, y, w, h
                                    };
 
-                                   gBlit( &state, &rect, dx, dy );
+                                   if (single_tile)
+                                        gBlit( &state, &rect, dx, dy );
+                                   else if (dfb_clip_blit_precheck( &state.clip, rect.w, rect.h, dx, dy )) {
+                                        dfb_clip_blit( &state.clip, &rect, &dx, &dy );  // FIXME: support rotation!
+                                        //dfb_clip_blit_flipped_rotated( &mytask->clip, &rect, &drect, blittingflags );
+
+                                        gBlit( &state, &rect, dx, dy );
+                                   }
                               }
                          }
                          else
@@ -954,7 +1108,7 @@ GenefxTask::Run()
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> num %d\n", num );
 
                          // TODO: run gAcquireSetup in Engine, requires lots of Genefx changes :(
-                         if (gAcquireSetup( &state, DFXL_STRETCHBLIT )) {
+                         if (!disable_rendering && gAcquireSetup( &state, DFXL_STRETCHBLIT )) {
                               for (u32 n=0; n<num; n++) {
                                    DFBRectangle srect;
                                    DFBRectangle drect;
@@ -990,7 +1144,7 @@ GenefxTask::Run()
                          D_DEBUG_AT( DirectFB_GenefxTask, "  -> formation %d\n", formation );
 
                          // TODO: run gAcquireSetup in Engine, requires lots of Genefx changes :(
-                         if (gAcquireSetup( &state, DFXL_TEXTRIANGLES )) {
+                         if (!disable_rendering && gAcquireSetup( &state, DFXL_TEXTRIANGLES )) {
                               Util::TempArray<GenefxVertexAffine> v( num );
 
                               for (u32 n=0; n<num; n++) {
@@ -1013,6 +1167,10 @@ GenefxTask::Run()
           }
      }
 
+     /* Call SurfaceTask::CacheFlush() for cache flushes */
+     CacheFlush();
+
+     /* Return task to manager */
      Done();
 
      state.destination = NULL;

@@ -102,14 +102,17 @@ namespace Util {
      class String;
 }
 class Renderer;
+class Task;
 class SurfaceTask;
 class DisplayTask;
 }
 #define DFB_Renderer    DirectFB::Renderer
+#define DFB_Task        DirectFB::Task
 #define DFB_SurfaceTask DirectFB::SurfaceTask
 #define DFB_DisplayTask DirectFB::DisplayTask
 #else
 typedef void DFB_Renderer;
+typedef void DFB_Task;
 typedef void DFB_SurfaceTask;
 typedef void DFB_DisplayTask;
 #endif

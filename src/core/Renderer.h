@@ -144,10 +144,12 @@ public:
           DFBRegion     *clips;
           DFBRegion     *clips_clipped;
           unsigned int   task_mask;
+          unsigned int   tiles_render;
 
           Setup( int width, int height, unsigned int tiles = 1 )
                :
-               tiles( tiles )
+               tiles( tiles ),
+               tiles_render( tiles )
           {
                D_ASSERT( tiles > 0 );
 

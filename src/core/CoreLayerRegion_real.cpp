@@ -189,7 +189,7 @@ DisplayTask::Setup()
      D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
      if (layer->display_task)
-          layer->display_task->addNotify( this, true );
+          layer->display_task->AddNotify( this, true );
 
      layer->display_task = this;
 
@@ -280,6 +280,8 @@ DisplayTask::Run()
 
      D_DEBUG_AT( DirectFB_Task_Display, "  -> setting task for index %d\n", index );
 
+     /* Call SurfaceTask::CacheInvalidate() for cache invalidation */
+     CacheInvalidate();
 
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
@@ -349,10 +351,12 @@ DisplayTask::Run()
      return DFB_OK;
 }
 
-std::string
-DisplayTask::Describe()
+void
+DisplayTask::Describe( Direct::String &string )
 {
-     return SurfaceTask::Describe() + Direct::String( "  Display buffer index %d", index ).string();
+     SurfaceTask::Describe( string );
+
+     string.PrintF( "  Display buffer index %d", index );
 }
 
 /*********************************************************************************************************************/

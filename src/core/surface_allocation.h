@@ -91,15 +91,19 @@ struct __DFB_CoreSurfaceAllocation {
      CoreSurfaceConfig              config;       /* Configuration of its surface at the time of the allocation creation */
      CoreSurfaceTypeFlags           type;
      unsigned long                  resource_id;  /* layer id, window id, or user specified */
+     int                            index;        /* index of surface buffer */
 
      CoreGraphicsSerial             gfx_serial;
 
-     void                          *write_task;
-     FusionVector                   read_tasks;
-
      unsigned int                   task_count;
 
-     int                            index;
+
+     DFB_SurfaceTask               *write_task;
+     void                          *write_access;
+
+     void                          *read_tasks;
+
+     unsigned int                   invalidated;  /* bit mask of accessors which have already invalidated their cache for this allocation */
 };
 
 #define CORE_SURFACE_ALLOCATION_ASSERT(alloc)                                                  \

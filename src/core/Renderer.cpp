@@ -704,7 +704,7 @@ Rectangles::render( Renderer::Setup *setup,
      switch (this->accel) {
           case DFXL_FILLRECTANGLE:
                /// loop
-               for (unsigned int i=0; i<setup->tiles; i++) {
+               for (unsigned int i=0; i<setup->tiles_render; i++) {
                     if (!(setup->task_mask & (1 << i)))
                          continue;
 
@@ -730,7 +730,7 @@ Rectangles::render( Renderer::Setup *setup,
 
           case DFXL_DRAWRECTANGLE:
                /// loop
-               for (unsigned int i=0; i<setup->tiles; i++) {
+               for (unsigned int i=0; i<setup->tiles_render; i++) {
                     if (!(setup->task_mask & (1 << i)))
                          continue;
 
@@ -899,7 +899,7 @@ Blits::render( Renderer::Setup *setup,
                Engine          *engine )
 {
      /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
           if (!(setup->task_mask & (1 << i)))
                continue;
 
@@ -1062,7 +1062,7 @@ StretchBlits::render( Renderer::Setup *setup,
                       Engine          *engine )
 {
      /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
           if (!(setup->task_mask & (1 << i)))
                continue;
 
@@ -1132,7 +1132,7 @@ Lines::render( Renderer::Setup *setup,
                Engine          *engine )
 {
      /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
           if (!(setup->task_mask & (1 << i)))
                continue;
 
@@ -1267,7 +1267,7 @@ Spans::render( Renderer::Setup *setup,
                Engine          *engine )
 {
      /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
           if (!(setup->task_mask & (1 << i)))
                continue;
 
@@ -1408,7 +1408,7 @@ Triangles::render( Renderer::Setup *setup,
                    Engine          *engine )
 {
      /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
           if (!(setup->task_mask & (1 << i)))
                continue;
 
@@ -1533,7 +1533,7 @@ Trapezoids::render( Renderer::Setup *setup,
                     Engine          *engine )
 {
      /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
           if (!(setup->task_mask & (1 << i)))
                continue;
 
@@ -1564,7 +1564,7 @@ TexTriangles::render( Renderer::Setup *setup,
                       Engine          *engine )
 {
      /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
           if (!(setup->task_mask & (1 << i)))
                continue;
 
@@ -1595,7 +1595,7 @@ TexTriangles1616::render( Renderer::Setup *setup,
                           Engine          *engine )
 {
      /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
           if (!(setup->task_mask & (1 << i)))
                continue;
 
@@ -1655,7 +1655,7 @@ Quadrangles::render( Renderer::Setup *setup,
                      Engine          *engine )
 {
      /// loop
-     for (unsigned int i=0; i<setup->tiles; i++) {
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
           if (!(setup->task_mask & (1 << i)))
                continue;
 
@@ -1775,7 +1775,7 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
      else {
           dfb_surface_lock( surface );
 
-          // FIXME: move to helper class
+          // FIXME: move to helper class, e.g. to SurfaceTask
           //
 
           buffer = dfb_surface_get_buffer3( surface, role, eye, flips );
@@ -1797,6 +1797,7 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
 
           dfb_surface_unlock( surface );
 
+#if 1
 //          long long t1 = direct_clock_get_abs_millis();
           // FIXME: this is a temporary solution, slaves will be blocked via kernel module later
 //          printf("count %d\n", allocation->task_count);
@@ -1804,6 +1805,7 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
           while (allocation->task_count > 5) {
                if (!--timeout) {
                     D_ERROR( "DirectFB/Renderer: timeout!\n" );
+                    direct_trace_print_stacks();
                     TaskManager::dumpTasks();
                     break;
                }
@@ -1812,7 +1814,7 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
           }
 //          long long t2 = direct_clock_get_abs_millis();
 //          D_INFO("blocked %lld\n", t2 - t1);
-
+#endif
 
           allocations.insert( SurfaceAllocationMapPair( key, allocation ) );
      }
@@ -1885,41 +1887,55 @@ Renderer::update( DFBAccelerationMask accel )
           }
      }
 
-     if (state_mod & SMF_CLIP) {
-          D_ASSERT( setup->tiles <= 32 );
+     if (setup->tiles_render == 1) {
+          setup->task_mask = 1;
 
-          setup->task_mask = 0;
-
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               setup->clips_clipped[i].x1 = MAX( state->clip.x1, setup->clips[i].x1 );
-               setup->clips_clipped[i].y1 = MAX( state->clip.y1, setup->clips[i].y1 );
-               setup->clips_clipped[i].x2 = MIN( state->clip.x2, setup->clips[i].x2 );
-               setup->clips_clipped[i].y2 = MIN( state->clip.y2, setup->clips[i].y2 );
-
-               if (setup->clips_clipped[i].x1 <= setup->clips_clipped[i].x2 &&
-                   setup->clips_clipped[i].y1 <= setup->clips_clipped[i].y2)
-                    setup->task_mask |= (1 << i);
+          if (state_mod & SMF_CLIP) {
+               state_mod = (StateModificationFlags)(state_mod & ~SMF_CLIP);
           }
 
-          state_mod = (StateModificationFlags)(state_mod & ~SMF_CLIP);
+          if (state->mod_hw || !(state->set & accel))
+               engine->SetState( setup->tasks[0], state, state->mod_hw, accel );
+     }
+     else {
+          D_ASSERT( setup->tiles == setup->tiles_render );
+
+          if (state_mod & SMF_CLIP) {
+               D_ASSERT( setup->tiles <= 32 );
+
+               setup->task_mask = 0;
+
+               for (unsigned int i=0; i<setup->tiles; i++) {
+                    setup->clips_clipped[i].x1 = MAX( state->clip.x1, setup->clips[i].x1 );
+                    setup->clips_clipped[i].y1 = MAX( state->clip.y1, setup->clips[i].y1 );
+                    setup->clips_clipped[i].x2 = MIN( state->clip.x2, setup->clips[i].x2 );
+                    setup->clips_clipped[i].y2 = MIN( state->clip.y2, setup->clips[i].y2 );
+
+                    if (setup->clips_clipped[i].x1 <= setup->clips_clipped[i].x2 &&
+                        setup->clips_clipped[i].y1 <= setup->clips_clipped[i].y2)
+                         setup->task_mask |= (1 << i);
+               }
+
+               state_mod = (StateModificationFlags)(state_mod & ~SMF_CLIP);
+          }
+
+          if (state->mod_hw || !(state->set & accel)) {
+               DFBRegion              clip     = state->clip;
+               StateModificationFlags modified = state->mod_hw;
+
+               /// loop, clip switch, task mask (total clip)
+
+               for (unsigned int i=0; i<setup->tiles; i++) {
+                    state->clip = setup->clips_clipped[i];
+
+                    engine->SetState( setup->tasks[i], state, modified, accel );
+               }
+
+               state->clip = clip;
+          }
      }
 
      D_DEBUG_AT( DirectFB_Renderer, "  -> state_mod 0x%08x\n", state_mod );
-
-     if (state->mod_hw || !(state->set & accel)) {
-          DFBRegion              clip     = state->clip;
-          StateModificationFlags modified = state->mod_hw;
-
-          /// loop, clip switch, task mask (total clip)
-
-          for (unsigned int i=0; i<setup->tiles; i++) {
-               state->clip = setup->clips_clipped[i];
-
-               engine->SetState( setup->tasks[i], state, modified, accel );
-          }
-
-          state->clip = clip;
-     }
 }
 
 void
@@ -2198,7 +2214,7 @@ Renderer::Blit2( const DFBRectangle     *rects,
           // FIXME: clipping, transform
 
           /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
+          for (unsigned int i=0; i<setup->tiles_render; i++) {
                if (!(setup->task_mask & (1 << i)))
                     continue;
 
@@ -2235,7 +2251,7 @@ Renderer::TileBlit( const DFBRectangle     *rects,
           // FIXME: clipping, transform
 
           /// loop
-          for (unsigned int i=0; i<setup->tiles; i++) {
+          for (unsigned int i=0; i<setup->tiles_render; i++) {
                if (!(setup->task_mask & (1 << i)))
                     continue;
 
