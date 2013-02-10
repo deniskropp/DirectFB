@@ -35,6 +35,7 @@
 
 extern "C" {
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>

@@ -49,6 +49,7 @@ extern "C" {
 }
 
 D_DEBUG_DOMAIN( DirectFB_CoreLayerRegion, "DirectFB/CoreLayerRegion", "DirectFB CoreLayerRegion" );
+D_DEBUG_DOMAIN( DirectFB_Task_Display,    "DirectFB/Task/Display",    "DirectFB DisplayTask" );
 
 /*********************************************************************************************************************/
 
@@ -91,13 +92,7 @@ ILayerRegion_Real::FlipUpdateStereo(
     return dfb_layer_region_flip_update_stereo( obj, left, right, flags );
 }
 
-
-
-
-
-D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
-
-
+/*********************************************************************************************************************/
 
 DisplayTask::DisplayTask( CoreLayerRegion       *region,
                           const DFBRegion       *update,
@@ -110,7 +105,7 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
      flip_flags( flip_flags ),
      allocation( allocation )
 {
-     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
      context = region->context;
      layer   = dfb_layer_at( context->layer_id );
@@ -122,13 +117,14 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
           *this->update = *update;
      }
 
-     D_DEBUG_AT( Core_Layers, "  -> index %d\n", index );
+     D_DEBUG_AT( DirectFB_Task_Display, "  -> index %d\n", index );
 
      flags = (TaskFlags)(flags | TASK_FLAG_NOSYNC);
 }
 
 DisplayTask::~DisplayTask()
 {
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 }
 
 DFBResult
@@ -190,7 +186,7 @@ DisplayTask::Generate( CoreLayerRegion      *region,
 DFBResult
 DisplayTask::Setup()
 {
-     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
      if (layer->display_task)
           layer->display_task->addNotify( this, true );
@@ -203,7 +199,7 @@ DisplayTask::Setup()
 void
 DisplayTask::Finalise()
 {
-     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
 //     D_ASSERT( layer->display_tasks[index] == this );
 
@@ -231,14 +227,11 @@ DisplayTask::Run()
      surface = region->surface;
      layer   = dfb_layer_at( context->layer_id );
 
-     D_DEBUG_AT( Core_Layers, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
-
-     D_ASSERT( layer->funcs != NULL );
-     //D_ASSERT( layer->display_tasks[index] == NULL );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
      funcs = layer->funcs;
-
-     D_ASSUME( funcs->FlipRegion != NULL );
+     D_ASSERT( funcs != NULL );
+     D_ASSERT( funcs->SetRegion != NULL );
 
      dfb_surface_buffer_lock_init( &left, accessor, CSAF_READ );
 
@@ -250,9 +243,8 @@ DisplayTask::Run()
           return ret;
      }
 
-     D_DEBUG_AT( Core_Layers, "  -> setting task for index %d\n", index );
+     D_DEBUG_AT( DirectFB_Task_Display, "  -> setting task for index %d\n", index );
 
-//     layer->display_tasks[index] = this;
 
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
@@ -266,7 +258,9 @@ DisplayTask::Run()
                                  update->x2 == surface->config.size.w - 1 &&
                                  update->y2 == surface->config.size.h - 1))))
                {
-                    D_DEBUG_AT( Core_Layers, "  -> Flipping region using driver...\n" );
+                    D_DEBUG_AT( DirectFB_Task_Display, "  -> Flipping region using driver...\n" );
+
+                    D_ASSUME( funcs->FlipRegion != NULL );
 
                     if (funcs->FlipRegion)
                          ret = funcs->FlipRegion( layer,
@@ -287,7 +281,7 @@ DisplayTask::Run()
                if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                     const DFBRegion *_update = update;
 
-                    D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
+                    D_DEBUG_AT( DirectFB_Task_Display, "  -> Notifying driver about updated content...\n" );
 
                     if( !_update ) {
                          unrotated = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
@@ -324,7 +318,7 @@ DisplayTask::Describe()
      return SurfaceTask::Describe() + Direct::String( "  Display buffer index %d", index ).string();
 }
 
-
+/*********************************************************************************************************************/
 
 
 extern "C" {
@@ -342,11 +336,11 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
      const DisplayLayerFuncs *funcs;
 
      if (update)
-          D_DEBUG_AT( Core_Layers,
+          D_DEBUG_AT( DirectFB_Task_Display,
                       "dfb_layer_region_flip_update( %p, %p, 0x%08x ) <- [%d, %d - %dx%d]\n",
                       region, update, flags, DFB_RECTANGLE_VALS_FROM_REGION( update ) );
      else
-          D_DEBUG_AT( Core_Layers,
+          D_DEBUG_AT( DirectFB_Task_Display,
                       "dfb_layer_region_flip_update( %p, %p, 0x%08x )\n", region, update, flags );
 
 
@@ -368,7 +362,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
 
      /* Check for NULL surface. */
      if (!region->surface) {
-          D_DEBUG_AT( Core_Layers, "  -> No surface => no update!\n" );
+          D_DEBUG_AT( DirectFB_Task_Display, "  -> No surface => no update!\n" );
           dfb_layer_region_unlock( region );
           return DFB_UNSUPPORTED;
      }
@@ -420,7 +414,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
 
                     /* Use the driver's routine if the region is realized. */
                     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-                         D_DEBUG_AT( Core_Layers, "  -> Issuing display task...\n" );
+                         D_DEBUG_AT( DirectFB_Task_Display, "  -> Issuing display task...\n" );
 
                          DisplayTask::Generate( region, update, flags, ret_task );
                     }
@@ -432,15 +426,15 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                /* fall through */
 
           case DLBM_BACKSYSTEM:
-               D_DEBUG_AT( Core_Layers, "  -> Going to copy portion...\n" );
+               D_DEBUG_AT( DirectFB_Task_Display, "  -> Going to copy portion...\n" );
 
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
-                    D_DEBUG_AT( Core_Layers, "  -> Waiting for VSync...\n" );
+                    D_DEBUG_AT( DirectFB_Task_Display, "  -> Waiting for VSync...\n" );
 
                     dfb_layer_wait_vsync( layer );
                }
 
-               D_DEBUG_AT( Core_Layers, "  -> Copying content from back to front buffer...\n" );
+               D_DEBUG_AT( DirectFB_Task_Display, "  -> Copying content from back to front buffer...\n" );
 
                /* ...or copy updated contents from back to front buffer. */
                if (surface->rotation) {
@@ -482,7 +476,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                }
 
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT) {
-                    D_DEBUG_AT( Core_Layers, "  -> Waiting for VSync...\n" );
+                    D_DEBUG_AT( DirectFB_Task_Display, "  -> Waiting for VSync...\n" );
 
                     dfb_layer_wait_vsync( layer );
                }
@@ -492,7 +486,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
           case DLBM_FRONTONLY:
                /* Tell the driver about the update if the region is realized. */
                if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-                    D_DEBUG_AT( Core_Layers, "  -> Issuing display task...\n" );
+                    D_DEBUG_AT( DirectFB_Task_Display, "  -> Issuing display task...\n" );
 
                     dfb_surface_lock( surface );
 
@@ -507,7 +501,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                ret = DFB_BUG;
      }
 
-     D_DEBUG_AT( Core_Layers, "  -> done.\n" );
+     D_DEBUG_AT( DirectFB_Task_Display, "  -> done.\n" );
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
