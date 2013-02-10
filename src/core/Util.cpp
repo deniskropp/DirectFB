@@ -58,11 +58,11 @@ DFBAccelerationMask_Name( DFBAccelerationMask accel )
 {
      static const DirectFBAccelerationMaskNames(accelerationmask_names);
 
-     std::string ret;
+     Direct::String ret;
 
      for (int i=0, n=0; accelerationmask_names[i].mask; i++) {
           if (accel & accelerationmask_names[i].mask)
-               ret += Direct::String( "%s%s", n++ ? "," : "", accelerationmask_names[i].name );
+               ret.PrintF( "%s%s", n++ ? "," : "", accelerationmask_names[i].name );
      }
 
      return ret;
