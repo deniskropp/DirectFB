@@ -3834,9 +3834,9 @@ update_hw_cursor( SaWMan                *sawman,
           flags |= CCUF_POSITION | CCUF_SIZE | CCUF_SHAPE;
 
           config_flags = CLRCF_ALL;
-          config       = sawman->cursor.context->primary.config;
      }
 
+     config = sawman->cursor.context->primary.config;
 
      if (flags & CCUF_OPACITY) {
           if (stack->cursor.opacity) {
@@ -3901,9 +3901,21 @@ update_hw_cursor( SaWMan                *sawman,
      if (flags & CCUF_OPACITY) {
           D_DEBUG_AT( SaWMan_Cursor, "  -> OPACITY  %d\n", stack->cursor.opacity );
 
-          config_flags |= CLRCF_OPACITY;
+          if (stack->cursor.opacity != 255) {
+               if (!(config.options & DLOP_OPACITY)) {
+                    config_flags   |= CLRCF_OPTIONS;
+                    config.options |= DLOP_OPACITY;
+               }
 
-          config.opacity = stack->cursor.opacity;
+               config_flags   |= CLRCF_OPACITY;
+               config.opacity  = stack->cursor.opacity;
+          }
+          else {
+               if (config.options & DLOP_OPACITY) {
+                    config_flags   |= CLRCF_OPTIONS;
+                    config.options &= ~DLOP_OPACITY;
+               }
+          }
      }
 
      if (flags & CCUF_SHAPE) {
@@ -3919,8 +3931,11 @@ update_hw_cursor( SaWMan                *sawman,
           config.height       = config.source.h;
           config.format       = stack->cursor.surface->config.format;
           config.surface_caps = stack->cursor.surface->config.caps;
-          config.options      = DLOP_OPACITY |
-               (DFB_PIXELFORMAT_HAS_ALPHA( stack->cursor.surface->config.format ) ? DLOP_ALPHACHANNEL : DLOP_NONE);
+
+          if (DFB_PIXELFORMAT_HAS_ALPHA( stack->cursor.surface->config.format ))
+               config.options |= DLOP_ALPHACHANNEL;
+          else
+               config.options &= ~DLOP_ALPHACHANNEL;
      }
 
      if (config_flags) {
