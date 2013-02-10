@@ -215,7 +215,7 @@ dfb_layer_region_activate( CoreLayerRegion *region )
 
      /* Realize the region if it's enabled. */
      if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED )) {
-          ret = dfb_layer_region_realize( region );
+          ret = dfb_layer_region_realize( region, true );
           if (ret) {
                dfb_layer_region_unlock( region );
                return ret;
@@ -286,7 +286,7 @@ dfb_layer_region_enable( CoreLayerRegion *region )
 
      /* Realize the region if it's active. */
      if (D_FLAGS_IS_SET( region->state, CLRSF_ACTIVE )) {
-          ret = dfb_layer_region_realize( region );
+          ret = dfb_layer_region_realize( region, true );
           if (ret) {
                dfb_layer_region_unlock( region );
                return ret;
@@ -491,7 +491,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                     D_DERROR( ret, "Core/LayerRegion: dfb_layer_region_set() in dfb_layer_region_flip_update() failed!\n" );
           }
           else if (D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
-               ret = dfb_layer_region_realize( region );
+               ret = dfb_layer_region_realize( region, true );
                if (ret)
                     D_DERROR( ret, "Core/LayerRegion: dfb_layer_region_realize() in dfb_layer_region_flip_update() failed!\n" );
           }
@@ -711,7 +711,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
                     D_DERROR( ret, "Core/LayerRegion: dfb_layer_region_set() in dfb_layer_region_flip_update() failed!\n" );
           }
           else if (D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
-               ret = dfb_layer_region_realize( region );
+               ret = dfb_layer_region_realize( region, true );
                if (ret)
                     D_DERROR( ret, "Core/LayerRegion: dfb_layer_region_realize() in dfb_layer_region_flip_update() failed!\n" );
           }
@@ -1395,7 +1395,8 @@ dfb_layer_region_set( CoreLayerRegion            *region,
 }
 
 DFBResult
-dfb_layer_region_realize( CoreLayerRegion *region )
+dfb_layer_region_realize( CoreLayerRegion *region,
+                          bool             set )
 {
      DFBResult                ret;
      CoreLayer               *layer;
@@ -1467,10 +1468,12 @@ dfb_layer_region_realize( CoreLayerRegion *region )
      D_FLAGS_SET( region->state, CLRSF_REALIZED );
 
      /* Initially setup hardware. */
-     ret = dfb_layer_region_set( region, &region->config, CLRCF_ALL, region->surface );
-     if (ret) {
-          dfb_layer_region_unrealize( region );
-          return ret;
+     if (set) {
+          ret = dfb_layer_region_set( region, &region->config, CLRCF_ALL, region->surface );
+          if (ret) {
+               dfb_layer_region_unrealize( region );
+               return ret;
+          }
      }
 
      return DFB_OK;

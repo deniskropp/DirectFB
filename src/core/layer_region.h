@@ -114,7 +114,8 @@ DFBResult dfb_layer_region_set( CoreLayerRegion            *region,
                                 CoreLayerRegionConfigFlags  flags,
                                 CoreSurface                *surface );
 
-DFBResult dfb_layer_region_realize( CoreLayerRegion *region );
+DFBResult dfb_layer_region_realize( CoreLayerRegion *region,
+                                    bool             set );
 
 DFBResult dfb_layer_region_unrealize( CoreLayerRegion *region );
 

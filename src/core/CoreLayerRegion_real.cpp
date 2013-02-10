@@ -233,6 +233,12 @@ DisplayTask::Run()
      D_ASSERT( funcs != NULL );
      D_ASSERT( funcs->SetRegion != NULL );
 
+     dfb_layer_region_lock( region );
+
+     D_ASSUME( D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ) );
+
+     D_MAGIC_ASSERT( region->surface, CoreSurface );
+
      dfb_surface_buffer_lock_init( &left, accessor, CSAF_READ );
 
      left.task = this;
@@ -240,8 +246,37 @@ DisplayTask::Run()
      ret = dfb_surface_pool_lock( allocation->pool, allocation, &left );
      if (ret) {
           dfb_layer_region_unlock( region );
+          Done();
           return ret;
      }
+
+     /* Unfreeze region? */
+     if (D_FLAGS_IS_SET( region->state, CLRSF_FROZEN )) {
+          D_FLAGS_CLEAR( region->state, CLRSF_FROZEN );
+
+          if (!D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+               ret = dfb_layer_region_realize( region, false );
+               if (ret)
+                    D_DERROR( ret, "Core/LayerRegion: realize_region() in DisplayTask::Run() failed!\n" );
+          }
+
+          if (ret == DFB_OK) {
+               ret = funcs->SetRegion( layer, layer->driver_data, layer->layer_data,
+                                       region->region_data, &region->config, CLRCF_ALL,
+                                       surface, surface ? surface->palette : NULL,
+                                       &left, NULL );
+               if (ret)
+                    D_DERROR( ret, "Core/LayerRegion: SetRegion() in DisplayTask::Run() failed!\n" );
+          }
+
+          if (ret) {
+               dfb_layer_region_unlock( region );
+               Done();
+               return ret;
+          }
+     }
+     else
+          D_ASSUME( D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 
      D_DEBUG_AT( DirectFB_Task_Display, "  -> setting task for index %d\n", index );
 
@@ -305,6 +340,8 @@ DisplayTask::Run()
                ret = DFB_BUG;
      }
 
+     dfb_layer_region_unlock( region );
+
      /* Unlock region buffer since the lock is no longer needed. */
      dfb_surface_pool_unlock( left.allocation->pool, left.allocation, &left );
      dfb_surface_buffer_lock_deinit( &left );
@@ -329,11 +366,10 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                                    DFBSurfaceFlipFlags   flags,
                                    DisplayTask         **ret_task )
 {
-     DFBResult                ret = DFB_OK;
-     CoreLayer               *layer;
-     CoreLayerContext        *context;
-     CoreSurface             *surface;
-     const DisplayLayerFuncs *funcs;
+     DFBResult         ret = DFB_OK;
+     CoreLayer        *layer;
+     CoreLayerContext *context;
+     CoreSurface      *surface;
 
      if (update)
           D_DEBUG_AT( DirectFB_Task_Display,
@@ -371,31 +407,6 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
      surface = region->surface;
      layer   = dfb_layer_at( context->layer_id );
 
-     D_ASSERT( layer->funcs != NULL );
-
-     funcs = layer->funcs;
-
-     /* Unfreeze region? */
-     if (D_FLAGS_IS_SET( region->state, CLRSF_FROZEN )) {
-          D_FLAGS_CLEAR( region->state, CLRSF_FROZEN );
-
-          if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-               ret = dfb_layer_region_set( region, &region->config, CLRCF_ALL, surface );
-               if (ret)
-                    D_DERROR( ret, "Core/LayerRegion: set_region() in dfb_layer_region_flip_update() failed!\n" );
-          }
-          else if (D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
-               ret = dfb_layer_region_realize( region );
-               if (ret)
-                    D_DERROR( ret, "Core/LayerRegion: realize_region() in dfb_layer_region_flip_update() failed!\n" );
-          }
-
-          if (ret) {
-               dfb_layer_region_unlock( region );
-               return ret;
-          }
-     }
-
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
           case DLBM_TRIPLE:
@@ -413,7 +424,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                     dfb_surface_flip_buffers( surface, false );
 
                     /* Use the driver's routine if the region is realized. */
-                    if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+                    if (D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
                          D_DEBUG_AT( DirectFB_Task_Display, "  -> Issuing display task...\n" );
 
                          DisplayTask::Generate( region, update, flags, ret_task );
@@ -460,6 +471,8 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                     /* Make legacy functions use state client */
                     state.client = &client;
 
+                    dfb_layer_region_unlock( region );
+
                     if (update) {
                          dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, surface, CSBR_FRONT, DSSE_LEFT, update, 1, 0, 0, &client );
                     }
@@ -470,6 +483,8 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
 
                          dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, surface, CSBR_FRONT, DSSE_LEFT, &region, 1, 0, 0, &client );
                     }
+
+                    dfb_layer_region_lock( region );
 
                     CoreGraphicsStateClient_Deinit( &client );
                     dfb_state_destroy( &state );
@@ -484,8 +499,8 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                /* fall through */
 
           case DLBM_FRONTONLY:
-               /* Tell the driver about the update if the region is realized. */
-               if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+               if (D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
+                    /* Tell the driver about the update if the region is realized. */
                     D_DEBUG_AT( DirectFB_Task_Display, "  -> Issuing display task...\n" );
 
                     dfb_surface_lock( surface );

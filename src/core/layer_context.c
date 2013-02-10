@@ -775,7 +775,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                region->state |= configured;
 
                /* Set the new region configuration. */
-               dfb_layer_region_set_configuration( region, &region_config, flags );
+               dfb_layer_region_set_configuration( region, &region_config, flags | CLRCF_FREEZE );
 
                /* Enable the primary region. */
                if (! D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
@@ -895,7 +895,7 @@ update_primary_region_config( CoreLayerContext           *context,
 
      if (context->primary.region) {
           /* Set the new configuration. */
-          ret = dfb_layer_region_set_configuration( context->primary.region, config, flags );
+          ret = dfb_layer_region_set_configuration( context->primary.region, config, flags | CLRCF_FREEZE );
      }
      else {
           CoreLayer *layer = dfb_layer_at( context->layer_id );
