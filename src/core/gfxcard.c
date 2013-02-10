@@ -328,7 +328,8 @@ dfb_graphics_core_shutdown( DFBGraphicsCore *data,
 
      shared = data->shared;
 
-     dfb_gfxcard_lock( GDLF_SYNC );
+     if (!dfb_config->task_manager)
+          dfb_gfxcard_lock( GDLF_SYNC );
 
      if (data->driver_funcs) {
           const GraphicsDriverFuncs *funcs = data->driver_funcs;
@@ -419,6 +420,11 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return DFB_BUG;
+
      shared = card->shared;
      funcs  = &card->funcs;
 
@@ -480,6 +486,11 @@ dfb_gfxcard_flush()
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return DFB_OK;
+
      shared = card->shared;
      funcs  = &card->funcs;
 
@@ -509,6 +520,11 @@ dfb_gfxcard_start_drawing( CoreGraphicsDevice *device, CardState *state )
      D_ASSERT( device != NULL );
      D_MAGIC_ASSERT( state, CardState );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      if (device->funcs.StartDrawing)
           device->funcs.StartDrawing( device->driver_data, device->device_data, state );
 }
@@ -521,6 +537,11 @@ dfb_gfxcard_stop_drawing( CoreGraphicsDevice *device, CardState *state )
 {
      D_ASSERT( device != NULL );
      D_MAGIC_ASSERT( state, CardState );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
 
      if (device->funcs.StopDrawing)
           device->funcs.StopDrawing( device->driver_data, device->device_data, state );
@@ -771,6 +792,11 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      D_MAGIC_ASSERT_IF( state->destination, CoreSurface );
      D_MAGIC_ASSERT_IF( state->source, CoreSurface );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return false;
+
      dst    = state->destination;
      src    = state->source;
      shared = card->shared;
@@ -991,6 +1017,11 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  drawing -> %p\n", __FUNCTION__,
                       state, accel, state->destination );
      }
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return false;
 
      if (state->clip.x1 < 0) {
           state->clip.x1   = 0;
@@ -1377,6 +1408,11 @@ dfb_gfxcard_state_release( CardState *state )
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( state->destination != NULL );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      if (!dfb_config->software_only) {
           card->shared->pending_ops = true;
 
@@ -1487,6 +1523,11 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( rects != NULL );
      D_ASSERT( num > 0 );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -1651,6 +1692,11 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %dx%d, %p )\n", __FUNCTION__, DFB_RECTANGLE_VALS(rect), state );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
@@ -1762,6 +1808,11 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      D_ASSERT( lines != NULL );
      D_ASSERT( num_lines > 0 );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
@@ -1815,6 +1866,11 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( spans != NULL );
      D_ASSERT( num_spans > 0 );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -2148,6 +2204,11 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %p )\n", __FUNCTION__, tris, num, state );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
@@ -2258,6 +2319,11 @@ void dfb_gfxcard_filltrapezoids( const DFBTrapezoid *traps, int num, CardState *
      D_ASSERT( num > 0 );
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %p )\n", __FUNCTION__, traps, num, state );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -2416,6 +2482,11 @@ dfb_gfxcard_fillquadrangles( DFBPoint *points, int num, CardState *state )
      D_MAGIC_ASSERT( state, DFBGraphicsState );
      D_ASSERT( points != NULL );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
@@ -2489,6 +2560,11 @@ void dfb_gfxcard_draw_mono_glyphs( const void                   *glyph[],
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( (glyph != NULL) && (attributes != NULL) && (points != NULL) );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -2730,6 +2806,11 @@ static void dfb_gfxcard_blit_locked( DFBRectangle *rect,
 
 void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 {
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
      dfb_gfxcard_blit_locked( rect, dx, dy, state );
@@ -2783,8 +2864,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
 {
      unsigned int i = 0;
 
-     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
-     dfb_simplify_blittingflags( &blittingflags );
+     DFBSurfaceBlittingFlags blittingflags;
 
      D_DEBUG_AT( Core_GraphicsOps, "%s( %p, %p [%d], %p )\n", __FUNCTION__, rects, points, num, state );
 
@@ -2794,6 +2874,14 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
      D_ASSERT( rects != NULL );
      D_ASSERT( points != NULL );
      D_ASSERT( num > 0 );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
+     blittingflags = state->blittingflags;
+     dfb_simplify_blittingflags( &blittingflags );
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -2986,6 +3074,11 @@ void dfb_gfxcard_batchblit2( DFBRectangle *rects, DFBPoint *points, DFBPoint *po
      D_ASSERT( points2 != NULL );
      D_ASSERT( num > 0 );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
@@ -3072,6 +3165,11 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
         infinite loop. This should never happen but it's safer to check. */
      D_ASSERT( rect->w >= 1 );
      D_ASSERT( rect->h >= 1 );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -3245,8 +3343,7 @@ void dfb_gfxcard_batchstretchblit( DFBRectangle *srects, DFBRectangle *drects,
      int i;
      bool need_clip, acquired = false;
 
-     DFBSurfaceBlittingFlags blittingflags = state->blittingflags;
-     dfb_simplify_blittingflags( &blittingflags );
+     DFBSurfaceBlittingFlags blittingflags;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -3261,6 +3358,14 @@ void dfb_gfxcard_batchstretchblit( DFBRectangle *srects, DFBRectangle *drects,
                       "  -> %d,%d - %dx%d -> %d,%d - %dx%d\n",
                       DFB_RECTANGLE_VALS(&srects[i]),
                       DFB_RECTANGLE_VALS(&drects[i]) );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
+     blittingflags = state->blittingflags;
+     dfb_simplify_blittingflags( &blittingflags );
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -3403,6 +3508,11 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
      D_ASSERT( vertices != NULL );
      D_ASSERT( num >= 3 );
      D_MAGIC_ASSERT( state, CardState );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -3745,6 +3855,11 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
 
      D_ASSERT( card->shared != NULL );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return DFB_OK;
+
      ret = dfb_gfxcard_lock( GDLF_NONE );
      if (ret)
           return ret;
@@ -3777,6 +3892,11 @@ void dfb_gfxcard_flush_texture_cache( void )
 {
      D_ASSUME( card != NULL );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      if (dfb_config->software_only)
           return;
 
@@ -3787,6 +3907,11 @@ void dfb_gfxcard_flush_texture_cache( void )
 void dfb_gfxcard_flush_read_cache( void )
 {
      D_ASSUME( card != NULL );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
 
      if (dfb_config->software_only)
           return;
@@ -3799,6 +3924,11 @@ void dfb_gfxcard_after_set_var( void )
 {
      D_ASSUME( card != NULL );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      if (dfb_config->software_only)
           return;
 
@@ -3810,6 +3940,11 @@ void dfb_gfxcard_surface_enter( CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags f
 {
      D_ASSUME( card != NULL );
 
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
+
      if (dfb_config->software_only)
           return;
 
@@ -3820,6 +3955,11 @@ void dfb_gfxcard_surface_enter( CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags f
 void dfb_gfxcard_surface_leave( CoreSurfaceBuffer *buffer )
 {
      D_ASSUME( card != NULL );
+
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (dfb_config->task_manager)
+          return;
 
      if (dfb_config->software_only)
           return;
