@@ -100,7 +100,7 @@ private:
      DirectTLS  tls;
 
 public:
-     TLSObject2( void *ctx )
+     TLSObject2( void *ctx = NULL )
           :
           ctx( ctx )
      {
@@ -139,15 +139,12 @@ public:
      }
 
 private:
-     void destructor( void *ptr )
+     static void destructor( void *ptr )
      {
-          Destroyer::destroy( ctx, (Object*) ptr );
+          Destroyer::destroy( NULL, (Object*) ptr );
      }
 };
 
-
-
-}
 
 
 }
