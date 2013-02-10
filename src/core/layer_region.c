@@ -449,11 +449,11 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
      if (update)
           D_DEBUG_AT( Core_Layers,
-                      "dfb_layer_region_flip_update( %p, %p, 0x%08x ) <- [%d, %d - %dx%d]\n",
+                      "%s( %p, %p, 0x%08x ) <- [%d, %d - %dx%d]\n", __FUNCTION__,
                       region, update, flags, DFB_RECTANGLE_VALS_FROM_REGION( update ) );
      else
           D_DEBUG_AT( Core_Layers,
-                      "dfb_layer_region_flip_update( %p, %p, 0x%08x )\n", region, update, flags );
+                      "%s( %p, %p, 0x%08x )\n", __FUNCTION__, region, update, flags );
 
 
      D_ASSERT( region != NULL );
@@ -907,10 +907,13 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
                                     CoreLayerRegionConfig      *config,
                                     CoreLayerRegionConfigFlags  flags )
 {
-     DFBResult                ret;
-     CoreLayer               *layer;
-     const DisplayLayerFuncs *funcs;
-     CoreLayerRegionConfig    new_config;
+     DFBResult                   ret;
+     CoreLayer                  *layer;
+     const DisplayLayerFuncs    *funcs;
+     CoreLayerRegionConfig       new_config;
+     CoreLayerRegionConfigFlags  failed;
+
+     D_DEBUG_AT( Core_Layers, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, region, config, flags );
 
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
@@ -998,17 +1001,23 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
           }
      }
 
+     DFB_CORE_LAYER_REGION_CONFIG_DEBUG_AT( Core_Layers, &new_config );
+
      /* Check if the new configuration is supported. */
      ret = funcs->TestRegion( layer, layer->driver_data, layer->layer_data,
-                              &new_config, NULL );
+                              &new_config, &failed );
      if (ret) {
+          D_DEBUG_AT( Core_Layers, "  -> FAILED 0x%08x\n", failed );
           dfb_layer_region_unlock( region );
           return ret;
      }
 
      /* Check if the region should be frozen, thus requiring to apply changes explicitly. */
-     if (flags & CLRCF_FREEZE)
+     if (flags & CLRCF_FREEZE) {
+          D_DEBUG_AT( Core_Layers, "  -> FREEZE...\n" );
+
           region->state |= CLRSF_FROZEN;
+     }
 
      /* Propagate new configuration to the driver if the region is realized. */
      if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
@@ -1027,6 +1036,8 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
+
+     D_DEBUG_AT( Core_Layers, "  -> done.\n" );
 
      return DFB_OK;
 }
