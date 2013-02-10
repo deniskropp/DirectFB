@@ -867,16 +867,12 @@ fusion_ref_down (FusionRef *ref, bool global)
 DirectResult
 fusion_ref_catch (FusionRef *ref)
 {
-     D_UNIMPLEMENTED();
-
-     return DR_OK;
+     return fusion_ref_down( ref, false );
 }
 
 DirectResult
 fusion_ref_throw (FusionRef *ref, FusionID catcher)
 {
-     D_UNIMPLEMENTED();
-
      return DR_OK;
 }
 
