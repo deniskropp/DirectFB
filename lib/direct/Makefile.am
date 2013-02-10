@@ -49,6 +49,7 @@ includedir = @INCLUDEDIR@/direct
 include_HEADERS = \
 	$(ppcasm_headers)		\
 	$(armasm_headers)		\
+	Mutex.h				\
 	String.h			\
 	atomic.h			\
 	build.h				\
