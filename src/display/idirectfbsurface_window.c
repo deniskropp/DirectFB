@@ -433,17 +433,16 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    CoreDFB                *core,
                                    IDirectFB              *dfb )
 {
-     DFBResult        ret;
-     DFBInsets        insets;
-     CoreWindowStack *stack;
-     CoreSurface     *surface;
+     DFBResult    ret;
+     DFBInsets    insets;
+     CoreSurface *surface;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
-     stack = window->stack;
-     D_MAGIC_ASSERT( stack, CoreWindowStack );
+     D_MAGIC_ASSERT( window, CoreWindow );
+     D_MAGIC_ASSERT( window->stack, CoreWindowStack );
 
      ret = CoreWindow_GetInsets( window, &insets );
      if (ret)
