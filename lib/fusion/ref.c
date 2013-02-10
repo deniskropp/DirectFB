@@ -54,9 +54,10 @@
 #include <signal.h>
 
 
-#if FUSION_BUILD_MULTI
-
 D_DEBUG_DOMAIN( Fusion_Ref, "Fusion/Ref", "Fusion's Reference Counter" );
+
+
+#if FUSION_BUILD_MULTI
 
 
 #if FUSION_BUILD_KERNEL
@@ -1177,6 +1178,8 @@ fusion_ref_init (FusionRef         *ref,
      D_ASSERT( ref != NULL );
      D_ASSERT( name != NULL );
 
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+
      direct_recursive_mutex_init( &ref->single.lock );
      direct_waitqueue_init( &ref->single.cond );
 
@@ -1200,6 +1203,8 @@ DirectResult
 fusion_ref_set_name (FusionRef  *ref,
                      const char *name)
 {
+     D_DEBUG_AT( Fusion_Ref, "%s( %p, '%s' )\n", __FUNCTION__, ref, name );
+
      return DR_OK;
 }
 
@@ -1209,6 +1214,8 @@ fusion_ref_up (FusionRef *ref, bool global)
      DirectResult ret = DR_OK;
 
      D_ASSERT( ref != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "%s( %p, %d )\n", __FUNCTION__, ref, global );
 
      direct_mutex_lock (&ref->single.lock);
 
@@ -1228,6 +1235,8 @@ DirectResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
      D_ASSERT( ref != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "%s( %p, %d )\n", __FUNCTION__, ref, global );
 
      direct_mutex_lock (&ref->single.lock);
 
@@ -1266,12 +1275,16 @@ fusion_ref_down (FusionRef *ref, bool global)
 DirectResult
 fusion_ref_catch (FusionRef *ref)
 {
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+
      return fusion_ref_down( ref, false );
 }
 
 DirectResult
 fusion_ref_throw (FusionRef *ref, FusionID catcher)
 {
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+
      return DR_OK;
 }
 
@@ -1295,6 +1308,8 @@ fusion_ref_zero_lock (FusionRef *ref)
      DirectResult ret = DR_OK;
 
      D_ASSERT( ref != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
 
      direct_mutex_lock (&ref->single.lock);
 
@@ -1323,6 +1338,8 @@ fusion_ref_zero_trylock (FusionRef *ref)
 
      D_ASSERT( ref != NULL );
 
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+
      direct_mutex_lock (&ref->single.lock);
 
      if (ref->single.destroyed)
@@ -1346,6 +1363,8 @@ fusion_ref_unlock (FusionRef *ref)
 
      D_ASSERT( ref != NULL );
 
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+
      direct_mutex_lock (&ref->single.lock);
 
      if (ref->single.locked == direct_gettid()) {
@@ -1368,6 +1387,8 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 
      D_ASSERT( ref != NULL );
      D_ASSERT( call != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
 
      direct_mutex_lock (&ref->single.lock);
 
@@ -1393,6 +1414,8 @@ fusion_ref_inherit (FusionRef *ref, FusionRef *from)
      D_ASSERT( ref != NULL );
      D_ASSERT( from != NULL );
 
+     D_DEBUG_AT( Fusion_Ref, "%s( %p, %p )\n", __FUNCTION__, ref, from );
+
      D_UNIMPLEMENTED();
 
      /* FIXME */
@@ -1403,6 +1426,8 @@ DirectResult
 fusion_ref_destroy (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
 
      ref->single.destroyed = true;
 
