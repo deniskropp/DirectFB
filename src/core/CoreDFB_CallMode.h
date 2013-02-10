@@ -64,7 +64,16 @@ CoreDFB_CallMode( CoreDFB *core )
 
      return COREDFB_CALL_INDIRECT;
 #else
-     return dfb_config->call_nodirect ? COREDFB_CALL_INDIRECT : COREDFB_CALL_DIRECT;
+     if (dfb_config->call_nodirect) {
+          DirectThread *self = direct_thread_self();
+
+          if (self && fusion_dispatcher_tid( core->world ) == direct_thread_get_tid( self ))
+               return COREDFB_CALL_DIRECT;
+
+          return COREDFB_CALL_INDIRECT;
+     }
+
+     return COREDFB_CALL_DIRECT;
 #endif
 }
 
