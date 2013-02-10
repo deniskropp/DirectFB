@@ -3023,7 +3023,7 @@ event_dispatcher_loop( DirectThread *thread, void *arg )
           FusionEventDispatcherCall *msg = (FusionEventDispatcherCall*)&buf->buffer[buf->read_pos];
 //D_INFO("event_dispatcher_loop: processing buf %p free %d read %d write %d sync %d pending %d (msg %p)\n", buf, buf->can_free, buf->read_pos, buf->write_pos, buf->sync_calls, buf->pending, msg);
 
-          D_DEBUG_AT( Fusion_Main_Dispatch, "\n" );
+          D_DEBUG_AT( Fusion_Main_Dispatch, "%s() got msg %p <- arg %d, reaction %d\n", __FUNCTION__, msg, msg->call_arg, msg->reaction );
 
           buf->read_pos += call_size;
           if (msg->flags & FCEF_ONEWAY)
