@@ -606,7 +606,7 @@ dfb_windowstack_cursor_enable( CoreDFB *core, CoreWindowStack *stack, bool enabl
           return DFB_OK;
      }
 
-     if (enable && !stack->cursor.surface) {
+     if (enable && !stack->cursor.surface && !dfb_config->no_cursor_updates) {
           ret = load_default_cursor( core, stack );
           if (ret) {
                dfb_windowstack_unlock( stack );
@@ -618,7 +618,8 @@ dfb_windowstack_cursor_enable( CoreDFB *core, CoreWindowStack *stack, bool enabl
      stack->cursor.enabled = enable;
 
      /* Notify WM. */
-     dfb_wm_update_cursor( stack, enable ? CCUF_ENABLE : CCUF_DISABLE );
+     if (!dfb_config->no_cursor_updates)
+          dfb_wm_update_cursor( stack, enable ? CCUF_ENABLE : CCUF_DISABLE );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -642,7 +643,7 @@ dfb_windowstack_cursor_set_opacity( CoreWindowStack *stack, u8 opacity )
           stack->cursor.opacity = opacity;
           
           /* Notify WM. */
-          if (stack->cursor.enabled)
+          if (stack->cursor.enabled && !dfb_config->no_cursor_updates)
                dfb_wm_update_cursor( stack, CCUF_OPACITY );
      }
 
@@ -669,7 +670,7 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
      D_MAGIC_ASSERT( stack, CoreWindowStack );
      D_ASSERT( shape != NULL );
 
-     if (dfb_config->no_cursor)
+     if (dfb_config->no_cursor || dfb_config->no_cursor_updates)
           return DFB_OK;
 
      /* Lock the window stack. */
@@ -748,7 +749,7 @@ dfb_windowstack_cursor_warp( CoreWindowStack *stack, int x, int y )
           stack->cursor.y = y;
 
           /* Notify the WM. */
-          if (stack->cursor.enabled)
+          if (stack->cursor.enabled && !dfb_config->no_cursor_updates)
                dfb_wm_update_cursor( stack, CCUF_POSITION );
      }
 
