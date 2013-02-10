@@ -98,6 +98,9 @@ typedef unsigned int CoreSurfacePoolBridgeID;
 
 #ifdef __cplusplus
 namespace DirectFB {
+namespace Util {
+     class String;
+}
 class Renderer;
 class SurfaceTask;
 class DisplayTask;
