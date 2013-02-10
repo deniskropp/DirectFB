@@ -70,11 +70,12 @@ direct_waitqueue_wait_timeout( DirectWaitQueue *queue, DirectMutex *mutex, unsig
 {
      struct timeval  now;
      struct timespec timeout;
-     long int        nano_seconds = micros * 1000;
+     long int        seconds      = micros / 1000000;
+     long int        nano_seconds = micros % 1000000;
 
      gettimeofday( &now, NULL );
 
-     timeout.tv_sec  = now.tv_sec;
+     timeout.tv_sec  = now.tv_sec + seconds;
      timeout.tv_nsec = (now.tv_usec * 1000) + nano_seconds;
 
      timeout.tv_sec  += timeout.tv_nsec / 1000000000;
