@@ -170,7 +170,10 @@ ICore_Real::WaitIdle(
 
     TaskManager::Sync();
 
-    return dfb_gfxcard_sync();
+    if (dfb_config->task_manager)
+         return dfb_gfxcard_sync();
+
+    return DFB_OK;
 }
 
 DFBResult
