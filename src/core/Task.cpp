@@ -541,7 +541,7 @@ Task::Log( const std::string &action )
      entry.trace  = direct_trace_copy_buffer( NULL );
 
 
-     Util::Mutex::Lock lock( tasklog_lock );
+     Direct::Mutex::Lock lock( tasklog_lock );
 
      tasklog.push_back( entry );
 #endif
@@ -550,8 +550,8 @@ Task::Log( const std::string &action )
 void
 Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 {
-#if DFB_TASK_DEBUG
-     Util::Mutex::Lock lock( tasklog_lock );
+#if DFB_TASK_DEBUG_LOG
+     Direct::Mutex::Lock lock( tasklog_lock );
 
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
                             "Task: %p (state %d, flags 0x%x, log size %zu)\n", this, state, flags, tasklog.size() );

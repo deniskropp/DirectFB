@@ -67,6 +67,7 @@ DFBResult        DisplayTask_Generate ( CoreLayerRegion         *region,
 }
 
 
+#include <direct/Mutex.h>
 #include <direct/String.h>
 
 #define DFB_TASK_DEBUG   (0)
@@ -340,7 +341,7 @@ private:
      };
 
      std::vector<LogEntry> tasklog;
-     Util::Mutex           tasklog_lock;
+     Direct::Mutex         tasklog_lock;
 #endif
 
 public:
