@@ -33,6 +33,7 @@
 
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/prctl.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
@@ -393,6 +394,8 @@ direct_thread_main( void *arg )
 {
      void                    *ret;
      DirectThread            *thread = arg;
+
+     prctl( PR_SET_NAME, thread->name, 0, 0, 0 );
 
      pthread_setspecific( thread_key, thread );
 
