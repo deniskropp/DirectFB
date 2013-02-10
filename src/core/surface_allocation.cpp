@@ -589,6 +589,9 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
      buffer = allocation->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
+     D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
+
      if (direct_serial_update( &allocation->serial, &buffer->serial ) && buffer->written) {
           CoreSurfaceAllocation *source = buffer->written;
 
