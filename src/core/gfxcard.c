@@ -3304,7 +3304,9 @@ DFBResult dfb_gfxcard_sync( void )
 
      D_ASSUME( card != NULL );
 
-     if (!card)
+     D_ASSUME( !dfb_config->task_manager );
+
+     if (!card || dfb_config->task_manager)
           return DFB_OK;
 
      ret = dfb_gfxcard_lock( GDLF_SYNC );
