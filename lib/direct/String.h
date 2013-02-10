@@ -92,6 +92,9 @@ public:
      String &
      PrintF( const char *format, va_list args, size_t stack_buffer = 300 );
 
+     void
+     Clear();
+
 
      inline std::string &
      string()
@@ -111,8 +114,13 @@ public:
           return str.size();
      }
 
-     inline operator const std::string& () {
+     inline operator const std::string& () const {
           return str;
+     }
+
+     inline String& operator= (const char *buf) {
+          str = buf;
+          return *this;
      }
 };
 

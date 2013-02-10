@@ -37,6 +37,7 @@ extern "C" {
 #include <stdarg.h>
 
 #include <direct/mem.h>
+#include <direct/print.h>
 }
 
 /*********************************************************************************************************************/
@@ -129,19 +130,29 @@ String::PrintF( const char *format, va_list args, size_t stack_buffer )
 
      // TODO: check if va_copy is required here
 
-     len = vsnprintf( buf, sizeof(buf), format, args );
+#ifdef __GNUC__
+     va_list ap2;
+
+     va_copy( ap2, args );
+     len = direct_vsnprintf( buf, sizeof(buf), format, ap2 );
+     va_end( ap2 );
+#else
+     len = direct_vsnprintf( buf, sizeof(buf), format, args );
+#endif
      if (len < 0)
-          abort();
+          return *this;
 
      if (len >= sizeof(buf)) {
           ptr = (char*) direct_malloc( len+1 );
-          if (!ptr)
-               abort();
+          if (!ptr) {
+               D_OOM();
+               return *this;
+          }
 
-          len = vsnprintf( ptr, len+1, format, args );
+          len = direct_vsnprintf( ptr, len+1, format, args );
           if (len < 0) {
-               free( ptr );
-               abort();
+               direct_free( ptr );
+               return *this;
           }
      }
 
@@ -151,6 +162,12 @@ String::PrintF( const char *format, va_list args, size_t stack_buffer )
           direct_free( ptr );
 
      return *this;
+}
+
+void
+String::Clear()
+{
+     str.clear();
 }
 
 
