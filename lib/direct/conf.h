@@ -99,6 +99,8 @@ struct __D_DirectConfig {
 
      char                        **default_interface_implementation_types;
      char                        **default_interface_implementation_names;
+
+     unsigned int                  perf_dump_interval;
 };
 
 extern DirectConfig DIRECT_API *direct_config;

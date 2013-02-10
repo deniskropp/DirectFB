@@ -64,6 +64,7 @@ const char   *direct_config_usage =
      "  module-dir=<directory>         Override default module search directory (default = $libdir/directfb-x.y-z)\n"
      "  thread-priority-scale=<100th>  Apply scaling factor on thread type based priorities\n"
      "  default-interface-implementation=<type/name> Probe interface_type/implementation_name first\n"
+     "  perf-dump-interval=<ms>        Create thread dumping performance counters every ms milli seconds\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -535,6 +536,22 @@ direct_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("Direct/Config '%s': No interface/implementation specified!\n", name);
+               return DR_INVARG;
+          }
+     } else
+     if (direct_strcmp (name, "perf-dump-interval" ) == 0) {
+          if (value) {
+               int interval;
+
+               if (direct_sscanf( value, "%d", &interval ) < 1) {
+                    D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
+                    return DR_INVARG;
+               }
+
+               direct_config->perf_dump_interval = interval;
+          }
+          else {
+               D_ERROR("Direct/Config '%s': No value specified!\n", name);
                return DR_INVARG;
           }
      }

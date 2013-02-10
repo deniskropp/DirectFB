@@ -37,10 +37,16 @@
 
 
 
+static void *
+direct_perf_dump_thread( DirectThread *thread,
+                         void         *arg );
 
-static DirectHash    counter_hash;
-static DirectMutex   counter_lock;
-static unsigned long counter_ids;
+/**********************************************************************************************************************/
+
+static DirectHash     counter_hash;
+static DirectMutex    counter_lock;
+static unsigned long  counter_ids;
+static DirectThread  *counter_dump_thread;
 
 /**********************************************************************************************************************/
 
@@ -49,11 +55,26 @@ __D_perf_init()
 {
      direct_hash_init( &counter_hash, 7 );
      direct_mutex_init( &counter_lock );
+
+     if (direct_config->perf_dump_interval)
+          direct_thread_create( DTT_DEFAULT, direct_perf_dump_thread, NULL, "Perf Dump" );
 }
 
 void
 __D_perf_deinit()
 {
+     if (counter_dump_thread) {
+          DirectThread *thread = counter_dump_thread;
+
+          direct_thread_lock( thread );
+          counter_dump_thread = NULL;
+          direct_thread_notify( thread );
+          direct_thread_unlock( thread );
+
+          direct_thread_join( thread );
+          direct_thread_destroy( thread );
+     }
+
      direct_perf_dump_all();
 
      direct_hash_deinit( &counter_hash );
@@ -63,7 +84,7 @@ __D_perf_deinit()
 /**********************************************************************************************************************/
 
 void
-direct_perf_count( DirectPerfCounterInstallation *installation )
+direct_perf_count( DirectPerfCounterInstallation *installation, int diff )
 {
      DirectPerfCounter *counter;
 
@@ -71,7 +92,7 @@ direct_perf_count( DirectPerfCounterInstallation *installation )
 
      direct_mutex_lock( &counter_lock );
 
-     if (installation->counter_id == ~0) {
+     if (installation->counter_id == 0) {
           counter = D_CALLOC( 1, sizeof(DirectPerfCounter) );
           if (!counter) {
                direct_mutex_unlock( &counter_lock );
@@ -80,11 +101,12 @@ direct_perf_count( DirectPerfCounterInstallation *installation )
           }
 
           installation->counter_id = ++counter_ids;
-          D_ASSERT( installation->counter_id != 0 );   // FIXME: can there be more than 4 billion counters?
-
-          counter->start = direct_clock_get_time( DIRECT_CLOCK_SESSION );
+          D_ASSERT( installation->counter_id != 0 );
+          D_ASSERT( installation->counter_id != ~0 );   // FIXME: can there be more than 4 billion counters?
 
           direct_snputs( counter->name, installation->name, sizeof(counter->name) );
+
+          counter->reset_on_dump = installation->reset_on_dump;
 
           direct_hash_insert( &counter_hash, installation->counter_id, counter );
      }
@@ -97,8 +119,10 @@ direct_perf_count( DirectPerfCounterInstallation *installation )
           }
      }
 
-     counter->count++;
-     counter->stop = 0;
+     counter->count += diff;
+
+     if (!counter->start)
+          counter->start = direct_clock_get_time( DIRECT_CLOCK_SESSION );
 
      direct_mutex_unlock( &counter_lock );
 }
@@ -117,6 +141,11 @@ perf_iterate( DirectHash    *hash,
                         counter->count, counter->count * 1000000.0 / (double)(counter->stop - counter->start),
                         counter->start, counter->stop );
 
+     if (counter->reset_on_dump) {
+          counter->count = 0;
+          counter->start = 0;
+     }
+
      return true;
 }
 
@@ -132,5 +161,21 @@ direct_perf_dump_all()
      }
 
      direct_mutex_unlock( &counter_lock );
+}
+
+static void *
+direct_perf_dump_thread( DirectThread *thread,
+                         void         *arg )
+{
+     while (counter_dump_thread) {
+          direct_perf_dump_all();
+
+          direct_thread_lock( thread );
+          if (counter_dump_thread)
+               direct_thread_wait( thread, direct_config->perf_dump_interval );
+          direct_thread_unlock( thread );
+     }
+
+     return NULL;
 }
 

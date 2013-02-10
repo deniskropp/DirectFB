@@ -37,6 +37,7 @@
 
 typedef struct {
      unsigned long  counter_id;    // maybe switch to direct pointer
+     bool           reset_on_dump;
 
      char           name[100];
 } DirectPerfCounterInstallation;
@@ -49,23 +50,42 @@ typedef struct {
      unsigned long  count;
 
      char           name[100];
+     bool           reset_on_dump;
 } DirectPerfCounter;
 
 
+#if D_DEBUG_ENABLED
+
 #define D_PERF_COUNTER( _identifier, _name )           \
      DirectPerfCounterInstallation _identifier = {     \
-          counter_id:         ~0UL,                    \
-          name:               (_name)                  \
+                              0,                       \
+                              true,                    \
+                              (_name)                  \
      };
 
 
 #define D_PERF_COUNT( _identifier )                    \
-     direct_perf_count( &_identifier )
+     direct_perf_count( &_identifier, 1 )
+
+#define D_PERF_COUNT_N( _identifier, _diff )           \
+     direct_perf_count( &_identifier, _diff )
+
+#else
+
+#define D_PERF_COUNTER( _identifier, _name )           \
+     D_UNUSED int _identifier
 
 
+#define D_PERF_COUNT( _identifier )                    \
+     do {} while (0)
+
+#define D_PERF_COUNT_N( _identifier, _diff )           \
+     do {} while (0)
+
+#endif
 
 
-void direct_perf_count( DirectPerfCounterInstallation *installation );
+void direct_perf_count( DirectPerfCounterInstallation *installation, int index );
 
 
 void direct_perf_dump_all( void );
