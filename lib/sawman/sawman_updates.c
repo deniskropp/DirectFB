@@ -1000,39 +1000,42 @@ update_region4_r( SaWMan          *sawman,
 
                D_DEBUG_AT( SaWMan_Update, "%s --> dividing region(%d,%d - %d,%d) on opaque (%d,%d - %d,%d)\n", __FUNCTION__, region.x1, region.y1, region.x2, region.y2, opaque.x1, opaque.y1, opaque.x2, opaque.y2 );
 
-               if (!dfb_region_intersect( &opaque, region.x1, region.y1, region.x2, region.y2)) {
-                    D_DEBUG_AT( SaWMan_Update, "%s: this should not happen, no intersection found!\n", __FUNCTION__);
-                    D_ASSERT( 0 );
+               if (dfb_region_intersect( &opaque, region.x1, region.y1, region.x2, region.y2 )) {
+                    D_DEBUG_AT( SaWMan_Update, "%s --> opaque region intersection (%d,%d - %d,%d)\n", __FUNCTION__, opaque.x1, opaque.y1, opaque.x2, opaque.y2 );
+
+                    /* continue recursion with left outer intersection? */
+                    if (opaque.x1 != region.x1) {
+                         D_DEBUG_AT( SaWMan_Update, "%s --> recursing left region(%d,%d - %d,%d)\n", __FUNCTION__, region.x1, opaque.y1, opaque.x1 - 1, opaque.y2 );
+                         update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, opaque.y1, opaque.x1 - 1, opaque.y2, i + 1) );
+                    }
+
+                    /* continue recursion with upper outer intersection? */
+                    if (opaque.y1 != region.y1) {
+                         D_DEBUG_AT( SaWMan_Update, "%s --> recursing upper region(%d,%d - %d,%d)\n",__FUNCTION__,  region.x1, region.y1, region.x2, opaque.y1 - 1 );
+                         update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, region.y1, region.x2, opaque.y1 - 1, i + 1) );
+                    }
+
+                    /* continue recursion with right outer intersection? */
+                    if (opaque.x2 != region.x2) {
+                         D_DEBUG_AT( SaWMan_Update, "%s --> recursing right region(%d,%d - %d,%d)\n", __FUNCTION__, opaque.x2 + 1, opaque.y1, region.x2, opaque.y2 );
+                         update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, opaque.x2 + 1, opaque.y1, region.x2, opaque.y2, i + 1) );
+                    }
+
+                    /* continue recursion with lower outer intersection? */
+                    if (opaque.y2 != region.y2) {
+                         D_DEBUG_AT( SaWMan_Update, "%s --> recursing lower region(%d,%d - %d,%d)\n", __FUNCTION__, region.x1, opaque.y2 + 1, region.x2, region.y2 );
+                         update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, opaque.y2 + 1, region.x2, region.y2, i + 1) );
+                    }
+
+                    /* recursion ends on opaque inner window */
+                    update_region4_r( sawman, tier, state, -1, right_eye, dfb_update_bin_get( bin, sawwin, opaque.x1, opaque.y1, opaque.x2, opaque.y2, i + 1) );
                }
+               else {
+                    D_DEBUG_AT( SaWMan_Update, "%s: no intersection found, opaque region out of the screen\n", __FUNCTION__ );
 
-               D_DEBUG_AT( SaWMan_Update, "%s --> opaque region intersection (%d,%d - %d,%d)\n", __FUNCTION__, opaque.x1, opaque.y1, opaque.x2, opaque.y2 );
-
-               /* continue recursion with left outer intersection? */
-               if (opaque.x1 != region.x1) {
-                    D_DEBUG_AT( SaWMan_Update, "%s --> recursing left region(%d,%d - %d,%d)\n", __FUNCTION__, region.x1, opaque.y1, opaque.x1 - 1, opaque.y2 );
-                    update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, opaque.y1, opaque.x1 - 1, opaque.y2, i + 1) );
+                    /* only draw non-opaque region */
+                    update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, region.y1, region.x2, region.y2, i + 1) );
                }
-
-               /* continue recursion with upper outer intersection? */
-               if (opaque.y1 != region.y1) {
-                    D_DEBUG_AT( SaWMan_Update, "%s --> recursing upper region(%d,%d - %d,%d)\n",__FUNCTION__,  region.x1, region.y1, region.x2, opaque.y1 - 1 );
-                    update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, region.y1, region.x2, opaque.y1 - 1, i + 1) );
-               }
-
-               /* continue recursion with right outer intersection? */
-               if (opaque.x2 != region.x2) {
-                    D_DEBUG_AT( SaWMan_Update, "%s --> recursing right region(%d,%d - %d,%d)\n", __FUNCTION__, opaque.x2 + 1, opaque.y1, region.x2, opaque.y2 );
-                    update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, opaque.x2 + 1, opaque.y1, region.x2, opaque.y2, i + 1) );
-               }
-
-               /* continue recursion with lower outer intersection? */
-               if (opaque.y2 != region.y2) {
-                    D_DEBUG_AT( SaWMan_Update, "%s --> recursing lower region(%d,%d - %d,%d)\n", __FUNCTION__, region.x1, opaque.y2 + 1, region.x2, region.y2 );
-                    update_region4_r( sawman, tier, state, i - 1, right_eye, dfb_update_bin_get( bin, sawwin, region.x1, opaque.y2 + 1, region.x2, region.y2, i + 1) );
-               }
-
-               /* recursion ends on opaque inner window */
-               update_region4_r( sawman, tier, state, -1, right_eye, dfb_update_bin_get( bin, sawwin, opaque.x1, opaque.y1, opaque.x2, opaque.y2, i + 1) );
           }
           else if (SAWMAN_TRANSLUCENT_WINDOW( window )) {
                /* continue recursion on window */
