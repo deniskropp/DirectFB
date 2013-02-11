@@ -112,7 +112,7 @@ public:
           direct_tls_unregister( &tls );
      }
 
-     Object *Get( void *params )
+     Object *Get( void *params = NULL )
      {
           Object *obj = (Object*) direct_tls_get( tls );
 
