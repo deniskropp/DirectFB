@@ -75,7 +75,7 @@ __D_perf_deinit()
           direct_thread_destroy( thread );
      }
 
-     direct_perf_dump_all();
+     //direct_perf_dump_all();
 
      direct_hash_deinit( &counter_hash );
      direct_mutex_deinit( &counter_lock );
