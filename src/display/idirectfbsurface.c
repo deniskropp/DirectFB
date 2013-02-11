@@ -741,9 +741,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     //CoreGraphicsStateClient_FlushAll();
-     CoreGraphicsStateClient_FlushAllDst( data->surface );
-     //CoreGraphicsStateClient_Flush( &data->state_client );
+     CoreGraphicsStateClient_FlushCurrent();
 
      if (surface->config.caps & DSCAPS_FLIPPING) {
           if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
@@ -752,7 +750,6 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                ret = CoreSurface_Flip( data->surface, false );
           }
           else {
-               //CoreSurface_BackToFrontCopy( data->surface, DSSE_LEFT, &reg, NULL );
                dfb_gfx_copy_regions_client( data->surface, CSBR_BACK, DSSE_LEFT,
                                             data->surface, CSBR_FRONT, DSSE_LEFT,
                                             &reg, 1, 0, 0, &data->state_client );
@@ -1910,6 +1907,8 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
           dy += srect.y - src_data->area.wanted.y;
      }
 
+     CoreGraphicsStateClient_Flush( &src_data->state_client );
+
      if (src_data->surface_client) {
           direct_mutex_lock( &data->surface_client_lock );
 
@@ -1994,6 +1993,8 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
           dx += srect.x - src_data->area.wanted.x;
           dy += srect.y - src_data->area.wanted.y;
      }
+
+     CoreGraphicsStateClient_Flush( &src_data->state_client );
 
      dfb_state_set_source( &data->state, src_data->surface );
 
@@ -2087,6 +2088,8 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
           D_DEBUG_AT( Surface, "     [%3d] %4d,%4d - %dx%4d -> %4d,%4d\n",
                       i, DFB_RECTANGLE_VALS(&source_rects[i]), dest_points[i].x, dest_points[i].y );
      }
+
+     CoreGraphicsStateClient_Flush( &src_data->state_client );
 
      dfb_state_set_source( &data->state, src_data->surface );
 
@@ -2201,6 +2204,9 @@ IDirectFBSurface_BatchBlit2( IDirectFBSurface   *thiz,
           }
      }
 
+     CoreGraphicsStateClient_Flush( &src_data->state_client );
+     CoreGraphicsStateClient_Flush( &src2_data->state_client );
+
      dfb_state_set_source( &data->state, src_data->surface );
      dfb_state_set_source2( &data->state, src2_data->surface );
 
@@ -2303,6 +2309,8 @@ IDirectFBSurface_BatchStretchBlit( IDirectFBSurface   *thiz,
                       i, drects[i].x, drects[i].y, drects[i].w, drects[i].h,
                       srects[i].x, srects[i].y, srects[i].w, srects[i].h );
      }
+
+     CoreGraphicsStateClient_Flush( &src_data->state_client );
 
      dfb_state_set_source( &data->state, src_data->surface );
 
@@ -2453,6 +2461,8 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
                }
           }
      }
+
+     CoreGraphicsStateClient_Flush( &src_data->state_client );
 
      dfb_state_set_source( &data->state, src_data->surface );
 
@@ -3025,6 +3035,8 @@ IDirectFBSurface_SetSourceMask( IDirectFBSurface    *thiz,
      if (!mask_data->surface)
           return DFB_DESTROYED;
 
+     CoreGraphicsStateClient_Flush( &mask_data->state_client );
+
      ret = dfb_state_set_source_mask( &data->state, mask_data->surface );
      if (ret)
           return ret;
@@ -3138,7 +3150,7 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
 
-     CoreGraphicsStateClient_Flush( &data->state_client );
+     CoreGraphicsStateClient_FlushCurrent();
 
      if (data->surface->config.caps & DSCAPS_FLIPPING) {
           if (!(flags & DSFLIP_BLIT)) {

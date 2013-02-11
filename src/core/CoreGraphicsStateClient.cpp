@@ -44,11 +44,14 @@ extern "C" {
 #include <core/CoreGraphicsStateClient.h>
 }
 
+#include <direct/TLSObject.h>
+
 #include <core/CoreDFB.h>
 #include <core/CoreGraphicsState.h>
 #include <core/Renderer.h>
 
-D_DEBUG_DOMAIN( Core_GraphicsStateClient, "Core/GfxState/Client", "DirectFB Core Graphics State Client" );
+D_DEBUG_DOMAIN( Core_GraphicsStateClient,       "Core/GfxState/Client",       "DirectFB Core Graphics State Client" );
+D_DEBUG_DOMAIN( Core_GraphicsStateClient_Flush, "Core/GfxState/Client/Flush", "DirectFB Core Graphics State Client Flush" );
 
 /**********************************************************************************************************************/
 
@@ -116,6 +119,75 @@ private:
 static DirectFB::ClientList client_list;
 
 
+
+
+class StateHolder
+{
+     friend class Direct::TLSObject2<StateHolder>;
+
+     static StateHolder *create( void *ctx, void *params )
+     {
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s()\n", __FUNCTION__ );
+
+          return new StateHolder();
+     }
+
+     static void destroy( void *ctx, StateHolder *holder )
+     {
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s()\n", __FUNCTION__ );
+
+          delete holder;
+     }
+
+     StateHolder()
+          :
+          client( NULL )
+     {
+
+     }
+
+     CoreGraphicsStateClient *client;
+
+public:
+     void set( CoreGraphicsStateClient *client )
+     {
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( %p )\n", __FUNCTION__, client );
+
+          if (client != this->client) {
+               if (this->client) {
+                    D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flushing previous (%p)\n", this->client );
+
+                    CoreGraphicsStateClient_Flush( this->client );
+               }
+
+               this->client = client;
+          }
+     }
+
+     void leave( CoreGraphicsStateClient *client )
+     {
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( %p )\n", __FUNCTION__, client );
+
+          if (client == this->client) {
+               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> setting NULL\n" );
+
+               this->client = NULL;
+          }
+     }
+};
+
+
+static Direct::TLSObject2<StateHolder> state_holder_tls;
+
+
+
+
+
+
+
+
+
+
 extern "C" {
 
 DFBResult
@@ -167,6 +239,13 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
+     StateHolder *holder = state_holder_tls.Get( NULL );
+     D_ASSERT( holder != NULL );
+
+     holder->leave( client );
+
+     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> deinit, flushing (%p)\n", client );
+
      CoreGraphicsStateClient_Flush( client );
 
      if (client->renderer)
@@ -181,21 +260,36 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
      D_MAGIC_CLEAR( client );
 }
 
+#define STATE_HOLDER_SET(client)                                      \
+     do {                                                             \
+          StateHolder *holder = state_holder_tls.Get( NULL );         \
+          D_ASSERT( holder != NULL );                                 \
+                                                                      \
+          holder->set( client );                                      \
+     } while (0)
+
 void
 CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client )
 {
-     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
-     if (client->renderer)
+     if (client->renderer) {
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush renderer\n" );
+
           client->renderer->Flush();
+     }
      else {
           if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
+               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush gfxcard\n" );
+
                dfb_gfxcard_flush();
           }
           else {
                DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
+
+               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush via requestor\n" );
 
                requestor->Flush();
           }
@@ -205,23 +299,26 @@ CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client )
 void
 CoreGraphicsStateClient_FlushAll()
 {
-     D_DEBUG_AT( Core_GraphicsStateClient, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s()\n", __FUNCTION__ );
 
      client_list.FlushAll();
 }
 
 void
-CoreGraphicsStateClient_FlushAllDst( CoreSurface *surface )
+CoreGraphicsStateClient_FlushCurrent()
 {
-     D_DEBUG_AT( Core_GraphicsStateClient, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s()\n", __FUNCTION__ );
 
-     client_list.FlushAllDst( surface );
+     StateHolder *holder = state_holder_tls.Get( NULL );
+     D_ASSERT( holder != NULL );
+
+     holder->set( NULL );
 }
 
 DFBResult
 CoreGraphicsStateClient_ReleaseSource( CoreGraphicsStateClient *client )
 {
-     D_DEBUG_AT( Core_GraphicsStateClient, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( %p )\n", __FUNCTION__, client );
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
@@ -452,6 +549,8 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
                flags = (StateModificationFlags)(flags | SMF_SRC_CONVOLUTION);
      }
 
+     STATE_HOLDER_SET( client );
+
      ret = CoreGraphicsStateClient_SetState( client, state, (StateModificationFlags)(state->modified & flags) );
      if (ret)
           return ret;
@@ -471,8 +570,6 @@ CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->DrawRectangles( rects, num );
      else {
@@ -487,6 +584,8 @@ CoreGraphicsStateClient_DrawRectangles( CoreGraphicsStateClient *client,
                DFBResult ret;
 
                CoreGraphicsStateClient_Update( client, DFXL_DRAWRECTANGLE, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                ret = requestor->DrawRectangles( rects, num );
                if (ret)
@@ -507,8 +606,6 @@ CoreGraphicsStateClient_DrawLines( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( lines != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->DrawLines( lines, num );
      else {
@@ -520,6 +617,8 @@ CoreGraphicsStateClient_DrawLines( CoreGraphicsStateClient *client,
                DFBResult ret;
 
                CoreGraphicsStateClient_Update( client, DFXL_DRAWLINE, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                ret = requestor->DrawLines( lines, num );
                if (ret)
@@ -540,8 +639,6 @@ CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( rects != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->FillRectangles( rects, num );
      else {
@@ -552,6 +649,8 @@ CoreGraphicsStateClient_FillRectangles( CoreGraphicsStateClient *client,
                DFBResult ret;
 
                CoreGraphicsStateClient_Update( client, DFXL_FILLRECTANGLE, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                ret = requestor->FillRectangles( rects, num );
                if (ret)
@@ -572,8 +671,6 @@ CoreGraphicsStateClient_FillTriangles( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( triangles != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->FillTriangles( triangles, num );
      else {
@@ -584,6 +681,8 @@ CoreGraphicsStateClient_FillTriangles( CoreGraphicsStateClient *client,
                DFBResult ret;
 
                CoreGraphicsStateClient_Update( client, DFXL_FILLTRIANGLE, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                ret = requestor->FillTriangles( triangles, num );
                if (ret)
@@ -604,8 +703,6 @@ CoreGraphicsStateClient_FillTrapezoids( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( trapezoids != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->FillTrapezoids( trapezoids, num );
      else {
@@ -616,6 +713,8 @@ CoreGraphicsStateClient_FillTrapezoids( CoreGraphicsStateClient *client,
                DFBResult ret;
 
                CoreGraphicsStateClient_Update( client, DFXL_FILLTRAPEZOID, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                ret = requestor->FillTrapezoids( trapezoids, num );
                if (ret)
@@ -637,8 +736,6 @@ CoreGraphicsStateClient_FillSpans( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( spans != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->FillSpans( y, spans, num );
      else {
@@ -650,6 +747,8 @@ CoreGraphicsStateClient_FillSpans( CoreGraphicsStateClient *client,
                DFBResult ret;
 
                CoreGraphicsStateClient_Update( client, DFXL_FILLRECTANGLE, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                ret = requestor->FillSpans( y, spans, num );
                if (ret)
@@ -672,8 +771,6 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
      D_ASSERT( rects != NULL );
      D_ASSERT( points != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->Blit( rects, points, num );
      else {
@@ -686,6 +783,8 @@ CoreGraphicsStateClient_Blit( CoreGraphicsStateClient *client,
                unsigned int i;
 
                CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                for (i=0; i<num; i+=200) {
                     ret = requestor->Blit( &rects[i], &points[i], MIN(200, num-i) );
@@ -712,8 +811,6 @@ CoreGraphicsStateClient_Blit2( CoreGraphicsStateClient *client,
      D_ASSERT( points1 != NULL );
      D_ASSERT( points2 != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->Blit2( rects, points1, points2, num );
      else {
@@ -725,6 +822,8 @@ CoreGraphicsStateClient_Blit2( CoreGraphicsStateClient *client,
                DFBResult ret;
 
                CoreGraphicsStateClient_Update( client, DFXL_BLIT2, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                ret = requestor->Blit2( rects, points1, points2, num );
                if (ret)
@@ -747,8 +846,6 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
      D_ASSERT( srects != NULL );
      D_ASSERT( drects != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (num == 0)
           return DFB_OK;
 
@@ -769,6 +866,8 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
           }
           else {
                DFBResult ret;
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                if (num == 1 && srects[0].w == drects[0].w && srects[0].h == drects[0].h) {
                     CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
@@ -805,8 +904,6 @@ CoreGraphicsStateClient_TileBlit( CoreGraphicsStateClient *client,
      D_ASSERT( points1 != NULL );
      D_ASSERT( points2 != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->TileBlit( rects, points1, points2, num );
      else {
@@ -821,6 +918,8 @@ CoreGraphicsStateClient_TileBlit( CoreGraphicsStateClient *client,
                DFBResult ret;
 
                CoreGraphicsStateClient_Update( client, DFXL_BLIT, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                ret = requestor->TileBlit( rects, points1, points2, num );
                if (ret)
@@ -842,8 +941,6 @@ CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( vertices != NULL );
 
-     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
-
      if (client->renderer)
           client->renderer->TextureTriangles( vertices, num, formation );
      else {
@@ -855,6 +952,8 @@ CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
                DFBResult ret;
 
                CoreGraphicsStateClient_Update( client, DFXL_TEXTRIANGLES, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                ret = requestor->TextureTriangles( vertices, num, formation );
                if (ret)
