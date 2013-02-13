@@ -626,6 +626,9 @@ primaryFlipRegion( CoreLayer             *layer,
      if (left_update)
           DFB_REGIONS_DEBUG_AT( X11_Layer, left_update, 1 );
 
+     if (right_update)
+          DFB_REGIONS_DEBUG_AT( X11_Layer, right_update, 1 );
+
      if (x11->shared->x_error)
           return DFB_FAILURE;
 
@@ -640,9 +643,6 @@ primaryFlipRegion( CoreLayer             *layer,
 
      if (left_lock->task)
           Task_Done( left_lock->task );
-
-     if (lds->config.options & DLOP_STEREO && right_lock->task)
-          Task_Done( right_lock->task );
 
      return DFB_OK;
 }
