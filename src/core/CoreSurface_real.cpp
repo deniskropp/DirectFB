@@ -753,20 +753,5 @@ ISurface_Real::CreateClient(
 }
 
 
-DFBResult
-ISurface_Real::BackToFrontCopy(
-                   DFBSurfaceStereoEye                                 eye,
-                   const DFBRegion                                    *left_region,
-                   const DFBRegion                                    *right_region
-                   )
-{
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
-
-     dfb_back_to_front_copy_stereo( obj, eye, left_region, right_region, 0 );
-
-     return DFB_OK;
-}
-
-
 }
 

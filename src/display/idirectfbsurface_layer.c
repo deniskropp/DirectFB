@@ -94,7 +94,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
                              const DFBRegion     *region,
                              DFBSurfaceFlipFlags  flags )
 {
-     DFBResult ret;
+     DFBResult ret = DFB_OK;
      DFBRegion reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
@@ -103,9 +103,6 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      if (!data->base.surface)
           return DFB_DESTROYED;
-
-     if (data->base.surface->config.caps & DSCAPS_STEREO)
-          return DFB_UNSUPPORTED;
 
      if (data->base.locked)
           return DFB_LOCKED;
@@ -122,10 +119,12 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
           DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
 
-          /* Signal end of sequence of operations. */
-          dfb_state_lock( &parent_data->state );
-          dfb_state_stop_drawing( &parent_data->state );
-          dfb_state_unlock( &parent_data->state );
+          if (parent_data) {
+               /* Signal end of sequence of operations. */
+               dfb_state_lock( &parent_data->state );
+               dfb_state_stop_drawing( &parent_data->state );
+               dfb_state_unlock( &parent_data->state );
+          }
      }
 
 
@@ -154,7 +153,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
@@ -163,7 +162,7 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
                                    const DFBRegion     *right_region,
                                    DFBSurfaceFlipFlags  flags )
 {
-     DFBResult ret;
+     DFBResult ret = DFB_OK;
      DFBRegion l_reg, r_reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
@@ -191,10 +190,12 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
 
           DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
 
-          /* Signal end of sequence of operations. */
-          dfb_state_lock( &parent_data->state );
-          dfb_state_stop_drawing( &parent_data->state );
-          dfb_state_unlock( &parent_data->state );
+          if (parent_data) {
+               /* Signal end of sequence of operations. */
+               dfb_state_lock( &parent_data->state );
+               dfb_state_stop_drawing( &parent_data->state );
+               dfb_state_unlock( &parent_data->state );
+          }
      }
 
 
@@ -219,7 +220,7 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
      }
 
      D_DEBUG_AT( Surface, "  -> FLIPSTEREO %4d,%4d-%4dx%4d, %4d,%4d-%4dx%4d\n", 
-          DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
+                 DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
      CoreGraphicsStateClient_FlushCurrent();
 
@@ -233,7 +234,7 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult

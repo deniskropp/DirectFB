@@ -748,6 +748,8 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
               reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
           {
                ret = CoreSurface_Flip( data->surface, false );
+               if (ret)
+                   return ret;
           }
           else {
                dfb_gfx_copy_regions_client( data->surface, CSBR_BACK, DSSE_LEFT,
@@ -3092,6 +3094,7 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                              const DFBRegion     *right_region,
                              DFBSurfaceFlipFlags  flags )
 {
+     DFBResult ret = DFB_OK;
      DFBRegion l_reg, r_reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
@@ -3120,10 +3123,12 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
 
           DIRECT_INTERFACE_GET_DATA_FROM( data->parent, parent_data, IDirectFBSurface );
 
-          /* Signal end of sequence of operations. */
-          dfb_state_lock( &parent_data->state );
-          dfb_state_stop_drawing( &parent_data->state );
-          dfb_state_unlock( &parent_data->state );
+          if (parent_data) {
+               /* Signal end of sequence of operations. */
+               dfb_state_lock( &parent_data->state );
+               dfb_state_stop_drawing( &parent_data->state );
+               dfb_state_unlock( &parent_data->state );
+          }
      }
 
      dfb_region_from_rectangle( &l_reg, &data->area.current );
@@ -3161,10 +3166,15 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                    r_reg.x2 == data->surface->config.size.w  - 1 &&
                    r_reg.y2 == data->surface->config.size.h - 1)
                {
-                    CoreSurface_Flip( data->surface, false );
+                    ret = CoreSurface_Flip( data->surface, false );
                }
                else
-                    CoreSurface_BackToFrontCopy( data->surface, DSSE_LEFT | DSSE_RIGHT, &l_reg, &r_reg );
+                    dfb_gfx_copy_regions_client( data->surface, CSBR_BACK, DSSE_LEFT,
+                                                 data->surface, CSBR_FRONT, DSSE_LEFT,
+                                                 &l_reg, 1, 0, 0, &data->state_client );
+                    dfb_gfx_copy_regions_client( data->surface, CSBR_BACK, DSSE_RIGHT,
+                                                 data->surface, CSBR_FRONT, DSSE_RIGHT,
+                                                 &r_reg, 1, 0, 0, &data->state_client );
           }
      }
 
@@ -3174,7 +3184,7 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
 
      IDirectFBSurface_WaitForBackBuffer( data );
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult

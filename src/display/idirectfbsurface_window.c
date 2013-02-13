@@ -142,9 +142,6 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      if (!data->base.surface)
           return DFB_DESTROYED;
 
-     if (data->base.surface->config.caps & DWCAPS_STEREO) 
-          return DFB_UNSUPPORTED;
-
      if (data->base.locked)
           return DFB_LOCKED;
 
@@ -160,10 +157,12 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
           DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
 
-          /* Signal end of sequence of operations. */
-          dfb_state_lock( &parent_data->state );
-          dfb_state_stop_drawing( &parent_data->state );
-          dfb_state_unlock( &parent_data->state );
+          if (parent_data) {
+               /* Signal end of sequence of operations. */
+               dfb_state_lock( &parent_data->state );
+               dfb_state_stop_drawing( &parent_data->state );
+               dfb_state_unlock( &parent_data->state );
+          }
      }
 
 
@@ -209,15 +208,12 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                              return ret;
                     }
                     else {
-                         //CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
                          dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
                                                       data->base.surface, CSBR_FRONT, DSSE_LEFT,
                                                       &reg, 1, 0, 0, &data->base.state_client );
                     }
-
                }
                else {
-                    //CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT, &reg, NULL );
                     dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
                                                  data->base.surface, CSBR_FRONT, DSSE_LEFT,
                                                  &reg, 1, 0, 0, &data->base.state_client );
@@ -250,6 +246,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                                     const DFBRegion     *right_region,
                                     DFBSurfaceFlipFlags  flags )
 {
+     DFBResult ret = DFB_OK;
      DFBRegion l_reg, r_reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
@@ -278,10 +275,12 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
           DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
 
-          /* Signal end of sequence of operations. */
-          dfb_state_lock( &parent_data->state );
-          dfb_state_stop_drawing( &parent_data->state );
-          dfb_state_unlock( &parent_data->state );
+          if (parent_data) {
+               /* Signal end of sequence of operations. */
+               dfb_state_lock( &parent_data->state );
+               dfb_state_stop_drawing( &parent_data->state );
+               dfb_state_unlock( &parent_data->state );
+          }
      }
 
      dfb_region_from_rectangle( &l_reg, &data->base.area.current );
@@ -305,7 +304,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
      }
 
      D_DEBUG_AT( Surface, "  -> FLIP Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n", 
-          DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
+                 DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
 
 #if 0
@@ -336,10 +335,26 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                          r_reg.x2 == data->base.surface->config.size.w  - 1 &&
                          r_reg.y2 == data->base.surface->config.size.h - 1))
                     {
-                         CoreSurface_Flip( data->base.surface, false );
+                         ret = CoreSurface_Flip( data->base.surface, false );
+                         if (ret)
+                             return ret;
                     }
-                    else
-                         CoreSurface_BackToFrontCopy( data->base.surface, DSSE_LEFT | DSSE_RIGHT, &l_reg, &r_reg );
+                    else {
+                         dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
+                                                      data->base.surface, CSBR_FRONT, DSSE_LEFT,
+                                                      &l_reg, 1, 0, 0, &data->base.state_client );
+                         dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_RIGHT,
+                                                      data->base.surface, CSBR_FRONT, DSSE_RIGHT,
+                                                      &r_reg, 1, 0, 0, &data->base.state_client );
+                    }
+               }
+               else {
+                    dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
+                                                 data->base.surface, CSBR_FRONT, DSSE_LEFT,
+                                                 &l_reg, 1, 0, 0, &data->base.state_client );
+                    dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_RIGHT,
+                                                 data->base.surface, CSBR_FRONT, DSSE_RIGHT,
+                                                 &r_reg, 1, 0, 0, &data->base.state_client );
                }
           }
 
@@ -347,18 +362,20 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
           dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg );
 
-          CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags );
+          ret = CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags );
+          if (ret)
+              return ret;
      }
 
      if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY) {
           CoreWindowConfig config = { .opacity = 0xff };
 
-          CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_OPACITY );
+          ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_OPACITY );
      }
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
