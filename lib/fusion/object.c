@@ -251,8 +251,11 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
 
           fusion_ref_stat( &object->ref, &refs );
 
-          if (refs > 0)
+          if (refs > 0) {
                D_WARN( "zombie %p [%u], refs %d (in %s)", object, object->id, refs, pool->name );
+
+               direct_trace_print_stack( object->create_stack );
+          }
 
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
           D_DEBUG_AT( Fusion_Object, "  -> %p [%u], refs %d\n", object, object->id, refs );
@@ -365,6 +368,8 @@ fusion_object_create( FusionObjectPool  *pool,
      object->id = ++pool->id_pool;
 
      object->identity = identity;
+
+     object->create_stack = direct_trace_copy_buffer( NULL );
 
      /* Initialize the reference counter. */
      if (fusion_ref_init2( &object->ref, pool->name, pool->secure, world )) {
@@ -531,6 +536,9 @@ fusion_object_destroy( FusionObject *object )
 
      if ( object->properties )
           fusion_hash_destroy(object->properties);
+
+     if (object->create_stack)
+          direct_trace_free_buffer( object->create_stack );
 
      D_MAGIC_CLEAR( object );
      SHFREE( shared->main_pool, object );
