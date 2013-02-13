@@ -52,7 +52,15 @@ extern const SurfacePoolFuncs drmkmsSurfacePoolFuncs;
 
 extern const ScreenFuncs       *drmkmsScreenFuncs;
 extern const DisplayLayerFuncs *drmkmsLayerFuncs;
+extern const DisplayLayerFuncs *drmkmsPlaneLayerFuncs;
 
+
+
+typedef struct {
+     int                  index;
+	drmModePlane        *plane;
+
+} DRMKMSPlaneData;
 
 typedef struct {
      FusionSHMPoolShared *shmpool;
@@ -60,6 +68,8 @@ typedef struct {
      CoreSurfacePool     *pool;
 
      bool                 use_prime_fd;
+
+     DRMKMSPlaneData      plane_data[16];
 
 } DRMKMSDataShared;
 
@@ -82,20 +92,25 @@ typedef struct {
      drmModeEncoder      *encoder;
      drmModeModeInfo     mode;
      drmModeRes          *resources;
+     drmModePlaneRes     *plane_resources;
+
      drmModeCrtcPtr       saved_crtc;
 
      drmEventContext      drmeventcontext;
 
      VirtualTerminal     *vt;
 
-     bool                 flip_pending;
-     CoreSurfaceBuffer   *buffer;
+     unsigned int         flip_pending;
+     unsigned int         plane_flip_pending_mask;
+
+     CoreSurfaceBuffer   *buffer[16];
 
      DirectThread        *thread;
      DirectMutex          lock;
      DirectWaitQueue      wq_event;
      DirectWaitQueue      wq_flip;
 
+     int                  plane_index_count;
 } DRMKMSData;
 
 

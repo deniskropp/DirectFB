@@ -26,6 +26,9 @@
    Boston, MA 02111-1307, USA.
 */
 
+
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <fcntl.h>
@@ -47,8 +50,8 @@
 
 #include <core/core_system.h>
 
-D_DEBUG_DOMAIN( DRMKMS_Mode, "DRMKMS/Mode", "DRMKMS Mode" );
-
+D_DEBUG_DOMAIN( DRMKMS_Mode,  "DRMKMS/Mode",  "DRMKMS Mode" );
+D_DEBUG_DOMAIN( DRMKMS_Layer, "DRMKMS/Layer", "DRM/KMS Layer" );
 
 DFB_CORE_SYSTEM( drmkms )
 
@@ -60,10 +63,71 @@ DRMKMSData *m_data;    /* FIXME: Fix Core System API to pass data in all functio
 
 /**********************************************************************************************************************/
 
+void
+drmkms_page_flip_handler(int fd, unsigned int frame,
+                         unsigned int sec, unsigned int usec, void *driver_data);
+
+void
+drmkms_page_flip_handler(int fd, unsigned int frame,
+                         unsigned int sec, unsigned int usec, void *driver_data)
+{
+     DRMKMSData         *drmkms = driver_data;
+     CoreSurfaceBuffer **buffer = drmkms->buffer;
+
+     D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
+
+     for (int i; i<16;i++) {
+          if (drmkms->flip_pending & (1 << i)) {
+               dfb_surface_notify_display( buffer[i]->surface, buffer[i] );
+               dfb_surface_buffer_unref( buffer[i] );
+          }
+     }
+
+     drmkms->flip_pending = 0;
+}
+
+static void *
+DRMKMS_BufferThread_Main( DirectThread *thread, void *arg )
+{
+     DRMKMSData *data = arg;
+
+     D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
+
+     while (true) {
+          direct_mutex_lock( &data->lock );
+
+          while (!data->flip_pending) {
+               D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for flip to be issued\n" );
+
+               direct_waitqueue_wait( &data->wq_flip, &data->lock );
+          }
+
+          direct_mutex_unlock( &data->lock );
+
+
+          D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for flip to be done\n" );
+
+          drmHandleEvent( data->fd, &data->drmeventcontext );
+
+
+          direct_mutex_lock( &data->lock );
+
+          data->flip_pending = false;
+
+          direct_waitqueue_broadcast( &data->wq_event );
+
+          direct_mutex_unlock( &data->lock );
+     }
+
+     return NULL;
+}
+
+
 static DFBResult
 InitLocal( DRMKMSData *drmkms )
 {
      DFBResult   ret;
+     int         i;
 
      drmkms->fd = open( device_name, O_RDWR );
      if (drmkms->fd < 0) {
@@ -77,6 +141,41 @@ InitLocal( DRMKMSData *drmkms )
 #else
      kms_create( drmkms->fd, &drmkms->kms);
 #endif
+
+     drmkms->resources = drmModeGetResources( drmkms->fd );
+     if (!drmkms->resources) {
+          D_ERROR( "DirectFB/DRMKMS: drmModeGetResources() failed!\n" );
+          return DFB_INIT;
+     }
+
+     drmkms->plane_resources = drmModeGetPlaneResources( drmkms->fd );
+
+     drmkms->screen = dfb_screens_register( NULL, drmkms, drmkmsScreenFuncs );
+     drmkms->layer  = dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
+
+
+     for (i = 0; i < drmkms->plane_resources->count_planes; i++) {
+          dfb_layers_register( drmkms->screen, drmkms, drmkmsPlaneLayerFuncs );               
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+DeinitLocal( DRMKMSData *drmkms )
+{
+
+     if (drmkms->plane_resources)
+          drmModeFreePlaneResources(drmkms->plane_resources);
+
+     if (drmkms->resources)
+          drmModeFreeResources( drmkms->resources );
+
+     if (drmkms->kms)
+          kms_destroy (&drmkms->kms);
+
+     if (drmkms->fd)
+          close (drmkms->fd);
 
      return DFB_OK;
 }
@@ -141,16 +240,22 @@ system_initialize( CoreDFB *core, void **ret_data )
 
      dfb_surface_pool_initialize( core, &drmkmsSurfacePoolFuncs, &shared->pool );
 
-     drmkms->screen = dfb_screens_register( NULL, drmkms, drmkmsScreenFuncs );
-     drmkms->layer  = dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
-
-
      core_arena_add_shared_field( core, "drmkms", shared );
 
      if (direct_config_get("drmkms-use-prime-fd", &optionbuffer, 1, &ret_num) == DR_OK) {
           drmkms->shared->use_prime_fd = 1;
           D_INFO("DRMKMS/Init: using prime fd\n");
      }
+
+     drmkms->drmeventcontext.version = DRM_EVENT_CONTEXT_VERSION;
+     drmkms->drmeventcontext.vblank_handler = NULL;
+     drmkms->drmeventcontext.page_flip_handler = drmkms_page_flip_handler;
+
+     direct_mutex_init( &drmkms->lock );
+     direct_waitqueue_init( &drmkms->wq_event );
+     direct_waitqueue_init( &drmkms->wq_flip );
+
+     drmkms->thread = direct_thread_create( DTT_CRITICAL, DRMKMS_BufferThread_Main, drmkms, "DRMKMS/Buffer" );
 
      return DFB_OK;
 }
@@ -219,19 +324,7 @@ system_shutdown( bool emergency )
      }
 
 
-     if (m_data->resources)
-          drmModeFreeResources( m_data->resources );
-
-
-
-#ifdef USE_GBM
-     gbm_device_destroy( m_data->gbm );
-#else
-     kms_destroy( &m_data->kms);
-#endif
-
-     /* close drm fd */
-     close( m_data->fd );
+     DeinitLocal( m_data );
 
      if (dfb_config->vt)
           dfb_vt_shutdown( emergency );
@@ -257,6 +350,8 @@ system_leave( bool emergency )
      D_ASSERT( shared != NULL );
 
      dfb_surface_pool_leave( shared->pool );
+
+     DeinitLocal( m_data );
 
      if (dfb_config->vt) {
           ret = dfb_vt_leave( emergency );

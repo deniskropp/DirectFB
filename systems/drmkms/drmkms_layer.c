@@ -26,6 +26,9 @@
    Boston, MA 02111-1307, USA.
 */
 
+
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <core/layers.h>
@@ -41,80 +44,19 @@ D_DEBUG_DOMAIN( DRMKMS_Mode, "DRMKMS/Mode", "DRM/KMS Mode" );
 
 /**********************************************************************************************************************/
 
-void
-page_flip_handler(int fd, unsigned int frame,
-                  unsigned int sec, unsigned int usec, void *driver_data);
-
-void
-page_flip_handler(int fd, unsigned int frame,
-                  unsigned int sec, unsigned int usec, void *driver_data)
-{
-     DRMKMSData          *drmkms   = driver_data;
-     CoreSurfaceBuffer *buffer = drmkms->buffer;
-
-     D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
-
-     dfb_surface_notify_display( buffer->surface, buffer );
-
-     drmkms->flip_pending = false;
-     drmkms->buffer       = NULL;
-
-     dfb_surface_buffer_unref( buffer );
-}
-
-
-static void *
-DRMKMS_BufferThread_Main( DirectThread *thread, void *arg )
-{
-     DRMKMSData *data = arg;
-
-     D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
-
-     while (true) {
-          direct_mutex_lock( &data->lock );
-
-          while (!data->flip_pending) {
-               D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for flip to be issued\n" );
-
-               direct_waitqueue_wait( &data->wq_flip, &data->lock );
-          }
-
-          direct_mutex_unlock( &data->lock );
-
-
-          D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for flip to be done\n" );
-
-          drmHandleEvent( data->fd, &data->drmeventcontext );
-
-
-          direct_mutex_lock( &data->lock );
-
-          data->flip_pending = false;
-
-          direct_waitqueue_broadcast( &data->wq_event );
-
-          direct_mutex_unlock( &data->lock );
-     }
-
-     return NULL;
-}
-
 
 
 static DFBResult
 drmkmsInitLayer( CoreLayer                  *layer,
-               void                       *driver_data,
-               void                       *layer_data,
-               DFBDisplayLayerDescription *description,
-               DFBDisplayLayerConfig      *config,
-               DFBColorAdjustment         *adjustment )
+                 void                       *driver_data,
+                 void                       *layer_data,
+                 DFBDisplayLayerDescription *description,
+                 DFBDisplayLayerConfig      *config,
+                 DFBColorAdjustment         *adjustment )
 {
      DRMKMSData *drmkms = driver_data;
 
-
-     drmkms->drmeventcontext.version = DRM_EVENT_CONTEXT_VERSION;
-     drmkms->drmeventcontext.vblank_handler = NULL;
-     drmkms->drmeventcontext.page_flip_handler = page_flip_handler;
+     D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
      description->type             = DLTF_GRAPHICS;
      description->caps             = DLCAPS_SURFACE;
@@ -125,18 +67,11 @@ drmkmsInitLayer( CoreLayer                  *layer,
 
 
      config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
-     config->width      = dfb_config->mode.width  ?: drmkms->mode.hdisplay;
-     config->height     = dfb_config->mode.height ?: drmkms->mode.vdisplay;
+     config->width       = dfb_config->mode.width  ?: drmkms->mode.hdisplay;
+     config->height      = dfb_config->mode.height ?: drmkms->mode.vdisplay;
 
      config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
      config->buffermode  = DLBM_FRONTONLY;
-
-
-     direct_mutex_init( &drmkms->lock );
-     direct_waitqueue_init( &drmkms->wq_event );
-     direct_waitqueue_init( &drmkms->wq_flip );
-
-     drmkms->thread = direct_thread_create( DTT_CRITICAL, DRMKMS_BufferThread_Main, drmkms, "DRMKMS/Buffer" );
 
      return DFB_OK;
 }
@@ -186,7 +121,6 @@ drmkmsSetRegion( CoreLayer                  *layer,
      }
 
 
-
      return DFB_OK;
 }
 
@@ -202,14 +136,22 @@ drmkmsFlipRegion( CoreLayer             *layer,
                   const DFBRegion       *right_update,
                   CoreSurfaceBufferLock *right_lock )
 {
-     int            ret;
+     int              ret;
      DRMKMSData      *drmkms = driver_data;
+     DRMKMSPlaneData *data   = layer_data;
+     unsigned int     plane_mask = 1;
+     unsigned int     buffer_index  = 0;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
      direct_mutex_lock( &drmkms->lock );
 
-     while (drmkms->flip_pending) {
+     if (data) {
+          buffer_index = data->index+1;
+          plane_mask = 1 << buffer_index;
+     }
+
+     while (drmkms->flip_pending & plane_mask) {
           D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (previous)\n" );
 
           direct_waitqueue_wait( &drmkms->wq_event, &drmkms->lock );
@@ -218,11 +160,8 @@ drmkmsFlipRegion( CoreLayer             *layer,
      direct_mutex_unlock( &drmkms->lock );
 
 
-     D_ASSERT( drmkms->buffer == NULL );
-
-
-     drmkms->buffer = left_lock->buffer;
-     dfb_surface_buffer_ref( drmkms->buffer );
+     drmkms->buffer[buffer_index] = left_lock->buffer;
+     dfb_surface_buffer_ref( drmkms->buffer[buffer_index] );
 
 
      D_DEBUG_AT( DRMKMS_Layer, "  -> calling drmModePageFlip()\n" );
@@ -238,12 +177,12 @@ drmkmsFlipRegion( CoreLayer             *layer,
 
      direct_mutex_lock( &drmkms->lock );
 
-     drmkms->flip_pending = true;
+     drmkms->flip_pending |= plane_mask;
 
      direct_waitqueue_broadcast( &drmkms->wq_flip );
 
      if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
-          while (drmkms->flip_pending) {
+          while (drmkms->flip_pending & plane_mask) {
                D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (WAITFORSYNC)\n" );
 
                direct_waitqueue_wait( &drmkms->wq_event, &drmkms->lock );
@@ -255,6 +194,100 @@ drmkmsFlipRegion( CoreLayer             *layer,
      return DFB_OK;
 }
 
+
+static int
+primaryLayerDataSize( void )
+{
+     return sizeof(DRMKMSPlaneData);
+}
+
+static DFBResult
+drmkmsPlaneInitLayer( CoreLayer                  *layer,
+                      void                       *driver_data,
+                      void                       *layer_data,
+                      DFBDisplayLayerDescription *description,
+                      DFBDisplayLayerConfig      *config,
+                      DFBColorAdjustment         *adjustment )
+{
+     DRMKMSData      *drmkms = driver_data;
+     DRMKMSPlaneData *data   = layer_data;
+
+     D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
+
+     data->index = drmkms->plane_index_count++;
+
+     D_DEBUG_AT( DRMKMS_Layer, "  -> getting plane with index %d\n", data->index );
+
+     data->plane = drmModeGetPlane(drmkms->fd, drmkms->plane_resources->planes[data->index]);
+
+     D_DEBUG_AT( DRMKMS_Layer, "     ->  plane_id is %d\n", data->plane->plane_id );
+
+     description->type             = DLTF_GRAPHICS;
+     description->caps             = DLCAPS_SURFACE | DLCAPS_SCREEN_POSITION | DLCAPS_ALPHACHANNEL;
+     description->surface_caps     = DSCAPS_NONE;
+     description->surface_accessor = CSAID_LAYER0;
+
+     snprintf( description->name, DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "DRMKMS Plane Layer %d", data->index );
+
+
+     config->flags      = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
+     config->width      = dfb_config->mode.width  ?: drmkms->mode.hdisplay;
+     config->height     = dfb_config->mode.height ?: drmkms->mode.vdisplay;
+
+     config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
+     config->buffermode  = DLBM_FRONTONLY;
+
+
+     return DFB_OK;
+}
+
+static DFBResult
+drmkmsPlaneTestRegion( CoreLayer                  *layer,
+                       void                       *driver_data,
+                       void                       *layer_data,
+                       CoreLayerRegionConfig      *config,
+                       CoreLayerRegionConfigFlags *ret_failed )
+{
+     if (ret_failed)
+          *ret_failed = DLCONF_NONE;
+
+     return DFB_OK;
+}
+
+static DFBResult
+drmkmsPlaneSetRegion( CoreLayer                  *layer,
+                      void                       *driver_data,
+                      void                       *layer_data,
+                      void                       *region_data,
+                      CoreLayerRegionConfig      *config,
+                      CoreLayerRegionConfigFlags  updated,
+                      CoreSurface                *surface,
+                      CorePalette                *palette,
+                      CoreSurfaceBufferLock      *left_lock,
+                      CoreSurfaceBufferLock      *right_lock )
+{
+     int              ret;
+     DRMKMSData      *drmkms = driver_data;
+     DRMKMSPlaneData *data   = layer_data;
+
+     D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
+     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE))
+     {
+
+          ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle,
+                                /* plane_flags */ 0, config->dest.x, config->dest.y, config->dest.w, config->dest.h,
+                                config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
+
+          if (ret) {
+               D_PERROR( "DirectFB/DRMKMS: drmModeSetPlane() failed! (%d)\n", ret );
+               return DFB_FAILURE;
+          }
+
+     }
+
+     return DFB_OK;
+}
+
 static const DisplayLayerFuncs _drmkmsLayerFuncs = {
      .InitLayer     = drmkmsInitLayer,
      .TestRegion    = drmkmsTestRegion,
@@ -262,5 +295,14 @@ static const DisplayLayerFuncs _drmkmsLayerFuncs = {
      .FlipRegion    = drmkmsFlipRegion
 };
 
+static const DisplayLayerFuncs _drmkmsPlaneLayerFuncs = {
+     .LayerDataSize = primaryLayerDataSize,
+     .InitLayer     = drmkmsPlaneInitLayer,
+     .TestRegion    = drmkmsPlaneTestRegion,
+     .SetRegion     = drmkmsPlaneSetRegion,
+     .FlipRegion    = drmkmsFlipRegion
+};
+
 const DisplayLayerFuncs *drmkmsLayerFuncs = &_drmkmsLayerFuncs;
+const DisplayLayerFuncs *drmkmsPlaneLayerFuncs = &_drmkmsPlaneLayerFuncs;
 
