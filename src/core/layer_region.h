@@ -79,7 +79,8 @@ DFBResult dfb_layer_region_flip_update  ( CoreLayerRegion      *region,
                                           DFBSurfaceFlipFlags   flags );
 
 DFBResult dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
-                                             const DFBRegion      *update,
+                                             const DFBRegion      *left_update,
+                                             const DFBRegion      *right_update,
                                              DFBSurfaceFlipFlags   flags,
                                              DFB_DisplayTask     **ret_task );
 

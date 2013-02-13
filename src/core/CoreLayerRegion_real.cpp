@@ -95,26 +95,38 @@ ILayerRegion_Real::FlipUpdateStereo(
 /*********************************************************************************************************************/
 
 DisplayTask::DisplayTask( CoreLayerRegion       *region,
-                          const DFBRegion       *update,
+                          const DFBRegion       *left_update,
+                          const DFBRegion       *right_update,
                           DFBSurfaceFlipFlags    flip_flags,
-                          CoreSurfaceAllocation *allocation )
+                          CoreSurfaceAllocation *left_allocation,
+                          CoreSurfaceAllocation *right_allocation,
+                          bool                   stereo )
      :
      SurfaceTask( region->surface_accessor ),
      region( region ),
-     update( NULL ),
+     left_update( NULL ),
+     right_update( NULL ),
      flip_flags( flip_flags ),
-     allocation( allocation )
+     left_allocation( left_allocation ),
+     right_allocation( right_allocation ),
+     stereo( stereo )
 {
      D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
      context = region->context;
      layer   = dfb_layer_at( context->layer_id );
-     index   = dfb_surface_buffer_index( allocation->buffer );
+     index   = dfb_surface_buffer_index( left_allocation->buffer );
 
-     if (update) {
-          this->update = &this->update_region;
+     if (left_update) {
+          this->left_update = &this->left_update_region;
 
-          *this->update = *update;
+          *this->left_update = *left_update;
+     }
+
+     if (right_update) {
+          this->right_update = &this->right_update_region;
+
+          *this->right_update = *right_update;
      }
 
      D_DEBUG_AT( DirectFB_Task_Display, "  -> index %d\n", index );
@@ -129,14 +141,18 @@ DisplayTask::~DisplayTask()
 
 DFBResult
 DisplayTask::Generate( CoreLayerRegion      *region,
-                       const DFBRegion      *update,
+                       const DFBRegion      *left_update,
+                       const DFBRegion      *right_update,
                        DFBSurfaceFlipFlags   flags,
                        DisplayTask         **ret_task )
 {
      DFBResult              ret;
      CoreSurface           *surface;
-     CoreSurfaceBuffer     *buffer;
-     CoreSurfaceAllocation *allocation;
+     CoreSurfaceBuffer     *left_buffer      = NULL;
+     CoreSurfaceBuffer     *right_buffer     = NULL;
+     CoreSurfaceAllocation *left_allocation  = NULL;
+     CoreSurfaceAllocation *right_allocation = NULL;
+     bool                   stereo;
 
      D_ASSERT( region != NULL );
      FUSION_SKIRMISH_ASSERT( &region->lock );
@@ -148,26 +164,48 @@ DisplayTask::Generate( CoreLayerRegion      *region,
      D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( region %p, surface %p, flips %d, flags 0x%04x, ret_task %p )\n",
                  __FUNCTION__, region, surface, surface->flips, flags, ret_task );
 
+     stereo = !!(region->config.options & DLOP_STEREO);
+
      // FIXME: use helper class
      //
 
-     buffer = dfb_surface_get_buffer3( surface, CSBR_FRONT, DSSE_LEFT, surface->flips );
+     left_buffer = dfb_surface_get_buffer3( surface, CSBR_FRONT, DSSE_LEFT, surface->flips );
 
-     allocation = dfb_surface_buffer_find_allocation( buffer, region->surface_accessor, CSAF_READ, true );
-     if (!allocation) {
+     left_allocation = dfb_surface_buffer_find_allocation( left_buffer, region->surface_accessor, CSAF_READ, true );
+     if (!left_allocation) {
           /* If no allocation exists, create one. */
-          ret = dfb_surface_pools_allocate( buffer, region->surface_accessor, CSAF_READ, &allocation );
+          ret = dfb_surface_pools_allocate( left_buffer, region->surface_accessor, CSAF_READ, &left_allocation );
           if (ret) {
                D_DERROR( ret, "Core/LayerRegion: Buffer allocation failed!\n" );
                return ret;
           }
      }
 
-     dfb_surface_allocation_update( allocation, CSAF_READ );
+     dfb_surface_allocation_update( left_allocation, CSAF_READ );
 
-     DisplayTask *task = new DisplayTask( region, update, flags, allocation );
+     if (stereo) {
+          right_buffer = dfb_surface_get_buffer3( surface, CSBR_FRONT, DSSE_RIGHT, surface->flips );
 
-     task->AddAccess( allocation, CSAF_READ );
+          right_allocation = dfb_surface_buffer_find_allocation( right_buffer, region->surface_accessor, CSAF_READ, true );
+          if (!right_allocation) {
+               /* If no allocation exists, create one. */
+               ret = dfb_surface_pools_allocate( right_buffer, region->surface_accessor, CSAF_READ, &right_allocation );
+               if (ret) {
+                    D_DERROR( ret, "Core/LayerRegion: Buffer allocation (right) failed!\n" );
+                    return ret;
+               }
+          }
+
+          dfb_surface_allocation_update( right_allocation, CSAF_READ );
+     }
+
+
+     DisplayTask *task = new DisplayTask( region, left_update, right_update, flags, left_allocation, right_allocation, stereo );
+
+     task->AddAccess( left_allocation, CSAF_READ );
+
+     if (stereo)
+          task->AddAccess( right_allocation, CSAF_READ );
 
      if (ret_task) {
           D_DEBUG_AT( DirectFB_Task_Display, "  -> returning task %p (not flushed)\n", task );
@@ -215,13 +253,16 @@ DFBResult
 DisplayTask::Run()
 {
      DFBResult                ret;
-     DFBRegion                rotated;
-     DFBRegion                unrotated;
+     DFBRegion                left_rotated;
+     DFBRegion                left_unrotated;
+     DFBRegion                right_rotated;
+     DFBRegion                right_unrotated;
      CoreLayer               *layer;
      CoreLayerContext        *context;
      CoreSurface             *surface;
      const DisplayLayerFuncs *funcs;
-     CoreSurfaceBufferLock    left;
+     CoreSurfaceBufferLock    left  = {0};
+     CoreSurfaceBufferLock    right = {0};
 
      context = region->context;
      surface = region->surface;
@@ -239,15 +280,28 @@ DisplayTask::Run()
 
      D_MAGIC_ASSERT( region->surface, CoreSurface );
 
+     /*
+      * Setup left lock
+      */
      dfb_surface_buffer_lock_init( &left, accessor, CSAF_READ );
 
      left.task = this;
 
-     ret = dfb_surface_pool_lock( allocation->pool, allocation, &left );
-     if (ret) {
-          dfb_layer_region_unlock( region );
-          Done();
-          return ret;
+     ret = dfb_surface_pool_lock( left_allocation->pool, left_allocation, &left );
+     if (ret)
+          goto out;
+
+     if (stereo) {
+          /*
+           * Setup right lock
+           */
+          dfb_surface_buffer_lock_init( &right, accessor, CSAF_READ );
+
+          right.task = this;
+
+          ret = dfb_surface_pool_lock( right_allocation->pool, right_allocation, &right );
+          if (ret)
+               goto out;
      }
 
      /* Unfreeze region? */
@@ -256,23 +310,21 @@ DisplayTask::Run()
 
           if (!D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                ret = dfb_layer_region_realize( region, false );
-               if (ret)
+               if (ret) {
                     D_DERROR( ret, "Core/LayerRegion: realize_region() in DisplayTask::Run() failed!\n" );
+                    goto out;
+               }
           }
 
           if (ret == DFB_OK) {
                ret = funcs->SetRegion( layer, layer->driver_data, layer->layer_data,
                                        region->region_data, &region->config, CLRCF_ALL,
                                        surface, surface ? surface->palette : NULL,
-                                       &left, NULL );
-               if (ret)
+                                       &left, stereo ? &right : NULL );
+               if (ret) {
                     D_DERROR( ret, "Core/LayerRegion: SetRegion() in DisplayTask::Run() failed!\n" );
-          }
-
-          if (ret) {
-               dfb_layer_region_unlock( region );
-               Done();
-               return ret;
+                    goto out;
+               }
           }
      }
      else
@@ -288,12 +340,17 @@ DisplayTask::Run()
           case DLBM_TRIPLE:
           case DLBM_BACKVIDEO:
                /* Check if simply swapping the buffers is possible... */
-               if ((flip_flags & DSFLIP_SWAP) ||
-                   (!(flip_flags & DSFLIP_BLIT) && !surface->rotation &&
-                    (!update || (update->x1 == 0 &&
-                                 update->y1 == 0 &&
-                                 update->x2 == surface->config.size.w - 1 &&
-                                 update->y2 == surface->config.size.h - 1))))
+               if ((flags & DSFLIP_SWAP) ||
+                   (!(flags & DSFLIP_BLIT) && !surface->rotation &&
+                    ((!left_update && !right_update) ||      // FIXME: below code crashes if only one is set
+                     ((left_update->x1 == 0 &&
+                       left_update->y1 == 0 &&
+                       left_update->x2 == surface->config.size.w - 1 &&
+                       left_update->y2 == surface->config.size.h - 1) &&
+                      (right_update->x1 == 0 &&
+                       right_update->y1 == 0 &&
+                       right_update->x2 == surface->config.size.w - 1 &&
+                       right_update->y2 == surface->config.size.h - 1)))))
                {
                     D_DEBUG_AT( DirectFB_Task_Display, "  -> Flipping region using driver...\n" );
 
@@ -305,8 +362,8 @@ DisplayTask::Run()
                                                   layer->layer_data,
                                                   region->region_data,
                                                   surface, flip_flags,
-                                                  update, &left,
-                                                  NULL, NULL );
+                                                  left_update, &left,
+                                                  stereo ? right_update : NULL, stereo ? &right : NULL );
                     break;
                }
 
@@ -316,24 +373,32 @@ DisplayTask::Run()
           case DLBM_FRONTONLY:
                /* Tell the driver about the update if the region is realized. */
                if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
-                    const DFBRegion *_update = update;
+                    const DFBRegion *_left_update  = left_update;
+                    const DFBRegion *_right_update = right_update;
 
                     D_DEBUG_AT( DirectFB_Task_Display, "  -> Notifying driver about updated content...\n" );
 
-                    if( !_update ) {
-                         unrotated = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
-                                        region->config.width, region->config.height );
-                         _update    = &unrotated;
+                    if( !_left_update ) {
+                         left_unrotated = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
+                                                                               region->config.width, region->config.height );
+                         _left_update   = &left_unrotated;
                     }
-                    dfb_region_from_rotated( &rotated, _update, &surface->config.size, surface->rotation );
+                    dfb_region_from_rotated( &left_rotated, _left_update, &surface->config.size, surface->rotation );
+
+                    if( !_right_update ) {
+                         right_unrotated = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
+                                                                                region->config.width, region->config.height );
+                         _right_update   = &right_unrotated;
+                    }
+                    dfb_region_from_rotated( &right_rotated, _right_update, &surface->config.size, surface->rotation );
 
                     ret = funcs->UpdateRegion( layer,
                                                layer->driver_data,
                                                layer->layer_data,
                                                region->region_data,
                                                surface,
-                                               &rotated, &left,
-                                               NULL, NULL );
+                                               &left_rotated, &left,
+                                               stereo ? &right_rotated : NULL, stereo ? &right : NULL );
                }
                break;
 
@@ -342,13 +407,25 @@ DisplayTask::Run()
                ret = DFB_BUG;
      }
 
+out:
+     if (ret)
+          Done( ret );
+
      dfb_layer_region_unlock( region );
 
-     /* Unlock region buffer since the lock is no longer needed. */
-     dfb_surface_pool_unlock( left.allocation->pool, left.allocation, &left );
-     dfb_surface_buffer_lock_deinit( &left );
+     if (right.allocation) {
+          /* Unlock region buffer since the lock is no longer needed. */
+          dfb_surface_pool_unlock( right.allocation->pool, right.allocation, &right );
+          dfb_surface_buffer_lock_deinit( &right );
+     }
 
-     return DFB_OK;
+     if (left.allocation) {
+          /* Unlock region buffer since the lock is no longer needed. */
+          dfb_surface_pool_unlock( left.allocation->pool, left.allocation, &left );
+          dfb_surface_buffer_lock_deinit( &left );
+     }
+
+     return ret;
 }
 
 void
@@ -356,7 +433,7 @@ DisplayTask::Describe( Direct::String &string )
 {
      SurfaceTask::Describe( string );
 
-     string.PrintF( "  Display buffer index %d", index );
+     string.PrintF( "  Display buffer index %d (%s)", index, stereo ? "stereo" : "mono" );
 }
 
 /*********************************************************************************************************************/
@@ -366,22 +443,22 @@ extern "C" {
 
 DFBResult
 dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
-                                   const DFBRegion      *update,
+                                   const DFBRegion      *left_update,
+                                   const DFBRegion      *right_update,
                                    DFBSurfaceFlipFlags   flags,
                                    DisplayTask         **ret_task )
 {
-     DFBResult         ret = DFB_OK;
-     CoreLayer        *layer;
-     CoreLayerContext *context;
-     CoreSurface      *surface;
+     DFBResult            ret = DFB_OK;
+     CoreLayer           *layer;
+     CoreLayerContext    *context;
+     CoreSurface         *surface;
+     DFBSurfaceStereoEye  eyes = DSSE_NONE;
 
-     if (update)
-          D_DEBUG_AT( DirectFB_Task_Display,
-                      "dfb_layer_region_flip_update( %p, %p, 0x%08x ) <- [%d, %d - %dx%d]\n",
-                      region, update, flags, DFB_RECTANGLE_VALS_FROM_REGION( update ) );
-     else
-          D_DEBUG_AT( DirectFB_Task_Display,
-                      "dfb_layer_region_flip_update( %p, %p, 0x%08x )\n", region, update, flags );
+     D_DEBUG_AT( DirectFB_Task_Display, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, region, left_update, right_update, flags );
+     if (left_update)
+          D_DEBUG_AT( DirectFB_Task_Display, "Left: [%d, %d - %dx%d]\n", DFB_RECTANGLE_VALS_FROM_REGION( left_update ) );
+     if (right_update)
+          D_DEBUG_AT( DirectFB_Task_Display, "Right: [%d, %d - %dx%d]\n", DFB_RECTANGLE_VALS_FROM_REGION( right_update ) );
 
 
      D_ASSERT( region != NULL );
@@ -390,13 +467,6 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
           return DFB_FUSION;
-
-     /* Check for stereo region */
-     if (region->config.options & DLOP_STEREO) {
-          ret = dfb_layer_region_flip_update_stereo( region, update, update, flags );
-          dfb_layer_region_unlock( region );
-          return ret;
-     }
 
      D_ASSUME( region->surface != NULL );
 
@@ -418,10 +488,15 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                /* Check if simply swapping the buffers is possible... */
                if ((flags & DSFLIP_SWAP) ||
                    (!(flags & DSFLIP_BLIT) && !surface->rotation &&
-                    (!update || (update->x1 == 0 &&
-                                 update->y1 == 0 &&
-                                 update->x2 == surface->config.size.w - 1 &&
-                                 update->y2 == surface->config.size.h - 1))))
+                    ((!left_update && !right_update) ||      // FIXME: below code crashes if only one is set
+                     ((left_update->x1 == 0 &&
+                       left_update->y1 == 0 &&
+                       left_update->x2 == surface->config.size.w - 1 &&
+                       left_update->y2 == surface->config.size.h - 1) &&
+                      (right_update->x1 == 0 &&
+                       right_update->y1 == 0 &&
+                       right_update->x2 == surface->config.size.w - 1 &&
+                       right_update->y2 == surface->config.size.h - 1)))))
                {
                     dfb_surface_lock( surface );
 
@@ -431,7 +506,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                     if (D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
                          D_DEBUG_AT( DirectFB_Task_Display, "  -> Issuing display task...\n" );
 
-                         DisplayTask::Generate( region, update, flags, ret_task );
+                         DisplayTask::Generate( region, left_update, right_update, flags, ret_task );
                     }
 
                     dfb_surface_unlock( surface );
@@ -443,6 +518,8 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
           case DLBM_BACKSYSTEM:
                D_DEBUG_AT( DirectFB_Task_Display, "  -> Going to copy portion...\n" );
 
+               dfb_layer_region_unlock( region );
+
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
                     D_DEBUG_AT( DirectFB_Task_Display, "  -> Waiting for VSync...\n" );
 
@@ -452,53 +529,20 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                D_DEBUG_AT( DirectFB_Task_Display, "  -> Copying content from back to front buffer...\n" );
 
                /* ...or copy updated contents from back to front buffer. */
-               if (surface->rotation) {
-                    D_UNIMPLEMENTED();
-                    // FIXME: use graphics state client
-                    dfb_back_to_front_copy_rotation( surface, update, surface->rotation );
-               }
-               else {
-                    // FIXME: don't create and destroy a client each time
-                    CardState               state;
-                    CoreGraphicsStateClient client;
+               D_FLAGS_SET( eyes, DSSE_LEFT );
 
-                    /* Initialise the graphics state used for rendering */
-                    dfb_state_init( &state, core_dfb );
+               if (region->config.options & DLOP_STEREO)
+                    D_FLAGS_SET( eyes, DSSE_RIGHT );
 
-                    /* Create a client to use the task manager if enabled */
-                    ret = CoreGraphicsStateClient_Init( &client, &state );
-                    if (ret) {
-                         dfb_state_destroy( &state );
-                         return ret;
-                    }
-
-                    /* Make legacy functions use state client */
-                    state.client = &client;
-
-                    dfb_layer_region_unlock( region );
-
-                    if (update) {
-                         dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, surface, CSBR_FRONT, DSSE_LEFT, update, 1, 0, 0, &client );
-                    }
-                    else {
-                         DFBRegion region = {
-                              0, 0, surface->config.size.w - 1, surface->config.size.h - 1
-                         };
-
-                         dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, surface, CSBR_FRONT, DSSE_LEFT, &region, 1, 0, 0, &client );
-                    }
-
-                    dfb_layer_region_lock( region );
-
-                    CoreGraphicsStateClient_Deinit( &client );
-                    dfb_state_destroy( &state );
-               }
+               dfb_back_to_front_copy_stereo( surface, eyes, left_update, right_update, surface->rotation );
 
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT) {
                     D_DEBUG_AT( DirectFB_Task_Display, "  -> Waiting for VSync...\n" );
 
                     dfb_layer_wait_vsync( layer );
                }
+
+               dfb_layer_region_lock( region );
 
                /* fall through */
 
@@ -509,7 +553,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
 
                     dfb_surface_lock( surface );
 
-                    DisplayTask::Generate( region, update, flags, ret_task );
+                    DisplayTask::Generate( region, left_update, right_update, flags, ret_task );
 
                     dfb_surface_unlock( surface );
                }

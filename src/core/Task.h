@@ -74,7 +74,8 @@ DFBResult        SurfaceTask_AddAccess( DFB_SurfaceTask         *task,
                                         CoreSurfaceAccessFlags   flags );
 
 DFBResult        DisplayTask_Generate ( CoreLayerRegion         *region,
-                                        const DFBRegion         *update,
+                                        const DFBRegion         *left_update,
+                                        const DFBRegion         *right_update,
                                         DFBSurfaceFlipFlags      flags,
                                         DFB_DisplayTask        **ret_task );
 
@@ -217,7 +218,7 @@ public:
      void      AddSlave ( Task *slave );
 
      void      Flush();
-     void      Done();
+     void      Done( DFBResult ret = DFB_OK );
      // TODO: Add Failed() ...
 
 
@@ -470,14 +471,18 @@ class DisplayTask : public SurfaceTask
 {
 public:
      DisplayTask( CoreLayerRegion       *region,
-                  const DFBRegion       *update,
+                  const DFBRegion       *left_update,
+                  const DFBRegion       *right_update,
                   DFBSurfaceFlipFlags    flip_flags,
-                  CoreSurfaceAllocation *allocation );
+                  CoreSurfaceAllocation *left_allocation,
+                  CoreSurfaceAllocation *right_allocation,
+                  bool                   stereo );
 
      ~DisplayTask();
 
      static DFBResult Generate( CoreLayerRegion      *region,
-                                const DFBRegion      *update,
+                                const DFBRegion      *left_update,
+                                const DFBRegion      *right_update,
                                 DFBSurfaceFlipFlags   flags,
                                 DisplayTask         **ret_task );
 
@@ -489,10 +494,14 @@ protected:
 
 private:
      CoreLayerRegion       *region;
-     DFBRegion             *update;
-     DFBRegion              update_region;
+     DFBRegion             *left_update;
+     DFBRegion             *right_update;
+     DFBRegion              left_update_region;
+     DFBRegion              right_update_region;
      DFBSurfaceFlipFlags    flip_flags;
-     CoreSurfaceAllocation *allocation;
+     CoreSurfaceAllocation *left_allocation;
+     CoreSurfaceAllocation *right_allocation;
+     bool                   stereo;
      CoreLayer             *layer;
      CoreLayerContext      *context;
      int                    index;
