@@ -36,7 +36,7 @@ NON_PURE_VOODOO_SOURCES =
 else
 NON_PURE_VOODOO_SOURCES = \
 	clip.c			\
-	util.c
+	util.cpp
 endif
 
 libdirectfb_gfx_la_SOURCES = \

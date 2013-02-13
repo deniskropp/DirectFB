@@ -66,6 +66,8 @@
 
 #include <core/Task.h>
 
+#include <gfx/util.h>
+
 #include <direct/build.h>
 #include <direct/debug.h>
 #include <direct/direct.h>
@@ -1494,6 +1496,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      /* Close window stacks. */
      if (dfb_wm_core.initialized)
           dfb_wm_close_all_stacks( dfb_wm_core.data_local );
+
+     dfb_gfx_cleanup();
 
      /* Destroy layer context and region objects. */
      fusion_object_pool_destroy( shared->layer_region_pool, core->world );

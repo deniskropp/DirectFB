@@ -28,43 +28,83 @@
 
 #include <config.h>
 
-#include <pthread.h>
 
+extern "C" {
 #include <directfb.h>
 
 #include <direct/util.h>
 
-#include <core/coretypes.h>
-
 #include <core/state.h>
-#include <core/gfxcard.h>
-#include <core/CoreSurface.h>
+
 #include <gfx/util.h>
 
 #include <misc/util.h>
+}
+
+#include <direct/TLSObject.h>
+
+#include <core/CoreSurface.h>
 
 
-static bool      copy_state_inited;
-static CardState copy_state;
+class StateClient {
+public:
+     CardState               state;
+     CoreGraphicsStateClient client;
 
-static bool      btf_state_inited;
-static CardState btf_state;
+     StateClient()
+     {
+          DFBResult ret;
 
-#if FIXME_SC_3
-static bool      cd_state_inited;
-static CardState cd_state;
-#endif
+          /* Initialise the graphics state used for rendering */
+          dfb_state_init( &state, core_dfb );
 
-static pthread_mutex_t copy_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t btf_lock  = PTHREAD_MUTEX_INITIALIZER;
-#if FIXME_SC_3
-static pthread_mutex_t cd_lock   = PTHREAD_MUTEX_INITIALIZER;
-#endif
+          /* Create a client to use the task manager if enabled */
+          ret = CoreGraphicsStateClient_Init( &client, &state );
+          if (ret) {
+               dfb_state_destroy( &state );
+               return;
+          }
 
+          /* Make legacy functions use state client */
+          state.client = &client;
+     }
+
+     ~StateClient()
+     {
+          CoreGraphicsStateClient_Deinit( &client );
+          dfb_state_destroy( &state );
+     }
+
+
+     static StateClient *create( void *ctx, void *params )
+     {
+          return new StateClient();
+     }
+
+     static void destroy( void *ctx, StateClient *client )
+     {
+          delete client;
+     }
+};
+
+
+static Direct::TLSObject2<StateClient> state_client_tls;
+
+
+extern "C" {
+
+
+void
+dfb_gfx_cleanup()
+{
+     state_client_tls.DeleteAll();
+}
 
 void
 dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect )
 {
+     D_ASSERT( !dfb_config->task_manager );
+
      dfb_gfx_copy_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, rect, rect ? rect->x : 0, rect ? rect->y : 0, false );
 }
 
@@ -76,6 +116,8 @@ dfb_gfx_copy_to( CoreSurface        *source,
                  int                 y,
                  bool                from_back )
 {
+     D_ASSERT( !dfb_config->task_manager );
+
      dfb_gfx_copy_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, rect, x, y, from_back );
 }
 
@@ -91,40 +133,37 @@ dfb_gfx_copy_stereo( CoreSurface         *source,
 {
      DFBRectangle sourcerect = { 0, 0, source->config.size.w, source->config.size.h };
 
-     pthread_mutex_lock( &copy_lock );
+     StateClient *client = state_client_tls.Get();
 
-     if (!copy_state_inited) {
-          dfb_state_init( &copy_state, NULL );
-          copy_state_inited = true;
-     }
+     D_FLAGS_SET( client->state.modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO );
 
-     copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO;
-
-     copy_state.clip.x2     = destination->config.size.w - 1;
-     copy_state.clip.y2     = destination->config.size.h - 1;
-     copy_state.source      = source;
-     copy_state.destination = destination;
-     copy_state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
-     copy_state.from_eye    = source_eye;
-     copy_state.to          = CSBR_BACK;
-     copy_state.to_eye      = destination_eye;
+     client->state.clip.x2     = destination->config.size.w - 1;
+     client->state.clip.y2     = destination->config.size.h - 1;
+     client->state.source      = source;
+     client->state.destination = destination;
+     client->state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
+     client->state.from_eye    = source_eye;
+     client->state.to          = CSBR_BACK;
+     client->state.to_eye      = destination_eye;
 
      if (rect) {
-          if (dfb_rectangle_intersect( &sourcerect, rect ))
-               dfb_gfxcard_blit( &sourcerect,
-                                 x + sourcerect.x - rect->x,
-                                 y + sourcerect.y - rect->y, &copy_state );
+          if (dfb_rectangle_intersect( &sourcerect, rect )) {
+               DFBPoint point = { x + sourcerect.x - rect->x, y + sourcerect.y - rect->y };
+
+               CoreGraphicsStateClient_Blit( &client->client, &sourcerect, &point, 1 );
+          }
      }
-     else
-          dfb_gfxcard_blit( &sourcerect, x, y, &copy_state );
+     else {
+          DFBPoint point = { x, y };
+
+          CoreGraphicsStateClient_Blit( &client->client, &sourcerect, &point, 1 );
+     }
 
      /* Signal end of sequence. */
-     dfb_state_stop_drawing( &copy_state );
+     dfb_state_stop_drawing( &client->state );
 
-     copy_state.destination = NULL;
-     copy_state.source      = NULL;
-
-     pthread_mutex_unlock( &copy_lock );
+     client->state.destination = NULL;
+     client->state.source      = NULL;
 }
 
 void
@@ -132,40 +171,35 @@ dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role )
 {
      DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
 
-     pthread_mutex_lock( &copy_lock );
+     StateClient *client = state_client_tls.Get();
 
-     if (!copy_state_inited) {
-          dfb_state_init( &copy_state, NULL );
-          copy_state_inited = true;
-     }
+     D_FLAGS_SET( client->state.modified, SMF_CLIP | SMF_COLOR | SMF_DESTINATION | SMF_TO );
 
-     copy_state.modified   |= SMF_CLIP | SMF_COLOR | SMF_DESTINATION | SMF_TO;
+     client->state.clip.x2     = surface->config.size.w - 1;
+     client->state.clip.y2     = surface->config.size.h - 1;
+     client->state.destination = surface;
+     client->state.to          = role;
+     client->state.to_eye      = DSSE_LEFT;
+     client->state.color.a     = 0;
+     client->state.color.r     = 0;
+     client->state.color.g     = 0;
+     client->state.color.b     = 0;
+     client->state.color_index = 0;
 
-     copy_state.clip.x2     = surface->config.size.w - 1;
-     copy_state.clip.y2     = surface->config.size.h - 1;
-     copy_state.destination = surface;
-     copy_state.to          = role;
-     copy_state.to_eye      = DSSE_LEFT;
-     copy_state.color.a     = 0;
-     copy_state.color.r     = 0;
-     copy_state.color.g     = 0;
-     copy_state.color.b     = 0;
-     copy_state.color_index = 0;
-
-     dfb_gfxcard_fillrectangles( &rect, 1, &copy_state );
+     CoreGraphicsStateClient_FillRectangles( &client->client, &rect, 1 );
 
      /* Signal end of sequence. */
-     dfb_state_stop_drawing( &copy_state );
+     dfb_state_stop_drawing( &client->state );
 
-     copy_state.destination = NULL;
-
-     pthread_mutex_unlock( &copy_lock );
+     client->state.destination = NULL;
 }
 
 void
 dfb_gfx_stretch_to( CoreSurface *source, CoreSurface *destination,
                     const DFBRectangle *srect, const DFBRectangle *drect, bool from_back )
 {
+     D_ASSERT( !dfb_config->task_manager );
+
      dfb_gfx_stretch_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, srect, drect, from_back );
 }
 
@@ -180,6 +214,8 @@ void dfb_gfx_stretch_stereo( CoreSurface         *source,
      DFBRectangle sourcerect = { 0, 0, source->config.size.w, source->config.size.h };
      DFBRectangle destrect =   { 0, 0, destination->config.size.w, destination->config.size.h };
 
+     D_ASSERT( !dfb_config->task_manager );
+
      if (srect) {
           if (!dfb_rectangle_intersect( &sourcerect, srect ))
                return;
@@ -190,33 +226,26 @@ void dfb_gfx_stretch_stereo( CoreSurface         *source,
                return;
      }
 
-     pthread_mutex_lock( &copy_lock );
+     StateClient *client = state_client_tls.Get();
 
-     if (!copy_state_inited) {
-          dfb_state_init( &copy_state, NULL );
-          copy_state_inited = true;
-     }
+     D_FLAGS_SET( client->state.modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO );
 
-     copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO;
+     client->state.clip.x2     = destination->config.size.w - 1;
+     client->state.clip.y2     = destination->config.size.h - 1;
+     client->state.source      = source;
+     client->state.destination = destination;
+     client->state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
+     client->state.from_eye    = source_eye;
+     client->state.to          = CSBR_BACK;
+     client->state.to_eye      = destination_eye;
 
-     copy_state.clip.x2     = destination->config.size.w - 1;
-     copy_state.clip.y2     = destination->config.size.h - 1;
-     copy_state.source      = source;
-     copy_state.destination = destination;
-     copy_state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
-     copy_state.from_eye    = source_eye;
-     copy_state.to          = CSBR_BACK;
-     copy_state.to_eye      = destination_eye;
-
-     dfb_gfxcard_batchstretchblit( &sourcerect, &destrect, 1, &copy_state );
+     CoreGraphicsStateClient_StretchBlit( &client->client, &sourcerect, &destrect, 1 );
 
      /* Signal end of sequence. */
-     dfb_state_stop_drawing( &copy_state );
+     dfb_state_stop_drawing( &client->state );
 
-     copy_state.destination = NULL;
-     copy_state.source      = NULL;
-
-     pthread_mutex_unlock( &copy_lock );
+     client->state.destination = NULL;
+     client->state.source      = NULL;
 }
 
 void
@@ -229,6 +258,8 @@ dfb_gfx_copy_regions( CoreSurface           *source,
                       int                    x,
                       int                    y )
 {
+     D_ASSERT( !dfb_config->task_manager );
+
      dfb_gfx_copy_regions_stereo( source, from, DSSE_LEFT, destination, to, DSSE_LEFT, regions, num, x, y );
 }
 
@@ -249,6 +280,8 @@ dfb_gfx_copy_regions_stereo( CoreSurface           *source,
      DFBRectangle rects[num];
      DFBPoint     points[num];
 
+     D_ASSERT( !dfb_config->task_manager );
+
      for (i=0; i<num; i++) {
           DFB_REGION_ASSERT( &regions[i] );
 
@@ -263,33 +296,26 @@ dfb_gfx_copy_regions_stereo( CoreSurface           *source,
      }
 
      if (n > 0) {
-          pthread_mutex_lock( &copy_lock );
+          StateClient *client = state_client_tls.Get();
 
-          if (!copy_state_inited) {
-               dfb_state_init( &copy_state, NULL );
-               copy_state_inited = true;
-          }
+          D_FLAGS_SET( client->state.modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO );
 
-          copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO;
+          client->state.clip.x2     = destination->config.size.w - 1;
+          client->state.clip.y2     = destination->config.size.h - 1;
+          client->state.source      = source;
+          client->state.destination = destination;
+          client->state.from        = from;
+          client->state.from_eye    = source_eye;
+          client->state.to          = to;
+          client->state.to_eye      = destination_eye;
 
-          copy_state.clip.x2     = destination->config.size.w - 1;
-          copy_state.clip.y2     = destination->config.size.h - 1;
-          copy_state.source      = source;
-          copy_state.destination = destination;
-          copy_state.from        = from;
-          copy_state.from_eye    = source_eye;
-          copy_state.to          = to;
-          copy_state.to_eye      = destination_eye;
-
-          dfb_gfxcard_batchblit( rects, points, n, &copy_state );
+          CoreGraphicsStateClient_Blit( &client->client, rects, points, n );
 
           /* Signal end of sequence. */
-          dfb_state_stop_drawing( &copy_state );
+          dfb_state_stop_drawing( &client->state );
 
-          copy_state.destination = NULL;
-          copy_state.source      = NULL;
-
-          pthread_mutex_unlock( &copy_lock );
+          client->state.destination = NULL;
+          client->state.source      = NULL;
      }
 }
 
@@ -337,7 +363,7 @@ dfb_gfx_copy_regions_client( CoreSurface             *source,
           backup.blittingflags = state->blittingflags;
 
 
-          state->modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO | SMF_BLITTING_FLAGS;
+          D_FLAGS_SET( state->modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO | SMF_BLITTING_FLAGS );
 
           state->clip.x1     = 0;
           state->clip.y1     = 0;
@@ -354,7 +380,7 @@ dfb_gfx_copy_regions_client( CoreSurface             *source,
           CoreGraphicsStateClient_Blit( client, rects, points, n );
 
 
-          state->modified     |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO | SMF_BLITTING_FLAGS;
+          D_FLAGS_SET( state->modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO | SMF_BLITTING_FLAGS );
 
           state->clip          = backup.clip;
           state->source        = backup.source;
@@ -377,8 +403,8 @@ back_to_front_copy( CoreSurface             *surface,
                     int                      rotation)
 {
      DFBRectangle  rect;
-     int           dx, dy;
-     CardState    *state = &btf_state;
+     DFBPoint      point;
+     StateClient  *client = state_client_tls.Get();
 
 
      if (region) {
@@ -394,69 +420,62 @@ back_to_front_copy( CoreSurface             *surface,
           rect.h = surface->config.size.h;
      }
 
-     dx = rect.x;
-     dy = rect.y;
-
-     pthread_mutex_lock( &btf_lock );
-
-     if (!btf_state_inited) {
-          dfb_state_init( state, NULL );
-
-          state->from = CSBR_BACK;
-          state->to   = CSBR_FRONT;
-
-          btf_state_inited = true;
-     }
-
-     state->modified    |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO;
-
-     state->clip.x2      = surface->config.size.w - 1;
-     state->clip.y2      = surface->config.size.h - 1;
-     state->source       = surface;
-     state->destination  = surface;
-     state->from_eye     = eye;
-     state->to_eye       = eye;
-
+     point.x = rect.x;
+     point.y = rect.y;
 
      if (rotation == 90) {
-          dx = rect.y;
-          dy = surface->config.size.w - rect.w - rect.x;
+          point.x = rect.y;
+          point.y = surface->config.size.w - rect.w - rect.x;
 
-          flags |= DSBLIT_ROTATE90;
+          D_FLAGS_SET( flags, DSBLIT_ROTATE90 );
      }
      else if (rotation == 180) {
-          dx = surface->config.size.w - rect.w - rect.x;
-          dy = surface->config.size.h - rect.h - rect.y;
+          point.x = surface->config.size.w - rect.w - rect.x;
+          point.y = surface->config.size.h - rect.h - rect.y;
 
-          flags |= DSBLIT_ROTATE180;
+          D_FLAGS_SET( flags, DSBLIT_ROTATE180 );
      }
      else if (rotation == 270) {
-          dx = surface->config.size.h - rect.h - rect.y;
-          dy = rect.x;
+          point.x = surface->config.size.h - rect.h - rect.y;
+          point.y = rect.x;
 
-          flags |= DSBLIT_ROTATE270;
+          D_FLAGS_SET( flags, DSBLIT_ROTATE270 );
      }
 
+     D_FLAGS_SET( client->state.modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO );
 
-     dfb_state_set_blitting_flags( state, flags );
+     client->state.clip.x2       = surface->config.size.w - 1;
+     client->state.clip.y2       = surface->config.size.h - 1;
+     client->state.source        = surface;
+     client->state.destination   = surface;
+     client->state.from          = CSBR_BACK;
+     client->state.from_eye      = eye;
+     client->state.to            = CSBR_FRONT;
+     client->state.to_eye        = eye;
+     client->state.blittingflags = flags;
 
-     dfb_gfxcard_blit( &rect, dx, dy, state );
+     CoreGraphicsStateClient_Blit( &client->client, &rect, &point, 1 );
 
      /* Signal end of sequence. */
-     dfb_state_stop_drawing( state );
+     dfb_state_stop_drawing( &client->state );
 
-     pthread_mutex_unlock( &btf_lock );
+     client->state.destination = NULL;
+     client->state.source      = NULL;
 }
 
 void
 dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 {
+     D_ASSERT( !dfb_config->task_manager );
+
      back_to_front_copy( surface, DSSE_LEFT, region, DSBLIT_NOFX, 0);
 }
 
 void
 dfb_back_to_front_copy_rotation( CoreSurface *surface, const DFBRegion *region, int rotation )
 {
+     D_ASSERT( !dfb_config->task_manager );
+
      back_to_front_copy( surface, DSSE_LEFT, region, DSBLIT_NOFX, rotation );
 }
 
@@ -467,6 +486,8 @@ dfb_back_to_front_copy_stereo( CoreSurface         *surface,
                                const DFBRegion     *right_region,
                                int                  rotation )
 {
+     D_ASSERT( !dfb_config->task_manager );
+
      if (eyes & DSSE_LEFT)
           back_to_front_copy( surface, DSSE_LEFT, left_region, DSBLIT_NOFX, rotation );
 
@@ -479,6 +500,8 @@ dfb_back_to_front_copy_stereo( CoreSurface         *surface,
 void
 dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
 {
+     D_ASSERT( !dfb_config->task_manager );
+
 #if FIXME_SC_3
      SurfaceBuffer *tmp;
      DFBRectangle   rect = { 0, 0, surface->config.size.w - 1, surface->config.size.h - 1 };
@@ -576,3 +599,7 @@ void dfb_sort_trapezoid( DFBTrapezoid *trap )
           trap->w2 = temp;
      }
 }
+
+
+}
+

@@ -33,6 +33,9 @@
 
 #include <core/CoreGraphicsStateClient.h>
 
+
+void dfb_gfx_cleanup( void );
+
 void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect );
 void dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect, int x, int y, bool from_back );
 void dfb_gfx_copy_stereo( CoreSurface         *source,
