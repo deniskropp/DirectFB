@@ -3520,6 +3520,8 @@ typedef enum {
  * Stereo eye buffer.
  */
 typedef enum {
+     DSSE_NONE           = 0x00000000,  /* None */
+
      DSSE_LEFT           = 0x00000001,  /* Left eye buffers to be used for all future
                                            operations on this surface. */
      DSSE_RIGHT          = 0x00000002   /* Right eye buffers to be used for all future

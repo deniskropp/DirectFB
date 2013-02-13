@@ -328,6 +328,7 @@ interface {
 		async  	  yes
 		queue     yes
 		buffer    yes
+                split     yes
 
 		arg {
 			name      rects
@@ -335,6 +336,7 @@ interface {
 			type      struct
 			typename  DFBRectangle
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -357,6 +359,7 @@ interface {
 			type      struct
 			typename  DFBRegion
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -379,6 +382,7 @@ interface {
 			type      struct
 			typename  DFBRectangle
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -401,6 +405,7 @@ interface {
 			type      struct
 			typename  DFBTriangle
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -423,6 +428,7 @@ interface {
 			type      struct
 			typename  DFBTrapezoid
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -452,6 +458,7 @@ interface {
 			type      struct
 			typename  DFBSpan
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -474,6 +481,7 @@ interface {
 			type      struct
 			typename  DFBRectangle
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -482,6 +490,7 @@ interface {
 			type      struct
 			typename  DFBPoint
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -504,6 +513,7 @@ interface {
 			type      struct
 			typename  DFBRectangle
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -512,6 +522,7 @@ interface {
 			type      struct
 			typename  DFBPoint
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -520,6 +531,7 @@ interface {
 			type      struct
 			typename  DFBPoint
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -542,6 +554,7 @@ interface {
 			type      struct
 			typename  DFBRectangle
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -550,6 +563,7 @@ interface {
 			type      struct
 			typename  DFBRectangle
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -572,6 +586,7 @@ interface {
 			type      struct
 			typename  DFBRectangle
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -580,6 +595,7 @@ interface {
 			type      struct
 			typename  DFBPoint
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -588,6 +604,7 @@ interface {
 			type      struct
 			typename  DFBPoint
 			count     num
+                        split     yes
 		}
 
 		arg {
@@ -610,6 +627,7 @@ interface {
 			type      struct
 			typename  DFBVertex
 			count     num
+                        split     yes
 		}
 
 		arg {

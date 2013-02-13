@@ -26,6 +26,9 @@
    Boston, MA 02111-1307, USA.
 */
 
+
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <core/layers.h>
@@ -69,11 +72,7 @@ drmkmsInitScreen( CoreScreen           *screen,
      drmModeEncoder   *encoder   = NULL;
      int               i;
 
-     resources = drmModeGetResources( drmkms->fd );
-     if (!resources) {
-          D_ERROR( "DirectFB/DRMKMS: drmModeGetResources() failed!\n" );
-          return DFB_INIT;
-     }
+     resources = drmkms->resources;
 
      D_INFO( "DirectFB/DRMKMS: Got %d connectors, %d encoders\n", resources->count_connectors, resources->count_encoders );
 

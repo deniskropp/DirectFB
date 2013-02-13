@@ -26,6 +26,9 @@
    Boston, MA 02111-1307, USA.
 */
 
+
+#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <direct/debug.h>
@@ -66,6 +69,8 @@ typedef struct {
      int                 offset;
 
      unsigned int        handle;
+     int                 prime_fd;
+
 #ifdef USE_GBM
      struct gbm_bo      *bo;
      struct gbm_surface *gs;
@@ -120,8 +125,7 @@ drmkmsInitPool( CoreDFB                    *core,
 
      ret_desc->caps              = CSPCAPS_VIRTUAL;
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
-//     ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
-//     ret_desc->access[CSAID_ACCEL1] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
+     ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
      ret_desc->priority          = CSPP_DEFAULT;
      ret_desc->size              = dfb_config->video_length;
@@ -348,6 +352,14 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      kms_bo_get_prop(alloc->bo, KMS_PITCH, &alloc->pitch);
 #endif
 
+     if (drmkms->shared->use_prime_fd) {
+
+          // this seems to render the handle unusable on radeon
+          ret = drmPrimeHandleToFD( drmkms->fd, alloc->handle, DRM_CLOEXEC , &alloc->prime_fd );
+          if (ret)
+               D_WARN( "DirectFB/DRMKMS: drmPrimeHandleToFD() failed!\n" );
+     }
+
      alloc->size = alloc->pitch * surface->config.size.h;
 
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> pitch %d, size %d\n", alloc->pitch, alloc->size );
@@ -360,15 +372,14 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
       */
 
 
-     ret = drmModeAddFB2( local->drmkms->fd,
-                         surface->config.size.w, surface->config.size.h, drm_format,
-                         &alloc->handle, &alloc->pitch, &drm_fb_offset, &alloc->fb_id, 0 );
+     ret = drmModeAddFB2( drmkms->fd,
+                          surface->config.size.w, surface->config.size.h, drm_format,
+                          &alloc->handle, &alloc->pitch, &drm_fb_offset, &alloc->fb_id, 0 );
 
      if (ret) {
           D_ERROR( "DirectFB/DRMKMS: drmModeAddFB() failed!\n" );
           return DFB_FAILURE;
      }
-
 
      D_MAGIC_SET( alloc, DRMKMSAllocationData );
 
@@ -396,6 +407,9 @@ drmkmsDeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
 
      drmModeRmFB( local->drmkms->fd,  alloc->fb_id );
+
+     if (alloc->prime_fd)
+          close( alloc->prime_fd );
 
 #ifdef USE_GBM
      gbm_bo_destroy( alloc->bo );
@@ -438,6 +452,13 @@ drmkmsLock( CoreSurfacePool       *pool,
      switch (lock->accessor) {
           case CSAID_LAYER0:
                lock->handle = (void*) (long) alloc->fb_id;
+               break;
+
+          case CSAID_GPU:
+               if (drmkms->shared->use_prime_fd)
+                    lock->handle = (void*) (long) alloc->prime_fd;
+               else
+                    lock->handle = (void*) (long) alloc->handle;
                break;
 
           case CSAID_CPU:
@@ -486,6 +507,7 @@ drmkmsUnlock( CoreSurfacePool       *pool,
 
      switch (lock->accessor) {
           case CSAID_LAYER0:
+          case CSAID_ACCEL0:
                lock->handle = (void*) (long) 0;
                break;
 
@@ -505,62 +527,6 @@ drmkmsUnlock( CoreSurfacePool       *pool,
      return DFB_OK;
 }
 
-static DFBResult
-drmkmsRead( CoreSurfacePool       *pool,
-            void                  *pool_data,
-            void                  *pool_local,
-            CoreSurfaceAllocation *allocation,
-            void                  *alloc_data,
-            void                  *destination,
-            int                    pitch,
-            const DFBRectangle    *rect )
-{
-     DRMKMSPoolLocalData  *local = pool_local;
-     DRMKMSAllocationData *alloc = alloc_data;
-     DRMKMSData           *drmkms;
-
-     D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
-
-     D_DEBUG_AT( DRMKMS_SurfLock, "%s( %p )\n", __FUNCTION__, allocation );
-
-     drmkms = local->drmkms;
-     D_ASSERT( drmkms != NULL );
-
-     return DFB_OK;
-}
-
-static DFBResult
-drmkmsWrite( CoreSurfacePool       *pool,
-             void                  *pool_data,
-             void                  *pool_local,
-             CoreSurfaceAllocation *allocation,
-             void                  *alloc_data,
-             const void            *source,
-             int                    pitch,
-             const DFBRectangle    *rect )
-{
-     DRMKMSPoolLocalData  *local = pool_local;
-     DRMKMSAllocationData *alloc = alloc_data;
-     CoreSurface        *surface;
-     DRMKMSData           *drmkms;
-
-     D_MAGIC_ASSERT( pool, CoreSurfacePool );
-     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
-     D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
-
-     surface = allocation->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     D_DEBUG_AT( DRMKMS_SurfLock, "%s( %p )\n", __FUNCTION__, allocation );
-
-     drmkms = local->drmkms;
-     D_ASSERT( drmkms != NULL );
-
-
-     return DFB_OK;
-}
 
 const SurfacePoolFuncs drmkmsSurfacePoolFuncs = {
      .PoolDataSize       = drmkmsPoolDataSize,
@@ -577,9 +543,6 @@ const SurfacePoolFuncs drmkmsSurfacePoolFuncs = {
      .DeallocateBuffer   = drmkmsDeallocateBuffer,
 
      .Lock               = drmkmsLock,
-     .Unlock             = drmkmsUnlock,
-
-     .Read               = drmkmsRead,
-     .Write              = drmkmsWrite,
+     .Unlock             = drmkmsUnlock
 };
 
