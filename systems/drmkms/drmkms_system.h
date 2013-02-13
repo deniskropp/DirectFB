@@ -58,6 +58,9 @@ typedef struct {
      FusionSHMPoolShared *shmpool;
 
      CoreSurfacePool     *pool;
+
+     bool                 use_prime_fd;
+
 } DRMKMSDataShared;
 
 typedef struct {
@@ -92,6 +95,7 @@ typedef struct {
      DirectMutex          lock;
      DirectWaitQueue      wq_event;
      DirectWaitQueue      wq_flip;
+
 } DRMKMSData;
 
 
