@@ -279,8 +279,17 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
                                 config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
 
           if (ret) {
-               D_PERROR( "DirectFB/DRMKMS: drmModeSetPlane() failed! (%d)\n", ret );
-               return DFB_FAILURE;
+               D_WARN( "DirectFB/DRMKMS: drmModeSetPlane() failed! (%d), will disable/reenable the plane\n", ret );
+
+               drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, 0,
+                                     /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
+
+               ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle,
+                                     /* plane_flags */ 0, config->dest.x, config->dest.y, config->dest.w, config->dest.h,
+                                     config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
+
+               if (ret)
+                    return DFB_FAILURE;
           }
 
      }

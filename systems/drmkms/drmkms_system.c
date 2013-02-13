@@ -76,7 +76,7 @@ drmkms_page_flip_handler(int fd, unsigned int frame,
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
-     for (int i; i<16;i++) {
+     for (int i=0; i<16;i++) {
           if (drmkms->flip_pending & (1 << i)) {
                dfb_surface_notify_display( buffer[i]->surface, buffer[i] );
                dfb_surface_buffer_unref( buffer[i] );
@@ -155,7 +155,7 @@ InitLocal( DRMKMSData *drmkms )
 
 
      for (i = 0; i < drmkms->plane_resources->count_planes; i++) {
-          dfb_layers_register( drmkms->screen, drmkms, drmkmsPlaneLayerFuncs );               
+          dfb_layers_register( drmkms->screen, drmkms, drmkmsPlaneLayerFuncs );
      }
 
      return DFB_OK;
