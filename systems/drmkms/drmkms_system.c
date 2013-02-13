@@ -95,10 +95,12 @@ system_get_info( CoreSystemInfo *info )
 static DFBResult
 system_initialize( CoreDFB *core, void **ret_data )
 {
-     DFBResult            ret;
+     DFBResult              ret;
      DRMKMSData            *drmkms;
      DRMKMSDataShared      *shared;
-     FusionSHMPoolShared *pool;
+     FusionSHMPoolShared   *pool;
+     int                    ret_num;
+     char                  *optionbuffer = alloca( 255 );
 
      D_ASSERT( m_data == NULL );
 
@@ -144,6 +146,11 @@ system_initialize( CoreDFB *core, void **ret_data )
 
 
      core_arena_add_shared_field( core, "drmkms", shared );
+
+     if (direct_config_get("drmkms-use-prime-fd", &optionbuffer, 1, &ret_num) == DR_OK) {
+          drmkms->shared->use_prime_fd = 1;
+          D_INFO("DRMKMS/Init: using prime fd\n");
+     }
 
      return DFB_OK;
 }
