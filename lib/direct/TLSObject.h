@@ -40,6 +40,10 @@ extern "C" {
 }
 
 
+#include <list>
+
+#include <direct/Mutex.h>
+
 
 namespace Direct {
 
@@ -96,8 +100,10 @@ template <typename Object, typename Creator=Object, typename Destroyer=Creator>
 class TLSObject2
 {
 private:
-     void      *ctx;
-     DirectTLS  tls;
+     void               *ctx;
+     DirectTLS           tls;
+     Mutex               lock;
+     std::list<Object*>  list;
 
 public:
      TLSObject2( void *ctx = NULL )
@@ -114,12 +120,16 @@ public:
 
      Object *Get( void *params = NULL )
      {
+          Mutex::Lock l1( lock );
+
           Object *obj = (Object*) direct_tls_get( tls );
 
           if (!obj) {
                obj = Creator::create( ctx, params );
                if (!obj)
                     return NULL;
+
+               list.push_back( obj );
 
                direct_tls_set( tls, obj );
           }
@@ -129,13 +139,31 @@ public:
 
      void Delete()
      {
+          Mutex::Lock l1( lock );
+
           Object *obj = (Object*) direct_tls_get( tls );
 
           if (obj) {
                direct_tls_set( tls, NULL );
 
+               list.remove( obj );
+
                delete obj;
           }
+     }
+
+     void DeleteAll()
+     {
+          Mutex::Lock l1( lock );
+
+          for (typename std::list<Object*>::iterator it=list.begin(); it!=list.end(); ) {
+               delete *it;
+
+               it = list.erase( it );
+          }
+
+          direct_tls_unregister( &tls );
+          direct_tls_register( &tls, TLSObject2::destructor );
      }
 
 private:
