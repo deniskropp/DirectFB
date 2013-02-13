@@ -74,6 +74,8 @@ struct __Fusion_FusionObject {
      FusionID           owner;
 
      FusionVector       access;
+
+     DirectTraceBuffer *create_stack;
 };
 
 
