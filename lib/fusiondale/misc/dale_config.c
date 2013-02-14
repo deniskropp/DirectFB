@@ -152,6 +152,10 @@ config_allocate( void )
 
      fusiondale_config->banner            = true;
      fusiondale_config->coma_shmpool_size = 16 * 1024 * 1024;
+
+#if FUSIONDALE_USE_ONE
+     fusiondale_config->remote.host       = D_STRDUP( "%" );
+#endif
 }
 
 const char*
@@ -174,6 +178,11 @@ fd_config_set( const char *name, const char *value )
                }
 
                fusiondale_config->session = session;
+
+               if (fusiondale_config->remote.host) {
+                    D_FREE( fusiondale_config->remote.host );
+                    fusiondale_config->remote.host = NULL;
+               }
           }
           else {
                D_ERROR( "FusionDale/Config 'session': "

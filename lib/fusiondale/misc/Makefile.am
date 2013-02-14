@@ -8,8 +8,10 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/lib/fusiondale
 
-AM_CPPFLAGS = -DSYSCONFDIR=\"@sysconfdir@\"
-        
+AM_CPPFLAGS = \
+	-DSYSCONFDIR=\"@sysconfdir@\"	\
+	-DFUSIONDALE_USE_ONE="(@DIRECTFB_BUILD_ONE@)"
+
 noinst_LTLIBRARIES = \
 	libfusiondalemisc.la
 
