@@ -293,13 +293,14 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
 }
 
 static DFBResult
-drmkmsPlane1RemoveRegion( CoreLayer             *layer,
+drmkmsPlaneRemoveRegion( CoreLayer             *layer,
                           void                  *driver_data,
                           void                  *layer_data,
                           void                  *region_data )
 {
      DFBResult        ret;
-     DRMKMSPlaneData *data = layer_data;
+     DRMKMSData      *drmkms = driver_data;
+     DRMKMSPlaneData *data   = layer_data;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
@@ -308,7 +309,7 @@ drmkmsPlane1RemoveRegion( CoreLayer             *layer,
                                           /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
 
           if (ret) {
-               D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n"
+               D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n" );
                return ret;
           }
      }
