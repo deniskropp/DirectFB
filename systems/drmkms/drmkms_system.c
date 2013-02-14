@@ -154,8 +154,11 @@ InitLocal( DRMKMSData *drmkms )
      drmkms->layer  = dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
 
 
-     for (i = 0; i < drmkms->plane_resources->count_planes; i++) {
-          dfb_layers_register( drmkms->screen, drmkms, drmkmsPlaneLayerFuncs );
+     if (drmkms->plane_resources) {
+          for (i = 0; i < drmkms->plane_resources->count_planes; i++) {
+
+               dfb_layers_register( drmkms->screen, drmkms, drmkmsPlaneLayerFuncs );
+          }
      }
 
      return DFB_OK;

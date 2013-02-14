@@ -40,19 +40,8 @@
 #include "drmkms_system.h"
 
 
-typedef struct {
-     drmModeConnector *connector;
-     drmModeEncoder   *encoder;
-     drmModeModeInfo   mode;
-} DRMKMSScreenData;
-
 /**********************************************************************************************************************/
 
-static int
-drmkmsScreenDataSize( void )
-{
-     return sizeof(DRMKMSScreenData);
-}
 
 static DFBResult
 drmkmsInitScreen( CoreScreen           *screen,
@@ -158,7 +147,6 @@ drmkmsGetScreenSize( CoreScreen *screen,
 }
 
 static const ScreenFuncs _drmkmsScreenFuncs = {
-     .ScreenDataSize = drmkmsScreenDataSize,
      .InitScreen     = drmkmsInitScreen,
      .GetScreenSize  = drmkmsGetScreenSize
 };
