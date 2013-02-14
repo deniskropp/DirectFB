@@ -193,6 +193,7 @@ direct_thread_deinit( DirectThread *thread )
 
 /**********************************************************************************************************************/
 
+__attribute__((no_instrument_function))
 DirectThread *
 direct_thread_self( void )
 {
@@ -200,9 +201,26 @@ direct_thread_self( void )
 
      direct_once( &thread_init_once, init_once );
 
-
      thread = pthread_getspecific( thread_key );
 //     D_MAGIC_ASSERT_IF( thread, DirectThread );
+
+     /* Support this function for non-direct threads. */
+     if (!thread) {
+          D_DEBUG_AT( Direct_Thread, "  -> attaching unknown thread %d\n", direct_gettid() );
+
+          thread = direct_calloc( 1, sizeof(DirectThread) );
+          if (!thread) {
+               D_OOM();
+               return NULL;
+          }
+
+          thread->handle.thread = pthread_self();
+          thread->tid           = direct_gettid();
+
+          D_MAGIC_SET( thread, DirectThread );
+
+          pthread_setspecific( thread_key, thread );
+     }
 
      return thread;
 }
@@ -211,12 +229,7 @@ __attribute__((no_instrument_function))
 const char *
 direct_thread_self_name( void )
 {
-     DirectThread *thread;
-
-     direct_once( &thread_init_once, init_once );
-
-
-     thread = pthread_getspecific( thread_key );
+     DirectThread *thread = direct_thread_self();
 
      /*
       * This function is called by debugging functions, e.g. debug messages, assertions etc.
@@ -234,30 +247,9 @@ direct_thread_set_name( const char *name )
 
      D_DEBUG_AT( Direct_Thread, "%s( '%s' )\n", __FUNCTION__, name );
 
-     direct_once( &thread_init_once, init_once );
-
-
-     thread = pthread_getspecific( thread_key );
-
-     /* Support this function for non-direct threads. */
-     if (!thread) {
-          D_DEBUG_AT( Direct_Thread, "  -> attaching unknown thread %d\n", direct_gettid() );
-
-          thread = D_CALLOC( 1, sizeof(DirectThread) );
-          if (!thread) {
-               D_OOM();
-               return;
-          }
-
-          thread->handle.thread = pthread_self();
-          thread->tid    = direct_gettid();
-
-          D_MAGIC_SET( thread, DirectThread );
-
-          pthread_setspecific( thread_key, thread );
-     }
-     else
-          D_DEBUG_AT( Direct_Thread, "  -> was '%s' (%d)\n", thread->name, direct_gettid() );
+     thread = direct_thread_self();
+     if (!thread)
+          return;
 
      /* Duplicate string. */
      copy = D_STRDUP( name );
@@ -268,7 +260,7 @@ direct_thread_set_name( const char *name )
 
      /* Free old string. */
      if (thread->name)
-          D_FREE( thread->name );
+          direct_free( thread->name );
 
      /* Keep the copy. */
      thread->name = copy;
