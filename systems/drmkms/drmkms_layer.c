@@ -107,10 +107,9 @@ drmkmsSetRegion( CoreLayer                  *layer,
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
 
-     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE))
+     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST))
      {
-          drmkms->mode = *drmkms_find_mode (config->source.w, config->source.h);
-          ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle, 0, 0,
+          ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle, config->dest.x, config->dest.y,
                                 &drmkms->connector->connector_id, 1, &drmkms->mode );
           if (ret) {
                D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
@@ -196,7 +195,7 @@ drmkmsFlipRegion( CoreLayer             *layer,
 
 
 static int
-primaryLayerDataSize( void )
+drmkmsPlaneDataSize( void )
 {
      return sizeof(DRMKMSPlaneData);
 }
@@ -273,29 +272,53 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE))
      {
+          if (data->enabled && drmkms->shared->reinit_planes)
+               drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, 0,
+                                     /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
 
           ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle,
                                 /* plane_flags */ 0, config->dest.x, config->dest.y, config->dest.w, config->dest.h,
                                 config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
 
           if (ret) {
-               D_WARN( "DirectFB/DRMKMS: drmModeSetPlane() failed! (%d), will disable/reenable the plane\n", ret );
-
-               drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, 0,
-                                     /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
-
-               ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle,
-                                     /* plane_flags */ 0, config->dest.x, config->dest.y, config->dest.w, config->dest.h,
-                                     config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
-
-               if (ret)
-                    return DFB_FAILURE;
+               D_WARN( "DirectFB/DRMKMS: drmModeSetPlane() failed! (%d)\n", ret );
+               return DFB_FAILURE;
           }
 
      }
 
+     data->enabled = true;
+
      return DFB_OK;
 }
+
+static DFBResult
+drmkmsPlaneRemoveRegion( CoreLayer             *layer,
+                          void                  *driver_data,
+                          void                  *layer_data,
+                          void                  *region_data )
+{
+     DFBResult        ret;
+     DRMKMSData      *drmkms = driver_data;
+     DRMKMSPlaneData *data   = layer_data;
+
+     D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
+
+     if (data->enabled) {
+          ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, 0,
+                                          /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
+
+          if (ret) {
+               D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n" );
+               return ret;
+          }
+     }
+
+     data->enabled = false;
+
+     return DFB_OK;
+}
+
 
 static const DisplayLayerFuncs _drmkmsLayerFuncs = {
      .InitLayer     = drmkmsInitLayer,
@@ -305,10 +328,11 @@ static const DisplayLayerFuncs _drmkmsLayerFuncs = {
 };
 
 static const DisplayLayerFuncs _drmkmsPlaneLayerFuncs = {
-     .LayerDataSize = primaryLayerDataSize,
+     .LayerDataSize = drmkmsPlaneDataSize,
      .InitLayer     = drmkmsPlaneInitLayer,
      .TestRegion    = drmkmsPlaneTestRegion,
      .SetRegion     = drmkmsPlaneSetRegion,
+     .RemoveRegion  = drmkmsPlaneRemoveRegion,
      .FlipRegion    = drmkmsFlipRegion
 };
 

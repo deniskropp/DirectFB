@@ -260,6 +260,11 @@ drmkmsTestConfig( CoreSurfacePool         *pool,
           case DSPF_RGB332:
           case DSPF_RGB24:
           case DSPF_A8:
+          case DSPF_UYVY:
+          case DSPF_YUY2:
+          case DSPF_NV12:
+          case DSPF_NV21:
+          case DSPF_NV16:
                break;
           default:
                D_ERROR( "DirectFB/DRMKMS: unsupported pixelformat!\n" );
@@ -285,8 +290,12 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      DRMKMSData           *drmkms;
 
      u32 drm_format        = 0;
-     u32 drm_fb_offset     = 0;
+     u32 drm_bo_offsets[4] = {0,0,0,0};
+     u32 drm_bo_handles[4] = {0,0,0,0};
+     u32 drm_bo_pitches[4] = {0,0,0,0};
+
      u32 drm_fake_width;
+     u32 drm_fake_height;
 
      (void)data;
      (void)local;
@@ -304,7 +313,8 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     drm_fake_width = surface->config.size.w;
+     drm_fake_width  = surface->config.size.w;
+     drm_fake_height = surface->config.size.h;
 
      switch (surface->config.format) {
           case DSPF_ARGB:
@@ -315,35 +325,60 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
                break;
           case DSPF_RGB16:
                drm_format = DRM_FORMAT_RGB565;
-               drm_fake_width = (surface->config.size.w >> 1) + (surface->config.size.w & 1);
+               drm_fake_width = (surface->config.size.w + 1) >> 1;
                break;
           case DSPF_ARGB1555:
                drm_format = DRM_FORMAT_ARGB1555;
-               drm_fake_width = (surface->config.size.w >> 1) + (surface->config.size.w & 1);
+               drm_fake_width = (surface->config.size.w + 1) >> 1;
                break;
           case DSPF_RGB332:
                drm_format = DRM_FORMAT_RGB332;
-               drm_fake_width = (surface->config.size.w >> 2) + (surface->config.size.w & 3);
+               drm_fake_width = (surface->config.size.w + 3) >> 2;
                break;
           case DSPF_RGB24:
                drm_format = DRM_FORMAT_RGB888;
+               drm_fake_width = (surface->config.size.w * 3 + 3) >> 2;
                break;
           case DSPF_A8:
                drm_format = DRM_FORMAT_C8;
-               drm_fake_width = (surface->config.size.w >> 2) + (surface->config.size.w & 3);
+               drm_fake_width = (surface->config.size.w + 3) >> 2;
                break;
+          case DSPF_UYVY:
+               drm_format = DRM_FORMAT_UYVY;
+               drm_fake_width = (surface->config.size.w + 1) >> 1;
+               break;
+          case DSPF_YUY2:
+               drm_format = DRM_FORMAT_YUYV;
+               drm_fake_width = (surface->config.size.w + 1) >> 1;
+               break;
+          case DSPF_NV12:
+               drm_format = DRM_FORMAT_NV12;
+               drm_fake_width  = (surface->config.size.w + 3) >> 2;
+               drm_fake_height = (surface->config.size.h * 3 + 1) >> 1;
+               break;
+          case DSPF_NV21:
+               drm_format = DRM_FORMAT_NV21;
+               drm_fake_width  = (surface->config.size.w + 3) >> 2;
+               drm_fake_height = (surface->config.size.h * 3 + 1) >> 1;
+               break;
+          case DSPF_NV16:
+               drm_format = DRM_FORMAT_NV16;
+               drm_fake_width  = (surface->config.size.w + 3) >> 2;
+               drm_fake_height = surface->config.size.h << 2;
+               break;
+
           default:
                D_ERROR( "DirectFB/DRMKMS: unsupported pixelformat!\n" );
                return DFB_FAILURE;
      }
 
 #ifdef USE_GBM
-     alloc->bo = gbm_bo_create( drmkms->gbm, drm_fake_width, surface->config.size.h, GBM_BO_FORMAT_ARGB8888,
+     alloc->bo = gbm_bo_create( drmkms->gbm, drm_fake_width, drm_Fake_height, GBM_BO_FORMAT_ARGB8888,
                                                                             GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING );
      alloc->handle = gbm_bo_get_handle( alloc->bo ).u32;
      alloc->pitch  = gbm_bo_get_stride( alloc->bo );
 #else
-     unsigned attr[] = { KMS_BO_TYPE, KMS_BO_TYPE_SCANOUT_X8R8G8B8, KMS_WIDTH, drm_fake_width, KMS_HEIGHT, surface->config.size.h, KMS_TERMINATE_PROP_LIST };
+     unsigned attr[] = { KMS_BO_TYPE, KMS_BO_TYPE_SCANOUT_X8R8G8B8, KMS_WIDTH, drm_fake_width, KMS_HEIGHT, drm_fake_height, KMS_TERMINATE_PROP_LIST };
      if( kms_bo_create(drmkms->kms, attr, &alloc->bo))
             D_ERROR( "DirectFB/DRMKMS: kms_bo_create() failed!\n" );
 
@@ -351,6 +386,9 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      kms_bo_get_prop(alloc->bo, KMS_HANDLE, &alloc->handle);
      kms_bo_get_prop(alloc->bo, KMS_PITCH, &alloc->pitch);
 #endif
+     drm_bo_handles[0] = drm_bo_handles[1] = drm_bo_handles[2] = drm_bo_handles[3] = alloc->handle;
+     drm_bo_pitches[0] = drm_bo_pitches[1] = drm_bo_pitches[2] = drm_bo_pitches[3] = alloc->pitch;
+     drm_bo_offsets[1] = surface->config.size.h * alloc->pitch;
 
      if (drmkms->shared->use_prime_fd) {
 
@@ -374,10 +412,10 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
 
      ret = drmModeAddFB2( drmkms->fd,
                           surface->config.size.w, surface->config.size.h, drm_format,
-                          &alloc->handle, &alloc->pitch, &drm_fb_offset, &alloc->fb_id, 0 );
+                          drm_bo_handles, drm_bo_pitches, drm_bo_offsets, &alloc->fb_id, 0 );
 
      if (ret) {
-          D_ERROR( "DirectFB/DRMKMS: drmModeAddFB() failed!\n" );
+          D_PERROR( "DirectFB/DRMKMS: drmModeAddFB2() failed!\n" );
           return DFB_FAILURE;
      }
 

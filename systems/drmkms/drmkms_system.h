@@ -48,7 +48,7 @@
 
 #include "vt.h"
 
-extern const SurfacePoolFuncs drmkmsSurfacePoolFuncs;
+extern const SurfacePoolFuncs   drmkmsSurfacePoolFuncs;
 
 extern const ScreenFuncs       *drmkmsScreenFuncs;
 extern const DisplayLayerFuncs *drmkmsLayerFuncs;
@@ -59,6 +59,7 @@ extern const DisplayLayerFuncs *drmkmsPlaneLayerFuncs;
 typedef struct {
      int                  index;
 	drmModePlane        *plane;
+     bool                 enabled;
 
 } DRMKMSPlaneData;
 
@@ -68,13 +69,14 @@ typedef struct {
      CoreSurfacePool     *pool;
 
      bool                 use_prime_fd;
+     bool                 reinit_planes;
 
      DRMKMSPlaneData      plane_data[16];
 
 } DRMKMSDataShared;
 
 typedef struct {
-     DRMKMSDataShared      *shared;
+     DRMKMSDataShared    *shared;
 
      CoreDFB             *core;
      CoreScreen          *screen;

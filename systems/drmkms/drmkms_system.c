@@ -247,6 +247,11 @@ system_initialize( CoreDFB *core, void **ret_data )
           D_INFO("DRMKMS/Init: using prime fd\n");
      }
 
+     if (direct_config_get("drmkms-reinit-planes", &optionbuffer, 1, &ret_num) == DR_OK) {
+          drmkms->shared->reinit_planes = 1;
+          D_INFO("DRMKMS/Init: reinit planes workaround enabbled\n");
+     }
+
      drmkms->drmeventcontext.version = DRM_EVENT_CONTEXT_VERSION;
      drmkms->drmeventcontext.vblank_handler = NULL;
      drmkms->drmeventcontext.page_flip_handler = drmkms_page_flip_handler;

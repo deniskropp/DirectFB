@@ -123,7 +123,15 @@ drmkmsInitScreen( CoreScreen           *screen,
 
      drmkms->connector = connector;
      drmkms->encoder   = encoder;
-     drmkms->mode      = connector->modes[0];
+
+     if (dfb_config->mode.width && dfb_config->mode.height) {
+          drmModeModeInfo *mode  = drmkms_find_mode( dfb_config->mode.width, dfb_config->mode.height );
+          if (mode)
+               drmkms->mode = *mode;
+          else
+               drmkms->mode = connector->modes[0];
+     } else
+          drmkms->mode      = connector->modes[0];
 
      D_INFO( "DirectFB/DRMKMS: Default mode is %dx%d, we have %d modes in total\n", drmkms->mode.hdisplay, drmkms->mode.vdisplay, drmkms->connector->count_modes );
 
@@ -141,10 +149,10 @@ drmkmsGetScreenSize( CoreScreen *screen,
                      int        *ret_width,
                      int        *ret_height )
 {
-     DRMKMSScreenData *data = screen_data;
+     DRMKMSData *drmkms = driver_data;
 
-     *ret_width  = data->mode.hdisplay;
-     *ret_height = data->mode.vdisplay;
+     *ret_width  = drmkms->mode.hdisplay;
+     *ret_height = drmkms->mode.vdisplay;
 
      return DFB_OK;
 }
