@@ -30,6 +30,39 @@
 
 #include <core/dale_types.h>
 
+
+/**********************************************************************************************************************/
+
+struct __FD_CoreDaleShared {
+     int                  magic;
+
+     FusionObjectPool    *messenger_pool;
+     FusionObjectPool    *messenger_port_pool;
+
+     FusionSHMPoolShared *shmpool;
+
+     u32                  qid;
+};
+
+struct __FD_CoreDale {
+     int                  magic;
+
+     int                  refs;
+
+     int                  fusion_id;
+
+     FusionWorld         *world;
+     FusionArena         *arena;
+
+     CoreDaleShared      *shared;
+
+     bool                 master;
+
+     DirectSignalHandler *signal_handler;
+};
+
+/**********************************************************************************************************************/
+
 /*
  * Core initialization and deinitialization
  */

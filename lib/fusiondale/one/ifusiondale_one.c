@@ -914,12 +914,7 @@ InitialiseNS( IFusionDale *thiz,
 
      D_DEBUG_AT( IFusionDale_One, "%s( '%s' )\n", __FUNCTION__, host );
 
-     if (!strncmp( host, "%=", 2 )) {
-          if (sscanf( host + 2, "%u", &data->ns_qid ) != 1)
-               return DR_INVARG;
-     }
-
-     ret = OneQueue_New( ONE_QUEUE_NO_FLAGS, data->ns_qid, &data->ns_qid );
+     ret = OneQueue_New( ONE_QUEUE_NO_FLAGS, 0, &data->ns_qid );
      if (ret)
           return ret;
 
@@ -988,22 +983,6 @@ ShutdownNS( IFusionDale *thiz )
           direct_mutex_deinit( &data->ns_lock );
           direct_waitqueue_deinit( &data->ns_wq );
      }
-
-     return DR_OK;
-}
-
-static DirectResult
-LookupNS( IFusionDale *thiz,
-          const char  *host )
-{
-     DIRECT_INTERFACE_GET_DATA(IFusionDale_One)
-
-     D_DEBUG_AT( IFusionDale_One, "%s( '%s' )\n", __FUNCTION__, host );
-
-     if (sscanf( host + 1, "%u", &data->ns_qid ) != 1)
-          return DR_INVARG;
-
-     D_DEBUG_AT( IFusionDale_One, "  -> QID %u\n", data->ns_qid );
 
      return DR_OK;
 }
@@ -1119,15 +1098,11 @@ Construct( IFusionDale *thiz, const char *host, int session )
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionDale_One)
 
      /* Create the core instance. */
-     if (!fusion_config->secure_fusion) {
-          ret = fd_core_create( &data->core );
-          if (ret) {
-               FusionDaleError( "FusionDale: fd_core_create() failed", ret );
-
-               DIRECT_DEALLOCATE_INTERFACE( thiz );
-
-               return ret;
-          }
+     ret = fd_core_create( &data->core );
+     if (ret) {
+          FusionDaleError( "FusionDale: fd_core_create() failed", ret );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return ret;
      }
 
      ret = One_Initialize();
@@ -1136,12 +1111,15 @@ Construct( IFusionDale *thiz, const char *host, int session )
           return ret;
      }
 
-     if (!strcmp( host, "%" ) || !strncmp( host, "%=", 2 ))
+     if (data->core->master) {
           ret = InitialiseNS( thiz, host );
-     else {
-          ret = LookupNS( thiz, host );
           if (ret == DR_OK)
-               ret = WaitForNS( thiz );
+               data->core->shared->qid = data->ns_qid;
+     }
+     else {
+          data->ns_qid = data->core->shared->qid;
+
+          ret = WaitForNS( thiz );
      }
 
      if (ret) {

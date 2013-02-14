@@ -53,34 +53,6 @@ D_DEBUG_DOMAIN( Dale_Core, "FusionDale/Core", "FusionDale Core" );
 
 /**********************************************************************************************************************/
 
-struct __FD_CoreDaleShared {
-     int                  magic;
-
-     FusionObjectPool    *messenger_pool;
-     FusionObjectPool    *messenger_port_pool;
-
-     FusionSHMPoolShared *shmpool;
-};
-
-struct __FD_CoreDale {
-     int                  magic;
-
-     int                  refs;
-
-     int                  fusion_id;
-
-     FusionWorld         *world;
-     FusionArena         *arena;
-
-     CoreDaleShared      *shared;
-
-     bool                 master;
-
-     DirectSignalHandler *signal_handler;
-};
-
-/**********************************************************************************************************************/
-
 static DirectSignalHandlerResult fd_core_signal_handler( int   num,
                                                          void *addr,
                                                          void *ctx );
@@ -128,11 +100,6 @@ fd_core_create( CoreDale **ret_core )
           pthread_mutex_unlock( &core_dale_lock );
 
           return DR_OK;
-     }
-
-     if (fusion_config->secure_fusion) {
-          D_ERROR( "FusionDale: Cannot run in secure fusion mode, will be fixed!\n" );
-          return DR_UNSUPPORTED;
      }
 
      /* Allocate local core structure. */
