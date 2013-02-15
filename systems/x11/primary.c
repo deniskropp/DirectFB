@@ -605,21 +605,22 @@ primaryRemoveRegion( CoreLayer             *layer,
 }
 
 static DFBResult
-primaryFlipRegion( CoreLayer             *layer,
+primaryFlipUpdate( CoreLayer             *layer,
                    void                  *driver_data,
                    void                  *layer_data,
                    void                  *region_data,
                    CoreSurface           *surface,
-                   DFBSurfaceFlipFlags    flags,
                    const DFBRegion       *left_update,
                    CoreSurfaceBufferLock *left_lock,
                    const DFBRegion       *right_update,
-                   CoreSurfaceBufferLock *right_lock )
+                   CoreSurfaceBufferLock *right_lock,
+                   bool                   flip )
 {
      DFBX11       *x11 = driver_data;
      X11LayerData *lds = layer_data;
 
-     DFBRegion  region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
+     DFBRegion  left_region  = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
+     DFBRegion  right_region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
@@ -632,19 +633,36 @@ primaryFlipRegion( CoreLayer             *layer,
      if (x11->shared->x_error)
           return DFB_FAILURE;
 
-     dfb_surface_flip( surface, false );
+     if (left_update && !dfb_region_region_intersect( &left_region, left_update ))
+          return DFB_OK;
 
-     dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
+     if (right_update && !dfb_region_region_intersect( &right_region, right_update ))
+          return DFB_OK;
 
-     if (lds->config.options & DLOP_STEREO)
-          dfb_surface_notify_display2( surface, right_lock->allocation->index, right_lock->task );
+     if (flip)
+          dfb_surface_flip( surface, false );
 
-     dfb_x11_update_screen( x11, lds, &region, &region, left_lock, right_lock );
+     dfb_x11_update_screen( x11, lds, &left_region, &right_region, left_lock, right_lock );
 
      if (left_lock->task)
           Task_Done( left_lock->task );
 
      return DFB_OK;
+}
+
+static DFBResult
+primaryFlipRegion( CoreLayer             *layer,
+                   void                  *driver_data,
+                   void                  *layer_data,
+                   void                  *region_data,
+                   CoreSurface           *surface,
+                   DFBSurfaceFlipFlags    flags,
+                   const DFBRegion       *left_update,
+                   CoreSurfaceBufferLock *left_lock,
+                   const DFBRegion       *right_update,
+                   CoreSurfaceBufferLock *right_lock )
+{
+     return primaryFlipUpdate( layer, driver_data, layer_data, region_data, surface, left_update, left_lock, right_update, right_lock, true );
 }
 
 static DFBResult
@@ -658,32 +676,7 @@ primaryUpdateRegion( CoreLayer             *layer,
                      const DFBRegion       *right_update,
                      CoreSurfaceBufferLock *right_lock )
 {
-     DFBX11       *x11 = driver_data;
-     X11LayerData *lds = layer_data;
-
-     DFBRegion  left_region  = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
-     DFBRegion  right_region = DFB_REGION_INIT_FROM_DIMENSION( &surface->config.size );
-
-     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
-
-     if (x11->shared->x_error)
-          return DFB_FAILURE;
-
-     if (left_update && !dfb_region_region_intersect( &left_region, left_update ))
-          return DFB_OK;
-
-     if (right_update && !dfb_region_region_intersect( &right_region, right_update ))
-          return DFB_OK;
-
-     dfb_x11_update_screen( x11, lds, &left_region, &right_region, left_lock, right_lock );
-
-     if (left_lock->task)
-          Task_Done( left_lock->task );
-
-     if (lds->config.options & DLOP_STEREO && right_lock->task)
-          Task_Done( right_lock->task );
-
-     return DFB_OK;
+     return primaryFlipUpdate( layer, driver_data, layer_data, region_data, surface, left_update, left_lock, right_update, right_lock, false );
 }
 
 static DisplayLayerFuncs primaryLayerFuncs = {
