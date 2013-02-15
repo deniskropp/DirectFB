@@ -107,9 +107,9 @@ drmkmsSetRegion( CoreLayer                  *layer,
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
 
-     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST))
+     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_SOURCE))
      {
-          ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle, config->dest.x, config->dest.y,
+          ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle, config->source.x, config->source.y,
                                 &drmkms->connector->connector_id, 1, &drmkms->mode );
           if (ret) {
                D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
