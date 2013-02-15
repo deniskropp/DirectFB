@@ -1092,13 +1092,17 @@ static DirectResult
 Construct( IFusionDale *thiz, const char *host, int session )
 {
      DirectResult ret;
+     bool         old_secure;
 
      D_DEBUG_AT( IFusionDale_One, "%s()\n", __FUNCTION__ );
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionDale_One)
 
      /* Create the core instance. */
+     old_secure = fusion_config->secure_fusion;
+     fusion_config->secure_fusion = false;
      ret = fd_core_create( &data->core );
+     fusion_config->secure_fusion = old_secure;
      if (ret) {
           FusionDaleError( "FusionDale: fd_core_create() failed", ret );
           DIRECT_DEALLOCATE_INTERFACE( thiz );
