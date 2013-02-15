@@ -328,7 +328,6 @@ interface {
 		async  	  yes
 		queue     yes
 		buffer    yes
-                split     yes
 
 		arg {
 			name      rects
