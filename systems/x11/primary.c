@@ -642,6 +642,11 @@ primaryFlipUpdate( CoreLayer             *layer,
      if (flip)
           dfb_surface_flip( surface, false );
 
+     dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
+
+     if (lds->config.options & DLOP_STEREO)
+          dfb_surface_notify_display2( surface, right_lock->allocation->index, right_lock->task );
+
      dfb_x11_update_screen( x11, lds, &left_region, &right_region, left_lock, right_lock );
 
      if (left_lock->task)
