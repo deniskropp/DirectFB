@@ -291,6 +291,51 @@ public:
 
 
 
+class Blits2 : public Base {
+public:
+     Blits2( const DFBRectangle  *rects,
+             const DFBPoint      *points1,
+             const DFBPoint      *points2,
+             unsigned int         num_rects,
+             DFBAccelerationMask  accel,
+             bool                 clipped = false,
+             bool                 del = false )
+          :
+          Base( accel, clipped, del ),
+          rects( (DFBRectangle*) rects ),
+          points1( (DFBPoint*) points1 ),
+          points2( (DFBPoint*) points2 ),
+          num_rects( num_rects )
+     {
+     }
+
+     virtual ~Blits2() {
+          if (del) {
+               delete rects;
+               delete points1;
+               delete points2;
+          }
+     }
+
+     virtual unsigned int count() const {
+          return num_rects;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBRectangle *rects;
+     DFBPoint     *points1;
+     DFBPoint     *points2;
+     unsigned int  num_rects;
+};
+
+
+
 class Lines : public Base {
 public:
      Lines( const DFBRegion     *lines,
@@ -1278,6 +1323,45 @@ TileBlits::render( Renderer::Setup *setup,
 
           if (engine->caps.clipping & DFXL_TILEBLIT) {
                engine->TileBlit( setup->tasks[i], rects, points1, points2, num_rects );
+          }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
+}
+
+
+Base *
+Blits2::tesselate( DFBAccelerationMask  accel,
+                   const DFBRegion     *clip,
+                   const s32           *matrix )
+{
+     switch (this->accel) {
+          case DFXL_BLIT2:
+               switch (accel) {
+                    default:
+                         D_UNIMPLEMENTED();
+               }
+               break;
+
+          default:
+               D_BUG( "unexpected accel 0x%08x", this->accel );
+     }
+
+     return NULL;
+}
+
+void
+Blits2::render( Renderer::Setup *setup,
+                Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_BLIT2) {
+               engine->Blit2( setup->tasks[i], rects, points1, points2, num_rects );
           }
           else {
                D_UNIMPLEMENTED();
@@ -2414,21 +2498,9 @@ Renderer::Blit2( const DFBRectangle     *rects,
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
-#if 0
-     if (checkEngine( DFXL_BLIT2, num )) {
-          update( DFXL_BLIT2 );
+     Primitives::Blits2 primitives( rects, points1, points2, num, DFXL_BLIT2 );
 
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles_render; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               engine->Blit2( setup->tasks[i], rects, points1, points2, num );
-          }
-     }
-#endif
+     render( &primitives );
 }
 
 void
