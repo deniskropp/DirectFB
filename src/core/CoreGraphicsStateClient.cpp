@@ -313,6 +313,9 @@ CoreGraphicsStateClient_FlushCurrent()
      D_ASSERT( holder != NULL );
 
      holder->set( NULL );
+
+     // TODO: check if using renderer at all to avoid TLS creation
+     DirectFB::Renderer::FlushCurrent();
 }
 
 DFBResult

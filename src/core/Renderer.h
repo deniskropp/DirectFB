@@ -198,6 +198,7 @@ public:
 
 
      void Flush();
+     static void FlushCurrent();
 
 
      void DrawRectangles  ( const DFBRectangle     *rects,

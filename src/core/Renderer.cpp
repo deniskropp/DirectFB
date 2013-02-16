@@ -1709,6 +1709,17 @@ Renderer::Flush()
      }
 }
 
+void
+Renderer::FlushCurrent()
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+
+     RendererTLS *tls = Renderer_GetTLS();
+
+     if (tls->last_renderer)
+          tls->last_renderer->Flush();
+}
+
 
 DFBResult
 Renderer::enterLock( CoreSurfaceBufferLock  *lock,
