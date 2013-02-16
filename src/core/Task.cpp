@@ -322,6 +322,8 @@ Task::Flush()
 
      DFB_TASK_LOG( "Flush()" );
 
+     //D_INFO("XX FLUSH   %s\n",Description().buffer());
+
      state = TASK_FLUSHED;
 
      TaskManager::pushTask( this );
@@ -343,6 +345,8 @@ Task::emit( int following )
      DFB_TASK_CHECK_STATE( this, TASK_READY, return DFB_BUG );
 
      DFB_TASK_LOG( "emit()" );
+
+     //D_INFO("XX EMIT    %s\n",Description().buffer());
 
      D_ASSERT( block_count == 0 );
 
@@ -426,6 +430,8 @@ Task::finish()
      DFB_TASK_CHECK_STATE( this, TASK_DONE, return DFB_BUG );
 
      DFB_TASK_LOG( "finish()" );
+
+     //D_INFO("XX FINISH  %s\n",Description().buffer());
 
      finished = true;
 
@@ -1265,7 +1271,9 @@ SurfaceTask::Describe( Direct::String &string )
 {
      Task::Describe( string );
 
-     string.PrintF( "  accessor 0x%02x, accesses %zu", accessor, accesses.size() );
+     string.PrintF( "  accessor 0x%02x, accesses %zu, allocation %p, index %d", accessor, accesses.size(),
+                    accesses.size() > 0 ? accesses[0].allocation : NULL,
+                    accesses.size() > 0 ? accesses[0].allocation->index : -1 );
 }
 
 }
