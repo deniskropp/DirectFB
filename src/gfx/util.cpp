@@ -159,6 +159,8 @@ dfb_gfx_copy_stereo( CoreSurface         *source,
           CoreGraphicsStateClient_Blit( &client->client, &sourcerect, &point, 1 );
      }
 
+     CoreGraphicsStateClient_Flush( &client->client );
+
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &client->state );
 
@@ -187,6 +189,8 @@ dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role )
      client->state.color_index = 0;
 
      CoreGraphicsStateClient_FillRectangles( &client->client, &rect, 1 );
+
+     CoreGraphicsStateClient_Flush( &client->client );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &client->state );
@@ -240,6 +244,8 @@ void dfb_gfx_stretch_stereo( CoreSurface         *source,
      client->state.to_eye      = destination_eye;
 
      CoreGraphicsStateClient_StretchBlit( &client->client, &sourcerect, &destrect, 1 );
+
+     CoreGraphicsStateClient_Flush( &client->client );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &client->state );
@@ -310,6 +316,8 @@ dfb_gfx_copy_regions_stereo( CoreSurface           *source,
           client->state.to_eye      = destination_eye;
 
           CoreGraphicsStateClient_Blit( &client->client, rects, points, n );
+
+          CoreGraphicsStateClient_Flush( &client->client );
 
           /* Signal end of sequence. */
           dfb_state_stop_drawing( &client->state );
@@ -455,6 +463,8 @@ back_to_front_copy( CoreSurface             *surface,
      client->state.blittingflags = flags;
 
      CoreGraphicsStateClient_Blit( &client->client, &rect, &point, 1 );
+
+     CoreGraphicsStateClient_Flush( &client->client );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &client->state );
