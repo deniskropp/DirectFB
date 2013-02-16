@@ -152,6 +152,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -191,6 +192,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -231,6 +233,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -238,6 +241,51 @@ public:
 
      DFBRectangle *srects;
      DFBRectangle *drects;
+     unsigned int  num_rects;
+};
+
+
+
+class TileBlits : public Base {
+public:
+     TileBlits( const DFBRectangle  *rects,
+                const DFBPoint      *points1,
+                const DFBPoint      *points2,
+                unsigned int         num_rects,
+                DFBAccelerationMask  accel,
+                bool                 clipped = false,
+                bool                 del = false )
+              :
+              Base( accel, clipped, del ),
+              rects( (DFBRectangle*) rects ),
+              points1( (DFBPoint*) points1 ),
+              points2( (DFBPoint*) points2 ),
+              num_rects( num_rects )
+     {
+     }
+
+     virtual ~TileBlits() {
+          if (del) {
+               delete rects;
+               delete points1;
+               delete points2;
+          }
+     }
+
+     virtual unsigned int count() const {
+          return num_rects;
+     }
+
+     virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
+                              const s32           *matrix );
+
+     virtual void render( Renderer::Setup *setup,
+                          Engine          *engine );
+
+     DFBRectangle *rects;
+     DFBPoint     *points1;
+     DFBPoint     *points2;
      unsigned int  num_rects;
 };
 
@@ -267,6 +315,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -304,6 +353,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -340,6 +390,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -375,6 +426,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -412,6 +464,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -450,6 +503,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -486,6 +540,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix );
 
      virtual void render( Renderer::Setup *setup,
@@ -498,6 +553,7 @@ public:
 
 Base *
 Rectangles::tesselate( DFBAccelerationMask  accel,
+                       const DFBRegion     *clip,
                        const s32           *matrix )
 {
      switch (this->accel) {
@@ -767,6 +823,7 @@ Rectangles::render( Renderer::Setup *setup,
 
 Base *
 Blits::tesselate( DFBAccelerationMask  accel,
+                  const DFBRegion     *clip,
                   const s32           *matrix )
 {
      switch (this->accel) {
@@ -935,6 +992,7 @@ Blits::render( Renderer::Setup *setup,
 
 Base *
 StretchBlits::tesselate( DFBAccelerationMask  accel,
+                         const DFBRegion     *clip,
                          const s32           *matrix )
 {
      switch (this->accel) {
@@ -1098,7 +1156,139 @@ StretchBlits::render( Renderer::Setup *setup,
 
 
 Base *
+TileBlits::tesselate( DFBAccelerationMask  accel,
+                      const DFBRegion     *clip,
+                      const s32           *matrix )
+{
+     switch (this->accel) {
+          case DFXL_TILEBLIT:
+               switch (accel) {
+                    case DFXL_BLIT:
+                         {
+                              unsigned int num_newrects = 0;
+
+                              for (unsigned int i=0; i<num_rects; i++)
+                                   num_newrects += ((clip->x2 - clip->x1 + 1) / rects[i].w + 2) * ((clip->y2 - clip->y1 + 1) / rects[i].h + 2);
+
+                              DFBRectangle *newrects       = new DFBRectangle[num_newrects];
+                              DFBPoint     *newpoints      = new DFBPoint[num_newrects];
+                              unsigned int  num_out        = 0;
+
+                              for (unsigned int i=0; i<num_rects; i++) {
+                                   int                 dx1;
+                                   int                 dy1;
+                                   int                 dx2;
+                                   int                 dy2;
+                                   const DFBRectangle *rect = &rects[i];
+
+                                   if (rect->w == 0 || rect->h ==0 )
+                                        continue;
+
+                                   if (matrix) {
+                                        TRANSFORM_XY( points1[i].x, points1[i].y, dx1, dy1 );
+                                        TRANSFORM_XY( points2[i].x, points2[i].y, dx2, dy2 );
+
+                                        if (dx1 > dx2)
+                                             D_UTIL_SWAP( dx1, dx2 );
+
+                                        if (dy1 > dy2)
+                                             D_UTIL_SWAP( dy1, dy2 );
+                                   }
+                                   else {
+                                        dx1 = points1[i].x;
+                                        dy1 = points1[i].y;
+                                        dx2 = points2[i].x;
+                                        dy2 = points2[i].y;
+                                   }
+
+                                   /* Check if anything is drawn at all. */
+                                   if (!dfb_clip_blit_precheck( clip, dx2-dx1+1, dy2-dy1+1, dx1, dy1 ))
+                                        continue;
+
+                                   /* Remove clipped tiles. */
+                                   if (dx1 < clip->x1) {
+                                        int outer = clip->x1 - dx1;
+
+                                        dx1 += outer - (outer % rect->w);
+                                   }
+
+                                   if (dy1 < clip->y1) {
+                                        int outer = clip->y1 - dy1;
+
+                                        dy1 += outer - (outer % rect->h);
+                                   }
+
+                                   if (dx2 > clip->x2) {
+                                        int outer = clip->x2 - dx2;
+
+                                        dx2 -= outer - (outer % rect->w);
+                                   }
+
+                                   if (dy2 > clip->y2) {
+                                        int outer = clip->y2 - dy2;
+
+                                        dy2 -= outer - (outer % rect->h);
+                                   }
+
+                                   int odx = dx1;
+
+                                   for (; dy1 < dy2; dy1 += rect->h) {
+                                        for (; dx1 < dx2; dx1 += rect->w) {
+                                             D_ASSERT( num_out < num_newrects );
+                                             if (num_out == num_newrects)
+                                                  break;
+
+                                             if (!dfb_clip_blit_precheck( clip, rect->w, rect->h, dx1, dy1 ))
+                                                  continue;
+
+                                             newrects[num_out]    = *rect;
+                                             newpoints[num_out].x = dx1;
+                                             newpoints[num_out].y = dy1;
+
+                                             num_out++;
+                                        }
+                                        dx1 = odx;
+                                   }
+                              }
+
+                              return new Blits( newrects, newpoints, num_out, DFXL_BLIT, clipped, true );
+                         }
+                         break;
+
+                    default:
+                         D_UNIMPLEMENTED();
+               }
+               break;
+
+          default:
+               D_BUG( "unexpected accel 0x%08x", this->accel );
+     }
+
+     return NULL;
+}
+
+void
+TileBlits::render( Renderer::Setup *setup,
+                   Engine          *engine )
+{
+     /// loop
+     for (unsigned int i=0; i<setup->tiles_render; i++) {
+          if (!(setup->task_mask & (1 << i)))
+               continue;
+
+          if (engine->caps.clipping & DFXL_TILEBLIT) {
+               engine->TileBlit( setup->tasks[i], rects, points1, points2, num_rects );
+          }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
+}
+
+
+Base *
 Lines::tesselate( DFBAccelerationMask  accel,
+                  const DFBRegion     *clip,
                   const s32           *matrix )
 {
      switch (accel) {
@@ -1159,6 +1349,7 @@ Lines::render( Renderer::Setup *setup,
 
 Base *
 Spans::tesselate( DFBAccelerationMask  accel,
+                  const DFBRegion     *clip,
                   const s32           *matrix )
 {
      switch (accel) {
@@ -1325,6 +1516,7 @@ typedef struct {
 
 Base *
 Triangles::tesselate( DFBAccelerationMask  accel,
+                      const DFBRegion     *clip,
                       const s32           *matrix )
 {
      switch (accel) {
@@ -1424,6 +1616,7 @@ Triangles::render( Renderer::Setup *setup,
 
 Base *
 Trapezoids::tesselate( DFBAccelerationMask  accel,
+                       const DFBRegion     *clip,
                        const s32           *matrix )
 {
      switch (accel) {
@@ -1549,6 +1742,7 @@ Trapezoids::render( Renderer::Setup *setup,
 
 Base *
 TexTriangles::tesselate( DFBAccelerationMask  accel,
+                         const DFBRegion     *clip,
                          const s32           *matrix )
 {
      switch (accel) {
@@ -1580,6 +1774,7 @@ TexTriangles::render( Renderer::Setup *setup,
 
 Base *
 TexTriangles1616::tesselate( DFBAccelerationMask  accel,
+                             const DFBRegion     *clip,
                              const s32           *matrix )
 {
      switch (accel) {
@@ -1611,6 +1806,7 @@ TexTriangles1616::render( Renderer::Setup *setup,
 
 Base *
 Quadrangles::tesselate( DFBAccelerationMask  accel,
+                        const DFBRegion     *clip,
                         const s32           *matrix )
 {
      switch (accel) {
@@ -2065,7 +2261,7 @@ Renderer::render( Primitives::Base *primitives )
                }
 
 
-               Primitives::Base *output = tesselated->tesselate( next_accel, transform ? state->matrix : NULL );
+               Primitives::Base *output = tesselated->tesselate( next_accel, &state->clip, transform ? state->matrix : NULL );
 
                if (!output) {
                     D_WARN( "no tesselation from '%s' to '%s'",
@@ -2267,21 +2463,9 @@ Renderer::TileBlit( const DFBRectangle     *rects,
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
-#if 0
-     if (checkEngine( DFXL_TILEBLIT, num )) {
-          update( DFXL_TILEBLIT );
+     Primitives::TileBlits primitives( rects, points1, points2, num, DFXL_TILEBLIT );
 
-          // FIXME: clipping, transform
-
-          /// loop
-          for (unsigned int i=0; i<setup->tiles_render; i++) {
-               if (!(setup->task_mask & (1 << i)))
-                    continue;
-
-               engine->TileBlit( setup->tasks[i], rects, points1, points2, num );
-          }
-     }
-#endif
+     render( &primitives );
 }
 
 void
@@ -2355,6 +2539,15 @@ Renderer::getTransformAccel( DFBAccelerationMask accel,
                return DFXL_TEXTRIANGLES;
 
           case DFXL_STRETCHBLIT:
+               if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK /*| WTT_FLIP_MASK*/)) == type)   // FIXME: make blits use DSBLIT_FLIP when WTT_FLIP_MASK
+                    return DFXL_STRETCHBLIT;
+
+               return DFXL_TEXTRIANGLES;
+
+          case DFXL_TILEBLIT:
+               if ((type & (WTT_TRANSLATE_MASK /*| WTT_FLIP_MASK*/)) == type)   // FIXME: make blits use DSBLIT_FLIP when WTT_FLIP_MASK
+                    return DFXL_BLIT;
+
                if ((type & (WTT_TRANSLATE_MASK | WTT_SCALE_MASK /*| WTT_FLIP_MASK*/)) == type)   // FIXME: make blits use DSBLIT_FLIP when WTT_FLIP_MASK
                     return DFXL_STRETCHBLIT;
 

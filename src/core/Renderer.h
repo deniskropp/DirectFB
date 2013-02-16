@@ -321,6 +321,7 @@ public:
      }
 
      virtual Base *tesselate( DFBAccelerationMask  accel,
+                              const DFBRegion     *clip,
                               const s32           *matrix )
      {
           return NULL;
