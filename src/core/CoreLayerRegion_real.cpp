@@ -132,6 +132,9 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
      D_DEBUG_AT( DirectFB_Task_Display, "  -> index %d\n", index );
 
      flags = (TaskFlags)(flags | TASK_FLAG_NOSYNC);
+
+     if (region->config.buffermode == DLBM_FRONTONLY || region->config.buffermode == DLBM_BACKSYSTEM)
+          flags = (TaskFlags)(flags | TASK_FLAG_EMITNOTIFIES);
 }
 
 DisplayTask::~DisplayTask()
