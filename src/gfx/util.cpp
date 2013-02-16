@@ -466,16 +466,12 @@ back_to_front_copy( CoreSurface             *surface,
 void
 dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 {
-     D_ASSERT( !dfb_config->task_manager );
-
      back_to_front_copy( surface, DSSE_LEFT, region, DSBLIT_NOFX, 0);
 }
 
 void
 dfb_back_to_front_copy_rotation( CoreSurface *surface, const DFBRegion *region, int rotation )
 {
-     D_ASSERT( !dfb_config->task_manager );
-
      back_to_front_copy( surface, DSSE_LEFT, region, DSBLIT_NOFX, rotation );
 }
 
@@ -486,8 +482,6 @@ dfb_back_to_front_copy_stereo( CoreSurface         *surface,
                                const DFBRegion     *right_region,
                                int                  rotation )
 {
-     D_ASSERT( !dfb_config->task_manager );
-
      if (eyes & DSSE_LEFT)
           back_to_front_copy( surface, DSSE_LEFT, left_region, DSBLIT_NOFX, rotation );
 
