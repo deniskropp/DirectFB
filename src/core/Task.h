@@ -463,6 +463,24 @@ protected:
 public://private:
      CoreSurfaceAccessorID                   accessor;
      std::vector<SurfaceAllocationAccess>    accesses;
+
+     CoreSurfaceAccessFlags GetCacheFlags()
+     {
+          CoreSurfaceAccessFlags ret = CSAF_NONE;
+
+          for (std::vector<SurfaceAllocationAccess>::const_iterator it=accesses.begin();
+                it!=accesses.end() && ret != (CSAF_CACHE_FLUSH | CSAF_CACHE_INVALIDATE);
+                it++)
+          {
+               if ((*it).flags & CSAF_CACHE_FLUSH)
+                    ret = (CoreSurfaceAccessFlags)(ret | CSAF_CACHE_FLUSH);
+
+               if ((*it).flags & CSAF_CACHE_INVALIDATE)
+                    ret = (CoreSurfaceAccessFlags)(ret | CSAF_CACHE_INVALIDATE);
+          }
+
+          return ret;
+     }
 };
 
 
