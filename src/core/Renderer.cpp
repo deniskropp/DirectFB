@@ -2242,6 +2242,18 @@ Renderer::StretchBlit( const DFBRectangle     *srects,
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p %p [%d] )\n", __FUNCTION__, srects, drects, num );
 
+     if (num == 1) {
+          if (srects[0].w == drects[0].w && srects[0].h == drects[0].h) {
+               DFBPoint          point = { drects[0].x, drects[0].y };
+               Primitives::Blits primitives( srects, &point, 1, DFXL_BLIT );
+
+               render( &primitives );
+
+               return;
+          }
+     }
+
+
      Primitives::StretchBlits primitives( srects, drects, num, DFXL_STRETCHBLIT );
 
      render( &primitives );
