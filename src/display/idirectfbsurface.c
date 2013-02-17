@@ -153,9 +153,11 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      if (data->surface_client)
           dfb_surface_client_unref( data->surface_client );
 
-     CoreDFB_WaitIdle( data->core );
+     if (data->memory_permissions_count) {
+          CoreDFB_WaitIdle( data->core );
 
-     unregister_prealloc( data );
+          unregister_prealloc( data );
+     }
 
      parent = data->parent;
      if (parent) {
