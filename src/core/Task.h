@@ -308,7 +308,7 @@ private:
      friend class Task;
 
      static DirectThread      *thread;
-     static FIFO<Task*>        fifo;
+     static FastFIFO<Task*>    fifo;
      static unsigned int       task_count;
      static unsigned int       task_count_sync;
 
@@ -409,7 +409,7 @@ private:
      };
 
 public:
-     DirectFB::FIFO<Task*>              fifo;   // TODO: try to find better structure without lock
+     DirectFB::FIFO<Task*>              fifo;   // TODO: try to find better structure without lock, maybe futex
      std::vector<Runner*>               runners;
      std::map<u64,Task*>                queues;
      std::map<u64,Direct::PerfCounter>  perfs;
