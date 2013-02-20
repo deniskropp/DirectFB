@@ -268,6 +268,7 @@ private:
 
      DFBResult bindEngine  ( Engine              *engine,
                              DFBAccelerationMask  accel );
+     DFBResult rebindEngine( DFBAccelerationMask  accel );
      void      unbindEngine();
 
 

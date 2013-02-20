@@ -2377,7 +2377,9 @@ Renderer::render( Primitives::Base *primitives )
               operations + tesselated->count() > engine->caps.max_operations ||
               engine->check( setup ))
           {
-               unbindEngine();
+               DFBResult ret = rebindEngine( accel );
+               if (ret)
+                    goto out;
           }
      }
 
@@ -2689,10 +2691,10 @@ Renderer::bindEngine( Engine              *engine,
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
      D_ASSERT( this->engine == NULL );
-     D_ASSERT( setup == NULL );
 
      /// loop
-     setup = new Setup( state->destination->config.size.w, state->destination->config.size.h, engine->caps.cores );
+     if (!setup)
+          setup = new Setup( state->destination->config.size.w, state->destination->config.size.h, engine->caps.cores );
 
      ret = engine->bind( setup );
      if (ret) {
@@ -2738,9 +2740,6 @@ Renderer::unbindEngine()
      leaveLock( &state->src );
      leaveLock( &state->dst );
 
-//     state->accel   = DFXL_NONE;
-//     state->checked = DFXL_NONE;
-
      /// par flush
      setup->tasks[0]->Flush();
 
@@ -2751,6 +2750,30 @@ Renderer::unbindEngine()
      operations = 0;
 
      allocations.clear();
+}
+
+DFBResult
+Renderer::rebindEngine( DFBAccelerationMask  accel )
+{
+     //D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_INFO( "Renderer::%s()\n", __FUNCTION__ );
+
+     D_ASSERT( engine != NULL );
+     D_ASSERT( setup != NULL );
+
+     leaveLock( &state->src2 );
+     leaveLock( &state->src_mask );
+     leaveLock( &state->src );
+     leaveLock( &state->dst );
+
+     /// par flush
+     setup->tasks[0]->Flush();
+
+     operations = 0;
+
+     allocations.clear();
+
+     return bindEngine( engine, accel );
 }
 
 
