@@ -72,6 +72,8 @@
 #define FCEF_QUEUE (0)
 #endif
 
+#define FUSION_CALL_MAX_LENGTH     (FUSION_MESSAGE_SIZE-sizeof(FusionReadMessage))
+
 
 #else
 typedef unsigned long FusionID;
@@ -84,6 +86,8 @@ typedef enum {
      FCEF_QUEUE    = 0x00000002,
      FCEF_ALL      = 0x00000003
 } FusionCallExecFlags;
+
+#define FUSION_CALL_MAX_LENGTH     (64 * 1024)
 
 #endif
 

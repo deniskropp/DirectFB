@@ -53,7 +53,7 @@ extern "C" {
 #include <core/windows.h>
 #include <core/windows_internal.h>
 
-#define CALLBUFFER_FUSION_MESSAGE_SIZE (FUSION_MESSAGE_SIZE - sizeof(FusionReadMessage))
+#define CALLBUFFER_FUSION_MESSAGE_SIZE (FUSION_CALL_MAX_LENGTH)
 
 static __inline__ DirectResult
 CoreDFB_Call( CoreDFB             *core,

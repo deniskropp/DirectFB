@@ -103,14 +103,14 @@ struct __Fusion_FusionWorldShared {
 
 #include "reactor.h"
 
-#define EVENT_DISPATCHER_BUFFER_LENGTH (64 * 1024)
+#define EVENT_DISPATCHER_BUFFER_LENGTH  (FUSION_CALL_MAX_LENGTH)
 
 typedef struct {
      DirectLink link;
 
      int magic;
 
-     char       buffer[EVENT_DISPATCHER_BUFFER_LENGTH];
+     char       buffer[FUSION_CALL_MAX_LENGTH];
      int        read_pos;
      int        write_pos;
      int        can_free;
