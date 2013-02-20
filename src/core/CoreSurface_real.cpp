@@ -224,85 +224,6 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
      allocation->accessed[accessor] = (CoreSurfaceAccessFlags)(allocation->accessed[accessor] | access);
 }
 
-DFBResult
-ISurface_Real::PreLockBuffer(
-                         CoreSurfaceBuffer                         *buffer,
-                         CoreSurfaceAccessorID                      accessor,
-                         CoreSurfaceAccessFlags                     access,
-                         CoreSurfaceAllocation                    **ret_allocation
-                         )
-{
-     DFBResult              ret;
-     CoreSurfaceAllocation *allocation;
-     CoreSurface           *surface    = obj;
-     bool                   allocated  = false;
-
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
-
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     D_ASSERT( !dfb_config->task_manager );
-
-     dfb_surface_lock( surface );
-
-     if (surface->state & CSSF_DESTROYED) {
-          dfb_surface_unlock( surface );
-          return DFB_DESTROYED;
-     }
-
-     if (!buffer->surface) {
-          dfb_surface_unlock( surface );
-          return DFB_BUFFEREMPTY;
-     }
-
-     /* Look for allocation with proper access. */
-     allocation = dfb_surface_buffer_find_allocation( buffer, accessor, access, true );
-     if (!allocation) {
-          /* If no allocation exists, create one. */
-          ret = dfb_surface_pools_allocate( buffer, accessor, access, &allocation );
-          if (ret) {
-               if (ret != DFB_NOVIDEOMEMORY && ret != DFB_UNSUPPORTED)
-                    D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
-
-               goto out;
-          }
-
-          allocated = true;
-     }
-
-     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
-
-     /* Synchronize with other allocations. */
-     ret = dfb_surface_allocation_update( allocation, access );
-     if (ret) {
-          /* Destroy if newly created. */
-          if (allocated)
-               dfb_surface_allocation_decouple( allocation );
-          goto out;
-     }
-
-     ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
-     if (ret) {
-          /* Destroy if newly created. */
-          if (allocated)
-               dfb_surface_allocation_decouple( allocation );
-          goto out;
-     }
-
-     manage_interlocks( allocation, accessor, access );
-
-     dfb_surface_allocation_ref( allocation );
-
-     *ret_allocation = allocation;
-
-out:
-     dfb_surface_unlock( surface );
-
-     return ret;
-}
-
-
-
 class LockTask : public SurfaceTask
 {
 public:
@@ -357,6 +278,100 @@ private:
 };
 
 
+
+
+DFBResult
+ISurface_Real::PreLockBuffer(
+                         CoreSurfaceBuffer                         *buffer,
+                         CoreSurfaceAccessorID                      accessor,
+                         CoreSurfaceAccessFlags                     access,
+                         CoreSurfaceAllocation                    **ret_allocation
+                         )
+{
+     DFBResult              ret;
+     CoreSurfaceAllocation *allocation;
+     CoreSurface           *surface    = obj;
+     bool                   allocated  = false;
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     D_ASSERT( !dfb_config->task_manager || accessor == CSAID_CPU );
+
+     dfb_surface_lock( surface );
+
+     if (surface->state & CSSF_DESTROYED) {
+          dfb_surface_unlock( surface );
+          return DFB_DESTROYED;
+     }
+
+     if (!buffer->surface) {
+          dfb_surface_unlock( surface );
+          return DFB_BUFFEREMPTY;
+     }
+
+     /* Look for allocation with proper access. */
+     allocation = dfb_surface_buffer_find_allocation( buffer, accessor, access, true );
+     if (!allocation) {
+          /* If no allocation exists, create one. */
+          ret = dfb_surface_pools_allocate( buffer, accessor, access, &allocation );
+          if (ret) {
+               if (ret != DFB_NOVIDEOMEMORY && ret != DFB_UNSUPPORTED)
+                    D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
+
+               goto out;
+          }
+
+          allocated = true;
+     }
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     /* Synchronize with other allocations. */
+     ret = dfb_surface_allocation_update( allocation, access );
+     if (ret) {
+          /* Destroy if newly created. */
+          if (allocated)
+               dfb_surface_allocation_decouple( allocation );
+          goto out;
+     }
+
+
+     if (dfb_config->task_manager) {
+          D_ASSERT( accessor == CSAID_CPU );
+
+          LockTask *task = new LockTask();
+
+          task->AddAccess( allocation, access );
+
+          task->Flush();
+
+          task->Wait();
+
+          task->Done();
+     }
+     else {
+          ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
+          if (ret) {
+               /* Destroy if newly created. */
+               if (allocated)
+                    dfb_surface_allocation_decouple( allocation );
+               goto out;
+          }
+
+          manage_interlocks( allocation, accessor, access );
+     }
+
+     dfb_surface_allocation_ref( allocation );
+
+     *ret_allocation = allocation;
+
+out:
+     dfb_surface_unlock( surface );
+
+     return ret;
+}
 
 DFBResult
 ISurface_Real::PreLockBuffer2(
@@ -464,7 +479,7 @@ ISurface_Real::PreLockBuffer2(
                          dfb_surface_allocation_decouple( allocation );
                     goto out;
                }
-     
+
                manage_interlocks( allocation, accessor, access );
           }
      }
@@ -537,15 +552,28 @@ ISurface_Real::PreReadBuffer(
      }
 
      if (!(allocation->pool->desc.caps & CSPCAPS_READ)) {
-          ret = dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_READ );
-          if (ret) {
-               /* Destroy if newly created. */
-               if (allocated)
-                    dfb_surface_allocation_decouple( allocation );
-               goto out;
-          }
+          if (dfb_config->task_manager) {
+               LockTask *task = new LockTask();
 
-          manage_interlocks( allocation, CSAID_CPU, CSAF_READ );
+               task->AddAccess( allocation, CSAF_READ );
+
+               task->Flush();
+
+               task->Wait();
+
+               task->Done();
+          }
+          else {
+               ret = dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_READ );
+               if (ret) {
+                    /* Destroy if newly created. */
+                    if (allocated)
+                         dfb_surface_allocation_decouple( allocation );
+                    goto out;
+               }
+
+               manage_interlocks( allocation, CSAID_CPU, CSAF_READ );
+          }
      }
 
      dfb_surface_allocation_ref( allocation );
@@ -616,15 +644,28 @@ ISurface_Real::PreWriteBuffer(
      }
 
      if (!(allocation->pool->desc.caps & CSPCAPS_WRITE)) {
-          ret = dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_WRITE );
-          if (ret) {
-               /* Destroy if newly created. */
-               if (allocated)
-                    dfb_surface_allocation_decouple( allocation );
-               goto out;
-          }
+          if (dfb_config->task_manager) {
+               LockTask *task = new LockTask();
 
-          manage_interlocks( allocation, CSAID_CPU, CSAF_WRITE );
+               task->AddAccess( allocation, CSAF_WRITE );
+
+               task->Flush();
+
+               task->Wait();
+
+               task->Done();
+          }
+          else {
+               ret = dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_WRITE );
+               if (ret) {
+                    /* Destroy if newly created. */
+                    if (allocated)
+                         dfb_surface_allocation_decouple( allocation );
+                    goto out;
+               }
+
+               manage_interlocks( allocation, CSAID_CPU, CSAF_WRITE );
+          }
      }
 
      dfb_surface_allocation_ref( allocation );
@@ -718,15 +759,30 @@ ISurface_Real::PreLockBuffer3(
      }
 
      if (lock) {
-          ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
-          if (ret) {
-               /* Destroy if newly created. */
-               if (allocated)
-                    dfb_surface_allocation_decouple( allocation );
-               goto out;
-          }
+          if (dfb_config->task_manager) {
+               D_ASSERT( accessor == CSAID_CPU );
 
-          manage_interlocks( allocation, accessor, access );
+               LockTask *task = new LockTask();
+
+               task->AddAccess( allocation, access );
+
+               task->Flush();
+
+               task->Wait();
+
+               task->Done();
+          }
+          else {
+               ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
+               if (ret) {
+                    /* Destroy if newly created. */
+                    if (allocated)
+                         dfb_surface_allocation_decouple( allocation );
+                    goto out;
+               }
+
+               manage_interlocks( allocation, accessor, access );
+          }
      }
 
      dfb_surface_allocation_ref( allocation );
