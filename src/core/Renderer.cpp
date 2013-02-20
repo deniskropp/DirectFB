@@ -2690,7 +2690,7 @@ Renderer::bindEngine( Engine              *engine,
 
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
-     D_ASSERT( this->engine == NULL );
+     D_ASSERT( this->engine == NULL || this->setup != NULL );
 
      /// loop
      if (!setup)
@@ -2755,8 +2755,7 @@ Renderer::unbindEngine()
 DFBResult
 Renderer::rebindEngine( DFBAccelerationMask  accel )
 {
-     //D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
-     D_INFO( "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
      D_ASSERT( engine != NULL );
      D_ASSERT( setup != NULL );
