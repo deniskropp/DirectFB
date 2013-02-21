@@ -206,7 +206,7 @@ direct_thread_self( void )
 
      /* Support this function for non-direct threads. */
      if (!thread) {
-          D_DEBUG_AT( Direct_Thread, "  -> attaching unknown thread %d\n", direct_gettid() );
+//          D_DEBUG_AT( Direct_Thread, "  -> attaching unknown thread %d\n", direct_gettid() );
 
           thread = direct_calloc( 1, sizeof(DirectThread) );
           if (!thread) {
