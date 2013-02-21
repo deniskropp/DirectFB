@@ -34,6 +34,7 @@ struct DFBPixelFormatName {
      { DSPF_ARGB1666, "ARGB1666" }, \
      { DSPF_ARGB6666, "ARGB6666" }, \
      { DSPF_RGB18, "RGB18" }, \
+     { DSPF_LUT1, "LUT1" }, \
      { DSPF_LUT2, "LUT2" }, \
      { DSPF_RGB444, "RGB444" }, \
      { DSPF_RGB555, "RGB555" }, \
