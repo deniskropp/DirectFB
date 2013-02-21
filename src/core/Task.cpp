@@ -799,7 +799,7 @@ Task::Description()
 /*********************************************************************************************************************/
 
 DirectThread     *TaskManager::thread;
-FIFO<Task*>       TaskManager::fifo;
+FastFIFO<Task*>   TaskManager::fifo;
 unsigned int      TaskManager::task_count;
 unsigned int      TaskManager::task_count_sync;
 #if DFB_TASK_DEBUG_TASKS
@@ -833,7 +833,6 @@ TaskManager::Shutdown()
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
 
      if (thread != NULL) {
-          // FIXME: wakeup managerLoop
           fifo.push( NULL );
 
           direct_thread_join( thread );
