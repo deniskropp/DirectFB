@@ -571,6 +571,7 @@ window_at_pointer( CoreWindowStack *stack,
                                         alpha = *(u8*)(buf) & 0xf0;
                                         alpha |= alpha >> 4;
                                         break;
+                                   case DSPF_LUT1:
                                    case DSPF_LUT2:
                                    case DSPF_LUT8: {
                                         CorePalette *palette = surface->palette;
