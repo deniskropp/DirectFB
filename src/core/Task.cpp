@@ -718,7 +718,7 @@ Task::enableDump()
 
      D_MAGIC_ASSERT( this, Task );
 
-     DFB_TASK_CHECK_STATE( this, ~TASK_INVALID, return );
+     DFB_TASK_CHECK_STATE( this, TASK_STATE_ALL & ~TASK_INVALID, return );
 
      dump = true;
 }
@@ -766,6 +766,10 @@ void
 Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 {
 #if DFB_TASK_DEBUG_LOG
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_STATE_ALL & ~TASK_INVALID, return );
+
      Direct::Mutex::Lock lock( tasklog_lock );
 
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
@@ -789,6 +793,10 @@ Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 Direct::String &
 Task::Description()
 {
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_STATE_ALL & ~TASK_INVALID, );
+
      description.Clear();
 
      Describe( description );
