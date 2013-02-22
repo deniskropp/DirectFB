@@ -110,12 +110,14 @@ LIB_VOODOO_SOURCES = \
 #
 # libdirect object files
 LIB_DIRECT_SOURCES = \
+	$(DFB_SOURCE)/lib/direct/String.cpp			\
 	$(DFB_SOURCE)/lib/direct/clock.c				\
 	$(DFB_SOURCE)/lib/direct/conf.c				\
 	$(DFB_SOURCE)/lib/direct/debug.c				\
 	$(DFB_SOURCE)/lib/direct/direct.c				\
 	$(DFB_SOURCE)/lib/direct/direct_result.c			\
 	$(DFB_SOURCE)/lib/direct/fastlz.c				\
+	$(DFB_SOURCE)/lib/direct/fifo.c				\
 	$(DFB_SOURCE)/lib/direct/flz.c				\
 	$(DFB_SOURCE)/lib/direct/hash.c				\
 	$(DFB_SOURCE)/lib/direct/init.c				\
@@ -190,8 +192,7 @@ SURFACE_CORE_SOURCES_NEW = \
 	$(DFB_SOURCE)/src/core/surface_client.c			\
 	$(DFB_SOURCE)/src/core/surface_core.c			\
 	$(DFB_SOURCE)/src/core/surface_pool.c			\
-	$(DFB_SOURCE)/src/core/surface_allocation.cpp		\
-	$(DFB_SOURCE)/src/core/Util.cpp
+	$(DFB_SOURCE)/src/core/surface_allocation.cpp
 
 #
 
@@ -238,7 +239,7 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/gfx/generic/generic_texture_triangles.c	\
 	$(DFB_SOURCE)/src/gfx/generic/generic_util.c		\
 	$(DFB_SOURCE)/src/gfx/generic/GenefxEngine.cpp		\
-	$(DFB_SOURCE)/src/gfx/util.c				\
+	$(DFB_SOURCE)/src/gfx/util.cpp				\
 	$(DFB_SOURCE)/src/idirectfb.c				\
 	$(DFB_SOURCE)/src/init.c					\
 	$(DFB_SOURCE)/src/input/idirectfbinputbuffer.c		\
@@ -289,7 +290,9 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/CoreWindow_real.cpp		\
 	$(DFB_SOURCE)/src/core/Interface.cpp				\
 	$(DFB_SOURCE)/src/core/Renderer.cpp			\
-	$(DFB_SOURCE)/src/core/Task.cpp
+	$(DFB_SOURCE)/src/core/Task.cpp				\
+	$(DFB_SOURCE)/src/core/TaskThreadsQ.cpp			\
+	$(DFB_SOURCE)/src/core/Util.cpp
 
 #
 # DirectFB requestor object files
