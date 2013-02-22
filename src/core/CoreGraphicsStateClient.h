@@ -71,6 +71,9 @@ DFBResult CoreGraphicsStateClient_Update          ( CoreGraphicsStateClient *cli
                                                     DFBAccelerationMask      accel,
                                                     CardState               *state );
 
+DFBResult CoreGraphicsStateClient_GetAccelerationMask( CoreGraphicsStateClient *client,
+                                                       DFBAccelerationMask     *ret_accel );
+
 DFBResult CoreGraphicsStateClient_DrawRectangles  ( CoreGraphicsStateClient *client,
                                                     const DFBRectangle      *rects,
                                                     unsigned int             num );

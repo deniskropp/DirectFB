@@ -609,3 +609,53 @@ dfb_state_set_color_or_index( CardState      *state,
      }
 }
 
+DFBResult
+dfb_state_get_acceleration_mask( CardState           *state,
+                                 DFBAccelerationMask *ret_accel )
+{
+    DFBAccelerationMask mask = DFXL_NONE;
+
+    D_MAGIC_ASSERT( state, CardState );
+    D_ASSERT( ret_accel != NULL );
+
+    dfb_state_lock( state );
+
+    /* Check drawing functions */
+    if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ))
+         D_FLAGS_SET( mask, DFXL_FILLRECTANGLE );
+
+    if (dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ))
+         D_FLAGS_SET( mask, DFXL_DRAWRECTANGLE );
+
+    if (dfb_gfxcard_state_check( state, DFXL_DRAWLINE ))
+         D_FLAGS_SET( mask, DFXL_DRAWLINE );
+
+    if (dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ))
+         D_FLAGS_SET( mask, DFXL_FILLTRIANGLE );
+
+    if (dfb_gfxcard_state_check( state, DFXL_FILLTRAPEZOID ))
+         D_FLAGS_SET( mask, DFXL_FILLTRAPEZOID );
+
+    /* Check blitting functions */
+    if (state->source) {
+         if (dfb_gfxcard_state_check( state, DFXL_BLIT ))
+              D_FLAGS_SET( mask, DFXL_BLIT );
+
+         if (dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT ))
+              D_FLAGS_SET( mask, DFXL_STRETCHBLIT );
+
+         if (dfb_gfxcard_state_check( state, DFXL_TEXTRIANGLES ))
+              D_FLAGS_SET( mask, DFXL_TEXTRIANGLES );
+    }
+
+    /* Check blitting functions */
+    if (state->source2) {
+         if (dfb_gfxcard_state_check( state, DFXL_BLIT2 ))
+              D_FLAGS_SET( mask, DFXL_BLIT2 );
+    }
+
+    dfb_state_unlock( state );
+
+    return DFB_OK;
+}
+

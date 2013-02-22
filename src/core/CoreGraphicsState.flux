@@ -620,5 +620,15 @@ interface {
 			typename  DFBConvolutionFilter
 		}
 	}
-}
 
+	method {
+		name      GetAccelerationMask
+
+		arg {
+			name      accel
+			direction output
+			type      enum
+			typename  DFBAccelerationMask
+		}
+	}
+}
