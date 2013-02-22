@@ -474,8 +474,9 @@ void dfb_gfxcard_drawglyph              ( CoreGlyphData       **glyph,
 
 
 
-bool dfb_gfxcard_drawstring_check_state ( CoreFont             *font,
-                                          CardState            *state );
+bool dfb_gfxcard_drawstring_check_state ( CoreFont                *font,
+                                          CardState               *state,
+                                          CoreGraphicsStateClient *client );
 
 
 DFBResult dfb_gfxcard_sync( void );
