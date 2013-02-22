@@ -112,7 +112,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
           }
 
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-          D_DEBUG_AT( Fusion_Object, "  -> dead object %p [%u] (ref %d)\n", object, object->id, object->ref.multi.id );
+          D_DEBUG_AT( Fusion_Object, "  -> dead object %p [%u] (ref %x)\n", object, object->id, object->ref.multi.id );
 
           if (object->state == FOS_INIT) {
                D_BUG( "== %s == incomplete object: %d (%p)", pool->name, call_arg, object );
