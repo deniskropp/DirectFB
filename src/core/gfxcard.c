@@ -3765,20 +3765,24 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
      font_state_restore( state, &state_backup );
 }
 
-bool dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
+bool dfb_gfxcard_drawstring_check_state( CoreFont                *font,
+                                         CardState               *state,
+                                         CoreGraphicsStateClient *client )
 {
-     int            i;
-     bool           result;
-     CoreSurface   *surface;
-     CardState      state_backup;
-     CoreGlyphData *data = NULL;
+     int                  i;
+     bool                 result = false;
+     CoreSurface         *surface;
+     CardState            state_backup;
+     CoreGlyphData       *data = NULL;
+     DFBAccelerationMask  mask;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( font != NULL );
+     D_ASSERT( client != NULL );
 
-     D_DEBUG_AT( Core_GfxState, "%s( %p, %p )\n", __FUNCTION__, font, state );
+     D_DEBUG_AT( Core_GfxState, "%s( %p, %p, %p )\n", __FUNCTION__, font, state, client );
 
      surface = state->destination;
      D_MAGIC_ASSERT( surface, CoreSurface );
@@ -3801,12 +3805,10 @@ bool dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
      /* set the source */
      dfb_state_set_source( state, data->surface );
 
-     dfb_state_lock( state );
 
-     /* check for blitting and report */
-     result = dfb_gfxcard_state_check( state, DFXL_BLIT );
+     if (CoreGraphicsStateClient_GetAccelerationMask( client, &mask ) == DFB_OK)
+          result = !!(mask & DFXL_BLIT);
 
-     dfb_state_unlock( state );
 
      dfb_font_unlock( font );
 
