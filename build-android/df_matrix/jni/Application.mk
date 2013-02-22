@@ -1,0 +1,1 @@
+../../common_files/Application.mk
