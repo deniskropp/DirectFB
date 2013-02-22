@@ -516,5 +516,8 @@ void dfb_state_set_color_or_index( CardState      *state,
                                    const DFBColor *color,
                                    int             index );
 
+DFBResult dfb_state_get_acceleration_mask( CardState           *state,
+                                           DFBAccelerationMask *ret_accel );
+
 #endif
 

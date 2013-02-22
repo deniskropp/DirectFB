@@ -150,6 +150,8 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      D_ASSERT( data != NULL );
      D_ASSERT( data->children_data == NULL );
 
+     CoreGraphicsStateClient_FlushCurrent();
+
      if (data->surface_client)
           dfb_surface_client_unref( data->surface_client );
 
@@ -281,7 +283,8 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
                                       IDirectFBSurface    *source,
                                       DFBAccelerationMask *ret_mask )
 {
-     DFBAccelerationMask mask = DFXL_NONE;
+     DFBResult           ret;
+     DFBAccelerationMask mask;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -293,55 +296,22 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      if (!ret_mask)
           return DFB_INVARG;
 
-     dfb_state_lock( &data->state );
-
-     /* Check drawing functions */
-     if (dfb_gfxcard_state_check( &data->state, DFXL_FILLRECTANGLE ))
-          mask |= DFXL_FILLRECTANGLE;
-
-     if (dfb_gfxcard_state_check( &data->state, DFXL_DRAWRECTANGLE ))
-          mask |= DFXL_DRAWRECTANGLE;
-
-     if (dfb_gfxcard_state_check( &data->state, DFXL_DRAWLINE ))
-          mask |= DFXL_DRAWLINE;
-
-     if (dfb_gfxcard_state_check( &data->state, DFXL_FILLTRIANGLE ))
-          mask |= DFXL_FILLTRIANGLE;
-
-     if (dfb_gfxcard_state_check( &data->state, DFXL_FILLTRAPEZOID ))
-          mask |= DFXL_FILLTRAPEZOID;
-
-     dfb_state_unlock( &data->state );
-
-     /* Check blitting functions */
      if (source) {
           IDirectFBSurface_data *src_data = source->priv;
 
           dfb_state_set_source( &data->state, src_data->surface );
           dfb_state_set_source2( &data->state, data->surface ); // FIXME
-
-          dfb_state_lock( &data->state );
-
-          if (dfb_gfxcard_state_check( &data->state, DFXL_BLIT ))
-               mask |= DFXL_BLIT;
-
-          if (dfb_gfxcard_state_check( &data->state, DFXL_BLIT2 ))
-               mask |= DFXL_BLIT2;
-
-          if (dfb_gfxcard_state_check( &data->state, DFXL_STRETCHBLIT ))
-               mask |= DFXL_STRETCHBLIT;
-
-          if (dfb_gfxcard_state_check( &data->state, DFXL_TEXTRIANGLES ))
-               mask |= DFXL_TEXTRIANGLES;
-
-          dfb_state_unlock( &data->state );
      }
+
+     ret = CoreGraphicsStateClient_GetAccelerationMask( &data->state_client, &mask );
+     if (ret)
+          return ret;
 
      /* Check text rendering function */
      if (data->font) {
           IDirectFBFont_data *font_data = data->font->priv;
 
-          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state ))
+          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state, &data->state_client ))
                mask |= DFXL_DRAWSTRING;
      }
 

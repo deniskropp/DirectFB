@@ -1249,6 +1249,59 @@ IGraphicsState_Real::SetSrcConvolution(
     return DFB_OK;
 }
 
+DFBResult
+IGraphicsState_Real::GetAccelerationMask(
+                    DFBAccelerationMask *ret_accel
+)
+{
+    DFBAccelerationMask mask = DFXL_NONE;
+
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+
+    D_ASSERT( ret_accel != NULL );
+
+    return dfb_state_get_acceleration_mask( &obj->state, ret_accel );
+    dfb_state_lock( &obj->state );
+
+    /* Check drawing functions */
+    if (dfb_gfxcard_state_check( &obj->state, DFXL_FILLRECTANGLE ))
+         D_FLAGS_SET( mask, DFXL_FILLRECTANGLE );
+
+    if (dfb_gfxcard_state_check( &obj->state, DFXL_DRAWRECTANGLE ))
+         D_FLAGS_SET( mask, DFXL_DRAWRECTANGLE );
+
+    if (dfb_gfxcard_state_check( &obj->state, DFXL_DRAWLINE ))
+         D_FLAGS_SET( mask, DFXL_DRAWLINE );
+
+    if (dfb_gfxcard_state_check( &obj->state, DFXL_FILLTRIANGLE ))
+         D_FLAGS_SET( mask, DFXL_FILLTRIANGLE );
+
+    if (dfb_gfxcard_state_check( &obj->state, DFXL_FILLTRAPEZOID ))
+         D_FLAGS_SET( mask, DFXL_FILLTRAPEZOID );
+
+    /* Check blitting functions */
+    if (obj->state.source) {
+         if (dfb_gfxcard_state_check( &obj->state, DFXL_BLIT ))
+              D_FLAGS_SET( mask, DFXL_BLIT );
+
+         if (dfb_gfxcard_state_check( &obj->state, DFXL_STRETCHBLIT ))
+              D_FLAGS_SET( mask, DFXL_STRETCHBLIT );
+
+         if (dfb_gfxcard_state_check( &obj->state, DFXL_TEXTRIANGLES ))
+              D_FLAGS_SET( mask, DFXL_TEXTRIANGLES );
+    }
+
+    /* Check blitting functions */
+    if (obj->state.source2) {
+         if (dfb_gfxcard_state_check( &obj->state, DFXL_BLIT2 ))
+              D_FLAGS_SET( mask, DFXL_BLIT2 );
+    }
+
+    dfb_state_unlock( &obj->state );
+
+    return DFB_OK;
+}
+
 
 }
 
