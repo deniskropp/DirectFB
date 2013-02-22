@@ -246,7 +246,7 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
      dfb_state_lock( state );
 
      if (state->source != source) {
-          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+          bool ref = true;//!fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
 
           if (source && ref && dfb_surface_ref( source )) {
                D_WARN( "could not ref() source" );
@@ -287,7 +287,7 @@ dfb_state_set_source_2( CardState   *state,
      dfb_state_lock( state );
 
      if (state->source != source || state->source_flip_count != flip_count || !state->source_flip_count_used) {
-          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+          bool ref = true;//!fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
 
           if (source && ref && dfb_surface_ref( source )) {
                D_WARN( "could not ref() source" );
@@ -331,7 +331,7 @@ dfb_state_set_source2( CardState *state, CoreSurface *source2 )
      dfb_state_lock( state );
 
      if (state->source2 != source2) {
-          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+          bool ref = true;//!fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
 
           if (source2 && ref && dfb_surface_ref( source2 )) {
                D_WARN( "could not ref() source2" );
@@ -370,7 +370,7 @@ dfb_state_set_source_mask( CardState *state, CoreSurface *source_mask )
      dfb_state_lock( state );
 
      if (state->source_mask != source_mask) {
-          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+          bool ref = true;//!fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
 
           if (source_mask && ref && dfb_surface_ref( source_mask )) {
                D_WARN( "could not ref() source mask" );
