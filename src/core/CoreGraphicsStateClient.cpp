@@ -496,15 +496,7 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_MAGIC_ASSERT( state, CardState );
 
-     /*
-      * dfb_gfxcard_state_check() moves flags to mod_hw,
-      * called from IDirectFBSurface::GetAccelerationMask().
-      *
-      * FIXME: Add GetAccelerationMask() to CoreGraphicsState flux
-      *        and do not load the graphics driver at slaves anymore.
-      */
-     state->modified = (StateModificationFlags)(state->modified | state->mod_hw);
-     state->mod_hw   = SMF_NONE;
+     D_ASSERT( state->mod_hw == SMF_NONE );
 
      if (state->render_options & DSRO_MATRIX)
           flags = (StateModificationFlags)(flags | SMF_MATRIX);
