@@ -46,10 +46,10 @@ namespace Direct {
 
 template <typename _Entity>
 class Magic {
-#if D_DEBUG_ENABLED
 private:
      int magic;
 
+#if D_DEBUG_ENABLED
 public:
      Magic()
           :
