@@ -96,9 +96,6 @@ public:
 };
 
 
-std::string DFBAccelerationMask_Name( DFBAccelerationMask accel );
-
-
 }
 
 
