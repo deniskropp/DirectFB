@@ -2696,6 +2696,8 @@ Renderer::bindEngine( Engine              *engine,
      if (!setup)
           setup = new Setup( state->destination->config.size.w, state->destination->config.size.h, engine->caps.cores );
 
+     D_ASSERT( setup != NULL );
+
      ret = engine->bind( setup );
      if (ret) {
           D_DERROR( ret, "DirectFB/Renderer: Failed to bind engine!\n" );
@@ -2755,6 +2757,8 @@ Renderer::unbindEngine()
 DFBResult
 Renderer::rebindEngine( DFBAccelerationMask  accel )
 {
+     Engine *last_engine = engine;
+
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
      D_ASSERT( engine != NULL );
@@ -2767,12 +2771,16 @@ Renderer::rebindEngine( DFBAccelerationMask  accel )
 
      /// par flush
      setup->tasks[0]->Flush();
+     for (unsigned int i=0; i<setup->tiles; i++) {
+          setup->tasks[i] = NULL;
+     }
 
+     engine     = NULL;
      operations = 0;
 
      allocations.clear();
 
-     return bindEngine( engine, accel );
+     return bindEngine( last_engine, accel );
 }
 
 
