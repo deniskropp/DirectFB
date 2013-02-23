@@ -55,6 +55,7 @@ include_HEADERS = \
 	Performer.h			\
 	String.h			\
 	TLSObject.h			\
+	ToString.h			\
 	atomic.h			\
 	build.h				\
 	clock.h				\
