@@ -65,6 +65,8 @@ extern "C" {
 #include <list>
 #include <map>
 
+#include <direct/Magic.h>
+
 
 namespace DirectFB {
 
@@ -133,7 +135,7 @@ class Base;
 }
 
 
-class Renderer
+class Renderer : public Direct::Magic<Renderer>
 {
 public:
      class Setup

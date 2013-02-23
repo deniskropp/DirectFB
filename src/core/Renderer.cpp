@@ -1958,17 +1958,22 @@ Quadrangles::render( Renderer::Setup *setup,
 Renderer::Renderer( CardState *state )
      :
      state( state ),
+     state_mod( SMF_NONE ),
+     transform_type( WTT_IDENTITY ),
      engine( NULL ),
      setup( NULL ),
      operations( 0 )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
 
+     CHECK_MAGIC();
 }
 
 Renderer::~Renderer()
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
+
+     CHECK_MAGIC();
 
      Flush();
 }
@@ -1977,7 +1982,9 @@ Renderer::~Renderer()
 void
 Renderer::Flush()
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
+
+     CHECK_MAGIC();
 
      if (engine) {
           unbindEngine();
@@ -1996,6 +2003,8 @@ Renderer::FlushCurrent()
 
      RendererTLS *tls = Renderer_GetTLS();
 
+     D_DEBUG_AT( DirectFB_Renderer, "  -> current renderer is %p\n", tls->last_renderer );
+
      if (tls->last_renderer)
           tls->last_renderer->Flush();
 }
@@ -2006,7 +2015,15 @@ Renderer::enterLock( CoreSurfaceBufferLock  *lock,
                      CoreSurfaceAllocation  *allocation,
                      CoreSurfaceAccessFlags  flags )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( flags 0x%02x )\n", __FUNCTION__, flags );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, flags 0x%02x )\n", __FUNCTION__, this, flags );
+
+     CHECK_MAGIC();
+
+     D_ASSERT( lock != NULL );
+     D_ASSERT( allocation != NULL );
+
+     D_ASSERT( setup != NULL );
+     D_ASSERT( setup->tasks[0] != NULL );
 
      /*
         FIXME: move to engine / task
@@ -2022,11 +2039,17 @@ Renderer::enterLock( CoreSurfaceBufferLock  *lock,
 DFBResult
 Renderer::leaveLock( CoreSurfaceBufferLock *lock )
 {
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
+
+     CHECK_MAGIC();
+
+     D_ASSERT( lock != NULL );
+
      /*
         FIXME: move to engine / task
      */
      if (lock->buffer) {
-          D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+          D_ASSERT( lock->allocation != NULL );
 
           dfb_surface_pool_unlock( lock->allocation->pool, lock->allocation, lock );
           dfb_surface_buffer_lock_deinit( lock );
@@ -2048,8 +2071,12 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
      CoreSurfaceAllocation *allocation;
      SurfaceAllocationMap::iterator it;
 
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
 
+     CHECK_MAGIC();
+
+     D_ASSERT( lock != NULL );
+     D_ASSERT( surface != NULL );
 
      // FIXME: don't need to unlock/lock every time in most cases, move to engine
 
@@ -2121,7 +2148,14 @@ Renderer::update( DFBAccelerationMask accel )
 {
      CoreSurfaceAccessFlags access = CSAF_WRITE;
 
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( accel 0x%08x )\n", __FUNCTION__, accel );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, accel 0x%08x )\n", __FUNCTION__, this, accel );
+
+     CHECK_MAGIC();
+
+     D_ASSERT( state != NULL );
+     D_ASSERT( engine != NULL );
+     D_ASSERT( setup != NULL );
+
      D_DEBUG_AT( DirectFB_Renderer, "  -> modified  0x%08x\n", state->modified );
      D_DEBUG_AT( DirectFB_Renderer, "  -> mod_hw    0x%08x\n", state->mod_hw );
      D_DEBUG_AT( DirectFB_Renderer, "  -> state_mod 0x%08x\n", state_mod );
@@ -2232,8 +2266,16 @@ Renderer::update( DFBAccelerationMask accel )
 void
 Renderer::render( Primitives::Base *primitives )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( '%s' ) <- modified 0x%08x\n",
-                 __FUNCTION__, Util::DFBAccelerationMask_Name(primitives->accel).c_str(), state->modified );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p )\n", __FUNCTION__, this, primitives );
+
+     CHECK_MAGIC();
+
+     D_ASSERT( state != NULL );
+     D_ASSERT( engine != NULL || setup == NULL );
+
+     D_DEBUG_AT( DirectFB_Renderer, "  -> '%s' (modified 0x%08x)\n",
+                 Util::DFBAccelerationMask_Name(primitives->accel).c_str(), state->modified );
+
 
      RendererTLS *tls = Renderer_GetTLS();
 
@@ -2406,7 +2448,7 @@ void
 Renderer::DrawRectangles( const DFBRectangle *rects,
                           unsigned int        num_rects )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, rects, num_rects );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p [%d] )\n", __FUNCTION__, this, rects, num_rects );
 
      Primitives::Rectangles primitives( rects, num_rects, DFXL_DRAWRECTANGLE );
 
@@ -2417,7 +2459,7 @@ void
 Renderer::DrawLines( const DFBRegion *lines,
                      unsigned int     num_lines )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p [%d] )\n", __FUNCTION__, this, lines, num_lines );
 
      Primitives::Lines primitives( lines, num_lines, DFXL_DRAWLINE );
 
@@ -2428,7 +2470,7 @@ void
 Renderer::FillRectangles( const DFBRectangle *rects,
                           unsigned int        num_rects )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, rects, num_rects );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p [%d] )\n", __FUNCTION__, this, rects, num_rects );
 
      Primitives::Rectangles primitives( rects, num_rects, DFXL_FILLRECTANGLE );
 
@@ -2439,7 +2481,7 @@ void
 Renderer::FillQuadrangles( const DFBPoint *points,
                            unsigned int    num_quads )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, points, num_quads );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p [%d] )\n", __FUNCTION__, this, points, num_quads );
 
      Primitives::Quadrangles primitives( points, num_quads, DFXL_FILLQUADRANGLE );
 
@@ -2450,7 +2492,7 @@ void
 Renderer::FillTriangles( const DFBTriangle *tris,
                          unsigned int       num_tris )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, tris, num_tris );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p [%d] )\n", __FUNCTION__, this, tris, num_tris );
 
      Primitives::Triangles primitives( tris, num_tris, DFXL_FILLTRIANGLE );
 
@@ -2461,7 +2503,7 @@ void
 Renderer::FillTrapezoids( const DFBTrapezoid *traps,
                           unsigned int        num_traps )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d] )\n", __FUNCTION__, traps, num_traps );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p [%d] )\n", __FUNCTION__, this, traps, num_traps );
 
      Primitives::Trapezoids primitives( traps, num_traps, DFXL_FILLTRAPEZOID );
 
@@ -2473,7 +2515,7 @@ Renderer::FillSpans( int            y,
                      const DFBSpan *spans,
                      unsigned int   num_spans )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %d, %p [%d] )\n", __FUNCTION__, y, spans, num_spans );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %d %p [%d] )\n", __FUNCTION__, this, y, spans, num_spans );
 
      Primitives::Spans primitives( y, spans, num_spans, DFXL_FILLSPAN );
 
@@ -2485,7 +2527,7 @@ Renderer::Blit( const DFBRectangle     *rects,
                 const DFBPoint         *points,
                 u32                     num )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p [%d] )\n", __FUNCTION__, rects, points, num );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p %p [%d] )\n", __FUNCTION__, this, rects, points, num );
 
      Primitives::Blits primitives( rects, points, num, DFXL_BLIT );
 
@@ -2498,7 +2540,7 @@ Renderer::Blit2( const DFBRectangle     *rects,
                  const DFBPoint         *points2,
                  u32                     num )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p %p/%p [%d] )\n", __FUNCTION__, this, rects, points1, points2, num );
 
      Primitives::Blits2 primitives( rects, points1, points2, num, DFXL_BLIT2 );
 
@@ -2510,7 +2552,7 @@ Renderer::StretchBlit( const DFBRectangle     *srects,
                        const DFBRectangle     *drects,
                        u32                     num )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p %p [%d] )\n", __FUNCTION__, srects, drects, num );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p %p [%d] )\n", __FUNCTION__, this, srects, drects, num );
 
      if (num == 1) {
           if (srects[0].w == drects[0].w && srects[0].h == drects[0].h) {
@@ -2535,7 +2577,7 @@ Renderer::TileBlit( const DFBRectangle     *rects,
                     const DFBPoint         *points2,
                     u32                     num )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
 
      Primitives::TileBlits primitives( rects, points1, points2, num, DFXL_TILEBLIT );
 
@@ -2547,7 +2589,7 @@ Renderer::TextureTriangles( const DFBVertex      *vertices,
                             int                   num,
                             DFBTriangleFormation  formation )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p [%d], formation %d )\n", __FUNCTION__, vertices, num, formation );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %p [%d], formation %d )\n", __FUNCTION__, this, vertices, num, formation );
 
      Primitives::TexTriangles primitives( vertices, num, formation, DFXL_TEXTRIANGLES );
 
@@ -2560,8 +2602,10 @@ DFBAccelerationMask
 Renderer::getTransformAccel( DFBAccelerationMask accel,
                              WaterTransformType  type )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( '%s', type 0x%04x )\n",
-                 __FUNCTION__, Util::DFBAccelerationMask_Name(accel).c_str(), type );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, '%s', type 0x%04x )\n",
+                 __FUNCTION__, this, Util::DFBAccelerationMask_Name(accel).c_str(), type );
+
+     CHECK_MAGIC();
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -2641,8 +2685,10 @@ Engine *
 Renderer::getEngine( DFBAccelerationMask  accel,
                      WaterTransformType   transform )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( '%s', transform 0x%04x )\n", __FUNCTION__,
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, '%s', transform 0x%04x )\n", __FUNCTION__, this,
                  Util::DFBAccelerationMask_Name(accel).c_str(), transform );
+
+     CHECK_MAGIC();
 
      if (engine && (transform & engine->caps.transforms) == transform) {
           /* If the function needs to be checked... */
@@ -2688,7 +2734,9 @@ Renderer::bindEngine( Engine              *engine,
 {
      DFBResult ret;
 
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, engine %p, accel 0x%08x )\n", __FUNCTION__, this, engine, accel );
+
+     CHECK_MAGIC();
 
      D_ASSERT( this->engine == NULL || this->setup != NULL );
 
@@ -2732,7 +2780,9 @@ Renderer::bindEngine( Engine              *engine,
 void
 Renderer::unbindEngine()
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
+
+     CHECK_MAGIC();
 
      D_ASSERT( engine != NULL );
      D_ASSERT( setup != NULL );
@@ -2759,7 +2809,9 @@ Renderer::rebindEngine( DFBAccelerationMask  accel )
 {
      Engine *last_engine = engine;
 
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
+
+     CHECK_MAGIC();
 
      D_ASSERT( engine != NULL );
      D_ASSERT( setup != NULL );
@@ -2771,9 +2823,8 @@ Renderer::rebindEngine( DFBAccelerationMask  accel )
 
      /// par flush
      setup->tasks[0]->Flush();
-     for (unsigned int i=0; i<setup->tiles; i++) {
-          setup->tasks[i] = NULL;
-     }
+
+     memset( setup->tasks, 0, sizeof(SurfaceTask*) * setup->tiles );
 
      engine     = NULL;
      operations = 0;
