@@ -1236,7 +1236,7 @@ static void *
 fusion_dispatch_loop( DirectThread *thread, void *arg )
 {
      int          len = 0;
-     char        *buf = malloc(FUSION_MESSAGE_SIZE*4);     // FIXME: Use free()!
+     char        *buf = malloc(FUSION_MESSAGE_SIZE*4);
      FusionWorld *world = arg;
 
      D_DEBUG_AT( Fusion_Main_Dispatch, "%s() running...\n", __FUNCTION__ );
