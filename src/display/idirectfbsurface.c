@@ -522,6 +522,8 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
           role = CSBR_BACK;
      }
 
+     CoreGraphicsStateClient_FlushCurrent();
+
      ret = dfb_surface_lock_buffer( data->surface, role, CSAID_CPU, access, &data->lock );
      if (ret)
           return ret;
