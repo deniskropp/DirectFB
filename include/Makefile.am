@@ -48,6 +48,9 @@ directfb_strings.h: directfb.h $(MKNAMES) Makefile
 
 	@$(MKNAMES) DFBSurfacePixelFormat DSPF UNKNOWN PixelFormat format $(INCP)/directfb.h >> $@
 
+	@$(MKNAMES) DFBSurfaceCapabilities DSCAPS NONE SurfaceCapabilities capability $(INCP)/directfb.h \
+	   | grep -v DSCAPS_FLIPPING | grep -v DSCAPS_ALL >> $@
+
 	@$(MKNAMES) DFBSurfaceColorSpace DSCS UNKNOWN ColorSpace colorspace $(INCP)/directfb.h >> $@
 
 	@$(MKNAMES) DFBInputDeviceTypeFlags DIDTF NONE InputDeviceTypeFlags type $(INCP)/directfb.h \
