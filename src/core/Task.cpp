@@ -787,7 +787,7 @@ Task::Description()
 /*********************************************************************************************************************/
 
 DirectThread     *TaskManager::thread;
-FastFIFO<Task*>   TaskManager::fifo;
+FIFO<Task*>       TaskManager::fifo;
 unsigned int      TaskManager::task_count;
 unsigned int      TaskManager::task_count_sync;
 #if DFB_TASK_DEBUG_TASKS

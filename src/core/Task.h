@@ -311,7 +311,7 @@ private:
      friend class Task;
 
      static DirectThread      *thread;
-     static FastFIFO<Task*>    fifo;
+     static FIFO<Task*>        fifo;
      static unsigned int       task_count;
      static unsigned int       task_count_sync;
 
