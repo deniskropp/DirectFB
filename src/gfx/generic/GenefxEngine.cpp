@@ -191,7 +191,7 @@ public:
 
      virtual DFBResult bind          ( Renderer::Setup        *setup )
      {
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %p )\n", __FUNCTION__, this );
 
           threads.fifo.waitMost( caps.cores * 3 );
 
@@ -206,7 +206,7 @@ public:
 
      virtual DFBResult check         ( Renderer::Setup        *setup )
      {
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %p )\n", __FUNCTION__, this );
 
 //          for (unsigned int i=0; i<setup->tiles; i++) {
                GenefxTask *mytask = (GenefxTask *) setup->tasks[0];
@@ -222,7 +222,7 @@ public:
      virtual DFBResult CheckState    ( CardState              *state,
                                        DFBAccelerationMask     accel )
      {
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %p )\n", __FUNCTION__, this );
 
           switch (accel) {
                case DFXL_FILLRECTANGLE:
@@ -251,7 +251,7 @@ public:
           StateModificationFlags  required = (StateModificationFlags)(SMF_TO | SMF_DESTINATION | SMF_CLIP | SMF_RENDER_OPTIONS);
           StateModificationFlags  emitting;
 
-          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s()\n", __FUNCTION__ );
+          D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %p )\n", __FUNCTION__, this );
 
 
           if (state->render_options & DSRO_MATRIX)
