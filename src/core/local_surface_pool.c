@@ -89,6 +89,9 @@ localInitPool( CoreDFB                    *core,
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_INTERNAL;
      ret_desc->priority          = CSPP_DEFAULT;
 
+     if (dfb_system_caps() & CSCAPS_SYSMEM_EXTERNAL)
+          ret_desc->types |= CSTF_EXTERNAL;
+
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "System Memory" );
 
      return DFB_OK;
