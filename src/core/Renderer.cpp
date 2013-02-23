@@ -46,6 +46,7 @@ extern "C" {
 #include <gfx/util.h>
 }
 
+#include <Debug.h>
 #include <Util.h>
 
 
@@ -2103,7 +2104,7 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
                /* If no allocation exists, create one. */
                ret = dfb_surface_pools_allocate( buffer, setup->tasks[0]->accessor, flags, &allocation );
                if (ret) {
-                    D_DERROR( ret, "DirectFB/Renderer: Buffer allocation failed!\n" );
+                    D_DERROR( ret, "DirectFB/Renderer: Buffer allocation failed (%s)!\n", Debug::ToString<CoreSurfaceBuffer>(*buffer).buffer() );
                     dfb_surface_unlock( surface );
                     return ret;
                }
@@ -2274,7 +2275,7 @@ Renderer::render( Primitives::Base *primitives )
      D_ASSERT( engine != NULL || setup == NULL );
 
      D_DEBUG_AT( DirectFB_Renderer, "  -> '%s' (modified 0x%08x)\n",
-                 Util::DFBAccelerationMask_Name(primitives->accel).c_str(), state->modified );
+                 Debug::ToString<DFBAccelerationMask>(primitives->accel).buffer(), state->modified );
 
 
      RendererTLS *tls = Renderer_GetTLS();
@@ -2378,11 +2379,11 @@ Renderer::render( Primitives::Base *primitives )
           if (!next_engine) {
                DFBAccelerationMask next_accel = getTransformAccel( accel, transform );
 
-               D_DEBUG_AT( DirectFB_Renderer, "  -> next_accel '%s'\n", Util::DFBAccelerationMask_Name(next_accel).c_str() );
+               D_DEBUG_AT( DirectFB_Renderer, "  -> next_accel '%s'\n", Debug::ToString<DFBAccelerationMask>(next_accel).buffer() );
 
                if (!next_accel) {
                     D_WARN( "no tesselation for '%s' transform 0x%04x",
-                            Util::DFBAccelerationMask_Name(accel).c_str(), transform );
+                            Debug::ToString<DFBAccelerationMask>(accel).buffer(), transform );
                     goto out;
                }
 
@@ -2391,7 +2392,7 @@ Renderer::render( Primitives::Base *primitives )
 
                if (!output) {
                     D_WARN( "no tesselation from '%s' to '%s'",
-                            Util::DFBAccelerationMask_Name(accel).c_str(), Util::DFBAccelerationMask_Name(next_accel).c_str() );
+                            Debug::ToString<DFBAccelerationMask>(accel).buffer(), Debug::ToString<DFBAccelerationMask>(next_accel).buffer() );
                     goto out;
                }
 
@@ -2603,7 +2604,7 @@ Renderer::getTransformAccel( DFBAccelerationMask accel,
                              WaterTransformType  type )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, '%s', type 0x%04x )\n",
-                 __FUNCTION__, this, Util::DFBAccelerationMask_Name(accel).c_str(), type );
+                 __FUNCTION__, this, Debug::ToString<DFBAccelerationMask>(accel).buffer(), type );
 
      CHECK_MAGIC();
 
@@ -2686,7 +2687,7 @@ Renderer::getEngine( DFBAccelerationMask  accel,
                      WaterTransformType   transform )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, '%s', transform 0x%04x )\n", __FUNCTION__, this,
-                 Util::DFBAccelerationMask_Name(accel).c_str(), transform );
+                 Debug::ToString<DFBAccelerationMask>(accel).buffer(), transform );
 
      CHECK_MAGIC();
 
