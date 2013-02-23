@@ -50,6 +50,7 @@ include_HEADERS = \
 	$(ppcasm_headers)		\
 	$(armasm_headers)		\
 	LockWQ.h			\
+	Magic.h				\
 	Mutex.h				\
 	Performer.h			\
 	String.h			\
