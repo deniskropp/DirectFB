@@ -462,6 +462,34 @@ fusion_object_get( FusionObjectPool  *pool,
 }
 
 DirectResult
+fusion_object_lookup( FusionObjectPool  *pool,
+                      FusionObjectID     object_id,
+                      FusionObject     **ret_object )
+{
+     DirectResult  ret = DR_IDNOTFOUND;
+     FusionObject *object;
+
+     D_MAGIC_ASSERT( pool, FusionObjectPool );
+     D_ASSERT( ret_object != NULL );
+
+     /* Lock the pool. */
+     if (fusion_skirmish_prevail( &pool->lock ))
+          return DR_FUSION;
+
+     object = fusion_hash_lookup( pool->objects, (void*)(long) object_id );
+     if (object) {
+          ret = DR_OK;
+
+          *ret_object = object;
+     }
+
+     /* Unlock the pool. */
+     fusion_skirmish_dismiss( &pool->lock );
+
+     return ret;
+}
+
+DirectResult
 fusion_object_set_lock( FusionObject   *object,
                         FusionSkirmish *lock )
 {
