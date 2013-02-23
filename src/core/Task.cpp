@@ -280,10 +280,10 @@ Task::~Task()
           DFB_TASK_CHECK_STATE( this, TASK_NEW, );
 #endif
 
-     state = TASK_INVALID;
-
      if (dump)
           DumpLog( DirectFB_Task, DIRECT_LOG_VERBOSE );
+
+     state = TASK_INVALID;
 
      D_MAGIC_CLEAR( this );
 }
