@@ -274,6 +274,8 @@ fusion_ref_down (FusionRef *ref, bool global)
                }
 
                if (! --ref->single.refs) {
+                    ref->single.dead++;
+
                     if (ref->multi.id == fusion_config->trace_ref) {
                          D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs %d, call %p\n", ref->multi.id, global ? "global" : "local", ref->single.refs,
                                  ref->single.call );
