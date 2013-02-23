@@ -46,7 +46,7 @@ extern "C" {
 #define DFB_TASK_DEBUG_LOG    (0)  // Task::Log(), DumpLog() enabled
 #define DFB_TASK_DEBUG_STATE  (1)  // DFB_TASK_CHECK_STATE with warning and task log if enabled
 #define DFB_TASK_DEBUG_TASKS  (0)  // TaskManager::dumpTasks() enabled
-#define DFB_TASK_DEBUG_TIMES  (1)  // print warnings when task operations exceed time limits (set below)
+#define DFB_TASK_DEBUG_TIMES  (0)  // print warnings when task operations exceed time limits (set below)
 
 /* max times in micro seconds before warning appears */
 #define DFB_TASK_WARN_EMIT    3000
@@ -95,8 +95,8 @@ D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
 #define DFB_TASK_CHECK_STATE( _task, _states, _ret )                                 \
      do {                                                                            \
           if (!((_task)->state & (_states))) {                                       \
-               D_WARN( "task state (0x%02x) does not match 0x%02x -- %s",            \
-                       (_task)->state, (_states), (_task)->Description().buffer() ); \
+               D_WARN( "task state (0x%02x) does not match 0x%02x -- %p",            \
+                       (_task)->state, (_states), _task );                           \
                                                                                      \
                (_task)->DumpLog( DirectFB_Task, DIRECT_LOG_INFO );                   \
                                                                                      \
@@ -153,6 +153,7 @@ D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
 }
 
 
+#include <direct/Magic.h>
 #include <direct/Mutex.h>
 #include <direct/Performer.h>
 #include <direct/String.h>
@@ -204,7 +205,7 @@ class DisplayTask;
 typedef std::pair<Task*,bool> TaskNotify;
 
 
-class Task
+class Task : public Direct::Magic<Task>
 {
 public:
      int magic;
@@ -329,7 +330,7 @@ public:
 };
 
 
-class TaskThreads {
+class TaskThreads : public Direct::Magic<TaskThreads> {
 private:
      DirectFB::FIFO<Task*>      fifo;
      std::vector<DirectThread*> threads;
@@ -392,9 +393,9 @@ public:
      }
 };
 
-class TaskThreadsQ {
+class TaskThreadsQ : public Direct::Magic<TaskThreadsQ> {
 private:
-     class Runner {
+     class Runner : public Direct::Magic<Runner> {
      public:
           TaskThreadsQ *threads;
           unsigned int  index;
@@ -430,7 +431,7 @@ private:
 };
 
 
-class SurfaceAllocationAccess {
+class SurfaceAllocationAccess : public Direct::Magic<SurfaceAllocationAccess> {
 public:
      CoreSurfaceAllocation  *allocation;
      CoreSurfaceAccessFlags  flags;
