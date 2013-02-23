@@ -16,6 +16,23 @@ AM_CPPFLAGS = \
 	-DFLUXED_ARGS_BYTES=@FLUXED_ARGS_BYTES@
 
 
+MKNAMES = $(top_srcdir)/tools/mknames.sh
+INCP = $(srcdir)
+
+DISTCLEANFILES = core_strings.h
+
+core_strings.h: surface.h $(MKNAMES) Makefile
+	@echo '#ifndef __CORE__CORE_STRINGS_H__' > $@
+	@echo '#define __CORE__CORE_STRINGS_H__' >> $@
+	@echo '#include <surface.h>' >> $@
+
+	@$(MKNAMES) CoreSurfaceTypeFlags CSTF NONE CoreSurfaceTypeFlags flag $(INCP)/surface.h \
+	   | grep -v CSTF_ALL >> $@
+
+	@echo '' >> $@
+	@echo '#endif' >> $@
+
+
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
@@ -58,6 +75,7 @@ internalinclude_HEADERS = \
 	coredefs.h		\
 	coretypes.h		\
 	core_parts.h		\
+	core_strings.h		\
 	core_system.h		\
 	core.h			\
 	fonts.h			\
