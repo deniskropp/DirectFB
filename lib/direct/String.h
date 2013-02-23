@@ -68,22 +68,6 @@ public:
      {
      }
 
-     String( const std::string &str,
-             size_t             pos = 0,
-             size_t             len = -1 )
-          :
-          str( str, pos, len )
-     {
-     }
-
-     String( const char *buf,
-             size_t      pos = 0,
-             size_t      len = -1 )
-          :
-          str( buf, pos, len )
-     {
-     }
-
      String( const char *format, ... )            D_FORMAT_PRINTF(2);
 
      String &
