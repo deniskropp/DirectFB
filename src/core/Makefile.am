@@ -64,6 +64,7 @@ internalinclude_HEADERS = \
 	CoreWindow_includes.h	\
 	$(builddir)/CoreWindowStack.h		\
 	CoreWindowStack_includes.h	\
+	Debug.h			\
 	Fifo.h			\
 	Interface.h		\
 	PacketBuffer.h		\
@@ -141,6 +142,7 @@ libdirectfb_core_la_SOURCES = \
 	CoreWindow_real.cpp	\
 	$(builddir)/CoreWindowStack.cpp		\
 	CoreWindowStack_real.cpp	\
+	Debug.cpp		\
 	Interface.cpp		\
 	Renderer.cpp		\
 	Task.cpp		\
