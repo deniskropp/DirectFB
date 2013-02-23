@@ -212,40 +212,6 @@ SimpleTask_Create( SimpleTaskFunc  *push,
 
 /*********************************************************************************************************************/
 
-static inline const char *
-state_name( TaskState state )
-{
-     switch (state) {
-          case TASK_STATE_NONE:
-               return "<NONE>";
-
-          case TASK_NEW:
-               return "NEW";
-
-          case TASK_FLUSHED:
-               return "FLUSHED";
-
-          case TASK_READY:
-               return "READY";
-
-          case TASK_RUNNING:
-               return "RUNNING";
-
-          case TASK_DONE:
-               return "DONE";
-
-          case TASK_INVALID:
-               return "INVALID";
-
-          case TASK_STATE_ALL:
-               return "<ALL>";
-     }
-
-     return "invalid";
-}
-
-/*********************************************************************************************************************/
-
 Task::Task()
      :
      magic( D_MAGIC("Task") ),
@@ -401,6 +367,8 @@ Task::emit( int following )
           std::vector<TaskNotify>::iterator it = notifies.begin();
 
           while (it != notifies.end()) {
+               DFB_TASK_CHECK_STATE( (*it).first, TASK_READY, );
+
                if ((*it).second) {
                     (*it).first->handleNotify( following - 1 );
 
@@ -408,6 +376,15 @@ Task::emit( int following )
                }
                else
                     ++it;
+          }
+     }
+     else {
+          std::vector<TaskNotify>::iterator it = notifies.begin();
+
+          while (it != notifies.end()) {
+               DFB_TASK_CHECK_STATE( (*it).first, TASK_READY, );
+
+               ++it;
           }
      }
 
@@ -594,7 +571,7 @@ void
 Task::Describe( Direct::String &string )
 {
      string.PrintF( "0x%08lx   %-7s  0x%04x   %2zu   %2d   %2d   %s   %s  [%zx]",
-                    (unsigned long) this, state_name(state), flags, notifies.size(), block_count,
+                    (unsigned long) this, dfb_task_state_name(state), flags, notifies.size(), block_count,
                     slaves, master ? "><" : "  ", finished ? "YES" : "no ", qid );
 }
 
