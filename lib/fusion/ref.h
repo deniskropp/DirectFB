@@ -57,6 +57,7 @@ typedef union {
           int                      refs;
           DirectWaitQueue          cond;
           DirectMutex              lock;
+          int                      dead;
           bool                     destroyed;
           int                      locked;
 
