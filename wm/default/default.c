@@ -88,9 +88,9 @@ typedef struct {
 /**************************************************************************************************/
 
 #define MAX_KEYS                  16
-#define MAX_UPDATE_REGIONS         8    // dirty region
-#define MAX_UPDATING_REGIONS       8    // updated region to be scheduled for display
-#define MAX_UPDATED_REGIONS        8    // updated region scheduled for display
+#define MAX_UPDATE_REGIONS         8    /* dirty region */
+#define MAX_UPDATING_REGIONS       8    /* updated region to be scheduled for display */
+#define MAX_UPDATED_REGIONS        8    /* updated region scheduled for display */
 
 typedef struct {
      CoreDFB                      *core;
@@ -925,11 +925,7 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, const DF
      state->modified |= SMF_SOURCE;
 
      /* Blit from the window to the region being updated. */
-     //dfb_gfxcard_blit( &src, dest.x1, dest.y1, state );
-     
-     DFBPoint point = {
-          dest.x1, dest.y1
-     };
+     DFBPoint point = { dest.x1, dest.y1 };
      CoreGraphicsStateClient_Blit( state->client, &src, &point, 1 );
 
      /* Reset blitting source. */
@@ -1100,8 +1096,6 @@ draw_window( CoreWindow *window, CardState *state,
           dfb_state_set_clip( state, &dest );
 
           /* Scale window to the screen clipped by the region being updated. */
-          //dfb_gfxcard_stretchblit( &src, &dst, state );
-
           CoreGraphicsStateClient_StretchBlit( state->client, &src, &dst, 1 );
 
           /* Restore clipping region. */
@@ -1128,11 +1122,7 @@ draw_window( CoreWindow *window, CardState *state,
           dfb_rectangle_from_rotated( &src, &rect, &size, (360 - window->config.rotation) % 360 );
 
           /* Blit from the window to the region being updated. */
-          //dfb_gfxcard_blit( &src, dest.x1, dest.y1, state );
-
-          DFBPoint point = {
-               dest.x1, dest.y1
-          };
+          DFBPoint point = { dest.x1, dest.y1 };
           CoreGraphicsStateClient_Blit( state->client, &src, &point, 1 );
      }
 
@@ -1177,8 +1167,6 @@ draw_background( CoreWindowStack *stack, CardState *state, const DFBRegion *regi
                     dfb_state_set_color( state, color );
 
                /* Simply fill the background. */
-               //dfb_gfxcard_fillrectangles( &rect, 1, state );
-
                CoreGraphicsStateClient_FillRectangles( state->client, &rect, 1 );
                break;
           }
@@ -1202,8 +1190,6 @@ draw_background( CoreWindowStack *stack, CardState *state, const DFBRegion *regi
                dfb_state_set_clip( state, &dest );
 
                /* Blit background image. */
-               //dfb_gfxcard_stretchblit( &src, &dst, state );
-
                CoreGraphicsStateClient_StretchBlit( state->client, &src, &dst, 1 );
 
                /* Restore clipping region. */
@@ -1234,13 +1220,6 @@ draw_background( CoreWindowStack *stack, CardState *state, const DFBRegion *regi
                dfb_state_set_clip( state, &dest );
 
                /* Tiled blit (aligned). */
-               //dfb_gfxcard_tileblit( &src,
-               //                      (region->x1 / src.w) * src.w,
-               //                      (region->y1 / src.h) * src.h,
-               //                      (region->x2 / src.w + 1) * src.w,
-               //                      (region->y2 / src.h + 1) * src.h,
-               //                      state );
-
                DFBPoint p1 = { (region->x1 / src.w) * src.w,
                                (region->y1 / src.h) * src.h };
                DFBPoint p2 = { (region->x2 / src.w + 1) * src.w,
@@ -1530,7 +1509,8 @@ flush_updating( StackData *data )
                else {
                     Task_AddNotify( display_task, display_notify_task, true );
 
-                    // TODO: check if there is an advantage in flushing display_task before display_notify_task
+                    /* Must be flushed before display task, otherwise Task Manager will
+                       assert on display_notify_task state when display_task is flushed. */
                     Task_Flush( display_notify_task );
                }
 
@@ -1625,12 +1605,6 @@ repaint_stack( CoreWindowStack     *stack,
                transform_stack_to_dest( stack, &data->cursor_region, &cursor_rotated );
 
                if (dfb_region_region_intersect( &dest, &cursor_rotated )) {
-                    //DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &dest );
-
-                    //dfb_gfx_copy_to( surface, data->cursor_bs, &rect,
-                    //                 rect.x - cursor_rotated.x1,
-                    //                 rect.y - cursor_rotated.y1, true );
-                    
                     dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, data->cursor_bs, CSBR_BACK, DSSE_LEFT, &dest, 1,
                                                  - cursor_rotated.x1, - cursor_rotated.y1, &wmdata->client );
 
@@ -1689,7 +1663,7 @@ repaint_stack( CoreWindowStack     *stack,
 
                     DFB_REGION_ASSERT( update );
 
-                    dfb_layer_region_flip_update( region, update, flags | DSFLIP_SWAP );
+                    dfb_layer_region_flip_update( region, update, flags );
                }
                break;
      }
@@ -4454,15 +4428,9 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      /* restore region under cursor */
      if (data->cursor_drawn) {
-          //DFBRectangle rect = { 0, 0,
-          //                      old_dest.x2 - old_dest.x1 + 1,
-          //                      old_dest.y2 - old_dest.y1 + 1 };
-
           D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
 
           if (data->active) {
-               //dfb_gfx_copy_to( data->cursor_bs, surface, &rect, old_dest.x1, old_dest.y1, false );
-
                DFBRegion region = { 0, 0,
                                     old_dest.x2 - old_dest.x1,
                                     old_dest.y2 - old_dest.y1 };
@@ -4495,83 +4463,74 @@ wm_update_cursor( CoreWindowStack       *stack,
           dfb_surface_unlink( &data->cursor_bs );
      }
      else if (stack->cursor.opacity) {
-          DFBRegion  dest;
-          CardState *state = &wmdata->state;
+          DFBRegion dest;
 
           transform_stack_to_dest( stack, &data->cursor_region, &dest );
 
           if (!dfb_region_intersect( &dest, 0, 0, surface->config.size.w - 1, surface->config.size.h - 1 )) {
                if (restored)
-                    dfb_layer_region_flip_update( primary, &old_dest, DSFLIP_BLIT );
-
-               fusion_skirmish_dismiss( &data->update_skirmish );
-
-               return DFB_OK;
+                    updates[updates_count++] = old_dest;
           }
+          else {
+               CardState *state = &wmdata->state;
 
-          /* backup region under cursor */
-          if (!data->cursor_bs_valid) {
-               //DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &dest );
+               /* backup region under cursor */
+               if (!data->cursor_bs_valid) {
+                    D_ASSERT( !data->cursor_drawn );
 
-               D_ASSERT( !data->cursor_drawn );
+                    dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, data->cursor_bs, CSBR_BACK, DSSE_LEFT, &dest, 1, -dest.x1, -dest.y1, &wmdata->client );
 
-               /* FIXME: this requires using blitted flipping all the time,
-                  but fixing it seems impossible, for now DSFLIP_BLIT is forced
-                  in repaint_stack() when the cursor is enabled. */
-               //dfb_gfx_copy_to( surface, data->cursor_bs, &rect, 0, 0, true );
+                    data->cursor_bs_valid = true;
+               }
 
-               dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, data->cursor_bs, CSBR_BACK, DSSE_LEFT, &dest, 1, -dest.x1, -dest.y1, &wmdata->client );
+               /* Set destination. */
+               state->destination  = surface;
+               state->modified    |= SMF_DESTINATION;
 
-               data->cursor_bs_valid = true;
-          }
+               /* Set clipping region. */
+               dfb_state_set_clip( state, &dest );
 
-          /* Set destination. */
-          state->destination  = surface;
-          state->modified    |= SMF_DESTINATION;
+               /* draw cursor */
+               draw_cursor( stack, data, state, &data->cursor_region );
 
-          /* Set clipping region. */
-          dfb_state_set_clip( state, &dest );
+               /* Reset destination. */
+               state->destination  = NULL;
+               state->modified    |= SMF_DESTINATION;
 
-          /* draw cursor */
-          draw_cursor( stack, data, state, &data->cursor_region );
+               CoreGraphicsStateClient_Flush( &wmdata->client );
 
-          /* Reset destination. */
-          state->destination  = NULL;
-          state->modified    |= SMF_DESTINATION;
+               data->cursor_drawn = true;
 
-          CoreGraphicsStateClient_Flush( &wmdata->client );
+               if (restored) {
+                    if (dfb_region_region_intersects( &old_dest, &dest ))
+                         dfb_region_region_union( &old_dest, &dest );
+                    else
+                         updates[updates_count++] = dest;
 
-          data->cursor_drawn = true;
-
-          if (restored) {
-               if (dfb_region_region_intersects( &old_dest, &dest ))
-                    dfb_region_region_union( &old_dest, &dest );
+                    updates[updates_count++] = old_dest;
+               }
                else
                     updates[updates_count++] = dest;
 
-               updates[updates_count++] = old_dest;
-          }
-          else
-               updates[updates_count++] = dest;
+               /* Pan to follow the cursor? */
+               if (primary->config.source.w < surface->config.size.w || primary->config.source.h < surface->config.size.h) {
+                    DFBRectangle source = primary->config.source;
 
-          /* Pan to follow the cursor? */
-          if (primary->config.source.w < surface->config.size.w || primary->config.source.h < surface->config.size.h) {
-               DFBRectangle source = primary->config.source;
+                    if (stack->rotation)
+                         D_UNIMPLEMENTED();
 
-               if (stack->rotation)
-                    D_UNIMPLEMENTED();
+                    if (source.x > stack->cursor.x)
+                         source.x = stack->cursor.x;
+                    else if (source.x + source.w - 1 < stack->cursor.x)
+                         source.x = stack->cursor.x - source.w + 1;
 
-               if (source.x > stack->cursor.x)
-                    source.x = stack->cursor.x;
-               else if (source.x + source.w - 1 < stack->cursor.x)
-                    source.x = stack->cursor.x - source.w + 1;
+                    if (source.y > stack->cursor.y)
+                         source.y = stack->cursor.y;
+                    else if (source.y + source.h - 1 < stack->cursor.y)
+                         source.y = stack->cursor.y - source.h + 1;
 
-               if (source.y > stack->cursor.y)
-                    source.y = stack->cursor.y;
-               else if (source.y + source.h - 1 < stack->cursor.y)
-                    source.y = stack->cursor.y - source.h + 1;
-
-               dfb_layer_context_set_sourcerectangle( context, &source );
+                    dfb_layer_context_set_sourcerectangle( context, &source );
+               }
           }
      }
      else if (restored)
