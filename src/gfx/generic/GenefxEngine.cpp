@@ -54,20 +54,6 @@ extern "C" {
 #include <core/Util.h>
 
 
-D_DEBUG_DOMAIN( DirectFB_Renderer, "DirectFB/Renderer", "DirectFB Renderer" );
-
-/*********************************************************************************************************************/
-
-namespace DirectFB {
-
-
-
-
-
-D_DEBUG_DOMAIN( DirectFB_GenefxEngine, "DirectFB/Genefx/Engine", "DirectFB Genefx Engine" );
-D_DEBUG_DOMAIN( DirectFB_GenefxTask,   "DirectFB/Genefx/Task",   "DirectFB Genefx Task" );
-
-
 // FIXME: find better auto detection, runtime options or dynamic adjustment for the following values
 #if defined(ARCH_X86) || defined(ARCH_X86_64)
 #define DFB_GENEFX_COMMAND_BUFFER_BLOCK_SIZE 0x40000   // 256k
@@ -78,6 +64,14 @@ D_DEBUG_DOMAIN( DirectFB_GenefxTask,   "DirectFB/Genefx/Task",   "DirectFB Genef
 #define DFB_GENEFX_COMMAND_BUFFER_MAX_SIZE   0x17800   // 94k
 #define DFB_GENEFX_TASK_WEIGHT_MAX           1000000
 #endif
+
+
+D_DEBUG_DOMAIN( DirectFB_GenefxEngine, "DirectFB/Genefx/Engine", "DirectFB Genefx Engine" );
+D_DEBUG_DOMAIN( DirectFB_GenefxTask,   "DirectFB/Genefx/Task",   "DirectFB Genefx Task" );
+
+/*********************************************************************************************************************/
+
+namespace DirectFB {
 
 
 class GenefxEngine;
@@ -615,35 +609,25 @@ public:
                            rects[i].x, rects[i].y, rects[i].w, rects[i].h, points[i].x, points[i].y );
 
                if (dfb_clip_blit_precheck( &mytask->clip, rects[i].w, rects[i].h, points[i].x, points[i].y )) {
-                    DFBRectangle rect = rects[i];
-                    int          dx   = points[i].x;
-                    int          dy   = points[i].y;
+                    DFBRectangle rect  = rects[i];
+                    DFBPoint     point = points[i];
 
-                    dfb_clip_blit( &mytask->clip, &rect, &dx, &dy );  // FIXME: support rotation!
-                    //dfb_clip_blit_flipped_rotated( &mytask->clip, &rect, &drect, blittingflags );
+                    /* In multi tile mode clipping is done in GenefxTask::Run() anyways */
+                    if (mytask->slaves == 0) {
+                         dfb_clip_blit( &mytask->clip, &rect, &point.x, &point.y );  // FIXME: support rotation!
+                         //dfb_clip_blit_flipped_rotated( &mytask->clip, &rect, &drect, blittingflags );
+                    }
 
                     *buf++ = rect.x;
                     *buf++ = rect.y;
                     *buf++ = rect.w;
                     *buf++ = rect.h;
-                    *buf++ = dx;
-                    *buf++ = dy;
+                    *buf++ = point.x;
+                    *buf++ = point.y;
 
                     count++;
 
                     mytask->addBlittingWeight( rect.w * rect.h );
-               }
-               else {
-                    *buf++ = rects[i].x;
-                    *buf++ = rects[i].y;
-                    *buf++ = rects[i].w;
-                    *buf++ = rects[i].h;
-                    *buf++ = points[i].x;
-                    *buf++ = points[i].y;
-
-                    count++;
-
-                    mytask->addBlittingWeight( rects[i].w * rects[i].h );
                }
           }
 
@@ -1170,13 +1154,13 @@ GenefxTask::Run()
      /* Call SurfaceTask::CacheFlush() for cache flushes */
      CacheFlush();
 
-     /* Return task to manager */
-     Done();
-
      state.destination = NULL;
      state.source      = NULL;
 
      dfb_state_destroy( &state );
+
+     /* Return task to manager */
+     Done();
 
      return DFB_OK;
 }
