@@ -90,6 +90,19 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
      if (object) {
           D_MAGIC_ASSERT( object, FusionObject );
 
+          D_DEBUG_AT( Fusion_Object, "  -> object %p [%u] (ref %x), single refs %d\n",
+                      object, object->id, object->ref.multi.id, object->ref.single.refs );
+
+          if (object->ref.single.dead > 1) {
+               D_DEBUG_AT( Fusion_Object, "  -> died multiple times (%d), skipping...\n", object->ref.single.dead );
+
+               object->ref.single.dead--;
+
+               fusion_skirmish_dismiss( &pool->lock );
+               return FCHR_RETURN;
+          }
+
+
           switch (fusion_ref_zero_trylock( &object->ref )) {
                case DR_OK:
                     break;
@@ -409,12 +422,7 @@ fusion_object_create( FusionObjectPool  *pool,
      fusion_hash_insert( pool->objects, (void*)(long) object->id, object );
 
      D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-
-#if FUSION_BUILD_MULTI
-     D_DEBUG_AT( Fusion_Object, "  -> added %p with ref [0x%x]\n", object, object->ref.multi.id );
-#else
-     D_DEBUG_AT( Fusion_Object, "  -> added %p\n", object );
-#endif
+     D_DEBUG_AT( Fusion_Object, "  -> added object %p [%u] (ref %x)\n", object, object->id, object->ref.multi.id );
 
      D_MAGIC_SET( object, FusionObject );
 
