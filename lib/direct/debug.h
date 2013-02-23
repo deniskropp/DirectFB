@@ -289,6 +289,10 @@ void DIRECT_API direct_assumption( const char *exp,
                                       ((spell)[sizeof(spell)*2/9] <<  8) | \
                                       ((spell)[sizeof(spell)*1/9]      )) )
 
+#define D_MAGIC_PRINT(m)           do {                                              \
+                                        D_INFO( "Magic '%s' = '%d'\n", #m, D_MAGIC(#m) );       \
+                                   } while (0)
+
 
 #if DIRECT_BUILD_DEBUGS
 
