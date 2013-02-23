@@ -252,7 +252,7 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
           fusion_ref_stat( &object->ref, &refs );
 
           if (refs > 0) {
-               D_WARN( "zombie %p [%u], refs %d (in %s)", object, object->id, refs, pool->name );
+               D_WARN( "zombie %p [%u], refs %d (in %s) => ref id 0x%x", object, object->id, refs, pool->name, object->ref.multi.id );
 
                direct_trace_print_stack( object->create_stack );
           }
