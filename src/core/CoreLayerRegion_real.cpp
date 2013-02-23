@@ -411,9 +411,6 @@ DisplayTask::Run()
      }
 
 out:
-     if (ret)
-          Done( ret );
-
      dfb_layer_region_unlock( region );
 
      if (right.allocation) {
@@ -427,6 +424,9 @@ out:
           dfb_surface_pool_unlock( left.allocation->pool, left.allocation, &left );
           dfb_surface_buffer_lock_deinit( &left );
      }
+
+     if (ret)
+          Done( ret );
 
      return ret;
 }
