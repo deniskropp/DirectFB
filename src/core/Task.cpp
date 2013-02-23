@@ -773,7 +773,10 @@ Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
      Direct::Mutex::Lock lock( tasklog_lock );
 
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
-                            "Task: %p (state %d, flags 0x%x, log size %zu)\n", this, state, flags, tasklog.size() );
+                            "==[ TASK DUMP for %p, state %d, flags 0x%x, log size %zu ]\n", this, state, flags, tasklog.size() );
+
+     direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
+                            "  [ %s ]\n", Description().buffer() );
 
      for (std::vector<LogEntry>::const_iterator it=tasklog.begin(); it!=tasklog.end(); it++) {
           direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
