@@ -34,6 +34,7 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 
+#include <core/core.h>
 #include <core/surface_pool.h>
 
 #include <gfx/convert.h>
@@ -282,8 +283,11 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
                       CoreSurfaceAllocation *allocation,
                       void                  *alloc_data )
 {
-     int                 ret;
-     CoreSurface        *surface;
+     int                   ret;
+     int                   pitch;
+     int                   length;
+     CoreGraphicsDevice   *device;
+     CoreSurface          *surface;
      DRMKMSPoolData       *data  = pool_data;
      DRMKMSPoolLocalData  *local = pool_local;
      DRMKMSAllocationData *alloc = alloc_data;
@@ -313,7 +317,13 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     drm_fake_width  = surface->config.size.w;
+     /* FIXME: Only one global device at the moment. */
+     device = dfb_core_get_part( core_dfb, DFCP_GRAPHICS );
+     D_ASSERT( device != NULL );
+
+     dfb_gfxcard_calc_buffer_size( device, buffer, &pitch, &length );
+
+     drm_fake_width  = (pitch + 3) >> 2;
      drm_fake_height = surface->config.size.h;
 
      switch (surface->config.format) {
@@ -325,45 +335,35 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
                break;
           case DSPF_RGB16:
                drm_format = DRM_FORMAT_RGB565;
-               drm_fake_width = (surface->config.size.w + 1) >> 1;
                break;
           case DSPF_ARGB1555:
                drm_format = DRM_FORMAT_ARGB1555;
-               drm_fake_width = (surface->config.size.w + 1) >> 1;
                break;
           case DSPF_RGB332:
                drm_format = DRM_FORMAT_RGB332;
-               drm_fake_width = (surface->config.size.w + 3) >> 2;
                break;
           case DSPF_RGB24:
                drm_format = DRM_FORMAT_RGB888;
-               drm_fake_width = (surface->config.size.w * 3 + 3) >> 2;
                break;
           case DSPF_A8:
                drm_format = DRM_FORMAT_C8;
-               drm_fake_width = (surface->config.size.w + 3) >> 2;
                break;
           case DSPF_UYVY:
                drm_format = DRM_FORMAT_UYVY;
-               drm_fake_width = (surface->config.size.w + 1) >> 1;
                break;
           case DSPF_YUY2:
                drm_format = DRM_FORMAT_YUYV;
-               drm_fake_width = (surface->config.size.w + 1) >> 1;
                break;
           case DSPF_NV12:
                drm_format = DRM_FORMAT_NV12;
-               drm_fake_width  = (surface->config.size.w + 3) >> 2;
                drm_fake_height = (surface->config.size.h * 3 + 1) >> 1;
                break;
           case DSPF_NV21:
                drm_format = DRM_FORMAT_NV21;
-               drm_fake_width  = (surface->config.size.w + 3) >> 2;
                drm_fake_height = (surface->config.size.h * 3 + 1) >> 1;
                break;
           case DSPF_NV16:
                drm_format = DRM_FORMAT_NV16;
-               drm_fake_width  = (surface->config.size.w + 3) >> 2;
                drm_fake_height = surface->config.size.h << 2;
                break;
 
