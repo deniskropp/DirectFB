@@ -494,9 +494,9 @@ drmkmsLock( CoreSurfacePool       *pool,
 
           case CSAID_GPU:
                if (drmkms->shared->use_prime_fd)
-                    lock->handle = (void*) (long) alloc->prime_fd;
-               else
-                    lock->handle = (void*) (long) alloc->handle;
+                    lock->offset = (unsigned long) alloc->prime_fd;
+
+               lock->handle = (void*) (long) alloc->handle;
                break;
 
           case CSAID_CPU:

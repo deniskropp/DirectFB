@@ -130,7 +130,7 @@ InitLocal( DRMKMSData *drmkms )
      drmkms->fd = open( drmkms->shared->device_name, O_RDWR );
      if (drmkms->fd < 0) {
           ret = errno2result( errno );
-          D_PERROR( "DirectFB/DRMKMS: Failed to open '%s'!\n", device_name );
+          D_PERROR( "DirectFB/DRMKMS: Failed to open '%s'!\n", drmkms->shared->device_name );
           return ret;
      }
 
