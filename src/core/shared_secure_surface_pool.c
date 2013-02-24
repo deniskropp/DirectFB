@@ -100,7 +100,10 @@ sharedSecureInitPool( CoreDFB                    *core,
      ret_desc->caps              = CSPCAPS_VIRTUAL;
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_INTERNAL;
-     ret_desc->priority          = CSPP_DEFAULT;
+     ret_desc->priority          = (dfb_system_caps() & CSCAPS_PREFER_SHM) ? CSPP_PREFERED : CSPP_DEFAULT;
+
+     if (dfb_system_caps() & CSCAPS_SYSMEM_EXTERNAL)
+          ret_desc->types |= CSTF_EXTERNAL;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Shared Secure Memory" );
 

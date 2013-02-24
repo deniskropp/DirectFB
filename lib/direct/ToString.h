@@ -27,89 +27,28 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef ___Direct__String__H___
-#define ___Direct__String__H___
+#ifndef ___Direct__ToString__H___
+#define ___Direct__ToString__H___
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <direct/compiler.h>
-
-
-// C Wrapper
-
-D_String   *D_String_NewEmpty( void );
-size_t      D_String_PrintF( D_String *str, const char *format, ... )           D_FORMAT_PRINTF(2);
-size_t      D_String_PrintV( D_String *str, const char *format, va_list args );
-const char *D_String_Buffer( D_String *str );
-size_t      D_String_Length( D_String *str );
-void        D_String_Delete( D_String *str );
-
 
 
 #ifdef __cplusplus
 }
 
 
-#include <string>
 
-
-namespace Direct {
-
-
-class String
+template <typename _Entity>
+class ToString : public Direct::String
 {
-private:
-     std::string str;
-
 public:
-     String()
-     {
-     }
-
-     String( const char *format, ... )            D_FORMAT_PRINTF(2);
-
-     String &
-     PrintF( const char *format, ... )            D_FORMAT_PRINTF(2);
-
-     String &
-     PrintF( const char *format, va_list args, size_t stack_buffer = 300 );
-
-     void
-     Clear();
-
-
-     inline std::string &
-     string()
-     {
-          return str;
-     }
-
-     inline const char *
-     buffer() const
-     {
-          return str.c_str();
-     }
-
-     inline size_t
-     length() const
-     {
-          return str.size();
-     }
-
-     inline operator const std::string& () const {
-          return str;
-     }
-
-     inline String& operator= (const char *buf) {
-          str = buf;
-          return *this;
-     }
+     ToString( const _Entity &entity );
 };
 
-
-}
 
 
 #endif // __cplusplus

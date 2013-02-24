@@ -62,8 +62,9 @@ typedef enum {
      CSCAPS_PREFER_SHM        = 0x00000002,  /* Prefer shared memory surface pool over local memory pool. */
      CSCAPS_SECURE_FUSION     = 0x00000004,  /* Fusion needs to be in secure fusion mode. */
      CSCAPS_ALWAYS_INDIRECT   = 0x00000008,  /* All calls need to be indirect. */
+     CSCAPS_SYSMEM_EXTERNAL   = 0x00000010,  /* Makes system memory surface pools have CSTF_EXTERNAL support. */
 
-     CSCAPS_ALL               = 0x0000000F   /* All of these. */
+     CSCAPS_ALL               = 0x0000001F   /* All of these. */
 } CoreSystemCapabilities;
 
 /*

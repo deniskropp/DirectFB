@@ -16,6 +16,23 @@ AM_CPPFLAGS = \
 	-DFLUXED_ARGS_BYTES=@FLUXED_ARGS_BYTES@
 
 
+MKNAMES = $(top_srcdir)/tools/mknames.sh
+INCP = $(srcdir)
+
+DISTCLEANFILES = core_strings.h
+
+core_strings.h: surface.h $(MKNAMES) Makefile
+	@echo '#ifndef __CORE__CORE_STRINGS_H__' > $@
+	@echo '#define __CORE__CORE_STRINGS_H__' >> $@
+	@echo '#include <surface.h>' >> $@
+
+	@$(MKNAMES) CoreSurfaceTypeFlags CSTF NONE CoreSurfaceTypeFlags flag $(INCP)/surface.h \
+	   | grep -v CSTF_ALL >> $@
+
+	@echo '' >> $@
+	@echo '#endif' >> $@
+
+
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
@@ -47,6 +64,7 @@ internalinclude_HEADERS = \
 	CoreWindow_includes.h	\
 	$(builddir)/CoreWindowStack.h		\
 	CoreWindowStack_includes.h	\
+	Debug.h			\
 	Fifo.h			\
 	Interface.h		\
 	PacketBuffer.h		\
@@ -58,6 +76,7 @@ internalinclude_HEADERS = \
 	coredefs.h		\
 	coretypes.h		\
 	core_parts.h		\
+	core_strings.h		\
 	core_system.h		\
 	core.h			\
 	fonts.h			\
@@ -123,6 +142,7 @@ libdirectfb_core_la_SOURCES = \
 	CoreWindow_real.cpp	\
 	$(builddir)/CoreWindowStack.cpp		\
 	CoreWindowStack_real.cpp	\
+	Debug.cpp		\
 	Interface.cpp		\
 	Renderer.cpp		\
 	Task.cpp		\

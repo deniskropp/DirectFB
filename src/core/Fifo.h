@@ -44,10 +44,13 @@ extern "C" {
 }
 
 
-#include <list>
+#include <queue>
 
 
 namespace DirectFB {
+
+
+#define DFB_FIFO_WAIT_SUPPORT (1)
 
 
 template <typename T>
@@ -60,14 +63,18 @@ public:
      {
           direct_mutex_init( &lock );
           direct_waitqueue_init( &wq );
+#if DFB_FIFO_WAIT_SUPPORT
           direct_waitqueue_init( &wq_empty );
+#endif
      }
 
      ~FIFO()
      {
           direct_mutex_deinit( &lock );
           direct_waitqueue_deinit( &wq );
+#if DFB_FIFO_WAIT_SUPPORT
           direct_waitqueue_deinit( &wq_empty );
+#endif
      }
 
      void
@@ -75,20 +82,7 @@ public:
      {
           direct_mutex_lock( &lock );
 
-          list.push_back( e );
-          num_items++;
-
-          direct_waitqueue_signal( &wq );
-
-          direct_mutex_unlock( &lock );
-     }
-
-     void
-     pushFront( T e )
-     {
-          direct_mutex_lock( &lock );
-
-          list.push_front( e );
+          list.push( e );
           num_items++;
 
           direct_waitqueue_signal( &wq );
@@ -107,11 +101,14 @@ public:
                direct_waitqueue_wait( &wq, &lock );
 
           e = list.front();
-          list.erase( list.begin() );
+          list.pop();
+//          list.erase( list.begin() );
           num_items--;
 
+#if DFB_FIFO_WAIT_SUPPORT
 //          if (list.empty())
                direct_waitqueue_broadcast( &wq_empty );
+#endif
 
           direct_mutex_unlock( &lock );
 
@@ -137,8 +134,10 @@ public:
      {
           direct_mutex_lock( &lock );
 
+#if DFB_FIFO_WAIT_SUPPORT
           while (!list.empty())
                direct_waitqueue_wait( &wq_empty, &lock );
+#endif
 
           direct_mutex_unlock( &lock );
      }
@@ -148,8 +147,10 @@ public:
      {
           direct_mutex_lock( &lock );
 
+#if DFB_FIFO_WAIT_SUPPORT
           while (num_items > count)
                direct_waitqueue_wait( &wq_empty, &lock );
+#endif
 
           direct_mutex_unlock( &lock );
      }
@@ -163,9 +164,11 @@ public:
 private:
      DirectMutex     lock;
      DirectWaitQueue wq;
+#if DFB_FIFO_WAIT_SUPPORT
      DirectWaitQueue wq_empty;
+#endif
 
-     std::list<T>    list;
+     std::queue<T>   list;
      size_t          num_items;
 };
 

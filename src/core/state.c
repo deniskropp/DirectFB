@@ -246,7 +246,7 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
      dfb_state_lock( state );
 
      if (state->source != source) {
-          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+          bool ref = true;//!fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
 
           if (source && ref && dfb_surface_ref( source )) {
                D_WARN( "could not ref() source" );
@@ -287,7 +287,7 @@ dfb_state_set_source_2( CardState   *state,
      dfb_state_lock( state );
 
      if (state->source != source || state->source_flip_count != flip_count || !state->source_flip_count_used) {
-          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+          bool ref = true;//!fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
 
           if (source && ref && dfb_surface_ref( source )) {
                D_WARN( "could not ref() source" );
@@ -331,7 +331,7 @@ dfb_state_set_source2( CardState *state, CoreSurface *source2 )
      dfb_state_lock( state );
 
      if (state->source2 != source2) {
-          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+          bool ref = true;//!fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
 
           if (source2 && ref && dfb_surface_ref( source2 )) {
                D_WARN( "could not ref() source2" );
@@ -370,7 +370,7 @@ dfb_state_set_source_mask( CardState *state, CoreSurface *source_mask )
      dfb_state_lock( state );
 
      if (state->source_mask != source_mask) {
-          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+          bool ref = true;//!fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
 
           if (source_mask && ref && dfb_surface_ref( source_mask )) {
                D_WARN( "could not ref() source mask" );
@@ -607,5 +607,55 @@ dfb_state_set_color_or_index( CardState      *state,
                dfb_state_set_color( state, &palette->entries[index % palette->num_entries] );
           }
      }
+}
+
+DFBResult
+dfb_state_get_acceleration_mask( CardState           *state,
+                                 DFBAccelerationMask *ret_accel )
+{
+    DFBAccelerationMask mask = DFXL_NONE;
+
+    D_MAGIC_ASSERT( state, CardState );
+    D_ASSERT( ret_accel != NULL );
+
+    dfb_state_lock( state );
+
+    /* Check drawing functions */
+    if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ))
+         D_FLAGS_SET( mask, DFXL_FILLRECTANGLE );
+
+    if (dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ))
+         D_FLAGS_SET( mask, DFXL_DRAWRECTANGLE );
+
+    if (dfb_gfxcard_state_check( state, DFXL_DRAWLINE ))
+         D_FLAGS_SET( mask, DFXL_DRAWLINE );
+
+    if (dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ))
+         D_FLAGS_SET( mask, DFXL_FILLTRIANGLE );
+
+    if (dfb_gfxcard_state_check( state, DFXL_FILLTRAPEZOID ))
+         D_FLAGS_SET( mask, DFXL_FILLTRAPEZOID );
+
+    /* Check blitting functions */
+    if (state->source) {
+         if (dfb_gfxcard_state_check( state, DFXL_BLIT ))
+              D_FLAGS_SET( mask, DFXL_BLIT );
+
+         if (dfb_gfxcard_state_check( state, DFXL_STRETCHBLIT ))
+              D_FLAGS_SET( mask, DFXL_STRETCHBLIT );
+
+         if (dfb_gfxcard_state_check( state, DFXL_TEXTRIANGLES ))
+              D_FLAGS_SET( mask, DFXL_TEXTRIANGLES );
+    }
+
+    /* Check blitting functions */
+    if (state->source2) {
+         if (dfb_gfxcard_state_check( state, DFXL_BLIT2 ))
+              D_FLAGS_SET( mask, DFXL_BLIT2 );
+    }
+
+    dfb_state_unlock( state );
+
+    return DFB_OK;
 }
 

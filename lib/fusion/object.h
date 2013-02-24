@@ -108,6 +108,10 @@ DirectResult     FUSION_API  fusion_object_get                ( FusionObjectPool
                                                                 FusionObjectID          object_id,
                                                                 FusionObject          **ret_object );
 
+DirectResult     FUSION_API  fusion_object_lookup             ( FusionObjectPool       *pool,
+                                                                FusionObjectID          object_id,
+                                                                FusionObject          **ret_object );
+
 DirectResult     FUSION_API  fusion_object_set_lock           ( FusionObject           *object,
                                                                 FusionSkirmish         *lock );
 

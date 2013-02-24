@@ -60,6 +60,7 @@
 #include <core/wm.h>
 
 #include <core/CoreGraphicsStateClient.h>
+#include <core/Task.h>
 
 #include <gfx/util.h>
 
@@ -87,12 +88,15 @@ typedef struct {
 /**************************************************************************************************/
 
 #define MAX_KEYS                  16
-#define MAX_UPDATE_REGIONS         8    // dirty region
-#define MAX_UPDATING_REGIONS       8    // updated region to be scheduled for display
-#define MAX_UPDATED_REGIONS        8    // updated region scheduled for display
+#define MAX_UPDATE_REGIONS         8    /* dirty region */
+#define MAX_UPDATING_REGIONS       8    /* updated region to be scheduled for display */
+#define MAX_UPDATED_REGIONS        8    /* updated region scheduled for display */
 
 typedef struct {
      CoreDFB                      *core;
+
+     CardState                     state;
+     CoreGraphicsStateClient       client;
 } WMData;
 
 typedef struct {
@@ -148,9 +152,6 @@ typedef struct {
      Reaction                      surface_reaction;
 
      FusionSkirmish                update_skirmish;
-
-     CardState                     state;
-     CoreGraphicsStateClient       client;
 } StackData;
 
 typedef struct {
@@ -184,6 +185,9 @@ update_window( CoreWindow          *window,
                bool                 force_complete,
                bool                 force_invisible,
                bool                 scale_region );
+
+static void
+flush_updating( StackData *data );
 
 /**************************************************************************************************/
 
@@ -921,11 +925,7 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, const DF
      state->modified |= SMF_SOURCE;
 
      /* Blit from the window to the region being updated. */
-     //dfb_gfxcard_blit( &src, dest.x1, dest.y1, state );
-     
-     DFBPoint point = {
-          dest.x1, dest.y1
-     };
+     DFBPoint point = { dest.x1, dest.y1 };
      CoreGraphicsStateClient_Blit( state->client, &src, &point, 1 );
 
      /* Reset blitting source. */
@@ -1096,8 +1096,6 @@ draw_window( CoreWindow *window, CardState *state,
           dfb_state_set_clip( state, &dest );
 
           /* Scale window to the screen clipped by the region being updated. */
-          //dfb_gfxcard_stretchblit( &src, &dst, state );
-
           CoreGraphicsStateClient_StretchBlit( state->client, &src, &dst, 1 );
 
           /* Restore clipping region. */
@@ -1124,11 +1122,7 @@ draw_window( CoreWindow *window, CardState *state,
           dfb_rectangle_from_rotated( &src, &rect, &size, (360 - window->config.rotation) % 360 );
 
           /* Blit from the window to the region being updated. */
-          //dfb_gfxcard_blit( &src, dest.x1, dest.y1, state );
-
-          DFBPoint point = {
-               dest.x1, dest.y1
-          };
+          DFBPoint point = { dest.x1, dest.y1 };
           CoreGraphicsStateClient_Blit( state->client, &src, &point, 1 );
      }
 
@@ -1173,8 +1167,6 @@ draw_background( CoreWindowStack *stack, CardState *state, const DFBRegion *regi
                     dfb_state_set_color( state, color );
 
                /* Simply fill the background. */
-               //dfb_gfxcard_fillrectangles( &rect, 1, state );
-
                CoreGraphicsStateClient_FillRectangles( state->client, &rect, 1 );
                break;
           }
@@ -1198,8 +1190,6 @@ draw_background( CoreWindowStack *stack, CardState *state, const DFBRegion *regi
                dfb_state_set_clip( state, &dest );
 
                /* Blit background image. */
-               //dfb_gfxcard_stretchblit( &src, &dst, state );
-
                CoreGraphicsStateClient_StretchBlit( state->client, &src, &dst, 1 );
 
                /* Restore clipping region. */
@@ -1230,13 +1220,6 @@ draw_background( CoreWindowStack *stack, CardState *state, const DFBRegion *regi
                dfb_state_set_clip( state, &dest );
 
                /* Tiled blit (aligned). */
-               //dfb_gfxcard_tileblit( &src,
-               //                      (region->x1 / src.w) * src.w,
-               //                      (region->y1 / src.h) * src.h,
-               //                      (region->x2 / src.w + 1) * src.w,
-               //                      (region->y2 / src.h + 1) * src.h,
-               //                      state );
-
                DFBPoint p1 = { (region->x1 / src.w) * src.w,
                                (region->y1 / src.h) * src.h };
                DFBPoint p2 = { (region->x2 / src.w + 1) * src.w,
@@ -1398,18 +1381,92 @@ update_region( CoreWindowStack *stack,
 /**************************************************************************************************/
 /**************************************************************************************************/
 
+static DFBResult
+defaultwm_surface_display_notify( void     *ctx,
+                                  DFB_Task *task )
+{
+     int        i;
+     WMData    *wmdata;
+     StackData *data = ctx;
+
+     D_DEBUG_AT( WM_Default, "%s( %p, %p )\n", __FUNCTION__, ctx, task );
+
+     wmdata = dfb_wm_get_data();
+     D_ASSERT( wmdata != NULL );
+
+     D_ASSERT( ctx != NULL );
+
+     D_ASSERT( data != NULL );
+     D_ASSERT( data->region != NULL );
+     D_ASSUME( data->region->config.buffermode == DLBM_TRIPLE );
+     fusion_skirmish_prevail( &data->update_skirmish );
+
+     D_ASSUME( data->updated.num_regions > 0 );
+
+     if (data->updated.num_regions) {
+          if (data->region->config.options & DLOP_STEREO) {
+               /* Copy back the updated region. */
+               if (data->updated.num_regions) {
+                    D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+
+                    for (i=0; i<data->updated.num_regions; i++) {
+                         D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                     DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                    }
+
+                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
+                                                 data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
+               }
+          }
+          else {
+               /* Copy back the updated region. */
+               if (data->updated.num_regions) {
+                    D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+
+                    for (i=0; i<data->updated.num_regions; i++) {
+                         D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                     DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                    }
+
+                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
+                                                 data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
+               }
+          }
+
+          dfb_updates_reset( &data->updated );
+     }
+
+     if (data->updating.num_regions) {
+          D_DEBUG_AT( WM_Default, "  -> flushing updating regions\n" );
+
+          flush_updating( data );
+     }
+
+     CoreGraphicsStateClient_Flush( &wmdata->client );
+
+     fusion_skirmish_dismiss( &data->update_skirmish );
+
+     Task_Done( task );
+
+     return DFB_OK;
+}
+
 static void
 flush_updating( StackData *data )
 {
-     int i;
-     int left_num_regions  = 0;
+     DFBResult  ret;
+     int        i;
+     int        left_num_regions  = 0;
+     WMData    *wmdata;
 
      D_DEBUG_AT( WM_Default, "%s( %p )\n", __FUNCTION__, data );
 
      D_ASSERT( data != NULL );
-
      D_ASSUME( data->updating.num_regions > 0 );
      D_ASSUME( data->updated.num_regions == 0 );
+
+     wmdata = dfb_wm_get_data();
+     D_ASSERT( wmdata != NULL );
 
      if (data->updating.num_regions) {
           /*
@@ -1434,10 +1491,34 @@ flush_updating( StackData *data )
 
      D_DEBUG_AT( WM_Default, "  -> flipping the region\n" );
 
-     CoreGraphicsStateClient_Flush( &data->client );
+     CoreGraphicsStateClient_Flush( &wmdata->client );
 
-     /* Flip the whole layer. */
-     dfb_layer_region_flip_update( data->region, &data->updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP );
+     if (dfb_config->task_manager) {
+          /* Flip the whole layer. */
+          DFB_DisplayTask *display_task;
+
+          ret = dfb_layer_region_flip_update_task( data->region, &data->updated.bounding, &data->updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP, &display_task );
+          if (ret)
+               D_DERROR( ret, "WM/Default: Display Task creation failed!\n" );
+          else {
+               DFB_Task *display_notify_task;
+
+               ret = SimpleTask_Create( NULL, defaultwm_surface_display_notify, data, &display_notify_task );
+               if (ret)
+                    D_DERROR( ret, "WM/Default: Simple Task creation failed!\n" );
+               else {
+                    Task_AddNotify( display_task, display_notify_task, true );
+
+                    /* Must be flushed before display task, otherwise Task Manager will
+                       assert on display_notify_task state when display_task is flushed. */
+                    Task_Flush( display_notify_task );
+               }
+
+               Task_Flush( display_task );
+          }
+     }
+     else
+          dfb_layer_region_flip_update( data->region, &data->updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP );
 
 
      if (left_num_regions) {
@@ -1449,7 +1530,7 @@ flush_updating( StackData *data )
           }
 
           dfb_gfx_copy_regions_client( data->region->surface, CSBR_FRONT, DSSE_LEFT, data->region->surface, CSBR_BACK, DSSE_LEFT,
-                                       data->updated.regions, left_num_regions, 0, 0, &data->client );
+                                       data->updated.regions, left_num_regions, 0, 0, &wmdata->client );
      }
 }
 
@@ -1459,7 +1540,8 @@ repaint_stack( CoreWindowStack     *stack,
                const DFBRegion     *updates,
                int                  num_updates,
                DFBSurfaceFlipFlags  flags,
-               const DFBRegion     *bounding )
+               const DFBRegion     *bounding,
+               WMData              *wmdata )
 {
      int              i;
      CoreLayerRegion *region;
@@ -1473,7 +1555,7 @@ repaint_stack( CoreWindowStack     *stack,
      D_ASSERT( data != NULL );
      D_ASSERT( num_updates > 0 );
 
-     state   = &data->state;
+     state   = &wmdata->state;
      region  = data->region;
      surface = data->surface;
 
@@ -1510,7 +1592,7 @@ repaint_stack( CoreWindowStack     *stack,
                          fusion_vector_size( &data->windows ) - 1,
                          DFB_REGION_VALS( update ) );
 
-          CoreGraphicsStateClient_Flush( &data->client );
+          CoreGraphicsStateClient_Flush( &wmdata->client );
 
           flips[num_flips++] = dest;
 
@@ -1523,14 +1605,8 @@ repaint_stack( CoreWindowStack     *stack,
                transform_stack_to_dest( stack, &data->cursor_region, &cursor_rotated );
 
                if (dfb_region_region_intersect( &dest, &cursor_rotated )) {
-                    //DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &dest );
-
-                    //dfb_gfx_copy_to( surface, data->cursor_bs, &rect,
-                    //                 rect.x - cursor_rotated.x1,
-                    //                 rect.y - cursor_rotated.y1, true );
-                    
                     dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, data->cursor_bs, CSBR_BACK, DSSE_LEFT, &dest, 1,
-                                                 - cursor_rotated.x1, - cursor_rotated.y1, &data->client );
+                                                 - cursor_rotated.x1, - cursor_rotated.y1, &wmdata->client );
 
                     /* Set destination. */
                     state->destination  = surface;
@@ -1548,7 +1624,7 @@ repaint_stack( CoreWindowStack     *stack,
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
 
-     CoreGraphicsStateClient_Flush( &data->client );
+     CoreGraphicsStateClient_Flush( &wmdata->client );
 
 
      switch (region->config.buffermode) {
@@ -1576,7 +1652,7 @@ repaint_stack( CoreWindowStack     *stack,
                /* Copy back the updated region. */
 
                if (!dfb_config->wm_fullscreen_updates)
-                    dfb_gfx_copy_regions_client( region->surface, CSBR_FRONT, DSSE_LEFT, region->surface, CSBR_BACK, DSSE_LEFT, updates, num_updates, 0, 0, &data->client );
+                    dfb_gfx_copy_regions_client( region->surface, CSBR_FRONT, DSSE_LEFT, region->surface, CSBR_BACK, DSSE_LEFT, updates, num_updates, 0, 0, &wmdata->client );
 
                break;
 
@@ -1587,12 +1663,12 @@ repaint_stack( CoreWindowStack     *stack,
 
                     DFB_REGION_ASSERT( update );
 
-                    dfb_layer_region_flip_update( region, update, flags | DSFLIP_SWAP );
+                    dfb_layer_region_flip_update( region, update, flags );
                }
                break;
      }
 
-     CoreGraphicsStateClient_Flush( &data->client );
+     CoreGraphicsStateClient_Flush( &wmdata->client );
 
      fusion_skirmish_dismiss( &data->update_skirmish );
 }
@@ -1622,7 +1698,7 @@ process_updates( StackData           *data,
      if (dfb_config->wm_fullscreen_updates) {
           DFBRegion reg = { 0, 0, stack->width - 1, stack->height - 1 };
 
-          repaint_stack( stack, data, &reg, 1, flags, &reg );
+          repaint_stack( stack, data, &reg, 1, flags, &reg, wmdata );
 
           dfb_updates_reset( &data->updates );
 
@@ -1644,15 +1720,15 @@ process_updates( StackData           *data,
 //          if (context->config.buffermode == DLBM_FRONTONLY)
 //               dfb_region_transpose(&region, context->rotation);
 
-          repaint_stack( stack, data, &region, 1, flags, &data->updates.bounding );
+          repaint_stack( stack, data, &region, 1, flags, &data->updates.bounding, wmdata );
      }
      else if (data->updates.num_regions < 2 || total < bounding * n / d)
-          repaint_stack( stack, data, data->updates.regions, data->updates.num_regions, flags, &data->updates.bounding );
+          repaint_stack( stack, data, data->updates.regions, data->updates.num_regions, flags, &data->updates.bounding, wmdata );
      else {
 //          direct_log_printf( NULL, "%s() <- %d regions, total %d, bounding %d (%d/%d: %d)\n",
 //                             __FUNCTION__, data->updates.num_regions, total, bounding, n, d, bounding*n/d );
 
-          repaint_stack( stack, data, &data->updates.bounding, 1, flags, &data->updates.bounding );
+          repaint_stack( stack, data, &data->updates.bounding, 1, flags, &data->updates.bounding, wmdata );
      }
 
      dfb_updates_reset( &data->updates );
@@ -3227,6 +3303,38 @@ handle_axis_motion( CoreWindowStack     *stack,
 /**************************************************************************************************/
 /**************************************************************************************************/
 
+static DFBResult
+local_init( WMData  *wmdata,
+            CoreDFB *core )
+{
+     DFBResult ret;
+
+     wmdata->core = core;
+
+     /* Initialise the graphics state used for rendering */
+     dfb_state_init( &wmdata->state, core );
+
+     /* Create a client to use the task manager if enabled */
+     ret = CoreGraphicsStateClient_Init( &wmdata->client, &wmdata->state );
+     if (ret)
+          return ret;
+
+     /* Make legacy functions use state client */
+     wmdata->state.client = &wmdata->client;
+
+     return DFB_OK;
+}
+
+static void
+local_deinit( WMData *wmdata )
+{
+     CoreGraphicsStateClient_Deinit( &wmdata->client );
+
+     dfb_state_destroy( &wmdata->state );
+}
+
+/**************************************************************************************************/
+
 static void
 wm_get_info( CoreWMInfo *info )
 {
@@ -3245,32 +3353,40 @@ wm_get_info( CoreWMInfo *info )
 static DFBResult
 wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
 {
-     WMData *data = wm_data;
+     DFBResult ret;
 
-     data->core = core;
+     ret = local_init( wm_data, core );
+     if (ret)
+          return ret;
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
 wm_join( CoreDFB *core, void *wm_data, void *shared_data )
 {
-     WMData *data = wm_data;
+     DFBResult ret;
 
-     data->core = core;
+     ret = local_init( wm_data, core );
+     if (ret)
+          return ret;
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
 wm_shutdown( bool emergency, void *wm_data, void *shared_data )
 {
+     local_deinit( wm_data );
+
      return DFB_OK;
 }
 
 static DFBResult
 wm_leave( bool emergency, void *wm_data, void *shared_data )
 {
+     local_deinit( wm_data );
+
      return DFB_OK;
 }
 
@@ -3301,9 +3417,12 @@ defaultwm_surface_reaction( const void *msg_data,
      int                            i;
      const CoreSurfaceNotification *notification = msg_data;
      StackData                     *data         = ctx;
-//     DFBResult                      ret;
+     WMData                        *wmdata;
 
      D_DEBUG_AT( WM_Default, "%s( %p, %p )\n", __FUNCTION__, msg_data, ctx );
+
+     wmdata = dfb_wm_get_data();
+     D_ASSERT( wmdata != NULL );
 
      D_ASSERT( ctx != NULL );
 
@@ -3333,7 +3452,7 @@ defaultwm_surface_reaction( const void *msg_data,
                                    }
 
                                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                                data->updated.regions, data->updated.num_regions, 0, 0, &data->client );
+                                                                data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
                               }
                          }
                          else {
@@ -3347,7 +3466,7 @@ defaultwm_surface_reaction( const void *msg_data,
                                    }
 
                                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                                data->updated.regions, data->updated.num_regions, 0, 0, &data->client );
+                                                                data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
                               }
                          }
 
@@ -3360,7 +3479,7 @@ defaultwm_surface_reaction( const void *msg_data,
                          flush_updating( data );
                     }
 
-                    CoreGraphicsStateClient_Flush( &data->client );
+                    CoreGraphicsStateClient_Flush( &wmdata->client );
 
                     fusion_skirmish_dismiss( &data->update_skirmish );
                     //dfb_layer_context_unlock( data->region->context );
@@ -3390,17 +3509,6 @@ wm_init_stack( CoreWindowStack *stack,
 
      data->stack = stack;
 
-     /* Initialise the graphics state used for rendering */
-     dfb_state_init( &data->state, wmdata->core );
-
-     /* Create a client to use the task manager if enabled */
-     ret = CoreGraphicsStateClient_Init( &data->client, &data->state );
-     if (ret)
-          return ret;
-
-     /* Make legacy functions use state client */
-     data->state.client = &data->client;
-
      /* Initialize update manager. */
      dfb_updates_init( &data->updates, data->update_regions, MAX_UPDATE_REGIONS );
      dfb_updates_init( &data->updating, data->updating_regions, MAX_UPDATING_REGIONS );
@@ -3412,17 +3520,12 @@ wm_init_stack( CoreWindowStack *stack,
           data->keys[i].code = -1;
 
      ret = dfb_layer_context_get_primary_region( stack->context, true, &data->region );
-     if (ret) {
-          CoreGraphicsStateClient_Deinit( &data->client );
-          dfb_state_destroy( &data->state );
+     if (ret)
           return ret;
-     }
 
      ret = dfb_layer_region_get_surface( data->region, &data->surface );
      if (ret) {
           dfb_layer_region_unref( data->region );
-          CoreGraphicsStateClient_Deinit( &data->client );
-          dfb_state_destroy( &data->state );
           return ret;
      }
 
@@ -3431,7 +3534,8 @@ wm_init_stack( CoreWindowStack *stack,
 
      fusion_skirmish_init2( &data->update_skirmish, "WM/Update", dfb_core_world(wmdata->core), fusion_config->secure_fusion );
 
-     dfb_surface_attach( data->surface, defaultwm_surface_reaction, data, &data->surface_reaction );
+     if (!dfb_config->task_manager)
+          dfb_surface_attach( data->surface, defaultwm_surface_reaction, data, &data->surface_reaction );
 
      D_MAGIC_SET( data, StackData );
 
@@ -3467,7 +3571,8 @@ wm_close_stack( CoreWindowStack *stack,
 
      fusion_vector_destroy( &data->windows );
 
-     dfb_surface_detach( data->surface, &data->surface_reaction );
+     if (!dfb_config->task_manager)
+          dfb_surface_detach( data->surface, &data->surface_reaction );
 
      dfb_layer_region_unlink( &data->region );
 
@@ -3482,9 +3587,6 @@ wm_close_stack( CoreWindowStack *stack,
      /* Free grabbed keys. */
      direct_list_foreach_safe (l, next, data->grabbed_keys)
           SHFREE( stack->shmpool, l );
-
-     CoreGraphicsStateClient_Deinit( &data->client );
-     dfb_state_destroy( &data->state );
 
      return DFB_OK;
 }
@@ -4322,25 +4424,21 @@ wm_update_cursor( CoreWindowStack       *stack,
      surface = primary->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     fusion_skirmish_prevail( &data->update_skirmish );
+
      /* restore region under cursor */
      if (data->cursor_drawn) {
-          //DFBRectangle rect = { 0, 0,
-          //                      old_dest.x2 - old_dest.x1 + 1,
-          //                      old_dest.y2 - old_dest.y1 + 1 };
-
           D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
 
           if (data->active) {
-               //dfb_gfx_copy_to( data->cursor_bs, surface, &rect, old_dest.x1, old_dest.y1, false );
-
                DFBRegion region = { 0, 0,
                                     old_dest.x2 - old_dest.x1,
                                     old_dest.y2 - old_dest.y1 };
 
                dfb_gfx_copy_regions_client( data->cursor_bs, CSBR_BACK, DSSE_LEFT, surface, CSBR_BACK, DSSE_LEFT, &region, 1,
-                                            old_dest.x1, old_dest.y1, &data->client );
+                                            old_dest.x1, old_dest.y1, &wmdata->client );
 
-               CoreGraphicsStateClient_Flush( &data->client );
+               CoreGraphicsStateClient_Flush( &wmdata->client );
 
                restored = true;
           }
@@ -4365,90 +4463,80 @@ wm_update_cursor( CoreWindowStack       *stack,
           dfb_surface_unlink( &data->cursor_bs );
      }
      else if (stack->cursor.opacity) {
-          DFBRegion  dest;
-          CardState *state = &data->state;
+          DFBRegion dest;
 
           transform_stack_to_dest( stack, &data->cursor_region, &dest );
 
           if (!dfb_region_intersect( &dest, 0, 0, surface->config.size.w - 1, surface->config.size.h - 1 )) {
-               CoreGraphicsStateClient_Flush( &data->client );
-
                if (restored)
-                    dfb_layer_region_flip_update( primary, &old_dest, DSFLIP_BLIT );
-               return DFB_OK;
+                    updates[updates_count++] = old_dest;
           }
+          else {
+               CardState *state = &wmdata->state;
 
-          /* backup region under cursor */
-          if (!data->cursor_bs_valid) {
-               //DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &dest );
+               /* backup region under cursor */
+               if (!data->cursor_bs_valid) {
+                    D_ASSERT( !data->cursor_drawn );
 
-               D_ASSERT( !data->cursor_drawn );
+                    dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, data->cursor_bs, CSBR_BACK, DSSE_LEFT, &dest, 1, -dest.x1, -dest.y1, &wmdata->client );
 
-               /* FIXME: this requires using blitted flipping all the time,
-                  but fixing it seems impossible, for now DSFLIP_BLIT is forced
-                  in repaint_stack() when the cursor is enabled. */
-               //dfb_gfx_copy_to( surface, data->cursor_bs, &rect, 0, 0, true );
+                    data->cursor_bs_valid = true;
+               }
 
-               dfb_gfx_copy_regions_client( surface, CSBR_BACK, DSSE_LEFT, data->cursor_bs, CSBR_BACK, DSSE_LEFT, &dest, 1, -dest.x1, -dest.y1, &data->client );
+               /* Set destination. */
+               state->destination  = surface;
+               state->modified    |= SMF_DESTINATION;
 
-               data->cursor_bs_valid = true;
-          }
+               /* Set clipping region. */
+               dfb_state_set_clip( state, &dest );
 
-          /* Set destination. */
-          state->destination  = surface;
-          state->modified    |= SMF_DESTINATION;
+               /* draw cursor */
+               draw_cursor( stack, data, state, &data->cursor_region );
 
-          /* Set clipping region. */
-          dfb_state_set_clip( state, &dest );
+               /* Reset destination. */
+               state->destination  = NULL;
+               state->modified    |= SMF_DESTINATION;
 
-          /* draw cursor */
-          draw_cursor( stack, data, state, &data->cursor_region );
+               CoreGraphicsStateClient_Flush( &wmdata->client );
 
-          /* Reset destination. */
-          state->destination  = NULL;
-          state->modified    |= SMF_DESTINATION;
+               data->cursor_drawn = true;
 
-          CoreGraphicsStateClient_Flush( &data->client );
+               if (restored) {
+                    if (dfb_region_region_intersects( &old_dest, &dest ))
+                         dfb_region_region_union( &old_dest, &dest );
+                    else
+                         updates[updates_count++] = dest;
 
-          data->cursor_drawn = true;
-
-          if (restored) {
-               if (dfb_region_region_intersects( &old_dest, &dest ))
-                    dfb_region_region_union( &old_dest, &dest );
+                    updates[updates_count++] = old_dest;
+               }
                else
                     updates[updates_count++] = dest;
 
-               updates[updates_count++] = old_dest;
-          }
-          else
-               updates[updates_count++] = dest;
+               /* Pan to follow the cursor? */
+               if (primary->config.source.w < surface->config.size.w || primary->config.source.h < surface->config.size.h) {
+                    DFBRectangle source = primary->config.source;
 
-          /* Pan to follow the cursor? */
-          if (primary->config.source.w < surface->config.size.w || primary->config.source.h < surface->config.size.h) {
-               DFBRectangle source = primary->config.source;
+                    if (stack->rotation)
+                         D_UNIMPLEMENTED();
 
-               if (stack->rotation)
-                    D_UNIMPLEMENTED();
+                    if (source.x > stack->cursor.x)
+                         source.x = stack->cursor.x;
+                    else if (source.x + source.w - 1 < stack->cursor.x)
+                         source.x = stack->cursor.x - source.w + 1;
 
-               if (source.x > stack->cursor.x)
-                    source.x = stack->cursor.x;
-               else if (source.x + source.w - 1 < stack->cursor.x)
-                    source.x = stack->cursor.x - source.w + 1;
+                    if (source.y > stack->cursor.y)
+                         source.y = stack->cursor.y;
+                    else if (source.y + source.h - 1 < stack->cursor.y)
+                         source.y = stack->cursor.y - source.h + 1;
 
-               if (source.y > stack->cursor.y)
-                    source.y = stack->cursor.y;
-               else if (source.y + source.h - 1 < stack->cursor.y)
-                    source.y = stack->cursor.y - source.h + 1;
-
-               dfb_layer_context_set_sourcerectangle( context, &source );
+                    dfb_layer_context_set_sourcerectangle( context, &source );
+               }
           }
      }
      else if (restored)
           updates[updates_count++] = old_dest;
 
      if (updates_count) {
-          fusion_skirmish_prevail( &data->update_skirmish );
-
           switch (primary->config.buffermode) {
                case DLBM_TRIPLE:
                     /* Add the updated region .*/
@@ -4481,11 +4569,11 @@ wm_update_cursor( CoreWindowStack       *stack,
                     }
                     break;
           }
-
-          fusion_skirmish_dismiss( &data->update_skirmish );
      }
 
-     CoreGraphicsStateClient_Flush( &data->client );
+     CoreGraphicsStateClient_Flush( &wmdata->client );
+
+     fusion_skirmish_dismiss( &data->update_skirmish );
 
      return DFB_OK;
 }

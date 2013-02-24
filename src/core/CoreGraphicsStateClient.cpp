@@ -496,15 +496,7 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_MAGIC_ASSERT( state, CardState );
 
-     /*
-      * dfb_gfxcard_state_check() moves flags to mod_hw,
-      * called from IDirectFBSurface::GetAccelerationMask().
-      *
-      * FIXME: Add GetAccelerationMask() to CoreGraphicsState flux
-      *        and do not load the graphics driver at slaves anymore.
-      */
-     state->modified = (StateModificationFlags)(state->modified | state->mod_hw);
-     state->mod_hw   = SMF_NONE;
+     D_ASSERT( state->mod_hw == SMF_NONE );
 
      if (state->render_options & DSRO_MATRIX)
           flags = (StateModificationFlags)(flags | SMF_MATRIX);
@@ -559,6 +551,40 @@ CoreGraphicsStateClient_Update( CoreGraphicsStateClient *client,
           return ret;
 
      state->modified = (StateModificationFlags)(state->modified & ~flags);
+
+     return DFB_OK;
+}
+
+DFBResult
+CoreGraphicsStateClient_GetAccelerationMask( CoreGraphicsStateClient *client,
+                                             DFBAccelerationMask     *ret_accel )
+{
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+
+     D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+     D_ASSERT( ret_accel != NULL );
+
+     if (client->renderer) {
+          return dfb_state_get_acceleration_mask( client->state, ret_accel );
+     }
+     else {
+          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
+               return dfb_state_get_acceleration_mask( client->state, ret_accel );
+          }
+          else {
+               DFBResult ret;
+
+               CoreGraphicsStateClient_Update( client,
+                                               client->state->source ?
+                                                  (client->state->source2 ? DFXL_BLIT2 : DFXL_BLIT) : DFXL_FILLRECTANGLE, client->state );
+
+               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
+
+               ret = requestor->GetAccelerationMask( ret_accel );
+               if (ret)
+                    return ret;
+          }
+     }
 
      return DFB_OK;
 }

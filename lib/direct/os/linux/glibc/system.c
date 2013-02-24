@@ -118,7 +118,11 @@ direct_trap( const char *domain, int sig )
 #endif
 //     direct_tgkill( direct_getpid(), direct_gettid(), sig );
 
-     D_LOG( Direct_Trap, VERBOSE, "...tgkill(%d) on ourself returned, maybe blocked, calling %s()!\n", sig,
+     D_LOG( Direct_Trap, VERBOSE, "...tgkill(%d) on ourself returned, maybe blocked, calling abort()!\n", sig );
+
+     abort();
+
+     D_LOG( Direct_Trap, VERBOSE, "...abort() returned as well, calling %s()!\n",
 #ifdef __NR_exit_group
             "exit_group" );
 

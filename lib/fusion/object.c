@@ -91,6 +91,19 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
      if (object) {
           D_MAGIC_ASSERT( object, FusionObject );
 
+          D_DEBUG_AT( Fusion_Object, "  -> object %p [%u] (ref %x), single refs %d\n",
+                      object, object->id, object->ref.multi.id, object->ref.single.refs );
+
+          if (object->ref.single.dead > 1) {
+               D_DEBUG_AT( Fusion_Object, "  -> died multiple times (%d), skipping...\n", object->ref.single.dead );
+
+               object->ref.single.dead--;
+
+               fusion_skirmish_dismiss( &pool->lock );
+               return FCHR_RETURN;
+          }
+
+
           switch (fusion_ref_zero_trylock( &object->ref )) {
                case DR_OK:
                     break;
@@ -114,7 +127,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
           }
 
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-          D_DEBUG_AT( Fusion_Object, "  -> dead object %p [%u] (ref %d)\n", object, object->id, object->ref.multi.id );
+          D_DEBUG_AT( Fusion_Object, "  -> dead object %p [%u] (ref %x)\n", object, object->id, object->ref.multi.id );
 
           if (object->state == FOS_INIT) {
                D_BUG( "== %s == incomplete object: %d (%p)", pool->name, call_arg, object );
@@ -252,7 +265,7 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
           fusion_ref_stat( &object->ref, &refs );
 
           if (refs > 0) {
-               D_WARN( "zombie %p [%u], refs %d (in %s)", object, object->id, refs, pool->name );
+               D_WARN( "zombie %p [%u], refs %d (in %s) => ref id 0x%x", object, object->id, refs, pool->name, object->ref.multi.id );
 
                direct_trace_print_stack( object->create_stack );
           }
@@ -410,12 +423,7 @@ fusion_object_create( FusionObjectPool  *pool,
      fusion_hash_insert( pool->objects, (void*)(long) object->id, object );
 
      D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-
-#if FUSION_BUILD_MULTI
-     D_DEBUG_AT( Fusion_Object, "  -> added %p with ref [0x%x]\n", object, object->ref.multi.id );
-#else
-     D_DEBUG_AT( Fusion_Object, "  -> added %p\n", object );
-#endif
+     D_DEBUG_AT( Fusion_Object, "  -> added object %p [%u] (ref %x)\n", object, object->id, object->ref.multi.id );
 
      D_MAGIC_SET( object, FusionObject );
 
@@ -445,6 +453,34 @@ fusion_object_get( FusionObjectPool  *pool,
           ret = fusion_object_ref( object );
           if (ret == DR_OK)
                *ret_object = object;
+     }
+
+     /* Unlock the pool. */
+     fusion_skirmish_dismiss( &pool->lock );
+
+     return ret;
+}
+
+DirectResult
+fusion_object_lookup( FusionObjectPool  *pool,
+                      FusionObjectID     object_id,
+                      FusionObject     **ret_object )
+{
+     DirectResult  ret = DR_IDNOTFOUND;
+     FusionObject *object;
+
+     D_MAGIC_ASSERT( pool, FusionObjectPool );
+     D_ASSERT( ret_object != NULL );
+
+     /* Lock the pool. */
+     if (fusion_skirmish_prevail( &pool->lock ))
+          return DR_FUSION;
+
+     object = fusion_hash_lookup( pool->objects, (void*)(long) object_id );
+     if (object) {
+          ret = DR_OK;
+
+          *ret_object = object;
      }
 
      /* Unlock the pool. */

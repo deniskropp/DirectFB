@@ -118,6 +118,10 @@ DFBResult          dfb_core_get_surface          ( CoreDFB            *core,
                                                    u32                 object_id,
                                                    CoreSurface       **ret_surface );
 
+DFBResult          dfb_core_lookup_surface       ( CoreDFB            *core,
+                                                   u32                 object_id,
+                                                   CoreSurface       **ret_surface );
+
 DFBResult          dfb_core_get_surface_allocation( CoreDFB                *core,
                                                     u32                     object_id,
                                                     CoreSurfaceAllocation **ret_allocation );

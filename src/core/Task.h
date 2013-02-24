@@ -44,7 +44,7 @@ extern "C" {
 
 
 #define DFB_TASK_DEBUG_LOG    (0)  // Task::Log(), DumpLog() enabled
-#define DFB_TASK_DEBUG_STATE  (0)  // DFB_TASK_CHECK_STATE with warning and task log if enabled
+#define DFB_TASK_DEBUG_STATE  (1)  // DFB_TASK_CHECK_STATE with warning and task log if enabled
 #define DFB_TASK_DEBUG_TASKS  (0)  // TaskManager::dumpTasks() enabled
 #define DFB_TASK_DEBUG_TIMES  (0)  // print warnings when task operations exceed time limits (set below)
 
@@ -88,6 +88,8 @@ DFBResult        SimpleTask_Create    ( SimpleTaskFunc          *push,     // If
                                         DFB_Task               **ret_task );
 
 
+/*********************************************************************************************************************/
+
 D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
 
 #if DFB_TASK_DEBUG_STATE
@@ -95,8 +97,8 @@ D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
 #define DFB_TASK_CHECK_STATE( _task, _states, _ret )                                 \
      do {                                                                            \
           if (!((_task)->state & (_states))) {                                       \
-               D_WARN( "task state (0x%02x) does not match 0x%02x -- %s",            \
-                       (_task)->state, (_states), (_task)->Description().buffer() ); \
+               D_WARN( "task state (0x%02x %s) does not match 0x%02x -- %p",         \
+                       (_task)->state, dfb_task_state_name((_task)->state), (_states), _task );     \
                                                                                      \
                (_task)->DumpLog( DirectFB_Task, DIRECT_LOG_INFO );                   \
                                                                                      \
@@ -153,6 +155,7 @@ D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
 }
 
 
+#include <direct/Magic.h>
 #include <direct/Mutex.h>
 #include <direct/Performer.h>
 #include <direct/String.h>
@@ -161,6 +164,7 @@ D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
 #include <core/Util.h>
 
 #include <list>
+#include <map>
 #include <queue>
 #include <string>
 #include <vector>
@@ -204,7 +208,7 @@ class DisplayTask;
 typedef std::pair<Task*,bool> TaskNotify;
 
 
-class Task
+class Task : public Direct::Magic<Task>
 {
 public:
      int magic;
@@ -308,7 +312,7 @@ private:
      friend class Task;
 
      static DirectThread      *thread;
-     static FastFIFO<Task*>    fifo;
+     static FIFO<Task*>        fifo;
      static unsigned int       task_count;
      static unsigned int       task_count_sync;
 
@@ -329,7 +333,7 @@ public:
 };
 
 
-class TaskThreads {
+class TaskThreads : public Direct::Magic<TaskThreads> {
 private:
      DirectFB::FIFO<Task*>      fifo;
      std::vector<DirectThread*> threads;
@@ -392,9 +396,9 @@ public:
      }
 };
 
-class TaskThreadsQ {
+class TaskThreadsQ : public Direct::Magic<TaskThreadsQ> {
 private:
-     class Runner {
+     class Runner : public Direct::Magic<Runner> {
      public:
           TaskThreadsQ *threads;
           unsigned int  index;
@@ -430,7 +434,7 @@ private:
 };
 
 
-class SurfaceAllocationAccess {
+class SurfaceAllocationAccess : public Direct::Magic<SurfaceAllocationAccess> {
 public:
      CoreSurfaceAllocation  *allocation;
      CoreSurfaceAccessFlags  flags;
@@ -611,7 +615,42 @@ pool_lock / read / write / unlock
 }
 
 
+/*********************************************************************************************************************/
+
+static inline const char *
+dfb_task_state_name( DirectFB::TaskState state )
+{
+     switch (state) {
+          case DirectFB::TASK_STATE_NONE:
+               return "<NONE>";
+
+          case DirectFB::TASK_NEW:
+               return "NEW";
+
+          case DirectFB::TASK_FLUSHED:
+               return "FLUSHED";
+
+          case DirectFB::TASK_READY:
+               return "READY";
+
+          case DirectFB::TASK_RUNNING:
+               return "RUNNING";
+
+          case DirectFB::TASK_DONE:
+               return "DONE";
+
+          case DirectFB::TASK_INVALID:
+               return "INVALID";
+
+          case DirectFB::TASK_STATE_ALL:
+               return "<ALL>";
+     }
+
+     return "invalid";
+}
+
 #endif // __cplusplus
+
 
 #endif
 

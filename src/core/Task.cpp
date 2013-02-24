@@ -212,40 +212,6 @@ SimpleTask_Create( SimpleTaskFunc  *push,
 
 /*********************************************************************************************************************/
 
-static inline const char *
-state_name( TaskState state )
-{
-     switch (state) {
-          case TASK_STATE_NONE:
-               return "<NONE>";
-
-          case TASK_NEW:
-               return "NEW";
-
-          case TASK_FLUSHED:
-               return "FLUSHED";
-
-          case TASK_READY:
-               return "READY";
-
-          case TASK_RUNNING:
-               return "RUNNING";
-
-          case TASK_DONE:
-               return "DONE";
-
-          case TASK_INVALID:
-               return "INVALID";
-
-          case TASK_STATE_ALL:
-               return "<ALL>";
-     }
-
-     return "invalid";
-}
-
-/*********************************************************************************************************************/
-
 Task::Task()
      :
      magic( D_MAGIC("Task") ),
@@ -280,10 +246,10 @@ Task::~Task()
           DFB_TASK_CHECK_STATE( this, TASK_NEW, );
 #endif
 
-     state = TASK_INVALID;
-
      if (dump)
           DumpLog( DirectFB_Task, DIRECT_LOG_VERBOSE );
+
+     state = TASK_INVALID;
 
      D_MAGIC_CLEAR( this );
 }
@@ -401,6 +367,8 @@ Task::emit( int following )
           std::vector<TaskNotify>::iterator it = notifies.begin();
 
           while (it != notifies.end()) {
+               DFB_TASK_CHECK_STATE( (*it).first, TASK_READY, );
+
                if ((*it).second) {
                     (*it).first->handleNotify( following - 1 );
 
@@ -408,6 +376,15 @@ Task::emit( int following )
                }
                else
                     ++it;
+          }
+     }
+     else {
+          std::vector<TaskNotify>::iterator it = notifies.begin();
+
+          while (it != notifies.end()) {
+               DFB_TASK_CHECK_STATE( (*it).first, TASK_READY, );
+
+               ++it;
           }
      }
 
@@ -594,7 +571,7 @@ void
 Task::Describe( Direct::String &string )
 {
      string.PrintF( "0x%08lx   %-7s  0x%04x   %2zu   %2d   %2d   %s   %s  [%zx]",
-                    (unsigned long) this, state_name(state), flags, notifies.size(), block_count,
+                    (unsigned long) this, dfb_task_state_name(state), flags, notifies.size(), block_count,
                     slaves, master ? "><" : "  ", finished ? "YES" : "no ", qid );
 }
 
@@ -718,7 +695,7 @@ Task::enableDump()
 
      D_MAGIC_ASSERT( this, Task );
 
-     DFB_TASK_CHECK_STATE( this, ~TASK_INVALID, return );
+     DFB_TASK_CHECK_STATE( this, TASK_STATE_ALL & ~TASK_INVALID, return );
 
      dump = true;
 }
@@ -766,10 +743,17 @@ void
 Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 {
 #if DFB_TASK_DEBUG_LOG
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_STATE_ALL & ~TASK_INVALID, return );
+
      Direct::Mutex::Lock lock( tasklog_lock );
 
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
-                            "Task: %p (state %d, flags 0x%x, log size %zu)\n", this, state, flags, tasklog.size() );
+                            "==[ TASK DUMP for %p, state %d, flags 0x%x, log size %zu ]\n", this, state, flags, tasklog.size() );
+
+     direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
+                            "  [ %s ]\n", Description().buffer() );
 
      for (std::vector<LogEntry>::const_iterator it=tasklog.begin(); it!=tasklog.end(); it++) {
           direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
@@ -789,6 +773,10 @@ Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 Direct::String &
 Task::Description()
 {
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_STATE_ALL & ~TASK_INVALID, );
+
      description.Clear();
 
      Describe( description );
@@ -799,7 +787,7 @@ Task::Description()
 /*********************************************************************************************************************/
 
 DirectThread     *TaskManager::thread;
-FastFIFO<Task*>   TaskManager::fifo;
+FIFO<Task*>       TaskManager::fifo;
 unsigned int      TaskManager::task_count;
 unsigned int      TaskManager::task_count_sync;
 #if DFB_TASK_DEBUG_TASKS

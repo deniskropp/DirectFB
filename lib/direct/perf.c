@@ -137,9 +137,10 @@ perf_iterate( DirectHash    *hash,
 
      counter->stop = direct_clock_get_time( DIRECT_CLOCK_SESSION );
 
-     direct_log_printf( NULL, "  %-60s  %12lu  (%7.3f/sec)  %9lld -%9lld\n", counter->name,
-                        counter->count, counter->count * 1000000.0 / (double)(counter->stop - counter->start),
-                        counter->start, counter->stop );
+     if (counter->count > 0)
+          direct_log_printf( NULL, "  %-60s  %12lu  (%7.3f/sec)  %9lld -%9lld\n", counter->name,
+                             counter->count, counter->count * 1000000.0 / (double)(counter->stop - counter->start),
+                             counter->start, counter->stop );
 
      if (counter->reset_on_dump) {
           counter->count = 0;

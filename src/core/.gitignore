@@ -1,3 +1,4 @@
+core_strings.h
 CoreDFB.cpp
 CoreDFB.h
 CoreGraphicsState.cpp
