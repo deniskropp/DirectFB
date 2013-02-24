@@ -55,8 +55,6 @@ D_DEBUG_DOMAIN( DRMKMS_Layer, "DRMKMS/Layer", "DRM/KMS Layer" );
 
 DFB_CORE_SYSTEM( drmkms )
 
-static const char device_name[] = "/dev/dri/card0";
-
 /**********************************************************************************************************************/
 
 DRMKMSData *m_data;    /* FIXME: Fix Core System API to pass data in all functions. */
@@ -129,7 +127,7 @@ InitLocal( DRMKMSData *drmkms )
      DFBResult   ret;
      int         i;
 
-     drmkms->fd = open( device_name, O_RDWR );
+     drmkms->fd = open( drmkms->shared->device_name, O_RDWR );
      if (drmkms->fd < 0) {
           ret = errno2result( errno );
           D_PERROR( "DirectFB/DRMKMS: Failed to open '%s'!\n", device_name );
@@ -155,10 +153,8 @@ InitLocal( DRMKMSData *drmkms )
 
 
      if (drmkms->plane_resources) {
-          for (i = 0; i < drmkms->plane_resources->count_planes; i++) {
-
+          for (i = 0; i < drmkms->plane_resources->count_planes; i++)
                dfb_layers_register( drmkms->screen, drmkms, drmkmsPlaneLayerFuncs );
-          }
      }
 
      return DFB_OK;
@@ -202,7 +198,7 @@ system_initialize( CoreDFB *core, void **ret_data )
      DRMKMSDataShared      *shared;
      FusionSHMPoolShared   *pool;
      int                    ret_num;
-     char                  *optionbuffer = alloca( 255 );
+     char                  *optionbuffer = NULL;
 
      D_ASSERT( m_data == NULL );
 
@@ -232,7 +228,23 @@ system_initialize( CoreDFB *core, void **ret_data )
                return DFB_INIT;
      }
 
+     if (direct_config_get("drmkms-use-prime-fd", &optionbuffer, 1, &ret_num) == DR_OK) {
+          drmkms->shared->use_prime_fd = 1;
+          D_INFO("DRMKMS/Init: using prime fd\n");
+     }
+
+     if (direct_config_get("drmkms-reinit-planes", &optionbuffer, 1, &ret_num) == DR_OK) {
+          drmkms->shared->reinit_planes = 1;
+          D_INFO("DRMKMS/Init: reinit planes workaround enabbled\n");
+     }
+
+     if (direct_config_get("drmkms-device", &optionbuffer, 1, &ret_num) == DR_OK) {
+          direct_snputs( shared->device_name, optionbuffer, 255 );
+          D_INFO("DRMKMS/Init: using devinc %s as specified in DirectFB configuration\n", shared->device_name);
+     }
+
      ret = InitLocal( drmkms );
+
      if (ret) {
           if (dfb_config->vt)
                dfb_vt_shutdown( false );
@@ -244,16 +256,6 @@ system_initialize( CoreDFB *core, void **ret_data )
      dfb_surface_pool_initialize( core, &drmkmsSurfacePoolFuncs, &shared->pool );
 
      core_arena_add_shared_field( core, "drmkms", shared );
-
-     if (direct_config_get("drmkms-use-prime-fd", &optionbuffer, 1, &ret_num) == DR_OK) {
-          drmkms->shared->use_prime_fd = 1;
-          D_INFO("DRMKMS/Init: using prime fd\n");
-     }
-
-     if (direct_config_get("drmkms-reinit-planes", &optionbuffer, 1, &ret_num) == DR_OK) {
-          drmkms->shared->reinit_planes = 1;
-          D_INFO("DRMKMS/Init: reinit planes workaround enabbled\n");
-     }
 
      drmkms->drmeventcontext.version = DRM_EVENT_CONTEXT_VERSION;
      drmkms->drmeventcontext.vblank_handler = NULL;
@@ -305,9 +307,6 @@ system_join( CoreDFB *core, void **ret_data )
      *ret_data = m_data = drmkms;
 
      dfb_surface_pool_join( core, shared->pool, &drmkmsSurfacePoolFuncs );
-
-     drmkms->screen = dfb_screens_register( NULL, drmkms, drmkmsScreenFuncs );
-     drmkms->layer  = dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
 
      return DFB_OK;
 }

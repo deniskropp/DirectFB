@@ -73,6 +73,8 @@ typedef struct {
 
      DRMKMSPlaneData      plane_data[16];
 
+     char                 device_name[256];
+
 } DRMKMSDataShared;
 
 typedef struct {
