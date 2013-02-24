@@ -36,6 +36,14 @@ extern "C" {
 #include <string.h>
 
 #include <directfb_strings.h>
+
+
+void
+FPS_Delete( DFB_Util_FPS *fps )
+{
+     delete fps;
+}
+
 }
 
 #include <direct/String.h>

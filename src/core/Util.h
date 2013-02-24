@@ -34,25 +34,22 @@ extern "C" {
 #endif
 
 #include <direct/debug.h>
-#include <direct/mem.h>
 #include <direct/memcpy.h>
-#include <direct/os/mutex.h>
 
-#include <directfb.h>
+#include <core/coretypes.h>
 
 
 // C Wrapper
+
+void FPS_Delete( DFB_Util_FPS *fps );
 
 
 #ifdef __cplusplus
 }
 
 
-
-#include <list>
-#include <map>
-#include <string>
-#include <vector>
+#include <direct/Magic.h>
+#include <direct/String.h>
 
 
 namespace DirectFB {
@@ -94,6 +91,56 @@ public:
      T       fixed[DIRECTFB_UTIL_MAX_STACK / sizeof(T)];
      T      *array;
 };
+
+
+class FPS : public Direct::Magic<FPS>
+{
+private:
+     int       frames;
+     int       frames_per_1000s;
+     long long fps_time;
+
+public:
+     FPS()
+          :
+          frames(0),
+          frames_per_1000s(0),
+          fps_time(direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ))
+     {
+     }
+
+     bool
+     Count( long long interval = 1000 )
+     {
+          long long diff;
+          long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+          CHECK_MAGIC();
+
+          frames++;
+
+          diff = (now - fps_time) / 1000;
+          if (diff >= interval) {
+               frames_per_1000s = frames * 1000000 / diff;
+
+               fps_time = now;
+               frames   = 0;
+
+               return true;
+          }
+
+          return false;
+     }
+
+     Direct::String
+     Get()
+     {
+          CHECK_MAGIC();
+
+          return Direct::String( "%d.%03d", frames_per_1000s / 1000, frames_per_1000s % 1000 );
+     }
+};
+
 
 
 }
