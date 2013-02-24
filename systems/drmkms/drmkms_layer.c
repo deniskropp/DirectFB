@@ -159,8 +159,16 @@ drmkmsFlipRegion( CoreLayer             *layer,
      direct_mutex_unlock( &drmkms->lock );
 
 
-     drmkms->buffer[buffer_index] = left_lock->buffer;
-     dfb_surface_buffer_ref( drmkms->buffer[buffer_index] );
+     dfb_surface_ref( surface );
+     drmkms->surface[buffer_index] = surface;
+     drmkms->surfacebuffer_index[buffer_index] = left_lock->buffer->index;
+
+     /* Task */
+     direct_mutex_lock( &drmkms->task_lock );
+
+     drmkms->pending_tasks[buffer_index] = left_lock->task;
+
+     direct_mutex_unlock( &drmkms->task_lock );
 
 
      D_DEBUG_AT( DRMKMS_Layer, "  -> calling drmModePageFlip()\n" );

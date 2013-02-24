@@ -49,6 +49,7 @@
 #include "vt.h"
 
 #include <core/core_system.h>
+#include <core/Task.h>
 
 D_DEBUG_DOMAIN( DRMKMS_Mode,  "DRMKMS/Mode",  "DRMKMS Mode" );
 D_DEBUG_DOMAIN( DRMKMS_Layer, "DRMKMS/Layer", "DRM/KMS Layer" );
@@ -69,15 +70,26 @@ void
 drmkms_page_flip_handler(int fd, unsigned int frame,
                          unsigned int sec, unsigned int usec, void *driver_data)
 {
-     DRMKMSData         *drmkms = driver_data;
-     CoreSurfaceBuffer **buffer = drmkms->buffer;
+     DRMKMSData         *drmkms        = driver_data;
+     CoreSurface       **surface       = drmkms->surface;
+     DFB_DisplayTask   **prev_tasks    = drmkms->prev_tasks;
+     DFB_DisplayTask   **pending_tasks = drmkms->pending_tasks;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
      for (int i=0; i<16;i++) {
           if (drmkms->flip_pending & (1 << i)) {
-               dfb_surface_notify_display( buffer[i]->surface, buffer[i] );
-               dfb_surface_buffer_unref( buffer[i] );
+               dfb_surface_notify_display2( surface[i], drmkms->surfacebuffer_index[i], pending_tasks[i] );
+               dfb_surface_unref( surface[i] );
+
+               direct_mutex_lock( &drmkms->task_lock );
+
+               if (prev_tasks[i])
+                    Task_Done( prev_tasks[i] );
+
+               prev_tasks[i] = pending_tasks[i];
+
+               direct_mutex_unlock( &drmkms->task_lock );
           }
      }
 
@@ -240,7 +252,11 @@ system_initialize( CoreDFB *core, void **ret_data )
 
      if (direct_config_get("drmkms-device", &optionbuffer, 1, &ret_num) == DR_OK) {
           direct_snputs( shared->device_name, optionbuffer, 255 );
-          D_INFO("DRMKMS/Init: using devinc %s as specified in DirectFB configuration\n", shared->device_name);
+          D_INFO("DRMKMS/Init: using device %s as specified in DirectFB configuration\n", shared->device_name);
+     }
+     else {
+          direct_snputs( shared->device_name, "/dev/dri/card0", 255 );
+          D_INFO("DRMKMS/Init: using device %s (default)\n", shared->device_name);
      }
 
      ret = InitLocal( drmkms );
@@ -262,6 +278,8 @@ system_initialize( CoreDFB *core, void **ret_data )
      drmkms->drmeventcontext.page_flip_handler = drmkms_page_flip_handler;
 
      direct_mutex_init( &drmkms->lock );
+     direct_mutex_init( &drmkms->task_lock );
+
      direct_waitqueue_init( &drmkms->wq_event );
      direct_waitqueue_init( &drmkms->wq_flip );
 

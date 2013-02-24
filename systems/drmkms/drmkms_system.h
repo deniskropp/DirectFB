@@ -45,6 +45,7 @@
 
 #include <core/layers.h>
 #include <core/screens.h>
+#include <core/Task.h>
 
 #include "vt.h"
 
@@ -106,8 +107,12 @@ typedef struct {
 
      unsigned int         flip_pending;
      unsigned int         plane_flip_pending_mask;
+     CoreSurface         *surface[16];
+     int                  surfacebuffer_index[16];
 
-     CoreSurfaceBuffer   *buffer[16];
+     DFB_DisplayTask     *prev_tasks[16];
+     DFB_DisplayTask     *pending_tasks[16];
+     DirectMutex          task_lock;
 
      DirectThread        *thread;
      DirectMutex          lock;
