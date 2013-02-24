@@ -409,14 +409,17 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
       * Mode Framebuffer
       */
 
+     if (surface->type & CSTF_LAYER) {
+          ret = drmModeAddFB2( drmkms->fd,
+                               surface->config.size.w, surface->config.size.h, drm_format,
+                               drm_bo_handles, drm_bo_pitches, drm_bo_offsets, &alloc->fb_id, 0 );
 
-     ret = drmModeAddFB2( drmkms->fd,
-                          surface->config.size.w, surface->config.size.h, drm_format,
-                          drm_bo_handles, drm_bo_pitches, drm_bo_offsets, &alloc->fb_id, 0 );
+          if (ret) {
+               D_PERROR( "DirectFB/DRMKMS: drmModeAddFB2() failed!\n" );
+               return DFB_FAILURE;
+          }
 
-     if (ret) {
-          D_PERROR( "DirectFB/DRMKMS: drmModeAddFB2() failed!\n" );
-          return DFB_FAILURE;
+          D_DEBUG_AT( DRMKMS_Surfaces, "  -> allocated FB ID %d\n", alloc->fb_id );
      }
 
      D_MAGIC_SET( alloc, DRMKMSAllocationData );
@@ -444,7 +447,8 @@ drmkmsDeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( data, DRMKMSPoolData );
      D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
 
-     drmModeRmFB( local->drmkms->fd,  alloc->fb_id );
+     if (alloc->fb_id)
+          drmModeRmFB( local->drmkms->fd,  alloc->fb_id );
 
      if (alloc->prime_fd)
           close( alloc->prime_fd );
