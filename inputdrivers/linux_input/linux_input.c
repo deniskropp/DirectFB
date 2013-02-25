@@ -1051,7 +1051,7 @@ get_device_info( int              fd,
      /* get device name */
      ioctl( fd, EVIOCGNAME(DFB_INPUT_DEVICE_DESC_NAME_LENGTH - 1), info->desc.name );
 
-     D_DEBUG_AT( Debug_LinuxInput, "  -> name '%s'\n", __FUNCTION__, info->desc.name );
+     D_DEBUG_AT( Debug_LinuxInput, "  -> name '%s'\n", info->desc.name );
 
      /* set device vendor */
      snprintf( info->desc.vendor,
@@ -1188,7 +1188,7 @@ get_device_info( int              fd,
      info->desc.vendor_id  = devinfo.vendor;
      info->desc.product_id = devinfo.product;
 
-     D_DEBUG_AT( Debug_LinuxInput, "  -> ids %d/%d\n", __FUNCTION__, info->desc.vendor_id, info->desc.product_id );
+     D_DEBUG_AT( Debug_LinuxInput, "  -> ids %d/%d\n", info->desc.vendor_id, info->desc.product_id );
 }
 
 static bool
