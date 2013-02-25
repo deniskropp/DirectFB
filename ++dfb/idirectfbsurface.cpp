@@ -403,6 +403,20 @@ IDirectFBGL *IDirectFBSurface::GetGL()
      return idirectfbgl;
 }
 
+DFBSurfaceID IDirectFBSurface::GetID()
+{
+     DFBSurfaceID surface_id;
+
+     DFBCHECK( iface->GetID (iface, &surface_id) );
+
+     return surface_id;
+}
+
+void IDirectFBSurface::AllowAccess (const char *executable)
+{
+     DFBCHECK( iface->AllowAccess (iface, executable) );
+}
+
 void IDirectFBSurface::GetClip (DFBRegion *clip)
 {
      DFBCHECK( iface->GetClip (iface, clip) );

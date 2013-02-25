@@ -167,6 +167,12 @@ public:
 
      IDirectFBGL           PPDFB_API *GetGL               ();
 
+
+     DFBSurfaceID           PPDFB_API GetID               ();
+     void                   PPDFB_API AllowAccess         (const char               *executable);
+
+
+
      /* Additional methods added for enhanced usability */
 
      int                    PPDFB_API GetWidth            ();
