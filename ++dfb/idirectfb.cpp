@@ -228,3 +228,11 @@ void *IDirectFB::GetInterface (const char *type,
      return interface_ptr;
 }
 
+IDirectFBSurface IDirectFB::GetSurface( DFBSurfaceID surface_id ) const
+{
+     IDirectFBSurface_C *idirectfbsurface;
+
+     DFBCHECK( iface->GetSurface (iface, surface_id, &idirectfbsurface) );
+
+     return IDirectFBSurface (idirectfbsurface);
+}

@@ -83,6 +83,8 @@ public:
                                                                const char                 *implementation,
                                                                void                       *arg);
 
+     IDirectFBSurface        PPDFB_API GetSurface             (DFBSurfaceID                surface_id) const;
+
      inline IDirectFB PPDFB_API & operator = (const IDirectFB& other){
           return IPPAny<IDirectFB, IDirectFB_C>::operator =(other);
      }
