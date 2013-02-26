@@ -63,7 +63,7 @@ ILayer_Real::CreateContext(
 
 DFBResult
 ILayer_Real::GetPrimaryContext(
-                    bool                                       activate,
+                    DFBBoolean                                 activate,
                     CoreLayerContext                         **ret_context
 )
 {

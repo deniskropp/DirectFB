@@ -171,7 +171,7 @@ IWindow_Real::RequestFocus()
 
 DFBResult
 IWindow_Real::ChangeGrab( CoreWMGrabTarget     target,
-                          bool                 grab )
+                          DFBBoolean           grab )
 {
      D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
 

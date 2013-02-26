@@ -20,8 +20,8 @@ interface {
                 arg {
                         name        activate
                         direction   input
-                        type        int
-                        typename    bool
+                        type        enum
+                        typename    DFBBoolean
                 }
 
                 arg {

@@ -10,7 +10,7 @@ interface {
 			name      create
 			direction input
 			type      enum
-			typename  bool
+			typename  DFBBoolean
 		}
 
 		arg {
@@ -156,8 +156,8 @@ interface {
 		arg {
 			name      follow_video
 			direction input
-			type      int
-			typename  bool
+			type      enum
+			typename  DFBBoolean
 		}
 
 		arg {
@@ -200,8 +200,8 @@ interface {
 		arg {
 			name      positive
 			direction input
-			type      int
-			typename  bool
+			type      enum
+			typename  DFBBoolean
 		}
 	}
 
@@ -230,7 +230,7 @@ interface {
 			name      window_id
 			direction input
 			type      int
-			typename  DFBWindowID
+			typename  u32
 		}
 
 		arg {
