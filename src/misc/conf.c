@@ -161,6 +161,7 @@ static const char *config_usage_strings[]  = {
      "  [no-]startstop                 Issue StartDrawing/StopDrawing to driver\n"
      "  [no-]autoflip-window           Auto flip non-flipping windowed primary surfaces\n"
      "  [no-]discard-repeat-events     Discard repeat events (option per application)\n"
+     "  [no-]gfx-emit-early            Early emit GFX commands to prevent being IDLE\n"
      "  [no-]flip-notify               Use FlipNotify for remote display\n"
      "  flip-notify-max-latency=<ms>   Set maximum FlipNotify latency (ms from Flip to Notify, default 200)\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
@@ -1092,6 +1093,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-autoflip-window" ) == 0) {
           dfb_config->autoflip_window = false;
+     } else
+     if (strcmp (name, "gfx-emit-early" ) == 0) {
+          dfb_config->gfx_emit_early = true;
+     } else
+     if (strcmp (name, "no-gfx-emit-early" ) == 0) {
+          dfb_config->gfx_emit_early = false;
      } else
      if (strcmp (name, "flip-notify" ) == 0) {
           dfb_config->flip_notify = true;
