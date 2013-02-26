@@ -526,7 +526,7 @@ handle_expose_Async( void *ctx,
 
                          dfb_surface_lock( region->surface );
 
-                         DisplayTask_Generate( region, &update, &update, DSFLIP_NONE, NULL );
+                         DisplayTask_Generate( region, &update, &update, DSFLIP_NONE, -1, NULL );
 
                          dfb_surface_unlock( region->surface );
                     }

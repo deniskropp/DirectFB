@@ -79,6 +79,7 @@ TaskManager_Sync()
      TaskManager::Sync();
 }
 
+/*********************************************************************************************************************/
 
 void
 Task_AddNotify( Task *task,
@@ -115,6 +116,7 @@ Task_Log( Task       *task,
 #endif
 }
 
+/*********************************************************************************************************************/
 
 SurfaceTask *
 SurfaceTask_New( CoreSurfaceAccessorID accessor )
@@ -134,19 +136,37 @@ SurfaceTask_AddAccess( SurfaceTask            *task,
      return task->AddAccess( allocation, flags );
 }
 
+/*********************************************************************************************************************/
+
 DFBResult
 DisplayTask_Generate( CoreLayerRegion      *region,
                       const DFBRegion      *left_update,
                       const DFBRegion      *right_update,
                       DFBSurfaceFlipFlags   flags,
+                      long long             pts,
                       DisplayTask         **ret_task )
 {
      D_DEBUG_AT( DirectFB_Task, "%s( region %p, "DFB_RECT_FORMAT", "DFB_RECT_FORMAT", flags 0x%04x, ret_task %p )\n", __FUNCTION__,
                  region, DFB_RECTANGLE_VALS_FROM_REGION( left_update ), DFB_RECTANGLE_VALS_FROM_REGION( right_update ), flags, ret_task );
 
-     return DisplayTask::Generate( region, left_update, right_update, flags, ret_task );
+     return DisplayTask::Generate( region, left_update, right_update, flags, pts, ret_task );
 }
 
+long long
+DisplayTask_GetPTS( DFB_DisplayTask *task )
+{
+     long long pts;
+
+     D_DEBUG_AT( DirectFB_Task, "%s( %p )\n", __FUNCTION__, task );
+
+     pts = task->GetPTS();
+
+     D_DEBUG_AT( DirectFB_Task, "  -> %lld\n", pts );
+
+     return pts;
+}
+
+/*********************************************************************************************************************/
 
 class SimpleTask : public Task
 {

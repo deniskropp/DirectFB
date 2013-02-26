@@ -439,7 +439,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      const DisplayLayerFuncs *funcs;
 
      if (dfb_config->task_manager)
-          return dfb_layer_region_flip_update_task( region, update, update, flags, NULL );
+          return dfb_layer_region_flip_update2( region, update, update, flags, -1, NULL );
 
      if (update)
           D_DEBUG_AT( Core_Layers,
@@ -664,7 +664,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
      DFBSurfaceStereoEye      eyes = 0;
 
      if (dfb_config->task_manager)
-          return dfb_layer_region_flip_update_task( region, left_update, right_update, flags, NULL );
+          return dfb_layer_region_flip_update2( region, left_update, right_update, flags, -1, NULL );
 
      D_DEBUG_AT( Core_Layers, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, region, left_update, right_update, flags );
      if (left_update)

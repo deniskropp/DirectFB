@@ -81,6 +81,20 @@ ILayerRegion_Real::FlipUpdate(
 
 
 DFBResult
+ILayerRegion_Real::FlipUpdate2(
+                    const DFBRegion                           *left_update,
+                    const DFBRegion                           *right_update,
+                    DFBSurfaceFlipFlags                        flags,
+                    s64                                        pts
+)
+{
+    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
+
+    return dfb_layer_region_flip_update2( obj, left_update, right_update, flags, pts, NULL );
+}
+
+
+DFBResult
 ILayerRegion_Real::FlipUpdateStereo(
                     const DFBRegion                           *left,
                     const DFBRegion                           *right,
@@ -98,6 +112,7 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
                           const DFBRegion       *left_update,
                           const DFBRegion       *right_update,
                           DFBSurfaceFlipFlags    flip_flags,
+                          long long              pts,
                           CoreSurfaceAllocation *left_allocation,
                           CoreSurfaceAllocation *right_allocation,
                           bool                   stereo )
@@ -107,6 +122,7 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
      left_update( NULL ),
      right_update( NULL ),
      flip_flags( flip_flags ),
+     pts( pts ),
      left_allocation( left_allocation ),
      right_allocation( right_allocation ),
      stereo( stereo )
@@ -133,7 +149,7 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
 
      flags = (TaskFlags)(flags | TASK_FLAG_NOSYNC);
 
-     if (region->config.buffermode == DLBM_FRONTONLY || region->config.buffermode == DLBM_BACKSYSTEM)
+//     if (region->config.buffermode == DLBM_FRONTONLY || region->config.buffermode == DLBM_BACKSYSTEM)
           flags = (TaskFlags)(flags | TASK_FLAG_EMITNOTIFIES);
 }
 
@@ -147,6 +163,7 @@ DisplayTask::Generate( CoreLayerRegion      *region,
                        const DFBRegion      *left_update,
                        const DFBRegion      *right_update,
                        DFBSurfaceFlipFlags   flags,
+                       long long             pts,
                        DisplayTask         **ret_task )
 {
      DFBResult              ret;
@@ -164,8 +181,9 @@ DisplayTask::Generate( CoreLayerRegion      *region,
      D_MAGIC_ASSERT( surface, CoreSurface );
      FUSION_SKIRMISH_ASSERT( &surface->lock );
 
-     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( region %p, surface %p, flips %d, flags 0x%04x, ret_task %p )\n",
-                 __FUNCTION__, region, surface, surface->flips, flags, ret_task );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( region %p, surface %p, flips %d, flags 0x%04x, pts %lldus (%lldus from now), ret_task %p )\n",
+                 __FUNCTION__, region, surface, surface->flips, flags, pts,
+                 pts - direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ), ret_task );
 
      stereo = !!(region->config.options & DLOP_STEREO);
 
@@ -203,7 +221,7 @@ DisplayTask::Generate( CoreLayerRegion      *region,
      }
 
 
-     DisplayTask *task = new DisplayTask( region, left_update, right_update, flags, left_allocation, right_allocation, stereo );
+     DisplayTask *task = new DisplayTask( region, left_update, right_update, flags, pts, left_allocation, right_allocation, stereo );
 
      task->AddAccess( left_allocation, CSAF_READ );
 
@@ -280,6 +298,11 @@ DisplayTask::Run()
      dfb_layer_region_lock( region );
 
      D_ASSUME( D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ) );
+
+     if (!D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
+          ret = DFB_OK;
+          goto out;
+     }
 
      D_MAGIC_ASSERT( region->surface, CoreSurface );
 
@@ -453,11 +476,12 @@ DisplayTask::Describe( Direct::String &string )
 extern "C" {
 
 DFBResult
-dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
-                                   const DFBRegion      *left_update,
-                                   const DFBRegion      *right_update,
-                                   DFBSurfaceFlipFlags   flags,
-                                   DisplayTask         **ret_task )
+dfb_layer_region_flip_update2( CoreLayerRegion      *region,
+                               const DFBRegion      *left_update,
+                               const DFBRegion      *right_update,
+                               DFBSurfaceFlipFlags   flags,
+                               long long             pts,
+                               DisplayTask         **ret_task )
 {
      DFBResult            ret = DFB_OK;
      CoreLayer           *layer;
@@ -465,7 +489,15 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
      CoreSurface         *surface;
      DFBSurfaceStereoEye  eyes = DSSE_NONE;
 
-     D_DEBUG_AT( DirectFB_Task_Display, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, region, left_update, right_update, flags );
+     if (!dfb_config->task_manager) {
+          if (region->config.options & DLOP_STEREO)
+               return dfb_layer_region_flip_update_stereo( region, left_update, right_update, flags );
+
+          return dfb_layer_region_flip_update( region, left_update, flags );
+     }
+
+     D_DEBUG_AT( DirectFB_Task_Display, "%s( %p, %p, %p, 0x%08x, pts %lld )\n",
+                 __FUNCTION__, region, left_update, right_update, flags, pts );
      if (left_update)
           D_DEBUG_AT( DirectFB_Task_Display, "Left: [%d, %d - %dx%d]\n", DFB_RECTANGLE_VALS_FROM_REGION( left_update ) );
      if (right_update)
@@ -517,7 +549,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
                     if (D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
                          D_DEBUG_AT( DirectFB_Task_Display, "  -> Issuing display task...\n" );
 
-                         DisplayTask::Generate( region, left_update, right_update, flags, ret_task );
+                         DisplayTask::Generate( region, left_update, right_update, flags, pts, ret_task );
                     }
 
                     dfb_surface_unlock( surface );
@@ -564,7 +596,7 @@ dfb_layer_region_flip_update_task( CoreLayerRegion      *region,
 
                     dfb_surface_lock( surface );
 
-                    DisplayTask::Generate( region, left_update, right_update, flags, ret_task );
+                    DisplayTask::Generate( region, left_update, right_update, flags, pts, ret_task );
 
                     dfb_surface_unlock( surface );
                }

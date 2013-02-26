@@ -4812,6 +4812,22 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           const char               *directory,
           const char               *prefix
      );
+
+
+   /** Timing **/
+
+     /*
+      * Retrieve timestamp for next frame to be rendered.
+      *
+      * This can well lie in the future, meaning that buffers are already queued
+      * and the application can generate the next frame in advance...
+      *
+      * The returned micro seconds are from DIRECT_CLOCK_MONOTONIC.
+      */
+     DFBResult (*GetFrameTime) (
+          IDirectFBSurface              *thiz,
+          long long                     *ret_micros
+     );
 )
 
 
