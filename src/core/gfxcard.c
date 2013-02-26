@@ -428,7 +428,7 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
 
      if ((flags & GDLF_SYNC) && funcs->EngineSync) {
           /* start command processing if not already running */
-          if (card->shared->pending_ops && card->funcs.EmitCommands) {
+          if (!dfb_config->gfx_emit_early && card->shared->pending_ops && card->funcs.EmitCommands) {
                card->funcs.EmitCommands( card->driver_data, card->device_data );
 
                card->shared->pending_ops = false;
@@ -488,7 +488,7 @@ dfb_gfxcard_flush()
           return ret;
 
      /* start command processing if not already running */
-     if (card->shared->pending_ops && funcs->EmitCommands) {
+     if (!dfb_config->gfx_emit_early && card->shared->pending_ops && funcs->EmitCommands) {
           funcs->EmitCommands( card->driver_data, card->device_data );
 
           card->shared->pending_ops = false;
@@ -930,7 +930,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           shared->last_allocation_id = state->dst.allocation->object.id;
 
           /* start command processing if not already running */
-          if (card->shared->pending_ops && card->funcs.EmitCommands) {
+          if (!dfb_config->gfx_emit_early && card->shared->pending_ops && card->funcs.EmitCommands) {
                card->funcs.EmitCommands( card->driver_data, card->device_data );
                card->shared->pending_ops = false;
           }
@@ -1343,7 +1343,7 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           shared->last_allocation_id = state->dst.allocation->object.id;
 
           /* start command processing if not already running */
-          if (card->shared->pending_ops && card->funcs.EmitCommands) {
+          if (!dfb_config->gfx_emit_early && card->shared->pending_ops && card->funcs.EmitCommands) {
                card->funcs.EmitCommands( card->driver_data, card->device_data );
                card->shared->pending_ops = false;
           }
@@ -1378,7 +1378,12 @@ dfb_gfxcard_state_release( CardState *state )
      D_ASSERT( state->destination != NULL );
 
      if (!dfb_config->software_only) {
-          card->shared->pending_ops = true;
+          if (dfb_config->gfx_emit_early && card->funcs.EmitCommands) {
+               card->funcs.EmitCommands( card->driver_data, card->device_data );
+               card->shared->pending_ops = false;
+          }
+          else
+               card->shared->pending_ops = true;
 
           /* Store the serial of the operation. */
           if (card->funcs.GetSerial)
