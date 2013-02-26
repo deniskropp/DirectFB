@@ -1264,7 +1264,6 @@ dfb_surface_dump_buffer( CoreSurface           *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( path != NULL );
-     D_ASSERT( prefix != NULL );
 
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
