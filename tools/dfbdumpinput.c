@@ -52,26 +52,6 @@
 
 /**************************************************************************************************/
 
-static const DirectFBKeySymbolNames( symbol_names );
-
-static const char *
-symbol_name( DFBInputDeviceKeySymbol symbol )
-{
-     int i;
-     static char buf[64];
-
-     for (i=0; i<D_ARRAY_SIZE(symbol_names); i++) {
-          if (symbol_names[i].symbol == symbol)
-               return symbol_names[i].name;
-     }
-
-     snprintf( buf, sizeof(buf), "<0x%08x>", symbol );
-
-     return buf;
-}
-
-/**************************************************************************************************/
-
 static IDirectFB                 *dfb;
 static IDirectFBEventBuffer      *events;
 static unsigned int               sf_to_tt = false;
@@ -223,28 +203,6 @@ typedef struct {
      int           value;
      const char   *name;
 } ValueName;
-
-/**************************************************************************************************/
-
-static bool
-parse_int( const AnyOption *option, const char *arg )
-{
-     int   ret;
-     char *end;
-
-     ret = strtoul( arg, &end, option->data ? (unsigned long) option->data : 10 );
-
-     if (*end || ret < 0) {
-          fprintf( stderr, "\nInvalid argument to '%s' or '%s' specified!\n\n",
-                   option->short_name, option->long_name );
-
-          return false;
-     }
-
-     *((int*)option->value) = ret;
-
-     return true;
-}
 
 /**************************************************************************************************/
 
