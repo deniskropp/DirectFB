@@ -40,6 +40,8 @@
 #include "drmkms_system.h"
 
 
+D_DEBUG_DOMAIN( DRMKMS_Screen, "DRMKMS/Screen", "DRM/KMS Screen" );
+
 /**********************************************************************************************************************/
 
 
@@ -52,9 +54,10 @@ drmkmsInitScreen( CoreScreen           *screen,
 {
      DRMKMSData       *drmkms = driver_data;
 
-     description->caps = DSCCAPS_NONE;
+     description->caps = DSCCAPS_ENCODERS;
+     description->encoders = 1;
 
-     direct_snputs( description->name, "DRMKMS", DFB_SCREEN_DESC_NAME_LENGTH );
+     direct_snputs( description->name, "DRMKMS Screen", DFB_SCREEN_DESC_NAME_LENGTH );
 
      drmModeRes       *resources;
      drmModeConnector *connector = NULL;
@@ -128,6 +131,7 @@ drmkmsInitScreen( CoreScreen           *screen,
      drmkms->saved_crtc = drmModeGetCrtc( drmkms->fd, drmkms->encoder->crtc_id );
 
 
+
      return DFB_OK;
 }
 
@@ -146,9 +150,109 @@ drmkmsGetScreenSize( CoreScreen *screen,
      return DFB_OK;
 }
 
+static DFBResult
+drmkmsInitEncoder( CoreScreen                  *screen,
+                   void                        *driver_data,
+                   void                        *screen_data,
+                   int                          encoder,
+                   DFBScreenEncoderDescription *description,
+                   DFBScreenEncoderConfig      *config )
+{
+     DRMKMSData       *drmkms    = driver_data;
+     DRMKMSDataShared *shared    = drmkms->shared;
+
+     (void) shared;
+
+     D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
+
+     direct_snputs( description->name, "DRMKMS Encoder", DFB_SCREEN_ENCODER_DESC_NAME_LENGTH );
+
+
+     description->caps            = DSECAPS_RESOLUTION;
+     description->type            = DSET_UNKNOWN;
+
+     description->all_resolutions = drmkms_modes_to_dsor_bitmask();
+
+     config->flags          = DSECONF_RESOLUTION;
+     config->resolution     = drmkms_mode_to_dsor( &drmkms->mode );
+
+     return DFB_OK;
+}
+
+static DFBResult
+drmkmsSetEncoderConfig( CoreScreen                   *screen,
+                        void                         *driver_data,
+                        void                         *screen_data,
+                        int                           encoder,
+                        const DFBScreenEncoderConfig *config )
+{
+     DRMKMSData       *drmkms = driver_data;
+     DRMKMSDataShared *shared = drmkms->shared;
+     int ret;
+
+     D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
+
+     if (config->flags & DSECONF_RESOLUTION) {
+          drmModeModeInfo *videomode = drmkms_dsor_to_mode( config->resolution);
+
+          ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder->crtc_id, shared->primary_fb, shared->primary_rect.x, shared->primary_rect.y,
+                                &drmkms->connector->connector_id, 1, videomode );
+          if (ret) {
+               D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
+               D_DEBUG_AT( DRMKMS_Screen, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder->crtc_id, drmkms->connector->connector_id, drmkms->mode.hdisplay, drmkms->mode.vdisplay );
+               return DFB_FAILURE;
+          }
+
+          drmkms->mode = *videomode;
+     }
+
+     return DFB_OK;
+}
+
+
+static DFBResult
+drmkmsTestEncoderConfig( CoreScreen                   *screen,
+                         void                         *driver_data,
+                         void                         *screen_data,
+                         int                           encoder,
+                         const DFBScreenEncoderConfig *config,
+                         DFBScreenEncoderConfigFlags   *failed )
+{
+     DRMKMSData       *drmkms = driver_data;
+     DRMKMSDataShared *shared = drmkms->shared;
+
+     D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
+
+     if (config->flags & DSECONF_RESOLUTION) {
+          drmModeModeInfo *videomode = drmkms_dsor_to_mode( config->resolution );
+
+          if (!videomode) {
+               *failed = DSECONF_RESOLUTION;
+
+               return DFB_UNSUPPORTED;
+          }
+          if ((shared->primary_dimension.w < videomode->vdisplay ) ||
+              (shared->primary_dimension.h < videomode->hdisplay )) {
+
+               D_DEBUG_AT( DRMKMS_Screen, "%s() cannot switch to mode to something that is bigger than the current primary layer\n", __FUNCTION__ );
+
+               *failed = DSECONF_RESOLUTION;
+
+               return DFB_UNSUPPORTED;
+          }
+
+     }
+
+     return DFB_OK;
+}
+
+
 static const ScreenFuncs _drmkmsScreenFuncs = {
-     .InitScreen     = drmkmsInitScreen,
-     .GetScreenSize  = drmkmsGetScreenSize
+     .InitScreen        = drmkmsInitScreen,
+     .GetScreenSize     = drmkmsGetScreenSize,
+     .InitEncoder       = drmkmsInitEncoder,
+     .SetEncoderConfig  = drmkmsSetEncoderConfig,
+     .TestEncoderConfig = drmkmsTestEncoderConfig,
 };
 
 const ScreenFuncs *drmkmsScreenFuncs = &_drmkmsScreenFuncs;
