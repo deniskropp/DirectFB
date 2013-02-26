@@ -125,7 +125,6 @@ get_trace_buffer( void )
           if (!buffers_num)
                direct_tls_register( &trace_key, buffer_destroy );
           else if (buffers_num == MAX_BUFFERS) {
-               D_ERROR( "Direct/Trace: Maximum number of threads (%d) reached!\n", MAX_BUFFERS );
                direct_mutex_unlock( &buffers_lock );
                return NULL;
           }
@@ -138,6 +137,12 @@ get_trace_buffer( void )
           buffers[buffers_num++] = buffer;
 
           direct_mutex_unlock( &buffers_lock );
+
+          if (buffers_num == MAX_BUFFERS) {
+               D_ERROR( "Direct/Trace: Maximum number of threads (%d) reached!\n", MAX_BUFFERS );
+
+               direct_trace_print_stacks();
+          }
      }
 
      return buffer;
@@ -445,8 +450,11 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
      if (!direct_config->trace)
           return;
 
-     if (!buffer)
+     if (!buffer) {
           buffer = get_trace_buffer();
+          if (!buffer)
+               return;
+     }
 
      if (buffer->in_trace)
           return;
@@ -531,7 +539,7 @@ direct_trace_print_stacks( void )
      int                i;
      DirectTraceBuffer *buffer = get_trace_buffer();
 
-     if (buffer->level)
+     if (buffer && buffer->level)
           direct_trace_print_stack( buffer );
 
      direct_mutex_lock( &buffers_lock );
@@ -548,18 +556,21 @@ __attribute__((no_instrument_function))
 int
 direct_trace_debug_indent( void )
 {
-     int                in;
+     int                in     = 0;
      DirectTraceBuffer *buffer = get_trace_buffer();
-     int                level  = buffer->level - 1;
 
-     if (level < 0)
-          return 0;
+     if (buffer) {
+          int level = buffer->level - 1;
 
-     buffer->trace[level--].flags |= TF_DEBUG;
+          if (level < 0)
+               return 0;
 
-     for (in=0; level>=0; level--) {
-          if (buffer->trace[level].flags & TF_DEBUG)
-               in++;
+          buffer->trace[level--].flags |= TF_DEBUG;
+
+          for (in=0; level>=0; level--) {
+               if (buffer->trace[level].flags & TF_DEBUG)
+                    in++;
+          }
      }
 
      return in;
@@ -572,8 +583,11 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
      int                level;
      DirectTraceBuffer *copy;
 
-     if (!buffer)
+     if (!buffer) {
           buffer = get_trace_buffer();
+          if (!buffer)
+               return NULL;
+     }
 
      level = buffer->level;
      if (level > MAX_LEVEL) {
@@ -617,12 +631,15 @@ __cyg_profile_func_enter( void *this_fn,
 {
      if (direct_config->trace) {
           DirectTraceBuffer *buffer = get_trace_buffer();
-          int                level  = buffer->level++;
-          Trace             *trace  = &buffer->trace[level];
 
-          if (level < MAX_LEVEL) {
-               trace->addr  = this_fn;
-               trace->flags = TF_NONE;
+          if (buffer) {
+               int    level = buffer->level++;
+               Trace *trace = &buffer->trace[level];
+
+               if (level < MAX_LEVEL) {
+                    trace->addr  = this_fn;
+                    trace->flags = TF_NONE;
+               }
           }
      }
 }
@@ -634,8 +651,10 @@ __cyg_profile_func_exit( void *this_fn,
      if (direct_config->trace) {
           DirectTraceBuffer *buffer = get_trace_buffer();
 
-          if (buffer->level > 0)
-               buffer->level--;
+          if (buffer) {
+               if (buffer->level > 0)
+                    buffer->level--;
+          }
      }
 }
 
