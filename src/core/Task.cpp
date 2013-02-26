@@ -621,7 +621,7 @@ Task::AddNotify( Task *notified,
      }
 #endif
 
-     DFB_TASK_LOG( Direct::String( "AddNotify( %p, %sfollow )", notified, follow ? "" : "NO " ) );
+     DFB_TASK_LOG( Direct::String::F( "AddNotify( %p, %sfollow )", notified, follow ? "" : "NO " ) );
 
      if (follow /*&& !slaves*/ && (state == TASK_RUNNING || state == TASK_DONE)) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, following running task!\n" );
@@ -656,7 +656,7 @@ Task::notifyAll()
      else
           DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
 
-     DFB_TASK_LOG( Direct::String( "notifyAll(%zu)", notifies.size() ) );
+     DFB_TASK_LOG( Direct::String::F( "notifyAll(%zu)", notifies.size() ) );
 
      for (std::vector<TaskNotify>::const_iterator it = notifies.begin(); it != notifies.end(); ++it)
           (*it).first->handleNotify( 1 );
@@ -679,7 +679,7 @@ Task::handleNotify( int following )
 
      DFB_TASK_CHECK_STATE( this, TASK_READY, return );
 
-     DFB_TASK_LOG( Direct::String( "handleNotify( %sfollowing )", following ? "" : "NOT " ) );
+     DFB_TASK_LOG( Direct::String::F( "handleNotify( %sfollowing )", following ? "" : "NOT " ) );
 
      D_ASSERT( block_count > 0 );
 
@@ -732,7 +732,7 @@ Task::append( Task *task )
      DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_DONE, return );
      DFB_TASK_CHECK_STATE( task, TASK_RUNNING, return );
 
-     DFB_TASK_LOG( Direct::String( "append( %p )", task ) );
+     DFB_TASK_LOG( Direct::String::F( "append( %p )", task ) );
 
      D_ASSERT( next == NULL );
 
