@@ -300,7 +300,7 @@ DisplayTask::Run()
      D_ASSUME( D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ) );
 
      if (!D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
-          ret = DFB_OK;
+          ret = DFB_TIMEOUT;
           goto out;
      }
 
