@@ -51,7 +51,7 @@
 #include <core/core_system.h>
 #include <core/Task.h>
 
-D_DEBUG_DOMAIN( DRMKMS_Mode,  "DRMKMS/Mode",  "DRMKMS Mode" );
+D_DEBUG_DOMAIN( DRMKMS_Mode,  "DRMKMS/Mode",  "DRM/KMS Mode" );
 D_DEBUG_DOMAIN( DRMKMS_Layer, "DRMKMS/Layer", "DRM/KMS Layer" );
 
 DFB_CORE_SYSTEM( drmkms )
@@ -165,8 +165,10 @@ InitLocal( DRMKMSData *drmkms )
 
 
      if (drmkms->plane_resources) {
-          for (i = 0; i < drmkms->plane_resources->count_planes; i++)
+          for (i = 0; i < drmkms->plane_resources->count_planes; i++) {
+//               if (i==3) break;
                dfb_layers_register( drmkms->screen, drmkms, drmkmsPlaneLayerFuncs );
+               }
      }
 
      return DFB_OK;
@@ -545,11 +547,66 @@ system_get_deviceid( unsigned int *ret_vendor_id,
      return;
 }
 
-const drmModeModeInfo*
+
+
+static int xres_table[] = { 640,720,720,800,1024,1152,1280,1280,1280,1280,1400,1600,1920,960,1140 };
+static int yres_table[] = { 480,480,576,600, 768, 864, 720, 768, 960,1024,1050,1200,1080,540, 540 };
+
+DFBScreenOutputResolution
+drmkms_modes_to_dsor_bitmask()
+{
+     drmModeModeInfo *videomode = m_data->connector->modes;
+
+     int ret = DSOR_UNKNOWN;
+
+     int i,j;
+     for (i=0;i<m_data->connector->count_modes;i++) {
+          for (j=0;j<D_ARRAY_SIZE(xres_table);j++) {
+               if (videomode[i].hdisplay == xres_table[j] && videomode[i].vdisplay == yres_table[j]) {
+                    ret |= (1 << j);
+                    break;
+               }
+          }
+     }
+
+     return ret;
+}
+
+DFBScreenOutputResolution
+drmkms_mode_to_dsor( drmModeModeInfo *videomode )
+{
+     int ret = DSOR_UNKNOWN;
+
+     int j;
+     for (j=0;j<D_ARRAY_SIZE(xres_table);j++) {
+          if (videomode->hdisplay == xres_table[j] && videomode->vdisplay == yres_table[j]) {
+               ret = (1 << j);
+               break;
+          }
+     }
+
+     return ret;
+}
+
+drmModeModeInfo*
+drmkms_dsor_to_mode( DFBScreenOutputResolution dsor )
+{
+     int res    = D_BITn32(dsor);
+     if (res >= D_ARRAY_SIZE(xres_table))
+          return NULL;
+
+     int width  = xres_table[res];
+     int height = yres_table[res];
+
+     return drmkms_find_mode( width, height );
+}
+
+
+drmModeModeInfo*
 drmkms_find_mode( int width, int height )
 {
-     const drmModeModeInfo *videomode = m_data->connector->modes;
-     const drmModeModeInfo *found_mode   = NULL;
+     drmModeModeInfo *videomode   = m_data->connector->modes;
+     drmModeModeInfo *found_mode  = NULL;
 
      int i;
      for (i=0;i<m_data->connector->count_modes;i++) {

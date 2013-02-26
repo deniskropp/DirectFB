@@ -101,8 +101,9 @@ drmkmsSetRegion( CoreLayer                  *layer,
                  CoreSurfaceBufferLock      *left_lock,
                  CoreSurfaceBufferLock      *right_lock )
 {
-     int       ret;
-     DRMKMSData *drmkms = driver_data;
+     int               ret;
+     DRMKMSData       *drmkms = driver_data;
+     DRMKMSDataShared *shared = drmkms->shared;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
@@ -117,6 +118,9 @@ drmkmsSetRegion( CoreLayer                  *layer,
                return DFB_FAILURE;
           }
 
+          shared->primary_dimension  = surface->config.size;
+          shared->primary_rect       = config->source;
+          shared->primary_fb         = (u32)(long)left_lock->handle;
      }
 
 
@@ -135,11 +139,12 @@ drmkmsFlipRegion( CoreLayer             *layer,
                   const DFBRegion       *right_update,
                   CoreSurfaceBufferLock *right_lock )
 {
-     int              ret;
-     DRMKMSData      *drmkms = driver_data;
-     DRMKMSPlaneData *data   = layer_data;
-     unsigned int     plane_mask = 1;
-     unsigned int     buffer_index  = 0;
+     int               ret;
+     DRMKMSData       *drmkms = driver_data;
+     DRMKMSDataShared *shared = drmkms->shared;
+     DRMKMSPlaneData  *data   = layer_data;
+     unsigned int      plane_mask = 1;
+     unsigned int      buffer_index  = 0;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
@@ -178,6 +183,8 @@ drmkmsFlipRegion( CoreLayer             *layer,
           D_PERROR( "DirectFB/DRMKMS: drmModePageFlip() failed!\n" );
           return DFB_FAILURE;
      }
+
+     shared->primary_fb = (u32)(long)left_lock->handle;
 
      dfb_surface_flip( surface, false );
 

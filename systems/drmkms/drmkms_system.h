@@ -76,6 +76,11 @@ typedef struct {
 
      char                 device_name[256];
 
+     DFBRectangle         primary_rect;
+     DFBDimension         primary_dimension;
+
+     u32                  primary_fb;
+
 } DRMKMSDataShared;
 
 typedef struct {
@@ -123,7 +128,16 @@ typedef struct {
 } DRMKMSData;
 
 
-const drmModeModeInfo*
+drmModeModeInfo*
 drmkms_find_mode( int width, int height );
+
+drmModeModeInfo*
+drmkms_dsor_to_mode( DFBScreenOutputResolution dsor );
+
+DFBScreenOutputResolution
+drmkms_modes_to_dsor_bitmask(void);
+
+DFBScreenOutputResolution
+drmkms_mode_to_dsor( drmModeModeInfo *videomode );
 
 #endif
