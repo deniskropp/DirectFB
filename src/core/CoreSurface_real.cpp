@@ -67,7 +67,7 @@ ISurface_Real::SetConfig(
 
 DFBResult
 ISurface_Real::Flip(
-                   bool                                       swap
+                   DFBBoolean                                    swap
                    )
 {
      DFBResult ret;
@@ -302,7 +302,7 @@ ISurface_Real::PreLockBuffer2(
                          DFBSurfaceStereoEye                        eye,
                          CoreSurfaceAccessorID                      accessor,
                          CoreSurfaceAccessFlags                     access,
-                         bool                                       lock,
+                         DFBBoolean                                 lock,
                          CoreSurfaceAllocation                    **ret_allocation
                          )
 {
@@ -370,11 +370,11 @@ ISurface_Real::PreLockBuffer2(
      if (!lock) {
           if (access & CSAF_WRITE) {
                if (!(allocation->pool->desc.caps & CSPCAPS_WRITE))
-                    lock = true;
+                    lock = DFB_TRUE;
           }
           else if (access & CSAF_READ) {
                if (!(allocation->pool->desc.caps & CSPCAPS_READ))
-                    lock = true;
+                    lock = DFB_TRUE;
           }
      }
 
@@ -565,7 +565,7 @@ ISurface_Real::PreLockBuffer3(
                          DFBSurfaceStereoEye                        eye,
                          CoreSurfaceAccessorID                      accessor,
                          CoreSurfaceAccessFlags                     access,
-                         bool                                       lock,
+                         DFBBoolean                                 lock,
                          CoreSurfaceAllocation                    **ret_allocation
                          )
 {
@@ -628,11 +628,11 @@ ISurface_Real::PreLockBuffer3(
      if (!lock) {
           if (access & CSAF_WRITE) {
                if (!(allocation->pool->desc.caps & CSPCAPS_WRITE))
-                    lock = true;
+                    lock = DFB_TRUE;
           }
           else if (access & CSAF_READ) {
                if (!(allocation->pool->desc.caps & CSPCAPS_READ))
-                    lock = true;
+                    lock = DFB_TRUE;
           }
      }
 
