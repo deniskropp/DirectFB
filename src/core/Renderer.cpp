@@ -77,15 +77,21 @@ renderer_tls_destroy( void *arg )
 
 
 void
-Renderer_TLS__init( void )
+Renderer_TLS__init()
 {
      direct_tls_register( &renderer_tls_key, renderer_tls_destroy );
 }
 
 void
-Renderer_TLS__deinit( void )
+Renderer_TLS__deinit()
 {
      direct_tls_unregister( &renderer_tls_key );
+}
+
+void
+Renderer_DeleteEngines()
+{
+     DirectFB::Renderer::DeleteEngines();
 }
 
 static RendererTLS *
@@ -2857,6 +2863,17 @@ Renderer::UnregisterEngine( Engine *engine )
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
      engines.remove( engine );
+}
+
+void
+Renderer::DeleteEngines()
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+
+     for (std::list<Engine*>::const_iterator it=engines.begin(); it!=engines.end(); it++)
+          delete *it;
+
+     engines.clear();
 }
 
 /*********************************************************************************************************************/

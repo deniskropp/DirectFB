@@ -63,6 +63,7 @@
 
 #include <core/CoreDFB.h>
 #include <core/CoreSlave.h>
+#include <core/Renderer.h>
 
 #include <core/Task.h>
 
@@ -1544,6 +1545,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      dfb_core_part_shutdown( core, &dfb_layer_core, emergency );
      dfb_core_part_shutdown( core, &dfb_screen_core, emergency );
 
+     TaskManager_Sync();
+
      /* Destroy surface and palette objects. */
      fusion_object_pool_destroy( shared->graphics_state_pool, core->world );
      fusion_object_pool_destroy( shared->surface_client_pool, core->world );
@@ -1553,6 +1556,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      fusion_object_pool_destroy( shared->palette_pool, core->world );
 
      direct_perf_dump_all();
+
+     Renderer_DeleteEngines();
 
      /* Destroy remaining core parts. */
      dfb_core_part_shutdown( core, &dfb_graphics_core, emergency );

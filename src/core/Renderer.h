@@ -47,6 +47,8 @@ extern "C" {
 void Renderer_TLS__init( void );
 void Renderer_TLS__deinit( void );
 
+void Renderer_DeleteEngines( void );
+
 #ifdef __cplusplus
 }
 
@@ -299,6 +301,7 @@ private:
 public:
      static DFBResult RegisterEngine  ( Engine *engine );
      static void      UnregisterEngine( Engine *engine );
+     static void      DeleteEngines   ();
 };
 
 
@@ -372,6 +375,10 @@ public:
 
 protected:
      Engine()
+     {
+     }
+
+     virtual ~Engine()
      {
      }
 
