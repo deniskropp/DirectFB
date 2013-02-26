@@ -105,6 +105,7 @@ print_usage( const char *prg )
      fprintf (stderr, "  -d, --dest      <pixelformat>     Destination pixel format\n");
      fprintf (stderr, "  -t, --triple                      Use triple buffer\n");
      fprintf (stderr, "  -f, --frames                      Use frame base (instead of time base)\n");
+     fprintf (stderr, "  -T, --frame-time                  Use frame time base (IDirectFBSurface::GetFrameTime)\n");
 
      return -1;
 }
@@ -121,6 +122,7 @@ main( int argc, char *argv[] )
      IDirectFBSurface       *dest        = NULL;
      DFBSurfacePixelFormat   dest_format = DSPF_UNKNOWN;
      bool                    triple      = false;
+     bool                    frame_time  = false;
      bool                    frames      = false;
      long long               t0, count   = 0;
 
@@ -152,6 +154,9 @@ main( int argc, char *argv[] )
           }
           else if (strcmp (arg, "-t") == 0 || strcmp (arg, "--triple") == 0) {
                triple = true;
+          }
+          else if (strcmp (arg, "-T") == 0 || strcmp (arg, "--frame-time") == 0) {
+               frame_time = true;
           }
           else if (strcmp (arg, "-f") == 0 || strcmp (arg, "--frames") == 0) {
                frames = true;
@@ -196,7 +201,16 @@ main( int argc, char *argv[] )
      while (true) {
           long long t1, t2, base;
 
-          if (frames) {
+          if (frame_time) {
+               long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+               dest->GetFrameTime( dest, &base );
+
+               D_INFO( "Got frame time %lld (now %lld) with advance %lld (us in future)\n", base, now, base - now );
+
+               base = base * 5 / 17000;
+          }
+          else if (frames) {
                base = count * 5;
           }
           else {
