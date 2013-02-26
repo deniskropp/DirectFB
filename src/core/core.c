@@ -411,7 +411,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           return DFB_OK;
      }
 
-     direct_thread_sleep( 500000 );
+     // FIXME: avoid this workaround
+     direct_thread_sleep( 100000 );
 
      if (core->font_manager)
           dfb_font_manager_destroy( core->font_manager );
