@@ -100,13 +100,10 @@ D_String_Delete( D_String *str )
 
 
 
-String::String( const char *format, ... )
+String::String( const char *str )
+     :
+     str( str )
 {
-     va_list  args;
-
-     va_start( args, format );
-     PrintF( format, args );
-     va_end( args );
 }
 
 String &
@@ -164,10 +161,43 @@ String::PrintF( const char *format, va_list args, size_t stack_buffer )
      return *this;
 }
 
+String
+String::F( const char *format, ... )
+{
+     va_list args;
+     String  str;
+
+     va_start( args, format );
+     str.PrintF( format, args );
+     va_end( args );
+
+     return str;
+}
+
 void
 String::Clear()
 {
      str.clear();
+}
+
+std::vector<String>
+String::GetTokens( const Direct::String &delimiter ) const
+{
+     std::vector<String> tokens;
+
+     char *buf = direct_strdup( buffer() );
+     char *str = buf;
+     char *save, *token;
+
+     while ((token = strtok_r( str, delimiter.buffer(), &save ))) {
+          str = NULL;
+
+          tokens.push_back( Direct::String::F( "%s", token ) );
+     }
+
+     direct_free( buf );
+
+     return tokens;
 }
 
 

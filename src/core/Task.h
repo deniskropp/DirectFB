@@ -343,8 +343,8 @@ public:
      {
           for (size_t i=0; i<num; i++) {
                DirectThread *thread = direct_thread_create( type, taskLoop, this, (num > 1) ?
-                                                            Direct::String( "%s/%zu", name.c_str(), i ).buffer() :
-                                                            Direct::String( "%s", name.c_str() ).buffer() );
+                                                            Direct::String::F( "%s/%zu", name.c_str(), i ).buffer() :
+                                                            Direct::String::F( "%s", name.c_str() ).buffer() );
                if (!thread)
                     break;
 
