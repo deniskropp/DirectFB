@@ -110,7 +110,7 @@ direct_strerror( int erno )
 /*
  * translates errno to DirectResult
  */
-__no_instrument_function__
+__dfb_no_instrument_function__
 DirectResult
 errno2result( int erno )
 {

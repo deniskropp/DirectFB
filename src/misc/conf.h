@@ -271,6 +271,8 @@ typedef struct
      bool          x11_borderless;
      DFBPoint      x11_position;
 
+     bool          gfx_emit_early;
+
      bool          flip_notify;
 
      char         *resource_manager;

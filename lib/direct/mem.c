@@ -121,7 +121,7 @@ direct_print_memleaks( void )
 
 /**********************************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static __inline__ MemDesc *
 fill_mem_desc( MemDesc *desc, int bytes, const char *func, const char *file, int line, DirectTraceBuffer *trace )
 {

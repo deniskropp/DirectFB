@@ -48,7 +48,7 @@
 
 #if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
   
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_debug_log( DirectLogDomain *domain,
               unsigned int     debug_level,  /* 1-9, 0 = info */
@@ -63,7 +63,7 @@ direct_debug_log( DirectLogDomain *domain,
      va_end( ap );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_debug_at( DirectLogDomain *domain,
                  const char      *format, ... )
@@ -77,7 +77,7 @@ direct_debug_at( DirectLogDomain *domain,
 
 #endif /* DIRECT_BUILD_DEBUGS */
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_debug_at_always( DirectLogDomain *domain,
                         const char      *format, ... )
@@ -93,7 +93,7 @@ direct_debug_at_always( DirectLogDomain *domain,
 
 #if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_break( const char *func,
               const char *file,
@@ -123,7 +123,7 @@ direct_break( const char *func,
           direct_trap( "Break", SIGABRT );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_assertion( const char *exp,
                   const char *func,
@@ -144,7 +144,7 @@ direct_assertion( const char *exp,
           direct_trap( "Assertion", SIGTRAP );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_assumption( const char *exp,
                    const char *func,

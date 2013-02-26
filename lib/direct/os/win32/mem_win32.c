@@ -43,7 +43,7 @@
 #define TOTAL_SENTINEL  ((PREFIX_SENTINEL) + (SUFFIX_SENTINEL))
 
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static inline void
 install_sentinels( void *p, size_t size )
 {
@@ -63,7 +63,7 @@ install_sentinels( void *p, size_t size )
           suffix[i] = i;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static inline void
 remove_sentinels( void *p )
 {
@@ -79,7 +79,7 @@ remove_sentinels( void *p )
           suffix[i] = 0;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static inline void
 check_sentinels( void *p )
 {
@@ -102,7 +102,7 @@ check_sentinels( void *p )
 }
 
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void *
 direct_malloc( size_t bytes )
 {
@@ -116,7 +116,7 @@ direct_malloc( size_t bytes )
      return p + PREFIX_SENTINEL;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void *
 direct_calloc( size_t count, size_t bytes)
 {
@@ -130,7 +130,7 @@ direct_calloc( size_t count, size_t bytes)
      return p + PREFIX_SENTINEL;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void *
 direct_realloc( void *mem, size_t bytes )
 {
@@ -156,7 +156,7 @@ direct_realloc( void *mem, size_t bytes )
      return p + PREFIX_SENTINEL;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 char *
 direct_strdup( const char *str )
 {
@@ -173,7 +173,7 @@ direct_strdup( const char *str )
      return p + PREFIX_SENTINEL;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_free( void *mem )
 {
@@ -192,35 +192,35 @@ direct_free( void *mem )
 
 #else
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void *
 direct_malloc( size_t bytes )
 {
      return malloc( bytes );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void *
 direct_calloc( size_t count, size_t bytes)
 {
      return calloc( count, bytes );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void *
 direct_realloc( void *mem, size_t bytes )
 {
      return realloc( mem, bytes );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 char *
 direct_strdup( const char *str )
 {
      return _strdup( str );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_free( void *mem )
 {
