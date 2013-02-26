@@ -1828,6 +1828,7 @@ cle266=no
 cyber5k=no
 davinci=no
 ep9x=no
+gp2d=no
 gl=no
 gles2=no
 glx=no
@@ -1859,7 +1860,7 @@ AC_ARG_WITH(gfxdrivers,
                            [LIST is a comma separated selection of gfxdrivers]
                            [to build. Possible gfxdrivers are: all (builds all]
                            [drivers), none (builds none), ati128, cle266,]
-                           [cyber5k, davinci, ep9x, gl, gles2, i810, i830, mach64,]
+                           [cyber5k, davinci, ep9x, gp2d, gl, gles2, i810, i830, mach64,]
                            [matrox, neomagic, nsc, nvidia, omap, pvr2d, pxa3xx,]
                            [radeon, savage, sh772x, sis315, tdfx, unichrome,]
                            [vdpau, vmware. @<:@default=all@:>@]),
@@ -1870,6 +1871,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_cyber5k=no
   checkfor_davinci="$have_arm"
   checkfor_ep9x=yes
+  checkfor_gp2d=no
   checkfor_gl=yes
   checkfor_gles2=yes
   checkfor_i810=yes
@@ -1912,6 +1914,9 @@ else
                   ;;
           ep9x)
                   checkfor_ep9x=yes
+                  ;;
+          gp2d)
+                  checkfor_gp2d=yes
                   ;;
           gl)
                   checkfor_gl=yes
@@ -2002,6 +2007,13 @@ fi
 if test "$checkfor_ep9x" = "yes"; then
   ep9x=yes
 fi
+
+if test "$checkfor_gp2d" = "yes"; then
+  gp2d=yes
+fi
+
+AC_SUBST(GP2D_LIBS)
+AC_SUBST(GP2D_CFLAGS)
 
 if test "$checkfor_gl" = "yes"; then
   AC_CHECK_HEADER(GL/gl.h, gl=yes)
@@ -2566,6 +2578,7 @@ AM_CONDITIONAL(GFX_CLE266, test "$cle266" = "yes")
 AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_DAVINCI, test "$davinci" = "yes")
 AM_CONDITIONAL(GFX_EP9X, test "$ep9x" = "yes")
+AM_CONDITIONAL(GFX_GP2D, test "$gp2d" = "yes")
 AM_CONDITIONAL(GFX_GL, test "$gl" = "yes")
 AM_CONDITIONAL(GFX_GLES2, test "$gles2" = "yes")
 AM_CONDITIONAL(GFX_GLX, test "$glx" = "yes")
@@ -2810,6 +2823,7 @@ gfxdrivers/cle266/Makefile
 gfxdrivers/cyber5k/Makefile
 gfxdrivers/davinci/Makefile
 gfxdrivers/ep9x/Makefile
+gfxdrivers/gp2d/Makefile
 gfxdrivers/gl/Makefile
 gfxdrivers/gles2/Makefile
 gfxdrivers/i810/Makefile
