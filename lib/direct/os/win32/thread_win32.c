@@ -126,7 +126,7 @@ direct_thread_self( void )
      return NULL;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 const char *
 direct_thread_self_name( void )
 {

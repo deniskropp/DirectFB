@@ -69,7 +69,7 @@ __D_log_domain_deinit()
 
 /**********************************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static __inline__ LogDomainEntry *
 lookup_domain( const char *name, bool sub );
 
@@ -104,7 +104,7 @@ lookup_domain( const char *name, bool sub )
      return NULL;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static DirectLogLevel
 check_domain( DirectLogDomain *domain );
 
@@ -199,7 +199,7 @@ direct_log_domain_check( DirectLogDomain *domain )
 /* FIXME: merge following */
 
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 DirectResult
 direct_log_domain_vprintf( DirectLogDomain *domain,
                            DirectLogLevel   level,
@@ -260,7 +260,7 @@ direct_log_domain_vprintf( DirectLogDomain *domain,
      return DR_OK;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 DirectResult
 direct_log_domain_log( DirectLogDomain *domain,
                        DirectLogLevel   level,

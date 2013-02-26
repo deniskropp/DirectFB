@@ -33,7 +33,7 @@
 
 /**********************************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static DirectResult
 log_write( DirectLog  *log,
            const char *buffer,
@@ -47,7 +47,7 @@ log_write( DirectLog  *log,
 
 /**********************************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 DirectResult
 direct_log_init( DirectLog  *log,
                  const char *param )

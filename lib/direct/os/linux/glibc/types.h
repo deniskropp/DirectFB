@@ -74,7 +74,7 @@ typedef int64_t s64;
 
 #define __inline__                      inline
 #define D_UNUSED                        __attribute__((unused))
-#define __no_instrument_function__      __attribute__((no_instrument_function))
+#define __dfb_no_instrument_function__  __attribute__((no_instrument_function))
 #define __constructor__                 __attribute__((constructor))
 #define __destructor__                  __attribute__((destructor))
 #define __typeof__(x)                   __typeof__(x)

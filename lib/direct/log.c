@@ -128,7 +128,7 @@ direct_log_destroy( DirectLog *log )
      return DR_OK;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 DirectResult
 direct_log_write( DirectLog        *log,
                   const char       *buffer,
@@ -155,7 +155,7 @@ direct_log_write( DirectLog        *log,
      return ret;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 DirectResult
 direct_log_printf( DirectLog  *log,
                    const char *format, ... )
@@ -224,7 +224,7 @@ direct_log_set_default( DirectLog *log )
      return DR_OK;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_log_lock( DirectLog *log )
 {
@@ -238,7 +238,7 @@ direct_log_lock( DirectLog *log )
      direct_mutex_lock( &log->lock );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_log_unlock( DirectLog *log )
 {
@@ -289,7 +289,7 @@ direct_log_flush( DirectLog *log,
 
 /**********************************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 DirectLog *
 direct_log_default( void )
 {
