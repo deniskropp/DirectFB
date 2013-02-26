@@ -656,6 +656,8 @@ dfb_state_get_acceleration_mask( CardState           *state,
 
     dfb_state_unlock( state );
 
+    *ret_accel = mask;
+
     return DFB_OK;
 }
 
