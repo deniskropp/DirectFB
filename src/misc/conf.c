@@ -108,6 +108,7 @@ static const char *config_usage_strings[]  = {
      "  [no-]software-trace            Show every stage of the software rendering pipeline\n"
      "  [no-]always-indirect           Use purely indirect Flux calls (for secure master)\n"
      "  [no-]always-flush-callbuffer   Flush call buffer upon commit, effectively disabling it\n"
+     "  [no-]layers-fps=[<ms>]         Print FPS of layers being updated, optional interval (default 1000)\n"
      "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n",
 #ifdef USE_MMX
@@ -1838,6 +1839,26 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-always-flush-callbuffer" ) == 0) {
           dfb_config->always_flush_callbuffer = false;
+     } else
+     if (strcmp (name, "layers-fps" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long interval;
+
+               interval = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->layers_fps = interval;
+          }
+          else
+               dfb_config->layers_fps = 1000;
+     } else
+     if (strcmp (name, "no-layers-fps" ) == 0) {
+          dfb_config->layers_fps = 0;
      } else
      if (strcmp (name, "matrox-tv-standard" ) == 0) {
           if (value) {

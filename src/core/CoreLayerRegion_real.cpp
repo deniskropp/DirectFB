@@ -338,6 +338,14 @@ DisplayTask::Run()
      /* Call SurfaceTask::CacheInvalidate() for cache invalidation */
      CacheInvalidate();
 
+     if (dfb_config->layers_fps) {
+          if (!layer->fps)
+               layer->fps = new Util::FPS();
+
+          if (layer->fps->Count( dfb_config->layers_fps ))
+               D_INFO( "Core/Layer/%u: FPS %s\n", layer->shared->layer_id, layer->fps->Get().buffer() );
+     }
+
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
           case DLBM_TRIPLE:
