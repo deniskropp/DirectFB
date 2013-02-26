@@ -40,7 +40,7 @@ static long long session_clock_offset;
 
 /**********************************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 long long
 direct_clock_get_time( DirectClockType type )
 {

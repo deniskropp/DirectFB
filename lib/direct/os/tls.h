@@ -33,17 +33,17 @@
 
 /**********************************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static __inline__ void          * direct_tls_get       ( DirectTLS *tls );
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static __inline__ DirectResult    direct_tls_set       ( DirectTLS *tls,
                                                          void      *value );
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static __inline__ DirectResult    direct_tls_register  ( DirectTLS *tls, void (*destructor)( void* ) );
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static __inline__ DirectResult    direct_tls_unregister( DirectTLS *tls );
 
 #endif

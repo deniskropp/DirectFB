@@ -36,28 +36,28 @@ D_LOG_DOMAIN( Direct_Clock, "Direct/Clock", "Time measurement etc." );
 
 /**********************************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 long long
 direct_clock_get_micros( void )
 {
      return direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 long long
 direct_clock_get_millis( void )
 {
      return direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ) / 1000LL;
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 long long
 direct_clock_get_abs_micros( void )
 {
      return direct_clock_get_time( DIRECT_CLOCK_REALTIME );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 long long
 direct_clock_get_abs_millis( void )
 {

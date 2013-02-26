@@ -522,7 +522,7 @@ direct_print_interface_leaks( void )
 
 /**************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static InterfaceDesc *
 allocate_interface_desc( void )
 {
@@ -543,7 +543,7 @@ allocate_interface_desc( void )
      return &alloc_list[alloc_count++];
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 static __inline__ void
 fill_interface_desc( InterfaceDesc     *desc,
                      const void        *interface_ptr,
@@ -565,7 +565,7 @@ fill_interface_desc( InterfaceDesc     *desc,
 
 /**************************************************************************************************/
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_dbg_interface_add( const char *func,
                           const char *file,
@@ -586,7 +586,7 @@ direct_dbg_interface_add( const char *func,
      direct_mutex_unlock( &alloc_lock );
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 void
 direct_dbg_interface_remove( const char *func,
                              const char *file,

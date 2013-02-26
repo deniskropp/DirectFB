@@ -67,7 +67,7 @@ direct_getpid( void )
      return GetCurrentThreadId();
 }
 
-__no_instrument_function__
+__dfb_no_instrument_function__
 pid_t
 direct_gettid( void )
 {
