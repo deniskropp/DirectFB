@@ -238,5 +238,7 @@ $(srcdir)/CoreSurfaceClient_real.cpp: CoreSurfaceClient.h
 $(srcdir)/CoreWindow_real.cpp: CoreWindow.h
 $(srcdir)/CoreWindowStack_real.cpp: CoreWindowStack.h
 
+$(srcdir)/Debug.cpp: core_strings.h
+
 
 include $(top_srcdir)/rules/flux_comp.make
