@@ -45,6 +45,7 @@
 #include <fusion/property.h>
 
 #include <core/CoreLayer.h>
+#include <core/Util.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -339,6 +340,9 @@ dfb_layer_core_shutdown( DFBLayerCore *data,
           /* Free the shared layer data. */
           SHFREE( shared->shmpool, shared );
 
+          if (layer->fps)
+               FPS_Delete( layer->fps );
+
           /* Free the local layer data. */
           D_FREE( layer );
      }
@@ -369,6 +373,9 @@ dfb_layer_core_leave( DFBLayerCore *data,
 
           /* Deinitialize the state for window stack repaints. */
           dfb_state_destroy( &layer->state );
+
+          if (layer->fps)
+               FPS_Delete( layer->fps );
 
           /* Free local layer data. */
           D_FREE( layer );

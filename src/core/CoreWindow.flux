@@ -58,7 +58,7 @@ interface {
 			name	    relation
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 	}
 
@@ -112,14 +112,14 @@ interface {
 			name	    x
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 
 		arg {
 			name	    y
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 	}
 
@@ -155,7 +155,7 @@ interface {
 			name	    grab
 			direction   input
 			type        enum
-			typename    bool
+			typename    DFBBoolean
 		}
 	}
 
@@ -205,14 +205,14 @@ interface {
 			name	    dx
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 
 		arg {
 			name	    dy
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 	}
 
@@ -224,14 +224,14 @@ interface {
 			name	    x
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 
 		arg {
 			name	    y
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 	}
 
@@ -243,14 +243,14 @@ interface {
 			name	    width
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 
 		arg {
 			name	    height
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 	}
 
@@ -267,14 +267,14 @@ interface {
 			name	    x
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 
 		arg {
 			name	    y
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 	}
 
@@ -414,7 +414,7 @@ interface {
 			name	    rotation
 			direction   input
 			type        int
-			typename    int
+			typename    s32
 		}
 	}
 

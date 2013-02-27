@@ -53,9 +53,13 @@ void        D_String_Delete( D_String *str );
 
 
 #include <string>
+#include <vector>
 
 
 namespace Direct {
+
+
+typedef std::vector<String> Strings;
 
 
 class String
@@ -68,7 +72,7 @@ public:
      {
      }
 
-     String( const char *format, ... )            D_FORMAT_PRINTF(2);
+     String( const char *str );
 
      String &
      PrintF( const char *format, ... )            D_FORMAT_PRINTF(2);
@@ -76,8 +80,14 @@ public:
      String &
      PrintF( const char *format, va_list args, size_t stack_buffer = 300 );
 
+     static String F( const char *format, ... ) D_FORMAT_PRINTF(1);
+
      void
      Clear();
+
+     Strings
+     GetTokens( const Direct::String &delimiter ) const;
+
 
 
      inline std::string &

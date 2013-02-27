@@ -310,6 +310,7 @@ typedef struct
      unsigned int  graphics_state_call_limit;
 
      bool          always_flush_callbuffer;
+     unsigned int  layers_fps;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

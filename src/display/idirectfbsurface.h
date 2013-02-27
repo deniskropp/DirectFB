@@ -149,6 +149,8 @@ typedef struct {
      DirectMutex              surface_client_lock;
 
      DFBSurfaceStereoEye      src_eye;
+
+     long long                current_frame_time;
 } IDirectFBSurface_data;
 
 /*

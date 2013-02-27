@@ -1497,7 +1497,7 @@ flush_updating( StackData *data )
           /* Flip the whole layer. */
           DFB_DisplayTask *display_task;
 
-          ret = dfb_layer_region_flip_update_task( data->region, &data->updated.bounding, &data->updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP, &display_task );
+          ret = dfb_layer_region_flip_update2( data->region, &data->updated.bounding, &data->updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP, -1, &display_task );
           if (ret)
                D_DERROR( ret, "WM/Default: Display Task creation failed!\n" );
           else {

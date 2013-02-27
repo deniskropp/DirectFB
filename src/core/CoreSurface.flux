@@ -23,7 +23,7 @@ interface {
 			name	    swap
 			direction   input
 			type        enum
-			typename    bool
+			typename    DFBBoolean
 		}
 	}
 
@@ -164,8 +164,8 @@ interface {
 		arg {
 			name	    lock
 			direction   input
-			type        int
-			typename    bool
+			type        enum
+			typename    DFBBoolean
 		}
 
 		arg {
@@ -270,8 +270,8 @@ interface {
 		arg {
 			name	    lock
 			direction   input
-			type        int
-			typename    bool
+			type        enum
+			typename    DFBBoolean
 		}
 
 		arg {

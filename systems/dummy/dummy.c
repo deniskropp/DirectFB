@@ -45,6 +45,121 @@
 
 DFB_CORE_SYSTEM( dummy )
 
+
+D_DEBUG_DOMAIN( Dummy_Display, "Dummy/Display", "DirectFB Dummy System Display" );
+D_DEBUG_DOMAIN( Dummy_Layer,   "Dummy/Layer",   "DirectFB Dummy System Layer" );
+D_DEBUG_DOMAIN( Dummy_Screen,  "Dummy/Screen",  "DirectFB Dummy System Screen" );
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+static DirectThread    *dummy_display_thread;
+static bool             dummy_display_thread_stop;
+static DirectMutex      dummy_display_lock;
+static DirectWaitQueue  dummy_display_wq;
+static DirectLink      *dummy_display_list;
+
+typedef struct {
+     DirectLink       link;
+
+     int              magic;
+
+     CoreSurface     *surface;
+     int              index;
+     DFB_DisplayTask *task;
+
+     long long        pts;
+} DummyDisplayBuffer;
+
+/**********************************************************************************************************************/
+
+static void *
+dummy_display_loop( DirectThread *thread,
+                    void         *ctx )
+{
+     DFB_DisplayTask *prev_task = NULL;
+
+     while (!dummy_display_thread_stop) {
+          DummyDisplayBuffer *request;
+
+          direct_mutex_lock( &dummy_display_lock );
+
+          while (!dummy_display_list) {
+               direct_waitqueue_wait( &dummy_display_wq, &dummy_display_lock );
+
+               if (dummy_display_thread_stop) {
+                    direct_mutex_unlock( &dummy_display_lock );
+                    goto out;
+               }
+          }
+
+          request = (DummyDisplayBuffer*) dummy_display_list;
+          D_MAGIC_ASSERT( request, DummyDisplayBuffer );
+
+          direct_list_remove( &dummy_display_list, &request->link );
+
+          direct_mutex_unlock( &dummy_display_lock );
+
+
+          long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+          D_DEBUG_AT( Dummy_Display, "%s() <- request %p\n", __FUNCTION__, request );
+          D_DEBUG_AT( Dummy_Display, "  -> surface %p\n", request->surface );
+          D_DEBUG_AT( Dummy_Display, "  -> index   %d\n", request->index );
+          D_DEBUG_AT( Dummy_Display, "  -> task    %p\n", request->task );
+          D_DEBUG_AT( Dummy_Display, "  -> pts     %lldus (%lldus from now)\n", request->pts, request->pts - now );
+
+
+          while (request->pts - now > 100) {
+               long long delay = request->pts - now - 100;
+
+               D_DEBUG_AT( Dummy_Display, "  -> sleeping for %lldus...\n", delay );
+
+               direct_thread_sleep( delay );
+
+               now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+          }
+
+          D_DEBUG_AT( Dummy_Display, "  => display at %lldus (%lld from pts)\n", now, now - request->pts );
+
+          dfb_surface_notify_display2( request->surface, request->index, request->task );
+
+          if (request->pts > 0) {
+               static long long first;
+               if (!first)
+                    first = request->pts;
+               char buf[100];
+               snprintf(buf,sizeof(buf),"dfb_dummy_layer_%09lld",request->pts - first);
+               dfb_surface_dump_buffer( request->surface, CSBR_FRONT, buf, NULL );
+          }
+
+
+          if (prev_task) {
+               D_DEBUG_AT( Dummy_Display, "  <= done previous task %p (pts %lld, %lld to current)\n", prev_task,
+                           DisplayTask_GetPTS( prev_task ), request->pts - DisplayTask_GetPTS( prev_task ) );
+
+               Task_Done( prev_task );
+          }
+
+          prev_task = request->task;
+
+
+          dfb_surface_unref( request->surface );
+
+          D_MAGIC_CLEAR( request );
+
+          D_FREE( request );
+     }
+
+out:
+     D_DEBUG_AT( Dummy_Display, "%s() <- stop!\n", __FUNCTION__ );
+
+     if (prev_task)
+          Task_Done( prev_task );
+
+     return NULL;
+}
+
 /**********************************************************************************************************************/
 
 static DFBResult
@@ -54,9 +169,38 @@ dummyInitScreen( CoreScreen           *screen,
                  void                 *screen_data,
                  DFBScreenDescription *description )
 {
+     D_DEBUG_AT( Dummy_Screen, "%s( %p, %p )\n", __FUNCTION__, screen, device );
+
      description->caps = DSCCAPS_NONE;
 
      direct_snputs( description->name, "Dummy", DFB_SCREEN_DESC_NAME_LENGTH );
+
+     dummy_display_thread = direct_thread_create( DTT_OUTPUT, dummy_display_loop, NULL, "Dummy Display" );
+
+     return DFB_OK;
+}
+
+static DFBResult
+dummyShutdownScreen( CoreScreen           *screen,
+                     void                 *driver_data,
+                     void                 *screen_data )
+{
+     D_DEBUG_AT( Dummy_Screen, "%s( %p )\n", __FUNCTION__, screen );
+
+     direct_mutex_lock( &dummy_display_lock );
+
+     dummy_display_thread_stop = true;
+
+     direct_waitqueue_signal( &dummy_display_wq );
+
+     direct_mutex_unlock( &dummy_display_lock );
+
+
+     direct_thread_join( dummy_display_thread );
+     direct_thread_destroy( dummy_display_thread );
+
+     dummy_display_thread      = NULL;
+     dummy_display_thread_stop = false;
 
      return DFB_OK;
 }
@@ -75,9 +219,52 @@ dummyGetScreenSize( CoreScreen *screen,
 }
 
 static ScreenFuncs dummyScreenFuncs = {
-     .InitScreen    = dummyInitScreen,
-     .GetScreenSize = dummyGetScreenSize
+     .InitScreen     = dummyInitScreen,
+     .ShutdownScreen = dummyShutdownScreen,
+     .GetScreenSize  = dummyGetScreenSize
 };
+
+/**********************************************************************************************************************/
+
+static DFBResult
+dummyDisplayRequest( CoreSurface     *surface,
+                     int              index,
+                     DFB_DisplayTask *task )
+{
+     DFBResult           ret;
+     DummyDisplayBuffer *request;
+
+     D_DEBUG_AT( Dummy_Display, "%s( %p, %d, %p )\n", __FUNCTION__, surface, index, task );
+
+     ret = dfb_surface_ref( surface );
+     if (ret)
+          return ret;
+
+     /* Allocate new request */
+     request = D_CALLOC( 1, sizeof(DummyDisplayBuffer) );
+     if (!request)
+          return D_OOM();
+
+     /* Initialize request */
+     request->surface = surface;
+     request->index   = index;
+     request->task    = task;
+     request->pts     = task ? DisplayTask_GetPTS( task ) : -1;
+
+     D_MAGIC_SET( request, DummyDisplayBuffer );
+
+     D_DEBUG_AT( Dummy_Display, "  -> %p\n", request );
+
+     direct_mutex_lock( &dummy_display_lock );
+
+     direct_list_append( &dummy_display_list, &request->link );
+
+     direct_waitqueue_signal( &dummy_display_wq );
+
+     direct_mutex_unlock( &dummy_display_lock );
+
+     return DFB_OK;
+}
 
 /**********************************************************************************************************************/
 
@@ -146,12 +333,7 @@ dummyFlipRegion( CoreLayer             *layer,
                  const DFBRegion       *right_update,
                  CoreSurfaceBufferLock *right_lock )
 {
-     dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
-
-     if (left_lock->task)
-          Task_Done( left_lock->task );
-
-     return DFB_OK;
+     return dummyDisplayRequest( surface, left_lock->allocation->index, left_lock->task );
 }
 
 static DFBResult
@@ -165,12 +347,7 @@ dummyUpdateRegion( CoreLayer             *layer,
                    const DFBRegion       *right_update,
                    CoreSurfaceBufferLock *right_lock )
 {
-     dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
-
-     if (left_lock->task)
-          Task_Done( left_lock->task );
-
-     return DFB_OK;
+     return dummyDisplayRequest( surface, left_lock->allocation->index, left_lock->task );
 }
 
 static DisplayLayerFuncs dummyLayerFuncs = {
@@ -200,6 +377,9 @@ system_initialize( CoreDFB *core, void **ret_data )
 
      (void) layer;
 
+     direct_mutex_init( &dummy_display_lock );
+     direct_waitqueue_init( &dummy_display_wq );
+
      return DFB_OK;
 }
 
@@ -217,6 +397,9 @@ system_join( CoreDFB *core, void **ret_data )
 static DFBResult
 system_shutdown( bool emergency )
 {
+     direct_mutex_deinit( &dummy_display_lock );
+     direct_waitqueue_deinit( &dummy_display_wq );
+
      return DFB_OK;
 }
 

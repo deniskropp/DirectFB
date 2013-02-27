@@ -466,7 +466,9 @@ static void init_mmx( void )
 {
      static int initialized = 0;
      bool       have_mmx;
+#if !defined(__amd64__) && !defined(__x86_64__)
      long       a, b, c, d;
+#endif
      
      if (initialized)
           return;

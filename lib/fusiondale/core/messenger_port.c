@@ -112,7 +112,7 @@ purge_node( CoreMessengerPort *port,
      D_MAGIC_ASSERT( event, CoreMessengerEvent );
 
      /* Remove event node from hash table. FIXME: 2nd lookup */
-     ret = fusion_hash_remove( port->nodes, (void*) node->event->id, NULL, &old_value );
+     ret = fusion_hash_remove( port->nodes, (void*) (long) node->event->id, NULL, &old_value );
      if (ret)
           D_BUG( "node for event id %u not found", node->event->id );
      else
@@ -159,7 +159,7 @@ purge_node( CoreMessengerPort *port,
                D_MAGIC_ASSERT( listener, EventListener );
 
                /* Remove listener from hash table. */
-               ret = fusion_hash_remove( port->listeners, (void*) listener->id, NULL, &old_value );
+               ret = fusion_hash_remove( port->listeners, (void*) (long) listener->id, NULL, &old_value );
                if (ret)
                     D_BUG( "listener id %u not found", listener->id );
                else
@@ -335,7 +335,7 @@ fd_messenger_port_add_event( CoreMessengerPort  *port,
           return ret;
 
      /* Try to lookup existing event node. */
-     node = fusion_hash_lookup( port->nodes, (void*) event->id );
+     node = fusion_hash_lookup( port->nodes, (void*) (long) event->id );
      if (node) {
           D_MAGIC_ASSERT( node, EventNode );
           D_ASSERT( node->count > 0 );
@@ -361,7 +361,7 @@ fd_messenger_port_add_event( CoreMessengerPort  *port,
           node->count = 1;
 
           /* Insert node into hash table. */
-          ret = fusion_hash_insert( port->nodes, (void*) event->id, node );
+          ret = fusion_hash_insert( port->nodes, (void*) (long) event->id, node );
           if (ret) {
                SHFREE( messenger->shmpool, node );
                goto error;
@@ -408,7 +408,7 @@ fd_messenger_port_remove_event( CoreMessengerPort  *port,
           return ret;
 
      /* Lookup our event node. */
-     node = fusion_hash_lookup( port->nodes, (void*) event_id );
+     node = fusion_hash_lookup( port->nodes, (void*) (long) event_id );
      if (node) {
           D_MAGIC_ASSERT( node, EventNode );
           D_ASSERT( node->count > 0 );
@@ -454,7 +454,7 @@ fd_messenger_port_add_listener( CoreMessengerPort        *port,
           return ret;
 
      /* Lookup our event node. */
-     node = fusion_hash_lookup( port->nodes, (void*) event_id );
+     node = fusion_hash_lookup( port->nodes, (void*) (long) event_id );
      if (node) {
           D_MAGIC_ASSERT( node, EventNode );
           D_ASSERT( node->count > 0 );
@@ -473,7 +473,7 @@ fd_messenger_port_add_listener( CoreMessengerPort        *port,
           listener->id       = ++port->last_listener;
 
           /* Insert listener into hash table. */
-          ret = fusion_hash_insert( port->listeners, (void*) listener->id, listener );
+          ret = fusion_hash_insert( port->listeners, (void*) (long) listener->id, listener );
           if (ret)
                goto error;
 
@@ -525,7 +525,7 @@ fd_messenger_port_remove_listener( CoreMessengerPort     *port,
           return ret;
 
      /* Remove listener from hash table. */
-     ret = fusion_hash_remove( port->listeners, (void*) listener_id, NULL, &old_value );
+     ret = fusion_hash_remove( port->listeners, (void*) (long) listener_id, NULL, &old_value );
      if (ret) {
           D_BUG( "listener id %u not found", listener_id );
           fusion_skirmish_dismiss( port->lock );
@@ -572,7 +572,7 @@ fd_messenger_port_enum_listeners( CoreMessengerPort      *port,
           return ret;
 
      /* Lookup our event node. */
-     node = fusion_hash_lookup( port->nodes, (void*) event_id );
+     node = fusion_hash_lookup( port->nodes, (void*) (long) event_id );
      if (node) {
           EventListener *listener;
 
@@ -716,7 +716,7 @@ fd_messenger_port_send_event( CoreMessengerPort  *port,
           return ret;
 
      /* Lookup our event node. */
-     node = fusion_hash_lookup( port->nodes, (void*) event_id );
+     node = fusion_hash_lookup( port->nodes, (void*) (long) event_id );
      if (!node) {
           D_BUG( "node for event id %u not found", event_id );
           fusion_skirmish_dismiss( port->lock );
@@ -767,7 +767,7 @@ fd_messenger_port_reaction( const void *msg_data,
      }
 
      /* Lookup our event node. */
-     node = fusion_hash_lookup( port->nodes, (void*) notification->event_id );
+     node = fusion_hash_lookup( port->nodes, (void*) (long) notification->event_id );
      if (!node) {
           /* Probably purged while the message was pending. */
           D_WARN( "node for event id %u not found", notification->event_id );
@@ -921,7 +921,7 @@ _fd_messenger_port_messenger_listener( const void *msg_data,
      /* Lookup event node to check if port has any listeners for this event.
         TODO: Could be optimized by linking nodes into event and dispatch directly,
         i.e. without this global reaction, but requires different locking. */
-     node = fusion_hash_lookup( port->nodes, (void*) dispatch->event_id );
+     node = fusion_hash_lookup( port->nodes, (void*) (long) dispatch->event_id );
      if (node) {
           D_MAGIC_ASSERT( node, EventNode );
           D_ASSERT( node->count > 0 );

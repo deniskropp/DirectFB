@@ -59,5 +59,39 @@ interface {
 			typename  DFBSurfaceFlipFlags
 		}
 	}
+
+	method {
+		name FlipUpdate2
+
+		arg {
+			name      left_update
+			direction input
+			type      struct
+			typename  DFBRegion
+			optional  yes
+		}
+
+		arg {
+			name      right_update
+			direction input
+			type      struct
+			typename  DFBRegion
+			optional  yes
+		}
+
+		arg {
+			name      flags
+			direction input
+			type      enum
+			typename  DFBSurfaceFlipFlags
+		}
+
+		arg {
+			name      pts
+			direction input
+			type      int
+			typename  s64
+		}
+	}
 }
 

@@ -1033,7 +1033,6 @@ sawman_restack_window( SaWMan                 *sawman,
      int           old;
      int           index;
      int           priority;
-     StackData    *data;
      SaWManWindow *tmpsaw;
      CoreWindow   *window;
      CoreLayer    *layer;
@@ -1055,7 +1054,6 @@ sawman_restack_window( SaWMan                 *sawman,
      D_DEBUG_AT( SaWMan_Stacking, "%s( %p, %p, %p, %d, 0x%d )\n", __FUNCTION__,
                  sawman, sawwin, relative, relation, stacking );
 
-     data   = sawwin->stack_data;
      window = sawwin->window;
      D_ASSERT( window != NULL );
 
@@ -1362,8 +1360,6 @@ sawman_set_stereo_depth( SaWMan       *sawman,
                          int           z )
 {
      int              old_z;
-     StackData       *data;
-     CoreWindowStack *stack;
      CoreWindow      *window;
      SaWManTier      *tier;
      DFBRegion        region;
@@ -1378,8 +1374,6 @@ sawman_set_stereo_depth( SaWMan       *sawman,
      D_ASSERT( sawwin->stack != NULL );
      D_ASSERT( sawwin->window != NULL );
 
-     data           = sawwin->stack_data;
-     stack          = sawwin->stack;
      window         = sawwin->window;
      old_z          = window->config.z;
      tier           = sawman_tier_by_class( sawman, window->config.stacking );
@@ -1449,7 +1443,6 @@ sawman_set_opacity( SaWMan       *sawman,
      u8               old;
      StackData       *data;
      CoreWindow      *window;
-     CoreWindowStack *stack;
      SaWManTier      *tier;
 
      D_DEBUG_AT( SaWMan_Focus, "%s( %p, sawwin %p, opacity 0x%02x )\n", __FUNCTION__, sawman, sawwin, opacity );
@@ -1463,7 +1456,6 @@ sawman_set_opacity( SaWMan       *sawman,
      data   = sawwin->stack_data;
      window = sawwin->window;
      old    = window->config.opacity;
-     stack  = sawwin->stack;
      tier   = sawman_tier_by_class(sawman, window->config.stacking);
      D_ASSERT(tier->region);
 
@@ -1511,9 +1503,7 @@ sawman_window_set_cursor_flags( SaWMan                *sawman,
                                 SaWManWindow          *sawwin,
                                 DFBWindowCursorFlags   flags )
 {
-     StackData       *data;
-     CoreWindowStack *stack;
-     CoreWindow      *window;
+     CoreWindow *window;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
@@ -1521,8 +1511,6 @@ sawman_window_set_cursor_flags( SaWMan                *sawman,
      D_ASSERT( sawwin->stack != NULL );
      D_ASSERT( sawwin->window != NULL );
 
-     data   = sawwin->stack_data;
-     stack  = sawwin->stack;
      window = sawwin->window;
 
      if (window->config.cursor_flags != flags) {
@@ -1539,7 +1527,6 @@ DirectResult
 sawman_window_apply_cursor_flags( SaWMan                *sawman,
                                   SaWManWindow          *sawwin )
 {
-     StackData             *data;
      CoreWindowStack       *stack;
      CoreWindow            *window;
      CoreCursorUpdateFlags  update = CCUF_NONE;
@@ -1551,7 +1538,6 @@ sawman_window_apply_cursor_flags( SaWMan                *sawman,
      D_ASSERT( sawwin->stack != NULL );
      D_ASSERT( sawwin->window != NULL );
 
-     data   = sawwin->stack_data;
      stack  = sawwin->stack;
      window = sawwin->window;
 

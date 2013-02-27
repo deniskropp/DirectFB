@@ -137,7 +137,7 @@ public:
      {
           CHECK_MAGIC();
 
-          return Direct::String( "%d.%03d", frames_per_1000s / 1000, frames_per_1000s % 1000 );
+          return Direct::String::F( "%d.%03d", frames_per_1000s / 1000, frames_per_1000s % 1000 );
      }
 };
 

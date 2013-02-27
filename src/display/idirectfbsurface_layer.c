@@ -143,7 +143,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent();
 
-     ret = CoreLayerRegion_FlipUpdate( data->region, &reg, flags );
+     ret = CoreLayerRegion_FlipUpdate2( data->region, &reg, &reg, flags, data->base.current_frame_time );
      if (ret)
           return ret;
 
@@ -224,7 +224,7 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent();
 
-     ret = CoreLayerRegion_FlipUpdateStereo( data->region, &l_reg, &r_reg, flags );
+     ret = CoreLayerRegion_FlipUpdate2( data->region, &l_reg, &r_reg, flags, -1 );
      if (ret)
           return ret;
 

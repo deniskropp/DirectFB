@@ -77,7 +77,10 @@ DFBResult        DisplayTask_Generate ( CoreLayerRegion         *region,
                                         const DFBRegion         *left_update,
                                         const DFBRegion         *right_update,
                                         DFBSurfaceFlipFlags      flags,
+                                        long long                pts,
                                         DFB_DisplayTask        **ret_task );
+
+long long        DisplayTask_GetPTS   ( DFB_DisplayTask         *task );
 
 
 typedef DFBResult SimpleTaskFunc( void *ctx, DFB_Task *task );
@@ -343,8 +346,8 @@ public:
      {
           for (size_t i=0; i<num; i++) {
                DirectThread *thread = direct_thread_create( type, taskLoop, this, (num > 1) ?
-                                                            Direct::String( "%s/%zu", name.c_str(), i ).buffer() :
-                                                            Direct::String( "%s", name.c_str() ).buffer() );
+                                                            Direct::String::F( "%s/%zu", name.c_str(), i ).buffer() :
+                                                            Direct::String::F( "%s", name.c_str() ).buffer() );
                if (!thread)
                     break;
 
@@ -496,6 +499,7 @@ public:
                   const DFBRegion       *left_update,
                   const DFBRegion       *right_update,
                   DFBSurfaceFlipFlags    flip_flags,
+                  long long              pts,
                   CoreSurfaceAllocation *left_allocation,
                   CoreSurfaceAllocation *right_allocation,
                   bool                   stereo );
@@ -506,6 +510,7 @@ public:
                                 const DFBRegion      *left_update,
                                 const DFBRegion      *right_update,
                                 DFBSurfaceFlipFlags   flags,
+                                long long             pts,
                                 DisplayTask         **ret_task );
 
 protected:
@@ -521,12 +526,18 @@ private:
      DFBRegion              left_update_region;
      DFBRegion              right_update_region;
      DFBSurfaceFlipFlags    flip_flags;
+     long long              pts;
      CoreSurfaceAllocation *left_allocation;
      CoreSurfaceAllocation *right_allocation;
      bool                   stereo;
      CoreLayer             *layer;
      CoreLayerContext      *context;
      int                    index;
+
+public:
+     long long GetPTS() const {
+          return pts;
+     }
 };
 
 

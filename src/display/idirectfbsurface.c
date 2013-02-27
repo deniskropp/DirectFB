@@ -3423,6 +3423,28 @@ IDirectFBSurface_FrameAck( IDirectFBSurface *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_GetFrameTime( IDirectFBSurface *thiz,
+                               long long        *ret_micros )
+{
+     long long now;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface_Updates, "%s( %p )\n", __FUNCTION__, thiz );
+
+     now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+     data->current_frame_time += 16666;
+
+     if (now > data->current_frame_time)
+          data->current_frame_time = now;
+
+     *ret_micros = data->current_frame_time;
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -3639,6 +3661,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->MakeClient = IDirectFBSurface_MakeClient;
      thiz->FrameAck   = IDirectFBSurface_FrameAck;
+
+     thiz->GetFrameTime = IDirectFBSurface_GetFrameTime;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

@@ -92,8 +92,8 @@ TaskThreadsQ::TaskThreadsQ( const std::string &name, size_t num, DirectThreadTyp
 
      for (size_t i=0; i<num; i++) {
           runners.push_back( new Runner( this, i, type, (num > 1) ?
-                                                            Direct::String( "%s/%zu", name.c_str(), i ) :
-                                                            Direct::String( "%s", name.c_str() ) ) );
+                                                            Direct::String::F( "%s/%zu", name.c_str(), i ) :
+                                                            Direct::String::F( "%s", name.c_str() ) ) );
      }
 
      D_ASSUME( runners.size() == num );

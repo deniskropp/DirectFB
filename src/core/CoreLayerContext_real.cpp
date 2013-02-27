@@ -51,7 +51,7 @@ namespace DirectFB {
 
 DFBResult
 ILayerContext_Real::GetPrimaryRegion(
-                    bool                                       create,
+                    DFBBoolean                                 create,
                     CoreLayerRegion                          **ret_region
 )
 {
@@ -202,7 +202,7 @@ ILayerContext_Real::SetColorAdjustment(
 
 DFBResult
 ILayerContext_Real::SetStereoDepth(
-                    bool                                       follow_video,
+                    DFBBoolean                                 follow_video,
                     s32                                        z
 )
 {
@@ -227,7 +227,7 @@ DFBResult
 ILayerContext_Real::SetClipRegions(
                     const DFBRegion                           *regions,
                     u32                                        num,
-                    bool                                       positive
+                    DFBBoolean                                 positive
 )
 {
     D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );

@@ -208,7 +208,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
                CoreWindowStack_RepaintAll( region->context->stack );
           }
           else {
-               CoreLayerRegion_FlipUpdate( region, NULL, DSFLIP_NONE );
+               CoreLayerRegion_FlipUpdate2( region, NULL, NULL, DSFLIP_NONE, -1 );
           }
      }
 

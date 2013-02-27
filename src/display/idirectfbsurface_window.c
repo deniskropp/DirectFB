@@ -193,7 +193,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      CoreGraphicsStateClient_FlushCurrent();
 
      if (data->window->region) {
-          ret = CoreLayerRegion_FlipUpdate( data->window->region, &reg, flags );
+          ret = CoreLayerRegion_FlipUpdate2( data->window->region, &reg, &reg, flags, -1 );
      }
      else {
           if (data->base.surface->config.caps & DSCAPS_FLIPPING) {
