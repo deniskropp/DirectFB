@@ -117,7 +117,7 @@ drmkmsInitScreen( CoreScreen           *screen,
      drmkms->encoder   = encoder;
 
      if (dfb_config->mode.width && dfb_config->mode.height) {
-          drmModeModeInfo *mode  = drmkms_find_mode( dfb_config->mode.width, dfb_config->mode.height );
+          drmModeModeInfo *mode  = drmkms_find_mode( dfb_config->mode.width, dfb_config->mode.height, 0 );
           if (mode)
                drmkms->mode = *mode;
           else
@@ -168,13 +168,14 @@ drmkmsInitEncoder( CoreScreen                  *screen,
      direct_snputs( description->name, "DRMKMS Encoder", DFB_SCREEN_ENCODER_DESC_NAME_LENGTH );
 
 
-     description->caps            = DSECAPS_RESOLUTION;
+     description->caps            = DSECAPS_RESOLUTION | DSECAPS_FREQUENCY;
      description->type            = DSET_UNKNOWN;
 
      description->all_resolutions = drmkms_modes_to_dsor_bitmask();
 
-     config->flags          = DSECONF_RESOLUTION;
-     config->resolution     = drmkms_mode_to_dsor( &drmkms->mode );
+     config->flags          = DSECONF_RESOLUTION | DSECONF_FREQUENCY;
+
+     drmkms_mode_to_dsor_dsef( &drmkms->mode, &config->resolution, &config->frequency );
 
      return DFB_OK;
 }
@@ -186,25 +187,55 @@ drmkmsSetEncoderConfig( CoreScreen                   *screen,
                         int                           encoder,
                         const DFBScreenEncoderConfig *config )
 {
+     int ret = 0;
+
      DRMKMSData       *drmkms = driver_data;
      DRMKMSDataShared *shared = drmkms->shared;
-     int ret;
+
+     DFBScreenEncoderFrequency dse_freq;
+     DFBScreenOutputResolution dso_res;
 
      D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
 
-     if (config->flags & DSECONF_RESOLUTION) {
-          drmModeModeInfo *videomode = drmkms_dsor_to_mode( config->resolution);
+     if (!(config->flags & (DSECONF_FREQUENCY | DSECONF_RESOLUTION)))
+         return DFB_INVARG;
 
+     drmkms_mode_to_dsor_dsef( &drmkms->mode, &dso_res, &dse_freq );
+
+     if (config->flags & DSECONF_FREQUENCY) {
+          D_DEBUG_AT( DRMKMS_Screen, "   -> requested frequency change \n" );
+          dse_freq = config->frequency;
+     }
+
+     if (config->flags & DSECONF_RESOLUTION) {
+          D_DEBUG_AT( DRMKMS_Screen, "   -> requested resolution change \n" );
+          dso_res = config->resolution;
+     }
+
+     drmModeModeInfo *videomode = drmkms_dsor_freq_to_mode( dso_res, dse_freq );
+
+     if (!videomode)
+          return DFB_INVARG;
+
+     if ((shared->primary_dimension.w && (shared->primary_dimension.w < videomode->hdisplay) ) ||
+         (shared->primary_dimension.h && (shared->primary_dimension.h < videomode->vdisplay ))) {
+
+          D_DEBUG_AT( DRMKMS_Screen, "    -> cannot switch to mode to something that is bigger than the current primary layer\n" );
+
+          return DFB_INVARG;
+     }
+
+     if (shared->primary_fb)
           ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder->crtc_id, shared->primary_fb, shared->primary_rect.x, shared->primary_rect.y,
                                 &drmkms->connector->connector_id, 1, videomode );
-          if (ret) {
-               D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
-               D_DEBUG_AT( DRMKMS_Screen, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder->crtc_id, drmkms->connector->connector_id, drmkms->mode.hdisplay, drmkms->mode.vdisplay );
-               return DFB_FAILURE;
-          }
 
-          drmkms->mode = *videomode;
+     if (ret) {
+          D_DEBUG_AT( DRMKMS_Screen, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder->crtc_id, drmkms->connector->connector_id, drmkms->mode.hdisplay, drmkms->mode.vdisplay );
+          D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
+          return DFB_FAILURE;
      }
+
+     drmkms->mode = *videomode;
 
      return DFB_OK;
 }
@@ -216,31 +247,42 @@ drmkmsTestEncoderConfig( CoreScreen                   *screen,
                          void                         *screen_data,
                          int                           encoder,
                          const DFBScreenEncoderConfig *config,
-                         DFBScreenEncoderConfigFlags   *failed )
+                         DFBScreenEncoderConfigFlags  *failed )
 {
      DRMKMSData       *drmkms = driver_data;
      DRMKMSDataShared *shared = drmkms->shared;
 
+     DFBScreenEncoderFrequency dse_freq;
+     DFBScreenOutputResolution dso_res;
+
      D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
 
-     if (config->flags & DSECONF_RESOLUTION) {
-          drmModeModeInfo *videomode = drmkms_dsor_to_mode( config->resolution );
+     if (!(config->flags & (DSECONF_FREQUENCY | DSECONF_RESOLUTION)))
+         return DFB_UNSUPPORTED;
 
-          if (!videomode) {
-               *failed = DSECONF_RESOLUTION;
+     drmkms_mode_to_dsor_dsef( &drmkms->mode, &dso_res, &dse_freq );
 
-               return DFB_UNSUPPORTED;
-          }
-          if ((shared->primary_dimension.w < videomode->vdisplay ) ||
-              (shared->primary_dimension.h < videomode->hdisplay )) {
+     if (config->flags & DSECONF_FREQUENCY)
+          dse_freq = config->frequency;
 
-               D_DEBUG_AT( DRMKMS_Screen, "%s() cannot switch to mode to something that is bigger than the current primary layer\n", __FUNCTION__ );
+     if (config->flags & DSECONF_RESOLUTION)
+          dso_res = config->resolution;
 
-               *failed = DSECONF_RESOLUTION;
+     drmModeModeInfo *videomode = drmkms_dsor_freq_to_mode( dso_res, dse_freq );
+     if (!videomode) {
+          *failed = config->flags & (DSECONF_RESOLUTION | DSECONF_FREQUENCY);
 
-               return DFB_UNSUPPORTED;
-          }
+          return DFB_UNSUPPORTED;
+     }
 
+     if ((shared->primary_dimension.w && (shared->primary_dimension.w < videomode->hdisplay) ) ||
+         (shared->primary_dimension.h && (shared->primary_dimension.h < videomode->vdisplay ))) {
+
+          D_DEBUG_AT( DRMKMS_Screen, "    -> cannot switch to mode to something that is bigger than the current primary layer\n" );
+
+          *failed = config->flags & (DSECONF_RESOLUTION | DSECONF_FREQUENCY);
+
+          return DFB_UNSUPPORTED;
      }
 
      return DFB_OK;

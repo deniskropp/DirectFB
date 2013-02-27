@@ -129,15 +129,15 @@ typedef struct {
 
 
 drmModeModeInfo*
-drmkms_find_mode( int width, int height );
+drmkms_find_mode( int width, int height, int freq );
 
 drmModeModeInfo*
-drmkms_dsor_to_mode( DFBScreenOutputResolution dsor );
+drmkms_dsor_freq_to_mode( DFBScreenOutputResolution dsor, DFBScreenEncoderFrequency freq );
+
+DFBResult
+drmkms_mode_to_dsor_dsef( drmModeModeInfo *videomode, DFBScreenOutputResolution *dso_res,  DFBScreenEncoderFrequency *dse_freq );
 
 DFBScreenOutputResolution
 drmkms_modes_to_dsor_bitmask(void);
-
-DFBScreenOutputResolution
-drmkms_mode_to_dsor( drmModeModeInfo *videomode );
 
 #endif
