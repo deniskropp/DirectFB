@@ -146,9 +146,9 @@ class StateHolder
 
      }
 
+public:
      CoreGraphicsStateClient *client;
 
-public:
      void set( CoreGraphicsStateClient *client )
      {
           D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( %p )\n", __FUNCTION__, client );
@@ -281,17 +281,22 @@ CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client )
           client->renderer->Flush();
      }
      else {
-          if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
-               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush gfxcard\n" );
+          StateHolder *holder = state_holder_tls.Get( NULL );
+          D_ASSERT( holder != NULL );
 
-               dfb_gfxcard_flush();
-          }
-          else {
-               DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
+          if (holder->client == client) {
+               if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
+                    D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush gfxcard\n" );
 
-               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush via requestor\n" );
+                    dfb_gfxcard_flush();
+               }
+               else {
+                    DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-               requestor->Flush();
+                    D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush via requestor\n" );
+
+                    requestor->Flush();
+               }
           }
      }
 }
