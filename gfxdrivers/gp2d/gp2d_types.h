@@ -52,9 +52,11 @@ typedef struct {
      s32                      matrix[6];
      DFBColor                 color;
 
+     bool                     mode_32bit;
+
      /* gp2d */
      u32                      rclr;
-     u32                      color16;
+     u32                      color_bits;
 } GP2DDeviceData;
 
 
