@@ -1944,7 +1944,7 @@ AC_SUBST(FLUXED_ARGS_BYTES)
 # How big of a buffer fusion uses to read messages from the fusion device
 AC_ARG_WITH(message-size,
             AC_HELP_STRING([--with-message-size=SIZE],
-                           [allow fusion messages up to SIZE bytes @<:@default=1024@:>@]),
+                           [allow fusion messages up to SIZE bytes @<:@default=16384@:>@]),
             [], [with_message_size=no])
 test x"$with_message_size" = x"no" && with_message_size=16384
 FUSION_MESSAGE_SIZE=$with_message_size
