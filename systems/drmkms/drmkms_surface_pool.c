@@ -402,7 +402,8 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> pitch %d, size %d\n", alloc->pitch, alloc->size );
 
-     allocation->size = alloc->size;
+     allocation->size   = alloc->size;
+     allocation->offset = (unsigned long) alloc->prime_fd;
 
 
      /*
@@ -447,6 +448,9 @@ drmkmsDeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( data, DRMKMSPoolData );
      D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
 
+     if (!dfb_config->task_manager)
+          dfb_gfxcard_sync();
+
      if (alloc->fb_id)
           drmModeRmFB( local->drmkms->fd,  alloc->fb_id );
 
@@ -487,7 +491,7 @@ drmkmsLock( CoreSurfacePool       *pool,
      D_ASSERT( drmkms != NULL );
 
      lock->pitch  = alloc->pitch;
-     lock->offset = 0;
+     lock->offset = ~0;
      lock->addr   = NULL;
      lock->phys   = 0;
 
@@ -549,8 +553,7 @@ drmkmsUnlock( CoreSurfacePool       *pool,
 
      switch (lock->accessor) {
           case CSAID_LAYER0:
-          case CSAID_ACCEL0:
-               lock->handle = (void*) (long) 0;
+          case CSAID_GPU:
                break;
 
           case CSAID_CPU:
