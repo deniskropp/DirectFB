@@ -8,7 +8,6 @@
 
 
 #define GP2DGFX_BUFFER_SIZE             65536
-#define GP2DGFX_MAX_PREPARE             ((GP2DGFX_BUFFER_SIZE-12) / 4)
 
 
 typedef struct {
@@ -26,6 +25,7 @@ typedef struct {
      int                      dst_index;
      DFBDimension             dst_size;
 
+     void                    *src_addr;
      unsigned long            src_phys;
      int                      src_pitch;
      int                      src_bpp;
@@ -52,9 +52,11 @@ typedef struct {
      s32                      matrix[6];
      DFBColor                 color;
 
+     bool                     mode_32bit;
+
      /* gp2d */
      u32                      rclr;
-     u32                      color16;
+     u32                      color_bits;
 } GP2DDeviceData;
 
 

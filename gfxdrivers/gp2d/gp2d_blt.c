@@ -47,18 +47,20 @@ D_DEBUG_DOMAIN( GP2D_BLT, "GP2D/BLT", "Renesas GP2D Drawing Engine" );
  * There's no prefix because of the macros below.
  */
 enum {
-     DEST         = 0x00000001,
-     CLIP         = 0x00000002,
-     DEST_CLIP    = 0x00000003,
+     DEST           = 0x00000001,
+     CLIP           = 0x00000002,
+     DEST_CLIP      = 0x00000003,
 
-     COLOR16      = 0x00000100,
+     COLOR          = 0x00000100,
 
-     ALPHA        = 0x00001000,
+     ALPHA          = 0x00001000,
 
-     SOURCE       = 0x00010000,
-     STRANS       = 0x00020000,
+     SOURCE         = 0x00010000,
+     STRANS         = 0x00020000,
+     MATRIX         = 0x00040000,
+     RENDER_OPTIONS = 0x00080000,
 
-     ALL          = 0x00031103,
+     ALL            = 0x000F1103,
 };
 
 /*
@@ -141,11 +143,23 @@ error:
 }
 
 GP2DBuffer *
-gp2d_get_buffer( GP2DDriverData *gdrv )
+gp2d_get_buffer( GP2DDriverData *gdrv,
+                 unsigned int    size )
 {
+     DFBResult   ret;
      GP2DBuffer *buffer;
 
      D_DEBUG_AT( GP2D_BLT, "%s()\n", __FUNCTION__ );
+
+     if (size > GP2DGFX_BUFFER_SIZE) {
+          ret = gp2d_create_buffer( gdrv, size, &buffer );
+          if (ret) {
+               D_DERROR( ret, "GP2D/Buffer: gp2d_create_buffer( %zu ) failed!\n", size );
+               return NULL;
+          }
+
+          return DFB_OK;
+     }
 
      direct_mutex_lock( &gdrv->buffer_lock );
 
@@ -305,9 +319,10 @@ flush_prepared( GP2DDriverData *gdrv )
 {
      GP2DBuffer *buffer;
 
-     D_DEBUG_AT( GP2D_BLT, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( GP2D_BLT, "%s() <- prep:%d\n", __FUNCTION__, gdrv->prep_num );
 
-     D_ASSERT( gdrv->prep_num <= GP2DGFX_MAX_PREPARE );
+     D_ASSERT( gdrv->current != NULL );
+     D_ASSERT( gdrv->prep_num <= (gdrv->current->size - 4) / 4 );
 
      buffer = gdrv->current;
      D_MAGIC_ASSERT( buffer, GP2DBuffer );
@@ -323,10 +338,15 @@ flush_prepared( GP2DDriverData *gdrv )
 
 static inline __u32 *
 start_buffer( GP2DDriverData *gdrv,
-              int               space )
+              int             space )
 {
+     unsigned int size = space * 4;
+
+     //if (gdrv->current)
+     //     D_DEBUG_AT( GP2D_BLT, "%s( %d ) <- used:%u size:%u\n", __FUNCTION__, space, gdrv->current->used, gdrv->current->size );
+
      /* Check for space in local buffer. */
-     if (gdrv->prep_num + space > GP2DGFX_MAX_PREPARE) {
+     if (gdrv->current && gdrv->current->used + size + 4 > gdrv->current->size) {
           /* Flush local buffer. */
           flush_prepared( gdrv );
 
@@ -334,8 +354,12 @@ start_buffer( GP2DDriverData *gdrv,
           D_ASSERT( gdrv->current == NULL );
      }
 
-     if (!gdrv->current)
-          gdrv->current = gp2d_get_buffer( gdrv );
+     if (!gdrv->current) {
+          if (size < GP2DGFX_BUFFER_SIZE)
+               size = GP2DGFX_BUFFER_SIZE;
+
+          gdrv->current = gp2d_get_buffer( gdrv, size );
+     }
 
      /* Return next write position. */
      return gdrv->current->mapped + gdrv->prep_num * 4;
@@ -345,7 +369,11 @@ static inline void
 submit_buffer( GP2DDriverData *gdrv,
                int               entries )
 {
-     D_ASSERT( gdrv->prep_num + entries <= GP2DGFX_MAX_PREPARE );
+     //D_DEBUG_AT( GP2D_BLT, "%s( %d ) <- used:%u size:%u\n", __FUNCTION__, entries, gdrv->current->used, gdrv->current->size );
+
+     D_ASSERT( gdrv->current != NULL );
+     D_ASSERT( gdrv->current->used + entries * 4 + 4 <= gdrv->current->size );
+     D_ASSERT( gdrv->prep_num + entries <= (gdrv->current->size - 4) / 4 );
 
      /* Increment next write position. */
      gdrv->prep_num += entries;
@@ -357,21 +385,21 @@ submit_buffer( GP2DDriverData *gdrv,
 
 static inline void
 gp2d_validate_DEST_CLIP( GP2DDriverData *gdrv,
-                           GP2DDeviceData *gdev,
-                           CardState        *state )
+                         GP2DDeviceData *gdev,
+                         CardState      *state )
 {
      __u32 *prep = start_buffer( gdrv, 21 );
 
      D_DEBUG_AT( GP2D_BLT, "%s( 0x%08lx [%d] - %4d,%4d-%4dx%4d )\n", __FUNCTION__,
                  state->dst.phys, state->dst.pitch, DFB_RECTANGLE_VALS_FROM_REGION( &state->clip ) );
 
-     prep[0] = M2DG_OPCODE_WPR;
-     prep[1] = 0x0d4;
-     prep[2] = GP2D_XY( state->clip.x1, state->clip.y1 ) ;
+     prep[0] = GP2D_OPCODE_WPR;
+     prep[1] = GP2D_REG_UCLMIR;
+     prep[2] = GP2D_XY( state->clip.x1, state->clip.y1 );
 
-     prep[3] = M2DG_OPCODE_WPR;
-     prep[4] = 0x0d8;
-     prep[5] = GP2D_XY( state->clip.x2, state->clip.y2) ;
+     prep[3] = GP2D_OPCODE_WPR;
+     prep[4] = GP2D_REG_UCLMAR;
+     prep[5] = GP2D_XY( state->clip.x2, state->clip.y2);
 
      if (gdev->v_flags & DEST) {
           submit_buffer( gdrv, 6 );
@@ -380,11 +408,12 @@ gp2d_validate_DEST_CLIP( GP2DDriverData *gdrv,
           CoreSurface       *surface = state->destination;
           CoreSurfaceBuffer *buffer  = state->dst.buffer;
 
-          gdev->dst_phys  = state->dst.offset;
-          gdev->dst_pitch = state->dst.pitch;
-          gdev->dst_bpp   = DFB_BYTES_PER_PIXEL( buffer->format );
-          gdev->dst_index = DFB_PIXELFORMAT_INDEX( buffer->format ) % DFB_NUM_PIXELFORMATS;
-          gdev->dst_size  = state->dst.allocation->config.size;
+          gdev->dst_phys   = state->dst.offset;
+          gdev->dst_pitch  = state->dst.pitch;
+          gdev->dst_bpp    = DFB_BYTES_PER_PIXEL( buffer->format );
+          gdev->dst_index  = DFB_PIXELFORMAT_INDEX( buffer->format ) % DFB_NUM_PIXELFORMATS;
+          gdev->dst_size   = state->dst.allocation->config.size;
+          gdev->mode_32bit = (gdev->dst_bpp > 2);
 
           gdev->rclr &= ~0x00140000;
 
@@ -394,28 +423,28 @@ gp2d_validate_DEST_CLIP( GP2DDriverData *gdrv,
                gdev->rclr |= 0x00040000;
 
           /* Set destination start address. */
-          prep[ 6] = M2DG_OPCODE_WPR;
-          prep[ 7] = 0x50;
+          prep[ 6] = GP2D_OPCODE_WPR;
+          prep[ 7] = GP2D_REG_RSAR;
           prep[ 8] = gdev->dst_phys;
 
           /* Set destination stride. */
-          prep[ 9] = M2DG_OPCODE_WPR;
-          prep[10] = 0x5c;
+          prep[ 9] = GP2D_OPCODE_WPR;
+          prep[10] = GP2D_REG_DSTRR;
           prep[11] = gdev->dst_pitch / gdev->dst_bpp;
 
           /* Set destination pixelformat in rendering control. */
-          prep[12] = M2DG_OPCODE_WPR;
-          prep[13] = 0xc0;
+          prep[12] = GP2D_OPCODE_WPR;
+          prep[13] = GP2D_REG_RCLR;
           prep[14] = gdev->rclr;
 
           /* Set system clipping rectangle. */
-          prep[15] = M2DG_OPCODE_WPR;
-          prep[16] = 0xd0;
+          prep[15] = GP2D_OPCODE_WPR;
+          prep[16] = GP2D_REG_SCLMAR;
           prep[17] = GP2D_XY( surface->config.size.w - 1, surface->config.size.h - 1 );
 
           /* Set system clipping rectangle. */
-          prep[18] = M2DG_OPCODE_WPR;
-          prep[19] = 0x1fc;
+          prep[18] = GP2D_OPCODE_WPR;
+          prep[19] = GP2D_REG_MD0R;
           prep[20] = DFB_BYTES_PER_PIXEL(buffer->format) > 2 ? 0x01000000 : 0x00000000;
 
           submit_buffer( gdrv, 21 );
@@ -426,14 +455,14 @@ gp2d_validate_DEST_CLIP( GP2DDriverData *gdrv,
 }
 
 static inline void
-gp2d_validate_COLOR16( GP2DDriverData *gdrv,
-                         GP2DDeviceData *gdev,
-                         CardState        *state )
+gp2d_validate_COLOR( GP2DDriverData *gdrv,
+                     GP2DDeviceData *gdev,
+                     CardState      *state )
 {
-     gdev->color16 = dfb_pixel_from_color( state->destination->config.format, &state->color );
+     gdev->color_bits = dfb_pixel_from_color( state->destination->config.format, &state->color );
 
      /* Set the flags. */
-     GP2D_VALIDATE( COLOR16 );
+     GP2D_VALIDATE( COLOR );
 }
 
 static inline void
@@ -443,8 +472,8 @@ gp2d_validate_ALPHA( GP2DDriverData *gdrv,
 {
      __u32 *prep = start_buffer( gdrv, 3 );
 
-     prep[0] = M2DG_OPCODE_WPR;
-     prep[1] = 0x088;
+     prep[0] = GP2D_OPCODE_WPR;
+     prep[1] = GP2D_REG_ALPHR;
      prep[2] = state->color.a;
 
      submit_buffer( gdrv, 3 );
@@ -462,6 +491,7 @@ gp2d_validate_SOURCE( GP2DDriverData *gdrv,
 
      CoreSurfaceBuffer *buffer = state->src.buffer;
 
+     gdev->src_addr  = state->src.addr;
      gdev->src_phys  = state->src.offset;
      gdev->src_pitch = state->src.pitch;
      gdev->src_bpp   = DFB_BYTES_PER_PIXEL( buffer->format );
@@ -476,18 +506,18 @@ gp2d_validate_SOURCE( GP2DDriverData *gdrv,
           gdev->rclr |= 0x00040000;
 
      /* Set source start address. */
-     prep[0] = M2DG_OPCODE_WPR;
-     prep[1] = 0x4c;
+     prep[0] = GP2D_OPCODE_WPR;
+     prep[1] = GP2D_REG_SSAR;
      prep[2] = gdev->src_phys;
 
      /* Set source stride. */
-     prep[3] = M2DG_OPCODE_WPR;
-     prep[4] = 0x58;
+     prep[3] = GP2D_OPCODE_WPR;
+     prep[4] = GP2D_REG_SSTRR;
      prep[5] = gdev->src_pitch / gdev->src_bpp;
 
      /* Set source pixelformat in rendering control. */
-     prep[6] = M2DG_OPCODE_WPR;
-     prep[7] = 0xc0;
+     prep[6] = GP2D_OPCODE_WPR;
+     prep[7] = GP2D_REG_RCLR;
      prep[8] = gdev->rclr;
 
      submit_buffer( gdrv, 9 );
@@ -503,14 +533,64 @@ gp2d_validate_STRANS( GP2DDriverData *gdrv,
 {
      __u32 *prep = start_buffer( gdrv, 3 );
 
-     prep[0] = M2DG_OPCODE_WPR;
-     prep[1] = 0x080;
+     prep[0] = GP2D_OPCODE_WPR;
+     prep[1] = GP2D_REG_STCR;
      prep[2] = state->src_colorkey;
 
      submit_buffer( gdrv, 3 );
 
      /* Set the flags. */
      GP2D_VALIDATE( STRANS );
+}
+
+static inline void
+gp2d_validate_MATRIX( GP2DDriverData *gdrv,
+                      GP2DDeviceData *gdev,
+                      CardState      *state )
+{
+     __u32 *prep = start_buffer( gdrv, 11 );
+     float  m[9];
+
+     m[0] = (state->matrix[0] / 65536.0f);
+     m[1] = (state->matrix[1] / 65536.0f);
+     m[2] = (state->matrix[2] / 65536.0f);
+     m[3] = (state->matrix[3] / 65536.0f);
+     m[4] = (state->matrix[4] / 65536.0f);
+     m[5] = (state->matrix[5] / 65536.0f);
+     m[6] = (state->matrix[6] / 65536.0f);
+     m[7] = (state->matrix[7] / 65536.0f);
+     m[8] = (state->matrix[8] / 65536.0f);
+
+     prep[0]  = GP2D_OPCODE_WPR;
+     prep[1]  = GP2D_REG_MTRAR | (8 << 16);
+
+     direct_memcpy( &prep[2], m, 4 * 9 );
+
+     submit_buffer( gdrv, 11 );
+
+     /* Set the flags. */
+     GP2D_VALIDATE( MATRIX );
+}
+
+static inline void
+gp2d_validate_RENDER_OPTIONS( GP2DDriverData *gdrv,
+                              GP2DDeviceData *gdev,
+                              CardState      *state )
+{
+     __u32 *prep = start_buffer( gdrv, 3 );
+
+     prep[0] = GP2D_OPCODE_WPR;
+     prep[1] = GP2D_REG_GTRCR;
+
+     if (state->render_options & DSRO_MATRIX)
+          prep[2] = GP2D_GTRCR_GTE | GP2D_GTRCR_AFE;
+     else
+          prep[2] = 0;
+
+     submit_buffer( gdrv, 3 );
+
+     /* Set the flags. */
+     GP2D_VALIDATE( RENDER_OPTIONS );
 }
 
 /**********************************************************************************************************************/
@@ -547,11 +627,11 @@ gp2dEngineReset( void *drv, void *dev )
      prep = start_buffer( gdrv, 4 );
 
      /* Reset current pointer. */
-     prep[0] = M2DG_OPCODE_MOVE;
+     prep[0] = GP2D_OPCODE_MOVE;
      prep[1] = 0;
 
      /* Reset local offset. */
-     prep[2] = M2DG_OPCODE_LCOFS;
+     prep[2] = GP2D_OPCODE_LCOFS;
      prep[3] = 0;
 
      submit_buffer( gdrv, 4 );
@@ -564,7 +644,8 @@ gp2dEmitCommands( void *drv, void *dev )
 
      D_DEBUG_AT( GP2D_BLT, "%s()\n", __FUNCTION__ );
 
-     flush_prepared( gdrv );
+     if (gdrv->prep_num)
+          flush_prepared( gdrv );
 }
 
 void
@@ -575,7 +656,7 @@ gp2dFlushTextureCache( void *drv, void *dev )
 
      D_DEBUG_AT( GP2D_BLT, "%s()\n", __FUNCTION__ );
 
-     prep[0] = M2DG_OPCODE_SYNC | M2DG_SYNC_TCLR;
+     prep[0] = GP2D_OPCODE_SYNC | GP2D_SYNC_TCLR;
 
      submit_buffer( gdrv, 1 );
 }
@@ -640,12 +721,36 @@ gp2dCheckState( void                *drv,
                return;
 
           /* Return if the source format is not supported. */
-          if (state->source->config.format != state->destination->config.format)
-               return;
+          switch (state->source->config.format) {
+               case DSPF_RGB16:
+                    if (state->destination->config.format != DSPF_RGB16)
+                         return;
+                    break;
+
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+               case DSPF_A8:
+                    break;
+
+               default:
+                    return;
+          }
 
           /* Return if blending with unsupported blend functions is requested. */
           if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                if (state->src_blend != DSBF_SRCALPHA || state->dst_blend != DSBF_INVSRCALPHA)
+                    return;
+          }
+
+          /* Return if blending with unsupported blend functions is requested. */
+          if (flags & DSBLIT_COLORIZE) {
+               if (state->source->config.format != DSPF_A8)
+                    return;
+
+               if (!(state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL))
+                    return;
+
+               if (state->blittingflags & DSBLIT_BLEND_COLORALPHA)
                     return;
           }
 
@@ -694,9 +799,13 @@ gp2dSetState( void                *drv,
      if (modified == SMF_ALL) {
           GP2D_INVALIDATE( ALL );
      } else if (modified) {
+          /* Invalidate render option registers. */
+          if (modified & SMF_RENDER_OPTIONS)
+               GP2D_INVALIDATE( RENDER_OPTIONS );
+
           /* Invalidate destination registers. */
           if (modified & SMF_DESTINATION)
-               GP2D_INVALIDATE( DEST | COLOR16 );
+               GP2D_INVALIDATE( DEST | COLOR );
 
           /* Invalidate clipping registers. */
           if (modified & SMF_CLIP)
@@ -704,7 +813,7 @@ gp2dSetState( void                *drv,
 
           /* Invalidate color registers. */
           if (modified & SMF_COLOR)
-               GP2D_INVALIDATE( ALPHA | COLOR16 );
+               GP2D_INVALIDATE( ALPHA | COLOR );
 
           /* Invalidate source registers. */
           if (modified & SMF_SOURCE)
@@ -713,6 +822,10 @@ gp2dSetState( void                *drv,
           /* Invalidate source colorkey. */
           if (modified & SMF_SRC_COLORKEY)
                GP2D_INVALIDATE( STRANS );
+
+          /* Invalidate matrix. */
+          if (modified & SMF_MATRIX)
+               GP2D_INVALIDATE( MATRIX );
      }
 
      /*
@@ -724,6 +837,12 @@ gp2dSetState( void                *drv,
      /* Always requiring valid destination and clip. */
      GP2D_CHECK_VALIDATE( DEST_CLIP );
 
+     GP2D_CHECK_VALIDATE( RENDER_OPTIONS );
+
+     /* Use transformation matrix? */
+     if (state->render_options & DSRO_MATRIX)
+          GP2D_CHECK_VALIDATE( MATRIX );
+
      /* Depending on the function... */
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -731,7 +850,7 @@ gp2dSetState( void                *drv,
           case DFXL_FILLTRIANGLE:
           case DFXL_DRAWLINE:
                /* ...require valid color. */
-               GP2D_CHECK_VALIDATE( COLOR16 );
+               GP2D_CHECK_VALIDATE( COLOR );
 
                /* If blending is used, validate the alpha value. */
                if (state->drawingflags & DSDRAW_BLEND)
@@ -750,6 +869,10 @@ gp2dSetState( void                *drv,
           case DFXL_STRETCHBLIT:
                /* ...require valid source. */
                GP2D_CHECK_VALIDATE( SOURCE );
+
+               /* If colorize is used, validate the color value. */
+               if (state->blittingflags & DSBLIT_COLORIZE)
+                    GP2D_CHECK_VALIDATE( COLOR );
 
                /* If blending is used, validate the alpha value. */
                if (state->blittingflags & DSBLIT_BLEND_COLORALPHA)
@@ -799,23 +922,50 @@ gp2dFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      GP2DDriverData *gdrv = drv;
      GP2DDeviceData *gdev = dev;
-     __u32            *prep = start_buffer( gdrv, 6 );
 
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
                  DFB_RECTANGLE_VALS( rect ) );
 
-     prep[0] = M2DG_OPCODE_BITBLTC | M2DG_DRAWMODE_CLIP;
+     if (gdev->render_options & DSRO_MATRIX) {
+          __u32 *prep = start_buffer( gdrv, 6 );
 
-     if (gdev->dflags & DSDRAW_BLEND)
-          prep[0] |= M2DG_DRAWMODE_ALPHA;
+          int x1, x2, y1, y2;
 
-     prep[1] = 0xcc;
-     prep[2] = gdev->color16;
-     prep[3] = rect->w - 1;
-     prep[4] = rect->h - 1;
-     prep[5] = GP2D_XY( rect->x, rect->y );
+          x1 = rect->x;
+          y1 = rect->y;
+          x2 = rect->x + rect->w - 1;
+          y2 = rect->y + rect->h - 1;
 
-     submit_buffer( gdrv, 6 );
+          prep[0] = GP2D_OPCODE_POLYGON_4C | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
+
+          if (gdev->dflags & DSDRAW_BLEND)
+               prep[0] |= GP2D_DRAWMODE_ALPHA;
+
+          prep[1] = gdev->color_bits;
+
+          prep[2] = GP2D_XY( x1, y1 );
+          prep[3] = GP2D_XY( x2, y1 );
+          prep[4] = GP2D_XY( x2, y2 );
+          prep[5] = GP2D_XY( x1, y2 );
+
+          submit_buffer( gdrv, 6 );
+     }
+     else {
+          __u32 *prep = start_buffer( gdrv, 6 );
+
+          prep[0] = GP2D_OPCODE_BITBLTC | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
+
+          if (gdev->dflags & DSDRAW_BLEND)
+               prep[0] |= GP2D_DRAWMODE_ALPHA;
+
+          prep[1] = 0xcc;
+          prep[2] = gdev->color_bits;
+          prep[3] = rect->w - 1;
+          prep[4] = rect->h - 1;
+          prep[5] = GP2D_XY( rect->x, rect->y );
+
+          submit_buffer( gdrv, 6 );
+     }
 
      return true;
 }
@@ -830,7 +980,7 @@ gp2dDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      GP2DDriverData *gdrv = drv;
      GP2DDeviceData *gdev = dev;
-     __u32            *prep = start_buffer(gdrv, 8 );
+     __u32            *prep = start_buffer(gdrv, gdev->mode_32bit ? 9 : 8 );
 
      int x1, x2, y1, y2;
 
@@ -842,21 +992,36 @@ gp2dDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
                  DFB_RECTANGLE_VALS( rect ) );
 
-     prep[0] = M2DG_OPCODE_LINE_C | M2DG_DRAWMODE_CLIP;
+     prep[0] = GP2D_OPCODE_LINE_C | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
 
      if (gdev->dflags & DSDRAW_BLEND)
-          prep[0] |= M2DG_DRAWMODE_ALPHA;
+          prep[0] |= GP2D_DRAWMODE_ALPHA;
 
-     prep[1] = (gdev->color16 << 16 ) | 5;
-     prep[2] = 0;
+     if (gdev->mode_32bit) {
+          prep[1] = gdev->color_bits;
+          prep[2] = 5;
+          prep[3] = 0;
 
-     prep[3] = GP2D_XY( x1, y1 );
-     prep[4] = GP2D_XY( x2, y1 );
-     prep[5] = GP2D_XY( x2, y2 );
-     prep[6] = GP2D_XY( x1, y2 );
-     prep[7] = GP2D_XY( x1, y1 );
+          prep[4] = GP2D_XY( x1, y1 );
+          prep[5] = GP2D_XY( x2, y1 );
+          prep[6] = GP2D_XY( x2, y2 );
+          prep[7] = GP2D_XY( x1, y2 );
+          prep[8] = GP2D_XY( x1, y1 );
 
-     submit_buffer( gdrv, 8 );
+          submit_buffer( gdrv, 9 );
+     }
+     else {
+          prep[1] = (gdev->color_bits << 16 ) | 5;
+          prep[2] = 0;
+
+          prep[3] = GP2D_XY( x1, y1 );
+          prep[4] = GP2D_XY( x2, y1 );
+          prep[5] = GP2D_XY( x2, y2 );
+          prep[6] = GP2D_XY( x1, y2 );
+          prep[7] = GP2D_XY( x1, y1 );
+
+          submit_buffer( gdrv, 8 );
+     }
 
      return true;
 }
@@ -876,12 +1041,12 @@ gp2dFillTriangle( void *drv, void *dev, DFBTriangle *triangle )
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx, %d - %d, %d )\n", __FUNCTION__,
                  DFB_TRIANGLE_VALS( triangle ) );
 
-     prep[0] = M2DG_OPCODE_POLYGON_4C | M2DG_DRAWMODE_CLIP;
+     prep[0] = GP2D_OPCODE_POLYGON_4C | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
 
      if (gdev->dflags & DSDRAW_BLEND)
-          prep[0] |= M2DG_DRAWMODE_ALPHA;
+          prep[0] |= GP2D_DRAWMODE_ALPHA;
 
-     prep[1] = gdev->color16;
+     prep[1] = gdev->color_bits;
 
      prep[2] = GP2D_XY( triangle->x1, triangle->y1 );
      prep[3] = GP2D_XY( triangle->x2, triangle->y2 );
@@ -910,23 +1075,35 @@ gp2dDrawLine( void *drv, void *dev, DFBRegion *line )
 {
      GP2DDriverData *gdrv = drv;
      GP2DDeviceData *gdev = dev;
-     __u32            *prep = start_buffer( gdrv, 5 );
+     __u32            *prep = start_buffer(gdrv, gdev->mode_32bit ? 6 : 5 );
 
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %d, %d )\n", __FUNCTION__,
                  line->x1, line->y1, line->x2, line->y2 );
 
-     prep[0] = M2DG_OPCODE_LINE_C | M2DG_DRAWMODE_CLIP;
+     prep[0] = GP2D_OPCODE_LINE_C | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
 
      if (gdev->render_options & DSRO_ANTIALIAS)
-          prep[0] |= M2DG_DRAWMODE_ANTIALIAS;
+          prep[0] |= GP2D_DRAWMODE_ANTIALIAS;
 
-     prep[1] = (gdev->color16 << 16) | 2;
-     prep[2] = 0;
+     if (gdev->mode_32bit) {
+          prep[1] = gdev->color_bits;
+          prep[2] = 2;
+          prep[3] = 0;
 
-     prep[3] = GP2D_XY( line->x1, line->y1 );
-     prep[4] = GP2D_XY( line->x2, line->y2 );
+          prep[4] = GP2D_XY( line->x1, line->y1 );
+          prep[5] = GP2D_XY( line->x2, line->y2 );
 
-     submit_buffer( gdrv, 5);
+          submit_buffer( gdrv, 6 );
+     }
+     else {
+          prep[1] = (gdev->color_bits << 16) | 2;
+          prep[2] = 0;
+
+          prep[3] = GP2D_XY( line->x1, line->y1 );
+          prep[4] = GP2D_XY( line->x2, line->y2 );
+
+          submit_buffer( gdrv, 5);
+     }
 
      return true;
 }
@@ -939,35 +1116,96 @@ gp2dBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      GP2DDriverData *gdrv = drv;
      GP2DDeviceData *gdev = dev;
-     __u32            *prep = start_buffer( gdrv, 6 );
 
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx%d <- %d, %d )\n", __FUNCTION__,
                  dx, dy, rect->w, rect->h, rect->x, rect->y );
 
-     prep[0] = M2DG_OPCODE_BITBLTA | M2DG_DRAWMODE_CLIP;
+     if (gdev->src_bpp == 1) {
+          int    w       = ((rect->w + 7) & ~7);
+          int    cmd_num = 8 + (gdrv->prep_num & 1);
+          int    map_num = w / 4 * rect->h;
+          __u32 *prep    = start_buffer( gdrv, cmd_num + map_num );
+          int    y;
 
-     if (gdev->bflags & DSBLIT_BLEND_COLORALPHA)
-          prep[0] |= M2DG_DRAWMODE_ALPHA;
+          D_DEBUG_AT( GP2D_BLT, "  -> AAFC  color:0x%08x src:%lu/%p\n", gdev->color_bits, gdev->src_phys, gdev->src_addr );
 
-     if (gdev->bflags & DSBLIT_SRC_COLORKEY)
-          prep[0] |= M2DG_DRAWMODE_STRANS;
+          prep[0] = GP2D_OPCODE_AAFC | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE | GP2D_DRAWMODE_REL;
 
-     if (gdev->src_phys == gdev->dst_phys) {
-          if (dy > rect->y)
-               prep[0] |= M2DG_DRAWMODE_DSTDIR_Y | M2DG_DRAWMODE_SRCDIR_Y;
-          else if (dy == rect->y) {
-               if (dx > rect->x)
-                    prep[0] |= M2DG_DRAWMODE_DSTDIR_X | M2DG_DRAWMODE_SRCDIR_X;
+          prep[1] = gdev->color_bits;
+          prep[2] = cmd_num * 4;
+          prep[3] = w - 1;
+          prep[4] = rect->h;
+          prep[5] = GP2D_XY( dx, dy );
+
+          prep[6] = GP2D_OPCODE_JUMP | GP2D_DRAWMODE_REL;
+          prep[7] = (2 + (cmd_num & 1) + map_num) * 4;
+
+          for (y=0; y<rect->h; y++) {
+               direct_memcpy( &prep[cmd_num] + w / 4 * y,
+                              gdev->src_addr + rect->x + (rect->y + y) * gdev->src_pitch, w );
           }
+
+          submit_buffer( gdrv, cmd_num + map_num );
+
+          return true;
      }
 
-     prep[1] = 0xcc;
-     prep[2] = GP2D_XY( rect->x, rect->y );
-     prep[3] = rect->w - 1;
-     prep[4] = rect->h - 1;
-     prep[5] = GP2D_XY( dx, dy );
+     if (gdev->render_options & DSRO_MATRIX) {
+          __u32 *prep = start_buffer( gdrv, 8 );
 
-     submit_buffer( gdrv, 6 );
+          int x1, x2, y1, y2;
+
+          x1 = dx;
+          y1 = dy;
+          x2 = dx + rect->w - 1;
+          y2 = dy + rect->h - 1;
+
+          prep[0] = GP2D_OPCODE_POLYGON_4A | GP2D_DRAWMODE_SS | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
+
+          if (gdev->bflags & DSBLIT_BLEND_COLORALPHA)
+               prep[0] |= GP2D_DRAWMODE_ALPHA;
+
+          if (gdev->bflags & DSBLIT_SRC_COLORKEY)
+               prep[0] |= GP2D_DRAWMODE_STRANS;
+
+          prep[1] = GP2D_XY( 0, 0 );
+          prep[2] = GP2D_XY( rect->w, rect->h );
+          prep[3] = GP2D_XY( rect->x, rect->y );
+          prep[4] = GP2D_XY( x1, y1 );
+          prep[5] = GP2D_XY( x2, y1 );
+          prep[6] = GP2D_XY( x2, y2 );
+          prep[7] = GP2D_XY( x1, y2 );
+
+          submit_buffer( gdrv, 8 );
+     }
+     else {
+          __u32 *prep = start_buffer( gdrv, 6 );
+
+          prep[0] = GP2D_OPCODE_BITBLTA | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
+
+          if (gdev->bflags & DSBLIT_BLEND_COLORALPHA)
+               prep[0] |= GP2D_DRAWMODE_ALPHA;
+
+          if (gdev->bflags & DSBLIT_SRC_COLORKEY)
+               prep[0] |= GP2D_DRAWMODE_STRANS;
+
+          if (gdev->src_phys == gdev->dst_phys) {
+               if (dy > rect->y)
+                    prep[0] |= GP2D_DRAWMODE_DSTDIR_Y | GP2D_DRAWMODE_SRCDIR_Y;
+               else if (dy == rect->y) {
+                    if (dx > rect->x)
+                         prep[0] |= GP2D_DRAWMODE_DSTDIR_X | GP2D_DRAWMODE_SRCDIR_X;
+               }
+          }
+
+          prep[1] = 0xcc;
+          prep[2] = GP2D_XY( rect->x, rect->y );
+          prep[3] = rect->w - 1;
+          prep[4] = rect->h - 1;
+          prep[5] = GP2D_XY( dx, dy );
+
+          submit_buffer( gdrv, 6 );
+     }
 
      return true;
 }
@@ -995,13 +1233,13 @@ gp2dStretchBlit( void *drv, void *dev,
                  drect->x, drect->y, drect->w, drect->h,
                  srect->x, srect->y, srect->w, srect->h );
 
-     prep[0] = M2DG_OPCODE_POLYGON_4A | M2DG_DRAWMODE_SS | M2DG_DRAWMODE_CLIP;
+     prep[0] = GP2D_OPCODE_POLYGON_4A | GP2D_DRAWMODE_SS | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
 
      if (gdev->bflags & DSBLIT_BLEND_COLORALPHA)
-          prep[0] |= M2DG_DRAWMODE_ALPHA;
+          prep[0] |= GP2D_DRAWMODE_ALPHA;
 
      if (gdev->bflags & DSBLIT_SRC_COLORKEY)
-          prep[0] |= M2DG_DRAWMODE_STRANS;
+          prep[0] |= GP2D_DRAWMODE_STRANS;
 
      prep[1] = GP2D_XY( 0, 0 );
      prep[2] = GP2D_XY( srect->w, srect->h );

@@ -69,6 +69,7 @@ typedef struct {
 struct __D_DirectTraceBuffer {
      pid_t tid;
      char *name;
+     DirectThread *thread;
      int   level;
      bool  in_trace;
      Trace trace[MAX_LEVEL];
@@ -131,8 +132,9 @@ get_trace_buffer( void )
 
           direct_tls_set( trace_key, buffer = direct_calloc( 1, sizeof(DirectTraceBuffer) ) );
 
-          buffer->tid  = direct_gettid();
-          buffer->name = name ? direct_strdup( name ) : NULL;
+          buffer->tid    = direct_gettid();
+          buffer->name   = name ? direct_strdup( name ) : NULL;
+          buffer->thread = direct_thread_self();
 
           buffers[buffers_num++] = buffer;
 
@@ -477,10 +479,8 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           return;
 
 
-     if (buffer->name)
-          D_String_PrintF( string, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
-     else
-          D_String_PrintF( string, "(-) [%5d: -STACK- ]\n", buffer->tid );
+     D_String_PrintF( string, "(-) [%5d: -STACK- '%s']\n", buffer->tid,
+                      (buffer->thread && buffer->thread->name) ? buffer->thread->name : buffer->name );
 
      for (i=level-1; i>=0; i--) {
           void *fn = buffer->trace[i].addr;

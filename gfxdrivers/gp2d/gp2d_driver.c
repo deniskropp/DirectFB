@@ -210,7 +210,7 @@ driver_init_device( CoreGraphicsDevice *device,
      device_info->caps.drawing  = GP2D_SUPPORTED_DRAWINGFLAGS;
      device_info->caps.blitting = GP2D_SUPPORTED_BLITTINGFLAGS;
 
-     gp2d_blt_gen_free( gdrv, 12 );
+     gp2d_blt_gen_free( gdrv, 5 );
 
      register_gp2d( gdrv );
 

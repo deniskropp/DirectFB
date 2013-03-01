@@ -80,6 +80,7 @@ typedef struct {
 #endif
 
      uint32_t    fb_id;
+     void       *addr;
 } DRMKMSAllocationData;
 
 /**********************************************************************************************************************/
@@ -402,7 +403,8 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
 
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> pitch %d, size %d\n", alloc->pitch, alloc->size );
 
-     allocation->size = alloc->size;
+     allocation->size   = alloc->size;
+     allocation->offset = (unsigned long) alloc->prime_fd;
 
 
      /*
@@ -421,6 +423,21 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
 
           D_DEBUG_AT( DRMKMS_Surfaces, "  -> allocated FB ID %d\n", alloc->fb_id );
      }
+
+
+#ifdef USE_GBM
+     //FIXME use gbm instead of ioctl
+     struct drm_i915_gem_mmap_gtt arg;
+     memset(&arg, 0, sizeof(arg));
+     arg.handle = alloc->handle;
+
+     drmCommandWriteRead( drmkms->fd, DRM_I915_GEM_MMAP_GTT, &arg, sizeof( arg ) );
+     alloc->addr = mmap( 0, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, drmkms->fd, arg.offset );
+#else
+     kms_bo_map( alloc->bo, &alloc->addr );
+#endif
+
+
 
      D_MAGIC_SET( alloc, DRMKMSAllocationData );
 
@@ -446,6 +463,15 @@ drmkmsDeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, DRMKMSPoolData );
      D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
+
+     if (!dfb_config->task_manager)
+          dfb_gfxcard_sync();
+
+#ifdef USE_GBM
+     // FIXME: unmap in GBM case
+#else
+     kms_bo_unmap( alloc->bo );
+#endif
 
      if (alloc->fb_id)
           drmModeRmFB( local->drmkms->fd,  alloc->fb_id );
@@ -487,8 +513,8 @@ drmkmsLock( CoreSurfacePool       *pool,
      D_ASSERT( drmkms != NULL );
 
      lock->pitch  = alloc->pitch;
-     lock->offset = 0;
-     lock->addr   = NULL;
+     lock->offset = ~0;
+     lock->addr   = dfb_core_is_master( core_dfb ) ? alloc->addr : NULL;
      lock->phys   = 0;
 
      switch (lock->accessor) {
@@ -504,7 +530,7 @@ drmkmsLock( CoreSurfacePool       *pool,
                break;
 
           case CSAID_CPU:
-               {
+               if (!dfb_core_is_master( core_dfb )) {
 #ifdef USE_GBM
                     //FIXME use gbm instead of ioctl
                     struct drm_i915_gem_mmap_gtt arg;
@@ -549,16 +575,17 @@ drmkmsUnlock( CoreSurfacePool       *pool,
 
      switch (lock->accessor) {
           case CSAID_LAYER0:
-          case CSAID_ACCEL0:
-               lock->handle = (void*) (long) 0;
+          case CSAID_GPU:
                break;
 
           case CSAID_CPU:
+               if (!dfb_core_is_master( core_dfb )) {
 #ifdef USE_GBM
-               // FIXME: unmap in GBM case
+                    // FIXME: unmap in GBM case
 #else
-               kms_bo_unmap( alloc->bo );
+                    kms_bo_unmap( alloc->bo );
 #endif
+               }
                break;
 
           default:

@@ -552,6 +552,8 @@ system_get_deviceid( unsigned int *ret_vendor_id,
 static int xres_table[] = { 640,720,720,800,1024,1152,1280,1280,1280,1280,1400,1600,1920,960,1140 };
 static int yres_table[] = { 480,480,576,600, 768, 864, 720, 768, 960,1024,1050,1200,1080,540, 540 };
 
+static int freq_table[] = { 25, 30, 50, 59, 60, 75, 30, 24, 23 };
+
 DFBScreenOutputResolution
 drmkms_modes_to_dsor_bitmask()
 {
@@ -560,6 +562,9 @@ drmkms_modes_to_dsor_bitmask()
      int ret = DSOR_UNKNOWN;
 
      int i,j;
+
+     D_DEBUG_AT( DRMKMS_Mode, "%s()\n", __FUNCTION__ );
+
      for (i=0;i<m_data->connector->count_modes;i++) {
           for (j=0;j<D_ARRAY_SIZE(xres_table);j++) {
                if (videomode[i].hdisplay == xres_table[j] && videomode[i].vdisplay == yres_table[j]) {
@@ -572,57 +577,76 @@ drmkms_modes_to_dsor_bitmask()
      return ret;
 }
 
-DFBScreenOutputResolution
-drmkms_mode_to_dsor( drmModeModeInfo *videomode )
+DFBResult
+drmkms_mode_to_dsor_dsef( drmModeModeInfo *videomode, DFBScreenOutputResolution *dso_res,  DFBScreenEncoderFrequency *dse_freq )
 {
-     int ret = DSOR_UNKNOWN;
+
+     *dso_res  = DSOR_UNKNOWN;
+     *dse_freq = DSEF_UNKNOWN;
 
      int j;
+
+     D_DEBUG_AT( DRMKMS_Mode, "%s()\n", __FUNCTION__ );
+
      for (j=0;j<D_ARRAY_SIZE(xres_table);j++) {
           if (videomode->hdisplay == xres_table[j] && videomode->vdisplay == yres_table[j]) {
-               ret = (1 << j);
+               *dso_res = (1 << j);
                break;
           }
      }
 
-     return ret;
+     for (j=0;j<D_ARRAY_SIZE(freq_table);j++) {
+          if (videomode->vrefresh == freq_table[j]) {
+               *dse_freq = (1 << j);
+               break;
+          }
+     }
+
+     return DFB_OK;
 }
 
 drmModeModeInfo*
-drmkms_dsor_to_mode( DFBScreenOutputResolution dsor )
+drmkms_dsor_freq_to_mode( DFBScreenOutputResolution dsor, DFBScreenEncoderFrequency dsefreq )
 {
-     int res    = D_BITn32(dsor);
-     if (res >= D_ARRAY_SIZE(xres_table))
+     int res        = D_BITn32(dsor);
+     int freq_index = D_BITn32(dsefreq);
+     int freq = 0;
+
+     D_DEBUG_AT( DRMKMS_Mode, "%s( dsor = %x, dsefreq = %x)\n", __FUNCTION__, dsor, dsefreq );
+
+     if (res >= D_ARRAY_SIZE(xres_table) || freq_index >= D_ARRAY_SIZE(freq_table))
           return NULL;
 
-     int width  = xres_table[res];
-     int height = yres_table[res];
+     if (freq_index > 0)
+          freq = freq_table[freq_index];
 
-     return drmkms_find_mode( width, height );
+     return drmkms_find_mode( xres_table[res], yres_table[res], freq );
 }
 
 
 drmModeModeInfo*
-drmkms_find_mode( int width, int height )
+drmkms_find_mode( int width, int height, int freq )
 {
      drmModeModeInfo *videomode   = m_data->connector->modes;
      drmModeModeInfo *found_mode  = NULL;
 
+     D_DEBUG_AT( DRMKMS_Mode, "%s()\n", __FUNCTION__ );
+
      int i;
      for (i=0;i<m_data->connector->count_modes;i++) {
-          if (videomode[i].hdisplay == width && videomode[i].vdisplay == height) {
+          if (videomode[i].hdisplay == width && videomode[i].vdisplay == height && ((videomode[i].vrefresh == freq) || (freq == 0) )) {
                     found_mode = &videomode[i];
-                    D_DEBUG_AT( DRMKMS_Mode, "Found mode %dx%d\n", width, height );
+                    D_DEBUG_AT( DRMKMS_Mode, "Found mode %dx%d@%dHz\n", width, height, videomode[i].vrefresh );
 
                     break;
           }
           else
-               D_DEBUG_AT( DRMKMS_Mode, "Mode %dx%d does not match requested %dx%d\n", videomode[i].hdisplay, videomode[i].vdisplay, width, height );
+               D_DEBUG_AT( DRMKMS_Mode, "Mode %dx%d@%dHz does not match requested %dx%d@%dHz\n", videomode[i].hdisplay, videomode[i].vdisplay, videomode[i].vrefresh, width, height, freq );
 
      }
 
      if (!found_mode)
-          D_ONCE( "no mode found for %dx%d", width, height );
+          D_ONCE( "no mode found for %dx%d at %d Hz\n", width, height, freq );
 
      return found_mode;
 }

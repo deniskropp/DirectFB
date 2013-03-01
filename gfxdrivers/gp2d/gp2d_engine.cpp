@@ -49,16 +49,11 @@ D_DEBUG_DOMAIN( GP2D_Task,   "GP2D/Task",   "Renesas GP2D Drawing Engine Task" )
 
 
 extern "C" {
-     static Renesas::GP2DEngine *gp2d_engine;
-
      void
      register_gp2d( GP2DDriverData *drv )
      {
-          if (!gp2d_engine && dfb_config->task_manager) {
-               gp2d_engine = new Renesas::GP2DEngine( drv );
-
-               DirectFB::Renderer::RegisterEngine( gp2d_engine );
-          }
+          if (dfb_config->task_manager)
+               DirectFB::Renderer::RegisterEngine( new Renesas::GP2DEngine( drv ) );
      }
 }
 
@@ -104,7 +99,7 @@ GP2DTask::GP2DTask( GP2DEngine *engine )
      :
      SurfaceTask( CSAID_GPU ),
      engine( engine ),
-     packets( GP2DGFX_MAX_PREPARE * 4 )
+     packets( GP2DGFX_BUFFER_SIZE )
 {
      D_DEBUG_AT( GP2D_Task, "GP2DTask::%s( %p )\n", __FUNCTION__, (void*)this );
 }
@@ -116,7 +111,7 @@ GP2DTask::start( unsigned int num )
 
      D_DEBUG_AT( GP2D_Task, "  -> task length %d\n", packets.GetLength() );
 
-     return (u32*) packets.GetBuffer( num * 4 );
+     return (u32*) packets.GetBuffer( num * 4 + 4 );
 }
 
 void
@@ -190,11 +185,11 @@ GP2DEngine::validate_DEST_CLIP( GP2DTask  *mytask,
                  state->dst.handle, state->dst.pitch, DFB_RECTANGLE_VALS_FROM_REGION( &state->clip ) );
 
 
-     prep[0] = M2DG_OPCODE_WPR;
+     prep[0] = GP2D_OPCODE_WPR;
      prep[1] = 0x0d4;
      prep[2] = GP2D_XY( state->clip.x1, state->clip.y1 ) ;
 
-     prep[3] = M2DG_OPCODE_WPR;
+     prep[3] = GP2D_OPCODE_WPR;
      prep[4] = 0x0d8;
      prep[5] = GP2D_XY( state->clip.x2, state->clip.y2) ;
      
@@ -227,22 +222,22 @@ GP2DEngine::validate_DEST_CLIP( GP2DTask  *mytask,
           }
      
           /* Set destination start address. */
-          prep[ 6] = M2DG_OPCODE_WPR;
+          prep[ 6] = GP2D_OPCODE_WPR;
           prep[ 7] = 0x50;
           prep[ 8] = mytask->dst_phys;
      
           /* Set destination stride. */
-          prep[ 9] = M2DG_OPCODE_WPR;
+          prep[ 9] = GP2D_OPCODE_WPR;
           prep[10] = 0x5c;
           prep[11] = mytask->dst_pitch / mytask->dst_bpp;
      
           /* Set destination pixelformat in rendering control. */
-          prep[12] = M2DG_OPCODE_WPR;
+          prep[12] = GP2D_OPCODE_WPR;
           prep[13] = 0xc0;
           prep[14] = mytask->rclr;
      
           /* Set system clipping rectangle. */
-          prep[15] = M2DG_OPCODE_WPR;
+          prep[15] = GP2D_OPCODE_WPR;
           prep[16] = 0xd0;
           prep[17] = GP2D_XY( surface->config.size.w - 1, surface->config.size.h - 1 );
      
@@ -269,7 +264,7 @@ GP2DEngine::validate_ALPHA( GP2DTask  *mytask,
 {
      __u32 *prep = mytask->start( 3 );
 
-     prep[0] = M2DG_OPCODE_WPR;
+     prep[0] = GP2D_OPCODE_WPR;
      prep[1] = 0x088;
      prep[2] = state->color.a;
 
@@ -293,12 +288,12 @@ GP2DEngine::validate_SOURCE( GP2DTask  *mytask,
      mytask->src_index = DFB_PIXELFORMAT_INDEX( buffer->format ) % DFB_NUM_PIXELFORMATS;
 
      /* Set source start address. */
-     prep[0] = M2DG_OPCODE_WPR;
+     prep[0] = GP2D_OPCODE_WPR;
      prep[1] = 0x4c;
      prep[2] = mytask->src_phys;
 
      /* Set source stride. */
-     prep[3] = M2DG_OPCODE_WPR;
+     prep[3] = GP2D_OPCODE_WPR;
      prep[4] = 0x58;
      prep[5] = mytask->src_pitch / mytask->src_bpp;
 
@@ -314,7 +309,7 @@ GP2DEngine::validate_STRANS( GP2DTask  *mytask,
 {
      __u32 *prep = mytask->start( 3 );
 
-     prep[0] = M2DG_OPCODE_WPR;
+     prep[0] = GP2D_OPCODE_WPR;
      prep[1] = 0x080;
      prep[2] = state->src_colorkey;
 
@@ -346,7 +341,7 @@ GP2DEngine::check( DirectFB::Renderer::Setup *setup )
      for (unsigned int i=0; i<setup->tiles; i++) {
           GP2DTask *mytask = (GP2DTask *) setup->tasks[i];
 
-          if (mytask->packets.GetLength() >= GP2DGFX_MAX_PREPARE*4*4) {
+          if (mytask->packets.GetLength() >= GP2DGFX_BUFFER_SIZE*4) {
 //               fprintf(stderr,"limit %u/%u\n",mytask->buffer->used,mytask->buffer->size);
                return DFB_LIMITEXCEEDED;
           }
@@ -564,10 +559,10 @@ GP2DEngine::FillRectangles( DirectFB::SurfaceTask  *task,
      __u32 *prep = mytask->start( 6 * num_rects );
 
      for (unsigned int i=0; i<num_rects; i++) {
-          prep[0] = M2DG_OPCODE_BITBLTC | M2DG_DRAWMODE_CLIP;
+          prep[0] = GP2D_OPCODE_BITBLTC | GP2D_DRAWMODE_CLIP;
 
           if (mytask->dflags & DSDRAW_BLEND) 
-               prep[0] |= M2DG_DRAWMODE_ALPHA;
+               prep[0] |= GP2D_DRAWMODE_ALPHA;
 
           prep[1] = 0xcc; 
           prep[2] = mytask->color16;
@@ -596,20 +591,20 @@ GP2DEngine::Blit( DirectFB::SurfaceTask  *task,
      __u32 *prep = mytask->start( 6 * num );
 
      for (unsigned int i=0; i<num; i++) {
-          prep[0] = M2DG_OPCODE_BITBLTA | M2DG_DRAWMODE_CLIP;
+          prep[0] = GP2D_OPCODE_BITBLTA | GP2D_DRAWMODE_CLIP;
 
           if (mytask->bflags & DSBLIT_BLEND_COLORALPHA) 
-               prep[0] |= M2DG_DRAWMODE_ALPHA;
+               prep[0] |= GP2D_DRAWMODE_ALPHA;
 
           if (mytask->bflags & DSBLIT_SRC_COLORKEY) 
-               prep[0] |= M2DG_DRAWMODE_STRANS;
+               prep[0] |= GP2D_DRAWMODE_STRANS;
 
           if (mytask->src_phys == mytask->dst_phys) {
                if (points[i].y > rects[i].y)
-                    prep[0] |= M2DG_DRAWMODE_DSTDIR_Y | M2DG_DRAWMODE_SRCDIR_Y;
+                    prep[0] |= GP2D_DRAWMODE_DSTDIR_Y | GP2D_DRAWMODE_SRCDIR_Y;
                else if (points[i].y == rects[i].y) {
                     if (points[i].x > rects[i].x) 
-                         prep[0] |= M2DG_DRAWMODE_DSTDIR_X | M2DG_DRAWMODE_SRCDIR_X;
+                         prep[0] |= GP2D_DRAWMODE_DSTDIR_X | GP2D_DRAWMODE_SRCDIR_X;
                }
           }
 
