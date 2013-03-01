@@ -57,6 +57,7 @@ extern "C" {
 DFBResult    TaskManager_Initialise( void );
 void         TaskManager_Shutdown( void );
 void         TaskManager_Sync( void );
+void         TaskManager_SyncAll( void );
 
 
 void             Task_AddNotify       ( DFB_Task                *task,
@@ -310,6 +311,7 @@ public:
      static DFBResult Initialise();
      static void      Shutdown();
      static void      Sync();
+     static void      SyncAll();
 
 private:
      friend class Task;
