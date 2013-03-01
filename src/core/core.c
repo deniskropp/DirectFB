@@ -1546,7 +1546,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      dfb_core_part_shutdown( core, &dfb_layer_core, emergency );
      dfb_core_part_shutdown( core, &dfb_screen_core, emergency );
 
-     TaskManager_Sync();
+     TaskManager_SyncAll();
 
      /* Destroy surface and palette objects. */
      fusion_object_pool_destroy( shared->graphics_state_pool, core->world );
