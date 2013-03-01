@@ -143,11 +143,23 @@ error:
 }
 
 GP2DBuffer *
-gp2d_get_buffer( GP2DDriverData *gdrv )
+gp2d_get_buffer( GP2DDriverData *gdrv,
+                 unsigned int    size )
 {
+     DFBResult   ret;
      GP2DBuffer *buffer;
 
      D_DEBUG_AT( GP2D_BLT, "%s()\n", __FUNCTION__ );
+
+     if (size > GP2DGFX_BUFFER_SIZE) {
+          ret = gp2d_create_buffer( gdrv, size, &buffer );
+          if (ret) {
+               D_DERROR( ret, "GP2D/Buffer: gp2d_create_buffer( %zu ) failed!\n", size );
+               return NULL;
+          }
+
+          return DFB_OK;
+     }
 
      direct_mutex_lock( &gdrv->buffer_lock );
 
@@ -307,10 +319,10 @@ flush_prepared( GP2DDriverData *gdrv )
 {
      GP2DBuffer *buffer;
 
-     D_DEBUG_AT( GP2D_BLT, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( GP2D_BLT, "%s() <- prep:%d\n", __FUNCTION__, gdrv->prep_num );
 
-     D_ASSERT( gdrv->prep_num <= GP2DGFX_MAX_PREPARE );
      D_ASSERT( gdrv->current != NULL );
+     D_ASSERT( gdrv->prep_num <= (gdrv->current->size - 4) / 4 );
 
      buffer = gdrv->current;
      D_MAGIC_ASSERT( buffer, GP2DBuffer );
@@ -326,10 +338,15 @@ flush_prepared( GP2DDriverData *gdrv )
 
 static inline __u32 *
 start_buffer( GP2DDriverData *gdrv,
-              int               space )
+              int             space )
 {
+     unsigned int size = space * 4;
+
+     //if (gdrv->current)
+     //     D_DEBUG_AT( GP2D_BLT, "%s( %d ) <- used:%u size:%u\n", __FUNCTION__, space, gdrv->current->used, gdrv->current->size );
+
      /* Check for space in local buffer. */
-     if (gdrv->prep_num + space > GP2DGFX_MAX_PREPARE) {
+     if (gdrv->current && gdrv->current->used + size + 4 > gdrv->current->size) {
           /* Flush local buffer. */
           flush_prepared( gdrv );
 
@@ -337,8 +354,12 @@ start_buffer( GP2DDriverData *gdrv,
           D_ASSERT( gdrv->current == NULL );
      }
 
-     if (!gdrv->current)
-          gdrv->current = gp2d_get_buffer( gdrv );
+     if (!gdrv->current) {
+          if (size < GP2DGFX_BUFFER_SIZE)
+               size = GP2DGFX_BUFFER_SIZE;
+
+          gdrv->current = gp2d_get_buffer( gdrv, size );
+     }
 
      /* Return next write position. */
      return gdrv->current->mapped + gdrv->prep_num * 4;
@@ -348,7 +369,11 @@ static inline void
 submit_buffer( GP2DDriverData *gdrv,
                int               entries )
 {
-     D_ASSERT( gdrv->prep_num + entries <= GP2DGFX_MAX_PREPARE );
+     //D_DEBUG_AT( GP2D_BLT, "%s( %d ) <- used:%u size:%u\n", __FUNCTION__, entries, gdrv->current->used, gdrv->current->size );
+
+     D_ASSERT( gdrv->current != NULL );
+     D_ASSERT( gdrv->current->used + entries * 4 + 4 <= gdrv->current->size );
+     D_ASSERT( gdrv->prep_num + entries <= (gdrv->current->size - 4) / 4 );
 
      /* Increment next write position. */
      gdrv->prep_num += entries;
@@ -466,6 +491,7 @@ gp2d_validate_SOURCE( GP2DDriverData *gdrv,
 
      CoreSurfaceBuffer *buffer = state->src.buffer;
 
+     gdev->src_addr  = state->src.addr;
      gdev->src_phys  = state->src.offset;
      gdev->src_pitch = state->src.pitch;
      gdev->src_bpp   = DFB_BYTES_PER_PIXEL( buffer->format );
@@ -695,12 +721,36 @@ gp2dCheckState( void                *drv,
                return;
 
           /* Return if the source format is not supported. */
-          if (state->source->config.format != state->destination->config.format)
-               return;
+          switch (state->source->config.format) {
+               case DSPF_RGB16:
+                    if (state->destination->config.format != DSPF_RGB16)
+                         return;
+                    break;
+
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+               case DSPF_A8:
+                    break;
+
+               default:
+                    return;
+          }
 
           /* Return if blending with unsupported blend functions is requested. */
           if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                if (state->src_blend != DSBF_SRCALPHA || state->dst_blend != DSBF_INVSRCALPHA)
+                    return;
+          }
+
+          /* Return if blending with unsupported blend functions is requested. */
+          if (flags & DSBLIT_COLORIZE) {
+               if (state->source->config.format != DSPF_A8)
+                    return;
+
+               if (!(state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL))
+                    return;
+
+               if (state->blittingflags & DSBLIT_BLEND_COLORALPHA)
                     return;
           }
 
@@ -819,6 +869,10 @@ gp2dSetState( void                *drv,
           case DFXL_STRETCHBLIT:
                /* ...require valid source. */
                GP2D_CHECK_VALIDATE( SOURCE );
+
+               /* If colorize is used, validate the color value. */
+               if (state->blittingflags & DSBLIT_COLORIZE)
+                    GP2D_CHECK_VALIDATE( COLOR );
 
                /* If blending is used, validate the alpha value. */
                if (state->blittingflags & DSBLIT_BLEND_COLORALPHA)
@@ -1065,6 +1119,36 @@ gp2dBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx%d <- %d, %d )\n", __FUNCTION__,
                  dx, dy, rect->w, rect->h, rect->x, rect->y );
+
+     if (gdev->src_bpp == 1) {
+          int    w       = ((rect->w + 7) & ~7);
+          int    cmd_num = 8 + (gdrv->prep_num & 1);
+          int    map_num = w / 4 * rect->h;
+          __u32 *prep    = start_buffer( gdrv, cmd_num + map_num );
+          int    y;
+
+          D_DEBUG_AT( GP2D_BLT, "  -> AAFC  color:0x%08x src:%lu/%p\n", gdev->color_bits, gdev->src_phys, gdev->src_addr );
+
+          prep[0] = GP2D_OPCODE_AAFC | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE | GP2D_DRAWMODE_REL;
+
+          prep[1] = gdev->color_bits;
+          prep[2] = cmd_num * 4;
+          prep[3] = w - 1;
+          prep[4] = rect->h;
+          prep[5] = GP2D_XY( dx, dy );
+
+          prep[6] = GP2D_OPCODE_JUMP | GP2D_DRAWMODE_REL;
+          prep[7] = (2 + (cmd_num & 1) + map_num) * 4;
+
+          for (y=0; y<rect->h; y++) {
+               direct_memcpy( &prep[cmd_num] + w / 4 * y,
+                              gdev->src_addr + rect->x + (rect->y + y) * gdev->src_pitch, w );
+          }
+
+          submit_buffer( gdrv, cmd_num + map_num );
+
+          return true;
+     }
 
      if (gdev->render_options & DSRO_MATRIX) {
           __u32 *prep = start_buffer( gdrv, 8 );

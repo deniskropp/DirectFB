@@ -38,18 +38,7 @@ public:
           size( size ),
           length( 0 )
      {
-          DFBResult ret;
-
-          if (size > GP2DGFX_MAX_PREPARE * 4 + 4) {
-               ret = gp2d_create_buffer( (GP2DDriverData*)dfb_gfxcard_get_driver_data(), size, &buffer );
-               if (ret) {
-                    D_DERROR( ret, "GP2D/Buffer: gp2d_create_buffer( %zu ) failed!\n", size );
-                    buffer = NULL;
-               }
-          }
-          else
-               buffer = gp2d_get_buffer( (GP2DDriverData*)dfb_gfxcard_get_driver_data() );
-
+          buffer = gp2d_get_buffer( (GP2DDriverData*)dfb_gfxcard_get_driver_data(), size );
           D_ASSERT( buffer != NULL );
 
           ptr = buffer->mapped;

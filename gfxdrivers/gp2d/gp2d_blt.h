@@ -14,8 +14,10 @@
                                           DFXL_DRAWLINE      | \
                                           DFXL_DRAWRECTANGLE)
 
-#define GP2D_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_COLORALPHA | \
-                                          DSBLIT_SRC_COLORKEY)
+#define GP2D_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL | \
+                                          DSBLIT_BLEND_COLORALPHA | \
+                                          DSBLIT_SRC_COLORKEY | \
+                                          DSBLIT_COLORIZE)
 
 #define GP2D_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | DFXL_STRETCHBLIT)
 
@@ -48,7 +50,8 @@ gp2d_blt_gen_free( GP2DDriverData *gdrv,
                    unsigned int    num );
 
 GP2DBuffer *
-gp2d_get_buffer( GP2DDriverData *gdrv );
+gp2d_get_buffer( GP2DDriverData *gdrv,
+                 unsigned int    size );
 
 DFBResult
 gp2d_create_buffer( GP2DDriverData  *gdrv,
@@ -76,6 +79,7 @@ gp2d_exec_buffer( GP2DDriverData *gdrv,
 #define GP2D_OPCODE_MOVE        0x48000000
 #define GP2D_OPCODE_NOP         0x08000000
 #define GP2D_OPCODE_INTERRUPT   0x08008000
+#define GP2D_OPCODE_JUMP        0x28008000
 #define GP2D_SYNC_TCLR          0x00000010
 
 #define GP2D_OPCODE_POLYGON_4A  0x82000000
@@ -83,7 +87,9 @@ gp2d_exec_buffer( GP2DDriverData *gdrv,
 #define GP2D_OPCODE_LINE_C      0xB0000000
 #define GP2D_OPCODE_BITBLTA     0xA2000100
 #define GP2D_OPCODE_BITBLTC     0xA0000000
+#define GP2D_OPCODE_AAFC        0xA8000000
 
+#define GP2D_DRAWMODE_REL       0x00000080
 #define GP2D_DRAWMODE_MTRE      0x00008000
 #define GP2D_DRAWMODE_CLIP      0x00002000
 #define GP2D_DRAWMODE_STRANS    0x00000800

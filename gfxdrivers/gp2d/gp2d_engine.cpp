@@ -99,7 +99,7 @@ GP2DTask::GP2DTask( GP2DEngine *engine )
      :
      SurfaceTask( CSAID_GPU ),
      engine( engine ),
-     packets( GP2DGFX_MAX_PREPARE * 4 )
+     packets( GP2DGFX_BUFFER_SIZE )
 {
      D_DEBUG_AT( GP2D_Task, "GP2DTask::%s( %p )\n", __FUNCTION__, (void*)this );
 }
@@ -111,7 +111,7 @@ GP2DTask::start( unsigned int num )
 
      D_DEBUG_AT( GP2D_Task, "  -> task length %d\n", packets.GetLength() );
 
-     return (u32*) packets.GetBuffer( num * 4 );
+     return (u32*) packets.GetBuffer( num * 4 + 4 );
 }
 
 void
@@ -341,7 +341,7 @@ GP2DEngine::check( DirectFB::Renderer::Setup *setup )
      for (unsigned int i=0; i<setup->tiles; i++) {
           GP2DTask *mytask = (GP2DTask *) setup->tasks[i];
 
-          if (mytask->packets.GetLength() >= GP2DGFX_MAX_PREPARE*4*4) {
+          if (mytask->packets.GetLength() >= GP2DGFX_BUFFER_SIZE*4) {
 //               fprintf(stderr,"limit %u/%u\n",mytask->buffer->used,mytask->buffer->size);
                return DFB_LIMITEXCEEDED;
           }
