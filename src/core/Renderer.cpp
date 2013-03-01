@@ -2260,6 +2260,8 @@ Renderer::update( DFBAccelerationMask accel )
                for (unsigned int i=0; i<setup->tiles; i++) {
                     state->clip = setup->clips_clipped[i];
 
+                    state->mod_hw = modified;
+
                     engine->SetState( setup->tasks[i], state, modified, accel );
                }
 
