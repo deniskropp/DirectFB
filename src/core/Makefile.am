@@ -24,7 +24,7 @@ DISTCLEANFILES = core_strings.h
 core_strings.h: surface.h $(MKNAMES) Makefile
 	@echo '#ifndef __CORE__CORE_STRINGS_H__' > $@
 	@echo '#define __CORE__CORE_STRINGS_H__' >> $@
-	@echo '#include <surface.h>' >> $@
+	@echo '#include <core/surface.h>' >> $@
 
 	@$(MKNAMES) CoreSurfaceTypeFlags CSTF NONE CoreSurfaceTypeFlags flag $(INCP)/surface.h \
 	   | grep -v CSTF_ALL >> $@
