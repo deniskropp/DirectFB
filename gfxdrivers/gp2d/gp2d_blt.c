@@ -634,7 +634,12 @@ gp2dEngineReset( void *drv, void *dev )
      prep[2] = GP2D_OPCODE_LCOFS;
      prep[3] = 0;
 
-     submit_buffer( gdrv, 4 );
+     /* Set alpha8 register. */
+     prep[4] = GP2D_OPCODE_WPR;
+     prep[5] = 0x98;
+     prep[6] = 0xff;
+
+     submit_buffer( gdrv, 7 );
 }
 
 void
