@@ -70,7 +70,6 @@ typedef struct {
      CoreSurfacePool     *pool;
 
      bool                 use_prime_fd;
-     bool                 reinit_planes;
 
      DRMKMSPlaneData      plane_data[16];
 

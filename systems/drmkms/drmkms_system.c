@@ -247,11 +247,6 @@ system_initialize( CoreDFB *core, void **ret_data )
           D_INFO("DRMKMS/Init: using prime fd\n");
      }
 
-     if (direct_config_get("drmkms-reinit-planes", &optionbuffer, 1, &ret_num) == DR_OK) {
-          drmkms->shared->reinit_planes = 1;
-          D_INFO("DRMKMS/Init: reinit planes workaround enabbled\n");
-     }
-
      if (direct_config_get("drmkms-device", &optionbuffer, 1, &ret_num) == DR_OK) {
           direct_snputs( shared->device_name, optionbuffer, 255 );
           D_INFO("DRMKMS/Init: using device %s as specified in DirectFB configuration\n", shared->device_name);

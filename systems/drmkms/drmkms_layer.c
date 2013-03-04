@@ -35,6 +35,7 @@
 #include <core/screens.h>
 
 #include <misc/conf.h>
+#include <directfb_util.h>
 
 
 #include "drmkms_system.h"
@@ -287,22 +288,18 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE))
      {
-          if (data->enabled && drmkms->shared->reinit_planes)
-               drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, 0,
-                                     /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
-
           ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle,
                                 /* plane_flags */ 0, config->dest.x, config->dest.y, config->dest.w, config->dest.h,
                                 config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
 
           if (ret) {
-               D_WARN( "DirectFB/DRMKMS: drmModeSetPlane() failed! (%d)\n", ret );
+               D_INFO( "DirectFB/DRMKMS: drmModeSetPlane(plane_id=%d, fb_id=%d ,  dest=%d,%d-%dx%d, src=%d,%d-%dx%d) failed! (%d)\n", data->plane->plane_id, (u32)(long)left_lock->handle,
+                        DFB_RECTANGLE_VALS(&config->dest), DFB_RECTANGLE_VALS(&config->source), ret );
+
                return DFB_FAILURE;
           }
 
      }
-
-     data->enabled = true;
 
      return DFB_OK;
 }
@@ -319,17 +316,14 @@ drmkmsPlaneRemoveRegion( CoreLayer             *layer,
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
-     if (data->enabled) {
-          ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, 0,
-                                          /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
 
-          if (ret) {
-               D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n" );
-               return ret;
-          }
+     ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, 0,
+                                     /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
+
+     if (ret) {
+          D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n" );
+          return ret;
      }
-
-     data->enabled = false;
 
      return DFB_OK;
 }

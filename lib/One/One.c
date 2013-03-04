@@ -883,7 +883,7 @@ OneThread_AddQueue( OneThread         *thread,
 {
      AddedQueue *queue;
 
-     D_DEBUG_AT( One_Thread, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( One_Thread, "%s( %u )\n", __FUNCTION__, queue_id );
 
      direct_mutex_lock( &thread->lock );
 
