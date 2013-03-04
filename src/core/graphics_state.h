@@ -45,16 +45,6 @@ struct __DFB_CoreGraphicsState {
      CardState                state;
 
      DFB_Renderer            *renderer;
-
-     /*
-      * New state logic
-      */
-     StateModificationFlags   modified;
-
-     bool                     hw;
-     DFBAccelerationMask      sw;
-
-     StateModificationFlags   mod_sw;
 };
 
 typedef enum {
