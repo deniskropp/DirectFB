@@ -70,6 +70,14 @@ public:
           direct_mutex_unlock( &mutex );
      }
 
+     DirectResult wait( unsigned long timeout_us = 0 )
+     {
+          if (timeout_us > 0)
+               return direct_waitqueue_wait_timeout( &wq, &mutex, timeout_us );
+
+          return direct_waitqueue_wait( &wq, &mutex );
+     }
+
      void notify()
      {
           direct_waitqueue_signal( &wq );
@@ -98,10 +106,7 @@ public:
 
           DirectResult wait( unsigned long timeout_us = 0 )
           {
-               if (timeout_us)
-                    return direct_waitqueue_wait_timeout( &lwq.wq, &lwq.mutex, timeout_us );
-
-               return direct_waitqueue_wait( &lwq.wq, &lwq.mutex );
+               return lwq.wait( timeout_us );
           }
 
           void unlock()
