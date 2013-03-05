@@ -69,10 +69,11 @@
 #define DFBRegion    DFBRegion_C
 
 
-extern "C" {
 #include <directfb.h>
-#include <directfb_strings.h>
 #include <directfb_util.h>
+
+extern "C" {
+#include <directfb_strings.h>
 }
 
 #undef IDirectFB
