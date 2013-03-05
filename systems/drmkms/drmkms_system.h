@@ -60,7 +60,6 @@ extern const DisplayLayerFuncs *drmkmsPlaneLayerFuncs;
 typedef struct {
      int                  index;
 	drmModePlane        *plane;
-     bool                 enabled;
 
 } DRMKMSPlaneData;
 
@@ -70,9 +69,8 @@ typedef struct {
      CoreSurfacePool     *pool;
 
      bool                 use_prime_fd;
-     bool                 reinit_planes;
 
-     DRMKMSPlaneData      plane_data[16];
+     bool                 mirror_outputs;
 
      char                 device_name[256];
 
@@ -81,6 +79,7 @@ typedef struct {
 
      u32                  primary_fb;
 
+     drmModeModeInfo      mode[8];
 } DRMKMSDataShared;
 
 typedef struct {
@@ -98,11 +97,13 @@ typedef struct {
      struct kms_driver   *kms;
 #endif
 
-     drmModeConnector    *connector;
-     drmModeEncoder      *encoder;
-     drmModeModeInfo     mode;
+     drmModeConnector    *connector[8];
+     drmModeEncoder      *encoder[8];
+
      drmModeRes          *resources;
      drmModePlaneRes     *plane_resources;
+
+     int                  enabled_connectors;
 
      drmModeCrtcPtr       saved_crtc;
 
@@ -125,19 +126,20 @@ typedef struct {
      DirectWaitQueue      wq_flip;
 
      int                  plane_index_count;
+
 } DRMKMSData;
 
 
 drmModeModeInfo*
-drmkms_find_mode( int width, int height, int freq );
+drmkms_find_mode( int encoder, int width, int height, int freq );
 
 drmModeModeInfo*
-drmkms_dsor_freq_to_mode( DFBScreenOutputResolution dsor, DFBScreenEncoderFrequency freq );
+drmkms_dsor_freq_to_mode( int encoder, DFBScreenOutputResolution dsor, DFBScreenEncoderFrequency freq );
 
 DFBResult
 drmkms_mode_to_dsor_dsef( drmModeModeInfo *videomode, DFBScreenOutputResolution *dso_res,  DFBScreenEncoderFrequency *dse_freq );
 
 DFBScreenOutputResolution
-drmkms_modes_to_dsor_bitmask(void);
+drmkms_modes_to_dsor_bitmask( int connector );
 
 #endif
