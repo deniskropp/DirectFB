@@ -578,25 +578,32 @@ drmkms_modes_to_dsor_bitmask( int connector )
 DFBResult
 drmkms_mode_to_dsor_dsef( drmModeModeInfo *videomode, DFBScreenOutputResolution *dso_res,  DFBScreenEncoderFrequency *dse_freq )
 {
+     if (dso_res)
+          *dso_res  = DSOR_UNKNOWN;
 
-     *dso_res  = DSOR_UNKNOWN;
-     *dse_freq = DSEF_UNKNOWN;
+     if (dse_freq)
+          *dse_freq = DSEF_UNKNOWN;
 
      int j;
 
      D_DEBUG_AT( DRMKMS_Mode, "%s()\n", __FUNCTION__ );
 
-     for (j=0;j<D_ARRAY_SIZE(xres_table);j++) {
-          if (videomode->hdisplay == xres_table[j] && videomode->vdisplay == yres_table[j]) {
-               *dso_res = (1 << j);
-               break;
+     if (dso_res) {
+          for (j=0;j<D_ARRAY_SIZE(xres_table);j++) {
+               if (videomode->hdisplay == xres_table[j] && videomode->vdisplay == yres_table[j]) {
+                    *dso_res = (1 << j);
+                    break;
+               }
           }
+
      }
 
-     for (j=0;j<D_ARRAY_SIZE(freq_table);j++) {
-          if (videomode->vrefresh == freq_table[j]) {
-               *dse_freq = (1 << j);
-               break;
+     if (dse_freq) {
+          for (j=0;j<D_ARRAY_SIZE(freq_table);j++) {
+               if (videomode->vrefresh == freq_table[j]) {
+                    *dse_freq = (1 << j);
+                    break;
+               }
           }
      }
 
