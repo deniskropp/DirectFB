@@ -53,84 +53,131 @@ drmkmsInitScreen( CoreScreen           *screen,
                   DFBScreenDescription *description )
 {
      DRMKMSData       *drmkms = driver_data;
-
-     description->caps = DSCCAPS_ENCODERS;
-     description->encoders = 1;
-
-     direct_snputs( description->name, "DRMKMS Screen", DFB_SCREEN_DESC_NAME_LENGTH );
+     DRMKMSDataShared *shared = drmkms->shared;
 
      drmModeRes       *resources;
      drmModeConnector *connector = NULL;
      drmModeEncoder   *encoder   = NULL;
-     int               i;
+     uint32_t          crtc      = 0;
+
+     int               i, j, k, l, found;
+
+     description->caps = DSCCAPS_ENCODERS;
+     description->encoders = 0;
+     drmkms->enabled_connectors = 0;
+
+     direct_snputs( description->name, "DRMKMS Screen", DFB_SCREEN_DESC_NAME_LENGTH );
 
      resources = drmkms->resources;
 
      D_INFO( "DirectFB/DRMKMS: Got %d connectors, %d encoders\n", resources->count_connectors, resources->count_encoders );
 
-     for (i = resources->count_connectors-1; i >= 0; i--) {
+     for (i = 0; i < resources->count_connectors; i++) {
+          crtc = 0;
           connector = drmModeGetConnector( drmkms->fd, resources->connectors[i] );
-          if (connector == NULL)
+          if (!connector)
                continue;
 
-          if (connector->connection == DRM_MODE_CONNECTED &&
-              connector->count_modes > 0)
-               break;
+          if ((connector->connection == DRM_MODE_CONNECTED || connector->connection == DRM_MODE_UNKNOWNCONNECTION) && connector->count_modes > 0) {
+               D_INFO( "DirectFB/DRMKMS: found connected connector id %d.\n", connector->connector_id );
 
-          drmModeFreeConnector(connector);
+               if (connector->encoder_id) {
+                    D_INFO( "DirectFB/DRMKMS: connector %d is already bound to encoder %d.\n", connector->connector_id, connector->encoder_id );
+                    encoder = drmModeGetEncoder(drmkms->fd, connector->encoder_id);
+               }
+
+               if (encoder)
+                    crtc = encoder->crtc_id;
+
+               if (crtc)
+                    D_INFO( "DirectFB/DRMKMS: encoder %d is already bound to ctrc %d.\n", connector->encoder_id, encoder->crtc_id );
+               else {
+                    D_INFO( "DirectFB/DRMKMS: Seaching for appropriate encoder/crtc for connector %d.\n", connector->connector_id );
+                    for (j = 0; j < resources->count_encoders; j++) {
+                         int busy = 0;
+                         encoder = drmModeGetEncoder( drmkms->fd, resources->encoders[j] );
+
+                         if (encoder == NULL)
+                              continue;
+
+                         for (k=0; k<drmkms->enabled_connectors; k++) {
+                              if (drmkms->encoder[k]->encoder_id == encoder->encoder_id) {
+                                   D_INFO( "DirectFB/DRMKMS: encoder %d is already in use by connector %d\n", encoder->encoder_id, drmkms->connector[k]->connector_id );
+                                   busy = 1;
+                              }
+                         }
+
+                         if (busy)
+                              continue;
+
+                         found = 0;
+                         for (k = 0; k < resources->count_crtcs; k++) {
+                              busy = 0;
+                              if (!(encoder->possible_crtcs & (1 << k)))
+                                   continue;
+
+                              for (l=0; l<drmkms->enabled_connectors; l++) {
+                                   if (drmkms->encoder[l]->crtc_id == resources->crtcs[k])
+                                        busy = 1;
+                              }
+                              if (busy)
+                                   continue;
+
+
+                              crtc = resources->crtcs[k];
+                              D_INFO( "DirectFB/DRMKMS: using encoder %d and crtc %d for connector %d.\n", encoder->encoder_id, crtc, connector->connector_id );
+                              found = 1;
+                              break;
+                         }
+
+                         if (found)
+                              break;
+                    }
+               }
+
+               if (encoder && crtc) {
+                    drmkms->connector[drmkms->enabled_connectors] = connector;
+                    drmkms->encoder[drmkms->enabled_connectors] = encoder;
+                    drmkms->encoder[drmkms->enabled_connectors]->crtc_id = crtc;
+                    drmkms->enabled_connectors++;
+
+                    if (!shared->mirror_outputs)
+                         break;
+               }
+               else if (encoder)
+                    drmModeFreeEncoder( encoder );
+
+               encoder = NULL;
+          }
+          else
+               drmModeFreeConnector(connector);
      }
 
-     if (i == -1) {
-          D_ERROR( "DirectFB/DRMKMS: No currently active connector found. Forcing the last found connector\n");
-          connector = drmModeGetConnector( drmkms->fd, resources->connectors[resources->count_connectors-1] );
+     if (!drmkms->enabled_connectors) {
+          D_ERROR( "DirectFB/DRMKMS: No currently active connector found.\n");
+          return DFB_INIT;
      }
-
-     D_INFO( "DirectFB/DRMKMS: using connector id %d.\n", connector->connector_id );
-
-     for (i = resources->count_encoders-1; i >= 0; i--) {
-          encoder = drmModeGetEncoder( drmkms->fd, resources->encoders[i] );
-
-          if (encoder == NULL)
-               continue;
-
-          if (encoder->encoder_id == connector->encoder_id)
-               break;
-
-          drmModeFreeEncoder(encoder);
-     }
-
-     if (i == -1) {
-          D_ERROR( "DirectFB/DRMKMS: Could not match encoder/connector. Forcing the last found encoder\n");
-          encoder = drmModeGetEncoder( drmkms->fd, resources->encoders[resources->count_encoders-1] );
-     }
-
-     D_INFO( "DirectFB/DRMKMS: using encoder id %d.\n", encoder->encoder_id );
-
-     if (!encoder->crtc_id) {
-          D_ERROR( "DirectFB/DRMKMS: No crtc associated to the encoder. Forcing the last found crtc\n");
-          encoder->crtc_id = resources->crtcs[resources->count_crtcs-1];
-     }
-
-     D_INFO( "DirectFB/DRMKMS: using crtc id %d.\n", encoder->crtc_id  );
-
-     drmkms->connector = connector;
-     drmkms->encoder   = encoder;
 
      if (dfb_config->mode.width && dfb_config->mode.height) {
-          drmModeModeInfo *mode  = drmkms_find_mode( dfb_config->mode.width, dfb_config->mode.height, 0 );
+          drmModeModeInfo *mode  = drmkms_find_mode( 0, dfb_config->mode.width, dfb_config->mode.height, 0 );
           if (mode)
-               drmkms->mode = *mode;
+               shared->mode[0] = *mode;
           else
-               drmkms->mode = connector->modes[0];
-     } else
-          drmkms->mode      = connector->modes[0];
+               shared->mode[0] = connector->modes[0];
+     }
+     else
+          shared->mode[0] = connector->modes[0];
 
-     D_INFO( "DirectFB/DRMKMS: Default mode is %dx%d, we have %d modes in total\n", drmkms->mode.hdisplay, drmkms->mode.vdisplay, drmkms->connector->count_modes );
+     for (int i=1; i<drmkms->enabled_connectors; i++)
+          shared->mode[i] = shared->mode[0];
+
+
+     D_INFO( "DirectFB/DRMKMS: Default mode is %dx%d, we have %d modes in total\n", shared->mode[0].hdisplay, shared->mode[0].vdisplay, drmkms->connector[0]->count_modes );
 
      drmkms->resources = resources;
-     drmkms->saved_crtc = drmModeGetCrtc( drmkms->fd, drmkms->encoder->crtc_id );
+     drmkms->saved_crtc = drmModeGetCrtc( drmkms->fd, drmkms->encoder[0]->crtc_id );
 
-
+     description->encoders = drmkms->enabled_connectors;
 
      return DFB_OK;
 }
@@ -142,10 +189,11 @@ drmkmsGetScreenSize( CoreScreen *screen,
                      int        *ret_width,
                      int        *ret_height )
 {
-     DRMKMSData *drmkms = driver_data;
+     DRMKMSData       *drmkms = driver_data;
+     DRMKMSDataShared *shared = drmkms->shared;
 
-     *ret_width  = drmkms->mode.hdisplay;
-     *ret_height = drmkms->mode.vdisplay;
+     *ret_width  = shared->mode[0].hdisplay;
+     *ret_height = shared->mode[0].vdisplay;
 
      return DFB_OK;
 }
@@ -161,21 +209,33 @@ drmkmsInitEncoder( CoreScreen                  *screen,
      DRMKMSData       *drmkms    = driver_data;
      DRMKMSDataShared *shared    = drmkms->shared;
 
-     (void) shared;
-
      D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
 
      direct_snputs( description->name, "DRMKMS Encoder", DFB_SCREEN_ENCODER_DESC_NAME_LENGTH );
 
 
      description->caps            = DSECAPS_RESOLUTION | DSECAPS_FREQUENCY;
-     description->type            = DSET_UNKNOWN;
 
-     description->all_resolutions = drmkms_modes_to_dsor_bitmask();
+     switch (drmkms->encoder[encoder]->encoder_type) {
+          case DRM_MODE_ENCODER_DAC:
+               description->type = DSET_CRTC;
+               break;
+          case DRM_MODE_ENCODER_LVDS:
+          case DRM_MODE_ENCODER_TMDS:
+               description->type = DSET_DIGITAL;
+               break;
+          case DRM_MODE_ENCODER_TVDAC:
+               description->type = DSET_TV;
+               break;
+          default:
+               description->type = DSET_UNKNOWN;
+     }
 
-     config->flags          = DSECONF_RESOLUTION | DSECONF_FREQUENCY;
+     description->all_resolutions = drmkms_modes_to_dsor_bitmask( encoder );
 
-     drmkms_mode_to_dsor_dsef( &drmkms->mode, &config->resolution, &config->frequency );
+     config->flags                = DSECONF_RESOLUTION | DSECONF_FREQUENCY;
+
+     drmkms_mode_to_dsor_dsef( &shared->mode[encoder], &config->resolution, &config->frequency );
 
      return DFB_OK;
 }
@@ -198,9 +258,9 @@ drmkmsSetEncoderConfig( CoreScreen                   *screen,
      D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
 
      if (!(config->flags & (DSECONF_FREQUENCY | DSECONF_RESOLUTION)))
-         return DFB_INVARG;
+          return DFB_INVARG;
 
-     drmkms_mode_to_dsor_dsef( &drmkms->mode, &dso_res, &dse_freq );
+     drmkms_mode_to_dsor_dsef( &shared->mode[encoder], &dso_res, &dse_freq );
 
      if (config->flags & DSECONF_FREQUENCY) {
           D_DEBUG_AT( DRMKMS_Screen, "   -> requested frequency change \n" );
@@ -212,7 +272,7 @@ drmkmsSetEncoderConfig( CoreScreen                   *screen,
           dso_res = config->resolution;
      }
 
-     drmModeModeInfo *videomode = drmkms_dsor_freq_to_mode( dso_res, dse_freq );
+     drmModeModeInfo *videomode = drmkms_dsor_freq_to_mode( encoder, dso_res, dse_freq );
 
      if (!videomode)
           return DFB_INVARG;
@@ -226,16 +286,16 @@ drmkmsSetEncoderConfig( CoreScreen                   *screen,
      }
 
      if (shared->primary_fb)
-          ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder->crtc_id, shared->primary_fb, shared->primary_rect.x, shared->primary_rect.y,
-                                &drmkms->connector->connector_id, 1, videomode );
+          ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder[encoder]->crtc_id, shared->primary_fb, shared->primary_rect.x, shared->primary_rect.y,
+                                &drmkms->connector[encoder]->connector_id, 1, videomode );
 
      if (ret) {
-          D_DEBUG_AT( DRMKMS_Screen, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder->crtc_id, drmkms->connector->connector_id, drmkms->mode.hdisplay, drmkms->mode.vdisplay );
+          D_DEBUG_AT( DRMKMS_Screen, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder[encoder]->crtc_id, drmkms->connector[encoder]->connector_id, shared->mode[encoder].hdisplay, shared->mode[encoder].vdisplay );
           D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
           return DFB_FAILURE;
      }
 
-     drmkms->mode = *videomode;
+     shared->mode[encoder] = *videomode;
 
      return DFB_OK;
 }
@@ -258,9 +318,9 @@ drmkmsTestEncoderConfig( CoreScreen                   *screen,
      D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
 
      if (!(config->flags & (DSECONF_FREQUENCY | DSECONF_RESOLUTION)))
-         return DFB_UNSUPPORTED;
+          return DFB_UNSUPPORTED;
 
-     drmkms_mode_to_dsor_dsef( &drmkms->mode, &dso_res, &dse_freq );
+     drmkms_mode_to_dsor_dsef( &shared->mode[encoder], &dso_res, &dse_freq );
 
      if (config->flags & DSECONF_FREQUENCY)
           dse_freq = config->frequency;
@@ -268,7 +328,7 @@ drmkmsTestEncoderConfig( CoreScreen                   *screen,
      if (config->flags & DSECONF_RESOLUTION)
           dso_res = config->resolution;
 
-     drmModeModeInfo *videomode = drmkms_dsor_freq_to_mode( dso_res, dse_freq );
+     drmModeModeInfo *videomode = drmkms_dsor_freq_to_mode( encoder, dso_res, dse_freq );
      if (!videomode) {
           *failed = config->flags & (DSECONF_RESOLUTION | DSECONF_FREQUENCY);
 

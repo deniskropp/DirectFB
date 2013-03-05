@@ -56,6 +56,7 @@ drmkmsInitLayer( CoreLayer                  *layer,
                  DFBColorAdjustment         *adjustment )
 {
      DRMKMSData *drmkms = driver_data;
+     DRMKMSDataShared *shared = drmkms->shared;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
@@ -68,8 +69,8 @@ drmkmsInitLayer( CoreLayer                  *layer,
 
 
      config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
-     config->width       = dfb_config->mode.width  ?: drmkms->mode.hdisplay;
-     config->height      = dfb_config->mode.height ?: drmkms->mode.vdisplay;
+     config->width       = dfb_config->mode.width  ?: shared->mode[0].hdisplay;
+     config->height      = dfb_config->mode.height ?: shared->mode[0].vdisplay;
 
      config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
      config->buffermode  = DLBM_FRONTONLY;
@@ -111,12 +112,16 @@ drmkmsSetRegion( CoreLayer                  *layer,
 
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_SOURCE))
      {
-          ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle, config->source.x, config->source.y,
-                                &drmkms->connector->connector_id, 1, &drmkms->mode );
-          if (ret) {
-               D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
-               D_DEBUG_AT( DRMKMS_Mode, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder->crtc_id, drmkms->connector->connector_id, drmkms->mode.hdisplay, drmkms->mode.vdisplay );
-               return DFB_FAILURE;
+          int i;
+          for (i=0; i<drmkms->enabled_connectors; i++) {
+
+               ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder[i]->crtc_id, (u32)(long)left_lock->handle, config->source.x, config->source.y,
+                                     &drmkms->connector[i]->connector_id, 1, &shared->mode[i] );
+               if (ret) {
+                    D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
+                    D_DEBUG_AT( DRMKMS_Mode, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder[0]->crtc_id, drmkms->connector[0]->connector_id, shared->mode[0].hdisplay, shared->mode[0].vdisplay );
+                    return DFB_FAILURE;
+               }
           }
 
           shared->primary_dimension  = surface->config.size;
@@ -140,12 +145,13 @@ drmkmsFlipRegion( CoreLayer             *layer,
                   const DFBRegion       *right_update,
                   CoreSurfaceBufferLock *right_lock )
 {
-     int               ret;
+     int               ret, i;
      DRMKMSData       *drmkms = driver_data;
      DRMKMSDataShared *shared = drmkms->shared;
      DRMKMSPlaneData  *data   = layer_data;
      unsigned int      plane_mask = 1;
      unsigned int      buffer_index  = 0;
+
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
@@ -179,10 +185,16 @@ drmkmsFlipRegion( CoreLayer             *layer,
 
      D_DEBUG_AT( DRMKMS_Layer, "  -> calling drmModePageFlip()\n" );
 
-     ret = drmModePageFlip( drmkms->fd, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, driver_data );
+     ret = drmModePageFlip( drmkms->fd, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, driver_data );
      if (ret) {
           D_PERROR( "DirectFB/DRMKMS: drmModePageFlip() failed!\n" );
           return DFB_FAILURE;
+     }
+
+     for (i=1; i<drmkms->enabled_connectors; i++) {
+          ret = drmModePageFlip( drmkms->fd, drmkms->encoder[i]->crtc_id, (u32)(long)left_lock->handle, 0, 0);
+          if (ret)
+               D_WARN( "DirectFB/DRMKMS: drmModePageFlip() failed!\n" );
      }
 
      shared->primary_fb = (u32)(long)left_lock->handle;
@@ -224,8 +236,9 @@ drmkmsPlaneInitLayer( CoreLayer                  *layer,
                       DFBDisplayLayerConfig      *config,
                       DFBColorAdjustment         *adjustment )
 {
-     DRMKMSData      *drmkms = driver_data;
-     DRMKMSPlaneData *data   = layer_data;
+     DRMKMSData       *drmkms = driver_data;
+     DRMKMSDataShared *shared = drmkms->shared;
+     DRMKMSPlaneData  *data   = layer_data;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
@@ -246,8 +259,8 @@ drmkmsPlaneInitLayer( CoreLayer                  *layer,
 
 
      config->flags      = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
-     config->width      = dfb_config->mode.width  ?: drmkms->mode.hdisplay;
-     config->height     = dfb_config->mode.height ?: drmkms->mode.vdisplay;
+     config->width      = dfb_config->mode.width  ?: shared->mode[0].hdisplay;
+     config->height     = dfb_config->mode.height ?: shared->mode[0].vdisplay;
 
      config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
      config->buffermode  = DLBM_FRONTONLY;
@@ -288,7 +301,7 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE))
      {
-          ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, (u32)(long)left_lock->handle,
+          ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
                                 /* plane_flags */ 0, config->dest.x, config->dest.y, config->dest.w, config->dest.h,
                                 config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
 
@@ -317,7 +330,7 @@ drmkmsPlaneRemoveRegion( CoreLayer             *layer,
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
 
-     ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder->crtc_id, 0,
+     ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, 0,
                                      /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
 
      if (ret) {
