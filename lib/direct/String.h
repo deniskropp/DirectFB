@@ -46,7 +46,8 @@ const char *D_String_Buffer( D_String *str );
 size_t      D_String_Length( D_String *str );
 void        D_String_Delete( D_String *str );
 
-
+const char *D_String_CopyTLS( D_String *str );
+const char *D_String_PrintTLS( const char *format, ... )           D_FORMAT_PRINTF(1);
 
 #ifdef __cplusplus
 }
@@ -65,17 +66,45 @@ typedef std::vector<String> Strings;
 class String
 {
 private:
-     std::string str;
+     std::string  _str;
+     std::string &str;
 
 public:
      String()
+          :
+          str( _str )
      {
      }
 
-     String( const char *str );
+     String( const Direct::String &other )
+          :
+          _str( other.str ),
+          str( _str )
+     {
+     }
+
+     String( std::string &str )
+          :
+          str( str )
+     {
+     }
+
+     String( const char *str )
+          :
+          _str( str ),
+          str( _str )
+     {
+     }
+
+     /*
+      * Copies the string to a TLS buffer using fixed number of 32 buffers used in a circular way, so it should
+      * fit even for the heaviest legacy print (in C without management of String objects in parameter list).
+      */
+     const char *CopyTLS();
+
 
      String &
-     PrintF( const char *format, ... )            D_FORMAT_PRINTF(2);
+     PrintF( const char *format, ... )          D_FORMAT_PRINTF(2);
 
      String &
      PrintF( const char *format, va_list args, size_t stack_buffer = 300 );
@@ -114,6 +143,12 @@ public:
 
      inline String& operator= (const char *buf) {
           str = buf;
+          return *this;
+     }
+
+     inline String& operator= (const String &other) {
+          _str = other.str;
+          str = _str;
           return *this;
      }
 };

@@ -36,9 +36,12 @@
 extern "C" {
 #include <stdarg.h>
 
+#include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/print.h>
 }
+
+#include <direct/TLSObject.h>
 
 /*********************************************************************************************************************/
 
@@ -60,6 +63,9 @@ D_String_PrintF( D_String   *str,
 {
      va_list  args;
 
+     D_ASSERT( str != NULL );
+     D_ASSERT( format != NULL );
+
      va_start( args, format );
      str->PrintF( format, args );
      va_end( args );
@@ -72,6 +78,9 @@ D_String_PrintV( D_String   *str,
                  const char *format,
                  va_list     args )
 {
+     D_ASSERT( str != NULL );
+     D_ASSERT( format != NULL );
+
      str->PrintF( format, args );
 
      return str->length();
@@ -80,36 +89,111 @@ D_String_PrintV( D_String   *str,
 const char *
 D_String_Buffer( D_String *str )
 {
+     D_ASSERT( str != NULL );
+
      return str->buffer();
 }
 
 size_t
 D_String_Length( D_String *str )
 {
+     D_ASSERT( str != NULL );
+
      return str->length();
 }
 
 void
 D_String_Delete( D_String *str )
 {
+     D_ASSERT( str != NULL );
+
      delete str;
 }
 
+/*********************************************************************************************************************/
 
-}
-
-
-
-String::String( const char *str )
-     :
-     str( str )
+const char *
+D_String_CopyTLS( D_String *str )
 {
+     D_ASSERT( str != NULL );
+
+     return str->CopyTLS();
 }
+
+const char *
+D_String_PrintTLS( const char *format, ... )
+{
+     va_list        args;
+     Direct::String str;
+
+     D_ASSERT( format != NULL );
+
+     va_start( args, format );
+     str.PrintF( format, args );
+     va_end( args );
+
+     return str.CopyTLS();
+}
+
+}
+
+/*********************************************************************************************************************/
+/*********************************************************************************************************************/
+/*********************************************************************************************************************/
+
+class StringTLS
+{
+     friend class Direct::TLSObject2<StringTLS>;
+
+     static StringTLS *create( void *ctx, void *params )
+     {
+          return new StringTLS();
+     }
+
+     static void destroy( void *ctx, StringTLS *tls )
+     {
+          delete tls;
+     }
+
+     StringTLS()
+          :
+          strings_index( 0 )
+     {
+
+     }
+
+public:
+     String       strings[0x20];
+     unsigned int strings_index;
+
+     const char *
+     Copy( const Direct::String &string )
+     {
+          strings[strings_index & 0x1f] = string;
+
+          return strings[strings_index++ & 0x1f].buffer();
+     }
+};
+
+static Direct::TLSObject2<StringTLS> string_tls;
+
+const char *
+String::CopyTLS()
+{
+     StringTLS *tls = string_tls.Get( NULL );
+     D_ASSERT( tls != NULL );
+
+     return tls->Copy( *this );
+}
+
+/*********************************************************************************************************************/
 
 String &
 String::PrintF( const char *format, ... )
 {
      va_list  args;
+
+     D_ASSERT( format != NULL );
 
      va_start( args, format );
      PrintF( format, args );
@@ -124,6 +208,8 @@ String::PrintF( const char *format, va_list args, size_t stack_buffer )
      size_t   len;
      char     buf[stack_buffer];
      char    *ptr = buf;
+
+     D_ASSERT( format != NULL );
 
      // TODO: check if va_copy is required here
 
@@ -166,6 +252,8 @@ String::F( const char *format, ... )
 {
      va_list args;
      String  str;
+
+     D_ASSERT( format != NULL );
 
      va_start( args, format );
      str.PrintF( format, args );
