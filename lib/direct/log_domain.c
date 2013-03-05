@@ -111,6 +111,17 @@ check_domain( DirectLogDomain *domain );
 static DirectLogLevel
 check_domain( DirectLogDomain *domain )
 {
+     if (direct_config->log_delay_rand_us)
+          direct_thread_sleep( rand() % direct_config->log_delay_rand_us );
+
+     if (direct_config->log_delay_rand_loops) {
+          volatile long val = 0;
+          long long     loop;
+
+          for (loop=0; loop<direct_config->log_delay_rand_loops; loop++)
+               val++;
+     }
+
      if (direct_config->log_none)
           return DIRECT_LOG_NONE;
 
