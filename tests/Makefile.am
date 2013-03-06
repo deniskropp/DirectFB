@@ -71,6 +71,7 @@ bin_PROGRAMS = \
 	dfbtest_font	\
 	dfbtest_init	\
 	dfbtest_input	\
+	dfbtest_layers \
 	dfbtest_mirror	\
 	dfbtest_prealloc	\
 	dfbtest_reinit	\
@@ -146,6 +147,9 @@ dfbtest_init_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libd
 
 dfbtest_input_SOURCES = dfbtest_input.c
 dfbtest_input_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_layers_SOURCES = dfbtest_layers.c
+dfbtest_layers_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_gl1_SOURCES = dfbtest_gl1.c
 dfbtest_gl1_CFLAGS  = $(GLES2_CFLAGS)
