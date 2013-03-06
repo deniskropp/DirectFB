@@ -101,6 +101,8 @@ struct __D_DirectConfig {
      char                        **default_interface_implementation_names;
 
      unsigned int                  perf_dump_interval;
+     long long                     log_delay_rand_loops;
+     long long                     log_delay_rand_us;
 };
 
 extern DirectConfig DIRECT_API *direct_config;
