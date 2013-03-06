@@ -94,7 +94,7 @@ InitializeLayer( DFBDisplayLayerID  layer_id,
 //         config.options = DLOP_ALPHACHANNEL;
 //   }
 //   else
-          config.options = DLOP_OPACITY;
+           config.options = DLOP_NONE;
 
      /* Fill in configuration. */
      config.flags        = DLCONF_BUFFERMODE | DLCONF_OPTIONS | DLCONF_SURFACE_CAPS;
