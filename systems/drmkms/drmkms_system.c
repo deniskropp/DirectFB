@@ -161,7 +161,7 @@ InitLocal( DRMKMSData *drmkms )
      drmkms->plane_resources = drmModeGetPlaneResources( drmkms->fd );
 
      drmkms->screen = dfb_screens_register( NULL, drmkms, drmkmsScreenFuncs );
-     drmkms->layer  = dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
+     dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
 
 
      if (drmkms->plane_resources) {
@@ -244,6 +244,10 @@ system_initialize( CoreDFB *core, void **ret_data )
           shared->mirror_outputs = 1;
           D_INFO("DRMKMS/Init: mirror on connected outputs\n");
      }
+     else if (direct_config_get("drmkms-multihead", &optionbuffer, 1, &ret_num) == DR_OK) {
+          shared->multihead = 1;
+          D_INFO("DRMKMS/Init: multi-head mode enabled\n");
+     }
 
      if (direct_config_get("drmkms-use-prime-fd", &optionbuffer, 1, &ret_num) == DR_OK) {
           shared->use_prime_fd = 1;
@@ -291,10 +295,11 @@ system_initialize( CoreDFB *core, void **ret_data )
 static DFBResult
 system_join( CoreDFB *core, void **ret_data )
 {
-     DFBResult       ret;
-     void           *tmp;
+     DFBResult         ret;
+     void              *tmp;
      DRMKMSData       *drmkms;
      DRMKMSDataShared *shared;
+     int               i;
 
      D_ASSERT( m_data == NULL );
 
@@ -323,6 +328,12 @@ system_join( CoreDFB *core, void **ret_data )
           return ret;
 
      *ret_data = m_data = drmkms;
+
+     if ((shared->enabled_connectors > 1) && shared->multihead) {
+          for (i=1; i<shared->enabled_connectors; i++) {
+               dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
+          }
+     }
 
      dfb_surface_pool_join( core, shared->pool, &drmkmsSurfacePoolFuncs );
 
@@ -595,7 +606,6 @@ drmkms_mode_to_dsor_dsef( drmModeModeInfo *videomode, DFBScreenOutputResolution 
                     break;
                }
           }
-
      }
 
      if (dse_freq) {

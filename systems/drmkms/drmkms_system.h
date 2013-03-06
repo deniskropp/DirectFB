@@ -59,9 +59,12 @@ extern const DisplayLayerFuncs *drmkmsPlaneLayerFuncs;
 
 typedef struct {
      int                  index;
+     int                  layer_index;
+     int                  plane_index;
+
 	drmModePlane        *plane;
 
-} DRMKMSPlaneData;
+} DRMKMSLayerData;
 
 typedef struct {
      FusionSHMPoolShared *shmpool;
@@ -71,15 +74,18 @@ typedef struct {
      bool                 use_prime_fd;
 
      bool                 mirror_outputs;
+     bool                 multihead;
 
      char                 device_name[256];
 
      DFBRectangle         primary_rect;
-     DFBDimension         primary_dimension;
 
      u32                  primary_fb;
 
      drmModeModeInfo      mode[8];
+     DFBDimension         primary_dimension[8];
+
+     int                  enabled_connectors;
 } DRMKMSDataShared;
 
 typedef struct {
@@ -87,7 +93,6 @@ typedef struct {
 
      CoreDFB             *core;
      CoreScreen          *screen;
-     CoreLayer           *layer;
 
      int                  fd;      /* DRM file descriptor */
 
@@ -102,8 +107,6 @@ typedef struct {
 
      drmModeRes          *resources;
      drmModePlaneRes     *plane_resources;
-
-     int                  enabled_connectors;
 
      drmModeCrtcPtr       saved_crtc;
 
@@ -125,7 +128,9 @@ typedef struct {
      DirectWaitQueue      wq_event;
      DirectWaitQueue      wq_flip;
 
+     int                  layer_index_count;
      int                  plane_index_count;
+     int                  layerplane_index_count;
 
 } DRMKMSData;
 

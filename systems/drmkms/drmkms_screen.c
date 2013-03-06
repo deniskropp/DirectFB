@@ -64,7 +64,7 @@ drmkmsInitScreen( CoreScreen           *screen,
 
      description->caps = DSCCAPS_ENCODERS | DSCCAPS_OUTPUTS;
      description->encoders = 0;
-     drmkms->enabled_connectors = 0;
+     shared->enabled_connectors = 0;
 
      direct_snputs( description->name, "DRMKMS Screen", DFB_SCREEN_DESC_NAME_LENGTH );
 
@@ -100,7 +100,7 @@ drmkmsInitScreen( CoreScreen           *screen,
                          if (encoder == NULL)
                               continue;
 
-                         for (k=0; k<drmkms->enabled_connectors; k++) {
+                         for (k=0; k<shared->enabled_connectors; k++) {
                               if (drmkms->encoder[k]->encoder_id == encoder->encoder_id) {
                                    D_INFO( "DirectFB/DRMKMS: encoder %d is already in use by connector %d\n", encoder->encoder_id, drmkms->connector[k]->connector_id );
                                    busy = 1;
@@ -116,7 +116,7 @@ drmkmsInitScreen( CoreScreen           *screen,
                               if (!(encoder->possible_crtcs & (1 << k)))
                                    continue;
 
-                              for (l=0; l<drmkms->enabled_connectors; l++) {
+                              for (l=0; l<shared->enabled_connectors; l++) {
                                    if (drmkms->encoder[l]->crtc_id == resources->crtcs[k])
                                         busy = 1;
                               }
@@ -136,13 +136,20 @@ drmkmsInitScreen( CoreScreen           *screen,
                }
 
                if (encoder && crtc) {
-                    drmkms->connector[drmkms->enabled_connectors] = connector;
-                    drmkms->encoder[drmkms->enabled_connectors] = encoder;
-                    drmkms->encoder[drmkms->enabled_connectors]->crtc_id = crtc;
-                    drmkms->enabled_connectors++;
+                    drmkms->connector[shared->enabled_connectors] = connector;
+                    drmkms->encoder[shared->enabled_connectors] = encoder;
+                    drmkms->encoder[shared->enabled_connectors]->crtc_id = crtc;
+                    shared->mode[shared->enabled_connectors] = connector->modes[0];
 
-                    if (!shared->mirror_outputs)
+                    shared->enabled_connectors++;
+
+                    if (!shared->multihead && !shared->mirror_outputs)
                          break;
+
+                    if (shared->multihead && shared->enabled_connectors > 1) {
+                         dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
+                    }
+
                }
                else if (encoder)
                     drmModeFreeEncoder( encoder );
@@ -150,10 +157,10 @@ drmkmsInitScreen( CoreScreen           *screen,
                encoder = NULL;
           }
           else
-               drmModeFreeConnector(connector);
+               drmModeFreeConnector( connector );
      }
 
-     if (!drmkms->enabled_connectors) {
+     if (!shared->enabled_connectors) {
           D_ERROR( "DirectFB/DRMKMS: No currently active connector found.\n");
           return DFB_INIT;
      }
@@ -162,14 +169,12 @@ drmkmsInitScreen( CoreScreen           *screen,
           drmModeModeInfo *mode  = drmkms_find_mode( 0, dfb_config->mode.width, dfb_config->mode.height, 0 );
           if (mode)
                shared->mode[0] = *mode;
-          else
-               shared->mode[0] = connector->modes[0];
      }
-     else
-          shared->mode[0] = connector->modes[0];
 
-     for (int i=1; i<drmkms->enabled_connectors; i++)
-          shared->mode[i] = shared->mode[0];
+     if (shared->mirror_outputs || (dfb_config->mode.width && dfb_config->mode.height)) {
+          for (int i=1; i<shared->enabled_connectors; i++)
+               shared->mode[i] = shared->mode[0];
+     }
 
 
      D_INFO( "DirectFB/DRMKMS: Default mode is %dx%d, we have %d modes in total\n", shared->mode[0].hdisplay, shared->mode[0].vdisplay, drmkms->connector[0]->count_modes );
@@ -177,8 +182,8 @@ drmkmsInitScreen( CoreScreen           *screen,
      drmkms->resources = resources;
      drmkms->saved_crtc = drmModeGetCrtc( drmkms->fd, drmkms->encoder[0]->crtc_id );
 
-     description->outputs   = drmkms->enabled_connectors;
-     description->encoders  = drmkms->enabled_connectors;
+     description->outputs   = shared->enabled_connectors;
+     description->encoders  = shared->enabled_connectors;
 
      return DFB_OK;
 }
@@ -278,8 +283,8 @@ drmkmsSetEncoderConfig( CoreScreen                   *screen,
      if (!videomode)
           return DFB_INVARG;
 
-     if ((shared->primary_dimension.w && (shared->primary_dimension.w < videomode->hdisplay) ) ||
-         (shared->primary_dimension.h && (shared->primary_dimension.h < videomode->vdisplay ))) {
+     if ((shared->primary_dimension[encoder].w && (shared->primary_dimension[encoder].w < videomode->hdisplay) ) ||
+         (shared->primary_dimension[encoder].h && (shared->primary_dimension[encoder].h < videomode->vdisplay ))) {
 
           D_DEBUG_AT( DRMKMS_Screen, "    -> cannot switch to mode to something that is bigger than the current primary layer\n" );
 
@@ -336,8 +341,8 @@ drmkmsTestEncoderConfig( CoreScreen                   *screen,
           return DFB_UNSUPPORTED;
      }
 
-     if ((shared->primary_dimension.w && (shared->primary_dimension.w < videomode->hdisplay) ) ||
-         (shared->primary_dimension.h && (shared->primary_dimension.h < videomode->vdisplay ))) {
+     if ((shared->primary_dimension[encoder].w && (shared->primary_dimension[encoder].w < videomode->hdisplay) ) ||
+         (shared->primary_dimension[encoder].h && (shared->primary_dimension[encoder].h < videomode->vdisplay ))) {
 
           D_DEBUG_AT( DRMKMS_Screen, "    -> cannot switch to mode to something that is bigger than the current primary layer\n" );
 
@@ -432,8 +437,8 @@ drmkmsSetOutputConfig( CoreScreen                  *screen,
      if (!videomode)
           return DFB_INVARG;
 
-     if ((shared->primary_dimension.w && (shared->primary_dimension.w < videomode->hdisplay) ) ||
-         (shared->primary_dimension.h && (shared->primary_dimension.h < videomode->vdisplay ))) {
+     if ((shared->primary_dimension[output].w && (shared->primary_dimension[output].w < videomode->hdisplay) ) ||
+         (shared->primary_dimension[output].h && (shared->primary_dimension[output].h < videomode->vdisplay ))) {
 
           D_DEBUG_AT( DRMKMS_Screen, "    -> cannot switch to mode to something that is bigger than the current primary layer\n" );
 
@@ -485,8 +490,8 @@ drmkmsTestOutputConfig( CoreScreen                  *screen,
           return DFB_UNSUPPORTED;
      }
 
-     if ((shared->primary_dimension.w && (shared->primary_dimension.w < videomode->hdisplay) ) ||
-         (shared->primary_dimension.h && (shared->primary_dimension.h < videomode->vdisplay ))) {
+     if ((shared->primary_dimension[output].w && (shared->primary_dimension[output].w < videomode->hdisplay) ) ||
+         (shared->primary_dimension[output].h && (shared->primary_dimension[output].h < videomode->vdisplay ))) {
 
           D_DEBUG_AT( DRMKMS_Screen, "    -> cannot switch to mode to something that is bigger than the current primary layer\n" );
 
