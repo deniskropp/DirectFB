@@ -271,9 +271,9 @@ drmkmsPlaneInitLayer( CoreLayer                  *layer,
      data->index       = drmkms->layerplane_index_count++;
      data->plane_index = drmkms->plane_index_count++;
 
-     D_DEBUG_AT( DRMKMS_Layer, "  -> getting plane with index %d\n", data->index );
+     D_DEBUG_AT( DRMKMS_Layer, "  -> getting plane with index %d\n", data->plane_index );
 
-     data->plane = drmModeGetPlane(drmkms->fd, drmkms->plane_resources->planes[data->index]);
+     data->plane = drmModeGetPlane(drmkms->fd, drmkms->plane_resources->planes[data->plane_index]);
 
      D_DEBUG_AT( DRMKMS_Layer, "     ->  plane_id is %d\n", data->plane->plane_id );
 
@@ -282,7 +282,7 @@ drmkmsPlaneInitLayer( CoreLayer                  *layer,
      description->surface_caps     = DSCAPS_NONE;
      description->surface_accessor = CSAID_LAYER0;
 
-     snprintf( description->name, DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "DRMKMS Plane Layer %d", drmkms->plane_index_count++ );
+     snprintf( description->name, DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "DRMKMS Plane Layer %d", data->plane_index );
 
 
      config->flags      = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
