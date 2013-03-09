@@ -31,10 +31,14 @@
 #define ___DirectFB__Debug__H___
 
 
+#include <directfb.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+const char *DFB_ToString_DrawingFlags ( DFBSurfaceDrawingFlags flags );
+const char *DFB_ToString_BlittingFlags( DFBSurfaceBlittingFlags flags );
 
 
 #ifdef __cplusplus

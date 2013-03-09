@@ -98,6 +98,28 @@ ToString<DFBSurfaceCapabilities>::ToString( const DFBSurfaceCapabilities &caps )
 }
 
 template<>
+ToString<DFBSurfaceDrawingFlags>::ToString( const DFBSurfaceDrawingFlags &flags )
+{
+     static const DirectFBSurfaceDrawingFlagsNames(flags_names);
+
+     for (int i=0, n=0; flags_names[i].flag; i++) {
+          if (flags & flags_names[i].flag)
+               PrintF( "%s%s", n++ ? "," : "", flags_names[i].name );
+     }
+}
+
+template<>
+ToString<DFBSurfaceBlittingFlags>::ToString( const DFBSurfaceBlittingFlags &flags )
+{
+     static const DirectFBSurfaceBlittingFlagsNames(flags_names);
+
+     for (int i=0, n=0; flags_names[i].flag; i++) {
+          if (flags & flags_names[i].flag)
+               PrintF( "%s%s", n++ ? "," : "", flags_names[i].name );
+     }
+}
+
+template<>
 ToString<DFBSurfacePixelFormat>::ToString( const DFBSurfacePixelFormat &format )
 {
      for (int i=0; dfb_pixelformat_names[i].format; i++) {
@@ -144,6 +166,26 @@ ToString<CoreSurfaceBuffer>::ToString( const CoreSurfaceBuffer &buffer )
              ToString<CoreSurfaceTypeFlags>(buffer.type).buffer(),
              buffer.resource_id,
              ToString<CoreSurfaceConfig>(buffer.config).buffer() );
+}
+
+
+
+extern "C" {
+
+
+const char *
+DFB_ToString_DrawingFlags( DFBSurfaceDrawingFlags flags )
+{
+     return ToString<DFBSurfaceDrawingFlags>( flags ).CopyTLS();
+}
+
+const char *
+DFB_ToString_BlittingFlags( DFBSurfaceBlittingFlags flags )
+{
+     return ToString<DFBSurfaceBlittingFlags>( flags ).CopyTLS();
+}
+
+
 }
 
 
