@@ -44,25 +44,6 @@
 
 D_DEBUG_DOMAIN( Fusion_Object, "Fusion/Object", "Fusion Objects and Pools" );
 
-struct __Fusion_FusionObjectPool {
-     int                     magic;
-
-     FusionWorldShared      *shared;
-
-     FusionSkirmish          lock;
-     FusionHash             *objects;
-     FusionObjectID          id_pool;
-
-     char                   *name;
-     int                     object_size;
-     int                     message_size;
-     FusionObjectDestructor  destructor;
-     void                   *ctx;
-
-     FusionCall              call;
-
-     bool                    secure;
-};
 
 static FusionCallHandlerResult
 object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, unsigned int serial, int *ret_val )

@@ -78,6 +78,26 @@ struct __Fusion_FusionObject {
      DirectTraceBuffer *create_stack;
 };
 
+struct __Fusion_FusionObjectPool {
+     int                     magic;
+
+     FusionWorldShared      *shared;
+
+     FusionSkirmish          lock;
+     FusionHash             *objects;
+     FusionObjectID          id_pool;
+
+     char                   *name;
+     int                     object_size;
+     int                     message_size;
+     FusionObjectDestructor  destructor;
+     void                   *ctx;
+
+     FusionCall              call;
+
+     bool                    secure;
+};
+
 
 typedef bool (*FusionObjectCallback)( FusionObjectPool *pool,
                                       FusionObject     *object,
