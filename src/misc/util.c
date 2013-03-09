@@ -43,6 +43,8 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <direct/String.h>
+
 #include <gfx/convert.h>
 
 #include <misc/util.h>
@@ -442,7 +444,7 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
                return dfb_pixelformat_names[i].name;
      } while (dfb_pixelformat_names[i++].format != DSPF_UNKNOWN);
 
-     return "<invalid>";
+     return D_String_PrintTLS( "unknown <0x%08x>", format );
 }
  
 const char *
