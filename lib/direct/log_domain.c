@@ -204,6 +204,13 @@ direct_log_domain_check( DirectLogDomain *domain )
      return check_domain( domain ) >= DIRECT_LOG_DEBUG;
 }
 
+bool
+direct_log_domain_check_level( DirectLogDomain *domain,
+                               DirectLogLevel   level )
+{
+     return check_domain( domain ) >= level;
+}
+
 /**********************************************************************************************************************/
 
 
