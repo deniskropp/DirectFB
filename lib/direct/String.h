@@ -35,6 +35,7 @@ extern "C" {
 #endif
 
 #include <direct/compiler.h>
+#include <direct/log.h>
 
 
 // C Wrapper
@@ -53,6 +54,7 @@ const char *D_String_PrintTLS( const char *format, ... )           D_FORMAT_PRIN
 }
 
 
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -150,6 +152,37 @@ public:
           _str = other.str;
           str = _str;
           return *this;
+     }
+
+     inline String& operator+= (const String &other) {
+          str.append( other.str );
+          return *this;
+     }
+
+     inline String& operator+= (const char *buf) {
+          str.append( buf );
+          return *this;
+     }
+
+     inline String operator+ (const char *buf) {
+          Direct::String result = *this;
+          result.str.append( buf );
+          return result;
+     }
+
+     friend std::ostream &operator << (std::ostream &stream, const Direct::String &string) {
+          stream << string.str;
+          return stream;
+     }
+
+     friend DirectLog *operator << (DirectLog *log, const Direct::String &string) {
+          direct_log_write( log, string.buffer(), string.length() );
+          return log;
+     }
+
+     friend DirectLogDomain &operator << (DirectLogDomain &domain, const Direct::String &string) {
+          direct_log_domain_log( &domain, DIRECT_LOG_VERBOSE, __FUNCTION__, __FILE__, __LINE__, "%s", string.buffer() );
+          return domain;
      }
 };
 
