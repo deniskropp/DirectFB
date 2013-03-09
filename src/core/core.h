@@ -155,6 +155,10 @@ DirectResult dfb_core_enum_layer_regions ( CoreDFB               *core,
                                            FusionObjectCallback   callback,
                                            void                  *ctx );
 
+DirectResult dfb_core_dump_all           ( CoreDFB               *core,
+                                           DirectLogDomain       *domain,
+                                           DirectLogLevel         level );
+
 /*
  * Arena shared fields
  */

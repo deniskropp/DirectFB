@@ -1086,6 +1086,72 @@ dfb_core_enum_layer_regions( CoreDFB               *core,
      return fusion_object_pool_enum( shared->layer_region_pool, callback, ctx );
 }
 
+typedef struct {
+     DirectLogDomain *domain;
+     DirectLogLevel   level;
+} DumpContext;
+
+static bool
+dump_objects( FusionObjectPool *pool,
+              FusionObject     *object,
+              void             *ctx )
+{
+     DumpContext *context = (DumpContext *) ctx;
+
+     direct_log_domain_log( context->domain, context->level, __FUNCTION__, __FILE__, __LINE__,
+                            "  [%u] 0x%08x %d \n", object->id, object->ref.multi.id, object->ref.single.refs );
+
+     return true;
+}
+
+DirectResult
+dfb_core_dump_all( CoreDFB         *core,
+                   DirectLogDomain *domain,
+                   DirectLogLevel   level )
+{
+     CoreDFBShared *shared;
+
+     D_ASSERT( core != NULL || core_dfb != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     if (direct_log_domain_check_level( domain, level )) {
+          int               i;
+          FusionObjectPool *pools[] = {
+               shared->graphics_state_pool,
+               shared->layer_context_pool,
+               shared->layer_region_pool,
+               shared->palette_pool,
+               shared->surface_pool,
+               shared->surface_allocation_pool,
+               shared->surface_buffer_pool,
+               shared->surface_client_pool,
+               shared->window_pool
+          };
+
+          for (i=0; i<D_ARRAY_SIZE(pools); i++) {
+               DumpContext context;
+
+               context.domain = domain;
+               context.level  = level;
+
+               direct_log_domain_log( domain, level, __FUNCTION__, __FILE__, __LINE__,
+                                      "== %s ==\n", pools[i]->name );
+
+               fusion_object_pool_enum( pools[i], dump_objects, &context );
+          }
+     }
+
+     return true;
+}
+
 DirectResult
 core_arena_add_shared_field( CoreDFB         *core,
                              const char      *name,
