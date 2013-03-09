@@ -41,8 +41,6 @@ extern "C" {
 #include <core/surface_buffer.h>
 }
 
-#include <direct/String.h>
-
 /*********************************************************************************************************************/
 
 namespace DirectFB {
@@ -186,10 +184,16 @@ DFB_ToString_BlittingFlags( DFBSurfaceBlittingFlags flags )
 }
 
 
+const char *
+DFB_ToString_CoreSurfaceTypeFlags( CoreSurfaceTypeFlags flags )
+{
+     return ToString<CoreSurfaceTypeFlags>( flags ).CopyTLS();
 }
 
 
 }
 
+
 }
 
+}

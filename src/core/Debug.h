@@ -30,6 +30,7 @@
 #ifndef ___DirectFB__Debug__H___
 #define ___DirectFB__Debug__H___
 
+#include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
 
 #include <directfb.h>
 
@@ -37,8 +38,12 @@
 extern "C" {
 #endif
 
+#include <core/surface.h>
+
 const char *DFB_ToString_DrawingFlags ( DFBSurfaceDrawingFlags flags );
 const char *DFB_ToString_BlittingFlags( DFBSurfaceBlittingFlags flags );
+
+const char *DFB_ToString_CoreSurfaceTypeFlags( CoreSurfaceTypeFlags flags );
 
 
 #ifdef __cplusplus
