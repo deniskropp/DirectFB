@@ -67,6 +67,7 @@ typedef struct {
 } Trace;
 
 struct __D_DirectTraceBuffer {
+     DirectLink link;
      pid_t tid;
      char *name;
      DirectThread *thread;
@@ -77,74 +78,32 @@ struct __D_DirectTraceBuffer {
 
 /**************************************************************************************************/
 
-static DirectTraceBuffer *buffers[MAX_BUFFERS];
-static int                buffers_num  = 0;
-static DirectMutex        buffers_lock = DIRECT_RECURSIVE_MUTEX_INITIALIZER(buffers_lock);
-
-DIRECT_TLS_DATA( trace_key );
+static DirectLink  *buffers;
+static DirectMutex  buffers_lock = DIRECT_RECURSIVE_MUTEX_INITIALIZER(buffers_lock);
 
 /**************************************************************************************************/
 
-__attribute__((no_instrument_function))
-static void
-buffer_destroy( void *arg )
-{
-     int                i;
-     DirectTraceBuffer *buffer = arg;
-
-     direct_mutex_lock( &buffers_lock );
-
-     /* Remove from list. */
-     for (i=0; i<buffers_num; i++) {
-          if (buffers[i] == buffer)
-               break;
-     }
-
-     for (; i<buffers_num-1; i++)
-          buffers[i] = buffers[i+1];
-
-     buffers_num--;
-
-     /* Deallocate the buffer. */
-     direct_trace_free_buffer( buffer );
-
-     direct_mutex_unlock( &buffers_lock );
-}
-
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 static inline DirectTraceBuffer *
 get_trace_buffer( void )
 {
      DirectTraceBuffer *buffer;
+     DirectThread      *self = direct_thread_self();
 
-     buffer = direct_tls_get( trace_key );
+     buffer = self->trace_buffer;
      if (!buffer) {
-          const char *name = direct_thread_self_name();
-
-          direct_mutex_lock( &buffers_lock );
-
-          if (!buffers_num)
-               direct_tls_register( &trace_key, buffer_destroy );
-          else if (buffers_num == MAX_BUFFERS) {
-               direct_mutex_unlock( &buffers_lock );
+          buffer = direct_calloc( 1, sizeof(DirectTraceBuffer) );
+          if (!buffer)
                return NULL;
-          }
-
-          direct_tls_set( trace_key, buffer = direct_calloc( 1, sizeof(DirectTraceBuffer) ) );
 
           buffer->tid    = direct_gettid();
-          buffer->name   = name ? direct_strdup( name ) : NULL;
           buffer->thread = direct_thread_self();
 
-          buffers[buffers_num++] = buffer;
+          self->trace_buffer = buffer;
 
+          direct_mutex_lock( &buffers_lock );
+          direct_list_append( &buffers, &buffer->link );
           direct_mutex_unlock( &buffers_lock );
-
-          if (buffers_num == MAX_BUFFERS) {
-               D_ERROR( "Direct/Trace: Maximum number of threads (%d) reached!\n", MAX_BUFFERS );
-
-               direct_trace_print_stacks();
-          }
      }
 
      return buffer;
@@ -170,7 +129,7 @@ static DirectLink  *tables      = NULL;
 static DirectMutex  tables_lock = DIRECT_RECURSIVE_MUTEX_INITIALIZER(tables_lock);
 
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 static void
 add_symbol( SymbolTable *table, long offset, const char *name )
 {
@@ -204,7 +163,7 @@ add_symbol( SymbolTable *table, long offset, const char *name )
      direct_snputs( symbol->name, name, NAME_LEN );
 }
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 static SymbolTable *
 load_symbols( const char *filename )
 {
@@ -356,14 +315,14 @@ out:
      return table;
 }
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 static int
 compare_symbols(const void *x, const void *y)
 {
      return  *((const long*) x)  -  *((const long*) y);
 }
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 static SymbolTable *
 find_table( const char *filename )
 {
@@ -387,7 +346,7 @@ find_table( const char *filename )
 
 /**************************************************************************************************/
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 const char *
 direct_trace_lookup_symbol( const char *filename, long offset )
 {
@@ -415,7 +374,7 @@ direct_trace_lookup_symbol( const char *filename, long offset )
      return symbol ? symbol->name : NULL;
 }
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 const char *
 direct_trace_lookup_file( void *address, void **ret_base )
 {
@@ -438,7 +397,7 @@ direct_trace_lookup_file( void *address, void **ret_base )
      return NULL;
 }
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 void
 direct_trace_print_stack( DirectTraceBuffer *buffer )
 {
@@ -479,8 +438,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
           return;
 
 
-     D_String_PrintF( string, "(-) [%5d: -STACK- '%s']\n", buffer->tid,
-                      (buffer->thread && buffer->thread->name) ? buffer->thread->name : buffer->name );
+     D_String_PrintF( string, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->thread ? buffer->thread->name : buffer->name );
 
      for (i=level-1; i>=0; i--) {
           void *fn = buffer->trace[i].addr;
@@ -532,29 +490,29 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
      buffer->in_trace = false;
 }
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 void
-direct_trace_print_stacks( void )
+direct_trace_print_stacks()
 {
-     int                i;
+     DirectTraceBuffer *b;
      DirectTraceBuffer *buffer = get_trace_buffer();
+
+     direct_mutex_lock( &buffers_lock );
 
      if (buffer && buffer->level)
           direct_trace_print_stack( buffer );
 
-     direct_mutex_lock( &buffers_lock );
-
-     for (i=0; i<buffers_num; i++) {
-          if (buffers[i] != buffer && buffers[i]->level)
-               direct_trace_print_stack( buffers[i] );
+     direct_list_foreach (b, buffers) {
+          if (b != buffer && b->level)
+               direct_trace_print_stack( b );
      }
 
      direct_mutex_unlock( &buffers_lock );
 }
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 int
-direct_trace_debug_indent( void )
+direct_trace_debug_indent()
 {
      int                in     = 0;
      DirectTraceBuffer *buffer = get_trace_buffer();
@@ -567,7 +525,7 @@ direct_trace_debug_indent( void )
 
           buffer->trace[level--].flags |= TF_DEBUG;
 
-          for (in=0; level>=0; level--) {
+          for (in=0; level>=0; level--) {    // FIXME: optimise by storing indent in trace frame
                if (buffer->trace[level].flags & TF_DEBUG)
                     in++;
           }
@@ -616,8 +574,8 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
      if (!copy)
           return NULL;
 
-     if (buffer->name)
-          copy->name = direct_strdup( buffer->name );
+     if (buffer->thread && buffer->thread->name)
+          copy->name = direct_strdup( buffer->thread->name );
 
      copy->tid   = buffer->tid;
      copy->level = buffer->level;
@@ -627,10 +585,18 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
      return copy;
 }
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
 void
 direct_trace_free_buffer( DirectTraceBuffer *buffer )
 {
+     if (buffer->thread) {
+          direct_mutex_lock( &buffers_lock );
+          direct_list_remove( &buffers, &buffer->link );
+          direct_mutex_unlock( &buffers_lock );
+
+          buffer->thread = NULL;
+     }
+
      if (buffer->name)
           direct_free( buffer->name );
 
@@ -639,8 +605,8 @@ direct_trace_free_buffer( DirectTraceBuffer *buffer )
 
 /**********************************************************************************************************************/
 
-__attribute__((no_instrument_function)) void __cyg_profile_func_enter( void *this_fn, void *call_site );
-__attribute__((no_instrument_function)) void __cyg_profile_func_exit ( void *this_fn, void *call_site );
+__dfb_no_instrument_function__ void __cyg_profile_func_enter( void *this_fn, void *call_site );
+__dfb_no_instrument_function__ void __cyg_profile_func_exit ( void *this_fn, void *call_site );
 
 void
 __cyg_profile_func_enter( void *this_fn,
