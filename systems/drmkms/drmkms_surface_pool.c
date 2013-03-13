@@ -34,6 +34,8 @@
 #include <direct/debug.h>
 #include <direct/mem.h>
 
+#include <core/Debug.h>
+
 #include <core/core.h>
 #include <core/surface_pool.h>
 
@@ -294,18 +296,15 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      DRMKMSAllocationData *alloc = alloc_data;
      DRMKMSData           *drmkms;
 
-     u32 drm_format        = 0;
-     u32 drm_bo_offsets[4] = {0,0,0,0};
-     u32 drm_bo_handles[4] = {0,0,0,0};
-     u32 drm_bo_pitches[4] = {0,0,0,0};
-
+     u32 drm_format;
      u32 drm_fake_width;
      u32 drm_fake_height;
 
      (void)data;
      (void)local;
 
-     D_DEBUG_AT( DRMKMS_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
+     D_DEBUG_AT( DRMKMS_Surfaces, "%s( allocation %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, DRMKMSPoolData );
@@ -380,28 +379,37 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      alloc->pitch  = gbm_bo_get_stride( alloc->bo );
 #else
      unsigned attr[] = { KMS_BO_TYPE, KMS_BO_TYPE_SCANOUT_X8R8G8B8, KMS_WIDTH, drm_fake_width, KMS_HEIGHT, drm_fake_height, KMS_TERMINATE_PROP_LIST };
-     if( kms_bo_create(drmkms->kms, attr, &alloc->bo))
-            D_ERROR( "DirectFB/DRMKMS: kms_bo_create() failed!\n" );
 
+     ret = kms_bo_create(drmkms->kms, attr, &alloc->bo);
+     if (ret) {
+          D_ERROR( "DirectFB/DRMKMS: kms_bo_create( '%s' ) failed (%s)!\n", ToString_CoreSurfaceAllocation( allocation ), strerror(-ret) );
+          ret = errno2result( -ret );
+          goto error;
+     }
 
      kms_bo_get_prop(alloc->bo, KMS_HANDLE, &alloc->handle);
      kms_bo_get_prop(alloc->bo, KMS_PITCH, &alloc->pitch);
 #endif
-     drm_bo_handles[0] = drm_bo_handles[1] = drm_bo_handles[2] = drm_bo_handles[3] = alloc->handle;
-     drm_bo_pitches[0] = drm_bo_pitches[1] = drm_bo_pitches[2] = drm_bo_pitches[3] = alloc->pitch;
-     drm_bo_offsets[1] = surface->config.size.h * alloc->pitch;
-
-     if (drmkms->shared->use_prime_fd) {
-
-          // this seems to render the handle unusable on radeon
-          ret = drmPrimeHandleToFD( drmkms->fd, alloc->handle, DRM_CLOEXEC , &alloc->prime_fd );
-          if (ret)
-               D_WARN( "DirectFB/DRMKMS: drmPrimeHandleToFD() failed!\n" );
-     }
 
      alloc->size = alloc->pitch * surface->config.size.h;
 
-     D_DEBUG_AT( DRMKMS_Surfaces, "  -> pitch %d, size %d\n", alloc->pitch, alloc->size );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo        %p\n", alloc->bo );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.handle %u\n", alloc->handle );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.pitch  %u\n", alloc->pitch );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> size      %u\n", alloc->size );
+
+     if (drmkms->shared->use_prime_fd) {
+          // this seems to render the handle unusable on radeon
+          ret = drmPrimeHandleToFD( drmkms->fd, alloc->handle, DRM_CLOEXEC, &alloc->prime_fd );
+          if (ret) {
+               ret = errno2result( errno );
+               D_ERROR( "DirectFB/DRMKMS: drmPrimeHandleToFD( %u '%s' ) failed (%s)!\n",
+                        alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
+               goto error;
+          }
+
+          D_DEBUG_AT( DRMKMS_Surfaces, "  -> prime_fd  %d\n", alloc->prime_fd );
+     }
 
      allocation->size   = alloc->size;
      allocation->offset = (unsigned long) alloc->prime_fd;
@@ -412,16 +420,26 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
       */
 
      if (surface->type & CSTF_LAYER) {
+          u32 drm_bo_offsets[4] = {0,0,0,0};
+          u32 drm_bo_handles[4] = {0,0,0,0};
+          u32 drm_bo_pitches[4] = {0,0,0,0};
+
+          drm_bo_handles[0] = drm_bo_handles[1] = drm_bo_handles[2] = drm_bo_handles[3] = alloc->handle;
+          drm_bo_pitches[0] = drm_bo_pitches[1] = drm_bo_pitches[2] = drm_bo_pitches[3] = alloc->pitch;
+          drm_bo_offsets[1] = surface->config.size.h * alloc->pitch;
+
           ret = drmModeAddFB2( drmkms->fd,
                                surface->config.size.w, surface->config.size.h, drm_format,
                                drm_bo_handles, drm_bo_pitches, drm_bo_offsets, &alloc->fb_id, 0 );
 
           if (ret) {
-               D_PERROR( "DirectFB/DRMKMS: drmModeAddFB2() failed!\n" );
-               return DFB_FAILURE;
+               ret = errno2result( errno );
+               D_ERROR( "DirectFB/DRMKMS: drmModeAddFB2( %u '%s' ) failed (%s)!\n",
+                        alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
+               goto error;
           }
 
-          D_DEBUG_AT( DRMKMS_Surfaces, "  -> allocated FB ID %d\n", alloc->fb_id );
+          D_DEBUG_AT( DRMKMS_Surfaces, "  -> fb_id     %u\n", alloc->fb_id );
      }
 
 
@@ -434,14 +452,45 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      drmCommandWriteRead( drmkms->fd, DRM_I915_GEM_MMAP_GTT, &arg, sizeof( arg ) );
      alloc->addr = mmap( 0, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, drmkms->fd, arg.offset );
 #else
-     kms_bo_map( alloc->bo, &alloc->addr );
+     ret = kms_bo_map( alloc->bo, &alloc->addr );
+     if (ret) {
+          ret = errno2result( errno );
+          D_ERROR( "DirectFB/DRMKMS: kms_bo_map( %u '%s' ) failed (%s)!\n",
+                   alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
+          goto error;
+     }
 #endif
+
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> addr      %p (mapped)\n", alloc->addr );
 
 
 
      D_MAGIC_SET( alloc, DRMKMSAllocationData );
 
      return DFB_OK;
+
+
+error:
+#ifdef USE_GBM
+     // FIXME: unmap in GBM case
+#else
+     if (alloc->addr)
+          kms_bo_unmap( alloc->addr );
+#endif
+
+     if (alloc->fb_id)
+          drmModeRmFB( drmkms->fd,  alloc->fb_id );
+
+     if (alloc->prime_fd)
+          close( alloc->prime_fd );
+
+#ifdef USE_GBM
+     gbm_bo_destroy( alloc->bo );
+#else
+     kms_bo_destroy( &alloc->bo );
+#endif
+
+     return ret;
 }
 
 static DFBResult
@@ -458,7 +507,8 @@ drmkmsDeallocateBuffer( CoreSurfacePool       *pool,
 
      (void)data;
 
-     D_DEBUG_AT( DRMKMS_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
+     D_DEBUG_AT( DRMKMS_Surfaces, "%s( allocation %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, DRMKMSPoolData );
@@ -467,14 +517,23 @@ drmkmsDeallocateBuffer( CoreSurfacePool       *pool,
      if (!dfb_config->task_manager)
           dfb_gfxcard_sync();
 
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo        %p\n", alloc->bo );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.handle %u\n", alloc->handle );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.pitch  %u\n", alloc->pitch );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> size      %u\n", alloc->size );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> prime_fd  %d\n", alloc->prime_fd );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> fb_id     %u\n", alloc->fb_id );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> addr      %p (mapped)\n", alloc->addr );
+
 #ifdef USE_GBM
      // FIXME: unmap in GBM case
 #else
-     kms_bo_unmap( alloc->bo );
+     if (alloc->addr)
+          kms_bo_unmap( alloc->bo );
 #endif
 
      if (alloc->fb_id)
-          drmModeRmFB( local->drmkms->fd,  alloc->fb_id );
+          drmModeRmFB( local->drmkms->fd, alloc->fb_id );
 
      if (alloc->prime_fd)
           close( alloc->prime_fd );
@@ -498,6 +557,7 @@ drmkmsLock( CoreSurfacePool       *pool,
             void                  *alloc_data,
             CoreSurfaceBufferLock *lock )
 {
+     DFBResult             ret;
      DRMKMSPoolLocalData  *local = pool_local;
      DRMKMSAllocationData *alloc = alloc_data;
      DRMKMSData           *drmkms;
@@ -507,7 +567,8 @@ drmkmsLock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     D_DEBUG_AT( DRMKMS_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+     D_DEBUG_AT( DRMKMS_SurfLock, "%s( allocation %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      drmkms = local->drmkms;
      D_ASSERT( drmkms != NULL );
@@ -540,7 +601,13 @@ drmkmsLock( CoreSurfacePool       *pool,
                     drmCommandWriteRead( local->drmkms->fd, DRM_I915_GEM_MMAP_GTT, &arg, sizeof( arg ) );
                     lock->addr = mmap( 0, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, local->drmkms->fd, arg.offset );
 #else
-                    kms_bo_map( alloc->bo, &lock->addr );
+                    ret = kms_bo_map( alloc->bo, &lock->addr );
+                    if (ret) {
+                         ret = errno2result( errno );
+                         D_ERROR( "DirectFB/DRMKMS: kms_bo_map( %u '%s' ) failed (%s)!\n",
+                                  alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
+                         return ret;
+                    }
 #endif
                }
                break;
@@ -571,7 +638,8 @@ drmkmsUnlock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     D_DEBUG_AT( DRMKMS_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+     D_DEBUG_AT( DRMKMS_SurfLock, "%s( allocation %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      switch (lock->accessor) {
           case CSAID_LAYER0:
