@@ -17,18 +17,39 @@ AM_CPPFLAGS = \
 	-DSYSCONFDIR=\"@sysconfdir@\" \
 	-DFLUXED_ARGS_BYTES=@FLUXED_ARGS_BYTES@
 
+
+MKNAMES = $(top_srcdir)/tools/mknames.sh
+INCP = $(srcdir)
+
+DISTCLEANFILES = sawman_strings.h
+
+sawman_strings.h: sawman.h $(MKNAMES) Makefile
+	@echo '#ifndef __SAWMAN__SAWMAN_STRINGS_H__' > $@
+	@echo '#define __SAWMAN__SAWMAN_STRINGS_H__' >> $@
+	@echo '#include <sawman.h>' >> $@
+
+	@$(MKNAMES) SaWManProcessFlags SWMPF NONE SaWManProcessFlags flag $(INCP)/sawman.h \
+	   | grep -v SWMPF_ALL >> $@
+
+	@echo '' >> $@
+	@echo '#endif' >> $@
+
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = sawman.pc
 
 includedir = @GENERIC_INCLUDEDIR@/sawman
 
 include_HEADERS = \
-	sawman.h	\
+	Debug.h			\
+	sawman.h		\
+	sawman_strings.h	\
 	sawman_types.h
 
 lib_LTLIBRARIES = libsawman.la
 
 libsawman_la_SOURCES = \
+	Debug.cpp		\
 	SaWMan.cpp		\
 	SaWMan.h		\
 	SaWMan_includes.h	\
@@ -103,6 +124,10 @@ distclean-local:
 	rm -f SaWManManager.h
 	rm -f SaWManProcess.cpp
 	rm -f SaWManProcess.h
+
+
+$(srcdir)/Debug.cpp: sawman_strings.h
+
 
 include $(top_srcdir)/rules/flux_comp_sawman.make
 include $(top_srcdir)/rules/nmfile.make

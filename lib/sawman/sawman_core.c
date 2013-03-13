@@ -56,6 +56,8 @@
 #include <SaWManProcess.h>
 #include <SaWManManager.h>
 
+#include <sawman/Debug.h>
+
 #include <sawman.h>
 #include <sawman_internal.h>
 
@@ -67,12 +69,7 @@
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
 
-D_DEBUG_DOMAIN( SaWMan_Auto,     "SaWMan/Auto",     "SaWMan auto configuration" );
-D_DEBUG_DOMAIN( SaWMan_Update,   "SaWMan/Update",   "SaWMan window manager updates" );
-D_DEBUG_DOMAIN( SaWMan_Geometry, "SaWMan/Geometry", "SaWMan window manager geometry" );
-D_DEBUG_DOMAIN( SaWMan_Stacking, "SaWMan/Stacking", "SaWMan window manager stacking" );
-D_DEBUG_DOMAIN( SaWMan_FlipOnce, "SaWMan/FlipOnce", "SaWMan window manager flip once" );
-D_DEBUG_DOMAIN( SaWMan_Cursor,   "SaWMan/Cursor",   "SaWMan window manager cursor" );
+D_DEBUG_DOMAIN( SaWMan_Core,     "SaWMan/Core",     "SaWMan Core" );
 
 
 /* FIXME: avoid globals */
@@ -121,6 +118,8 @@ DirectResult
 SaWManInit( int    *argc,
             char ***argv )
 {
+     D_DEBUG_AT( SaWMan_Core, "%s()\n", __FUNCTION__ );
+
 #if !DIRECTFB_BUILD_PURE_VOODOO
      return sawman_config_init( argc, argv );
 #else
@@ -131,6 +130,8 @@ SaWManInit( int    *argc,
 DirectResult
 SaWManCreate( ISaWMan **ret_sawman )
 {
+     D_DEBUG_AT( SaWMan_Core, "%s()\n", __FUNCTION__ );
+
 #if !DIRECTFB_BUILD_PURE_VOODOO
      DirectResult  ret;
      ISaWMan      *sawman;
@@ -176,6 +177,8 @@ CreateRemote( const char *host, int port, ISaWMan **ret_sawman )
      DirectInterfaceFuncs *funcs;
      void                 *interface;
 
+     D_DEBUG_AT( SaWMan_Core, "%s()\n", __FUNCTION__ );
+
      D_ASSERT( host != NULL );
      D_ASSERT( ret_sawman != NULL );
 
@@ -207,6 +210,8 @@ sawman_initialize( SaWMan         *sawman,
      int                i;
      DirectResult       ret;
      GraphicsDeviceInfo info;
+
+     D_DEBUG_AT( SaWMan_Core, "%s( %p )\n", __FUNCTION__, sawman );
 
      D_ASSERT( sawman != NULL );
      D_ASSERT( world != NULL );
@@ -323,6 +328,8 @@ sawman_post_init( SaWMan      *sawman,
 {
      DFBResult ret;
 
+     D_DEBUG_AT( SaWMan_Core, "%s( %p )\n", __FUNCTION__, sawman );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( world != NULL );
 
@@ -352,6 +359,8 @@ sawman_join( SaWMan         *sawman,
              SaWManProcess **ret_process )
 {
      DirectResult ret;
+
+     D_DEBUG_AT( SaWMan_Core, "%s( %p )\n", __FUNCTION__, sawman );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( world != NULL );
@@ -390,6 +399,8 @@ sawman_shutdown( SaWMan      *sawman,
      SaWManWindow     *sawwin;
      SaWManGrabbedKey *key;
 
+     D_DEBUG_AT( SaWMan_Core, "%s( %p )\n", __FUNCTION__, sawman );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( world != NULL );
 
@@ -397,7 +408,11 @@ sawman_shutdown( SaWMan      *sawman,
      D_ASSERT( m_world == world );
 
      D_ASSERT( sawman->processes != NULL );
-     D_ASSERT( sawman->processes->next == NULL );
+
+     direct_list_foreach_safe (process, next, sawman->processes) {
+          if (process != m_process)
+               unregister_process( sawman, process );
+     }
 
      process = (SaWManProcess*) sawman->processes;
 
@@ -462,6 +477,8 @@ DirectResult
 sawman_leave( SaWMan      *sawman,
               FusionWorld *world )
 {
+     D_DEBUG_AT( SaWMan_Core, "%s( %p )\n", __FUNCTION__, sawman );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( world != NULL );
 
@@ -490,6 +507,8 @@ sawman_register( SaWMan                 *sawman,
 {
      DirectResult              ret;
      SaWManRegisterManagerData data;
+
+     D_DEBUG_AT( SaWMan_Core, "%s( %p )\n", __FUNCTION__, sawman );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( callbacks != NULL );
@@ -521,6 +540,8 @@ DirectResult
 sawman_unregister( SaWMan *sawman )
 {
      DirectResult ret;
+
+     D_DEBUG_AT( SaWMan_Core, "%s( %p )\n", __FUNCTION__, sawman );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      FUSION_SKIRMISH_ASSERT( sawman->lock );
@@ -568,6 +589,8 @@ sawman_call( SaWMan       *sawman,
 {
      void         *tmp;
      unsigned int  length;
+
+     D_DEBUG_AT( SaWMan_Core, "%s( %p, %d )\n", __FUNCTION__, sawman, call );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      if (sawman->lock)
@@ -693,6 +716,8 @@ manager_call_handler( int           caller,   /* fusion id of the caller */
      SaWManRestackArgs     *restack_args     = call_ptr;
      SaWManChangeFocusArgs *changefocus_args = call_ptr;
 
+     D_DEBUG_AT( SaWMan_Core, "%s( %p, %d )\n", __FUNCTION__, sawman, call );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      direct_memcpy( call_ptr, ptr, length );
@@ -809,6 +834,8 @@ sawman_register_process( SaWMan              *sawman,
      DirectResult   ret;
      SaWManProcess *process;
 
+     D_DEBUG_AT( SaWMan_Core, "%s( %p, flags %s, pid %d, fusion_id %lu )\n", __FUNCTION__, sawman, ToString_SaWManProcessFlags(flags), pid, fusion_id );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      /* Lock SaWMan. */
@@ -883,6 +910,8 @@ static DirectResult
 unregister_process( SaWMan        *sawman,
                     SaWManProcess *process )
 {
+     D_DEBUG_AT( SaWMan_Core, "%s( %p, [%s] )\n", __FUNCTION__, sawman, ToString_SaWManProcess(process) );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( process, SaWManProcess );
      if (sawman->lock)
@@ -937,6 +966,8 @@ process_watcher( int           caller,
      SaWMan        *sawman  = ctx;
      SaWManProcess *process;
 
+     D_DEBUG_AT( SaWMan_Core, "%s( %d, %d, %p, %p, %u, %p )\n", __FUNCTION__, caller, call_arg, call_ptr, ctx, serial, ret_val );
+
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      /* Lookup process by pid. */
@@ -953,8 +984,8 @@ process_watcher( int           caller,
           return FCHR_RETURN;
      }
 
-     D_INFO( "SaWMan/Watcher: Process %d [%lu] has exited%s\n", process->pid,
-             process->fusion_id, (process->flags & SWMPF_EXITING) ? "." : " ABNORMALLY!" );
+     D_INFO( "SaWMan/Watcher: Process [%s] has exited%s\n",
+             ToString_SaWManProcess( process ), (process->flags & SWMPF_EXITING) ? "." : " ABNORMALLY!" );
 
      ret = sawman_lock( sawman );
      if (ret)
@@ -975,6 +1006,8 @@ static DFBResult
 init_hw_cursor( SaWMan *sawman )
 {
      DFBResult ret;
+
+     D_DEBUG_AT( SaWMan_Core, "%s()\n", __FUNCTION__ );
 
      sawman->cursor.layer = dfb_layer_at( sawman_config->cursor.layer_id );
      D_ASSERT( sawman->cursor.layer != NULL );
@@ -1006,6 +1039,8 @@ add_tier( SaWMan                *sawman,
           SaWManStackingClasses  classes )
 {
      SaWManTier *tier;
+
+     D_DEBUG_AT( SaWMan_Core, "%s( %p, layer %u, classes 0x%04x )\n", __FUNCTION__, sawman, layer_id, classes );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( layer_id >= 0 );
@@ -1058,6 +1093,8 @@ sawman_set_driver_config( DFBDisplayLayerID            layer_id,
 {
      DFBResult   ret;
      SaWManTier *tier;
+
+     D_DEBUG_AT( SaWMan_Core, "%s()\n", __FUNCTION__ );
 
      ret = sawman_lock( m_sawman );
      if (ret)
