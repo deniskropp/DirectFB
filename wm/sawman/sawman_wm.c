@@ -3545,8 +3545,6 @@ wm_update_window( CoreWindow          *window,
      StackData       *data;
      DFBWindowEvent   event;
      bool             stereo_layer;
-     bool             stereo_window;
-     bool             lr_mono_window;
      DFBRegion        left_update;
      DFBRegion        right_update;
 
@@ -3566,9 +3564,6 @@ wm_update_window( CoreWindow          *window,
 
      data = stack->stack_data;
      D_MAGIC_ASSERT( data, StackData );
-
-     stereo_window  = window->caps & DWCAPS_STEREO;
-     lr_mono_window = window->caps & DWCAPS_LR_MONO;
 
 #if D_DEBUG_ENABLED
      {
