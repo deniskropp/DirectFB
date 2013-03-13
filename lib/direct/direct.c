@@ -162,7 +162,8 @@ direct_initialize()
 
      direct_mutex_lock( &main_lock );
 
-     D_DEBUG_AT( Direct_Main, "direct_initialize() called...\n" );
+     D_DEBUG_AT( Direct_Main, "direct_initialize() called... (from %s)\n",
+                 direct_trace_lookup_symbol_at( direct_trace_get_caller() ) );
 
      if (refs++) {
           D_DEBUG_AT( Direct_Main, "...%d references now.\n", refs );
@@ -172,7 +173,7 @@ direct_initialize()
      else if (!direct_thread_self_name())
           direct_thread_set_name( "Main Thread" );
 
-     D_DEBUG_AT( Direct_Main, "...initializing now.\n" );
+     D_DEBUG_AT( Direct_Main, "...first reference, initializing now.\n" );
 
      direct_signals_initialize();
 
@@ -186,12 +187,15 @@ direct_shutdown()
 {
      direct_mutex_lock( &main_lock );
 
-     D_DEBUG_AT( Direct_Main, "direct_shutdown() called...\n" );
+     D_DEBUG_AT( Direct_Main, "direct_shutdown() called... (from %s)\n",
+                 direct_trace_lookup_symbol_at( direct_trace_get_caller() ) );
 
      if (refs == 1) {
           D_DEBUG_AT( Direct_Main, "...shutting down now.\n" );
 
           direct_signals_shutdown();
+
+          D_DEBUG_AT( Direct_Main, "  -> done.\n" );
      }
      else
           D_DEBUG_AT( Direct_Main, "...%d references left.\n", refs - 1 );
