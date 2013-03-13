@@ -40,14 +40,28 @@ extern "C" {
 
 // C Wrapper
 
+__dfb_no_instrument_function__
 D_String   *D_String_NewEmpty( void );
+
+__dfb_no_instrument_function__
 size_t      D_String_PrintF( D_String *str, const char *format, ... )           D_FORMAT_PRINTF(2);
+
+__dfb_no_instrument_function__
 size_t      D_String_PrintV( D_String *str, const char *format, va_list args );
+
+__dfb_no_instrument_function__
 const char *D_String_Buffer( D_String *str );
+
+__dfb_no_instrument_function__
 size_t      D_String_Length( D_String *str );
+
+__dfb_no_instrument_function__
 void        D_String_Delete( D_String *str );
 
+__dfb_no_instrument_function__
 const char *D_String_CopyTLS( D_String *str );
+
+__dfb_no_instrument_function__
 const char *D_String_PrintTLS( const char *format, ... )           D_FORMAT_PRINTF(1);
 
 #ifdef __cplusplus
@@ -139,9 +153,23 @@ public:
           return str.size();
      }
 
+
+     /*
+      * Use
+      */
+
      inline operator const std::string& () const {
           return str;
      }
+
+     inline const char * operator *() const {
+          return buffer();
+     }
+
+
+     /*
+      * Assign
+      */
 
      inline String& operator= (const char *buf) {
           str = buf;
@@ -153,6 +181,11 @@ public:
           str = _str;
           return *this;
      }
+
+
+     /*
+      * Append
+      */
 
      inline String& operator+= (const String &other) {
           str.append( other.str );
@@ -169,6 +202,11 @@ public:
           result.str.append( buf );
           return result;
      }
+
+
+     /*
+      * Streams
+      */
 
      friend std::ostream &operator << (std::ostream &stream, const Direct::String &string) {
           stream << string.str;

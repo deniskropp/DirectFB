@@ -50,7 +50,6 @@ namespace Direct {
 
 extern "C" {
 
-
 D_String *
 D_String_NewEmpty()
 {
