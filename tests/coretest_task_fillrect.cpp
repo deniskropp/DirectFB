@@ -27,9 +27,9 @@
 
 #include <config.h>
 
-extern "C" {
-#include <directfb.h>
+#include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
 
+extern "C" {
 #include <direct/messages.h>
 #include <direct/thread.h>
 
@@ -203,14 +203,14 @@ main( int argc, char *argv[] )
 
           for (int i=0; i<100000; i++) {
                DFBColor color = {
-                    rand()%256, rand()%256, rand()%256, rand()%256
+                    (u8)rand()%256, (u8)rand()%256, (u8)rand()%256, (u8)rand()%256
                };
 
                dfb_state_set_color( &state, &color );
 
 
                DFBRectangle rect = {
-                    rand()%100, rand()%100, rand()%100, rand()%100
+                    (u8)rand()%100, (u8)rand()%100, (u8)rand()%100, (u8)rand()%100
                };
 
                renderer->FillRectangles( &rect, 1 );
