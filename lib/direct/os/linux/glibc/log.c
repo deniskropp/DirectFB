@@ -112,7 +112,7 @@ common_log_flush( DirectLog *log,
           return errno2result( errno );
 
      if (sync) {
-          if (fsync( (long) log->data ))
+          if (fdatasync( (long) log->data ))
                return errno2result( errno );
      }
 
