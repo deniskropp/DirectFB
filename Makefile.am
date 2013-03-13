@@ -41,11 +41,11 @@ SAWMAN_DIR = lib/sawman
 endif
 
 if ENABLE_FUSIONDALE
-FUSIONDALE_EXAMPLES_DIRS = examples/fusiondale
+FUSIONDALE_EXAMPLES_DIR = examples/fusiondale
 endif
 
 if ENABLE_FUSIONSOUND
-FUSIONSOUND_EXAMPLES_DIRS = examples/fusionsound
+FUSIONSOUND_EXAMPLES_DIR = examples/fusionsound
 endif
 
 SUBDIRS = \
