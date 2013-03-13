@@ -27,9 +27,9 @@
 
 #include <config.h>
 
-extern "C" {
-#include <directfb.h>
+#include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
 
+extern "C" {
 #include <direct/messages.h>
 #include <direct/thread.h>
 
