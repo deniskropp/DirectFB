@@ -576,7 +576,24 @@ direct_trace_debug_indent( void )
      return in;
 }
 
-__attribute__((no_instrument_function))
+__dfb_no_instrument_function__
+void *
+direct_trace_get_caller()
+{
+     void              *caller = NULL;
+     DirectTraceBuffer *buffer = get_trace_buffer();
+
+     if (buffer) {
+          int level = buffer->level - 2;
+
+          if (level >= 0)
+               caller = buffer->trace[level].addr;
+     }
+
+     return caller;
+}
+
+__dfb_no_instrument_function__
 DirectTraceBuffer *
 direct_trace_copy_buffer( DirectTraceBuffer *buffer )
 {
