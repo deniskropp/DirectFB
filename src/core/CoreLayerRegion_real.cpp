@@ -30,6 +30,7 @@
 
 #include <config.h>
 
+#include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
 #include "CoreLayerRegion.h"
 #include "Task.h"
 #include "Util.h"

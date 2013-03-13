@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-#include <directfb.h>
-
 #include <fusion/call.h>
 
 #include <core/coretypes.h>

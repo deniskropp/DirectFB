@@ -41,6 +41,8 @@
 #include <string>
 #include <vector>
 
+#include <directfb.h>
+
 extern "C" {
 #include <errno.h>
 #include <stdio.h>
@@ -52,7 +54,6 @@ extern "C" {
 
 #include <png.h>
 
-#include <directfb.h>
 #include <directfb_strings.h>
 
 #include <direct/debug.h>
