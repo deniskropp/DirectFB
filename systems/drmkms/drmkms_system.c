@@ -244,6 +244,10 @@ system_initialize( CoreDFB *core, void **ret_data )
           shared->mirror_outputs = 1;
           D_INFO("DRMKMS/Init: mirror on connected outputs\n");
      }
+     else if (direct_config_get("drmkms-clone-outputs", &optionbuffer, 1, &ret_num) == DR_OK) {
+          shared->clone_outputs = 1;
+          D_INFO("DRMKMS/Init: clone on connected outputs (if supported)\n");
+     }
      else if (direct_config_get("drmkms-multihead", &optionbuffer, 1, &ret_num) == DR_OK) {
           shared->multihead = 1;
           D_INFO("DRMKMS/Init: multi-head mode enabled\n");
@@ -329,8 +333,8 @@ system_join( CoreDFB *core, void **ret_data )
 
      *ret_data = m_data = drmkms;
 
-     if ((shared->enabled_connectors > 1) && shared->multihead) {
-          for (i=1; i<shared->enabled_connectors; i++) {
+     if ((shared->enabled_encoders > 1) && shared->multihead) {
+          for (i=1; i<shared->enabled_encoders; i++) {
                dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
           }
      }

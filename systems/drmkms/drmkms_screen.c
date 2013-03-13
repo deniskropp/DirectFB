@@ -64,7 +64,7 @@ drmkmsInitScreen( CoreScreen           *screen,
 
      description->caps = DSCCAPS_ENCODERS | DSCCAPS_OUTPUTS;
      description->encoders = 0;
-     shared->enabled_connectors = 0;
+     shared->enabled_encoders = 0;
 
      direct_snputs( description->name, "DRMKMS Screen", DFB_SCREEN_DESC_NAME_LENGTH );
 
@@ -100,7 +100,7 @@ drmkmsInitScreen( CoreScreen           *screen,
                          if (encoder == NULL)
                               continue;
 
-                         for (k=0; k<shared->enabled_connectors; k++) {
+                         for (k=0; k<shared->enabled_encoders; k++) {
                               if (drmkms->encoder[k]->encoder_id == encoder->encoder_id) {
                                    D_INFO( "DirectFB/DRMKMS: encoder %d is already in use by connector %d\n", encoder->encoder_id, drmkms->connector[k]->connector_id );
                                    busy = 1;
@@ -116,7 +116,7 @@ drmkmsInitScreen( CoreScreen           *screen,
                               if (!(encoder->possible_crtcs & (1 << k)))
                                    continue;
 
-                              for (l=0; l<shared->enabled_connectors; l++) {
+                              for (l=0; l<shared->enabled_encoders; l++) {
                                    if (drmkms->encoder[l]->crtc_id == resources->crtcs[k])
                                         busy = 1;
                               }
@@ -136,17 +136,17 @@ drmkmsInitScreen( CoreScreen           *screen,
                }
 
                if (encoder && crtc) {
-                    drmkms->connector[shared->enabled_connectors] = connector;
-                    drmkms->encoder[shared->enabled_connectors] = encoder;
-                    drmkms->encoder[shared->enabled_connectors]->crtc_id = crtc;
-                    shared->mode[shared->enabled_connectors] = connector->modes[0];
+                    drmkms->connector[shared->enabled_encoders] = connector;
+                    drmkms->encoder[shared->enabled_encoders] = encoder;
+                    drmkms->encoder[shared->enabled_encoders]->crtc_id = crtc;
+                    shared->mode[shared->enabled_encoders] = connector->modes[0];
 
-                    shared->enabled_connectors++;
+                    shared->enabled_encoders++;
 
                     if (!shared->multihead && !shared->mirror_outputs)
                          break;
 
-                    if (shared->multihead && shared->enabled_connectors > 1) {
+                    if (shared->multihead && shared->enabled_encoders > 1) {
                          dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
                     }
 
@@ -160,7 +160,7 @@ drmkmsInitScreen( CoreScreen           *screen,
                drmModeFreeConnector( connector );
      }
 
-     if (!shared->enabled_connectors) {
+     if (!shared->enabled_encoders) {
           D_ERROR( "DirectFB/DRMKMS: No currently active connector found.\n");
           return DFB_INIT;
      }
@@ -172,18 +172,37 @@ drmkmsInitScreen( CoreScreen           *screen,
      }
 
      if (shared->mirror_outputs || (dfb_config->mode.width && dfb_config->mode.height)) {
-          for (int i=1; i<shared->enabled_connectors; i++)
+          for (int i=1; i<shared->enabled_encoders; i++)
                shared->mode[i] = shared->mode[0];
      }
 
+     if (shared->clone_outputs) {
+          if (drmkms->encoder[0]->possible_clones) {
+               for (i = 0; i < resources->count_connectors; i++) {
+                   if (drmkms->encoder[0]->possible_clones & (1 << i)) {
+                         shared->cloned_connectors[shared->cloned_count++] = resources->connectors[i];
+                         D_INFO( "DirectFB/DRMKMS: cloning on connector %d enabled \n", resources->connectors[i]);
+                   }
+               }
+               if (shared->cloned_count < 2) {
+                    D_WARN( "DirectFB/DRMKMS: cloning is not possible on enough connectors, disabling.\n" );
+                    shared->cloned_count = 0;
+                    shared->clone_outputs = false;
+               }
+          }
+          else {
+                    D_WARN( "DirectFB/DRMKMS: cloning is not possible, disabling.\n" );
+                    shared->clone_outputs = false;
+          }
+     }
 
      D_INFO( "DirectFB/DRMKMS: Default mode is %dx%d, we have %d modes in total\n", shared->mode[0].hdisplay, shared->mode[0].vdisplay, drmkms->connector[0]->count_modes );
 
      drmkms->resources = resources;
      drmkms->saved_crtc = drmModeGetCrtc( drmkms->fd, drmkms->encoder[0]->crtc_id );
 
-     description->outputs   = shared->enabled_connectors;
-     description->encoders  = shared->enabled_connectors;
+     description->outputs   = shared->enabled_encoders;
+     description->encoders  = shared->enabled_encoders;
 
      return DFB_OK;
 }
