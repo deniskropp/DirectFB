@@ -39,13 +39,14 @@
 
 #include <directfb.h>
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
+#include <core/core.h>
 #include <core/input.h>
 
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
+
+#include <fusion/fusion.h>
 
 #define DFB_INPUTDRIVER_HAS_AXIS_INFO
 
@@ -61,9 +62,10 @@ DFB_INPUT_DRIVER( divine )
  * declaration of private data
  */
 typedef struct {
-     int           fd;
-     CoreInputDevice  *device;
-     DirectThread *thread;
+     char                pipename[256];
+     int                 fd;
+     CoreInputDevice    *device;
+     DirectThread       *thread;
 } DiVineData;
 
 
@@ -112,18 +114,27 @@ divineEventThread( DirectThread *thread, void *driver_data )
 static int
 driver_get_available()
 {
-     int fd;
+     int  fd;
+     int  world_index;
+     char buf[256];
+
+     /* avoid clash with other DirectFB sessions, but keep compatible for default session */
+     world_index = fusion_world_index( dfb_core_world( NULL ) );
+     if (world_index != 0)
+          snprintf( buf, sizeof(buf), "%s.%d", PIPE_PATH, world_index );
+     else
+          snprintf( buf, sizeof(buf), "%s", PIPE_PATH );
 
      /* create the pipe if not already existent */
-     if (mkfifo( PIPE_PATH, 0660 ) && errno != EEXIST) {
-          D_PERROR( "DirectFB/DiVine: could not create pipe '%s'\n", PIPE_PATH );
+     if (mkfifo( buf, 0660 ) && errno != EEXIST) {
+          D_PERROR( "DirectFB/DiVine: could not create pipe '%s'\n", buf );
           return 0;
      }
 
      /* try to open pipe */
-     fd = open( PIPE_PATH, O_RDONLY | O_NONBLOCK );
+     fd = open( buf, O_RDONLY | O_NONBLOCK );
      if (fd < 0) {
-          D_PERROR( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
+          D_PERROR( "DirectFB/DiVine: could not open pipe '%s'\n", buf );
           return 0;
      }
 
@@ -156,18 +167,33 @@ driver_get_info( InputDriverInfo *info )
  * Called during initialization, resuming or taking over mastership.
  */
 static DFBResult
-driver_open_device( CoreInputDevice      *device,
+driver_open_device( CoreInputDevice  *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-     int         fd;
      DiVineData *data;
+     int         world_index;
+
+     /* allocate and fill private data */
+     data = D_CALLOC( 1, sizeof(DiVineData) );
+     if (!data)
+          return D_OOM();
+
+     data->device = device;
+
+     /* avoid clash with other DirectFB sessions, but keep compatible for default session */
+     world_index = fusion_world_index( dfb_core_world( NULL ) );
+     if (world_index != 0)
+          snprintf( data->pipename, sizeof(data->pipename), "%s.%d", PIPE_PATH, world_index );
+     else
+          snprintf( data->pipename, sizeof(data->pipename), "%s", PIPE_PATH );
 
      /* open pipe */
-     fd = open( PIPE_PATH, O_RDWR | O_NONBLOCK );
-     if (fd < 0) {
-          D_PERROR( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
+     data->fd = open( data->pipename, O_RDWR | O_NONBLOCK );
+     if (data->fd < 0) {
+          D_PERROR( "DirectFB/DiVine: could not open pipe '%s'\n", data->pipename );
+          D_FREE( data );
           return DFB_INIT;
      }
 
@@ -189,12 +215,6 @@ driver_open_device( CoreInputDevice      *device,
      /* set capabilities */
      info->desc.caps     = DICAPS_ALL;
      info->desc.max_axis = DIAI_LAST;
-
-     /* allocate and fill private data */
-     data = D_CALLOC( 1, sizeof(DiVineData) );
-
-     data->fd     = fd;
-     data->device = device;
 
      /* start input thread */
      data->thread = direct_thread_create( DTT_INPUT, divineEventThread, data, "Virtual Input" );
