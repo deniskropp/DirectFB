@@ -49,6 +49,7 @@ includedir = @INCLUDEDIR@/direct
 include_HEADERS = \
 	$(ppcasm_headers)		\
 	$(armasm_headers)		\
+	Lists.h				\
 	LockWQ.h			\
 	Magic.h				\
 	Mutex.h				\
@@ -137,7 +138,8 @@ libdirect_la_SOURCES = \
 	uuid.c
 
 libdirect_la_LIBADD = \
-	os/linux/glibc/libdirect_os_linux_glibc.la
+	os/linux/glibc/libdirect_os_linux_glibc.la		\
+	-lstdc++
 
 libdirect_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\

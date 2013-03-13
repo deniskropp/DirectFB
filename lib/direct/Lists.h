@@ -1,0 +1,215 @@
+/*
+   (c) Copyright 2001-2012  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
+
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan@users.sf.net>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#ifndef ___Direct__Lists__H___
+#define ___Direct__Lists__H___
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+
+#ifdef __cplusplus
+}
+
+
+#include <list>
+
+#include <direct/LockWQ.h>
+
+
+namespace Direct {
+
+
+template <typename _Item>
+class List
+{
+public:
+     virtual ~List()
+     {
+     }
+
+     virtual void   Append ( const _Item &item ) = 0;
+     virtual void   Prepend( const _Item &item ) = 0;
+     virtual void   Remove ( const _Item &item ) = 0;
+     virtual size_t Length () const = 0;
+     virtual void   Clear  () = 0;
+};
+
+
+template <typename _Item>
+class ListSimple : public List<_Item>
+{
+public:
+     ListSimple()
+          :
+          length( 0 )
+     {
+     }
+
+     virtual ~ListSimple()
+     {
+          D_ASSUME( list.empty() );
+     }
+
+     virtual void Append( const _Item &item )
+     {
+          list.push_back( item );
+
+          length++;
+     }
+
+     virtual void Prepend( const _Item &item )
+     {
+          list.push_front( item );
+
+          length++;
+     }
+
+     virtual void Remove( const _Item &item )
+     {
+          D_ASSERT( length > 0 );
+
+          list.remove( item );
+
+          length--;
+     }
+
+     virtual size_t Length() const
+     {
+          return length;
+     }
+
+     virtual void Clear()
+     {
+          list.clear();
+     }
+
+
+     typedef typename std::list<_Item>::const_iterator const_iterator;
+
+     inline const_iterator begin() const { return list.begin(); }
+     inline const_iterator end()   const { return list.end(); }
+
+
+private:
+     std::list<_Item>    list;
+     size_t              length;
+};
+
+
+template <typename _Item>
+class ListLocked : public List<_Item>
+{
+public:
+     ListLocked()
+          :
+          length( 0 )
+     {
+     }
+
+     virtual ~ListLocked()
+     {
+          D_ASSUME( list.empty() );
+     }
+
+     virtual void Append( const _Item &item )
+     {
+          LockWQ::Lock l1( lwq );
+
+          list.push_back( item );
+
+          length++;
+     }
+
+     virtual void Prepend( const _Item &item )
+     {
+          LockWQ::Lock l1( lwq );
+
+          list.push_front( item );
+
+          length++;
+     }
+
+     virtual void Remove( const _Item &item )
+     {
+          D_ASSERT( length > 0 );
+
+          LockWQ::Lock l1( lwq );
+
+          list.remove( item );
+
+          length--;
+
+          if (length == 0)
+               lwq.notifyAll();
+     }
+
+     virtual size_t Length() const
+     {
+          return length;
+     }
+
+     virtual void Clear()
+     {
+          LockWQ::Lock l1( lwq );
+
+          if (length > 0) {
+               list.clear();
+
+               length = 0;
+
+               lwq.notifyAll();
+          }
+     }
+
+
+     void WaitEmpty()
+     {
+          LockWQ::Lock l1( lwq );
+
+          while (!list.empty())
+               l1.wait();
+     }
+
+
+private:
+     LockWQ              lwq;
+     std::list<_Item>    list;
+     size_t              length;
+};
+
+
+}
+
+
+#endif // __cplusplus
+
+#endif
+

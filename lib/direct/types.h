@@ -92,10 +92,20 @@ typedef struct __D_DirectWaitQueue           DirectWaitQueue;
 
 
 #ifdef __cplusplus
+}    /* close extern "C" here for template to compile avoiding e.g. ../../lib/direct/types.h:98:6: error: template with C linkage */
+
 namespace Direct {
+     // NOTE: if build fails here we most likely have the above error due to nested extern "C"
+     template <typename _Item> class List;        
+     template <typename _Item> class ListLocked;
+     template <typename _Item> class ListSimple;
+
      class String;
 }
+
 #define D_String        Direct::String
+
+extern "C" {
 #else
 typedef void D_String;
 #endif
