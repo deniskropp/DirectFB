@@ -758,7 +758,6 @@ typedef enum {
                                                     see also IDirectFBSurface::SetSourceMask() */
      DSBLIT_SRC_MASK_COLOR         = 0x00200000, /* modulate source color channels with color channels from source mask,
                                                     see also IDirectFBSurface::SetSourceMask() */
-     DSBLIT_SOURCE2                = 0x00400000, /* use secondary source instead of destination for reading */
      DSBLIT_FLIP_HORIZONTAL        = 0x01000000, /* flip the image horizontally */
      DSBLIT_FLIP_VERTICAL          = 0x02000000, /* flip the image vertically */
      DSBLIT_ROP                    = 0x04000000, /* use rop setting */
