@@ -31,6 +31,8 @@
 
 #include <config.h>
 
+#include <fusion/Debug.h>
+
 #include "Debug.h"
 
 extern "C" {
@@ -42,20 +44,6 @@ extern "C" {
 }
 
 /*********************************************************************************************************************/
-
-namespace DirectFB {
-
-namespace Debug {
-
-
-// Fusion types
-
-template<>
-ToString<FusionObject>::ToString( const FusionObject &object )
-{
-     PrintF( "%p:%u/0x%x-%lu/%lu", &object, object.id, object.ref.multi.id, object.identity, object.owner );
-}
-
 
 // Core enums
 
@@ -85,6 +73,17 @@ ToString<DFBAccelerationMask>::ToString( const DFBAccelerationMask &accel )
 }
 
 template<>
+ToString<DFBSurfaceBlittingFlags>::ToString( const DFBSurfaceBlittingFlags &flags )
+{
+     static const DirectFBSurfaceBlittingFlagsNames(flags_names);
+
+     for (int i=0, n=0; flags_names[i].flag; i++) {
+          if (flags & flags_names[i].flag)
+               PrintF( "%s%s", n++ ? "," : "", flags_names[i].name );
+     }
+}
+
+template<>
 ToString<DFBSurfaceCapabilities>::ToString( const DFBSurfaceCapabilities &caps )
 {
      static const DirectFBSurfaceCapabilitiesNames(caps_names);
@@ -107,17 +106,6 @@ ToString<DFBSurfaceDrawingFlags>::ToString( const DFBSurfaceDrawingFlags &flags 
 }
 
 template<>
-ToString<DFBSurfaceBlittingFlags>::ToString( const DFBSurfaceBlittingFlags &flags )
-{
-     static const DirectFBSurfaceBlittingFlagsNames(flags_names);
-
-     for (int i=0, n=0; flags_names[i].flag; i++) {
-          if (flags & flags_names[i].flag)
-               PrintF( "%s%s", n++ ? "," : "", flags_names[i].name );
-     }
-}
-
-template<>
 ToString<DFBSurfacePixelFormat>::ToString( const DFBSurfacePixelFormat &format )
 {
      for (int i=0; dfb_pixelformat_names[i].format; i++) {
@@ -129,6 +117,16 @@ ToString<DFBSurfacePixelFormat>::ToString( const DFBSurfacePixelFormat &format )
 
      PrintF( "_INVALID_<0x%08x>", format );
 }
+
+
+// DirectFB types
+
+template<>
+ToString<DFBDimension>::ToString( const DFBDimension &v )
+{
+     PrintF( "%dx%d", v.w, v.h );
+}
+
 
 
 // CoreSurface types
@@ -156,6 +154,17 @@ ToString<CoreSurfaceConfig>::ToString( const CoreSurfaceConfig &config )
 // CoreSurface objects
 
 template<>
+ToString<CoreSurfaceAllocation>::ToString( const CoreSurfaceAllocation &allocation )
+{
+     PrintF( "{CoreSurfaceAllocation %s [%d] type:%s resid:%lu %s}",
+             ToString<FusionObject>(allocation.object).buffer(),
+             allocation.index,
+             ToString<CoreSurfaceTypeFlags>(allocation.type).buffer(),
+             allocation.resource_id,
+             ToString<CoreSurfaceConfig>(allocation.config).buffer() );
+}
+
+template<>
 ToString<CoreSurfaceBuffer>::ToString( const CoreSurfaceBuffer &buffer )
 {
      PrintF( "{CoreSurfaceBuffer %s [%d] allocs:%d type:%s resid:%lu %s}",
@@ -166,34 +175,71 @@ ToString<CoreSurfaceBuffer>::ToString( const CoreSurfaceBuffer &buffer )
              ToString<CoreSurfaceConfig>(buffer.config).buffer() );
 }
 
-
+/*********************************************************************************************************************/
 
 extern "C" {
 
 
 const char *
-DFB_ToString_DrawingFlags( DFBSurfaceDrawingFlags flags )
+ToString_CoreSurfaceTypeFlags( CoreSurfaceTypeFlags v )
 {
-     return ToString<DFBSurfaceDrawingFlags>( flags ).CopyTLS();
+     return ToString<CoreSurfaceTypeFlags>( v ).CopyTLS();
 }
 
 const char *
-DFB_ToString_BlittingFlags( DFBSurfaceBlittingFlags flags )
+ToString_DFBAccelerationMask( DFBAccelerationMask v )
 {
-     return ToString<DFBSurfaceBlittingFlags>( flags ).CopyTLS();
+     return ToString<DFBAccelerationMask>( v ).CopyTLS();
 }
-
 
 const char *
-DFB_ToString_CoreSurfaceTypeFlags( CoreSurfaceTypeFlags flags )
+ToString_DFBSurfaceBlittingFlags( DFBSurfaceBlittingFlags v )
 {
-     return ToString<CoreSurfaceTypeFlags>( flags ).CopyTLS();
+     return ToString<DFBSurfaceBlittingFlags>( v ).CopyTLS();
+}
+
+const char *
+ToString_DFBSurfaceCapabilities( DFBSurfaceCapabilities v )
+{
+     return ToString<DFBSurfaceCapabilities>( v ).CopyTLS();
+}
+
+const char *
+ToString_DFBSurfaceDrawingFlags( DFBSurfaceDrawingFlags v )
+{
+     return ToString<DFBSurfaceDrawingFlags>( v ).CopyTLS();
+}
+
+const char *
+ToString_DFBSurfacePixelFormat( DFBSurfacePixelFormat v )
+{
+     return ToString<DFBSurfacePixelFormat>( v ).CopyTLS();
+}
+
+const char *
+DFB_ToString_DFBDimension( const DFBDimension *v )
+{
+     return ToString<DFBDimension>( *v ).CopyTLS();
+}
+
+const char *
+ToString_CoreSurfaceConfig( const CoreSurfaceConfig *v )
+{
+     return ToString<CoreSurfaceConfig>( *v ).CopyTLS();
+}
+
+const char *
+ToString_CoreSurfaceAllocation( const CoreSurfaceAllocation *v )
+{
+     return ToString<CoreSurfaceAllocation>( *v ).CopyTLS();
+}
+
+const char *
+ToString_CoreSurfaceBuffer( const CoreSurfaceBuffer *v )
+{
+     return ToString<CoreSurfaceBuffer>( *v ).CopyTLS();
 }
 
 
 }
 
-
-}
-
-}

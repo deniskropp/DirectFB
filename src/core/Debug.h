@@ -32,18 +32,26 @@
 
 #include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
 
-#include <directfb.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <core/surface.h>
 
-const char *DFB_ToString_DrawingFlags ( DFBSurfaceDrawingFlags flags );
-const char *DFB_ToString_BlittingFlags( DFBSurfaceBlittingFlags flags );
+const char *ToString_CoreSurfaceTypeFlags     ( CoreSurfaceTypeFlags                  flags );
 
-const char *DFB_ToString_CoreSurfaceTypeFlags( CoreSurfaceTypeFlags flags );
+const char *ToString_DFBAccelerationMask      ( DFBAccelerationMask                   accel );
+const char *ToString_DFBSurfaceBlittingFlags  ( DFBSurfaceBlittingFlags               flags );
+const char *ToString_DFBSurfaceCapabilities   ( DFBSurfaceCapabilities                caps );
+const char *ToString_DFBSurfaceDrawingFlags   ( DFBSurfaceDrawingFlags                flags );
+const char *ToString_DFBSurfacePixelFormat    ( DFBSurfacePixelFormat                 format );
+
+const char *ToString_DFBDimension             ( const DFBDimension                   *dimension );
+
+const char *ToString_CoreSurfaceConfig        ( const CoreSurfaceConfig              *config );
+
+const char *ToString_CoreSurfaceAllocation    ( const CoreSurfaceAllocation          *allocation );
+const char *ToString_CoreSurfaceBuffer        ( const CoreSurfaceBuffer              *buffer );
 
 
 #ifdef __cplusplus
@@ -51,19 +59,7 @@ const char *DFB_ToString_CoreSurfaceTypeFlags( CoreSurfaceTypeFlags flags );
 
 
 #include <direct/String.h>
-
-
-namespace DirectFB {
-
-namespace Debug {
-
-
 #include <direct/ToString.h>
-
-
-}
-
-}
 
 
 #endif // __cplusplus
