@@ -88,4 +88,9 @@ DirectResult direct_log_init  ( DirectLog  *log,
  */
 DirectResult direct_log_deinit( DirectLog  *log );
 
+
+
+void direct_log_debug_delay( bool min );
+
+
 #endif

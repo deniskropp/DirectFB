@@ -152,6 +152,8 @@ direct_log_write( DirectLog        *log,
      ret = log->write( log, buffer, bytes );
      direct_mutex_unlock( &log->lock );
 
+     direct_log_debug_delay( true );
+
      return ret;
 }
 
@@ -210,6 +212,8 @@ direct_log_printf( DirectLog  *log,
 
      if (ptr != buf)
           direct_free( ptr );
+
+     direct_log_debug_delay( true );
 
      return ret;
 }
@@ -294,5 +298,42 @@ DirectLog *
 direct_log_default( void )
 {
      return default_log ? default_log : &fallback_log;
+}
+
+/**********************************************************************************************************************/
+
+__dfb_no_instrument_function__
+void
+direct_log_debug_delay( bool min )
+{
+     unsigned int us = min ? direct_config->log_delay_min_us : 0;
+
+     if (direct_config->log_delay_rand_us) {
+          unsigned int r = ((unsigned) rand()) % (unsigned) direct_config->log_delay_rand_us;
+
+          if (us < r)
+               us = r;
+     }
+
+     if (us)
+          direct_thread_sleep( us );
+
+
+     unsigned int loops = min ? direct_config->log_delay_min_loops : 0;
+
+     if (direct_config->log_delay_rand_loops) {
+          unsigned int r = ((unsigned) rand()) % (unsigned) direct_config->log_delay_rand_loops;
+
+          if (loops < r)
+               loops = r;
+     }
+
+     if (loops) {
+          volatile long val = 0;
+          unsigned int  loop;
+
+          for (loop=0; loop<loops; loop++)
+               val++;
+     }
 }
 
