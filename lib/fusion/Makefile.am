@@ -26,6 +26,7 @@ install-exec-local:
 includedir = @INCLUDEDIR@/fusion
 
 include_HEADERS = \
+	Debug.h			\
 	arena.h			\
 	build.h			\
 	call.h			\
@@ -52,6 +53,7 @@ if DIRECTFB_BUILD_PURE_VOODOO
 NON_PURE_VOODOO_SOURCESs =
 else
 NON_PURE_VOODOO_SOURCESs = \
+	Debug.cpp		\
 	arena.c			\
 	call.c			\
 	fusion.c		\
