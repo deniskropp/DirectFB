@@ -408,10 +408,7 @@ signal_handler( int num )
           D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d, no siginfo available <--\n", num );
 #endif
 
-     direct_log_lock( NULL );
-
      direct_trace_print_stacks();
-     direct_log_unlock( NULL );
 
      /* Loop through all handlers. */
      direct_mutex_lock( &handlers_lock );
@@ -486,15 +483,22 @@ handle_signals( void *ptr )
      pthread_sigmask( SIG_BLOCK, &mask, NULL );
 
      while (1) {
+          D_DEBUG_AT( Direct_Signals, "%s() -> waiting for a signal...\n", __FUNCTION__ );
+
           res = sigwaitinfo( &mask, &info );
 
           if ( -1 == res ) {
                //error
+               D_DEBUG_AT( Direct_Signals, "%s() -> got error %d (%s)\n", __FUNCTION__, errno, strerror(errno) );
           }
           else {
                if (SIG_CLOSE_SIGHANDLER == info.si_signo) {
+                    D_DEBUG_AT( Direct_Signals, "  -> got close signal %d (me %d, from %d)\n", SIG_CLOSE_SIGHANDLER, direct_getpid(), info.si_pid );
+
                     if (direct_getpid() == info.si_pid)
                          break;
+
+                    D_DEBUG_AT( Direct_Signals, "  -> not stopping signal handler from other process' signal\n" );
                }
                else {
 #ifdef SA_SIGINFO
@@ -505,6 +509,8 @@ handle_signals( void *ptr )
                }
           }
      }
+
+     D_DEBUG_AT( Direct_Signals, "  -> returning from signal handler thread\n" );
 
      return NULL;
 }
