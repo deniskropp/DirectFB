@@ -36,12 +36,15 @@ extern "C" {
 #endif
 
 
-
 #ifdef __cplusplus
 }
 
 
+#include <direct/String.h>
 
+/*
+ * In global namespace to allow universal usage without Direct::
+ */
 template <typename _Entity>
 class ToString : public Direct::String
 {
