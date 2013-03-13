@@ -106,17 +106,35 @@ class Task;
 class SurfaceTask;
 class DisplayTask;
 }
-#define DFB_Util_FPS    DirectFB::Util::FPS
-#define DFB_Renderer    DirectFB::Renderer
-#define DFB_Task        DirectFB::Task
-#define DFB_SurfaceTask DirectFB::SurfaceTask
-#define DFB_DisplayTask DirectFB::DisplayTask
+#define DFB_Util_FPS               DirectFB::Util::FPS
+#define DFB_Renderer               DirectFB::Renderer
+#define DFB_Task                   DirectFB::Task
+#define DFB_TaskList               Direct::List<DirectFB::Task*>
+#define DFB_TaskListLocked         Direct::ListLocked<DirectFB::Task*>
+#define DFB_TaskListSimple         Direct::ListSimple<DirectFB::Task*>
+#define DFB_SurfaceTask            DirectFB::SurfaceTask
+#define DFB_SurfaceTaskList        Direct::List<DirectFB::SurfaceTask*>
+#define DFB_SurfaceTaskListLocked  Direct::ListLocked<DirectFB::SurfaceTask*>
+#define DFB_SurfaceTaskListSimple  Direct::ListSimple<DirectFB::SurfaceTask*>
+#define DFB_DisplayTask            DirectFB::DisplayTask
+#define DFB_DisplayTaskList        Direct::List<DirectFB::DisplayTask*>
+#define DFB_DisplayTaskListLocked  Direct::ListLocked<DirectFB::DisplayTask*>
+#define DFB_DisplayTaskListSimple  Direct::ListSimple<DirectFB::DisplayTask*>
 #else
 typedef void DFB_Util_FPS;
 typedef void DFB_Renderer;
 typedef void DFB_Task;
+typedef void DFB_TaskList;
+typedef void DFB_TaskListLocked;
+typedef void DFB_TaskListSimple;
 typedef void DFB_SurfaceTask;
+typedef void DFB_SurfaceTaskList;
+typedef void DFB_SurfaceTaskListLocked;
+typedef void DFB_SurfaceTaskListSimple;
 typedef void DFB_DisplayTask;
+typedef void DFB_DisplayTaskList;
+typedef void DFB_DisplayTaskListLocked;
+typedef void DFB_DisplayTaskListSimple;
 #endif
 
 
