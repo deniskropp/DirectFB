@@ -74,6 +74,7 @@ typedef struct {
      bool                 use_prime_fd;
 
      bool                 mirror_outputs;
+     bool                 clone_outputs;
      bool                 multihead;
 
      char                 device_name[256];
@@ -85,7 +86,10 @@ typedef struct {
      drmModeModeInfo      mode[8];
      DFBDimension         primary_dimension[8];
 
-     int                  enabled_connectors;
+     int                  enabled_encoders;
+
+     uint32_t             cloned_connectors[8];
+     int                  cloned_count;
 } DRMKMSDataShared;
 
 typedef struct {

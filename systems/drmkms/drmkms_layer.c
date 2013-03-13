@@ -135,12 +135,19 @@ drmkmsSetRegion( CoreLayer                  *layer,
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_SOURCE))
      {
           int i;
-          for (i=0; i<shared->enabled_connectors; i++) {
+          for (i=0; i<shared->enabled_encoders; i++) {
                if (shared->mirror_outputs)
                     index = i;
 
-               ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder[index]->crtc_id, (u32)(long)left_lock->handle, config->source.x, config->source.y,
-                                     &drmkms->connector[index]->connector_id, 1, &shared->mode[index] );
+               if (shared->clone_outputs) {
+                    ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder[index]->crtc_id, (u32)(long)left_lock->handle, config->source.x, config->source.y,
+                                          shared->cloned_connectors, shared->cloned_count, &shared->mode[index] );
+               }
+               else {
+                    ret = drmModeSetCrtc( drmkms->fd, drmkms->encoder[index]->crtc_id, (u32)(long)left_lock->handle, config->source.x, config->source.y,
+                                          &drmkms->connector[index]->connector_id, 1, &shared->mode[index] );
+               }
+
                if (ret) {
                     D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
                     D_DEBUG_AT( DRMKMS_Mode, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder[index]->crtc_id, drmkms->connector[index]->connector_id, shared->mode[index].hdisplay, shared->mode[index].vdisplay );
@@ -216,7 +223,7 @@ drmkmsFlipRegion( CoreLayer             *layer,
      }
 
      if (shared->mirror_outputs) {
-          for (i=1; i<shared->enabled_connectors; i++) {
+          for (i=1; i<shared->enabled_encoders; i++) {
                ret = drmModePageFlip( drmkms->fd, drmkms->encoder[i]->crtc_id, (u32)(long)left_lock->handle, 0, 0);
                if (ret)
                     D_WARN( "DirectFB/DRMKMS: drmModePageFlip() failed for mirror on crtc id %d!\n", drmkms->encoder[i]->crtc_id );
