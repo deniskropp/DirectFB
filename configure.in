@@ -2629,7 +2629,7 @@ AM_CONDITIONAL(BUILD_TOOLS, test "$with_tools" = "yes")
 AM_CONDITIONAL(CROSS_COMPILING, test "$cross_compiling" = "yes")
 
 CFLAGS="$CFLAGS $DFB_INTERNAL_CFLAGS"
-CXXFLAGS="$CXXFLAGS $CFLAGS"
+CXXFLAGS="$CXXFLAGS ${CFLAGS//-Werror-implicit-function-declaration/}"
 DFB_LDFLAGS="$LDFLAGS $ZLIB_LIBS"
 
 CFLAGS="$CFLAGS $CFLAGS_STD"
@@ -2909,8 +2909,12 @@ Build options:
   Build shared libs         $enable_shared
   Build static libs         $enable_static
   Module directory          $MODULEDIR
+  CC                        $CC
+  CXX                       $CXX
+  LD                        $LD
   CPPFLAGS                  $CPPFLAGS
   CFLAGS                    $CFLAGS
+  CXXFLAGS                  $CXXFLAGS
   LDFLAGS                   $LDFLAGS
   LIBS                      $LIBS
   DYNLIB                    $DYNLIB
@@ -3034,6 +3038,7 @@ Building Graphics Drivers:
   nVidia                    $nvidia
   PVR2D                     $pvr2d
   PXA 3xx                   $pxa3xx
+  Renesas R-Car GP2D        $gp2d                 $GP2D_CFLAGS  $GP2D_LIBS
   Renesas SH7722/SH7723     $sh772x
   S3 Savage                 $savage
   SiS 315                   $sis315
