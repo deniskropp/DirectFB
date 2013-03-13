@@ -29,15 +29,13 @@ libdirectfb_gp2d_la_SOURCES =	\
 	gp2d_regs.h		\
 	gp2d_types.h
 
-libdirectfb_gp2d_la_CFLAGS = $(GP2D_CFLAGS)
-
 libdirectfb_gp2d_la_LDFLAGS = \
 	-module			\
-	-avoid-version		\
-	$(GP2D_LIBS)
+	-avoid-version
 
 libdirectfb_gp2d_la_LIBADD = \
-	$(top_builddir)/src/libdirectfb.la
+	$(top_builddir)/src/libdirectfb.la	\
+	$(GP2D_LIBS)
 
 
 include $(top_srcdir)/rules/libobject.make

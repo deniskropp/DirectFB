@@ -17,6 +17,11 @@
 #define GP2D_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL | \
                                           DSBLIT_BLEND_COLORALPHA | \
                                           DSBLIT_SRC_COLORKEY | \
+                                          DSBLIT_ROTATE90 | \
+                                          DSBLIT_ROTATE180 | \
+                                          DSBLIT_ROTATE270 | \
+                                          DSBLIT_FLIP_VERTICAL | \
+                                          DSBLIT_FLIP_HORIZONTAL | \
                                           DSBLIT_COLORIZE)
 
 #define GP2D_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | DFXL_STRETCHBLIT)
@@ -91,6 +96,7 @@ gp2d_exec_buffer( GP2DDriverData *gdrv,
 
 #define GP2D_DRAWMODE_REL       0x00000080
 #define GP2D_DRAWMODE_MTRE      0x00008000
+#define GP2D_DRAWMODE_BLKE      0x00000020
 #define GP2D_DRAWMODE_CLIP      0x00002000
 #define GP2D_DRAWMODE_STRANS    0x00000800
 #define GP2D_DRAWMODE_SS        0x00000100
@@ -113,6 +119,7 @@ gp2d_exec_buffer( GP2DDriverData *gdrv,
 #define GP2D_REG_DSTRR        0x05c
 #define GP2D_REG_STCR         0x080
 #define GP2D_REG_ALPHR        0x088
+#define GP2D_REG_AVALUE8R     0x098
 #define GP2D_REG_RCLR         0x0c0
 #define GP2D_REG_SCLMAR       0x0d0
 #define GP2D_REG_UCLMIR       0x0d4
@@ -121,6 +128,30 @@ gp2d_exec_buffer( GP2DDriverData *gdrv,
 #define GP2D_REG_MTRAR        0x104
 #define GP2D_REG_MD0R         0x1fc
 
+
+#define GP2D_RCLR_AVALUE           0x00010000
+#define GP2D_RCLR_AVALUE_0         0x00000000
+#define GP2D_RCLR_AVALUE_1         0x00010000
+
+#define GP2D_RCLR_SAU              0x00020000
+#define GP2D_RCLR_SAU_SOURCE       0x00000000
+#define GP2D_RCLR_SAU_AVALUE       0x00020000
+
+#define GP2D_RCLR_GBM              0x00040000
+#define GP2D_RCLR_GBM_8BIT         0x00000000
+#define GP2D_RCLR_GBM_16BIT        0x00040000
+
+#define GP2D_RCLR_DPF              0x00100000
+#define GP2D_RCLR_DPF_RGB16        0x00000000
+#define GP2D_RCLR_DPF_ARGB1555     0x00100000
+
+#define GP2D_RCLR_SPF              0x00200000
+#define GP2D_RCLR_SPF_RGB16        0x00000000
+#define GP2D_RCLR_SPF_ARGB1555     0x00200000
+
+#define GP2D_MS0R_GBM2             0x01000000
+#define GP2D_MS0R_GBM2_GBM         0x00000000
+#define GP2D_MS0R_GBM2_ARGB        0x01000000
 
 #define GP2D_GTRCR_AFE        0x00000001
 #define GP2D_GTRCR_GTE        0x80000000
