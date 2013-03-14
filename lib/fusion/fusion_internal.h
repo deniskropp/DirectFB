@@ -52,7 +52,7 @@
 # endif
 #endif
 
-#define FUSION_MAX_WORLDS     8
+#define FUSION_MAX_WORLDS     32
 
 #define EXECUTE3_BIN_FLUSH_MILLIS    16
 
