@@ -288,9 +288,22 @@ fusion_ref_down (FusionRef *ref, bool global)
                          }
 
                          if (call->handler) {
-                              fusion_call_execute( call, FCEF_NODIRECT | FCEF_ONEWAY, ref->single.call_arg, NULL, NULL );
+                              FusionCall copy_call = *call;
+                              int        copy_arg  = ref->single.call_arg;
 
                               direct_mutex_unlock( &ref->single.lock );
+
+                              fusion_call_execute( &copy_call, FCEF_NODIRECT | FCEF_ONEWAY, copy_arg, NULL, NULL );
+
+                              return DR_OK;
+                         }
+                         else if (call->handler3) {
+                              fusion_call_execute3( call, FCEF_NODIRECT | FCEF_ONEWAY | FCEF_QUEUE,
+                                                    ref->single.call_arg, NULL, 0, NULL, 0, NULL );
+
+                              direct_mutex_unlock( &ref->single.lock );
+
+                              fusion_world_flush_calls( world, 1 );
 
                               return DR_OK;
                          }
