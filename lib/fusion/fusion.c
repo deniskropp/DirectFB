@@ -400,13 +400,15 @@ map_shared_root( void               *shm_base,
                  bool                master,
                  FusionWorldShared **ret_shared )
 {
-     DirectResult ret = DR_OK;
-     int          fd;
-     void        *map;
-     char         tmpfs[FUSION_SHM_TMPFS_PATH_NAME_LEN];
-     char         root_file[FUSION_SHM_TMPFS_PATH_NAME_LEN+32];
-     int          flags = O_RDONLY;
-     int          prot  = PROT_READ;
+     DirectResult   ret = DR_OK;
+     int            fd;
+     void          *map;
+     char           tmpfs[FUSION_SHM_TMPFS_PATH_NAME_LEN];
+     char           root_file[FUSION_SHM_TMPFS_PATH_NAME_LEN+32];
+     int            flags = O_RDONLY;
+     int            prot  = PROT_READ;
+     unsigned long  size = direct_page_align(sizeof(FusionWorldShared));
+     unsigned long  base = (unsigned long) shm_base + (size + direct_pagesize()) * world_index;
 
      if (master || !fusion_config->secure_fusion) {
           prot  |= PROT_WRITE;
@@ -442,7 +444,7 @@ map_shared_root( void               *shm_base,
 
      if (master) {
           fchmod( fd, fusion_config->secure_fusion ? 0640 : 0660 );
-          if (ftruncate( fd, sizeof(FusionWorldShared))) {
+          if (ftruncate( fd, size )) {
                ret = errno2result(errno);
                D_PERROR( "Fusion/SHM: Could not truncate shared memory file '%s'!\n", root_file );
                goto out;
@@ -454,8 +456,10 @@ map_shared_root( void               *shm_base,
 
 
      /* Map shared area. */
-     map = mmap( shm_base + 0x10000 * world_index, sizeof(FusionWorldShared),
-                 prot, MAP_FIXED | MAP_SHARED, fd, 0 );
+     D_INFO( "Fusion/SHM: Shared root (%d) is %zu bytes [0x%lx @ 0x%lx]\n",
+             world_index, sizeof(FusionWorldShared), size, base );
+
+     map = mmap( (void*) base, size, prot, MAP_FIXED | MAP_SHARED, fd, 0 );
      if (map == MAP_FAILED) {
           ret = errno2result(errno);
           D_PERROR( "Fusion/Init: Mapping shared area failed!\n" );
