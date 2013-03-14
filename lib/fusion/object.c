@@ -34,7 +34,8 @@
 #include <direct/messages.h>
 #include <direct/thread.h>
 
-#include <fusion/build.h>
+#include <fusion/Debug.h>
+
 #include <fusion/conf.h>
 #include <fusion/object.h>
 #include <fusion/hash.h>
@@ -67,13 +68,19 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
      if (fusion_skirmish_prevail( &pool->lock ))
           return FCHR_RETURN;
 
+     D_MAGIC_ASSERT( pool, FusionObjectPool );
+
      /* Lookup the object. */
      object = fusion_hash_lookup( pool->objects, (void*)(long) call_arg );
+
+     D_DEBUG_AT( Fusion_Object, "  -> lookup as %p\n", object );
+
      if (object) {
           D_MAGIC_ASSERT( object, FusionObject );
 
           D_DEBUG_AT( Fusion_Object, "  -> object %p [%u] (ref %x), single refs %d\n",
                       object, object->id, object->ref.multi.id, object->ref.single.refs );
+          D_DEBUG_AT( Fusion_Object, "  -> %s\n", ToString_FusionObject( object ) );
 
           if (object->ref.single.dead > 1) {
                D_DEBUG_AT( Fusion_Object, "  -> died multiple times (%d), skipping...\n", object->ref.single.dead );
@@ -267,12 +274,12 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
 
      fusion_hash_destroy( pool->objects );
 
-     /* Destroy the pool lock. */
-     fusion_skirmish_destroy( &pool->lock );
+     D_MAGIC_CLEAR( pool );
 
      D_DEBUG_AT( Fusion_Object, "  -> pool destroyed (%s)\n", pool->name );
 
-     D_MAGIC_CLEAR( pool );
+     /* Destroy the pool lock. */
+     fusion_skirmish_destroy( &pool->lock );
 
      /* Deallocate shared memory. */
      SHFREE( shared->main_pool, pool->name );
