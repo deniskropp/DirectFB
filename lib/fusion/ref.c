@@ -168,7 +168,7 @@ fusion_ref_up (FusionRef *ref, bool global)
 
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_up( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
 
-     if (ref->multi.id == fusion_config->trace_ref) {
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
           D_INFO( "Fusion/Ref: 0x%08x up (%s), single refs %d\n", ref->multi.id, global ? "global" : "local", ref->single.refs );
           direct_trace_print_stack( NULL );
      }
@@ -249,7 +249,7 @@ fusion_ref_down (FusionRef *ref, bool global)
 
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_down( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
 
-     if (ref->multi.id == fusion_config->trace_ref) {
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
           D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs %d\n", ref->multi.id, global ? "global" : "local", ref->single.refs );
           direct_trace_print_stack( NULL );
      }
@@ -276,17 +276,17 @@ fusion_ref_down (FusionRef *ref, bool global)
                if (! --ref->single.refs) {
                     ref->single.dead++;
 
-                    if (ref->multi.id == fusion_config->trace_ref) {
-                         D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs %d, call %p\n", ref->multi.id, global ? "global" : "local", ref->single.refs,
+                    if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+                         D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs got %d! -> call %p\n", ref->multi.id, global ? "global" : "local", ref->single.refs,
                                  ref->single.call );
                     }
 
                     if (ref->single.call) {
                          FusionCall *call = ref->single.call;
 
-                         if (ref->multi.id == fusion_config->trace_ref) {
-                              D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs %d, handler %p\n", ref->multi.id, global ? "global" : "local", ref->single.refs,
-                                      call->handler );
+                         if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+                              D_INFO( "Fusion/Ref: 0x%08x down (%s), call_id 0x%08x, handler %p/%p\n", ref->multi.id, global ? "global" : "local",
+                                      call->call_id, call->handler, call->handler3 );
                          }
 
                          if (call->handler) {
@@ -365,7 +365,7 @@ fusion_ref_catch (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
-     if (ref->multi.id == fusion_config->trace_ref) {
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
           D_INFO( "Fusion/Ref: 0x%08x catch, single refs %d\n", ref->multi.id, ref->single.refs );
           direct_trace_print_stack( NULL );
      }
@@ -438,7 +438,7 @@ fusion_ref_throw (FusionRef *ref, FusionID catcher)
 {
      D_ASSERT( ref != NULL );
 
-     if (ref->multi.id == fusion_config->trace_ref) {
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
           D_INFO( "Fusion/Ref: 0x%08x throw, single refs %d\n", ref->multi.id, ref->single.refs );
           direct_trace_print_stack( NULL );
      }
