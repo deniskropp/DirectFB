@@ -112,7 +112,7 @@ FusionObjectPool FUSION_API *fusion_object_pool_create        ( const char      
                                                                 const FusionWorld      *world );
 
 DirectResult     FUSION_API  fusion_object_pool_destroy       ( FusionObjectPool       *pool,
-                                                                const FusionWorld      *world );
+                                                                FusionWorld            *world );
 
 
 DirectResult     FUSION_API  fusion_object_pool_enum          ( FusionObjectPool       *pool,

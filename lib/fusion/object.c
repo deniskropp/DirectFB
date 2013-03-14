@@ -211,8 +211,8 @@ fusion_object_pool_create( const char             *name,
 }
 
 DirectResult
-fusion_object_pool_destroy( FusionObjectPool  *pool,
-                            const FusionWorld *world )
+fusion_object_pool_destroy( FusionObjectPool *pool,
+                            FusionWorld      *world )
 {
      DirectResult        ret;
      FusionObject       *object;
@@ -229,6 +229,8 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
 
      D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
      D_DEBUG_AT( Fusion_Object, "  -> destroying pool...\n" );
+
+     fusion_world_flush_calls( world, 1 );
 
      D_DEBUG_AT( Fusion_Object, "  -> syncing...\n" );
 
@@ -279,6 +281,7 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
      D_DEBUG_AT( Fusion_Object, "  -> pool destroyed (%s)\n", pool->name );
 
      /* Destroy the pool lock. */
+     fusion_skirmish_dismiss( &pool->lock );
      fusion_skirmish_destroy( &pool->lock );
 
      /* Deallocate shared memory. */
