@@ -254,8 +254,6 @@ fusion_ref_down (FusionRef *ref, bool global)
           direct_trace_print_stack( NULL );
      }
 
-     fusion_world_flush_calls( _fusion_world( ref->multi.shared ), 1 );
-
      if (ref->multi.user) {
           FusionWorld *world = _fusion_world( ref->multi.shared );
 
@@ -328,6 +326,8 @@ fusion_ref_down (FusionRef *ref, bool global)
           }
      }
      else {
+          fusion_world_flush_calls( _fusion_world( ref->multi.shared ), 1 );
+
           while (ioctl (_fusion_fd( ref->multi.shared ), global ?
                         FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->multi.id))
           {
@@ -831,8 +831,6 @@ fusion_ref_destroy (FusionRef *ref)
 
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_destroy( %p [%d] )\n", ref, ref->multi.id );
 
-     fusion_world_flush_calls( _fusion_world( ref->multi.shared ), 1 );
-
      if (ref->multi.user) {
           FusionWorld *world = _fusion_world( ref->multi.shared );
 
@@ -851,6 +849,8 @@ fusion_ref_destroy (FusionRef *ref)
           }
      }
      else {
+          fusion_world_flush_calls( _fusion_world( ref->multi.shared ), 1 );
+
           while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_DESTROY, &ref->multi.id)) {
                switch (errno) {
                     case EINTR:
