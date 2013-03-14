@@ -46,14 +46,31 @@
 D_DEBUG_DOMAIN( Fusion_Object, "Fusion/Object", "Fusion Objects and Pools" );
 
 
+#if 0
+static FusionCallHandlerResult
+object_reference_watcher( int           caller,   /* fusion id of the caller */
+                          int           call_arg, /* optional call parameter */
+                          void         *ptr, /* optional call parameter */
+                          unsigned int  length,
+                          void         *ctx,      /* optional handler context */
+                          unsigned int  serial,
+                          void         *ret_ptr,
+                          unsigned int  ret_size,
+                          unsigned int *ret_length )
+#else
 static FusionCallHandlerResult
 object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, unsigned int serial, int *ret_val )
+#endif
 {
      FusionObject     *object;
      FusionObjectPool *pool = ctx;
 
      D_DEBUG_AT( Fusion_Object, "%s( %d, %d, %p, %p, %u, %p )\n",
+#if 0
+                 __FUNCTION__, caller, call_arg, ptr, ctx, serial, ret_ptr );
+#else
                  __FUNCTION__, caller, call_arg, call_ptr, ctx, serial, ret_val );
+#endif
 
 #if FUSION_BUILD_KERNEL
      if (caller && !pool->secure) {
