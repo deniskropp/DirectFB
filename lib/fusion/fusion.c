@@ -401,13 +401,15 @@ map_shared_root( void               *shm_base,
                  bool                master,
                  FusionWorldShared **ret_shared )
 {
-     DirectResult ret = DR_OK;
-     int          fd;
-     void        *map;
-     char         tmpfs[FUSION_SHM_TMPFS_PATH_NAME_LEN];
-     char         root_file[FUSION_SHM_TMPFS_PATH_NAME_LEN+32];
-     int          flags = O_RDONLY;
-     int          prot  = PROT_READ;
+     DirectResult   ret = DR_OK;
+     int            fd;
+     void          *map;
+     char           tmpfs[FUSION_SHM_TMPFS_PATH_NAME_LEN];
+     char           root_file[FUSION_SHM_TMPFS_PATH_NAME_LEN+32];
+     int            flags = O_RDONLY;
+     int            prot  = PROT_READ;
+     unsigned long  size = direct_page_align(sizeof(FusionWorldShared));
+     unsigned long  base = (unsigned long) shm_base + (size + direct_pagesize()) * world_index;
 
      if (master || !fusion_config->secure_fusion) {
           prot  |= PROT_WRITE;
@@ -443,7 +445,7 @@ map_shared_root( void               *shm_base,
 
      if (master) {
           fchmod( fd, fusion_config->secure_fusion ? 0640 : 0660 );
-          if (ftruncate( fd, sizeof(FusionWorldShared))) {
+          if (ftruncate( fd, size )) {
                ret = errno2result(errno);
                D_PERROR( "Fusion/SHM: Could not truncate shared memory file '%s'!\n", root_file );
                goto out;
@@ -455,8 +457,10 @@ map_shared_root( void               *shm_base,
 
 
      /* Map shared area. */
-     map = mmap( shm_base + 0x10000 * world_index, sizeof(FusionWorldShared),
-                 prot, MAP_FIXED | MAP_SHARED, fd, 0 );
+     D_INFO( "Fusion/SHM: Shared root (%d) is %zu bytes [0x%lx @ 0x%lx]\n",
+             world_index, sizeof(FusionWorldShared), size, base );
+
+     map = mmap( (void*) base, size, prot, MAP_FIXED | MAP_SHARED, fd, 0 );
      if (map == MAP_FAILED) {
           ret = errno2result(errno);
           D_PERROR( "Fusion/Init: Mapping shared area failed!\n" );
@@ -1202,11 +1206,20 @@ handle_dispatch_cleanups( FusionWorld *world )
 {
      FusionDispatchCleanup *cleanup, *next;
 
+     D_DEBUG_AT( Fusion_Main_Dispatch, "%s( %p )\n", __FUNCTION__, world );
+
      direct_list_foreach_safe (cleanup, next, world->dispatch_cleanups) {
+#if D_DEBUG_ENABLED
+          if (direct_log_domain_check( &Fusion_Main_Dispatch )) // avoid call to direct_trace_lookup_symbol_at
+               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> %s (%p)\n", direct_trace_lookup_symbol_at( cleanup->func ), cleanup->ctx );
+#endif
+
           cleanup->func( cleanup->ctx );
 
           D_FREE( cleanup );
      }
+
+     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> cleanups done.\n" );
 
      world->dispatch_cleanups = NULL;
 }
@@ -1235,9 +1248,10 @@ refs_iterate( DirectMap    *map,
 static void *
 fusion_dispatch_loop( DirectThread *thread, void *arg )
 {
-     int          len = 0;
-     char        *buf = malloc(FUSION_MESSAGE_SIZE*4);
-     FusionWorld *world = arg;
+     ssize_t      len      = 0;
+     size_t       buf_size = FUSION_MESSAGE_SIZE * 4;
+     char        *buf      = malloc( buf_size );
+     FusionWorld *world    = arg;
 
      D_DEBUG_AT( Fusion_Main_Dispatch, "%s() running...\n", __FUNCTION__ );
 
@@ -1246,7 +1260,9 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
           D_MAGIC_ASSERT( world, FusionWorld );
 
-          len = read( world->fusion_fd, buf, FUSION_MESSAGE_SIZE*4 );
+          D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p ) ==> read( %zu )...\n", __FUNCTION__, world, buf_size );
+
+          len = read( world->fusion_fd, buf, buf_size );
           if (len < 0) {
                if (errno == EINTR)
                     continue;
@@ -1254,7 +1270,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                break;
           }
 
-          D_DEBUG_AT( Fusion_Main_Dispatch, "  -> got %d bytes...\n", len );
+          D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p ) ==> got %zu (of up to %zu)\n", __FUNCTION__, world, len, buf_size );
 
           direct_thread_lock( world->dispatch_loop );
 
@@ -1265,6 +1281,9 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                while (buf_p < buf + len) {
                     FusionReadMessage *header = (FusionReadMessage*) buf_p;
                     void              *data   = buf_p + sizeof(FusionReadMessage);
+
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p ) ==> %p [%ld]\n",
+                                __FUNCTION__, world, header, (long) buf_p - (long) buf );
 
                     if (world->dispatch_stop) {
                          D_DEBUG_AT( Fusion_Main_Dispatch, "  -> ABORTING (dispatch_stop!)\n" );
@@ -1327,6 +1346,8 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                                        header->msg_type );
                               break;
                     }
+
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> done.\n" );
 
                     buf_p = data + ((header->msg_size + 3) & ~3);
                }

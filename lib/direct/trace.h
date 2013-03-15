@@ -85,6 +85,11 @@ void DIRECT_API direct_trace_print_stacks( void );
 int  DIRECT_API direct_trace_debug_indent( void );
 
 /*
+ * Retrieve pointer to calling function if present, otherwise NULL.
+ */
+void DIRECT_API *direct_trace_get_caller( void );
+
+/*
  * Create a copy of a stack in 'buffer' or of current if NULL.
  */
 DirectTraceBuffer DIRECT_API *direct_trace_copy_buffer( DirectTraceBuffer *buffer );

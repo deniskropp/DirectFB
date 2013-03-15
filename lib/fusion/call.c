@@ -60,6 +60,7 @@ D_DEBUG_DOMAIN( Fusion_Call, "Fusion/Call", "Fusion Call" );
 typedef struct {
      int          magic;
 
+     DirectThread        *thread;
      bool                 dispatcher;
 
      FusionWorld         *world;
@@ -79,8 +80,11 @@ call_tls_destroy( void *arg )
      CallTLS *call_tls = arg;
 
      D_MAGIC_ASSERT( call_tls, CallTLS );
+     D_ASSUME( call_tls->thread == direct_thread_self() );
 
      fusion_world_flush_calls( call_tls->world, 0 );
+
+     D_ASSUME( call_tls->bins_num == 0 );
 
      D_MAGIC_CLEAR( call_tls );
 
@@ -118,6 +122,7 @@ Call_GetTLS( FusionWorld *world )
           if (self)
                call_tls->dispatcher = fusion_dispatcher_tid( world ) == direct_thread_get_tid( self );
 
+          call_tls->thread    = self;
           call_tls->world     = world;
           call_tls->bins      = (FusionCallExecute3*) (call_tls + 1);
           call_tls->bins_data = (char*) (call_tls->bins + fusion_config->call_bin_max_num);
@@ -313,8 +318,10 @@ fusion_call_execute (FusionCall          *call,
      if (!call->handler)
           return DR_DESTROYED;
 
-     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+#if D_DEBUG_ENABLED
+     if (call->fusion_id == _fusion_id( call->shared ) && direct_log_domain_check( &Fusion_Call ))
           D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+#endif
 
      if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
           int                     ret;
@@ -379,8 +386,10 @@ fusion_call_execute2(FusionCall          *call,
 //     if (!call->handler)
 //          return DR_DESTROYED;
 
-     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+#if D_DEBUG_ENABLED
+     if (call->fusion_id == _fusion_id( call->shared ) && direct_log_domain_check( &Fusion_Call ))
           D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+#endif
 
      if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
           int                     ret;
@@ -458,12 +467,12 @@ fusion_call_execute3(FusionCall          *call,
 //     if (!call->handler)
 //          return DR_DESTROYED;
 
+     world = _fusion_world( call->shared );
+
 #if D_DEBUG_ENABLED
-     if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
+     if (call->fusion_id == fusion_id( world ) && direct_log_domain_check( &Fusion_Call ))
           D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler3 ) );
 #endif
-
-     world = _fusion_world( call->shared );
 
      call_tls = Call_GetTLS( world );
 
@@ -496,6 +505,8 @@ fusion_call_execute3(FusionCall          *call,
                     if (ret)
                          return ret;
                }
+
+               D_ASSERT( ret_size == 0 );
 
                call_tls->bins[call_tls->bins_num].call_id    = call->call_id;
                call_tls->bins[call_tls->bins_num].call_arg   = call_arg;
@@ -567,13 +578,32 @@ fusion_world_flush_calls( FusionWorld *world, int lock )
 
      call_tls = Call_GetTLS( world );
 
-     if (call_tls->dispatcher)
-          return DR_OK;
+     D_DEBUG_AT( Fusion_Call, "%s( %p, lock %d )\n", __FUNCTION__, world, lock );
 
      if (call_tls->bins_num > 0) {
+#if D_DEBUG_ENABLED
           D_DEBUG_AT( Fusion_Call, "  -> num %d, length %u\n", call_tls->bins_num, call_tls->bins_data_len );
 
-          call_tls->bins[call_tls->bins_num - 1].flags &= ~FCEF_FOLLOW;
+          if (direct_log_domain_check( &Fusion_Call )) {
+               int i;
+
+               for (i=0; i<call_tls->bins_num; i++) {
+                    D_DEBUG_AT( Fusion_Call, "  -> [%2d] call_id 0x%08x, call_arg %3d, length %3u, flasg 0x%08x\n", i,
+                                call_tls->bins[i].call_id,
+                                call_tls->bins[i].call_arg,
+                                call_tls->bins[i].length,
+                                call_tls->bins[i].flags );
+               }
+          }
+#endif
+
+          if (call_tls->dispatcher) {
+               D_DEBUG_AT( Fusion_Call, "  -> I AM THE DISPATCHER, NOT FLUSHING\n" );
+               D_WARN("no flush in dispatcher");
+               return DR_OK;
+          }
+
+          call_tls->bins[call_tls->bins_num - 1].flags &= ~(FCEF_FOLLOW | FCEF_QUEUE);
 
           while (ioctl( world->fusion_fd, FUSION_CALL_EXECUTE3, call_tls->bins )) {
                switch (errno) {
@@ -766,8 +796,11 @@ fusion_call_destroy (FusionCall *call)
      D_ASSERT( call != NULL );
      D_ASSERT( call->handler != NULL || call->handler3 != NULL );
 
+     D_DEBUG_AT( Fusion_Call, "  -> call_id 0x%08x\n", call->call_id );
+
      if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
-          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ? call->handler :
+                                                                               (FusionCallHandler) call->handler3 ) );
 
      while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_DESTROY, &call->call_id)) {
           switch (errno) {

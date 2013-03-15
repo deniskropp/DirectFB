@@ -117,6 +117,17 @@ Task_Done( Task *task )
 }
 
 void
+Task_DoneFail( Task      *task,
+               DFBResult  result )
+{
+     D_DEBUG_AT( DirectFB_Task, "%s( %p )\n", __FUNCTION__, task );
+
+     D_ASSUME( result != DFB_OK );
+
+     task->Done( result );
+}
+
+void
 Task_Log( Task       *task,
           const char *action )
 {

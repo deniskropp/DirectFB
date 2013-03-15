@@ -67,6 +67,8 @@ const char   *direct_config_usage =
      "  perf-dump-interval=<ms>        Create thread dumping performance counters every ms milli seconds\n"
      "  log-delay-rand-loops=<loops>   Add random busy loops (of max loops) to central logging code for testing purpose\n"
      "  log-delay-rand-us=<us>         Add random sleep (of max us) to central logging code for testing purpose\n"
+     "  log-delay-min-loops=<loops>    Set minimum busy loops after each log message\n"
+     "  log-delay-min-us=<us>          Set minimum sleep after each log message\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -561,7 +563,7 @@ direct_config_set( const char *name, const char *value )
           if (value) {
                long long max;
 
-               if (direct_sscanf( value, "%lld", &max ) < 1) {
+               if (direct_sscanf( value, "%d", &max ) < 1) {
                     D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
                     return DR_INVARG;
                }
@@ -577,12 +579,44 @@ direct_config_set( const char *name, const char *value )
           if (value) {
                long long max;
 
-               if (direct_sscanf( value, "%lld", &max ) < 1) {
+               if (direct_sscanf( value, "%d", &max ) < 1) {
                     D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
                     return DR_INVARG;
                }
 
                direct_config->log_delay_rand_us = max;
+          }
+          else {
+               D_ERROR("Direct/Config '%s': No value specified!\n", name);
+               return DR_INVARG;
+          }
+     } else
+     if (direct_strcmp (name, "log-delay-min-loops" ) == 0) {
+          if (value) {
+               long long min;
+
+               if (direct_sscanf( value, "%d", &min ) < 1) {
+                    D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
+                    return DR_INVARG;
+               }
+
+               direct_config->log_delay_min_loops = min;
+          }
+          else {
+               D_ERROR("Direct/Config '%s': No value specified!\n", name);
+               return DR_INVARG;
+          }
+     } else
+     if (direct_strcmp (name, "log-delay-min-us" ) == 0) {
+          if (value) {
+               long long min;
+
+               if (direct_sscanf( value, "%d", &min ) < 1) {
+                    D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
+                    return DR_INVARG;
+               }
+
+               direct_config->log_delay_min_us = min;
           }
           else {
                D_ERROR("Direct/Config '%s': No value specified!\n", name);

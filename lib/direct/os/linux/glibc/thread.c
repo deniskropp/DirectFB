@@ -367,6 +367,9 @@ direct_thread_cleanup( void *arg )
 
      D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid );
 
+     if (thread->trace_buffer)
+          direct_trace_free_buffer( thread->trace_buffer );
+
      if (thread->detached) {
           D_MAGIC_CLEAR( thread );
 

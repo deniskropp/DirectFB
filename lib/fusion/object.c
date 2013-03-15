@@ -34,7 +34,8 @@
 #include <direct/messages.h>
 #include <direct/thread.h>
 
-#include <fusion/build.h>
+#include <fusion/Debug.h>
+
 #include <fusion/conf.h>
 #include <fusion/object.h>
 #include <fusion/hash.h>
@@ -45,14 +46,31 @@
 D_DEBUG_DOMAIN( Fusion_Object, "Fusion/Object", "Fusion Objects and Pools" );
 
 
+#if 0
+static FusionCallHandlerResult
+object_reference_watcher( int           caller,   /* fusion id of the caller */
+                          int           call_arg, /* optional call parameter */
+                          void         *ptr, /* optional call parameter */
+                          unsigned int  length,
+                          void         *ctx,      /* optional handler context */
+                          unsigned int  serial,
+                          void         *ret_ptr,
+                          unsigned int  ret_size,
+                          unsigned int *ret_length )
+#else
 static FusionCallHandlerResult
 object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, unsigned int serial, int *ret_val )
+#endif
 {
      FusionObject     *object;
      FusionObjectPool *pool = ctx;
 
      D_DEBUG_AT( Fusion_Object, "%s( %d, %d, %p, %p, %u, %p )\n",
+#if 0
+                 __FUNCTION__, caller, call_arg, ptr, ctx, serial, ret_ptr );
+#else
                  __FUNCTION__, caller, call_arg, call_ptr, ctx, serial, ret_val );
+#endif
 
 #if FUSION_BUILD_KERNEL
      if (caller && !pool->secure) {
@@ -67,13 +85,19 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
      if (fusion_skirmish_prevail( &pool->lock ))
           return FCHR_RETURN;
 
+     D_MAGIC_ASSERT( pool, FusionObjectPool );
+
      /* Lookup the object. */
      object = fusion_hash_lookup( pool->objects, (void*)(long) call_arg );
+
+     D_DEBUG_AT( Fusion_Object, "  -> lookup as %p\n", object );
+
      if (object) {
           D_MAGIC_ASSERT( object, FusionObject );
 
           D_DEBUG_AT( Fusion_Object, "  -> object %p [%u] (ref %x), single refs %d\n",
                       object, object->id, object->ref.multi.id, object->ref.single.refs );
+          D_DEBUG_AT( Fusion_Object, "  -> %s\n", ToString_FusionObject( object ) );
 
           if (object->ref.single.dead > 1) {
                D_DEBUG_AT( Fusion_Object, "  -> died multiple times (%d), skipping...\n", object->ref.single.dead );
@@ -204,8 +228,8 @@ fusion_object_pool_create( const char             *name,
 }
 
 DirectResult
-fusion_object_pool_destroy( FusionObjectPool  *pool,
-                            const FusionWorld *world )
+fusion_object_pool_destroy( FusionObjectPool *pool,
+                            FusionWorld      *world )
 {
      DirectResult        ret;
      FusionObject       *object;
@@ -222,6 +246,8 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
 
      D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
      D_DEBUG_AT( Fusion_Object, "  -> destroying pool...\n" );
+
+     fusion_world_flush_calls( world, 1 );
 
      D_DEBUG_AT( Fusion_Object, "  -> syncing...\n" );
 
@@ -267,12 +293,13 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
 
      fusion_hash_destroy( pool->objects );
 
-     /* Destroy the pool lock. */
-     fusion_skirmish_destroy( &pool->lock );
+     D_MAGIC_CLEAR( pool );
 
      D_DEBUG_AT( Fusion_Object, "  -> pool destroyed (%s)\n", pool->name );
 
-     D_MAGIC_CLEAR( pool );
+     /* Destroy the pool lock. */
+     fusion_skirmish_dismiss( &pool->lock );
+     fusion_skirmish_destroy( &pool->lock );
 
      /* Deallocate shared memory. */
      SHFREE( shared->main_pool, pool->name );

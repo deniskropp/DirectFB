@@ -111,17 +111,6 @@ check_domain( DirectLogDomain *domain );
 static DirectLogLevel
 check_domain( DirectLogDomain *domain )
 {
-     if (direct_config->log_delay_rand_us)
-          direct_thread_sleep( rand() % direct_config->log_delay_rand_us );
-
-     if (direct_config->log_delay_rand_loops) {
-          volatile long val = 0;
-          long long     loop;
-
-          for (loop=0; loop<direct_config->log_delay_rand_loops; loop++)
-               val++;
-     }
-
      if (direct_config->log_none)
           return DIRECT_LOG_NONE;
 
@@ -274,6 +263,8 @@ direct_log_domain_vprintf( DirectLogDomain *domain,
           if (ptr != buf)
                direct_free( ptr );
      }
+     else
+          direct_log_debug_delay( false );
 
      return DR_OK;
 }
@@ -340,6 +331,8 @@ direct_log_domain_log( DirectLogDomain *domain,
           if (ptr != buf)
                direct_free( ptr );
      }
+     else
+          direct_log_debug_delay( false );
 
      return DR_OK;
 }
