@@ -65,6 +65,8 @@ void             Task_AddNotify       ( DFB_Task                *task,
                                         bool                     follow );
 void             Task_Flush           ( DFB_Task                *task );
 void             Task_Done            ( DFB_Task                *task );
+void             Task_DoneFail        ( DFB_Task                *task,
+                                        DFBResult                result );
 void             Task_Log             ( DFB_Task                *task,
                                         const char              *action );
 
