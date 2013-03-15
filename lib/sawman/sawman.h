@@ -24,13 +24,13 @@
 #ifndef __SAWMAN_H__
 #define __SAWMAN_H__
 
+#include <directfb.h>
+#include <directfb_windows.h>
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-#include <directfb.h>
-#include <directfb_windows.h>
 
 #include <direct/list.h>
 #include <fusion/ref.h>
