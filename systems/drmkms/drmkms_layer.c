@@ -62,9 +62,9 @@ drmkmsInitLayer( CoreLayer                  *layer,
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
 
-     data->index       = drmkms->layerplane_index_count++;
-     data->layer_index = drmkms->layer_index_count++;
-
+     data->index       = shared->layerplane_index_count++;
+     data->layer_index = shared->layer_index_count++;
+     data->level       = 0;
 
      description->type             = DLTF_GRAPHICS;
      description->caps             = DLCAPS_SURFACE;
@@ -275,8 +275,9 @@ drmkmsPlaneInitLayer( CoreLayer                  *layer,
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
-     data->index       = drmkms->layerplane_index_count++;
-     data->plane_index = drmkms->plane_index_count++;
+     data->index       = shared->layerplane_index_count++;
+     data->plane_index = shared->plane_index_count++;
+     data->level       = data->index;
 
      D_DEBUG_AT( DRMKMS_Layer, "  -> getting plane with index %d\n", data->plane_index );
 
@@ -312,11 +313,65 @@ drmkmsPlaneInitLayer( CoreLayer                  *layer,
                     data->colorkey_propid = prop->prop_id;
                     D_INFO( "DirectFB/DRMKMS: found colorkey property for layer id %d\n", data->plane->plane_id );
                }
+               else if (!strcmp(prop->name, "zpos")) {
+                    description->caps |= DLCAPS_LEVELS;
+                    data->zpos_propid = prop->prop_id;
+                    D_INFO( "DirectFB/DRMKMS: found zpos property for layer id %d\n", data->plane->plane_id );
+
+                    drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->zpos_propid, data->level );
+               }
 
                drmModeFreeProperty( prop );
           }
           drmModeFreeObjectProperties( props );
      }
+
+     shared->layer_data[data->index] = data;
+
+     return DFB_OK;
+}
+
+
+static DFBResult
+drmkmsPlaneGetLevel( CoreLayer *layer,
+                     void      *driver_data,
+                     void      *layer_data,
+                     int       *level )
+{
+     DRMKMSLayerData  *data   = layer_data;
+
+     if (level)
+          *level = data->level;
+
+     return DFB_OK;
+}
+
+
+static DFBResult
+drmkmsPlaneSetLevel( CoreLayer *layer,
+                     void      *driver_data,
+                     void      *layer_data,
+                     int        level )
+{
+     DRMKMSData       *drmkms = driver_data;
+     DRMKMSDataShared *shared = drmkms->shared;
+     DRMKMSLayerData  *data   = layer_data;
+     int               ret;
+
+     if (!data->zpos_propid)
+          return DFB_UNSUPPORTED;
+
+     if (level < 1 || level > shared->plane_index_count)
+          return DFB_INVARG;
+
+     ret = drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->zpos_propid, level );
+
+     if (ret) {
+          D_ERROR( "DirectFB/DRMKMS: drmModeObjectSetProperty() failed setting zpos\n");
+          return DFB_FAILURE;
+     }
+
+     data->level = level;
 
      return DFB_OK;
 }
@@ -418,6 +473,8 @@ static const DisplayLayerFuncs _drmkmsLayerFuncs = {
 static const DisplayLayerFuncs _drmkmsPlaneLayerFuncs = {
      .LayerDataSize = drmkmsLayerDataSize,
      .InitLayer     = drmkmsPlaneInitLayer,
+     .GetLevel      = drmkmsPlaneGetLevel,
+     .SetLevel      = drmkmsPlaneSetLevel,
      .TestRegion    = drmkmsPlaneTestRegion,
      .SetRegion     = drmkmsPlaneSetRegion,
      .RemoveRegion  = drmkmsPlaneRemoveRegion,
