@@ -165,8 +165,12 @@ InitLocal( DRMKMSData *drmkms )
 
 
      if (drmkms->plane_resources) {
-          for (i = 0; i < drmkms->plane_resources->count_planes; i++)
+          for (i = 0; i < drmkms->plane_resources->count_planes; i++) {
+               if (i==drmkms->shared->plane_limit)
+                    break;
+
                dfb_layers_register( drmkms->screen, drmkms, drmkmsPlaneLayerFuncs );
+          }
      }
 
      return DFB_OK;
@@ -252,6 +256,16 @@ system_initialize( CoreDFB *core, void **ret_data )
           shared->multihead = 1;
           D_INFO("DRMKMS/Init: multi-head mode enabled\n");
      }
+
+     shared->plane_limit = direct_config_get_int_value("drmkms-plane-limit");
+
+     if (shared->plane_limit > 15)
+          shared->plane_limit = 15;
+
+     else if (shared->plane_limit == 0)
+          shared->plane_limit = 15;
+     else
+          D_INFO("DRMKMS/Init: limiting possible overlay planes to %d\n", shared->plane_limit);
 
      if (direct_config_get("drmkms-use-prime-fd", &optionbuffer, 1, &ret_num) == DR_OK) {
           shared->use_prime_fd = 1;

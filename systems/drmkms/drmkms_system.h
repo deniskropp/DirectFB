@@ -62,7 +62,8 @@ typedef struct {
      int                  layer_index;
      int                  plane_index;
 
-	drmModePlane        *plane;
+     drmModePlane        *plane;
+     uint32_t             colorkey_propid;
 
 } DRMKMSLayerData;
 
@@ -76,6 +77,7 @@ typedef struct {
      bool                 mirror_outputs;
      bool                 clone_outputs;
      bool                 multihead;
+     int                  plane_limit;
 
      char                 device_name[256];
 
@@ -90,6 +92,7 @@ typedef struct {
 
      uint32_t             cloned_connectors[8];
      int                  cloned_count;
+
 } DRMKMSDataShared;
 
 typedef struct {

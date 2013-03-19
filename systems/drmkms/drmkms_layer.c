@@ -132,8 +132,7 @@ drmkmsSetRegion( CoreLayer                  *layer,
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
 
-     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_SOURCE))
-     {
+     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_SOURCE)) {
           int i;
           for (i=0; i<shared->enabled_encoders; i++) {
                if (shared->mirror_outputs)
@@ -272,6 +271,7 @@ drmkmsPlaneInitLayer( CoreLayer                  *layer,
      DRMKMSData       *drmkms = driver_data;
      DRMKMSDataShared *shared = drmkms->shared;
      DRMKMSLayerData  *data   = layer_data;
+     drmModeObjectPropertiesPtr props;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
@@ -299,6 +299,24 @@ drmkmsPlaneInitLayer( CoreLayer                  *layer,
      config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
      config->buffermode  = DLBM_FRONTONLY;
 
+
+     props = drmModeObjectGetProperties( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE );
+     if (props) {
+          int                i;
+          drmModePropertyPtr prop;
+
+          for (i = 0; i < props->count_props; i++) {
+               prop = drmModeGetProperty( drmkms->fd, props->props[i] );
+               if (!strcmp(prop->name, "colorkey")) {
+                    description->caps |= DLCAPS_SRC_COLORKEY;
+                    data->colorkey_propid = prop->prop_id;
+                    D_INFO( "DirectFB/DRMKMS: found colorkey property for layer id %d\n", data->plane->plane_id );
+               }
+
+               drmModeFreeProperty( prop );
+          }
+          drmModeFreeObjectProperties( props );
+     }
 
      return DFB_OK;
 }
@@ -333,19 +351,32 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
      DRMKMSLayerData *data   = layer_data;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
-     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE))
-     {
+     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE)) {
           ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
                                 /* plane_flags */ 0, config->dest.x, config->dest.y, config->dest.w, config->dest.h,
                                 config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
 
           if (ret) {
                D_INFO( "DirectFB/DRMKMS: drmModeSetPlane(plane_id=%d, fb_id=%d ,  dest=%d,%d-%dx%d, src=%d,%d-%dx%d) failed! (%d)\n", data->plane->plane_id, (u32)(long)left_lock->handle,
-                        DFB_RECTANGLE_VALS(&config->dest), DFB_RECTANGLE_VALS(&config->source), ret );
+                       DFB_RECTANGLE_VALS(&config->dest), DFB_RECTANGLE_VALS(&config->source), ret );
 
                return DFB_FAILURE;
           }
 
+     }
+
+     if (updated & (CLRCF_SRCKEY | CLRCF_OPTIONS)) {
+          uint32_t drm_colorkey = config->src_key.r << 16 | config->src_key.g << 8 | config->src_key.b;
+
+          if (config->options & DLOP_SRC_COLORKEY)
+               drm_colorkey |= 0x01000000;
+
+          ret = drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->colorkey_propid, drm_colorkey );
+
+          if (ret) {
+               D_ERROR( "DirectFB/DRMKMS: drmModeObjectSetProperty() failed setting colorkey\n");
+               return DFB_FAILURE;
+          }
      }
 
      return DFB_OK;
@@ -353,9 +384,9 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
 
 static DFBResult
 drmkmsPlaneRemoveRegion( CoreLayer             *layer,
-                          void                  *driver_data,
-                          void                  *layer_data,
-                          void                  *region_data )
+                         void                  *driver_data,
+                         void                  *layer_data,
+                         void                  *region_data )
 {
      DFBResult        ret;
      DRMKMSData      *drmkms = driver_data;
@@ -365,7 +396,7 @@ drmkmsPlaneRemoveRegion( CoreLayer             *layer,
 
 
      ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, 0,
-                                     /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
+                           /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
 
      if (ret) {
           D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n" );
