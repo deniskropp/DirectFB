@@ -134,7 +134,7 @@ drmkmsSetRegion( CoreLayer                  *layer,
 
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_SOURCE)) {
           int i;
-          for (i=0; i<shared->enabled_encoders; i++) {
+          for (i=0; i<shared->enabled_crtcs; i++) {
                if (shared->mirror_outputs)
                     index = i;
 
@@ -222,7 +222,7 @@ drmkmsFlipRegion( CoreLayer             *layer,
      }
 
      if (shared->mirror_outputs) {
-          for (i=1; i<shared->enabled_encoders; i++) {
+          for (i=1; i<shared->enabled_crtcs; i++) {
                ret = drmModePageFlip( drmkms->fd, drmkms->encoder[i]->crtc_id, (u32)(long)left_lock->handle, 0, 0);
                if (ret)
                     D_WARN( "DirectFB/DRMKMS: drmModePageFlip() failed for mirror on crtc id %d!\n", drmkms->encoder[i]->crtc_id );

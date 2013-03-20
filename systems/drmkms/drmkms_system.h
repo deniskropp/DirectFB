@@ -90,7 +90,7 @@ typedef struct {
      drmModeModeInfo      mode[8];
      DFBDimension         primary_dimension[8];
 
-     int                  enabled_encoders;
+     int                  enabled_crtcs;
 
      uint32_t             cloned_connectors[8];
      int                  cloned_count;

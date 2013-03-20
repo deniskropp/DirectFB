@@ -347,8 +347,8 @@ system_join( CoreDFB *core, void **ret_data )
 
      *ret_data = m_data = drmkms;
 
-     if ((shared->enabled_encoders > 1) && shared->multihead) {
-          for (i=1; i<shared->enabled_encoders; i++) {
+     if ((shared->enabled_crtcs > 1) && shared->multihead) {
+          for (i=1; i<shared->enabled_crtcs; i++) {
                dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
           }
      }
