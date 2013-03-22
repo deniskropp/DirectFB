@@ -317,10 +317,30 @@ CoreGraphicsStateClient_FlushCurrent()
      StateHolder *holder = state_holder_tls.Get( NULL );
      D_ASSERT( holder != NULL );
 
-     holder->set( NULL );
+     if (holder->client) {
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> unsetting client %p (secure slave or always-indirect)\n", holder->client );
 
-     // TODO: check if using renderer at all to avoid TLS creation
-     DirectFB::Renderer::FlushCurrent();
+          holder->set( NULL );
+     }
+     else if (dfb_config->task_manager) {
+          if (dfb_config->call_nodirect) {
+               if (direct_thread_get_tid( direct_thread_self() ) == fusion_dispatcher_tid(core_dfb->world)) {
+                    D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in dispatcher with task-manager and always-indirect, flushing Renderer\n" );
+
+                    DirectFB::Renderer::FlushCurrent();
+               }
+          }
+          else if (!fusion_config->secure_fusion || dfb_core_is_master( core_dfb )) {
+               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in master (or insecure slave) with task-manager, flushing Renderer\n" );
+
+               DirectFB::Renderer::FlushCurrent();
+          }
+     }
+     else if (!dfb_config->call_nodirect && (dfb_core_is_master( core_dfb ) || !fusion_config->secure_fusion)) {
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in master (or insecure slave) without task-manager, calling dfb_gfxcard_flush()\n" );
+
+          dfb_gfxcard_flush();
+     }
 }
 
 DFBResult
