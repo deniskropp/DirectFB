@@ -1465,6 +1465,12 @@ fusion_call_set_quota( FusionCall   *call,
      return DR_OK;
 }
 
+DirectResult
+fusion_world_flush_calls( FusionWorld *world, int lock )
+{
+     return DR_OK;
+}
+
 void
 __Fusion_call_init( void )
 {
