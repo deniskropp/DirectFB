@@ -390,7 +390,8 @@ fusion_object_create( FusionObjectPool  *pool,
 
      object->identity = identity;
 
-     object->create_stack = direct_trace_copy_buffer( NULL );
+     if (pool->secure || world->fusion_id == FUSION_ID_MASTER)
+          object->create_stack = direct_trace_copy_buffer( NULL );
 
      /* Initialize the reference counter. */
      if (fusion_ref_init2( &object->ref, pool->name, pool->secure, world )) {
