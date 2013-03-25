@@ -62,8 +62,11 @@ typedef struct {
      int                  layer_index;
      int                  plane_index;
 
-	drmModePlane        *plane;
+     drmModePlane        *plane;
+     uint32_t             colorkey_propid;
+     uint32_t             zpos_propid;
 
+     int                  level;
 } DRMKMSLayerData;
 
 typedef struct {
@@ -76,6 +79,7 @@ typedef struct {
      bool                 mirror_outputs;
      bool                 clone_outputs;
      bool                 multihead;
+     int                  plane_limit;
 
      char                 device_name[256];
 
@@ -86,10 +90,16 @@ typedef struct {
      drmModeModeInfo      mode[8];
      DFBDimension         primary_dimension[8];
 
-     int                  enabled_encoders;
+     int                  enabled_crtcs;
 
      uint32_t             cloned_connectors[8];
      int                  cloned_count;
+
+     DRMKMSLayerData     *layer_data[16];
+
+     int                  layer_index_count;
+     int                  plane_index_count;
+     int                  layerplane_index_count;
 } DRMKMSDataShared;
 
 typedef struct {
@@ -131,11 +141,6 @@ typedef struct {
      DirectMutex          lock;
      DirectWaitQueue      wq_event;
      DirectWaitQueue      wq_flip;
-
-     int                  layer_index_count;
-     int                  plane_index_count;
-     int                  layerplane_index_count;
-
 } DRMKMSData;
 
 

@@ -262,8 +262,6 @@ sawman_update_window( SaWMan              *sawman,
      if (!SAWMAN_VISIBLE_WINDOW(window) && !(update_flags & SWMUF_FORCE_INVISIBLE))
           return DFB_OK;
 
-     D_ASSUME( sawwin->flags & SWMWF_INSERTED );
-
      /* Make sure window is inserted. */
      if (!(sawwin->flags & SWMWF_INSERTED)) {
           D_DEBUG_AT( SaWMan_Update, "  -> window %d not inserted!\n", window->id );

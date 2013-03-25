@@ -674,6 +674,12 @@ direct_trace_debug_indent( void )
      return 0;
 }
 
+void *
+direct_trace_get_caller( void )
+{
+     return NULL;
+}
+
 DirectTraceBuffer *
 direct_trace_copy_buffer( DirectTraceBuffer *buffer )
 {

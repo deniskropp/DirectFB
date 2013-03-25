@@ -1111,7 +1111,7 @@ Construct( IFusionDale *thiz, const char *host, int session )
 
      ret = One_Initialize();
      if (ret) {
-          thiz->Release( thiz );
+          IFusionDale_One_Release( thiz );
           return ret;
      }
 
@@ -1127,13 +1127,13 @@ Construct( IFusionDale *thiz, const char *host, int session )
      }
 
      if (ret) {
-          thiz->Release( thiz );
+          IFusionDale_One_Release( thiz );
           return ret;
      }
 
      ret = OneThread_Create( "Coma", &data->thread );
      if (ret) {
-          thiz->Release( thiz );
+          IFusionDale_One_Release( thiz );
           return ret;
      }
 
