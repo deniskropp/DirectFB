@@ -100,7 +100,11 @@ namespace Direct {
      template <typename _Item> class ListLocked;
      template <typename _Item> class ListSimple;
 
-     class String;
+     template <typename _CharT> class StringBase;
+     template <typename _CharT> class StringsBase;
+
+     typedef StringBase<char>  String;
+     typedef StringsBase<char> Strings;
 }
 
 #define D_String        Direct::String

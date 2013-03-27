@@ -47,6 +47,168 @@ extern "C" {
 
 namespace Direct {
 
+class StringTLS
+{
+     friend class Direct::TLSObject2<StringTLS>;
+
+     static StringTLS *create( void *ctx, void *params )
+     {
+          return new StringTLS();
+     }
+
+     static void destroy( void *ctx, StringTLS *tls )
+     {
+          delete tls;
+     }
+
+     StringTLS()
+          :
+          strings_index( 0 )
+     {
+
+     }
+
+public:
+     String       strings[0x20];
+     unsigned int strings_index;
+
+     const char *
+     Copy( const Direct::String &string )
+     {
+          strings[strings_index & 0x1f] = string;
+
+          return strings[strings_index++ & 0x1f].buffer();
+     }
+};
+
+static Direct::TLSObject2<StringTLS> string_tls;
+
+template <>
+const char *
+String::CopyTLS()
+{
+     StringTLS *tls = string_tls.Get( NULL );
+     D_ASSERT( tls != NULL );
+
+     return tls->Copy( *this );
+}
+
+}
+
+/*********************************************************************************************************************/
+
+namespace Direct {
+
+
+template <>
+String &
+String::PrintF( const char *format, va_list args, size_t stack_buffer )
+{
+     size_t   len;
+     char     buf[stack_buffer];
+     char    *ptr = buf;
+
+     D_ASSERT( format != NULL );
+
+     // TODO: check if va_copy is required here
+
+#ifdef __GNUC__
+     va_list ap2;
+
+     va_copy( ap2, args );
+     len = direct_vsnprintf( buf, sizeof(buf), format, ap2 );
+     va_end( ap2 );
+#else
+     len = direct_vsnprintf( buf, sizeof(buf), format, args );
+#endif
+     if (len < 0)
+          return *this;
+
+     if (len >= sizeof(buf)) {
+          ptr = (char*) direct_malloc( len+1 );
+          if (!ptr) {
+               D_OOM();
+               return *this;
+          }
+
+          len = direct_vsnprintf( ptr, len+1, format, args );
+          if (len < 0) {
+               direct_free( ptr );
+               return *this;
+          }
+     }
+
+     str.append( ptr );
+
+     if (ptr != buf)
+          direct_free( ptr );
+
+     return *this;
+}
+
+template <>
+String &
+String::PrintF( const char *format, ... )
+{
+     va_list  args;
+
+     D_ASSERT( format != NULL );
+
+     va_start( args, format );
+     PrintF( format, args );
+     va_end( args );
+
+     return *this;
+}
+
+template <>
+String
+String::F( const char *format, ... )
+{
+     va_list args;
+     String  str;
+
+     D_ASSERT( format != NULL );
+
+     va_start( args, format );
+     str.PrintF( format, args );
+     va_end( args );
+
+     return str;
+}
+
+template <>
+void
+String::Clear()
+{
+     str.clear();
+}
+
+template <>
+Strings
+String::GetTokens( const Direct::String &delimiter ) const
+{
+     Strings tokens;
+
+     char *buf = direct_strdup( buffer() );
+     char *str = buf;
+     char *save, *token;
+
+     while ((token = strtok_r( str, delimiter.buffer(), &save ))) {
+          str = NULL;
+
+          tokens.push_back( Direct::String::F( "%s", token ) );
+     }
+
+     direct_free( buf );
+
+     return tokens;
+}
+
+
+/*********************************************************************************************************************/
+/*********************************************************************************************************************/
+/*********************************************************************************************************************/
 
 extern "C" {
 
@@ -135,158 +297,6 @@ D_String_PrintTLS( const char *format, ... )
 }
 
 }
-
-/*********************************************************************************************************************/
-/*********************************************************************************************************************/
-/*********************************************************************************************************************/
-
-class StringTLS
-{
-     friend class Direct::TLSObject2<StringTLS>;
-
-     static StringTLS *create( void *ctx, void *params )
-     {
-          return new StringTLS();
-     }
-
-     static void destroy( void *ctx, StringTLS *tls )
-     {
-          delete tls;
-     }
-
-     StringTLS()
-          :
-          strings_index( 0 )
-     {
-
-     }
-
-public:
-     String       strings[0x20];
-     unsigned int strings_index;
-
-     const char *
-     Copy( const Direct::String &string )
-     {
-          strings[strings_index & 0x1f] = string;
-
-          return strings[strings_index++ & 0x1f].buffer();
-     }
-};
-
-static Direct::TLSObject2<StringTLS> string_tls;
-
-const char *
-String::CopyTLS()
-{
-     StringTLS *tls = string_tls.Get( NULL );
-     D_ASSERT( tls != NULL );
-
-     return tls->Copy( *this );
-}
-
-/*********************************************************************************************************************/
-
-String &
-String::PrintF( const char *format, ... )
-{
-     va_list  args;
-
-     D_ASSERT( format != NULL );
-
-     va_start( args, format );
-     PrintF( format, args );
-     va_end( args );
-
-     return *this;
-}
-
-String &
-String::PrintF( const char *format, va_list args, size_t stack_buffer )
-{
-     size_t   len;
-     char     buf[stack_buffer];
-     char    *ptr = buf;
-
-     D_ASSERT( format != NULL );
-
-     // TODO: check if va_copy is required here
-
-#ifdef __GNUC__
-     va_list ap2;
-
-     va_copy( ap2, args );
-     len = direct_vsnprintf( buf, sizeof(buf), format, ap2 );
-     va_end( ap2 );
-#else
-     len = direct_vsnprintf( buf, sizeof(buf), format, args );
-#endif
-     if (len < 0)
-          return *this;
-
-     if (len >= sizeof(buf)) {
-          ptr = (char*) direct_malloc( len+1 );
-          if (!ptr) {
-               D_OOM();
-               return *this;
-          }
-
-          len = direct_vsnprintf( ptr, len+1, format, args );
-          if (len < 0) {
-               direct_free( ptr );
-               return *this;
-          }
-     }
-
-     str.append( ptr );
-
-     if (ptr != buf)
-          direct_free( ptr );
-
-     return *this;
-}
-
-String
-String::F( const char *format, ... )
-{
-     va_list args;
-     String  str;
-
-     D_ASSERT( format != NULL );
-
-     va_start( args, format );
-     str.PrintF( format, args );
-     va_end( args );
-
-     return str;
-}
-
-void
-String::Clear()
-{
-     str.clear();
-}
-
-std::vector<String>
-String::GetTokens( const Direct::String &delimiter ) const
-{
-     std::vector<String> tokens;
-
-     char *buf = direct_strdup( buffer() );
-     char *str = buf;
-     char *save, *token;
-
-     while ((token = strtok_r( str, delimiter.buffer(), &save ))) {
-          str = NULL;
-
-          tokens.push_back( Direct::String::F( "%s", token ) );
-     }
-
-     direct_free( buf );
-
-     return tokens;
-}
-
 
 
 }

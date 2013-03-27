@@ -76,36 +76,34 @@ const char *D_String_PrintTLS( const char *format, ... )           D_FORMAT_PRIN
 namespace Direct {
 
 
-typedef std::vector<String> Strings;
-
-
-class String
+template <class _CharT = char>
+class StringBase
 {
 private:
-     std::string  _str;
-     std::string &str;
+     std::basic_string<_CharT>  _str;
+     std::basic_string<_CharT> &str;
 
 public:
-     String()
+     StringBase()
           :
           str( _str )
      {
      }
 
-     String( const Direct::String &other )
+     StringBase( const StringBase<_CharT> &other )
           :
           _str( other.str ),
           str( _str )
      {
      }
 
-     String( std::string &str )
+     StringBase( std::string &str )
           :
           str( str )
      {
      }
 
-     String( const char *str )
+     StringBase( const _CharT *str )
           :
           _str( str ),
           str( _str )
@@ -116,22 +114,22 @@ public:
       * Copies the string to a TLS buffer using fixed number of 32 buffers used in a circular way, so it should
       * fit even for the heaviest legacy print (in C without management of String objects in parameter list).
       */
-     const char *CopyTLS();
+     const _CharT *CopyTLS();
 
 
-     String &
-     PrintF( const char *format, ... )          D_FORMAT_PRINTF(2);
+     StringBase &
+     PrintF( const _CharT *format, ... )          D_FORMAT_PRINTF(2);
 
-     String &
-     PrintF( const char *format, va_list args, size_t stack_buffer = 300 );
+     StringBase &
+     PrintF( const _CharT *format, va_list args, size_t stack_buffer = 300 );
 
-     static String F( const char *format, ... ) D_FORMAT_PRINTF(1);
+     static StringBase F( const _CharT *format, ... ) D_FORMAT_PRINTF(1);
 
      void
      Clear();
 
-     Strings
-     GetTokens( const Direct::String &delimiter ) const;
+     StringsBase<_CharT>
+     GetTokens( const StringBase<_CharT> &delimiter ) const;
 
 
 
@@ -141,7 +139,7 @@ public:
           return str;
      }
 
-     inline const char *
+     inline const _CharT *
      buffer() const
      {
           return str.c_str();
@@ -162,7 +160,7 @@ public:
           return str;
      }
 
-     inline const char * operator *() const {
+     inline const _CharT * operator *() const {
           return buffer();
      }
 
@@ -171,12 +169,12 @@ public:
       * Assign
       */
 
-     inline String& operator= (const char *buf) {
+     inline StringBase& operator= (const _CharT *buf) {
           str = buf;
           return *this;
      }
 
-     inline String& operator= (const String &other) {
+     inline StringBase& operator= (const StringBase &other) {
           _str = other.str;
           str = _str;
           return *this;
@@ -187,18 +185,18 @@ public:
       * Append
       */
 
-     inline String& operator+= (const String &other) {
+     inline StringBase& operator+= (const StringBase &other) {
           str.append( other.str );
           return *this;
      }
 
-     inline String& operator+= (const char *buf) {
+     inline StringBase& operator+= (const _CharT *buf) {
           str.append( buf );
           return *this;
      }
 
-     inline String operator+ (const char *buf) {
-          Direct::String result = *this;
+     inline StringBase operator+ (const _CharT *buf) {
+          StringBase<_CharT> result = *this;
           result.str.append( buf );
           return result;
      }
@@ -208,21 +206,28 @@ public:
       * Streams
       */
 
-     friend std::ostream &operator << (std::ostream &stream, const Direct::String &string) {
+     friend std::ostream &operator << (std::ostream &stream, const StringBase<_CharT> &string) {
           stream << string.str;
           return stream;
      }
 
-     friend DirectLog *operator << (DirectLog *log, const Direct::String &string) {
+     friend DirectLog *operator << (DirectLog *log, const StringBase<_CharT> &string) {
           direct_log_write( log, string.buffer(), string.length() );
           return log;
      }
 
-     friend DirectLogDomain &operator << (DirectLogDomain &domain, const Direct::String &string) {
+     friend DirectLogDomain &operator << (DirectLogDomain &domain, const StringBase<_CharT> &string) {
           direct_log_domain_log( &domain, DIRECT_LOG_VERBOSE, __FUNCTION__, __FILE__, __LINE__, "%s", string.buffer() );
           return domain;
      }
 };
+
+
+template <class _CharT = char>
+class StringsBase : public std::vector<StringBase<_CharT> >
+{
+};
+
 
 
 }
