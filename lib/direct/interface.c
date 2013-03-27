@@ -497,7 +497,7 @@ __D_interface_dbg_deinit()
 /**************************************************************************************************/
 
 void
-direct_print_interface_leaks( void )
+direct_print_interface_leaks()
 {
      int i;
 
@@ -637,7 +637,7 @@ __D_interface_dbg_deinit()
 }
 
 void
-direct_print_interface_leaks( void )
+direct_print_interface_leaks()
 {
 }
 
