@@ -68,6 +68,7 @@ typedef struct {
 
 struct __D_DirectTraceBuffer {
      DirectLink link;
+     int        magic;
      pid_t tid;
      char *name;
      DirectThread *thread;
@@ -100,6 +101,8 @@ get_trace_buffer( void )
           buffer->thread = direct_thread_self();
 
           self->trace_buffer = buffer;
+
+          D_MAGIC_SET( buffer, DirectTraceBuffer );
 
           direct_mutex_lock( &buffers_lock );
           direct_list_append( &buffers, &buffer->link );
@@ -582,6 +585,8 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
 
      direct_memcpy( &copy->trace[0], &buffer->trace[0], level * sizeof(Trace) );
 
+     D_MAGIC_SET( copy, DirectTraceBuffer );
+
      return copy;
 }
 
@@ -589,6 +594,8 @@ __dfb_no_instrument_function__
 void
 direct_trace_free_buffer( DirectTraceBuffer *buffer )
 {
+     D_MAGIC_ASSERT( buffer, DirectTraceBuffer );
+
      if (buffer->thread) {
           direct_mutex_lock( &buffers_lock );
           direct_list_remove( &buffers, &buffer->link );
@@ -599,6 +606,8 @@ direct_trace_free_buffer( DirectTraceBuffer *buffer )
 
      if (buffer->name)
           direct_free( buffer->name );
+
+     D_MAGIC_CLEAR( buffer );
 
      direct_free( buffer );
 }
