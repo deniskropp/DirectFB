@@ -119,6 +119,24 @@ common_log_flush( DirectLog *log,
      return DR_OK;
 }
 
+__attribute__((no_instrument_function))
+static DirectResult
+stderr_log_write( DirectLog  *log,
+                  const char *buffer,
+                  size_t      bytes )
+{
+     size_t ret;
+
+     ret = fwrite( buffer, bytes, 1, stderr );
+
+     (void)ret;
+
+#ifdef ANDROID_NDK
+__android_log_print( ANDROID_LOG_INFO, "android-dfb", "%s", buffer );
+#endif
+     return DR_OK;
+}
+
 static DirectResult
 stderr_log_set_buffer( DirectLog *log,
                        char      *buffer,
@@ -137,7 +155,7 @@ init_stderr( DirectLog *log )
 {
      log->data = (void*)(long) dup( fileno( stderr ) );
 
-     log->write      = common_log_write;
+     log->write      = stderr_log_write;
      log->flush      = common_log_flush;
      log->set_buffer = stderr_log_set_buffer;
 
