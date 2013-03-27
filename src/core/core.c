@@ -293,6 +293,12 @@ dfb_core_create( CoreDFB **ret_core )
           dfb_config->call_nodirect = FCEF_NODIRECT;
      }
 
+     if (dfb_config->task_manager && !fusion_config->secure_fusion) {
+          D_ERROR( "DirectFB/Core: Option task-manager without secure-fusion is unsupported!\n" );
+          ret = DFB_UNSUPPORTED;
+          goto error;
+     }
+
      /* Allocate local core structure. */
      core = D_CALLOC( 1, sizeof(CoreDFB) );
      if (!core) {
