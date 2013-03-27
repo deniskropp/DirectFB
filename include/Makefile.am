@@ -48,6 +48,8 @@ directfb_strings.h: directfb.h $(MKNAMES) Makefile
 
 	@$(MKNAMES) DFBSurfacePixelFormat DSPF UNKNOWN PixelFormat format $(INCP)/directfb.h >> $@
 
+	@$(MKNAMES) DFBSurfacePorterDuffRule DSPD NONE PorterDuffRule rule $(INCP)/directfb.h >> $@
+
 	@$(MKNAMES) DFBSurfaceCapabilities DSCAPS NONE SurfaceCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DSCAPS_FLIPPING | grep -v DSCAPS_ALL >> $@
 
