@@ -524,7 +524,7 @@ dfb_surface_notify_display2( CoreSurface     *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( index >= 0 );
-     D_ASSERT( index < surface->num_buffers );
+     //D_ASSERT( index < surface->num_buffers );
 
      if (surface->type & CSTF_LAYER) {
           CoreLayer *layer = dfb_layer_at( surface->resource_id );
