@@ -518,7 +518,7 @@ dfb_surface_notify_display2( CoreSurface     *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( index >= 0 );
-     D_ASSERT( index < surface->num_buffers );
+     //D_ASSERT( index < surface->num_buffers );
 
      notification.flags   = CSNF_DISPLAY;
      notification.surface = surface;
