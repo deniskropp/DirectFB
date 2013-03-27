@@ -260,6 +260,8 @@ direct_log_domain_vprintf( DirectLogDomain *domain,
                              millis / 1000LL, millis % 1000LL, micros % 1000LL,
                              /*thread ? thread->tid :*/ direct_gettid(), domain->name, indent, "", ptr );
 
+          direct_log_flush( domain->config.log, false );
+
           if (ptr != buf)
                direct_free( ptr );
      }
@@ -327,6 +329,8 @@ direct_log_domain_log( DirectLogDomain *domain,
                              thread ? thread->name : "  NO NAME",
                              millis / 1000LL, millis % 1000LL, micros % 1000LL,
                              thread ? thread->tid : direct_gettid(), domain->name, indent, "", ptr );
+
+          direct_log_flush( domain->config.log, false );
 
           if (ptr != buf)
                direct_free( ptr );
