@@ -884,7 +884,9 @@ fusion_exit( FusionWorld *world,
           return DR_OK;
      }
 
-     {
+     D_ASSUME( direct_thread_self() != world->dispatch_loop );
+
+     if (direct_thread_self() != world->dispatch_loop) {
           int               foo;
           FusionSendMessage msg;
 
@@ -903,18 +905,18 @@ fusion_exit( FusionWorld *world,
                     break;
                }
           }
-     }
 
-     if (!emergency) {
           /* Wait for its termination. */
           direct_thread_join( world->dispatch_loop );
-
-          /* Wake up the deferred call thread. */
-          pthread_cond_signal( &world->deferred.queue );
-
-          /* Wait for its termination. */
-          direct_thread_join( world->deferred.thread );
      }
+
+     D_ASSUME( direct_thread_self() != world->deferred.thread );
+
+     /* Wake up the deferred call thread. */
+     pthread_cond_signal( &world->deferred.queue );
+
+     /* Wait for its termination. */
+     direct_thread_join( world->deferred.thread );
 
      direct_thread_destroy( world->dispatch_loop );
      direct_thread_destroy( world->deferred.thread );
