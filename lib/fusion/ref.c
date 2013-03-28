@@ -818,20 +818,25 @@ fusion_ref_set_sync (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_SET_SYNC, &ref->multi.id)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Reference: invalid reference\n");
-                    return DR_DESTROYED;
-               default:
-                    break;
+     if (ref->multi.user) {
+          D_UNIMPLEMENTED();
+     }
+     else {
+          while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_SET_SYNC, &ref->multi.id)) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Reference: invalid reference\n");
+                         return DR_DESTROYED;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_REF_SET_SYNC");
+
+               return DR_FAILURE;
           }
-
-          D_PERROR ("FUSION_REF_SET_SYNC");
-
-          return DR_FAILURE;
      }
 
      return DR_OK;
