@@ -2892,6 +2892,8 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
+     CoreGraphicsStateClient_FlushCurrent();
+
      return dfb_surface_dump_buffer2( surface, CSBR_FRONT, DSSE_LEFT, directory, prefix );
 }
 
