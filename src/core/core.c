@@ -395,9 +395,9 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      D_DEBUG_AT( DirectFB_Core, "%s...\n", __FUNCTION__ );
 
-     pthread_mutex_lock( &core_dfb_lock );
-
      if (!emergency) {
+          pthread_mutex_lock( &core_dfb_lock );
+
           if (--core->refs) {
                pthread_mutex_unlock( &core_dfb_lock );
                return DFB_OK;
@@ -407,7 +407,9 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      if (!core->shutdown_running)
           core->shutdown_running = 1;
      else {
-          pthread_mutex_unlock( &core_dfb_lock );
+          if (!emergency)
+               pthread_mutex_unlock( &core_dfb_lock );
+          D_WARN( "core shutdown already running" );
           return DFB_OK;
      }
 
@@ -452,7 +454,8 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      D_FREE( core );
      core_dfb = NULL;
 
-     pthread_mutex_unlock( &core_dfb_lock );
+     if (!emergency)
+          pthread_mutex_unlock( &core_dfb_lock );
 
      direct_shutdown();
 
@@ -1402,7 +1405,10 @@ dfb_core_deinit_check( void *ctx )
 {
      if (core_dfb && core_dfb->refs) {
           D_WARN( "Application exited without deinitialization of DirectFB!" );
-          dfb_core_destroy( core_dfb, true );
+
+          direct_print_interface_leaks();
+
+          dfb_core_destroy( core_dfb, false );
      }
 }
 
@@ -1434,11 +1440,17 @@ dfb_core_signal_handler( int   num,
                          void *addr,
                          void *ctx )
 {
+     bool     locked;
      CoreDFB *core = ctx;
 
      D_ASSERT( core == core_dfb );
 
+     locked = pthread_mutex_trylock( &core_dfb_lock ) == 0;
+
      dfb_core_destroy( core, true );
+
+     if (locked)
+          pthread_mutex_unlock( &core_dfb_lock );
 
      return DSHR_OK;
 }
