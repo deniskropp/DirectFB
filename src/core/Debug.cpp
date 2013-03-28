@@ -118,6 +118,24 @@ ToString<DFBSurfacePixelFormat>::ToString( const DFBSurfacePixelFormat &format )
      PrintF( "_INVALID_<0x%08x>", format );
 }
 
+template<>
+ToString<DFBSurfacePorterDuffRule>::ToString( const DFBSurfacePorterDuffRule &rule )
+{
+     static const DirectFBPorterDuffRuleNames(rules_names);
+
+     for (int i=0; rules_names[i].rule; i++) {
+          if (rule == rules_names[i].rule) {
+               PrintF( "%s", rules_names[i].name );
+               return;
+          }
+     }
+
+     if (rule == DSPD_NONE)
+          PrintF( "NONE" );
+     else
+          PrintF( "_INVALID_<0x%08x>", rule );
+}
+
 
 // DirectFB types
 
