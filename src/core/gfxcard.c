@@ -483,13 +483,18 @@ dfb_gfxcard_flush()
      DFBGraphicsCoreShared *shared;
      GraphicsDeviceFuncs   *funcs;
 
+     D_DEBUG_AT( Core_Graphics, "%s()\n", __FUNCTION__ );
+
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
 
      D_ASSUME( !dfb_config->task_manager );
 
-     if (dfb_config->task_manager)
+     if (dfb_config->task_manager || dfb_config->gfx_emit_early) {
+          D_DEBUG_AT( Core_Graphics, "  -> task-manager / gfx-emit-early\n" );
+
           return DFB_OK;
+     }
 
      shared = card->shared;
      funcs  = &card->funcs;
@@ -499,11 +504,15 @@ dfb_gfxcard_flush()
           return ret;
 
      /* start command processing if not already running */
-     if (!dfb_config->gfx_emit_early && card->shared->pending_ops && funcs->EmitCommands) {
+     if (card->shared->pending_ops && funcs->EmitCommands) {
+          D_DEBUG_AT( Core_Graphics, "  -> pending ops, emitting...\n" );
+
           funcs->EmitCommands( card->driver_data, card->device_data );
 
           card->shared->pending_ops = false;
      }
+     else
+          D_DEBUG_AT( Core_Graphics, "  -> nothing to emit!\n" );
 
      fusion_skirmish_dismiss( &shared->lock );
 
