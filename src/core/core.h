@@ -226,6 +226,24 @@ DFBFontManager *dfb_core_font_manager( CoreDFB *core );
 
 
 
+/*
+
+= init / shutdown
+
+     -> from application, any thread
+          dfb_core_create()             -> locks global core mutex
+          dfb_core_destroy()            -> locks global core mutex
+
+     -> from shutdown handler (atexit), any thread
+          dfb_core_destroy()            -> locks global core mutex
+
+     -> from signal handler thread
+          dfb_core_signal_handler()     -> tries to lock global core mutex
+
+*/
+
+
+
 
 D_DECLARE_INTERFACE( ICoreResourceManager )
 D_DECLARE_INTERFACE( ICoreResourceClient )
