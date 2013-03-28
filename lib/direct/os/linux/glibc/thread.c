@@ -350,6 +350,18 @@ direct_thread_join( DirectThread *thread )
 }
 
 void
+direct_thread_kill( DirectThread *thread,
+                    int           signal )
+{
+     D_MAGIC_ASSERT( thread, DirectThread );
+     D_ASSERT( thread->handle.thread != -1 );
+
+     D_DEBUG_AT( Direct_Thread, "%s( %p, '%s' %d, signal %d )\n", __FUNCTION__, thread->main, thread->name, thread->tid, signal );
+
+     pthread_kill( thread->handle.thread, signal );
+}
+
+void
 direct_thread_sleep( long long micros )
 {
      usleep( micros );
