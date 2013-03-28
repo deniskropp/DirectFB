@@ -74,14 +74,15 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
 static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
 #endif
 
-static DirectLink  *handlers = NULL;
-static DirectMutex  handlers_lock;
+static DirectLink   *handlers = NULL;
+static DirectMutex   handlers_lock;
 
-static pthread_t sighandler_thread = -1;
+static DirectThread *sighandler_thread = NULL;
 
 /**************************************************************************************************/
 #ifndef ANDROID_NDK
-static void *handle_signals( void *ptr );
+static void *handle_signals( DirectThread *thread,
+                             void         *ptr );
 #else
 static void install_handlers( void );
 static void remove_handlers( void );
@@ -93,7 +94,6 @@ direct_signals_initialize( void )
 {
 #ifndef ANDROID_NDK
      sigset_t mask;
-     int ret;
      int i;
 #endif
      D_DEBUG_AT( Direct_Signals, "Initializing...\n" );
@@ -109,10 +109,8 @@ direct_signals_initialize( void )
 
           pthread_sigmask( SIG_BLOCK, &mask, NULL );
 
-          ret = pthread_create( &sighandler_thread, NULL, handle_signals, NULL );
-          (void)ret;
-          D_ASSERT( ret == 0 );
-          D_ASSERT( sighandler_thread >= 0 );
+          sighandler_thread = direct_thread_create( DTT_CRITICAL, handle_signals, NULL, "SigHandler" );
+          D_ASSERT( sighandler_thread != NULL );
      }
 #endif
      return DR_OK;
@@ -122,15 +120,17 @@ DirectResult
 direct_signals_shutdown( void )
 {
 #ifndef ANDROID_NDK
-     D_ASSERT( sighandler_thread >= 0 );
+     D_ASSERT( sighandler_thread != NULL );
 #endif
      D_DEBUG_AT( Direct_Signals, "Shutting down...\n" );
 #ifdef ANDROID_NDK
      remove_handlers();
 #else
-     if (direct_config->sighandler) {
-          pthread_kill( sighandler_thread, SIG_CLOSE_SIGHANDLER );
-          sighandler_thread = -1;
+     if (sighandler_thread) {
+          direct_thread_kill( sighandler_thread, SIG_CLOSE_SIGHANDLER );
+          direct_thread_join( sighandler_thread );
+          direct_thread_destroy( sighandler_thread );
+          sighandler_thread = NULL;
      }
 #endif
      direct_mutex_deinit( &handlers_lock );
@@ -466,7 +466,8 @@ signal_handler( int num )
 
 #ifndef ANDROID_NDK
 static void *
-handle_signals( void *ptr )
+handle_signals( DirectThread *thread,
+                void         *ptr )
 {
      int       i;
      int       res;
