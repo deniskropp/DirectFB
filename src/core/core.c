@@ -1700,11 +1700,17 @@ dfb_core_initialize( CoreDFB *core )
      shared->surface_client_pool = dfb_surface_client_pool_create( core->world );
      shared->window_pool         = dfb_window_pool_create( core->world );
 
+     TaskManager_Initialise();
+
+     extern void register_myengine(void);
+     //register_myengine();
+
+     extern void register_genefx(void);
+     register_genefx();
+
      for (i=0; i<D_ARRAY_SIZE(core_parts); i++) {
-          if ((ret = dfb_core_part_initialize( core, core_parts[i] ))) {
-               dfb_core_shutdown( core, true );
+          if ((ret = dfb_core_part_initialize( core, core_parts[i] )))
                return ret;
-          }
      }
 
      if (dfb_config->resource_manager) {
@@ -1731,14 +1737,6 @@ dfb_core_initialize( CoreDFB *core )
           else
                D_DERROR( ret, "Core/Resource: Failed to load manager '%s'!\n", dfb_config->resource_manager );
      }
-
-     TaskManager_Initialise();
-
-     extern void register_myengine(void);
-     //register_myengine();
-
-     extern void register_genefx(void);
-     register_genefx();
 
      return DFB_OK;
 }
@@ -1849,14 +1847,12 @@ dfb_core_arena_initialize( void *ctx )
      /* Register shared data. */
      fusion_world_set_root( core->world, shared );
 
-D_MAGIC_ASSERT( core, CoreDFB );
+     D_MAGIC_ASSERT( core, CoreDFB );
+
      /* Initialize. */
      ret = CoreDFB_Initialize( core );
      if (ret) {
-          fusion_hash_destroy( shared->field_hash );
-          D_MAGIC_CLEAR( shared );
-          SHFREE( pool, shared );
-          fusion_shm_pool_destroy( core->world, pool );
+          dfb_core_arena_shutdown( core, true );
           return ret;
      }
 
