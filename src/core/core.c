@@ -1608,6 +1608,10 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      core->shutdown_tid = direct_gettid();
 
+
+     dfb_core_dump_all( core, &DirectFB_Core, DIRECT_LOG_VERBOSE );
+
+
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
 
