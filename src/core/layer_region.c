@@ -1020,8 +1020,9 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
      }
 
      /* Propagate new configuration to the driver if the region is realized. */
-     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) && !D_FLAGS_IS_SET( region->state, CLRSF_FROZEN )) {
           ret = set_region( region, &new_config, flags, region->surface );
+
           if (ret) {
                dfb_layer_region_unlock( region );
                return ret;
