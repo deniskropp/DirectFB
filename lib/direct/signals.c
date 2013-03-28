@@ -42,7 +42,7 @@
 
 D_LOG_DOMAIN( Direct_Signals, "Direct/Signals", "Signal handling" );
 
-#define SIG_CLOSE_SIGHANDLER 123
+#define SIG_CLOSE_SIGHANDLER SIGUNUSED
 
 struct __D_DirectSignalHandler {
      DirectLink               link;
@@ -480,7 +480,10 @@ handle_signals( void *ptr )
                sigaddset( &mask, sigs_to_handle[i] );
      }
 
-     pthread_sigmask( SIG_BLOCK, &mask, NULL );
+     sigaddset( &mask, SIG_CLOSE_SIGHANDLER );
+
+     direct_sigprocmask( SIG_BLOCK, &mask, NULL );
+
 
      while (1) {
           D_DEBUG_AT( Direct_Signals, "%s() -> waiting for a signal...\n", __FUNCTION__ );
