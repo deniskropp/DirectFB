@@ -278,12 +278,17 @@ DirectResult
 direct_log_flush( DirectLog *log,
                   bool       sync )
 {
-     D_MAGIC_ASSERT_IF( log, DirectLog );
+     /*
+      * Don't use D_MAGIC_ASSERT or any other
+      * macros/functions that might cause an endless loop.
+      */
 
-     if (!log)
+     /* Use the default log if passed log is invalid. */
+     if (!D_MAGIC_CHECK( log, DirectLog ))
           log = direct_log_default();
 
-     D_MAGIC_ASSERT( log, DirectLog );
+     if (!D_MAGIC_CHECK( log, DirectLog ))
+          return DR_BUG;
 
      if (!log->flush)
           return DR_UNSUPPORTED;
