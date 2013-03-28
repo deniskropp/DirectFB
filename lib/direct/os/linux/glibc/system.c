@@ -145,6 +145,20 @@ direct_kill( pid_t pid, int sig )
      return DR_OK;
 }
 
+DirectResult
+direct_tkill( pid_t tid, int sig )
+{
+#if defined(__NR_tkill) /* present on linux >= 2.5.75 */
+     if (syscall(__NR_tkill, tid, sig) < 0)
+#else
+#warning no tgkill
+     if (kill( tid, sig ))
+#endif
+          return errno2result( errno );
+
+     return DR_OK;
+}
+
 void
 direct_sync( void )
 {

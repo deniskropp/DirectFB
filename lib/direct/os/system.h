@@ -51,6 +51,7 @@ DirectResult  DIRECT_API  direct_tgkill( int tgid, int tid, int sig );
 void          DIRECT_API  direct_trap( const char *domain, int sig );
 
 DirectResult  DIRECT_API  direct_kill( pid_t pid, int sig );
+DirectResult  DIRECT_API  direct_tkill( pid_t tid, int sig );
 void          DIRECT_API  direct_sync( void );
 
 DirectResult  DIRECT_API  direct_socketpair( int __domain, int __type, int __protocol, int __fds[2] );
