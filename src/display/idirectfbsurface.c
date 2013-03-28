@@ -3442,7 +3442,8 @@ IDirectFBSurface_GetFrameTime( IDirectFBSurface *thiz,
      if (now > data->current_frame_time)
           data->current_frame_time = now;
 
-     *ret_micros = data->current_frame_time;
+     if (ret_micros)
+          *ret_micros = data->current_frame_time;
 
      return DFB_OK;
 }
