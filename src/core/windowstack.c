@@ -1019,15 +1019,7 @@ _dfb_windowstack_background_image_listener( const void *msg_data,
      D_MAGIC_ASSERT( stack, CoreWindowStack );
 
      if (notification->flags & CSNF_DESTROY) {
-          if (stack->bg.image == notification->surface) {
-               D_ERROR( "Core/WindowStack: Surface for background vanished.\n" );
-
-               stack->bg.mode  = DLBM_COLOR;
-               stack->bg.image = NULL;
-
-               dfb_windowstack_repaint_all( stack );
-          }
-
+          D_ERROR( "Core/WindowStack: Surface for background vanished.\n" );
           return RS_REMOVE;
      }
 
