@@ -350,12 +350,16 @@ dfb_window_create( CoreWindowStack             *stack,
      D_ASSERT( desc->height > 0 );
      D_ASSERT( ret_window != NULL );
 
-     if (desc->width > 4096 || desc->height > 4096)
+     if (desc->width > 4096 || desc->height > 4096) {
+          D_DEBUG_AT( Core_Windows, "  -> LIMIT EXCEEDED (%dx%d / 4096x4096)\n", desc->width, desc->height );
           return DFB_LIMITEXCEEDED;
+     }
 
      /* Lock the window stack. */
-     if (dfb_windowstack_lock( stack ))
+     if (dfb_windowstack_lock( stack )) {
+          D_DEBUG_AT( Core_Windows, "  -> WINDOWSTACK LOCK FAILED\n" );
           return DFB_FUSION;
+     }
 
      context = stack->context;
      layer   = dfb_layer_at( context->layer_id );
@@ -397,6 +401,7 @@ dfb_window_create( CoreWindowStack             *stack,
                     pixelformat = DSPF_ARGB;
           }
           else if (! DFB_PIXELFORMAT_HAS_ALPHA(pixelformat)) {
+               D_DEBUG_AT( Core_Windows, "  -> PIXELFORMAT '%s' HAS NO ALPHA\n", dfb_pixelformat_name(pixelformat) );
                dfb_windowstack_unlock( stack );
                return DFB_INVARG;
           }
@@ -416,6 +421,8 @@ dfb_window_create( CoreWindowStack             *stack,
           colorspace = DFB_COLORSPACE_DEFAULT(pixelformat);
      }
      else if (! DFB_COLORSPACE_IS_COMPATIBLE(colorspace, pixelformat)) {
+          D_DEBUG_AT( Core_Windows, "  -> COLORSPACE '%s' IS NOT COMPATIBLE with FORMAT '%s'\n",
+                      dfb_colorspace_name(colorspace), dfb_pixelformat_name(pixelformat) );
           dfb_windowstack_unlock( stack );
           return DFB_INVARG;
      }
@@ -476,6 +483,7 @@ dfb_window_create( CoreWindowStack             *stack,
      /* Create the window object. */
      window = dfb_core_create_window( layer->core );
      if (!window) {
+          D_DEBUG_AT( Core_Windows, "  -> CORE CREATE WINDOW FAILED\n" );
           dfb_windowstack_unlock( stack );
           return DFB_FUSION;
      }
@@ -498,6 +506,7 @@ dfb_window_create( CoreWindowStack             *stack,
 
      ret = dfb_wm_preconfigure_window( stack, window );
      if(ret) {
+          D_DEBUG_AT( Core_Windows, "  -> WINDOW PRECONFIGURE FAILED (%s)\n", DirectResultString(ret) );
           D_MAGIC_CLEAR( window );
           fusion_object_destroy( &window->object );
           dfb_windowstack_unlock( stack );
@@ -512,6 +521,7 @@ dfb_window_create( CoreWindowStack             *stack,
      if (caps & DWCAPS_SUBWINDOW) {
           ret = init_subwindow( window, stack, toplevel_id );
           if (ret) {
+               D_DEBUG_AT( Core_Windows, "  -> SUBWINDOW INIT FAILED (%s)\n", DirectResultString(ret) );
                D_MAGIC_CLEAR( window );
                fusion_object_destroy( &window->object );
                dfb_windowstack_unlock( stack );
@@ -540,6 +550,7 @@ dfb_window_create( CoreWindowStack             *stack,
                ret = create_region( layer->core, context, window,
                                     pixelformat, colorspace, surface_caps, &region, &surface );
                if (ret) {
+                    D_DEBUG_AT( Core_Windows, "  -> REGION CREATE FAILED (%s)\n", DirectResultString(ret) );
                     D_MAGIC_CLEAR( window );
                     fusion_object_destroy( &window->object );
                     dfb_windowstack_unlock( stack );
@@ -560,6 +571,7 @@ dfb_window_create( CoreWindowStack             *stack,
                /* Get the primary region of the layer context. */
                ret = dfb_layer_context_get_primary_region( context, true, &region );
                if (ret) {
+                    D_DEBUG_AT( Core_Windows, "  -> LAYER CONTEXT PRIMARY REGION FAILED (%s)\n", DirectResultString(ret) );
                     D_MAGIC_CLEAR( window );
                     fusion_object_destroy( &window->object );
                     dfb_windowstack_unlock( stack );
@@ -590,6 +602,7 @@ dfb_window_create( CoreWindowStack             *stack,
                                                      region->surface ?
                                                      region->surface->palette : NULL, &surface );
                     if (ret) {
+                         D_DEBUG_AT( Core_Windows, "  -> SURFACE CREATE FAILED (%s)\n", DirectResultString(ret) );
                          D_DERROR( ret, "Core/Windows: Failed to create window surface!\n" );
                          D_MAGIC_CLEAR( window );
                          dfb_layer_region_unlink( &window->primary_region );
@@ -613,6 +626,8 @@ dfb_window_create( CoreWindowStack             *stack,
      /* Pass the new window to the window manager. */
      ret = dfb_wm_add_window( stack, window );
      if (ret) {
+          D_DEBUG_AT( Core_Windows, "  -> WINDOW ADD FAILED (%s)\n", DirectResultString(ret) );
+
           D_DERROR( ret, "Core/Windows: Failed to add window to manager!\n" );
 
           D_MAGIC_CLEAR( window );
