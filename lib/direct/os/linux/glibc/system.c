@@ -164,10 +164,9 @@ DirectResult
 direct_sigprocmask( int __how, __const sigset_t *__restrict __set,
                     sigset_t *__restrict __oset )
 {
-     if (sigprocmask( __how, __set, __oset ))
-          return errno2result( errno );
+     int ret = pthread_sigmask( __how, __set, __oset );
 
-     return DR_OK;
+     return errno2result( ret );
 }
 
 uid_t
