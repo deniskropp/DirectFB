@@ -2072,8 +2072,14 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
      char  cmdbuf[1024];
 #endif
 
-     if (dfb_config)
+     if (dfb_config) {
+          /* Check again for session environment setting. */
+          session = direct_getenv( "DIRECTFB_SESSION" );
+          if (session)
+               dfb_config_set( "session", session );
+
           return DFB_OK;
+     }
 
      config_allocate();
 
