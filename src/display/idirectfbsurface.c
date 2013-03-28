@@ -3688,8 +3688,8 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
 
      if (notification->flags & CSNF_DESTROY) {
           if (data->surface) {
+               D_WARN( "IDirectFBSurface surface destroyed" );
                data->surface = NULL;
-               dfb_surface_unref( surface );
           }
           return RS_REMOVE;
      }
