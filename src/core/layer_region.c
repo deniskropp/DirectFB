@@ -1414,6 +1414,11 @@ realize_region( CoreLayerRegion *region )
 
      D_DEBUG_AT( Core_Layers, "  -> state    0x%08x\n", region->state );
 
+     if (region->state & CLRSF_FROZEN) {
+          D_DEBUG_AT( Core_Layers, "  -> FROZEN!\n" );
+          return DFB_OK;
+     }
+
      D_ASSERT( region->context != NULL );
      D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_CONFIGURED ) );
      D_ASSERT( ! D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
@@ -1428,11 +1433,6 @@ realize_region( CoreLayerRegion *region )
      funcs  = layer->funcs;
 
      D_ASSERT( ! fusion_vector_contains( &shared->added_regions, region ) );
-
-     if (region->state & CLRSF_FROZEN) {
-          D_DEBUG_AT( Core_Layers, "  -> FROZEN!\n" );
-          return DFB_OK;
-     }
 
      /* Allocate the driver's region data. */
      if (funcs->RegionDataSize) {

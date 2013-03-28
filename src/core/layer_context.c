@@ -1464,23 +1464,30 @@ dfb_layer_context_create_window( CoreDFB                     *core,
 
      layer = dfb_layer_at( context->layer_id );
 
-     if ((layer->shared->description.caps & DLCAPS_SURFACE) == 0)
+     if ((layer->shared->description.caps & DLCAPS_SURFACE) == 0) {
+          D_DEBUG_AT( Core_LayerContext, "  -> NO DLCAPS_SURFACE\n" );
           return DFB_UNSUPPORTED;
+     }
 
-     if (!context->stack)
+     if (!context->stack) {
+          D_DEBUG_AT( Core_LayerContext, "  -> NO STACK\n" );
           return DFB_UNSUPPORTED;
+     }
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
 
-     if (dfb_layer_context_lock( context ))
-         return DFB_FUSION;
+     if (dfb_layer_context_lock( context )) {
+          D_DEBUG_AT( Core_LayerContext, "  -> LAYER CONTEXT LOCK FAILED\n" );
+          return DFB_FUSION;
+     }
 
      stack = context->stack;
 
      if (!stack->cursor.set) {
           ret = dfb_windowstack_cursor_enable( core, stack, true );
           if (ret) {
+               D_DEBUG_AT( Core_LayerContext, "  -> CURSOR ENABLE FAILED (%s)\n", DirectResultString(ret) );
                dfb_layer_context_unlock( context );
                return ret;
           }
@@ -1488,6 +1495,7 @@ dfb_layer_context_create_window( CoreDFB                     *core,
 
      ret = dfb_window_create( stack, desc, &window );
      if (ret) {
+          D_DEBUG_AT( Core_LayerContext, "  -> WINDOW CREATE FAILED (%s)\n", DirectResultString(ret) );
           dfb_layer_context_unlock( context );
           return ret;
      }
