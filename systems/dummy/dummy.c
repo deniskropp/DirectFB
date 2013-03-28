@@ -123,7 +123,7 @@ dummy_display_loop( DirectThread *thread,
           D_DEBUG_AT( Dummy_Display, "  => display at %lldus (%lld from pts)\n", now, now - request->pts );
 
           dfb_surface_notify_display2( request->surface, request->index, request->task );
-
+/*
           if (request->pts > 0) {
                static long long first;
                if (!first)
@@ -132,7 +132,7 @@ dummy_display_loop( DirectThread *thread,
                snprintf(buf,sizeof(buf),"dfb_dummy_layer_%09lld",request->pts - first);
                dfb_surface_dump_buffer( request->surface, CSBR_FRONT, buf, NULL );
           }
-
+*/
 
           if (prev_task) {
                D_DEBUG_AT( Dummy_Display, "  <= done previous task %p (pts %lld, %lld to current)\n", prev_task,
