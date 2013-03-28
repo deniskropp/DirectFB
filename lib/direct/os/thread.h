@@ -74,6 +74,9 @@ void         DIRECT_API   direct_thread_testcancel ( DirectThread *thread );
  */
 void         DIRECT_API   direct_thread_join       ( DirectThread *thread );
 
+void         DIRECT_API   direct_thread_kill       ( DirectThread *thread,
+                                                     int           signal );
+
 
 void         DIRECT_API   direct_thread_sleep      ( long long     micros );
 
