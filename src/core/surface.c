@@ -1386,7 +1386,6 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( path != NULL );
-     D_ASSERT( prefix != NULL );
 
      D_DEBUG_AT( Core_Surface, "%s( 0x%02x 0x%02x ) <- %dx%d %s [%d]\n", __FUNCTION__, CSAID_CPU, CSAF_READ,
                  surface->config.size.w, surface->config.size.h, dfb_pixelformat_name(surface->config.format),
@@ -1537,8 +1536,10 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
 
                if (rgb) {
                     close( fd_p );
-                    snprintf( filename, len, "%s/%s_%04d.ppm%s",
-                              path, prefix, num, gz_ext );
+                    if (prefix)
+                         snprintf( filename, len, "%s/%s_%04d.ppm%s", path, prefix, num, gz_ext );
+                    else
+                         snprintf( filename, len, "%s.ppm%s", path, gz_ext );
                     unlink( filename );
                }
 
