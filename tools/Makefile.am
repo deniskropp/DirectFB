@@ -122,65 +122,45 @@ noinst_PROGRAMS = \
 	$(NON_PURE_VOODOO_noinst_PROGS)
 
 
-
-libdirectfb = ../src/libdirectfb.la
-libfusion = ../lib/fusion/libfusion.la
-libdirect = ../lib/direct/libdirect.la
-libsawman = ../lib/sawman/libsawman.la
-libfusiondale = ../lib/fusiondale/libfusiondale.la
-libfusionsound = ../lib/fusionsound/libfusionsound.la
-libdivine = ../lib/divine/libdivine.la
-
-if DIRECTFB_BUILD_ONE
-libone = \
-        ../lib/One/libone.la
-else
-libone =
-endif
-
-if DIRECTFB_BUILD_VOODOO
-libvoodoo = \
-        ../lib/voodoo/libvoodoo.la
-else
-libvoodoo =
-endif
+# for DFB_BASE_LIBS etc...
+include $(top_srcdir)/rules/libs_deps.make
 
 
 dfbdump_SOURCES = dfbdump.c
-dfbdump_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
+dfbdump_LDADD   = $(DFB_BASE_LIBS)
 
 dfbg_SOURCES = dfbg.c
-dfbg_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbg_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 dfbinfo_SOURCES = dfbinfo.c
-dfbinfo_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbinfo_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 dfbdumpinput_SOURCES = dfbdumpinput.c
-dfbdumpinput_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbdumpinput_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 dfbinput_SOURCES = dfbinput.c
-dfbinput_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbinput_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 dfbinspector_SOURCES = dfbinspector.c
-dfbinspector_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbinspector_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 dfblayer_SOURCES = dfblayer.c
-dfblayer_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfblayer_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 dfbmaster_SOURCES = dfbmaster.c
-dfbmaster_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbmaster_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 dfbproxy_SOURCES = dfbproxy.c
-dfbproxy_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(libvoodoo)
+dfbproxy_LDADD   = $(DFB_BASE_LIBS)
 
 dfbscreen_SOURCES = dfbscreen.c
-dfbscreen_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(OSX_LIBS)
+dfbscreen_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 #dfbsummon_SOURCES = dfbsummon.c
-#dfbsummon_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
+#dfbsummon_LDADD   = $(DFB_BASE_LIBS)
 
 dfbpenmount_SOURCES = dfbpenmount.c
-dfbpenmount_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
+dfbpenmount_LDADD   = $(DFB_BASE_LIBS)
 
 mkdfiff_SOURCES = mkdfiff.c
 mkdfiff_LDADD   = $(LIBPNG_LIBS) $(libdirect)
@@ -189,10 +169,10 @@ mkdgiff_SOURCES = mkdgiff.c
 mkdgiff_LDADD   = $(FREETYPE_LIBS) $(libdirect)
 
 mkdgifft_SOURCES = mkdgifft.cpp
-mkdgifft_LDADD   = $(LIBPNG_LIBS) $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
+mkdgifft_LDADD   = $(LIBPNG_LIBS) $(DFB_BASE_LIBS)
 
 fusion_bench_SOURCES = fusion_bench.c
-fusion_bench_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
+fusion_bench_LDADD   = $(DFB_BASE_LIBS)
 
 dfbfx_SOURCES = dfbfx.c
 dfbfx_LDADD   = $(libdirect)
@@ -204,16 +184,16 @@ raw16toraw24_SOURCES = raw16toraw24.c
 raw32toraw24_SOURCES = raw32toraw24.c
 
 voodooplay_SOURCES = voodooplay.c
-voodooplay_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
+voodooplay_LDADD   = $(DFB_BASE_LIBS)
 
 voodooplay_client_SOURCES = voodooplay_client.c
-voodooplay_client_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
+voodooplay_client_LDADD   = $(DFB_BASE_LIBS)
 
 voodooplay_server_SOURCES = voodooplay_server.c
-voodooplay_server_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect)
+voodooplay_server_LDADD   = $(DFB_BASE_LIBS)
 
 swmdump_SOURCES = swmdump.c
-swmdump_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(libsawman)
+swmdump_LDADD   = $(DFB_BASE_LIBS) $(libsawman)
 
 fsdump_SOURCES = fsdump.c
 fsdump_LDADD   = $(libfusion) $(libdirect) $(libfusionsound)
@@ -231,7 +211,7 @@ fsvolume_SOURCES = fsvolume.c
 fsvolume_LDADD   = $(libfusion) $(libdirect) $(libfusionsound)
 
 spooky_SOURCES = spooky.c
-spooky_LDADD   = $(libdirectfb) $(libvoodoo) $(libone) $(libfusion) $(libdirect) $(libdivine) -lm
+spooky_LDADD   = $(DFB_BASE_LIBS) $(libdivine) -lm
 
 fddump_SOURCES = fddump.c
 fddump_LDADD   = $(libfusion) $(libdirect) $(libfusiondale)
