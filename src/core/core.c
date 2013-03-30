@@ -413,17 +413,27 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           return DFB_OK;
      }
 
+     if (core->signal_handler) {
+          DirectSignalHandler *signal_handler = core->signal_handler;
+
+          core->signal_handler = NULL;
+
+          direct_signal_handler_remove( signal_handler );
+     }
+
+     if (core->cleanup_handler) {
+          DirectCleanupHandler *cleanup_handler = core->cleanup_handler;
+
+          core->cleanup_handler = NULL;
+
+          direct_cleanup_handler_remove( cleanup_handler );
+     }
+
      // FIXME: avoid this workaround
      direct_thread_sleep( 100000 );
 
      if (core->font_manager)
           dfb_font_manager_destroy( core->font_manager );
-
-     if (core->signal_handler)
-          direct_signal_handler_remove( core->signal_handler );
-     
-     if (core->cleanup_handler)
-          direct_cleanup_handler_remove( core->cleanup_handler );
 
      if (dfb_core_is_master( core )) {
           if (emergency) {
