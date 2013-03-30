@@ -1967,6 +1967,7 @@ Renderer::Renderer( CardState *state )
      state( state ),
      state_mod( SMF_NONE ),
      transform_type( WTT_IDENTITY ),
+     thread( NULL ),
      engine( NULL ),
      setup( NULL ),
      operations( 0 )
@@ -2158,6 +2159,9 @@ Renderer::update( DFBAccelerationMask accel )
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, accel 0x%08x )\n", __FUNCTION__, this, accel );
 
      CHECK_MAGIC();
+
+     D_ASSERT( thread != NULL );
+     D_ASSERT( direct_thread_self() == thread );
 
      D_ASSERT( state != NULL );
      D_ASSERT( engine != NULL );
@@ -2781,6 +2785,7 @@ Renderer::bindEngine( Engine              *engine,
 
      state_mod       = SMF_ALL;
 
+     this->thread = direct_thread_self();
      this->engine = engine;
 
      return DFB_OK;
@@ -2793,13 +2798,20 @@ Renderer::unbindEngine()
 
      CHECK_MAGIC();
 
+     D_ASSERT( thread != NULL );
      D_ASSERT( engine != NULL );
      D_ASSERT( setup != NULL );
 
+     D_ASSUME( thread == direct_thread_self() );
+
      leaveLock( &state->src2 );
+     D_ASSERT( setup != NULL );
      leaveLock( &state->src_mask );
+     D_ASSERT( setup != NULL );
      leaveLock( &state->src );
+     D_ASSERT( setup != NULL );
      leaveLock( &state->dst );
+     D_ASSERT( setup != NULL );
 
      /// par flush
      setup->tasks[0]->Flush();
@@ -2807,6 +2819,7 @@ Renderer::unbindEngine()
      delete setup;
      setup = NULL;
 
+     thread     = NULL;
      engine     = NULL;
      operations = 0;
 

@@ -257,6 +257,7 @@ private:
      StateModificationFlags state_mod;
      WaterTransformType     transform_type;
 
+     DirectThread          *thread;     // where the renderer is used (while engine is bound)
      Engine                *engine;
      Setup                 *setup;
      unsigned int           operations;
