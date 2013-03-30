@@ -111,5 +111,11 @@ typedef int64_t s64;
 #include <dlfcn.h>
 #endif
 
+
+#ifndef SIGUNUSED
+#define SIGUNUSED 31
+#endif
+
+
 #endif
 
