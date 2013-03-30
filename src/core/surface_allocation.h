@@ -101,7 +101,7 @@ struct __DFB_CoreSurfaceAllocation {
      DFB_SurfaceTask               *write_task;
      void                          *write_access;
 
-     void                          *read_tasks;
+     DFB_SurfaceTaskListSimple     *read_tasks;
 
      unsigned int                   invalidated;  /* bit mask of accessors which have already invalidated their cache for this allocation */
 };

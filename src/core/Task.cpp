@@ -31,11 +31,11 @@
 #include <config.h>
 
 #include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
+
 #include "Task.h"
 #include "Util.h"
 
 extern "C" {
-#include <directfb.h>
 #include <directfb_util.h>
 
 #include <direct/debug.h>
@@ -48,6 +48,10 @@ extern "C" {
 
 #include <misc/conf.h>
 }
+
+#include <direct/Lists.h>
+
+#include "Task.h"
 
 /*********************************************************************************************************************/
 
@@ -89,6 +93,54 @@ TaskManager_SyncAll()
 }
 
 /*********************************************************************************************************************/
+
+DFB_TaskList *
+TaskList_New( bool locked )
+{
+     if (locked)
+          return new Direct::ListLocked<DirectFB::Task*>;
+
+     return new Direct::ListSimple<DirectFB::Task*>;
+}
+
+bool
+TaskList_IsEmpty( DFB_TaskList *list )
+{
+     return list->Length() == 0;
+}
+
+DFBResult
+TaskList_WaitEmpty( DFB_TaskList *list )
+{
+     DFB_TaskListLocked *locked = dynamic_cast<DFB_TaskListLocked*>( list );
+
+     locked->WaitEmpty();
+
+     return DFB_OK;
+}
+
+void
+TaskList_Delete( DFB_TaskList *list )
+{
+     D_ASSERT( list != NULL );
+     D_ASSUME( list->Length() == 0 );
+
+     delete list;
+}
+
+/*********************************************************************************************************************/
+
+void
+Task_AddRef( DFB_Task *task )
+{
+     task->AddRef();
+}
+
+void
+Task_Release( DFB_Task *task )
+{
+     task->Release();
+}
 
 void
 Task_AddNotify( Task *task,
@@ -201,10 +253,6 @@ public:
      {
      }
 
-     virtual ~SimpleTask()
-     {
-     }
-
 protected:
      virtual DFBResult Push()
      {
@@ -257,13 +305,15 @@ Task::Task()
      magic( D_MAGIC("Task") ),
      state( TASK_NEW ),
      flags( TASK_FLAG_NONE ),
-     block_count(0),
+     refs( 1 ),
+     block_count( 0 ),
      slaves( 0 ),
      master( NULL ),
      next_slave( NULL ),
      qid( 0 ),
      next( NULL ),
      hwid( 0 ),
+     listed( 0 ),
      finished( false ),
      dump( false )
 {
@@ -274,6 +324,41 @@ Task::Task()
      D_DEBUG_AT( DirectFB_Task, "  <- %p\n", this );
 }
 
+void
+Task::AddRef()
+{
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
+
+#if DFB_TASK_DEBUG_STATE
+     if (direct_thread_self() == TaskManager::thread)
+          DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return );
+     else
+          DFB_TASK_CHECK_STATE( this, TASK_NEW, return );
+#endif
+
+     refs++;
+}
+
+void
+Task::Release()
+{
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
+
+#if DFB_TASK_DEBUG_STATE
+     if (direct_thread_self() == TaskManager::thread) {
+          DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
+     }
+     else {
+          if (refs == 1)
+               DFB_TASK_CHECK_STATE( this, TASK_NEW, return );
+          else
+               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING, return );
+     }
+#endif
+
+     if (! --refs)
+          delete this;
+}
 
 Task::~Task()
 {
@@ -314,6 +399,43 @@ Task::AddSlave( Task *slave )
           slave->next_slave = next_slave;
 
      next_slave = slave;
+}
+
+
+void
+Task::AddToList( DFB_TaskList *list )
+{
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
+
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_NEW, );
+
+     DFB_TASK_LOG( Direct::String::F( "AddToList(%p)", list ) );
+
+     D_ASSERT( list != NULL );
+
+     listed++;
+
+     list->Append( this );
+}
+
+void
+Task::RemoveFromList( DFB_TaskList *list )
+{
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
+
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_NEW, );
+
+     DFB_TASK_LOG( Direct::String::F( "AddToList(%p)", list ) );
+
+     D_ASSERT( list != NULL );
+
+     list->Remove( this );
+
+     listed--;
 }
 
 
@@ -494,7 +616,7 @@ Task::finish()
                next = slave->next_slave;
 
                slave->Finalise();
-               delete slave;
+               slave->Release();
           }
 
 
@@ -510,7 +632,7 @@ Task::finish()
           direct_mutex_unlock( &TaskManager::tasks_lock );
 #endif
 
-          delete shutdown;
+          shutdown->Release();
      }
 
      return DFB_OK;
@@ -610,9 +732,9 @@ Task::Finalise()
 void
 Task::Describe( Direct::String &string )
 {
-     string.PrintF( "0x%08lx   %-7s  0x%04x   %2zu   %2d   %2d   %s   %s  [%zx]",
+     string.PrintF( "0x%08lx   %-7s  0x%04x   %2zu   %2d   %2d   %s   %s  [%llx]",
                     (unsigned long) this, dfb_task_state_name(state), flags, notifies.size(), block_count,
-                    slaves, master ? "><" : "  ", finished ? "YES" : "no ", qid );
+                    slaves, master ? "><" : "  ", finished ? "YES" : "no ", (unsigned long long) qid );
 }
 
 void
@@ -1150,9 +1272,9 @@ SurfaceTask::Setup()
           SurfaceAllocationAccess &access = *it;
 
           if (!access.allocation->read_tasks)
-               access.allocation->read_tasks = new std::list<Task*>();
+               access.allocation->read_tasks = new DFB_SurfaceTaskListSimple;
 
-          std::list<SurfaceTask*> &read_tasks = * (std::list<SurfaceTask*> *) access.allocation->read_tasks;
+          DFB_SurfaceTaskListSimple &read_tasks = *access.allocation->read_tasks;
 
           D_DEBUG_AT( DirectFB_Task, "  -> allocation %p, task count %d\n", access.allocation, access.allocation->task_count );
 
@@ -1164,18 +1286,18 @@ SurfaceTask::Setup()
                access.allocation->invalidated |= (1 << accessor);
           }
 
-          if ((access.flags & CSAF_WRITE) != 0) {
+          if (D_FLAGS_IS_SET( access.flags, CSAF_WRITE )) {
                D_DEBUG_AT( DirectFB_Task, "  -> WRITE\n" );
 
                /* clear all accessors' invalidated flag except our own */
                access.allocation->invalidated &= (1 << accessor);
                D_ASSUME( access.allocation->invalidated & (1 << accessor) );
 
-               if (read_tasks.size()) {
-                    for (std::list<SurfaceTask*>::const_iterator it=read_tasks.begin(); it != read_tasks.end(); it++)
+               if (read_tasks.Length()) {
+                    for (DFB_SurfaceTaskListSimple::const_iterator it=read_tasks.begin(); it != read_tasks.end(); it++)
                          (*it)->AddNotify( this, (*it)->accessor == accessor && (*it)->qid == qid );
 
-                    read_tasks.clear();
+                    read_tasks.Clear();
                }
                else if (access.allocation->write_task) {
                     SurfaceTask *write_task = access.allocation->write_task;
@@ -1214,7 +1336,7 @@ SurfaceTask::Setup()
                }
 
                // TODO: optimise in case we are already added, then just replace the task, maybe use static array with entry per accessor
-               read_tasks.push_back( this );
+               read_tasks.Append( this );
           }
      }
 
@@ -1300,14 +1422,16 @@ SurfaceTask::Finalise()
           const SurfaceAllocationAccess &access     = *it;
           CoreSurfaceAllocation         *allocation = access.allocation;
 
-          if (allocation->write_task == this) {
-               allocation->write_task   = NULL;
-               allocation->write_access = NULL;
+          if (D_FLAGS_IS_SET( access.flags, CSAF_WRITE )) {
+               if (allocation->write_task == this) {
+                    allocation->write_task   = NULL;
+                    allocation->write_access = NULL;
+               }
           }
           else {
-               std::list<SurfaceTask*> &read_tasks = * (std::list<SurfaceTask*> *) access.allocation->read_tasks;
+               DFB_SurfaceTaskListSimple &read_tasks = *access.allocation->read_tasks;
 
-               read_tasks.remove( this );
+               read_tasks.Remove( this );
           }
 
           D_SYNC_ADD( &allocation->task_count, -1 );

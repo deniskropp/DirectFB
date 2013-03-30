@@ -60,6 +60,14 @@ void         TaskManager_Sync( void );
 void         TaskManager_SyncAll( void );
 
 
+DFB_TaskList *TaskList_New( bool locked );
+bool          TaskList_IsEmpty( DFB_TaskList *list );
+DFBResult     TaskList_WaitEmpty( DFB_TaskList *list );
+void          TaskList_Delete( DFB_TaskList *list );
+
+
+void             Task_AddRef          ( DFB_Task                *task );
+void             Task_Release         ( DFB_Task                *task );
 void             Task_AddNotify       ( DFB_Task                *task,
                                         DFB_Task                *notified, // Task that should block on 'task'
                                         bool                     follow );
@@ -214,22 +222,27 @@ class DisplayTask;
 typedef std::pair<Task*,bool> TaskNotify;
 
 
-class Task : public Direct::Magic<Task>
+class Task
 {
 public:
      int magic;
 
-public:
+protected:
      Task();
      virtual ~Task();
+
+public:
+     void      AddRef();
+     void      Release();
 
      void      AddNotify( Task *notified,
                           bool  follow );
      void      AddSlave ( Task *slave );
+     void      AddToList( DFB_TaskList *list );
+     void      RemoveFromList( DFB_TaskList *list );
 
-     void      Flush();
-     void      Done( DFBResult ret = DFB_OK );
-     // TODO: Add Failed() ...
+     virtual void      Done( DFBResult ret = DFB_OK );
+     virtual void      Flush();
 
 
 protected:
@@ -256,8 +269,11 @@ private:
      friend class TaskThreads;
      friend class TaskThreadsQ;
 
+     /* reference counting */
+     unsigned int             refs;
+
      /* building dependency tree */
-     std::vector<TaskNotify>  notifies;
+     std::vector<TaskNotify>  notifies;      // FIXME: Use Direct::Vector
      unsigned int             block_count;
 
 protected:
@@ -274,6 +290,7 @@ protected:
      u32                      hwid;
 
 private:
+     unsigned int             listed;
      bool                     finished;
      bool                     dump;
 
@@ -473,7 +490,7 @@ protected:
 
 public://private:
      CoreSurfaceAccessorID                   accessor;
-     std::vector<SurfaceAllocationAccess>    accesses;
+     std::vector<SurfaceAllocationAccess>    accesses; // FIXME: Use Direct::Vector
 
      CoreSurfaceAccessFlags GetCacheFlags()
      {
@@ -518,6 +535,7 @@ public:
                                 DisplayTask         **ret_task );
 
 protected:
+     virtual void      Flush();
      virtual DFBResult Setup();
      virtual DFBResult Run();
      virtual void      Finalise();
