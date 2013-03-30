@@ -351,9 +351,10 @@ fusion_call_execute (FusionCall          *call,
                     case EINTR:
                          continue;
                     case EINVAL:
-//                         D_ERROR ("Fusion/Call: invalid call\n");
+                         D_ERROR ("Fusion/Call: invalid call (id 0x%08x)\n", call->call_id);
                          return DR_INVARG;
                     case EIDRM:
+                         D_ERROR ("Fusion/Call: call got destroyed (id 0x%08x)\n", call->call_id);
                          return DR_DESTROYED;
                     default:
                          break;
@@ -420,9 +421,10 @@ fusion_call_execute2(FusionCall          *call,
                     case EINTR:
                          continue;
                     case EINVAL:
-//                         D_ERROR ("Fusion/Call: invalid call\n");
+                         D_ERROR ("Fusion/Call: invalid call (id 0x%08x)\n", call->call_id);
                          return DR_INVARG;
                     case EIDRM:
+                         D_ERROR ("Fusion/Call: call got destroyed (id 0x%08x)\n", call->call_id);
                          return DR_DESTROYED;
                     default:
                          break;
@@ -471,7 +473,7 @@ fusion_call_execute3(FusionCall          *call,
 
 #if D_DEBUG_ENABLED
      if (call->fusion_id == fusion_id( world ) && direct_log_domain_check( &Fusion_Call ))
-          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler3 ) );
+          D_DEBUG_AT( Fusion_Call, "  =-> handler is %s()\n", direct_trace_lookup_symbol_at( call->handler3 ) );
 #endif
 
      call_tls = Call_GetTLS( world );
@@ -514,7 +516,10 @@ fusion_call_execute3(FusionCall          *call,
                call_tls->bins[call_tls->bins_num].length     = length;
                call_tls->bins[call_tls->bins_num].ret_ptr    = ret_ptr;
                call_tls->bins[call_tls->bins_num].ret_length = ret_size;
-               call_tls->bins[call_tls->bins_num].flags      = flags | FCEF_FOLLOW;
+               call_tls->bins[call_tls->bins_num].flags      = flags | FCEF_FOLLOW | FCEF_RESUMABLE;
+               call_tls->bins[call_tls->bins_num].serial     = 0;
+
+               D_DEBUG_AT( Fusion_Call, "  -> buffered length %u, flags 0x%08x\n", length, call_tls->bins[call_tls->bins_num].flags );
 
                if (length > 0) {
                     call_tls->bins[call_tls->bins_num].ptr = &call_tls->bins_data[call_tls->bins_data_len];
@@ -543,18 +548,24 @@ fusion_call_execute3(FusionCall          *call,
           execute.flags      = flags | FCEF_RESUMABLE;
           execute.serial     = 0;
 
-          D_DEBUG_AT( Fusion_Call, "  -> ptr %p, length %u\n", ptr, length );
+          D_DEBUG_AT( Fusion_Call, "  -> ptr %p, length %u, flags 0x%08x\n", ptr, length, execute.flags );
+
+          D_ASSERT( !(execute.flags & FCEF_ERROR) );
 
           while (ioctl( world->fusion_fd, FUSION_CALL_EXECUTE3, &execute )) {
                switch (errno) {
                     case EINTR:
+                         D_DEBUG_AT( Fusion_Call, "  -> EINTR (flags 0x%08x, serial %u)\n", execute.flags, execute.serial );
+                         D_ASSERT( !(execute.flags & FCEF_ERROR) );
                          continue;
                     case EINVAL:
                          D_ERROR ("Fusion/Call: invalid call (id 0x%08x)\n", call->call_id);
                          return DR_INVARG;
                     case EIDRM:
+                         D_ERROR ("Fusion/Call: call got destroyed (id 0x%08x)\n", call->call_id);
                          return DR_DESTROYED;
                     default:
+                         D_DEBUG_AT( Fusion_Call, "  -> OK (flags 0x%08x)\n", execute.flags );
                          break;
                }
 
@@ -610,9 +621,11 @@ fusion_world_flush_calls( FusionWorld *world, int lock )
                     case EINTR:
                          continue;
                     case EINVAL:
+                         D_ERROR ("Fusion/Call: invalid call (id 0x%08x)\n", call_tls->bins[0].call_id);
                          ret = DR_INVARG;
                          break;
                     case EIDRM:
+                         D_ERROR ("Fusion/Call: call got destroyed (id 0x%08x)\n", call_tls->bins[0].call_id);
                          ret = DR_DESTROYED;
                          break;
                     default:
