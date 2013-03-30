@@ -186,6 +186,8 @@ struct __DFB_CoreLayerRegion {
      CoreSurfaceAccessorID       surface_accessor;
 
      FusionCall                  call;
+
+     DFB_DisplayTaskListLocked  *display_tasks;
 };
 
 

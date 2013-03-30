@@ -49,6 +49,7 @@
 #include <core/surface.h>
 
 #include <core/CoreLayerRegion.h>
+#include <core/Task.h>
 
 #include <gfx/util.h>
 
@@ -94,6 +95,9 @@ region_destructor( FusionObject *object, bool zombie, void *ctx )
      /* Hide region etc. */
      if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
           dfb_layer_region_disable( region );
+
+     if (region->display_tasks)
+          TaskList_Delete( region->display_tasks );
 
      /* Remove the region from the context. */
      dfb_layer_context_remove_region( region->context, region );
@@ -181,6 +185,9 @@ dfb_layer_region_create( CoreLayerContext  *context,
      else
           region->surface_accessor = CSAID_LAYER0 + context->layer_id;
 
+     if (dfb_config->task_manager)
+          region->display_tasks = TaskList_New( true );
+
      CoreLayerRegion_Init_Dispatch( layer->core, region, &region->call );
 
      /* Activate the object. */
@@ -237,6 +244,9 @@ dfb_layer_region_deactivate( CoreLayerRegion *region )
      DFBResult ret;
 
      D_ASSERT( region != NULL );
+
+     if (region->display_tasks)
+          TaskList_WaitEmpty( region->display_tasks );
 
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
@@ -309,6 +319,9 @@ dfb_layer_region_disable( CoreLayerRegion *region )
 
      D_ASSERT( region != NULL );
 
+     if (region->display_tasks)
+          TaskList_WaitEmpty( region->display_tasks );
+
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
           return DFB_FUSION;
@@ -344,6 +357,9 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
 
      D_ASSERT( region != NULL );
      D_ASSERT( surface != NULL );
+
+     if (region->display_tasks)
+          TaskList_WaitEmpty( region->display_tasks );
 
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
@@ -931,6 +947,9 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
 
      funcs = layer->funcs;
 
+     if (region->display_tasks)
+          TaskList_WaitEmpty( region->display_tasks );
+
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
           return DFB_FUSION;
@@ -1206,6 +1225,7 @@ region_buffer_unlock( CoreLayerRegion       *region,
 
      D_ASSERT(region != NULL);
      D_ASSERT(left_buffer_lock != NULL);
+     D_ASSERT( !dfb_config->task_manager );
 
      D_DEBUG_AT( Core_Layers, "%s(): region=%p, lock buffer=%p\n", __FUNCTION__, (void *)region, (void *)left_buffer_lock->buffer );
      /* Unlock any previously locked buffer. */
@@ -1249,6 +1269,7 @@ region_buffer_lock( CoreLayerRegion       *region,
      D_ASSERT( region != NULL );
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT(left_buffer_lock != NULL);
+     D_ASSERT( !dfb_config->task_manager );
 
      context = region->context;
      D_MAGIC_ASSERT( context, CoreLayerContext );
@@ -1349,6 +1370,7 @@ dfb_layer_region_set( CoreLayerRegion            *region,
      D_ASSERT( region->context != NULL );
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
+     D_ASSERT( !dfb_config->task_manager );
 
      D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 
@@ -1422,6 +1444,7 @@ dfb_layer_region_realize( CoreLayerRegion *region,
      D_ASSERT( region->context != NULL );
      D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_CONFIGURED ) );
      D_ASSERT( ! D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
+     D_ASSERT( !dfb_config->task_manager || !set );
 
      layer = dfb_layer_at( region->context->layer_id );
 

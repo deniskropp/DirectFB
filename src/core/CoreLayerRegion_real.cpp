@@ -31,9 +31,11 @@
 #include <config.h>
 
 #include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
+
 #include "CoreLayerRegion.h"
 #include "Task.h"
 #include "Util.h"
+
 
 extern "C" {
 #include <directfb_util.h>
@@ -48,6 +50,16 @@ extern "C" {
 
 #include <gfx/util.h>
 }
+
+
+#include <direct/Lists.h>
+
+#include <core/Task.h>
+#include <core/Util.h>
+
+
+#include "CoreLayerRegion.h"
+
 
 D_DEBUG_DOMAIN( DirectFB_CoreLayerRegion, "DirectFB/CoreLayerRegion", "DirectFB CoreLayerRegion" );
 D_DEBUG_DOMAIN( DirectFB_Task_Display,    "DirectFB/Task/Display",    "DirectFB DisplayTask" );
@@ -130,6 +142,12 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
 {
      D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
+     if (left_allocation)
+          dfb_surface_allocation_ref( left_allocation );
+
+     if (right_allocation)
+          dfb_surface_allocation_ref( right_allocation );
+
      context = region->context;
      layer   = dfb_layer_at( context->layer_id );
      index   = dfb_surface_buffer_index( left_allocation->buffer );
@@ -156,7 +174,14 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
 
 DisplayTask::~DisplayTask()
 {
-     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s()\n", __FUNCTION__ );
+
+     if (left_allocation)
+          dfb_surface_allocation_ref( left_allocation );
+
+     if (right_allocation)
+          dfb_surface_allocation_ref( right_allocation );
+
 }
 
 DFBResult
@@ -203,6 +228,8 @@ DisplayTask::Generate( CoreLayerRegion      *region,
           }
      }
 
+     CORE_SURFACE_ALLOCATION_ASSERT( left_allocation );
+
      dfb_surface_allocation_update( left_allocation, CSAF_READ );
 
      if (stereo) {
@@ -217,6 +244,8 @@ DisplayTask::Generate( CoreLayerRegion      *region,
                     return ret;
                }
           }
+
+          CORE_SURFACE_ALLOCATION_ASSERT( right_allocation );
 
           dfb_surface_allocation_update( right_allocation, CSAF_READ );
      }
@@ -257,13 +286,40 @@ DisplayTask::Setup()
 }
 
 void
+DisplayTask::Flush()
+{
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+
+     D_ASSERT( region != NULL );
+     D_ASSERT( region->display_tasks != NULL );
+
+     AddRef();
+     region->display_tasks->Append( this );
+
+     SurfaceTask::Flush();
+}
+
+void
 DisplayTask::Finalise()
 {
      D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
+
 //     D_ASSERT( layer->display_tasks[index] == this );
 
 //     layer->display_tasks[index] = NULL;
+
+     if (dfb_config->layers_fps) {
+          if (!layer->fps)
+               layer->fps = new Util::FPS();
+
+          D_ASSERT( layer->fps != NULL );
+
+          if (layer->fps->Count( dfb_config->layers_fps ))
+               D_INFO( "Core/Layer/%u: FPS %s\n", layer->shared->layer_id, layer->fps->Get().buffer() );
+     }
 
      if (layer->display_task == this)
           layer->display_task = NULL;
@@ -279,16 +335,12 @@ DisplayTask::Run()
      DFBRegion                left_unrotated;
      DFBRegion                right_rotated;
      DFBRegion                right_unrotated;
-     CoreLayer               *layer;
-     CoreLayerContext        *context;
      CoreSurface             *surface;
      const DisplayLayerFuncs *funcs;
      CoreSurfaceBufferLock    left  = {0};
      CoreSurfaceBufferLock    right = {0};
 
-     context = region->context;
      surface = region->surface;
-     layer   = dfb_layer_at( context->layer_id );
 
      D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
 
@@ -298,12 +350,13 @@ DisplayTask::Run()
 
      dfb_layer_region_lock( region );
 
-     D_ASSUME( D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ) );
+     D_ASSERT( region->display_tasks != NULL );
 
-     if (!D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
-          ret = DFB_TIMEOUT;
-          goto out;
-     }
+     region->display_tasks->Remove( this );
+     Release();
+
+
+     D_ASSERT( D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ) );
 
      D_MAGIC_ASSERT( region->surface, CoreSurface );
 
@@ -361,14 +414,6 @@ DisplayTask::Run()
 
      /* Call SurfaceTask::CacheInvalidate() for cache invalidation */
      CacheInvalidate();
-
-     if (dfb_config->layers_fps) {
-          if (!layer->fps)
-               layer->fps = new Util::FPS();
-
-          if (layer->fps->Count( dfb_config->layers_fps ))
-               D_INFO( "Core/Layer/%u: FPS %s\n", layer->shared->layer_id, layer->fps->Get().buffer() );
-     }
 
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {

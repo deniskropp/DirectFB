@@ -55,6 +55,7 @@
 #include <core/wm.h>
 
 #include <core/CoreLayerContext.h>
+#include <core/Task.h>
 
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
@@ -722,11 +723,20 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                return DFB_FUSION;
           }
 
+wait:
+          if (region->display_tasks)
+               TaskList_WaitEmpty( region->display_tasks );
+
           /* Lock the region. */
           if (dfb_layer_region_lock( region )) {
                dfb_layer_region_unref( region );
                dfb_layer_context_unlock( context );
                return DFB_FUSION;
+          }
+
+          if (region->display_tasks && !TaskList_IsEmpty( region->display_tasks )) {
+               dfb_layer_region_unlock( region );
+               goto wait;
           }
 
           /* Normal buffer mode? */

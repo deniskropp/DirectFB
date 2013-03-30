@@ -66,6 +66,8 @@ extern "C" {
 }
 
 
+#include <direct/Lists.h>
+
 #include <core/Task.h>
 
 
@@ -97,11 +99,8 @@ surface_allocation_destructor( FusionObject *object, bool zombie, void *ctx )
      if (allocation->data)
           SHFREE( allocation->pool->shmpool, allocation->data );
 
-     if (allocation->read_tasks) {
-          std::list<DirectFB::Task*> *read_tasks = (std::list<DirectFB::Task*> *) allocation->read_tasks;
-
-          delete read_tasks;
-     }
+     if (allocation->read_tasks)
+          delete allocation->read_tasks;
 
      direct_serial_deinit( &allocation->serial );
 
