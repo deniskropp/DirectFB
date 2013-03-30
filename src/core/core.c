@@ -1631,6 +1631,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      if (dfb_wm_core.initialized)
           dfb_wm_close_all_stacks( dfb_wm_core.data_local );
 
+     CoreDFB_Deinit_Dispatch( &shared->call );
+
      dfb_gfx_cleanup();
 
      /* Destroy layer context and region objects. */
@@ -1892,8 +1894,6 @@ dfb_core_arena_shutdown( void *ctx,
           D_WARN( "refusing shutdown in slave" );
           return dfb_core_leave( core, emergency );
      }
-
-     CoreDFB_Deinit_Dispatch( &shared->call );
 
      /* Shutdown. */
      ret = dfb_core_shutdown( core, emergency );
