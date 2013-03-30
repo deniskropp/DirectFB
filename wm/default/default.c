@@ -1532,6 +1532,8 @@ flush_updating( StackData *data )
           dfb_gfx_copy_regions_client( data->region->surface, CSBR_FRONT, DSSE_LEFT, data->region->surface, CSBR_BACK, DSSE_LEFT,
                                        data->updated.regions, left_num_regions, 0, 0, &wmdata->client );
      }
+
+     CoreGraphicsStateClient_Flush( &wmdata->client );
 }
 
 static void
