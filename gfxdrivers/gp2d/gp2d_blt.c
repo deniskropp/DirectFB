@@ -791,6 +791,10 @@ gp2dCheckState( void                *drv,
 
           /* Return if blending with unsupported blend functions is requested. */
           if (state->drawingflags & DSDRAW_BLEND) {
+               // FIXME: get better documentation
+               D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
+               return;
+
                switch (accel) {
                     case DFXL_FILLRECTANGLE:
                     case DFXL_FILLTRIANGLE:
@@ -803,13 +807,13 @@ gp2dCheckState( void                *drv,
                /* Return if blending with unsupported blend functions is requested. */
                if (state->src_blend != DSBF_SRCALPHA || state->dst_blend != DSBF_INVSRCALPHA) {
                     D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
-//                    return;
+                    return;
                }
 
                /* XOR only without blending. */
                if (state->drawingflags & DSDRAW_XOR) {
                     D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
-//                    return;
+                    return;
                }
           }
 
@@ -822,7 +826,7 @@ gp2dCheckState( void                *drv,
           if (flags & ~GP2D_SUPPORTED_BLITTINGFLAGS) {
                D_DEBUG_AT( GP2D_BLT, "  -> unsupported blitting flags '%s'\n",
                            ToString_DFBSurfaceDrawingFlags( flags & ~GP2D_SUPPORTED_BLITTINGFLAGS ) );
-//               return;
+               return;
           }
 
           /* Return if the source format is not supported. */
@@ -851,9 +855,13 @@ gp2dCheckState( void                *drv,
                                 dfb_pixelformat_name(state->source->config.format) );
                     return;
           }
-#if 1
+
           /* Return if blending with unsupported blend functions is requested. */
           if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+               // FIXME: get better documentation
+               D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
+               return;
+
                switch (state->source->config.format) {
                     case DSPF_ARGB1555:
                     case DSPF_RGB16:
@@ -870,7 +878,7 @@ gp2dCheckState( void                *drv,
                     return;
                }
           }
-#endif
+
           /* Return if blending with unsupported blend functions is requested. */
           if (flags & DSBLIT_COLORIZE) {
                if (state->source->config.format != DSPF_A8) {
@@ -880,12 +888,12 @@ gp2dCheckState( void                *drv,
 
                if (!(state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)) {
                     D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
-//                    return;
+                    return;
                }
 
                if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
                     D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
-//                    return;
+                    return;
                }
           }
 
@@ -893,7 +901,7 @@ gp2dCheckState( void                *drv,
           if (flags & DSBLIT_XOR &&
               flags & ~(DSBLIT_SRC_COLORKEY | DSBLIT_ROTATE180 | DSBLIT_XOR)) {
                D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
-//               return;
+               return;
           }
 
           /* Return if colorizing for non-font surfaces is requested. */
@@ -905,7 +913,7 @@ gp2dCheckState( void                *drv,
           /* Return if blending with both alpha channel and value is requested. */
           if (D_FLAGS_ARE_SET( flags, DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
-//               return;
+               return;
           }
 
           /* Enable acceleration of blitting functions. */
@@ -1073,10 +1081,8 @@ gp2dFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
                  DFB_RECTANGLE_VALS( rect ) );
-//return true;
 
      if (gdev->render_options & DSRO_MATRIX) {
-//return true;
           __u32 *prep = start_buffer( gdrv, 6 );
 
           int x1, x2, y1, y2;
@@ -1141,7 +1147,6 @@ gp2dDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
                  DFB_RECTANGLE_VALS( rect ) );
-//return true;
 
      prep[0] = GP2D_OPCODE_LINE_C | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
 
@@ -1191,7 +1196,6 @@ gp2dFillTriangle( void *drv, void *dev, DFBTriangle *triangle )
 
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx, %d - %d, %d )\n", __FUNCTION__,
                  DFB_TRIANGLE_VALS( triangle ) );
-//return true;
 
      prep[0] = GP2D_OPCODE_POLYGON_4C | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE | GP2D_DRAWMODE_BLKE;
 
@@ -1231,7 +1235,6 @@ gp2dDrawLine( void *drv, void *dev, DFBRegion *line )
 
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %d, %d )\n", __FUNCTION__,
                  line->x1, line->y1, line->x2, line->y2 );
-//return true;
 
      prep[0] = GP2D_OPCODE_LINE_C | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
 
@@ -1272,7 +1275,6 @@ gp2dBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx%d <- %d, %d )\n", __FUNCTION__,
                  dx, dy, rect->w, rect->h, rect->x, rect->y );
-//return true;
 
      if (gdev->src_format == DSPF_A8) {
           int    w       = ((rect->w + 7) & ~7);
@@ -1406,7 +1408,6 @@ gp2dStretchBlit( void *drv, void *dev,
      D_DEBUG_AT( GP2D_BLT, "%s( %d, %d - %dx%d <- %d, %d - %dx%d )\n", __FUNCTION__,
                  drect->x, drect->y, drect->w, drect->h,
                  srect->x, srect->y, srect->w, srect->h );
-//return true;
 
      prep[0] = GP2D_OPCODE_POLYGON_4A | GP2D_DRAWMODE_SS | GP2D_DRAWMODE_CLIP | GP2D_DRAWMODE_MTRE;
 
