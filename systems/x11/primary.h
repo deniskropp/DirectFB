@@ -41,6 +41,9 @@ typedef struct {
      int                    layer_id;
      XWindow               *xw;
      CoreLayerRegionConfig  config;
+     CoreSurfaceBufferLock  lock_left;
+     CoreSurfaceBufferLock  lock_right;
+     CoreSurface           *surface;
 } X11LayerData;
 
 #endif // __X11__PRIMARY_H__

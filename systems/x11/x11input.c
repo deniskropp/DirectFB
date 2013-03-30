@@ -479,6 +479,7 @@ handle_expose_Async( void *ctx,
      const DisplayLayerFuncs *funcs  = 0;
      CoreLayerContext        *context;
      int                      i;
+     X11LayerData            *lds;
 
      D_DEBUG_AT( X11_Input, "%s( %d,%d-%dx%d )\n", __FUNCTION__, expose->x, expose->y, expose->width, expose->height );
 
@@ -503,15 +504,15 @@ handle_expose_Async( void *ctx,
      D_ASSERT( funcs != NULL );
      D_ASSERT( funcs->UpdateRegion != NULL );
 
+     lds = layer->shared->layer_data;
+
      /* Get the currently active context. */
      if (dfb_layer_get_active_context( layer, &context ) == DFB_OK) {
           CoreLayerRegion *region;
 
           /* Get the first region. */
           if (dfb_layer_context_get_primary_region( context, false, &region ) == DFB_OK) {
-               CoreSurfaceBufferLock left, right;
-
-               /* Lock the region to avoid tearing due to concurrent updates. */
+               /* Lock the region. */
                dfb_layer_region_lock( region );
 
                /* Get the surface of the region. */
@@ -531,27 +532,15 @@ handle_expose_Async( void *ctx,
                          dfb_surface_unlock( region->surface );
                     }
                     else {
-                         dfb_surface_lock_buffer2( region->surface, CSBR_FRONT, region->surface->flips, DSSE_LEFT,
-                                                   region->surface_accessor, CSAF_READ, &left );
-
-                         if (region->surface->config.caps & DSCAPS_STEREO)
-                              dfb_surface_lock_buffer2( region->surface, CSBR_FRONT, region->surface->flips, DSSE_RIGHT,
-                                                        region->surface_accessor, CSAF_READ, &right );
-
-                         if (left.buffer) {
+                         if (lds->lock_left.buffer) {
                               DFBRegion update = { expose->x, expose->y,
-                                   expose->x + expose->width  - 1,
-                                   expose->y + expose->height - 1};
+                                                   expose->x + expose->width  - 1,
+                                                   expose->y + expose->height - 1 };
 
                               funcs->UpdateRegion( layer, layer->driver_data, layer->layer_data,
                                                    region->region_data, region->surface, &update,
-                                                   &left, &update, &right );
+                                                   &lds->lock_left, &update, &lds->lock_right );
                          }
-
-                         dfb_surface_unlock_buffer(region->surface, &left );
-
-                         if (region->surface->config.caps & DSCAPS_STEREO)
-                              dfb_surface_unlock_buffer(region->surface, &right );
                     }
                }
 

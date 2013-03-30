@@ -560,7 +560,20 @@ primarySetRegion( CoreLayer                  *layer,
      if (x11->shared->x_error)
           return DFB_FAILURE;
 
-     lds->config = *config;
+
+     memset( &lds->lock_left, 0, sizeof(lds->lock_left) );
+     memset( &lds->lock_right, 0, sizeof(lds->lock_right) );
+
+
+     ret = dfb_surface_ref( surface );
+     if (ret)
+          return ret;
+
+     if (lds->surface)
+          dfb_surface_unref( lds->surface );
+
+     lds->surface = surface;
+     lds->config  = *config;
 
      ret = dfb_x11_create_window( x11, lds, config );
      if (ret)
@@ -598,6 +611,14 @@ primaryRemoveRegion( CoreLayer             *layer,
 
      if (x11->shared->x_error)
           return DFB_FAILURE;
+
+     if (lds->surface) {
+          dfb_surface_unref( lds->surface );
+          lds->surface = NULL;
+     }
+
+     memset( &lds->lock_left, 0, sizeof(lds->lock_left) );
+     memset( &lds->lock_right, 0, sizeof(lds->lock_right) );
 
      dfb_x11_destroy_window( x11, lds );
 
@@ -642,10 +663,17 @@ primaryFlipUpdate( CoreLayer             *layer,
      if (flip)
           dfb_surface_flip( surface, false );
 
+     lds->lock_left = *left_lock;
+
      dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
 
-     if (lds->config.options & DLOP_STEREO)
+     if (lds->config.options & DLOP_STEREO) {
+          lds->lock_right = *right_lock;
+
           dfb_surface_notify_display2( surface, right_lock->allocation->index, right_lock->task );
+     }
+     else
+          memset( &lds->lock_right, 0, sizeof(lds->lock_right) );
 
      dfb_x11_update_screen( x11, lds, &left_region, &right_region, left_lock, right_lock );
 
