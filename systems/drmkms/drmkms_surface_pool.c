@@ -260,6 +260,7 @@ drmkmsTestConfig( CoreSurfacePool         *pool,
           case DSPF_ARGB:
           case DSPF_RGB32:
           case DSPF_RGB16:
+          case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB332:
           case DSPF_RGB24:
@@ -335,6 +336,9 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
                break;
           case DSPF_RGB16:
                drm_format = DRM_FORMAT_RGB565;
+               break;
+          case DSPF_RGB555:
+               drm_format = DRM_FORMAT_XRGB1555;
                break;
           case DSPF_ARGB1555:
                drm_format = DRM_FORMAT_ARGB1555;
