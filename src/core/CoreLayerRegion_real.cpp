@@ -148,9 +148,8 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
      if (right_allocation)
           dfb_surface_allocation_ref( right_allocation );
 
-     context = region->context;
-     layer   = dfb_layer_at( context->layer_id );
-     index   = dfb_surface_buffer_index( left_allocation->buffer );
+     layer = dfb_layer_at( region->layer_id );
+     index = dfb_surface_buffer_index( left_allocation->buffer );
 
      if (left_update) {
           this->left_update = &this->left_update_region;
@@ -531,7 +530,6 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
 {
      DFBResult            ret = DFB_OK;
      CoreLayer           *layer;
-     CoreLayerContext    *context;
      CoreSurface         *surface;
      DFBSurfaceStereoEye  eyes = DSSE_NONE;
 
@@ -551,7 +549,6 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
 
 
      D_ASSERT( region != NULL );
-     D_ASSERT( region->context != NULL );
 
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
@@ -566,9 +563,8 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
           return DFB_UNSUPPORTED;
      }
 
-     context = region->context;
      surface = region->surface;
-     layer   = dfb_layer_at( context->layer_id );
+     layer   = dfb_layer_at( region->layer_id );
 
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {

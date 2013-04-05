@@ -170,7 +170,7 @@ typedef enum {
 struct __DFB_CoreLayerRegion {
      FusionObject                object;
 
-     CoreLayerContext           *context;
+     FusionObjectID              context_id;
 
      FusionSkirmish              lock;
 
@@ -188,6 +188,8 @@ struct __DFB_CoreLayerRegion {
      FusionCall                  call;
 
      DFB_DisplayTaskListLocked  *display_tasks;
+
+     DFBDisplayLayerID           layer_id;
 };
 
 

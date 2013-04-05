@@ -305,7 +305,7 @@ dfb_layer_context_activate( CoreLayerContext *context )
      fusion_vector_foreach (region, index, context->regions) {
           /* first reallocate.. */
           if (region->surface && region->surface->num_buffers == 0) {
-               ret = dfb_layer_context_reallocate_surface( layer, region, &region->config );
+               ret = dfb_layer_context_reallocate_surface( layer, context, region, &region->config );
                if (ret)
                     D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
           }
@@ -762,12 +762,12 @@ wait:
                     flags |= CLRCF_SURFACE | CLRCF_PALETTE;
 
                     if (region->surface) {
-                         ret = dfb_layer_context_reallocate_surface( layer, region, &region_config );
+                         ret = dfb_layer_context_reallocate_surface( layer, context, region, &region_config );
                          if (ret)
                               D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
                     }
                     else {
-                         ret = dfb_layer_context_allocate_surface( layer, region, &region_config );
+                         ret = dfb_layer_context_allocate_surface( layer, context, region, &region_config );
                          if (ret)
                               D_DERROR( ret, "Core/Layers: Allocation of layer surface failed!\n" );
                     }
@@ -780,7 +780,7 @@ wait:
                     }
                }
                else if (region->surface)
-                    dfb_layer_context_deallocate_surface( layer, region );
+                    dfb_layer_context_deallocate_surface( layer, context, region );
 
                region->state |= configured;
 
@@ -797,7 +797,7 @@ wait:
                     dfb_layer_region_disable( region );
 
                     if (region->surface)
-                         dfb_layer_context_deallocate_surface( layer, region );
+                         dfb_layer_context_deallocate_surface( layer, context, region );
                }
           }
 
@@ -1770,12 +1770,12 @@ build_updated_config( CoreLayer                   *layer,
  */
 DFBResult
 dfb_layer_context_allocate_surface( CoreLayer             *layer,
+                                    CoreLayerContext      *context,
                                     CoreLayerRegion       *region,
                                     CoreLayerRegionConfig *config )
 {
      DFBResult                ret;
      const DisplayLayerFuncs *funcs;
-     CoreLayerContext        *context;
      CoreSurface             *surface = NULL;
      CoreSurfaceTypeFlags     type    = CSTF_LAYER;
      CoreSurfaceConfig        scon;
@@ -1790,7 +1790,6 @@ dfb_layer_context_allocate_surface( CoreLayer             *layer,
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
 
-     context = region->context;
      D_MAGIC_ASSERT( context, CoreLayerContext );
 
      funcs = layer->funcs;
@@ -1854,7 +1853,7 @@ dfb_layer_context_allocate_surface( CoreLayer             *layer,
           scon.colorspace     = config->colorspace;
           scon.caps           = caps;
 
-          if (shared->contexts.primary == region->context)
+          if (shared->contexts.primary == context)
                type |= CSTF_SHARED;
 
           /* Use the default surface creation. */
@@ -1891,12 +1890,12 @@ dfb_layer_context_allocate_surface( CoreLayer             *layer,
 
 DFBResult
 dfb_layer_context_reallocate_surface( CoreLayer             *layer,
+                                      CoreLayerContext      *context,
                                       CoreLayerRegion       *region,
                                       CoreLayerRegionConfig *config )
 {
      DFBResult                ret;
      const DisplayLayerFuncs *funcs;
-     CoreLayerContext        *context;
      CoreSurface             *surface;
      CoreSurfaceConfig        sconfig;
 
@@ -1909,7 +1908,6 @@ dfb_layer_context_reallocate_surface( CoreLayer             *layer,
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
 
-     context = region->context;
      D_MAGIC_ASSERT( context, CoreLayerContext );
 
      funcs   = layer->funcs;
@@ -2017,7 +2015,9 @@ dfb_layer_context_reallocate_surface( CoreLayer             *layer,
 }
 
 DFBResult
-dfb_layer_context_deallocate_surface( CoreLayer *layer, CoreLayerRegion *region )
+dfb_layer_context_deallocate_surface( CoreLayer        *layer,
+                                      CoreLayerContext *context,
+                                      CoreLayerRegion  *region )
 {
      DFBResult                ret;
      const DisplayLayerFuncs *funcs;
