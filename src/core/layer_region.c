@@ -82,10 +82,11 @@ static DFBResult unrealize_region( CoreLayerRegion            *region );
 static void
 region_destructor( FusionObject *object, bool zombie, void *ctx )
 {
-     CoreLayerRegion  *region  = (CoreLayerRegion*) object;
-     CoreLayerContext *context = region->context;
-     CoreLayer        *layer   = dfb_layer_at( context->layer_id );
-     CoreLayerShared  *shared  = layer->shared;
+     DFBResult         ret;
+     CoreLayerRegion  *region = (CoreLayerRegion*) object;
+     CoreLayer        *layer  = dfb_layer_at( region->layer_id );
+     CoreLayerShared  *shared = layer->shared;
+     CoreLayerContext *context;
 
      D_DEBUG_AT( Core_Layers, "destroying region %p (%s, %dx%d, "
                  "%s, %s, %s, %s%s)\n", region, shared->description.name,
@@ -105,7 +106,11 @@ region_destructor( FusionObject *object, bool zombie, void *ctx )
           dfb_layer_region_disable( region );
 
      /* Remove the region from the context. */
-     dfb_layer_context_remove_region( region->context, region );
+     ret = dfb_core_get_layer_context( layer->core, region->context_id, &context );
+     if (ret == DFB_OK) {
+          dfb_layer_context_remove_region( context, region );
+          dfb_layer_context_unref( context );
+     }
 
      /* Throw away its surface. */
      if (region->surface) {
@@ -116,9 +121,6 @@ region_destructor( FusionObject *object, bool zombie, void *ctx )
           /* Unlink from structure. */
           dfb_surface_unlink( &region->surface );
      }
-
-     /* Unlink the context from the structure. */
-     dfb_layer_context_unlink( &region->context );
 
      /* Free driver's region data. */
      if (region->region_data)
@@ -167,15 +169,11 @@ dfb_layer_region_create( CoreLayerContext  *context,
      if (!region)
           return DFB_FUSION;
 
-     /* Link the context into the structure. */
-     if (dfb_layer_context_link( &region->context, context )) {
-          fusion_object_destroy( &region->object );
-          return DFB_FUSION;
-     }
+     region->layer_id   = context->layer_id;
+     region->context_id = context->object.id;
 
      /* Initialize the lock. */
      if (fusion_skirmish_init2( &region->lock, "Layer Region", dfb_core_world(layer->core), fusion_config->secure_fusion )) {
-          dfb_layer_context_unlink( &region->context );
           fusion_object_destroy( &region->object );
           return DFB_FUSION;
      }
@@ -188,7 +186,7 @@ dfb_layer_region_create( CoreLayerContext  *context,
      if (shared->description.surface_accessor)
           region->surface_accessor = shared->description.surface_accessor;
      else
-          region->surface_accessor = CSAID_LAYER0 + context->layer_id;
+          region->surface_accessor = CSAID_LAYER0 + region->layer_id;
 
      CoreLayerRegion_Init_Dispatch( layer->core, region, &region->call );
 
@@ -280,7 +278,6 @@ dfb_layer_region_enable( CoreLayerRegion *region )
      DFBResult ret;
 
      D_ASSERT( region != NULL );
-     D_ASSERT( region->context != NULL );
 
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
@@ -443,7 +440,6 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      DFBRegion                unrotated;
      DFBRegion                rotated;
      CoreLayer               *layer;
-     CoreLayerContext        *context;
      CoreSurface             *surface;
      const DisplayLayerFuncs *funcs;
 
@@ -457,7 +453,6 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
 
      D_ASSERT( region != NULL );
-     D_ASSERT( region->context != NULL );
 
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
@@ -479,9 +474,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
           return DFB_UNSUPPORTED;
      }
 
-     context = region->context;
      surface = region->surface;
-     layer   = dfb_layer_at( context->layer_id );
+     layer   = dfb_layer_at( region->layer_id );
 
      D_ASSERT( layer->funcs != NULL );
 
@@ -663,7 +657,6 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
      DFBRegion                unrotated;
      DFBRegion                left_rotated, right_rotated;
      CoreLayer               *layer;
-     CoreLayerContext        *context;
      CoreSurface             *surface;
      const DisplayLayerFuncs *funcs;
      DFBSurfaceStereoEye      eyes = 0;
@@ -676,7 +669,6 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
 
 
      D_ASSERT( region != NULL );
-     D_ASSERT( region->context != NULL );
 
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
@@ -698,9 +690,8 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
           return DFB_UNSUPPORTED;
      }
 
-     context = region->context;
      surface = region->surface;
-     layer   = dfb_layer_at( context->layer_id );
+     layer   = dfb_layer_at( region->layer_id );
 
      D_ASSERT( layer->funcs != NULL );
 
@@ -916,7 +907,6 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
      D_DEBUG_AT( Core_Layers, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, region, config, flags );
 
      D_ASSERT( region != NULL );
-     D_ASSERT( region->context != NULL );
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
      D_ASSERT( (flags == CLRCF_ALL) || (region->state & CLRSF_CONFIGURED) );
@@ -924,7 +914,7 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
      D_ASSUME( flags != CLRCF_NONE );
      D_ASSUME( ! (flags & ~CLRCF_ALL) );
 
-     layer = dfb_layer_at( region->context->layer_id );
+     layer = dfb_layer_at( region->layer_id );
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
@@ -1099,7 +1089,6 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
 
      D_ASSERT( notification != NULL );
      D_ASSERT( region != NULL );
-     D_ASSERT( region->context != NULL );
 
      D_DEBUG_AT( Core_Layers, "_dfb_layer_region_surface_listener( %p, %p ) <- 0x%08x\n",
                  notification, region, notification->flags );
@@ -1111,7 +1100,7 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
      if (notification->surface != region->surface)
           return RS_OK;
 
-     layer = dfb_layer_at( region->context->layer_id );
+     layer = dfb_layer_at( region->layer_id );
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
@@ -1242,18 +1231,13 @@ region_buffer_lock( CoreLayerRegion       *region,
      DFBResult              ret = DFB_OK;
      CoreSurfaceBuffer     *buffer;
      CoreSurfaceAllocation *allocation;
-     CoreLayerContext      *context;
      bool                   stereo;
 
-     (void)context;
      (void)allocation;
 
      D_ASSERT( region != NULL );
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT(left_buffer_lock != NULL);
-
-     context = region->context;
-     D_MAGIC_ASSERT( context, CoreLayerContext );
 
      stereo = surface->config.caps & DSCAPS_STEREO;
 
@@ -1348,13 +1332,12 @@ set_region( CoreLayerRegion            *region,
      D_DEBUG_AT( Core_Layers, "  -> state    0x%08x\n", region->state );
 
      D_ASSERT( region != NULL );
-     D_ASSERT( region->context != NULL );
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
 
      D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 
-     layer = dfb_layer_at( region->context->layer_id );
+     layer = dfb_layer_at( region->layer_id );
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );
@@ -1420,11 +1403,10 @@ realize_region( CoreLayerRegion *region )
           return DFB_OK;
      }
 
-     D_ASSERT( region->context != NULL );
      D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_CONFIGURED ) );
      D_ASSERT( ! D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 
-     layer = dfb_layer_at( region->context->layer_id );
+     layer = dfb_layer_at( region->layer_id );
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );
@@ -1498,10 +1480,9 @@ unrealize_region( CoreLayerRegion *region )
 
      D_DEBUG_AT( Core_Layers, "  -> state    0x%08x\n", region->state );
 
-     D_ASSERT( region->context != NULL );
      D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 
-     layer = dfb_layer_at( region->context->layer_id );
+     layer = dfb_layer_at( region->layer_id );
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );

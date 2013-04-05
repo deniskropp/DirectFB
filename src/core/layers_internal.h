@@ -165,7 +165,7 @@ typedef enum {
 struct __DFB_CoreLayerRegion {
      FusionObject                object;
 
-     CoreLayerContext           *context;
+     FusionObjectID              context_id;
 
      FusionSkirmish              lock;
 
@@ -181,6 +181,8 @@ struct __DFB_CoreLayerRegion {
      CoreSurfaceAccessorID       surface_accessor;
 
      FusionCall                  call;
+
+     DFBDisplayLayerID           layer_id;
 };
 
 
