@@ -560,6 +560,11 @@ primarySetRegion( CoreLayer                  *layer,
      if (x11->shared->x_error)
           return DFB_FAILURE;
 
+     if (lds->lock_left.allocation)
+          dfb_surface_allocation_unref( lds->lock_left.allocation );
+
+     if (lds->lock_right.allocation)
+          dfb_surface_allocation_unref( lds->lock_right.allocation );
 
      memset( &lds->lock_left, 0, sizeof(lds->lock_left) );
      memset( &lds->lock_right, 0, sizeof(lds->lock_right) );
@@ -609,16 +614,22 @@ primaryRemoveRegion( CoreLayer             *layer,
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
-     if (x11->shared->x_error)
-          return DFB_FAILURE;
-
      if (lds->surface) {
           dfb_surface_unref( lds->surface );
           lds->surface = NULL;
      }
 
+     if (lds->lock_left.allocation)
+          dfb_surface_allocation_unref( lds->lock_left.allocation );
+
+     if (lds->lock_right.allocation)
+          dfb_surface_allocation_unref( lds->lock_right.allocation );
+
      memset( &lds->lock_left, 0, sizeof(lds->lock_left) );
      memset( &lds->lock_right, 0, sizeof(lds->lock_right) );
+
+     if (x11->shared->x_error)
+          return DFB_FAILURE;
 
      dfb_x11_destroy_window( x11, lds );
 
@@ -663,12 +674,22 @@ primaryFlipUpdate( CoreLayer             *layer,
      if (flip)
           dfb_surface_flip( surface, false );
 
+     if (lds->lock_left.allocation)
+          dfb_surface_allocation_unref( lds->lock_left.allocation );
+
+     if (lds->lock_right.allocation)
+          dfb_surface_allocation_unref( lds->lock_right.allocation );
+
      lds->lock_left = *left_lock;
+
+     dfb_surface_allocation_ref( lds->lock_left.allocation );
 
      dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
 
      if (lds->config.options & DLOP_STEREO) {
           lds->lock_right = *right_lock;
+
+          dfb_surface_allocation_ref( lds->lock_right.allocation );
 
           dfb_surface_notify_display2( surface, right_lock->allocation->index, right_lock->task );
      }
