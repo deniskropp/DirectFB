@@ -121,5 +121,4 @@ libidirectfbwindow_requestor_la_SOURCES = idirectfbwindow_requestor.c idirectfbw
 libidirectfbwindow_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbwindow_requestor_la_LIBADD  = $(LIBS)
 
-
 include $(top_srcdir)/rules/libobject.make
