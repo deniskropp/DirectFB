@@ -6,6 +6,7 @@ EXTRA_DIST = \
 	README.matroxfb-vsync-irq-patch			\
 	README.savagefb					\
 	davincifb-triple-osd0-2.6.10.patch.bz2		\
+	linux-3.8-rc6_GP2D_2013-04-05.patch.bz2		\
 	matroxfb-full-memory-linux-2.4.21-rc2.patch.bz2	\
 	matroxfb-g400-clock-2.4.22.patch.bz2		\
 	matroxfb-vsync-irq-2.4.20.patch.bz2		\
