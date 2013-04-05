@@ -55,6 +55,11 @@
 #define NAME_LEN    92
 
 
+
+D_LOG_DOMAIN( Direct_Trace, "Direct/Trace", "Trace support" );
+
+/**************************************************************************************************/
+
 typedef enum {
      TF_NONE   = 0x00000000,
 
@@ -180,7 +185,7 @@ load_symbols( const char *filename )
      const char  *full_path = filename;
      char        *tmp;
 
-     D_INFO( "Direct/Trace: loading symbols of '%s'...\n", filename );
+     D_DEBUG_AT( Direct_Trace, "%s( %s )\n", filename );
 
      if (filename) {
           ret = direct_access( filename, R_OK );
@@ -257,7 +262,7 @@ load_symbols( const char *filename )
           if (ret) {
                direct_snprintf( command, command_len, "nm -nC %s", full_path );
 
-               D_INFO( "Direct/Trace: running '%s'...\n", command );
+               D_DEBUG_AT( Direct_Trace, "running '%s'...\n", command );
 
                ret = direct_popen( &fp, command, O_RDONLY );
                if (ret) {

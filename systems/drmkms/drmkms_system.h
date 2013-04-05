@@ -65,6 +65,7 @@ typedef struct {
      drmModePlane        *plane;
      uint32_t             colorkey_propid;
      uint32_t             zpos_propid;
+     uint32_t             alpha_propid;
 
      int                  level;
 } DRMKMSLayerData;

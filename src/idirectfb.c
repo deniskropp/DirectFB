@@ -981,9 +981,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                           * so it is visible.  Otherwise, just directly flip
                           * the display layer and make it visible.
                           */
-                         D_ASSERT( region->context );
-                         if (region->context->stack) {
-                              CoreWindowStack_RepaintAll( region->context->stack );
+                         if (data->stack) {
+                              CoreWindowStack_RepaintAll( data->stack );
                          }
                          else {
                               CoreLayerRegion_FlipUpdate2( region, NULL, NULL, DSFLIP_NONE, -1 );

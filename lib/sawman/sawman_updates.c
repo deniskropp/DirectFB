@@ -1702,12 +1702,12 @@ process_single( SaWMan              *sawman,
                if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
                     dfb_layer_region_disable(region);
 
-               ret = dfb_layer_context_reallocate_surface( layer, region, &region_config );
+               ret = dfb_layer_context_reallocate_surface( layer, tier->context, tier->region, &region_config );
                if (ret)
                     D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
           }
           else {
-               ret = dfb_layer_context_allocate_surface( layer, region, &region_config );
+               ret = dfb_layer_context_allocate_surface( layer, tier->context, region, &region_config );
                if (ret)
                     D_DERROR( ret, "Core/Layers: Allocation of layer surface failed!\n" );
           }

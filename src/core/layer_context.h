@@ -166,14 +166,17 @@ CoreWindow      *dfb_layer_context_find_window( CoreLayerContext       *context,
 
 
 DFBResult dfb_layer_context_allocate_surface    ( CoreLayer                   *layer,
+                                                  CoreLayerContext            *context,
                                                   CoreLayerRegion             *region,
                                                   CoreLayerRegionConfig       *config );
 
 DFBResult dfb_layer_context_reallocate_surface  ( CoreLayer                   *layer,
+                                                  CoreLayerContext            *context,
                                                   CoreLayerRegion             *region,
                                                   CoreLayerRegionConfig       *config );
 
 DFBResult dfb_layer_context_deallocate_surface  ( CoreLayer                   *layer,
+                                                  CoreLayerContext            *context,
                                                   CoreLayerRegion             *region );
 
 #endif

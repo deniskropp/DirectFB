@@ -142,6 +142,9 @@ config_allocate( void )
 
      sawman_config->update_region_mode = 4;
 
+     sawman_config->static_layer = true;
+
+
      return DFB_OK;
 }
 

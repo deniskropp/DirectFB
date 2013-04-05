@@ -213,6 +213,6 @@ libifusionsoundplayback_requestor_la_LIBADD  = $(LIBS)
 
 libidivine_requestor_la_SOURCES = idivine_requestor.c
 libidivine_requestor_la_LDFLAGS = -avoid-version -module
-libidivine_requestor_la_LIBADDD = $(LIBS)
+libidivine_requestor_la_LIBADD = $(LIBS)
 
 include $(top_srcdir)/rules/libobject.make

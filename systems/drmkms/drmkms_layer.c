@@ -306,19 +306,25 @@ drmkmsPlaneInitLayer( CoreLayer                  *layer,
           int                i;
           drmModePropertyPtr prop;
 
+          D_INFO( "DirectFB/DRMKMS: supported properties for layer id %d\n", data->plane->plane_id );
           for (i = 0; i < props->count_props; i++) {
                prop = drmModeGetProperty( drmkms->fd, props->props[i] );
                if (!strcmp(prop->name, "colorkey")) {
                     description->caps |= DLCAPS_SRC_COLORKEY;
                     data->colorkey_propid = prop->prop_id;
-                    D_INFO( "DirectFB/DRMKMS: found colorkey property for layer id %d\n", data->plane->plane_id );
+                    D_INFO( "     colorkey\n" );
                }
                else if (!strcmp(prop->name, "zpos")) {
                     description->caps |= DLCAPS_LEVELS;
                     data->zpos_propid = prop->prop_id;
-                    D_INFO( "DirectFB/DRMKMS: found zpos property for layer id %d\n", data->plane->plane_id );
+                    D_INFO( "     zpos\n" );
 
                     drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->zpos_propid, data->level );
+               }
+               else if (!strcmp(prop->name, "alpha")) {
+                    description->caps |= DLCAPS_OPACITY;
+                    data->alpha_propid = prop->prop_id;
+                    D_INFO( "     alpha\n" );
                }
 
                drmModeFreeProperty( prop );
@@ -433,6 +439,16 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
                return DFB_FAILURE;
           }
      }
+
+     if (updated & CLRCF_OPACITY) {
+          ret = drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->alpha_propid, config->opacity );
+
+          if (ret) {
+               D_ERROR( "DirectFB/DRMKMS: drmModeObjectSetProperty() failed setting alpha\n");
+               return DFB_FAILURE;
+          }
+     }
+
 
      return DFB_OK;
 }
