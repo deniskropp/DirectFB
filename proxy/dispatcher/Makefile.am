@@ -213,7 +213,7 @@ libifusionsoundstream_dispatcher_la_LIBADD = $(LIBS) ../compressor/libfusionsoun
 
 libidivine_dispatcher_la_SOURCES = idivine_dispatcher.c idivine_dispatcher.h
 libidivine_dispatcher_la_LDFLAGS = -avoid-version -module
-libidivine_dispatcher_la_LIBADD = $(LIBS)
+libidivine_dispatcher_la_LIBADD = $(LIBS) $(top_builddir)/lib/divine/libdivine.la
 
 include $(top_srcdir)/rules/libobject.make
 
