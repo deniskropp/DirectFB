@@ -492,6 +492,69 @@ load_module( const char *name )
      return DFB_OK;
 }
 
+static void
+apply_geometry( const DFBWindowGeometry *geometry,
+                const DFBRegion         *clip,
+                const DFBWindowGeometry *parent,
+                DFBRectangle            *ret_rect )
+{
+     int width, height;
+
+     D_ASSERT( geometry != NULL );
+     DFB_REGION_ASSERT( clip );
+     D_ASSERT( ret_rect != NULL );
+
+     width  = clip->x2 - clip->x1 + 1;
+     height = clip->y2 - clip->y1 + 1;
+
+     switch (geometry->mode) {
+          case DWGM_DEFAULT:
+               D_DEBUG_AT( Core_WM, " -- default\n" );
+               *ret_rect = DFB_RECTANGLE_INIT_FROM_REGION( clip );
+               D_DEBUG_AT( Core_WM, " => %d,%d-%dx%d\n", DFB_RECTANGLE_VALS( ret_rect ) );
+               return;
+
+          case DWGM_FOLLOW:
+               D_ASSERT( parent != NULL );
+               D_DEBUG_AT( Core_WM, " -- FOLLOW\n" );
+               apply_geometry( parent, clip, NULL, ret_rect );
+               break;
+
+          case DWGM_RECTANGLE:
+               D_DEBUG_AT( Core_WM, " -- RECTANGLE [%d,%d-%dx%d]\n",
+                           DFB_RECTANGLE_VALS( &geometry->rectangle ) );
+               *ret_rect = geometry->rectangle;
+               ret_rect->x += clip->x1;
+               ret_rect->y += clip->y1;
+               break;
+
+          case DWGM_LOCATION:
+               D_DEBUG_AT( Core_WM, " -- LOCATION [%.3f,%.3f-%.3fx%.3f]\n",
+                           geometry->location.x, geometry->location.y,
+                           geometry->location.w, geometry->location.h );
+               ret_rect->x = (int)(geometry->location.x * width  + 0.5f) + clip->x1;
+               ret_rect->y = (int)(geometry->location.y * height + 0.5f) + clip->y1;
+               ret_rect->w = (int)(geometry->location.w * width  + 0.5f);
+               ret_rect->h = (int)(geometry->location.h * height + 0.5f);
+               break;
+
+          default:
+               D_BUG( "invalid geometry mode %d", geometry->mode );
+               return;
+     }
+
+     D_DEBUG_AT( Core_WM, " -> %d,%d-%dx%d / clip [%d,%d-%dx%d]\n",
+                 DFB_RECTANGLE_VALS( ret_rect ),
+                 DFB_RECTANGLE_VALS_FROM_REGION( clip ) );
+
+     if (!dfb_rectangle_intersect_by_region( ret_rect, clip )) {
+          D_WARN( "invalid geometry" );
+          dfb_rectangle_from_region( ret_rect, clip );
+     }
+
+     D_DEBUG_AT( Core_WM, " => %d,%d-%dx%d\n", DFB_RECTANGLE_VALS( ret_rect ) );
+}
+
 /**************************************************************************************************/
 
 static void
@@ -1288,7 +1351,7 @@ dfb_wm_set_window_config( CoreWindow             *window,
 
                dfb_layer_region_disable( config_window->region );
                dfb_layer_region_enable( config_window->stack->context->primary.region );
-               dfb_windowstack_repaint_all(config_window->stack);
+               dfb_windowstack_repaint_all( config_window->stack );
           }
           else {
                if (single_add) {
@@ -1331,23 +1394,46 @@ dfb_wm_set_window_config( CoreWindow             *window,
                               dfb_layer_region_disable( config_window->stack->context->primary.region );
 
                          dfb_layer_region_enable( config_window->region );
+                         config_window->region->state &= ~CLRSF_FROZEN;
+                         dfb_layer_region_realize( config_window->region, true );
                     }
                }
 
                if (single_update) {
+                    CoreLayerRegionConfig      region_config;
+                    CoreLayerRegionConfigFlags region_flags = CLRCF_NONE;
+
                     D_DEBUG_AT( Core_WM, "  -> single window optimisation: updating window %p.\n", config_window );
 
+                    if (flags & CWCF_OPACITY) {
+                         region_flags |= CLRCF_OPACITY;
+                         region_config.opacity = config->opacity;
+                    }
+
                     if (flags & CWCF_POSITION) {
+                         region_flags |= CLRCF_DEST;
+                         region_config.dest = config->bounds;
                     }
 
                     if (flags & CWCF_SIZE) {
+                         region_flags |= (CLRCF_WIDTH | CLRCF_HEIGHT);
+                         region_config.width = config_window->surface->config.size.w;
+                         region_config.height = config_window->surface->config.size.h;
+                         region_config.dest = config->bounds;
                     }
 
                     if (flags & CWCF_DST_GEOMETRY) {
+                         DFBRegion clip = DFB_REGION_INIT_FROM_RECTANGLE(&config->bounds);
+                         region_flags |= CLRCF_DEST;
+                         apply_geometry( &config->dst_geometry, &clip, NULL, &region_config.dest );
                     }
 
                     if (flags & CWCF_OPAQUE) {
+                         //TODO
                     }
+
+                    if (region_flags != CLRCF_NONE)
+                         dfb_layer_region_set_configuration( config_window->region, &region_config, region_flags );
                }
           }
      }
