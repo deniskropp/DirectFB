@@ -2130,6 +2130,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+     if (strcmp (name, "single-window" ) == 0) {
+          dfb_config->single_window = true;
+     } else
      if (
 #if DIRECTFB_BUILD_VOODOO
          voodoo_config_set( name, value ) &&

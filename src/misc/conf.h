@@ -311,6 +311,8 @@ typedef struct
 
      bool          always_flush_callbuffer;
      unsigned int  layers_fps;
+
+     bool          single_window;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

@@ -57,6 +57,8 @@
 #include <core/windowstack.h>
 #include <core/wm.h>
 
+#include <core/CoreLayerRegion.h>
+#include <core/CoreSurface.h>
 #include <core/CoreWindow.h>
 
 #include <misc/conf.h>
@@ -173,27 +175,24 @@ dfb_window_pool_create( const FusionWorld *world )
                                        window_destructor, NULL, world );
 }
 
-/**************************************************************************************************/
-
-static DFBResult
-create_region( CoreDFB                 *core,
-               CoreLayerContext        *context,
-               CoreWindow              *window,
-               DFBSurfacePixelFormat    format,
-               DFBSurfaceColorSpace     colorspace,
-               DFBSurfaceCapabilities   surface_caps,
-               CoreLayerRegion        **ret_region,
-               CoreSurface            **ret_surface )
+DFBResult
+dfb_window_create_region( CoreWindow              *window,
+                          CoreLayerContext        *context,
+                          CoreSurface             *window_surface,
+                          DFBSurfacePixelFormat    format,
+                          DFBSurfaceColorSpace     colorspace,
+                          DFBSurfaceCapabilities   surface_caps,
+                          CoreLayerRegion        **ret_region,
+                          CoreSurface            **ret_surface )
 {
      DFBResult              ret;
      CoreLayerRegionConfig  config;
      CoreLayerRegion       *region;
-     CoreSurface           *surface;
+     CoreSurface           *surface = window_surface;
      CoreSurfaceConfig      scon;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( context != NULL );
      D_ASSERT( window != NULL );
+     D_ASSERT( context != NULL );
      D_ASSERT( ret_region != NULL );
      D_ASSERT( ret_surface != NULL );
 
@@ -233,6 +232,7 @@ create_region( CoreDFB                 *core,
      if (ret)
           return ret;
 
+     region->config.keep_buffers = true;
 
      do {
           ret = dfb_layer_region_set_configuration( region, &config, CLRCF_ALL );
@@ -249,17 +249,19 @@ create_region( CoreDFB                 *core,
           }
      } while (ret);
 
-     scon.flags          = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
-     scon.size.w         = config.width;
-     scon.size.h         = config.height;
-     scon.format         = format;
-     scon.colorspace     = colorspace;
-     scon.caps           = surface_caps | DSCAPS_VIDEOONLY;
+     if (!surface) {
+          scon.flags          = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
+          scon.size.w         = config.width;
+          scon.size.h         = config.height;
+          scon.format         = format;
+          scon.colorspace     = colorspace;
+          scon.caps           = surface_caps | DSCAPS_VIDEOONLY;
 
-     ret = dfb_surface_create( core, &scon, CSTF_SHARED | CSTF_LAYER, context->layer_id, NULL, &surface );
-     if (ret) {
-          dfb_layer_region_unref( region );
-          return ret;
+          ret = dfb_surface_create( core_dfb, &scon, CSTF_SHARED | CSTF_LAYER, context->layer_id, NULL, &surface );
+          if (ret) {
+               dfb_layer_region_unref( region );
+               return ret;
+          }
      }
 
      ret = dfb_layer_region_set_surface( region, surface );
@@ -269,11 +271,13 @@ create_region( CoreDFB                 *core,
           return ret;
      }
 
-     ret = dfb_layer_region_enable( region );
-     if (ret) {
-          dfb_surface_unref( surface );
-          dfb_layer_region_unref( region );
-          return ret;
+     if (!window_surface) {
+          ret = dfb_layer_region_enable( region );
+          if (ret) {
+               dfb_surface_unref( surface );
+               dfb_layer_region_unref( region );
+               return ret;
+          }
      }
 
      *ret_region  = region;
@@ -281,6 +285,8 @@ create_region( CoreDFB                 *core,
 
      return DFB_OK;
 }
+
+/**************************************************************************************************/
 
 static DFBResult
 init_subwindow( CoreWindow      *window,
@@ -547,8 +553,8 @@ dfb_window_create( CoreWindowStack             *stack,
                CoreLayerRegion *region = NULL;
 
                /* Create a region for the window. */
-               ret = create_region( layer->core, context, window,
-                                    pixelformat, colorspace, surface_caps, &region, &surface );
+               ret = dfb_window_create_region( window, context, NULL,
+                                               pixelformat, colorspace, surface_caps, &region, &surface );
                if (ret) {
                     D_DEBUG_AT( Core_Windows, "  -> REGION CREATE FAILED (%s)\n", DirectResultString(ret) );
                     D_MAGIC_CLEAR( window );
@@ -1718,6 +1724,48 @@ dfb_window_repaint( CoreWindow          *window,
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     if (window->region) {
+          ret = CoreLayerRegion_FlipUpdate2( window->region, left_region, right_region, flags, -1 );
+     }
+     else {
+          if (window->surface->config.caps & DSCAPS_FLIPPING) {
+               if (!(flags & DSFLIP_BLIT)) {
+                    if ((flags & DSFLIP_SWAP) ||
+                        (left_region->x1 == 0 && left_region->y1 == 0 &&
+                         left_region->x2 == window->surface->config.size.w - 1 &&
+                         left_region->y2 == window->surface->config.size.h - 1 &&
+                         right_region->x1 == 0 && right_region->y1 == 0 &&
+                         right_region->x2 == window->surface->config.size.w - 1 &&
+                         right_region->y2 == window->surface->config.size.h - 1))
+                    {
+                         ret = CoreSurface_Flip( window->surface, false );
+                         if (ret)
+                             return ret;
+                    }
+                    else {
+                         dfb_gfx_copy_regions( window->surface, CSBR_BACK,
+                                               window->surface, CSBR_FRONT,
+                                               left_region, 1, 0, 0 );
+                         if (left_region != right_region)
+                              dfb_gfx_copy_regions( window->surface, CSBR_BACK,
+                                                    window->surface, CSBR_FRONT,
+                                                    right_region, 1, 0, 0 );
+                    }
+               }
+               else {
+                    dfb_gfx_copy_regions( window->surface, CSBR_BACK,
+                                          window->surface, CSBR_FRONT,
+                                          left_region, 1, 0, 0 );
+                    if (left_region != right_region)
+                         dfb_gfx_copy_regions( window->surface, CSBR_BACK,
+                                               window->surface, CSBR_FRONT,
+                                               right_region, 1, 0, 0 );
+               }
+          }
+
+          dfb_surface_dispatch_update( window->surface, left_region, right_region );
+     }
 
      /* Never call WM after destroying the window. */
      if (DFB_WINDOW_DESTROYED( window )) {

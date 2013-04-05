@@ -246,6 +246,9 @@ dfb_windowstack_create( CoreLayerContext *context )
           return NULL;
      }
 
+     if (dfb_config->single_window)
+          fusion_vector_init( &stack->visible_windows, 23, stack->shmpool );
+
      /* Attach to all input devices */
 #ifndef DIRECTFB_DISABLE_DEPRECATED
      dfb_input_enumerate_devices( stack_attach_devices, stack, DICAPS_ALL );

@@ -109,6 +109,17 @@ struct __DFB_CoreWindowConfig {
  */
 FusionObjectPool *dfb_window_pool_create( const FusionWorld *world );
 
+/* Creates a region and configures it optionally using the passed window_surface. */
+DFBResult
+dfb_window_create_region( CoreWindow              *window,
+                          CoreLayerContext        *context,
+                          CoreSurface             *window_surface,
+                          DFBSurfacePixelFormat    format,
+                          DFBSurfaceColorSpace     colorspace,
+                          DFBSurfaceCapabilities   surface_caps,
+                          CoreLayerRegion        **ret_region,
+                          CoreSurface            **ret_surface );
+
 /*
  * Generates dfb_window_ref(), dfb_window_attach() etc.
  */

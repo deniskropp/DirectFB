@@ -192,42 +192,9 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent();
 
-     if (data->window->region) {
-          ret = CoreLayerRegion_FlipUpdate2( data->window->region, &reg, &reg, flags, -1 );
-     }
-     else {
-          if (data->base.surface->config.caps & DSCAPS_FLIPPING) {
-               if (!(flags & DSFLIP_BLIT)) {
-                    if ((flags & DSFLIP_SWAP) ||
-                        (reg.x1 == 0 && reg.y1 == 0 &&
-                         reg.x2 == data->base.surface->config.size.w  - 1 &&
-                         reg.y2 == data->base.surface->config.size.h - 1))
-                    {
-                         ret = CoreSurface_Flip( data->base.surface, false );
-                         if (ret)
-                             return ret;
-                    }
-                    else {
-                         dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
-                                                      data->base.surface, CSBR_FRONT, DSSE_LEFT,
-                                                      &reg, 1, 0, 0, &data->base.state_client );
-                    }
-               }
-               else {
-                    dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
-                                                 data->base.surface, CSBR_FRONT, DSSE_LEFT,
-                                                 &reg, 1, 0, 0, &data->base.state_client );
-               }
-          }
-
-          CoreGraphicsStateClient_Flush( &data->base.state_client );
-
-          dfb_surface_dispatch_update( data->base.surface, &reg, &reg );
-
-          ret = CoreWindow_Repaint( data->window, &reg, &reg, flags );
-          if (ret)
-              return ret;
-     }
+     ret = CoreWindow_Repaint( data->window, &reg, &reg, flags );
+     if (ret)
+          return ret;
 
      if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY) {
           CoreWindowConfig config = { .opacity = 0xff };
@@ -319,53 +286,9 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent();
 
-     if (data->window->region) {
-          /* TODO STEREO: Add support for hardware windows. */
-          /*dfb_layer_region_flip_update( data->window->region, &reg, flags );*/
-          return DFB_UNSUPPORTED;
-     }
-     else {
-          if (data->base.surface->config.caps & DSCAPS_FLIPPING) {
-               if (!(flags & DSFLIP_BLIT)) {
-                    if ((flags & DSFLIP_SWAP) ||
-                        (l_reg.x1 == 0 && l_reg.y1 == 0 &&
-                         l_reg.x2 == data->base.surface->config.size.w  - 1 &&
-                         l_reg.y2 == data->base.surface->config.size.h - 1 &&
-                         r_reg.x1 == 0 && r_reg.y1 == 0 &&
-                         r_reg.x2 == data->base.surface->config.size.w  - 1 &&
-                         r_reg.y2 == data->base.surface->config.size.h - 1))
-                    {
-                         ret = CoreSurface_Flip( data->base.surface, false );
-                         if (ret)
-                             return ret;
-                    }
-                    else {
-                         dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
-                                                      data->base.surface, CSBR_FRONT, DSSE_LEFT,
-                                                      &l_reg, 1, 0, 0, &data->base.state_client );
-                         dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_RIGHT,
-                                                      data->base.surface, CSBR_FRONT, DSSE_RIGHT,
-                                                      &r_reg, 1, 0, 0, &data->base.state_client );
-                    }
-               }
-               else {
-                    dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_LEFT,
-                                                 data->base.surface, CSBR_FRONT, DSSE_LEFT,
-                                                 &l_reg, 1, 0, 0, &data->base.state_client );
-                    dfb_gfx_copy_regions_client( data->base.surface, CSBR_BACK, DSSE_RIGHT,
-                                                 data->base.surface, CSBR_FRONT, DSSE_RIGHT,
-                                                 &r_reg, 1, 0, 0, &data->base.state_client );
-               }
-          }
-
-          CoreGraphicsStateClient_Flush( &data->base.state_client );
-
-          dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg );
-
-          ret = CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags );
-          if (ret)
-              return ret;
-     }
+     ret = CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags );
+     if (ret)
+          return ret;
 
      if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY) {
           CoreWindowConfig config = { .opacity = 0xff };

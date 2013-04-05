@@ -1245,6 +1245,113 @@ dfb_wm_set_window_config( CoreWindow             *window,
      D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d], %p, 0x%x )\n", __FUNCTION__,
                  window, DFB_RECTANGLE_VALS(&window->config.bounds), config, flags );
 
+     if (dfb_config->single_window) {
+          bool        single_add = false;
+          bool        single_remove = false;
+          bool        single_update = false;
+          CoreWindow *config_window = window;
+
+          if (flags & CWCF_OPACITY) {
+               if (config->opacity != 0) {
+                    if (window->config.opacity == 0) {
+                         if (fusion_vector_size( &window->stack->visible_windows ) == 0) {
+                              single_add = true;
+                              single_update = true;
+                         }
+                         else if (fusion_vector_size( &window->stack->visible_windows ) == 1) {
+                              config_window = fusion_vector_at( &window->stack->visible_windows, 0 );
+                              single_remove = true;
+                         }
+                         fusion_vector_add( &window->stack->visible_windows, window );
+                    }
+               }
+               else if (window->config.opacity != 0) {
+                    if (fusion_vector_size( &window->stack->visible_windows ) == 2) {
+                         single_add = true;
+                         single_update = true;
+                    }
+                    else if (fusion_vector_size( &window->stack->visible_windows ) == 1) {
+                         config_window = fusion_vector_at( &window->stack->visible_windows, 0 );
+                         single_remove = true;
+                    }
+                    int idx = fusion_vector_index_of( &window->stack->visible_windows, window );
+                    D_ASSERT( idx >= 0 );
+                    fusion_vector_remove( &window->stack->visible_windows, idx );
+               }
+          }
+
+          if (fusion_vector_size( &window->stack->visible_windows ) == 1)
+               single_update = true;
+
+          if (single_remove) {
+               D_DEBUG_AT( Core_WM, "  -> single window optimisation: removing window %p.\n", config_window );
+
+               dfb_layer_region_disable( config_window->region );
+               dfb_layer_region_enable( config_window->stack->context->primary.region );
+               dfb_windowstack_repaint_all(config_window->stack);
+          }
+          else {
+               if (single_add) {
+                    D_DEBUG_AT( Core_WM, "  -> single window optimisation: adding window %p.\n", config_window );
+
+                    if (!config_window->region) {
+                         DFBResult        ret;
+                         CoreLayerRegion *region = NULL;
+                         CoreSurface     *surface = config_window->surface;
+
+                         /* Create a region for the window. */
+                         ret = dfb_window_create_region( config_window, config_window->stack->context, surface,
+                                                         surface->config.format, surface->config.colorspace,
+                                                         surface->config.caps & (DSCAPS_INTERLACED    | DSCAPS_SEPARATED  |
+                                                                                 DSCAPS_PREMULTIPLIED | DSCAPS_DEPTH      |
+                                                                                 DSCAPS_STATIC_ALLOC  | DSCAPS_SYSTEMONLY |
+                                                                                 DSCAPS_VIDEOONLY     | DSCAPS_TRIPLE     |
+                                                                                 DSCAPS_GL),
+                                                         &region, &surface );
+                         if (ret) {
+                              D_DEBUG_AT( Core_WM, "  -> REGION CREATE FAILED (%s)\n", DirectResultString(ret) );
+                              int idx = fusion_vector_index_of( &config_window->stack->visible_windows, config_window );
+                              D_ASSERT( idx >= 0 );
+                              fusion_vector_remove( &config_window->stack->visible_windows, idx );
+                         }
+                         else {
+                              D_ASSERT( config_window->surface == surface );
+                              /* Link the region into the window structure. */
+                              dfb_layer_region_link( &config_window->region, region );
+                              dfb_layer_region_unref( region );
+
+                              /* Link the surface into the window structure. */
+                              dfb_surface_link( &config_window->surface, surface );
+                              dfb_surface_unref( surface );
+                         }
+                    }
+
+                    if (config_window->region) {
+                         if (config_window->stack->context->primary.region->state & CLRSF_ENABLED)
+                              dfb_layer_region_disable( config_window->stack->context->primary.region );
+
+                         dfb_layer_region_enable( config_window->region );
+                    }
+               }
+
+               if (single_update) {
+                    D_DEBUG_AT( Core_WM, "  -> single window optimisation: updating window %p.\n", config_window );
+
+                    if (flags & CWCF_POSITION) {
+                    }
+
+                    if (flags & CWCF_SIZE) {
+                    }
+
+                    if (flags & CWCF_DST_GEOMETRY) {
+                    }
+
+                    if (flags & CWCF_OPAQUE) {
+                    }
+               }
+          }
+     }
+
      return wm_local->funcs->SetWindowConfig( window, wm_local->data,
                                               window->window_data, config, flags );
 }
