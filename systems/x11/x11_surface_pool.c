@@ -98,7 +98,7 @@ x11InitPool( CoreDFB                    *core,
      ret_desc->caps              = CSPCAPS_VIRTUAL;
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL | CSTF_INTERNAL;
-     ret_desc->priority          = CSPP_DEFAULT;
+     ret_desc->priority          = CSPP_ULTIMATE;
 
      /* For showing our X11 window */
      ret_desc->access[CSAID_LAYER0] = CSAF_READ;
@@ -194,8 +194,8 @@ x11TestConfig( CoreSurfacePool         *pool,
      DFBX11Shared     *shared = x11->shared;
 
      /* Provide a fallback only if no virtual physical pool is allocated... */
-     if (!shared->vpsmem_length)
-          return DFB_OK;
+     //if (!shared->vpsmem_length)
+     //     return DFB_OK;
           
      /* Pass NULL image for probing */
      return x11ImageInit( x11, NULL, config->size.w, config->size.h, config->format );

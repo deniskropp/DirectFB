@@ -219,7 +219,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_X11;   
-     info->caps = CSCAPS_ACCELERATION | CSCAPS_PREFER_SHM;
+     info->caps = CSCAPS_ACCELERATION | CSCAPS_PREFER_SHM | CSCAPS_SYSMEM_EXTERNAL;
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 

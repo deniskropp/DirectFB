@@ -414,6 +414,7 @@ primaryInitLayer( CoreLayer                  *layer,
      /* set capabilities and type */
      description->caps = DLCAPS_SURFACE | DLCAPS_LR_MONO | DLCAPS_STEREO;
      description->type = DLTF_GRAPHICS;
+     description->surface_accessor = CSAID_CPU;
 
      /* set name */
      snprintf( description->name,
@@ -516,14 +517,16 @@ primaryTestRegion( CoreLayer                  *layer,
                break;
      }
 
-     if (config->options & ~(DLOP_ALPHACHANNEL | DLOP_LR_MONO | DLOP_STEREO))
+     if (config->options & ~(DLOP_ALPHACHANNEL | DLOP_LR_MONO | DLOP_STEREO | DLOP_OPACITY))
           fail |= CLRCF_OPTIONS;
 
      if (failed)
           *failed = fail;
 
-     if (fail)
+     if (fail) {
+          D_INFO("failed flags 0x%08x\n", fail);
           return DFB_UNSUPPORTED;
+     }
 
      return DFB_OK;
 }
