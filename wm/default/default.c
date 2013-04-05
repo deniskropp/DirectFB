@@ -1561,7 +1561,7 @@ repaint_stack( CoreWindowStack     *stack,
      region  = data->region;
      surface = data->surface;
 
-     if (!data->active || !surface)
+     if (!data->active || !surface || !(region->state & CLRSF_ENABLED))
           return;
 
      D_DEBUG_AT( WM_Default, "repaint_stack( %d region(s), flags %x )\n", num_updates, flags );
@@ -2094,7 +2094,7 @@ move_window( CoreWindow *window,
      DFBWindowEvent  evt;
      DFBRectangle   *bounds = &window->config.bounds;
 
-     if (window->region) {
+     if (window->region && window->stack->context->config.buffermode == DLBM_WINDOWS) {
           data->config.dest.x += dx;
           data->config.dest.y += dy;
 
@@ -2166,7 +2166,7 @@ resize_window( CoreWindow *window,
                return ret;
      }
 
-     if (window->region) {
+     if (window->region && window->stack->context->config.buffermode == DLBM_WINDOWS) {
           data->config.dest.w = data->config.source.w = data->config.width  = width;
           data->config.dest.h = data->config.source.h = data->config.height = height;
 
@@ -2450,7 +2450,7 @@ set_opacity( CoreWindow *window,
 
           window->config.opacity = opacity;
 
-          if (window->region) {
+          if (window->region && window->stack->context->config.buffermode == DLBM_WINDOWS) {
                window_data->config.opacity = opacity;
 
                dfb_layer_region_set_configuration( window->region, &window_data->config, CLRCF_OPACITY );
@@ -3925,7 +3925,7 @@ wm_add_window( CoreWindowStack *stack,
      data->stack_data = stack_data;
      data->priority   = get_priority( window );
 
-     if (window->region)
+     if (window->region && window->stack->context->config.buffermode == DLBM_WINDOWS)
           dfb_layer_region_get_configuration( window->region, &data->config );
 
      D_MAGIC_SET( data, WindowData );
