@@ -49,6 +49,68 @@
 
 D_DEBUG_DOMAIN( Fusion_Skirmish, "Fusion/Skirmish", "Fusion's Skirmish (Mutex)" );
 
+
+static int
+ptr_compare( const void *p1, const void *p2 )
+{
+     return * (u32*) p1 - * (u32*) p2;
+}
+
+
+DirectResult
+fusion_skirmish_prevail_multi( FusionSkirmish **skirmishs,
+                               unsigned int     num )
+{
+     DirectResult ret;
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, %u )\n", __FUNCTION__, skirmishs, num );
+
+     unsigned int    i;
+     FusionSkirmish *skirmishs_sorted[num];
+
+     qsort( skirmishs_sorted, num, sizeof(FusionSkirmish*), ptr_compare );
+
+     for (i=0; i<num; i++) {
+          ret = fusion_skirmish_prevail( skirmishs_sorted[i] );
+          if (ret) {
+               D_DERROR( ret, "%s( [%u] skirmish_id 0x%08x )\n", __FUNCTION__, num, skirmishs_sorted[i]->multi.id );
+               break;
+          }
+     }
+
+     if (ret) {
+          for (--i; i>=0; i--)
+               fusion_skirmish_dismiss( skirmishs_sorted[i] );
+     }
+
+     return ret;
+}
+
+DirectResult
+fusion_skirmish_dismiss_multi( FusionSkirmish **skirmishs,
+                               unsigned int     num )
+{
+     DirectResult ret, ret2;
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, %u )\n", __FUNCTION__, skirmishs, num );
+
+     unsigned int    i;
+     FusionSkirmish *skirmishs_sorted[num];
+
+     qsort( skirmishs_sorted, num, sizeof(FusionSkirmish*), ptr_compare );
+
+     for (i=0; i<num; i++) {
+          ret2 = fusion_skirmish_dismiss( skirmishs_sorted[i] );
+          if (ret2) {
+               D_DERROR( ret, "%s( [%u] skirmish_id 0x%08x )\n", __FUNCTION__, i, skirmishs_sorted[i]->multi.id );
+               ret = ret2;
+          }
+     }
+
+     return ret;
+}
+
+
 #if FUSION_BUILD_MULTI
 
 #if FUSION_BUILD_KERNEL

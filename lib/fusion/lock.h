@@ -109,6 +109,13 @@ DirectResult FUSION_API fusion_skirmish_wait   ( FusionSkirmish    *skirmish,
 DirectResult FUSION_API fusion_skirmish_notify ( FusionSkirmish    *skirmish );
 
 
+DirectResult FUSION_API fusion_skirmish_prevail_multi( FusionSkirmish **skirmishs,
+                                                       unsigned int     num );
+
+DirectResult FUSION_API fusion_skirmish_dismiss_multi( FusionSkirmish **skirmishs,
+                                                       unsigned int     num );
+
+
 #if D_DEBUG_ENABLED
 #define FUSION_SKIRMISH_ASSERT(skirmish)                                                  \
      do {                                                                                 \
