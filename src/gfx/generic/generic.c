@@ -7712,6 +7712,208 @@ static GenefxFunc Dacc_modulation[] = {
       | DSBLIT_BLEND_COLORALPHA]   = Dacc_modulate_argb
 };
 
+/********************************* SRC_MASK_ALPHA ****************/
+
+static void Dacc_modulate_mask_alpha_ARGB( GenefxState *gfxs )
+{
+     int                w = gfxs->length+1;
+     GenefxAccumulator *D = gfxs->Dacc;
+     const u32         *m = gfxs->Mop[0];
+
+     while (--w) {
+          if (!(D->RGB.a & 0xF000))
+               D->RGB.a = (((*m >> 24) + 1) * D->RGB.a) >> 8;
+
+          ++D;
+          ++m;
+     }
+}
+
+static void Dacc_modulate_mask_alpha_A8( GenefxState *gfxs )
+{
+     int                w = gfxs->length+1;
+     GenefxAccumulator *D = gfxs->Dacc;
+     const u8          *m = gfxs->Mop[0];
+
+     while (--w) {
+          if (!(D->RGB.a & 0xF000))
+               D->RGB.a = ((*m + 1) * D->RGB.a) >> 8;
+
+          ++D;
+          ++m;
+     }
+}
+
+static const GenefxFunc Dacc_modulate_mask_alpha_from_PFI[DFB_NUM_PIXELFORMATS] = {
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB16)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Dacc_modulate_mask_alpha_ARGB,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = Dacc_modulate_mask_alpha_A8,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_UYVY)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_I420)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT8)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ALUT44)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV16)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB2554)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA4444)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV21)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AYUV)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A4)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT1)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_BGR555)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
+};
+
+/********************************* SRC_MASK_COLOR ****************/
+
+static void Dacc_modulate_mask_rgb_ARGB( GenefxState *gfxs )
+{
+     int                w = gfxs->length+1;
+     GenefxAccumulator *D = gfxs->Dacc;
+     const u32         *m = gfxs->Mop[0];
+
+     while (--w) {
+          if (!(D->RGB.a & 0xF000)) {
+               D->RGB.r = ((((*m >> 16) & 0xff) + 1) * D->RGB.r) >> 8;
+               D->RGB.g = ((((*m >>  8) & 0xff) + 1) * D->RGB.g) >> 8;
+               D->RGB.b = ((((*m      ) & 0xff) + 1) * D->RGB.b) >> 8;
+          }
+
+          ++D;
+          ++m;
+     }
+}
+
+static const GenefxFunc Dacc_modulate_mask_rgb_from_PFI[DFB_NUM_PIXELFORMATS] = {
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB16)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Dacc_modulate_mask_rgb_ARGB,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_UYVY)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_I420)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT8)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ALUT44)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV16)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB2554)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA4444)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV21)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AYUV)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A4)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT1)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_BGR555)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
+};
+
+/********************************* SRC_MASK_ALPHA/COLOR ****************/
+
+static void Dacc_modulate_mask_argb_ARGB( GenefxState *gfxs )
+{
+     int                w = gfxs->length+1;
+     GenefxAccumulator *D = gfxs->Dacc;
+     const u8          *m = gfxs->Mop[0];
+
+     while (--w) {
+          if (!(D->RGB.a & 0xF000)) {
+               D->RGB.a = ((((*m >> 24)       ) + 1) * D->RGB.a) >> 8;
+               D->RGB.r = ((((*m >> 16) & 0xff) + 1) * D->RGB.r) >> 8;
+               D->RGB.g = ((((*m >>  8) & 0xff) + 1) * D->RGB.g) >> 8;
+               D->RGB.b = ((((*m      ) & 0xff) + 1) * D->RGB.b) >> 8;
+          }
+
+          ++D;
+          ++m;
+     }
+}
+
+static const GenefxFunc Dacc_modulate_mask_argb_from_PFI[DFB_NUM_PIXELFORMATS] = {
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1555)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB16)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB24)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB32)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]     = Dacc_modulate_mask_argb_ARGB,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ABGR)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A8)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUY2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB332)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_UYVY)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_I420)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT8)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ALUT44)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV12)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV16)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB2554)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB4444)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA4444)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_NV21)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AYUV)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A4)]       = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB1666)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB6666)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB18)]    = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT1)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_LUT2)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB444)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGB555)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_BGR555)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBA5551)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YUV444P)]  = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_ARGB8565)] = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_RGBAF88871)] NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_AVYU)]     = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_VYU)]      = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_A1_LSB)]   = NULL,
+     [DFB_PIXELFORMAT_INDEX(DSPF_YV16)]     = NULL,
+};
+
 /********************************* misc accumulator operations ****************/
 
 static void Dacc_premultiply( GenefxState *gfxs )
@@ -8502,6 +8704,7 @@ gAcquireCheck( CardState *state, DFBAccelerationMask accel )
      GenefxState *gfxs;
      CoreSurface *destination = state->destination;
      CoreSurface *source      = state->source;
+     CoreSurface *source_mask = state->source_mask;
 
      if (dfb_config->hardware_only) {
           if (dfb_config->software_warn) {
@@ -8540,8 +8743,15 @@ gAcquireCheck( CardState *state, DFBAccelerationMask accel )
           return false;
 
      /* Source may have been destroyed. */
-     if (DFB_BLITTING_FUNCTION( accel ) && !source)
-          return false;
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          if (!source)
+               return false;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               if (!source_mask)
+                    return false;
+          }
+     }
 
      return true;
 }
@@ -8552,6 +8762,7 @@ gAcquireLockBuffers( CardState *state, DFBAccelerationMask accel )
      DFBResult    ret;
      CoreSurface *destination = state->destination;
      CoreSurface *source      = state->source;
+     CoreSurface *source_mask = state->source_mask;
 
      CoreSurfaceAccessFlags access = CSAF_WRITE;
 
@@ -8600,6 +8811,31 @@ gAcquireLockBuffers( CardState *state, DFBAccelerationMask accel )
           }
 
           state->flags |= CSF_SOURCE_LOCKED;
+
+
+          /*
+           * Mask setup
+           */
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               /* Lock source */
+               ret = dfb_surface_lock_buffer2( source_mask, state->from, source_mask->flips,
+                                               state->from_eye,
+                                               CSAID_CPU, CSAF_READ, &state->src_mask );
+               if (ret) {
+                    D_DERROR( ret, "DirectFB/Genefx: Could not lock source mask!\n" );
+                    dfb_surface_unlock_buffer( destination, &state->dst );
+
+                    if (state->flags & CSF_SOURCE_LOCKED) {
+                         dfb_surface_unlock_buffer( state->source, &state->src );
+
+                         state->flags &= ~CSF_SOURCE_LOCKED;
+                    }
+                    return ret;
+               }
+
+               state->flags |= CSF_SOURCE_MASK_LOCKED;
+          }
      }
 
      return DFB_OK;
@@ -8616,6 +8852,12 @@ gAcquireUnlockBuffers( CardState *state )
           state->flags &= ~CSF_SOURCE_LOCKED;
      }
 
+     if (state->flags & CSF_SOURCE_MASK_LOCKED) {
+          dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
+
+          state->flags &= ~CSF_SOURCE_MASK_LOCKED;
+     }
+
      return DFB_OK;
 }
 
@@ -8626,6 +8868,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
      GenefxFunc  *funcs;
      int          dst_pfi;
      int          src_pfi     = 0;
+     int          mask_pfi    = 0;
      CoreSurface *destination = state->destination;
      CoreSurface *source      = state->source;
      DFBColor     color       = state->color;
@@ -8692,6 +8935,8 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
       */
 
      if (DFB_BLITTING_FUNCTION( accel )) {
+          CoreSurface *source_mask = state->source_mask;
+
           gfxs->src_caps   = source->config.caps;
           gfxs->src_height = source->config.size.h;
           gfxs->src_format = source->config.format;
@@ -8728,6 +8973,45 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
           }
 
           gfxs->src_field_offset = gfxs->src_height/2 * gfxs->src_pitch;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               gfxs->mask_caps   = source_mask->config.caps;
+               gfxs->mask_height = source_mask->config.size.h;
+               gfxs->mask_format = source_mask->config.format;
+               gfxs->mask_bpp    = DFB_BYTES_PER_PIXEL( gfxs->mask_format );
+               mask_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->mask_format );
+
+               gfxs->mask_org[0] = state->src_mask.addr;
+               gfxs->mask_pitch  = state->src_mask.pitch;
+
+               switch (gfxs->mask_format) {
+                    case DSPF_I420:
+                         gfxs->mask_org[1] = gfxs->mask_org[0] + gfxs->mask_height * gfxs->mask_pitch;
+                         gfxs->mask_org[2] = gfxs->mask_org[1] + gfxs->mask_height/2 * gfxs->mask_pitch/2;
+                         break;
+                    case DSPF_YV12:
+                         gfxs->mask_org[2] = gfxs->mask_org[0] + gfxs->mask_height * gfxs->mask_pitch;
+                         gfxs->mask_org[1] = gfxs->mask_org[2] + gfxs->mask_height/2 * gfxs->mask_pitch/2;
+                         break;
+                    case DSPF_YV16:
+                         gfxs->mask_org[2] = gfxs->mask_org[0] + gfxs->mask_height * gfxs->mask_pitch;
+                         gfxs->mask_org[1] = gfxs->mask_org[2] + gfxs->mask_height * gfxs->mask_pitch/2;
+                         break;
+                    case DSPF_NV12:
+                    case DSPF_NV21:
+                    case DSPF_NV16:
+                         gfxs->mask_org[1] = gfxs->mask_org[0] + gfxs->mask_height * gfxs->mask_pitch;
+                         break;
+                    case DSPF_YUV444P:
+                         gfxs->mask_org[1] = gfxs->mask_org[0] + gfxs->mask_height * gfxs->mask_pitch;
+                         gfxs->mask_org[2] = gfxs->mask_org[1] + gfxs->mask_height * gfxs->mask_pitch;
+                         break;
+                    default:
+                         break;
+               }
+
+               gfxs->mask_field_offset = gfxs->mask_height/2 * gfxs->mask_pitch;
+          }
      }
 
      /* premultiply source (color) */
@@ -9262,7 +9546,10 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
           case DFXL_STRETCHBLIT: {
                     int  modulation = state->blittingflags & MODULATION_FLAGS;
 
-                    if (modulation || (accel == DFXL_TEXTRIANGLES && (src_pfi != dst_pfi || state->blittingflags))) {
+                    if (modulation || (accel == DFXL_TEXTRIANGLES &&
+                                       (src_pfi != dst_pfi || state->blittingflags)) ||
+                        (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)))
+                    {
                          bool read_destination = false;
                          bool source_needs_destination = false;
                          bool scale_from_accumulator;
@@ -9363,6 +9650,22 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Dacc_modulation[modulation & (DSBLIT_COLORIZE
                                                                        | DSBLIT_BLEND_ALPHACHANNEL
                                                                        | DSBLIT_BLEND_COLORALPHA)];
+                         }
+
+                         /* modulate the source with mask if requested */
+                         if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA) {
+                              if (state->blittingflags & DSBLIT_SRC_MASK_COLOR) {
+                                   if (Dacc_modulate_mask_argb_from_PFI[mask_pfi])
+                                        *funcs++ = Dacc_modulate_mask_argb_from_PFI[mask_pfi];
+                              }
+                              else {
+                                   if (Dacc_modulate_mask_alpha_from_PFI[mask_pfi])
+                                        *funcs++ = Dacc_modulate_mask_alpha_from_PFI[mask_pfi];
+                              }
+                         }
+                         else if (state->blittingflags & DSBLIT_SRC_MASK_COLOR) {
+                              if (Dacc_modulate_mask_rgb_from_PFI[mask_pfi])
+                                   *funcs++ = Dacc_modulate_mask_rgb_from_PFI[mask_pfi];
                          }
 
                          /* Premultiply (modulated) source alpha? */
