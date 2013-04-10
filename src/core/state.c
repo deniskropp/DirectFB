@@ -452,6 +452,64 @@ dfb_state_update( CardState *state, bool update_sources )
      }
 }
 
+void
+dfb_state_update_destination( CardState *state )
+{
+     CoreSurface *destination;
+
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( &state->clip );
+
+     destination = state->destination;
+
+     if (D_FLAGS_IS_SET( state->flags, CSF_DESTINATION )) {
+
+          D_ASSERT( destination != NULL );
+
+          if (direct_serial_update( &state->dst_serial, &destination->serial )) {
+               validate_clip( state, destination->config.size.w - 1, destination->config.size.h - 1, true );
+
+               state->modified |= SMF_DESTINATION;
+          }
+     }
+     else if (destination)
+          validate_clip( state, destination->config.size.w - 1, destination->config.size.h - 1, true );
+}
+
+void
+dfb_state_update_sources( CardState *state, CardStateFlags flags )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( &state->clip );
+
+     if (D_FLAGS_IS_SET( state->flags & flags, CSF_SOURCE )) {
+          CoreSurface *source = state->source;
+
+          D_ASSERT( source != NULL );
+
+          if (direct_serial_update( &state->src_serial, &source->serial ))
+               state->modified |= SMF_SOURCE;
+     }
+
+     if (D_FLAGS_IS_SET( state->flags & flags, CSF_SOURCE_MASK )) {
+          CoreSurface *source_mask = state->source_mask;
+
+          D_ASSERT( source_mask != NULL );
+
+          if (direct_serial_update( &state->src_mask_serial, &source_mask->serial ))
+               state->modified |= SMF_SOURCE_MASK;
+     }
+
+     if (D_FLAGS_IS_SET( state->flags & flags, CSF_SOURCE2 )) {
+          CoreSurface *source2 = state->source2;
+
+          D_ASSERT( source2 != NULL );
+
+          if (direct_serial_update( &state->src2_serial, &source2->serial ))
+               state->modified |= SMF_SOURCE2;
+     }
+}
+
 DFBResult
 dfb_state_set_index_translation( CardState *state,
                                  const int *indices,

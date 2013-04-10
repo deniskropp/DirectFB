@@ -234,6 +234,9 @@ DFBResult dfb_state_set_source2( CardState *state, CoreSurface *source2 );
 
 void dfb_state_update( CardState *state, bool update_source );
 
+void dfb_state_update_destination( CardState *state );
+void dfb_state_update_sources( CardState *state, CardStateFlags flags );
+
 DFBResult dfb_state_set_index_translation( CardState *state,
                                            const int *indices,
                                            int        num_indices );
