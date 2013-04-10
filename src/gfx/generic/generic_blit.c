@@ -70,10 +70,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      int             h;
      XopAdvanceFunc  Aop_advance;
      XopAdvanceFunc  Bop_advance;
+     XopAdvanceFunc  Mop_advance;
      int             Aop_X;
      int             Aop_Y;
      int             Bop_X;
      int             Bop_Y;
+     int             Mop_X;
+     int             Mop_Y;
 
      DFBSurfaceBlittingFlags rotflip_blittingflags = state->blittingflags;
 
@@ -134,6 +137,15 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           gfxs->Astep = gfxs->Bstep = 1;
 
 
+     int mask_x = 0;
+     int mask_y = 0;
+     int mask_h = gfxs->mask_height;
+
+     if ((state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && (state->src_mask_flags & DSMF_STENCIL)) {
+          mask_x = state->src_mask_offset.x;
+          mask_y = state->src_mask_offset.y;
+     }
+
      if (rotflip_blittingflags == (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL)) { // 180 deg
           gfxs->Astep *= -1;
 
@@ -145,6 +157,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Genefx_Aop_next;
           Bop_advance = Genefx_Bop_prev;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               Mop_X = mask_x;
+               Mop_Y = mask_y + mask_h - 1;
+
+               Mop_advance = Genefx_Mop_prev;
+          }
      }
      else if (rotflip_blittingflags == DSBLIT_FLIP_HORIZONTAL) {
           gfxs->Astep *= -1;
@@ -157,6 +176,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Genefx_Aop_next;
           Bop_advance = Genefx_Bop_next;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               Mop_X = mask_x;
+               Mop_Y = mask_y;
+
+               Mop_advance = Genefx_Mop_next;
+          }
      }
      else if (rotflip_blittingflags == DSBLIT_FLIP_VERTICAL) {
           Aop_X = dx;
@@ -167,6 +193,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Genefx_Aop_prev;
           Bop_advance = Genefx_Bop_next;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               Mop_X = mask_x;
+               Mop_Y = mask_y;
+
+               Mop_advance = Genefx_Mop_next;
+          }
      }
      else if (rotflip_blittingflags == (DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL)) { // 270 deg ccw
           if (gfxs->dst_bpp == 0) {
@@ -184,6 +217,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Genefx_Aop_crab;
           Bop_advance = Genefx_Bop_prev;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               Mop_X = mask_x;
+               Mop_Y = mask_y + mask_h - 1;
+
+               Mop_advance = Genefx_Mop_prev;
+          }
      }
      else if (rotflip_blittingflags == DSBLIT_ROTATE90) { // 90 deg ccw
           if (gfxs->dst_bpp == 0) {
@@ -201,6 +241,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Genefx_Aop_crab;
           Bop_advance = Genefx_Bop_next;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               Mop_X = mask_x;
+               Mop_Y = mask_y;
+
+               Mop_advance = Genefx_Mop_next;
+          }
      }
      else if (rotflip_blittingflags == (DSBLIT_ROTATE90 | DSBLIT_FLIP_VERTICAL)) {
           if (gfxs->dst_bpp == 0) {
@@ -218,6 +265,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Genefx_Aop_prev_crab;
           Bop_advance = Genefx_Bop_next;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               Mop_X = mask_x;
+               Mop_Y = mask_y;
+
+               Mop_advance = Genefx_Mop_next;
+          }
      }
      else if (rotflip_blittingflags == (DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL)) {
           if (gfxs->dst_bpp == 0) {
@@ -235,6 +289,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Genefx_Aop_crab;
           Bop_advance = Genefx_Bop_next;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               Mop_X = mask_x;
+               Mop_Y = mask_y;
+
+               Mop_advance = Genefx_Mop_next;
+          }
      }
      else if (gfxs->src_org[0] == gfxs->dst_org[0] && dy > rect->y && !(state->blittingflags & DSBLIT_DEINTERLACE)) {
           /* we must blit from bottom to top */
@@ -246,6 +307,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Genefx_Aop_prev;
           Bop_advance = Genefx_Bop_prev;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               Mop_X = mask_x;
+               Mop_Y = mask_y + mask_h - 1;
+
+               Mop_advance = Genefx_Mop_prev;
+          }
      }
      else {
           /* we must blit from top to bottom */
@@ -257,17 +325,28 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           Aop_advance = Genefx_Aop_next;
           Bop_advance = Genefx_Bop_next;
+
+          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               Mop_X = mask_x;
+               Mop_Y = mask_y;
+
+               Mop_advance = Genefx_Mop_next;
+          }
      }
 
 
 
      Genefx_Aop_xy( gfxs, Aop_X, Aop_Y );
      Genefx_Bop_xy( gfxs, Bop_X, Bop_Y );
+     if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR))
+          Genefx_Mop_xy( gfxs, Mop_X, Mop_Y );
 
      if (state->blittingflags & DSBLIT_DEINTERLACE) {
           if (state->source->field) {
                Aop_advance( gfxs );
                Bop_advance( gfxs );
+               if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR))
+                    Mop_advance( gfxs );
                rect->h--;
           }
 
@@ -282,6 +361,11 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
                Bop_advance( gfxs );
                Bop_advance( gfxs );
+
+               if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+                    Mop_advance( gfxs );
+                    Mop_advance( gfxs );
+               }
           }
      } /* ! DSBLIT_DEINTERLACE */
      else {
@@ -290,6 +374,8 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
                Aop_advance( gfxs );
                Bop_advance( gfxs );
+               if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR))
+                    Mop_advance( gfxs );
           }
      }
 

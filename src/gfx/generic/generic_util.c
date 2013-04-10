@@ -579,6 +579,258 @@ void Genefx_Bop_prev( GenefxState *gfxs )
 
 /**********************************************************************************************************************/
 
+void Genefx_Mop_xy( GenefxState *gfxs, int x, int y )
+{
+     int pitch = gfxs->mask_pitch;
+
+     gfxs->Mop[0] = gfxs->mask_org[0];
+     gfxs->MopY   = y;
+
+     if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+          gfxs->Mop_field = y & 1;
+          if (gfxs->Mop_field)
+               gfxs->Mop[0] += gfxs->mask_field_offset;
+
+          y /= 2;
+     }
+
+     D_ASSUME( !(x & DFB_PIXELFORMAT_ALIGNMENT(gfxs->mask_format)) );
+
+     gfxs->Mop[0] += y * pitch + DFB_BYTES_PER_LINE( gfxs->mask_format, x );
+
+     if (DFB_PLANAR_PIXELFORMAT(gfxs->mask_format)) {
+          int mask_field_offset = gfxs->mask_field_offset;
+
+          switch (gfxs->mask_format) {
+               case DSPF_YV12:
+               case DSPF_I420:
+                    mask_field_offset /= 4;
+                    pitch /= 2;
+                    y /= 2;
+                    x /= 2;
+                    break;
+               case DSPF_YV16:
+                    mask_field_offset /= 2;
+                    pitch /= 2;
+                    x /= 2;
+                    break;
+               case DSPF_NV12:
+               case DSPF_NV21:
+                    mask_field_offset /= 2;
+                    y /= 2;
+               case DSPF_NV16:
+                    x &= ~1;
+                    break;
+               case DSPF_YUV444P: /* nothing to adjust */
+               default:
+                    break;
+          }
+
+          gfxs->Mop[1] = gfxs->mask_org[1];
+          gfxs->Mop[2] = gfxs->mask_org[2];
+
+          if (gfxs->mask_caps & DSCAPS_SEPARATED && gfxs->Mop_field) {
+               gfxs->Mop[1] += mask_field_offset;
+               gfxs->Mop[2] += mask_field_offset;
+          }
+
+          gfxs->Mop[1] += y * pitch + x;
+          gfxs->Mop[2] += y * pitch + x;
+     }
+}
+
+void Genefx_Mop_next( GenefxState *gfxs )
+{
+     int pitch = gfxs->mask_pitch;
+
+     if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+          gfxs->Mop_field++;
+
+          if (gfxs->Mop_field & 1)
+               gfxs->Mop[0] += gfxs->mask_field_offset;
+          else
+               gfxs->Mop[0] += pitch - gfxs->mask_field_offset;
+     }
+     else
+          gfxs->Mop[0] += pitch;
+
+     if (DFB_PLANAR_PIXELFORMAT(gfxs->mask_format)) {
+          if (gfxs->mask_format == DSPF_YV12 || gfxs->mask_format == DSPF_I420) {
+               if (gfxs->MopY & 1) {
+                    if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                         if (gfxs->Mop_field & 2) {
+                              gfxs->Mop[1] += gfxs->mask_field_offset/4;
+                              gfxs->Mop[2] += gfxs->mask_field_offset/4;
+                         }
+                         else {
+                              gfxs->Mop[1] += pitch/2 - gfxs->mask_field_offset/4;
+                              gfxs->Mop[2] += pitch/2 - gfxs->mask_field_offset/4;
+                         }
+                    }
+                    else {
+                         gfxs->Mop[1] += pitch/2;
+                         gfxs->Mop[2] += pitch/2;
+                    }
+               }
+          }
+          else if (gfxs->mask_format == DSPF_YV16) {
+               if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                    if (gfxs->Mop_field & 2) {
+                         gfxs->Mop[1] += gfxs->mask_field_offset/2;
+                         gfxs->Mop[2] += gfxs->mask_field_offset/2;
+                    }
+                    else {
+                         gfxs->Mop[1] += pitch/2 - gfxs->mask_field_offset/2;
+                         gfxs->Mop[2] += pitch/2 - gfxs->mask_field_offset/2;
+                    }
+               }
+               else {
+                    gfxs->Mop[1] += pitch/2;
+                    gfxs->Mop[2] += pitch/2;
+               }
+          }
+          else if (gfxs->mask_format == DSPF_NV12 || gfxs->mask_format == DSPF_NV21) {
+               if (gfxs->MopY & 1) {
+                    if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                         if (gfxs->Mop_field & 2)
+                              gfxs->Mop[1] += gfxs->mask_field_offset/2;
+                         else
+                              gfxs->Mop[1] += pitch - gfxs->mask_field_offset/2;
+                    }
+                    else {
+                         gfxs->Mop[1] += pitch;
+                    }
+               }
+          }
+          else if (gfxs->mask_format == DSPF_YUV444P) {
+               if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                    if (gfxs->Mop_field & 1) {
+                         gfxs->Mop[1] += gfxs->mask_field_offset;
+                         gfxs->Mop[2] += gfxs->mask_field_offset;
+                    }
+                    else {
+                         gfxs->Mop[1] += pitch - gfxs->mask_field_offset;
+                         gfxs->Mop[2] += pitch - gfxs->mask_field_offset;
+                    }
+               }
+               else {
+                    gfxs->Mop[1] += pitch;
+                    gfxs->Mop[2] += pitch;
+               }
+          }
+          else { /* NV16 */
+               if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                    if (gfxs->Mop_field & 1)
+                         gfxs->Mop[1] += gfxs->mask_field_offset;
+                    else
+                         gfxs->Mop[1] += pitch - gfxs->mask_field_offset;
+               }
+               else {
+                    gfxs->Mop[1] += pitch;
+               }
+          }
+     }
+
+     gfxs->MopY++;
+}
+
+void Genefx_Mop_prev( GenefxState *gfxs )
+{
+     int pitch = gfxs->mask_pitch;
+
+     if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+          gfxs->Mop_field++;
+
+          if (gfxs->Mop_field & 1)
+               gfxs->Mop[0] += gfxs->mask_field_offset - pitch;
+          else
+               gfxs->Mop[0] -= gfxs->mask_field_offset;
+     }
+     else
+          gfxs->Mop[0] -= pitch;
+
+     if (DFB_PLANAR_PIXELFORMAT(gfxs->mask_format)) {
+          if (gfxs->mask_format == DSPF_YV12 || gfxs->mask_format == DSPF_I420) {
+               if (gfxs->MopY & 1) {
+                    if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                         if (gfxs->Mop_field & 2) {
+                              gfxs->Mop[1] += gfxs->mask_field_offset/4 - pitch/2;
+                              gfxs->Mop[2] += gfxs->mask_field_offset/4 - pitch/2;
+                         }
+                         else {
+                              gfxs->Mop[1] -= gfxs->mask_field_offset/4;
+                              gfxs->Mop[2] -= gfxs->mask_field_offset/4;
+                         }
+                    }
+                    else {
+                         gfxs->Mop[1] -= pitch/2;
+                         gfxs->Mop[2] -= pitch/2;
+                    }
+               }
+          }
+          else if (gfxs->mask_format == DSPF_YV16) {
+               if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                    if (gfxs->Mop_field & 2) {
+                         gfxs->Mop[1] += gfxs->mask_field_offset/2 - pitch/2;
+                         gfxs->Mop[2] += gfxs->mask_field_offset/2 - pitch/2;
+                    }
+                    else {
+                         gfxs->Mop[1] -= gfxs->mask_field_offset/2;
+                         gfxs->Mop[2] -= gfxs->mask_field_offset/2;
+                    }
+               }
+               else {
+                    gfxs->Mop[1] -= pitch/2;
+                    gfxs->Mop[2] -= pitch/2;
+               }
+          }
+          else if (gfxs->mask_format == DSPF_NV12 || gfxs->mask_format == DSPF_NV21) {
+               if (gfxs->MopY & 1) {
+                    if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                         if (gfxs->Mop_field & 2)
+                              gfxs->Mop[1] += gfxs->mask_field_offset/2 - pitch;
+                         else
+                              gfxs->Mop[1] -= gfxs->mask_field_offset/2;
+                    }
+                    else {
+                         gfxs->Mop[1] -= pitch;
+                    }
+               }
+          }
+          else if (gfxs->mask_format == DSPF_YUV444P) {
+               if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                    if (gfxs->Mop_field & 1) {
+                         gfxs->Mop[1] += gfxs->mask_field_offset - pitch;
+                         gfxs->Mop[2] += gfxs->mask_field_offset - pitch;
+                    }
+                    else {
+                         gfxs->Mop[1] -= gfxs->mask_field_offset;
+                         gfxs->Mop[2] -= gfxs->mask_field_offset;
+                    }
+               }
+               else {
+                    gfxs->Mop[1] -= pitch;
+                    gfxs->Mop[2] -= pitch;
+               }
+          }
+          else { /* NV16 */
+               if (gfxs->mask_caps & DSCAPS_SEPARATED) {
+                    if (gfxs->Mop_field & 1)
+                         gfxs->Mop[1] += gfxs->mask_field_offset - pitch;
+                    else
+                         gfxs->Mop[1] -= gfxs->mask_field_offset;
+               }
+               else {
+                    gfxs->Mop[1] -= pitch;
+               }
+          }
+     }
+
+     gfxs->MopY--;
+}
+
+/**********************************************************************************************************************/
+
 bool
 Genefx_ABacc_prepare( GenefxState *gfxs, int width )
 {

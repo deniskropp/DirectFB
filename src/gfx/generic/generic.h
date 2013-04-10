@@ -72,23 +72,30 @@ struct _GenefxState {
       */
      void *dst_org[3];
      void *src_org[3];
+     void *mask_org[3];
      int dst_pitch;
      int src_pitch;
+     int mask_pitch;
 
      int dst_bpp;
      int src_bpp;
+     int mask_bpp;
 
      DFBSurfaceCapabilities dst_caps;
      DFBSurfaceCapabilities src_caps;
+     DFBSurfaceCapabilities mask_caps;
 
-     DFBSurfacePixelFormat src_format;
      DFBSurfacePixelFormat dst_format;
+     DFBSurfacePixelFormat src_format;
+     DFBSurfacePixelFormat mask_format;
 
      int dst_height;
      int src_height;
+     int mask_height;
 
      int dst_field_offset;
      int src_field_offset;
+     int mask_field_offset;
 
      DFBColor color;
 
@@ -97,6 +104,7 @@ struct _GenefxState {
       */
      void *Aop[3];
      void *Bop[3];
+     void *Mop[3];
      u32   Cop;
 
      int   Astep;
@@ -108,9 +116,11 @@ struct _GenefxState {
 
      int Aop_field;
      int Bop_field;
-     
+     int Mop_field;
+
      int AopY;
      int BopY;
+     int MopY;
 
      int s;
      int t;
@@ -269,6 +279,13 @@ void Genefx_Bop_xy( GenefxState *gfxs, int x, int y );
 void Genefx_Bop_next( GenefxState *gfxs );
 
 void Genefx_Bop_prev( GenefxState *gfxs );
+
+
+void Genefx_Mop_xy( GenefxState *gfxs, int x, int y );
+
+void Genefx_Mop_next( GenefxState *gfxs );
+
+void Genefx_Mop_prev( GenefxState *gfxs );
 
 /**********************************************************************************************************************/
 
