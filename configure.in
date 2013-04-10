@@ -1821,6 +1821,21 @@ if test "$V4L" = "yes"; then
   fi
 fi
 
+dnl Test for libwebp
+webp=no
+
+AC_ARG_ENABLE(webp,
+              AC_HELP_STRING([--enable-webp],
+                             [build WebP image provider, @<:@default=auto@:>@]),
+              [], [enable_webp="yes"])
+if test "$enable_webp" = "yes"; then
+  PKG_CHECK_MODULES([LIBWEBP], [libwebp >= 0.2.1], [webp=yes], [webp=no
+    AC_MSG_WARN([*** WebP library not found. WEBP image provider will not be built.])])
+fi
+
+AM_CONDITIONAL(WEBP_PROVIDER, test "$webp" = "yes")
+
+
 
 dnl check which gfxdrivers to build
 ati128=no
@@ -2975,6 +2990,7 @@ Building Image Provider Modules:
   PNM                       $pnm
   SVG                       $svg                  $LIBSVG_CFLAGS $LIBSVG_LIBS
   BMP                       $bmp
+  WEBP                      $webp                 $LIBWEBP_CFLAGS $LIBWEBP_LIBS
   JPEG2000                  $jpeg2000             $JASPER_LIBS
   MPEG2                     $mpeg2
 

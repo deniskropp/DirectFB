@@ -59,6 +59,13 @@ else
 MPEG2_PROVIDER =
 endif
 
+if WEBP_PROVIDER
+WEBP_PROVIDER = libidirectfbimageprovider_webp.la
+else
+WEBP_PROVIDER =
+endif
+
+
 INCLUDES = \
 	-I$(top_builddir)/include	\
 	-I$(top_builddir)/lib	\
@@ -79,7 +86,9 @@ idirectfbimageprovider_LTLIBRARIES = \
 	$(SVG_PROVIDER)				\
 	$(BMP_PROVIDER)				\
 	$(JPEG2000_PROVIDER)			\
-	$(MPEG2_PROVIDER)
+	$(MPEG2_PROVIDER)			\
+	$(WEBP_PROVIDER)
+
 	
 if BUILD_STATIC
 idirectfbimageprovider_DATA = $(idirectfbimageprovider_LTLIBRARIES:.la=.o)
@@ -89,6 +98,9 @@ endif
 libdirect = $(top_builddir)/lib/direct/libdirect.la
 libdirectfb = $(top_builddir)/src/libdirectfb.la
 
+libidirectfbimageprovider_webp_la_SOURCES = idirectfbimageprovider_webp.c
+libidirectfbimageprovider_webp_la_LIBADD = $(libdirect) $(libdirectfb) $(LIBWEBP_LIBS)
+libidirectfbimageprovider_webp_la_LDFLAGS = -avoid-version -module
 
 libidirectfbimageprovider_png_la_SOURCES = idirectfbimageprovider_png.c
 libidirectfbimageprovider_png_la_LIBADD = $(libdirect) $(libdirectfb) $(LIBPNG_LIBS)
