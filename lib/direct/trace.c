@@ -219,7 +219,7 @@ load_symbols( const char *filename )
      const char  *full_path = filename;
      char        *tmp;
 
-     D_DEBUG_AT( Direct_Trace, "%s( %s )\n", filename );
+     D_DEBUG_AT( Direct_Trace, "%s( %s )\n", __FUNCTION__, filename );
 
      if (filename) {
           ret = direct_access( filename, R_OK );
