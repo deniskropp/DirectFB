@@ -46,10 +46,5 @@ dfb_vnc_call_handler( int           caller,
                       int          *ret_val );
 
 
-typedef struct {
-     bool                     shown;
-     CoreLayerRegionConfig    config;
-} VNCLayerData;
-
 #endif
 

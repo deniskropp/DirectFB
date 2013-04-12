@@ -39,23 +39,39 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
+#define VNC_MAX_LAYERS 2
+
+typedef struct {
+     bool                     shown;
+     CoreLayerRegionConfig    config;
+
+     DFBDisplayLayerID        layer_id;
+
+     CoreSurface             *surface;
+} VNCLayerData;
+
 
 typedef struct {
      FusionCall          call;
 
      DFBDimension        screen_size;
      CoreSurface        *screen_surface;
+
+     VNCLayerData       *layer_data[VNC_MAX_LAYERS];
 } DFBVNCShared;
 
 typedef struct {
-     DFBVNCShared          *shared;
+     DFBVNCShared       *shared;
 
-     CoreDFB               *core;
+     CoreDFB            *core;
 
-     CoreScreen            *screen;
-     CoreLayer             *layer;
+     CoreScreen         *screen;
+     CoreLayer          *layer[VNC_MAX_LAYERS];
 
-     rfbScreenInfoPtr       rfb_screen;
+     rfbScreenInfoPtr    rfb_screen;
+
+     unsigned int        layer_count;
+
      CoreSurfaceBufferLock  buffer_lock;
 } DFBVNC;
 

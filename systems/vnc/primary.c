@@ -50,6 +50,7 @@
 #include <core/input.h>
 
 #include <gfx/convert.h>
+#include <gfx/util.h>
 
 #include <misc/conf.h>
 
@@ -115,6 +116,13 @@ primaryInitScreen( CoreScreen           *screen,
      vnc->rfb_screen->screenData = vnc;
 
 
+     vnc->rfb_screen->serverFormat.redShift   = 16;
+     vnc->rfb_screen->serverFormat.greenShift = 8;
+     vnc->rfb_screen->serverFormat.blueShift  = 0;
+     vnc->rfb_screen->serverFormat.redMax     = 255;
+     vnc->rfb_screen->serverFormat.greenMax   = 255;
+     vnc->rfb_screen->serverFormat.blueMax    = 255;
+
 
      /* Connect key handler */
 
@@ -140,7 +148,7 @@ primaryInitScreen( CoreScreen           *screen,
      config.size.w                 = shared->screen_size.w;
      config.size.h                 = shared->screen_size.h;
      config.format                 = DSPF_ARGB;
-     config.caps                   = DSCAPS_SYSTEMONLY;// | DSCAPS_SHARED;
+     config.caps                   = DSCAPS_SYSTEMONLY | DSCAPS_DOUBLE;// | DSCAPS_SHARED;
 
      ret = dfb_surface_create( vnc->core, &config, CSTF_NONE, 0, NULL, &shared->screen_surface );
      if (ret) {
@@ -165,7 +173,7 @@ primaryInitScreen( CoreScreen           *screen,
 
      return DFB_OK;
 }
-
+/*
 static DFBResult
 primaryShutdownScreen( CoreScreen *screen,
                        void       *driver_data,
@@ -180,7 +188,7 @@ primaryShutdownScreen( CoreScreen *screen,
 
      return DFB_OK;
 }
-
+*/
 static DFBResult
 primaryGetScreenSize( CoreScreen *screen,
                       void       *driver_data,
@@ -198,7 +206,7 @@ primaryGetScreenSize( CoreScreen *screen,
 
 static const ScreenFuncs _vncPrimaryScreenFuncs = {
      .InitScreen     = primaryInitScreen,
-     .ShutdownScreen = primaryShutdownScreen,
+//     .ShutdownScreen = primaryShutdownScreen,
      .GetScreenSize  = primaryGetScreenSize,
 };
 
@@ -226,19 +234,32 @@ primaryInitLayer( CoreLayer                  *layer,
                   DFBDisplayLayerConfig      *config,
                   DFBColorAdjustment         *adjustment )
 {
-     DFBVNC *vnc = driver_data;
+     DFBVNC       *vnc  = driver_data;
+     VNCLayerData *data = layer_data;
+     const char   *name;
 
      D_DEBUG( "DirectFB/VNC: primaryInitLayer\n");
 
+     char *names[] = { "Primary", "Secondary", "Tertiary" };
+
+     if (vnc->layer_count < 3)
+          name = names[vnc->layer_count];
+     else
+          name = "Other";
+
+     data->layer_id = vnc->layer_count;
+
+     vnc->shared->layer_data[vnc->layer_count++] = data;
+
+
      /* set capabilities and type */
-     description->caps             = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION | DLCAPS_ALPHACHANNEL;
+     description->caps             = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION | DLCAPS_ALPHACHANNEL | DLCAPS_OPACITY;
      description->type             = DLTF_GRAPHICS;
-     description->surface_caps     = DSCAPS_SYSTEMONLY | DSCAPS_SHARED;
      description->surface_accessor = CSAID_CPU;
 
      /* set name */
      snprintf( description->name,
-               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "VNC Primary Layer" );
+               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "VNC %s Layer", name );
 
      /* fill out the default configuration */
      config->flags       = DLCONF_WIDTH       | DLCONF_HEIGHT |
@@ -278,7 +299,7 @@ primaryTestRegion( CoreLayer                  *layer,
                break;
      }
 
-     if (config->options)
+     if (config->options & ~(DLOP_ALPHACHANNEL | DLOP_OPACITY))
           fail |= CLRCF_OPTIONS;
 
      if (failed)
@@ -302,13 +323,12 @@ primaryAddRegion( CoreLayer             *layer,
 
 static DFBResult
 UpdateScreen( DFBVNC                *vnc,
-              VNCLayerData          *data,
-              const DFBRectangle    *update,
-              CoreSurfaceBufferLock *lock )
+              const DFBRectangle    *update )
 {
      DFBVNCShared *shared = vnc->shared;
-     DFBRegion     clip   = { 0, 0, shared->screen_size.w - 1, shared->screen_size.h - 1};
+     DFBRegion     clip   = { 0, 0, shared->screen_size.w - 1, shared->screen_size.h - 1 };
      CardState     state;
+     unsigned int  i;
 
      D_DEBUG_AT( VNC_Layer, "%s()\n", __FUNCTION__ );
 
@@ -322,29 +342,56 @@ UpdateScreen( DFBVNC                *vnc,
      dfb_state_init( &state, vnc->core );
 
      state.destination = shared->screen_surface;
-     state.source      = lock ? lock->buffer->surface : NULL;
      state.clip        = clip;
+     state.src_blend   = DSBF_ONE;
+     state.dst_blend   = DSBF_INVSRCALPHA;
 
-     if (!lock ||
-         data->config.dest.x != 0 || data->config.dest.y != 0 ||
-         data->config.dest.w != shared->screen_size.w ||
-         data->config.dest.h != shared->screen_size.h)
-     {
-          DFBRectangle rect = {
-               0, 0, shared->screen_size.w, shared->screen_size.h
-          };
+     // FIXME: optimize out clear
+     DFBRectangle rect = {
+          0, 0, shared->screen_size.w, shared->screen_size.h
+     };
 
-          dfb_gfxcard_fillrectangles( &rect, 1, &state );
+     dfb_gfxcard_fillrectangles( &rect, 1, &state );
+
+
+     for (i=0; i<VNC_MAX_LAYERS; i++) {
+          VNCLayerData *data = shared->layer_data[i];
+
+          if (data->surface) {
+               DFBRectangle src = data->config.source;
+               DFBRectangle dst = data->config.dest;
+
+               state.modified |= SMF_SOURCE | SMF_BLITTING_FLAGS;
+               state.source    = data->surface;
+
+               /* emulate missing hw layer clipping */
+               if (dst.x + dst.w > shared->screen_size.w || dst.y + dst.h > shared->screen_size.h)
+                    return DFB_ACCESSDENIED;
+
+
+               if (data->config.options & DLOP_ALPHACHANNEL) {
+                    state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL;
+
+                    if (!(data->surface->config.caps & DSCAPS_PREMULTIPLIED))
+                         state.blittingflags |= DSBLIT_SRC_PREMULTIPLY;
+               }
+               else
+                    state.blittingflags = DSBLIT_NOFX;
+
+               if ((data->config.options & DLOP_OPACITY) && data->config.opacity != 0xff) {
+                    state.blittingflags |= DSBLIT_BLEND_COLORALPHA;
+
+                    if (data->surface->config.caps & DSCAPS_PREMULTIPLIED)
+                         state.blittingflags |= DSBLIT_SRC_PREMULTCOLOR;
+
+
+                    state.modified |= SMF_COLOR;
+                    state.color.a   = data->config.opacity;
+               }
+
+               dfb_gfxcard_stretchblit( &src, &dst, &state );
+          }
      }
-
-     if (lock) {
-          DFBRectangle src = data->config.source;
-          DFBRectangle dst = data->config.dest;
-
-          dfb_gfxcard_stretchblit( &src, &dst, &state );
-     }
-
-     dfb_gfxcard_sync();
 
      state.destination = NULL;
      state.source      = NULL;
@@ -352,13 +399,20 @@ UpdateScreen( DFBVNC                *vnc,
      dfb_state_destroy( &state );
 
 
+     dfb_back_to_front_copy( shared->screen_surface, &clip );
+
+
+     dfb_gfxcard_sync();
+
      DirectResult             ret;
      DFBVNCMarkRectAsModified mark;
 
      mark.region = clip;
 
-     ret = fusion_call_execute2( &shared->call, FCEF_ONEWAY,
-                                 VNC_MARK_RECT_AS_MODIFIED, &mark, sizeof(mark), NULL );
+     ret = fusion_call_execute( &shared->call, FCEF_ONEWAY,
+                                (int)((clip.x1 << 16) | clip.x2),
+                                (void*)(long)((clip.y1 << 16) | clip.y2),
+                                NULL );
      if (ret) {
           D_DERROR( ret, "DirectFB/VNC: fusion_call_execute2() failed!\n" );
           return ret;
@@ -386,8 +440,15 @@ primarySetRegion( CoreLayer                  *layer,
 
      data->config = *config;
 
+     if (updated & CLRCF_OPACITY)
+          D_DEBUG_AT( VNC_Layer, "  -> opacity %d\n", config->opacity );
+
+     dfb_surface_link( &vnc->shared->layer_data[data->layer_id]->surface, surface );
+
      if (data->shown)
-          return UpdateScreen( vnc, data, NULL, left_lock );
+          return UpdateScreen( vnc, NULL );
+     else
+          D_DEBUG_AT( VNC_Layer, "  -> not shown\n" );
 
      return DFB_OK;
 }
@@ -403,9 +464,13 @@ primaryRemoveRegion( CoreLayer             *layer,
 
      D_DEBUG_AT( VNC_Layer, "%s()\n", __FUNCTION__ );
 
+     D_DEBUG_AT( VNC_Layer, "  -> setting shown to false\n" );
+
      data->shown = false;
 
-     return UpdateScreen( vnc, data, NULL, NULL );
+     dfb_surface_unlink( &vnc->shared->layer_data[data->layer_id]->surface );
+
+     return UpdateScreen( vnc, NULL );
 }
 
 static DFBResult
@@ -427,9 +492,11 @@ primaryFlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
+     D_DEBUG_AT( VNC_Layer, "  -> setting shown to true\n" );
+
      data->shown = true;
 
-     return UpdateScreen( vnc, data, &data->config.dest, left_lock );
+     return UpdateScreen( vnc, &data->config.dest );
 }
 
 static DFBResult
@@ -450,12 +517,96 @@ primaryUpdateRegion( CoreLayer             *layer,
 
      D_DEBUG_AT( VNC_Layer, "%s()\n", __FUNCTION__ );
 
-     if (left_update && !dfb_rectangle_intersect_by_region( &update, left_update ))
-          return DFB_OK;
+     if (left_update) {
+          DFBRegion screen_update = {
+               left_update->x1 + data->config.dest.x,
+               left_update->y1 + data->config.dest.y,
+               left_update->x2 + data->config.dest.x,
+               left_update->y2 + data->config.dest.y
+          };
+
+          D_DEBUG_AT( VNC_Layer, "  -> update %d,%d-%dx%d\n", DFB_RECTANGLE_VALS_FROM_REGION(&screen_update) );
+
+          if (!dfb_rectangle_intersect_by_region( &update, &screen_update )) {
+               D_DEBUG_AT( VNC_Layer, "  -> no intersection with %d,%d-%dx%d!\n", DFB_RECTANGLE_VALS( &data->config.dest ) );
+
+               return DFB_OK;
+          }
+     }
+
+     D_DEBUG_AT( VNC_Layer, "  -> setting shown to true\n" );
 
      data->shown = true;
 
-     return UpdateScreen( vnc, data, &update, left_lock );
+     return UpdateScreen( vnc, &update );
+}
+
+static DFBResult
+primaryAllocateSurface( CoreLayer              *layer,
+                        void                   *driver_data,
+                        void                   *layer_data,
+                        void                   *region_data,
+                        CoreLayerRegionConfig  *config,
+                        CoreSurface           **ret_surface )
+{
+     DFBVNC            *vnc = driver_data;
+     CoreSurfaceConfig  conf;
+
+     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+     conf.size.w = config->width;
+     conf.size.h = config->height;
+     conf.format = config->format;
+     conf.caps   = DSCAPS_SYSTEMONLY;
+
+     if (config->buffermode != DLBM_FRONTONLY)
+          conf.caps |= DSCAPS_DOUBLE;
+
+     return dfb_surface_create( vnc->core, &conf, CSTF_LAYER, DLID_PRIMARY, NULL, ret_surface );
+}
+
+static DFBResult
+primaryReallocateSurface( CoreLayer             *layer,
+                          void                  *driver_data,
+                          void                  *layer_data,
+                          void                  *region_data,
+                          CoreLayerRegionConfig *config,
+                          CoreSurface           *surface )
+{
+     DFBResult         ret;
+     CoreSurfaceConfig conf;
+
+     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+     conf.size.w = config->width;
+     conf.size.h = config->height;
+     conf.format = config->format;
+     conf.caps   = DSCAPS_SYSTEMONLY;
+
+     if (config->buffermode != DLBM_FRONTONLY)
+          conf.caps |= DSCAPS_DOUBLE;
+
+     ret = dfb_surface_reconfig( surface, &conf );
+     if (ret)
+          return ret;
+
+     if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
+          DFBResult    ret;
+          CorePalette *palette;
+
+          ret = dfb_palette_create( NULL,    /* FIXME */
+                                    1 << DFB_COLOR_BITS_PER_PIXEL( config->format ),
+                                    &palette );
+          if (ret)
+               return ret;
+
+          if (config->format == DSPF_LUT8)
+               dfb_palette_generate_rgb332_map( palette );
+
+          dfb_surface_set_palette( surface, palette );
+
+          dfb_palette_unref( palette );
+     }
+
+     return DFB_OK;
 }
 
 static const DisplayLayerFuncs _vncPrimaryLayerFuncs = {
@@ -469,6 +620,9 @@ static const DisplayLayerFuncs _vncPrimaryLayerFuncs = {
      .RemoveRegion      = primaryRemoveRegion,
      .FlipRegion        = primaryFlipRegion,
      .UpdateRegion      = primaryUpdateRegion,
+
+     .AllocateSurface   = primaryAllocateSurface,
+     .ReallocateSurface = primaryReallocateSurface,
 };
 
 const DisplayLayerFuncs *vncPrimaryLayerFuncs = &_vncPrimaryLayerFuncs;

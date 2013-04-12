@@ -34,6 +34,7 @@
 
 #include <directfb.h>
 
+#include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -102,9 +103,10 @@ system_initialize( CoreDFB *core, void **data )
 
      fusion_call_init( &dfb_vnc->shared->call, VNC_Dispatch, dfb_vnc, dfb_core_world(core) );
 
-     dfb_vnc->screen = dfb_screens_register( NULL, dfb_vnc, vncPrimaryScreenFuncs );
+     dfb_vnc->screen = dfb_screens_register( NULL, dfb_vnc, (void*) vncPrimaryScreenFuncs );
 
-     dfb_vnc->layer = dfb_layers_register( dfb_vnc->screen, dfb_vnc, vncPrimaryLayerFuncs );
+     dfb_vnc->layer[0] = dfb_layers_register( dfb_vnc->screen, dfb_vnc, vncPrimaryLayerFuncs );
+     dfb_vnc->layer[1] = dfb_layers_register( dfb_vnc->screen, dfb_vnc, vncPrimaryLayerFuncs );
 
      core_arena_add_shared_field( core, "vnc", dfb_vnc->shared );
 
@@ -130,9 +132,10 @@ system_join( CoreDFB *core, void **data )
 
      dfb_vnc->shared = ret;
 
-     dfb_vnc->screen = dfb_screens_register( NULL, dfb_vnc, vncPrimaryScreenFuncs );
+     dfb_vnc->screen = dfb_screens_register( NULL, dfb_vnc, (void*) vncPrimaryScreenFuncs );
 
-     dfb_vnc->layer = dfb_layers_register( dfb_vnc->screen, dfb_vnc, vncPrimaryLayerFuncs );
+     dfb_vnc->layer[0] = dfb_layers_register( dfb_vnc->screen, dfb_vnc, vncPrimaryLayerFuncs );
+     dfb_vnc->layer[1] = dfb_layers_register( dfb_vnc->screen, dfb_vnc, vncPrimaryLayerFuncs );
 
      *data = dfb_vnc;
 
@@ -267,6 +270,13 @@ system_get_busid( int *ret_bus, int *ret_dev, int *ret_func )
      return;
 }
 
+static void
+system_get_deviceid( unsigned int *ret_vendor_id,
+                     unsigned int *ret_device_id )
+{
+     return;
+}
+
 static int
 system_surface_data_size( void )
 {
@@ -278,21 +288,12 @@ static void
 system_surface_data_init( CoreSurface *surface, void *data )
 {
      /* Ignore since unneeded. */
-     return;
 }
 
 static void
 system_surface_data_destroy( CoreSurface *surface, void *data )
 {
      /* Ignore since unneeded. */
-     return;
-}
-
-static void
-system_get_deviceid( unsigned int *ret_vendor_id,
-                     unsigned int *ret_device_id )
-{
-     return;
 }
 
 /**********************************************************************************************************************/
@@ -316,16 +317,15 @@ VNC_Dispatch( int           caller,
 {
      DFBVNC *vnc = ctx;
 
-     switch (call_arg) {
-          case VNC_MARK_RECT_AS_MODIFIED:
-               *ret_val = VNC_Dispatch_MarkRectAsModified( vnc, call_ptr );
-               break;
+     DFBVNCMarkRectAsModified modified;
 
-          default:
-               D_BUG( "unknown call" );
-               *ret_val = DFB_BUG;
-               break;
-     }
+     modified.region.x1 = call_arg >> 16;
+     modified.region.x2 = call_arg & 0xffff;
+
+     modified.region.y1 = (long)call_ptr >> 16;
+     modified.region.y2 = (long)call_ptr & 0xffff;
+
+     *ret_val = VNC_Dispatch_MarkRectAsModified( vnc, &modified );
 
      return FCHR_RETURN;
 }
