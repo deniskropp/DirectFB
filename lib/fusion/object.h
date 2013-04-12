@@ -71,7 +71,7 @@ struct __Fusion_FusionObject {
      FusionWorldShared *shared;
      FusionHash        *properties;
 
-     FusionID           owner;
+     FusionVector       owners;
 
      FusionVector       access;
 
@@ -164,6 +164,13 @@ DirectResult     FUSION_API  fusion_object_add_access         ( FusionObject    
 
 DirectResult     FUSION_API  fusion_object_has_access         ( FusionObject           *object,
                                                                 const char             *executable );
+
+DirectResult     FUSION_API  fusion_object_add_owner          ( FusionObject           *object,
+                                                                FusionID                owner );
+
+DirectResult     FUSION_API  fusion_object_check_owner        ( FusionObject           *object,
+                                                                FusionID                owner,
+                                                                bool                    succeed_if_not_owned );
 
 DirectResult     FUSION_API  fusion_object_catch              ( FusionObject           *object );
 

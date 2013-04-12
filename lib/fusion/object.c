@@ -423,6 +423,7 @@ fusion_object_create( FusionObjectPool  *pool,
      fusion_reactor_set_lock( object->reactor, &pool->lock );
 
      fusion_vector_init( &object->access, 1, shared->main_pool );
+     fusion_vector_init( &object->owners, 1, shared->main_pool );
 
      /* Set pool/world back pointer. */
      object->pool   = pool;
@@ -574,6 +575,7 @@ fusion_object_destroy( FusionObject *object )
      }
 
      fusion_vector_destroy( &object->access );
+     fusion_vector_destroy( &object->owners );
 
      fusion_ref_destroy( &object->ref );
 
@@ -754,6 +756,9 @@ fusion_object_has_access( FusionObject *object,
 
      D_DEBUG_AT( Fusion_Object, "%s( %p, '%s' )\n", __FUNCTION__, object, executable );
 
+     D_MAGIC_ASSERT( object, FusionObject );
+     D_ASSERT( executable != NULL );
+
      fusion_vector_foreach (access, index, object->access) {
           int len = strlen( access );
 
@@ -767,6 +772,48 @@ fusion_object_has_access( FusionObject *object,
      }
 
      return DR_ACCESSDENIED;
+}
+
+DirectResult
+fusion_object_add_owner( FusionObject *object,
+                         FusionID      owner )
+{
+     FusionID  id;
+     int       i;
+
+     D_DEBUG_AT( Fusion_Object, "%s( %p, %lu )\n", __FUNCTION__, object, owner );
+
+     D_MAGIC_ASSERT( object, FusionObject );
+
+     fusion_vector_foreach (id, i, object->owners) {
+          if (id == owner)
+               return DR_OK;
+     }
+
+     return fusion_vector_add( &object->owners, (void*) owner );
+}
+
+DirectResult
+fusion_object_check_owner( FusionObject *object,
+                           FusionID      owner,
+                           bool          succeed_if_not_owned )
+{
+     FusionID  id;
+     int       i;
+
+     D_DEBUG_AT( Fusion_Object, "%s( %p, %lu )\n", __FUNCTION__, object, owner );
+
+     D_MAGIC_ASSERT( object, FusionObject );
+
+     if (succeed_if_not_owned && object->owners.count == 0)
+          return DR_OK;
+
+     fusion_vector_foreach (id, i, object->owners) {
+          if (id == owner)
+               return DR_OK;
+     }
+
+     return DR_IDNOTFOUND;
 }
 
 DirectResult

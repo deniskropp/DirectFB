@@ -44,7 +44,14 @@ extern "C" {
 template<>
 ToString<FusionObject>::ToString( const FusionObject &object )
 {
-     PrintF( "%p:%u/0x%x-%lu/%lu", &object, object.id, object.ref.multi.id, object.identity, object.owner );
+     FusionID owner;
+     int      i;
+
+     PrintF( "%p:%u/0x%x-%lu", &object, object.id, object.ref.multi.id, object.identity );
+
+     fusion_vector_foreach (owner, i, object.owners) {
+          PrintF( "/%lu", owner );
+     }
 }
 
 

@@ -257,7 +257,7 @@ ILayerContext_Real::CreateWindow(
         if (ret)
             return ret;
 
-        if (parent->object.owner && parent->object.owner != Core_GetIdentity()) {
+        if (fusion_object_check_owner( &parent->object, Core_GetIdentity(), false )) {
              dfb_window_unref( parent );
              return DFB_ACCESSDENIED;
         }
@@ -272,7 +272,7 @@ ILayerContext_Real::CreateWindow(
         if (ret)
             return ret;
 
-        if (toplevel->object.owner && toplevel->object.owner != Core_GetIdentity()) {
+        if (fusion_object_check_owner( &toplevel->object, Core_GetIdentity(), false )) {
              dfb_window_unref( toplevel );
              return DFB_ACCESSDENIED;
         }
@@ -298,6 +298,11 @@ ILayerContext_Real::FindWindow(
     window = dfb_layer_context_find_window( obj, window_id );
     if (!window)
          return DFB_IDNOTFOUND;
+
+    if (fusion_object_check_owner( &window->object, Core_GetIdentity(), false )) {
+         dfb_window_unref( window );
+         return DFB_ACCESSDENIED;
+    }
 
     *ret_window = window;
 
