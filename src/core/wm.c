@@ -1394,38 +1394,53 @@ dfb_wm_set_window_config( CoreWindow             *window,
                               dfb_layer_region_disable( config_window->stack->context->primary.region );
 
                          dfb_layer_region_enable( config_window->region );
-                         config_window->region->state &= ~CLRSF_FROZEN;
-                         dfb_layer_region_realize( config_window->region, true );
+                         dfb_layer_region_flip_update2( config_window->region, NULL, NULL, DSFLIP_UPDATE, 0, NULL );
                     }
                }
 
                if (single_update) {
-                    CoreLayerRegionConfig      region_config;
-                    CoreLayerRegionConfigFlags region_flags = CLRCF_NONE;
+                    CoreLayerRegionConfig      region_config = config_window->region->config;
+                    CoreLayerRegionConfigFlags region_flags  = CLRCF_NONE;
 
                     D_DEBUG_AT( Core_WM, "  -> single window optimisation: updating window %p.\n", config_window );
 
                     if (flags & CWCF_OPACITY) {
                          region_flags |= CLRCF_OPACITY;
+
                          region_config.opacity = config->opacity;
                     }
 
                     if (flags & CWCF_POSITION) {
                          region_flags |= CLRCF_DEST;
-                         region_config.dest = config->bounds;
+
+                         region_config.dest.x = config->bounds.x;
+                         region_config.dest.y = config->bounds.y;
                     }
 
                     if (flags & CWCF_SIZE) {
-                         region_flags |= (CLRCF_WIDTH | CLRCF_HEIGHT);
-                         region_config.width = config_window->surface->config.size.w;
+                         region_flags |= (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_DEST);
+
+                         region_config.width  = config_window->surface->config.size.w;
                          region_config.height = config_window->surface->config.size.h;
-                         region_config.dest = config->bounds;
+
+                         region_config.dest.w = config->bounds.w;
+                         region_config.dest.h = config->bounds.h;
                     }
 
                     if (flags & CWCF_DST_GEOMETRY) {
                          DFBRegion clip = DFB_REGION_INIT_FROM_RECTANGLE(&config->bounds);
+
                          region_flags |= CLRCF_DEST;
                          apply_geometry( &config->dst_geometry, &clip, NULL, &region_config.dest );
+                    }
+
+                    if (flags & CWCF_SRC_GEOMETRY) {
+                         DFBRegion clip = { 0, 0,
+                                            config_window->surface->config.size.w - 1,
+                                            config_window->surface->config.size.h - 1 };
+
+                         region_flags |= CLRCF_SOURCE;
+                         apply_geometry( &config->src_geometry, &clip, NULL, &region_config.source );
                     }
 
                     if (flags & CWCF_OPAQUE) {
@@ -1616,20 +1631,20 @@ dfb_wm_update_window( CoreWindow          *window,
      DFB_REGION_ASSERT_IF( left_region );
      DFB_REGION_ASSERT_IF( right_region );
 
-     stereo = window->caps & DWCAPS_STEREO;
+     stereo = !!(window->caps & DWCAPS_STEREO);
 
-     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d], [%d,%d-%dx%d],  )\n", __FUNCTION__,
-                 window, DFB_RECTANGLE_VALS(&window->config.bounds),
-                 DFB_RECTANGLE_VALS_FROM_REGION(left_region) );
-     if (left_region) {
-          D_DEBUG_AT( Core_WM, "%s( %s [%d,%d-%dx%d] )\n", __FUNCTION__,
-                      stereo ? "Left:" : "", DFB_RECTANGLE_VALS_FROM_REGION(left_region) );
-     }
-     if (right_region) {
-          D_DEBUG_AT( Core_WM, "%s( Right: [%d,%d-%dx%d] )\n", __FUNCTION__,
+     D_DEBUG_AT( Core_WM, "%s( %p, id %u, bounds [%d,%d-%dx%d] )\n", __FUNCTION__,
+                 window, window->object.id, DFB_RECTANGLE_VALS(&window->config.bounds) );
+
+     if (left_region)
+          D_DEBUG_AT( Core_WM, "  -> %s[%d,%d-%dx%d]\n",
+                      stereo ? "Left: " : "", DFB_RECTANGLE_VALS_FROM_REGION(left_region) );
+
+     if (right_region && stereo)
+          D_DEBUG_AT( Core_WM, "  -> Right: [%d,%d-%dx%d]\n",
                       DFB_RECTANGLE_VALS_FROM_REGION(right_region) );
-     }
-     D_DEBUG_AT( Core_WM, "%s( flags: 0x%x )\n", __FUNCTION__, flags );
+
+     D_DEBUG_AT( Core_WM, "  -> flags: 0x%04x\n", flags );
 
      return wm_local->funcs->UpdateWindow( window, wm_local->data, window->window_data, 
                                            left_region, right_region, flags );
