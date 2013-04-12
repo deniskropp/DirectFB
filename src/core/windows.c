@@ -1725,7 +1725,7 @@ dfb_window_repaint( CoreWindow          *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     if (window->region) {
+     if (window->region && window->region->state & CLRSF_ENABLED) {
           ret = CoreLayerRegion_FlipUpdate2( window->region, left_region, right_region, flags, -1 );
      }
      else {
@@ -1773,7 +1773,8 @@ dfb_window_repaint( CoreWindow          *window,
           return DFB_DESTROYED;
      }
 
-     ret = dfb_wm_update_window( window, left_region, right_region, flags );
+     if (!dfb_config->single_window || fusion_vector_size( &window->stack->visible_windows ) != 1)
+          ret = dfb_wm_update_window( window, left_region, right_region, flags );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
