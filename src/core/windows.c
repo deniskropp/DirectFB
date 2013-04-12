@@ -1721,11 +1721,17 @@ dfb_window_repaint( CoreWindow          *window,
      DFB_REGION_ASSERT_IF( left_region );
      DFB_REGION_ASSERT_IF( right_region );
 
+     D_DEBUG_AT( Core_Windows, "%s( %p, left %d,%d-%dx%d, right %d,%d-%dx%d, flags 0x%08x )\n", __FUNCTION__, window,
+                 DFB_RECTANGLE_VALS_FROM_REGION( left_region ),
+                 DFB_RECTANGLE_VALS_FROM_REGION( right_region ), flags );
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
      if (window->region && window->region->state & CLRSF_ENABLED) {
+          D_DEBUG_AT( Core_Windows, "  -> updating single window region\n" );
+
           ret = CoreLayerRegion_FlipUpdate2( window->region, left_region, right_region, flags, -1 );
      }
      else {
@@ -1739,11 +1745,15 @@ dfb_window_repaint( CoreWindow          *window,
                          right_region->x2 == window->surface->config.size.w - 1 &&
                          right_region->y2 == window->surface->config.size.h - 1))
                     {
+                         D_DEBUG_AT( Core_Windows, "  -> flipping surface\n" );
+
                          ret = CoreSurface_Flip( window->surface, false );
                          if (ret)
                              return ret;
                     }
                     else {
+                         D_DEBUG_AT( Core_Windows, "  -> copy regions\n" );
+
                          dfb_gfx_copy_regions( window->surface, CSBR_BACK,
                                                window->surface, CSBR_FRONT,
                                                left_region, 1, 0, 0 );
@@ -1754,6 +1764,8 @@ dfb_window_repaint( CoreWindow          *window,
                     }
                }
                else {
+                    D_DEBUG_AT( Core_Windows, "  -> copy regions\n" );
+
                     dfb_gfx_copy_regions( window->surface, CSBR_BACK,
                                           window->surface, CSBR_FRONT,
                                           left_region, 1, 0, 0 );
@@ -1773,8 +1785,11 @@ dfb_window_repaint( CoreWindow          *window,
           return DFB_DESTROYED;
      }
 
-     if (!dfb_config->single_window || fusion_vector_size( &window->stack->visible_windows ) != 1)
+     if (!dfb_config->single_window || fusion_vector_size( &window->stack->visible_windows ) != 1) {
+          D_DEBUG_AT( Core_Windows, "  -> dispatching update to window manager\n" );
+
           ret = dfb_wm_update_window( window, left_region, right_region, flags );
+     }
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
