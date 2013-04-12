@@ -8906,6 +8906,10 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
      bool         src_ycbcr   = false;
      bool         dst_ycbcr   = false;
 
+     DFBSurfaceBlittingFlags  simpld_blittingflags = state->blittingflags;
+
+     dfb_simplify_blittingflags( &simpld_blittingflags );
+
      if (!state->gfxs) {
           gfxs = D_CALLOC( 1, sizeof(GenefxState) );
           if (!gfxs) {
@@ -9005,7 +9009,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
 
           gfxs->src_field_offset = gfxs->src_height/2 * gfxs->src_pitch;
 
-          if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+          if (simpld_blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
                gfxs->mask_caps   = source_mask->config.caps;
                gfxs->mask_height = source_mask->config.size.h;
                gfxs->mask_format = source_mask->config.format;
@@ -9216,7 +9220,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                case DSPF_BGR555:
                case DSPF_RGBAF88871:
                     if (dst_ycbcr &&
-                        state->blittingflags & (DSBLIT_COLORIZE |
+                        simpld_blittingflags & (DSBLIT_COLORIZE |
                                                 DSBLIT_SRC_PREMULTCOLOR))
                          return false;
                case DSPF_A1:
@@ -9225,7 +9229,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                case DSPF_A8:
                     if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                         gfxs->dst_format != DSPF_YUV444P &&
-                        state->blittingflags & DSBLIT_DST_COLORKEY)
+                        simpld_blittingflags & DSBLIT_DST_COLORKEY)
                          return false;
                     break;
                case DSPF_I420:
@@ -9234,19 +9238,19 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                case DSPF_NV12:
                case DSPF_NV21:
                case DSPF_NV16:
-                    if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                    if (simpld_blittingflags & DSBLIT_SRC_COLORKEY)
                          return false;
                case DSPF_YUY2:
                case DSPF_UYVY:
                case DSPF_AYUV:
                     if (dst_ycbcr) {
-                         if (state->blittingflags & (DSBLIT_COLORIZE     |
+                         if (simpld_blittingflags & (DSBLIT_COLORIZE     |
                                                      DSBLIT_SRC_PREMULTCOLOR))
                               return false;
 
                          if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                              gfxs->dst_format != DSPF_YUV444P &&
-                             state->blittingflags & DSBLIT_DST_COLORKEY)
+                             simpld_blittingflags & DSBLIT_DST_COLORKEY)
                               return false;
                     }
                     break;
@@ -9254,12 +9258,12 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                case DSPF_AVYU:
                case DSPF_VYU:
                     if (dst_ycbcr) {
-                         if (state->blittingflags & (DSBLIT_SRC_PREMULTCOLOR))
+                         if (simpld_blittingflags & (DSBLIT_SRC_PREMULTCOLOR))
                               return false;
 
                          if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                              gfxs->dst_format != DSPF_YUV444P &&
-                             state->blittingflags & DSBLIT_DST_COLORKEY)
+                             simpld_blittingflags & DSBLIT_DST_COLORKEY)
                               return false;
                     }
                     break;
@@ -9503,7 +9507,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                }
                break;
           case DFXL_BLIT:
-               if (state->blittingflags == DSBLIT_BLEND_ALPHACHANNEL &&
+               if (simpld_blittingflags == DSBLIT_BLEND_ALPHACHANNEL &&
                    state->src_blend     == DSBF_SRCALPHA             &&
                    state->dst_blend     == DSBF_INVSRCALPHA)
                {
@@ -9514,7 +9518,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                          break;
                     }
                }
-               if (state->blittingflags == DSBLIT_BLEND_ALPHACHANNEL &&
+               if (simpld_blittingflags == DSBLIT_BLEND_ALPHACHANNEL &&
                    state->src_blend     == DSBF_ONE                  &&
                    state->dst_blend     == DSBF_INVSRCALPHA)
                {
@@ -9525,7 +9529,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                          break;
                     }
                }
-               if (state->blittingflags == (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_SRC_PREMULTIPLY) &&
+               if (simpld_blittingflags == (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_SRC_PREMULTIPLY) &&
                    state->src_blend     == DSBF_ONE                  &&
                    state->dst_blend     == DSBF_INVSRCALPHA)
                {
@@ -9536,11 +9540,11 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                          break;
                     }
                }
-               if (((state->blittingflags == (DSBLIT_COLORIZE | DSBLIT_BLEND_ALPHACHANNEL |
+               if (((simpld_blittingflags == (DSBLIT_COLORIZE | DSBLIT_BLEND_ALPHACHANNEL |
                                               DSBLIT_SRC_PREMULTIPLY) &&
                      state->src_blend == DSBF_ONE)
                     ||
-                    (state->blittingflags == (DSBLIT_COLORIZE | DSBLIT_BLEND_ALPHACHANNEL) &&
+                    (simpld_blittingflags == (DSBLIT_COLORIZE | DSBLIT_BLEND_ALPHACHANNEL) &&
                      state->src_blend == DSBF_SRCALPHA))
                    &&
                    state->dst_blend == DSBF_INVSRCALPHA)
@@ -9559,14 +9563,14 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                     }
                }
 #ifndef WORDS_BIGENDIAN
-               if (state->blittingflags       == DSBLIT_NOFX &&
+               if (simpld_blittingflags       == DSBLIT_NOFX &&
                    source->config.format      == DSPF_RGB24 &&
                    destination->config.format == DSPF_RGB16)
                {
                     *funcs++ = Bop_rgb24_to_Aop_rgb16_LE;
                     break;
                }
-               if (state->blittingflags == DSBLIT_NOFX &&
+               if (simpld_blittingflags == DSBLIT_NOFX &&
                    (source->config.format == DSPF_RGB32 || source->config.format == DSPF_ARGB) &&
                    destination->config.format == DSPF_RGB16)
                {
@@ -9577,18 +9581,19 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                /* fallthru */
           case DFXL_TEXTRIANGLES:
           case DFXL_STRETCHBLIT: {
-                    int  modulation = state->blittingflags & MODULATION_FLAGS;
+                    int  modulation = simpld_blittingflags & MODULATION_FLAGS;
 
                     if (modulation || (accel == DFXL_TEXTRIANGLES &&
-                                       (src_pfi != dst_pfi || state->blittingflags)) ||
-                        (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)))
+                                       (src_pfi != dst_pfi || simpld_blittingflags)) ||
+                        (simpld_blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) ||
+                        ((simpld_blittingflags & DSBLIT_ROTATE90) && accel == DFXL_STRETCHBLIT))
                     {
                          bool read_destination = false;
                          bool source_needs_destination = false;
                          bool scale_from_accumulator;
 
                          /* check if destination has to be read */
-                         if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                         if (simpld_blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                                      DSBLIT_BLEND_COLORALPHA)) {
                               switch (state->src_blend) {
                                    case DSBF_DESTALPHA:
@@ -9603,9 +9608,9 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
 
                               read_destination = source_needs_destination        ||
                                                  (state->dst_blend != DSBF_ZERO) ||
-                                                 (state->blittingflags & DSBLIT_XOR);
+                                                 (simpld_blittingflags & DSBLIT_XOR);
                          }
-                         else if (state->blittingflags & DSBLIT_XOR) {
+                         else if (simpld_blittingflags & DSBLIT_XOR) {
                               read_destination = true;
                          }
 
@@ -9623,7 +9628,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                               if (dst_ycbcr)
                                    *funcs++ = Dacc_YCbCr_to_RGB;
 
-                              if (state->blittingflags & DSBLIT_DST_PREMULTIPLY)
+                              if (simpld_blittingflags & DSBLIT_DST_PREMULTIPLY)
                                    *funcs++ = Dacc_premultiply;
                          }
                          else if (scale_from_accumulator) {
@@ -9636,7 +9641,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Slut_is_Blut;
                          *funcs++ = Dacc_is_Bacc;
                          if (accel == DFXL_TEXTRIANGLES) {
-                              if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                              if (simpld_blittingflags & DSBLIT_SRC_COLORKEY) {
                                    gfxs->Skey = state->src_colorkey;
 
                                    *funcs++ = Sop_PFI_TEX_Kto_Dacc[src_pfi];
@@ -9646,7 +9651,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                               }
                          }
                          else {
-                              if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                              if (simpld_blittingflags & DSBLIT_SRC_COLORKEY) {
                                    gfxs->Skey = state->src_colorkey;
                                    if (accel == DFXL_BLIT || scale_from_accumulator)
                                         *funcs++ = Sop_PFI_Kto_Dacc[src_pfi];
@@ -9665,7 +9670,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Dacc_YCbCr_to_RGB;
 
                          /* Premultiply color alpha? */
-                         if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
+                         if (simpld_blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
                               gfxs->Cacc.RGB.a = color.a + 1;
                               *funcs++ = Dacc_premultiply_color_alpha;
                          }
@@ -9686,8 +9691,8 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                          }
 
                          /* modulate the source with mask if requested */
-                         if (state->blittingflags & DSBLIT_SRC_MASK_ALPHA) {
-                              if (state->blittingflags & DSBLIT_SRC_MASK_COLOR) {
+                         if (simpld_blittingflags & DSBLIT_SRC_MASK_ALPHA) {
+                              if (simpld_blittingflags & DSBLIT_SRC_MASK_COLOR) {
                                    if (Dacc_modulate_mask_argb_from_PFI[mask_pfi])
                                         *funcs++ = Dacc_modulate_mask_argb_from_PFI[mask_pfi];
                               }
@@ -9696,17 +9701,17 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                                         *funcs++ = Dacc_modulate_mask_alpha_from_PFI[mask_pfi];
                               }
                          }
-                         else if (state->blittingflags & DSBLIT_SRC_MASK_COLOR) {
+                         else if (simpld_blittingflags & DSBLIT_SRC_MASK_COLOR) {
                               if (Dacc_modulate_mask_rgb_from_PFI[mask_pfi])
                                    *funcs++ = Dacc_modulate_mask_rgb_from_PFI[mask_pfi];
                          }
 
                          /* Premultiply (modulated) source alpha? */
-                         if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
+                         if (simpld_blittingflags & DSBLIT_SRC_PREMULTIPLY)
                               *funcs++ = Dacc_premultiply;
 
                          /* do blend functions and combine both accumulators */
-                         if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+                         if (simpld_blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                               /* Xacc will be blended and written to while
                                  Sacc and Dacc point to the SRC and DST
                                  as referenced by the blending functions */
@@ -9747,13 +9752,13 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                               }
                          }
 
-                         if (state->blittingflags & DSBLIT_DEMULTIPLY) {
+                         if (simpld_blittingflags & DSBLIT_DEMULTIPLY) {
                               *funcs++ = Dacc_is_Bacc;
                               *funcs++ = Dacc_demultiply;
                          }
 
                          /* Xor source with destination */
-                         if (state->blittingflags & DSBLIT_XOR) {
+                         if (simpld_blittingflags & DSBLIT_XOR) {
                               *funcs++ = Sacc_is_Aacc;
                               *funcs++ = Dacc_is_Bacc;
                               *funcs++ = Dacc_clamp;
@@ -9769,20 +9774,20 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                          *funcs++ = Sacc_is_Bacc;
                          if (scale_from_accumulator) {
                               *funcs++ = Len_is_Dlen;
-                              if (state->blittingflags & DSBLIT_DST_COLORKEY ) {
+                              if (simpld_blittingflags & DSBLIT_DST_COLORKEY ) {
                                    gfxs->Dkey = state->dst_colorkey;
                                    *funcs++ = Sacc_StoK_Aop_PFI[dst_pfi];
                               } else
                                    *funcs++ = Sacc_Sto_Aop_PFI[dst_pfi];
                          } else {
-                              if (state->blittingflags & DSBLIT_DST_COLORKEY ) {
+                              if (simpld_blittingflags & DSBLIT_DST_COLORKEY ) {
                                    gfxs->Dkey = state->dst_colorkey;
                                    *funcs++ = Sacc_toK_Aop_PFI[dst_pfi];
                               } else
                                    *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
                          }
                     }
-                    else if (state->blittingflags == DSBLIT_INDEX_TRANSLATION &&
+                    else if (simpld_blittingflags == DSBLIT_INDEX_TRANSLATION &&
                              DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format) &&
                              DFB_PIXELFORMAT_IS_INDEXED(gfxs->dst_format))
                     {
@@ -9814,45 +9819,39 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                                 dfb_palette_equal( gfxs->Alut, gfxs->Blut )))   ||
                               ((gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12 || gfxs->src_format == DSPF_YV16) &&
                                (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12 || gfxs->dst_format == DSPF_YV16))) &&
-                             (accel == DFXL_BLIT || !(state->blittingflags & (DSBLIT_ROTATE90  |
-                                                                              DSBLIT_ROTATE180 |
-                                                                              DSBLIT_ROTATE270 |
-                                                                              DSBLIT_FLIP_HORIZONTAL))))
+                             (accel == DFXL_BLIT || !(simpld_blittingflags & (DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL))))
                     {
                          gfxs->need_accumulator = false;
 
                          switch (accel) {
                               case DFXL_BLIT:
-                                   if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
-                                       state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                   if (simpld_blittingflags & DSBLIT_SRC_COLORKEY &&
+                                       simpld_blittingflags & DSBLIT_DST_COLORKEY) {
                                         gfxs->Skey = state->src_colorkey;
                                         gfxs->Dkey = state->dst_colorkey;
                                         *funcs++ = Bop_PFI_KtoK_Aop_PFI[dst_pfi];
-                                   } else if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                                   } else if (simpld_blittingflags & DSBLIT_SRC_COLORKEY) {
                                         gfxs->Skey = state->src_colorkey;
                                         *funcs++ = Bop_PFI_Kto_Aop_PFI[dst_pfi];
-                                   } else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                   } else if (simpld_blittingflags & DSBLIT_DST_COLORKEY) {
                                         gfxs->Dkey = state->dst_colorkey;
                                         *funcs++ = Bop_PFI_toK_Aop_PFI[dst_pfi];
-                                   } else if (state->blittingflags & (DSBLIT_ROTATE90  |
-                                                                      DSBLIT_ROTATE180 |
-                                                                      DSBLIT_ROTATE270 |
-                                                                      DSBLIT_FLIP_HORIZONTAL)) {
+                                   } else if (simpld_blittingflags & (DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL)) {
                                         *funcs++ = Bop_PFI_toR_Aop_PFI[dst_pfi];
                                    } else
                                         *funcs++ = Bop_PFI_to_Aop_PFI[dst_pfi];
                                    break;
 
                               case DFXL_STRETCHBLIT:
-                                   if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
-                                       state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                   if (simpld_blittingflags & DSBLIT_SRC_COLORKEY &&
+                                       simpld_blittingflags & DSBLIT_DST_COLORKEY) {
                                         gfxs->Skey = state->src_colorkey;
                                         gfxs->Dkey = state->dst_colorkey;
                                         *funcs++ = Bop_PFI_SKtoK_Aop_PFI[dst_pfi];
-                                   } else if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                                   } else if (simpld_blittingflags & DSBLIT_SRC_COLORKEY) {
                                         gfxs->Skey = state->src_colorkey;
                                         *funcs++ = Bop_PFI_SKto_Aop_PFI[dst_pfi];
-                                   } else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                   } else if (simpld_blittingflags & DSBLIT_DST_COLORKEY) {
                                         gfxs->Dkey = state->dst_colorkey;
                                         *funcs++ = Bop_PFI_StoK_Aop_PFI[dst_pfi];
                                    } else
@@ -9861,15 +9860,15 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
 
                               case DFXL_TEXTRIANGLES:
 /*
-                                   if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
-                                       state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                   if (simpld_blittingflags & DSBLIT_SRC_COLORKEY &&
+                                       simpld_blittingflags & DSBLIT_DST_COLORKEY) {
                                         gfxs->Skey = state->src_colorkey;
                                         gfxs->Dkey = state->dst_colorkey;
                                         *funcs++ = Bop_PFI_TEX_KtoK_Aop_PFI[dst_pfi];
-                                   } else if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+                                   } else if (simpld_blittingflags & DSBLIT_SRC_COLORKEY) {
                                         gfxs->Skey = state->src_colorkey;
                                         *funcs++ = Bop_PFI_TEX_Kto_Aop_PFI[dst_pfi];
-                                   } else if (state->blittingflags & DSBLIT_DST_COLORKEY) {
+                                   } else if (simpld_blittingflags & DSBLIT_DST_COLORKEY) {
                                         gfxs->Dkey = state->dst_colorkey;
                                         *funcs++ = Bop_PFI_TEX_toK_Aop_PFI[dst_pfi];
                                    } else
@@ -9894,7 +9893,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Slut_is_Blut;
 
                          if (accel == DFXL_BLIT || scale_from_accumulator) {
-                              if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
+                              if (simpld_blittingflags & DSBLIT_SRC_COLORKEY ) {
                                    gfxs->Skey = state->src_colorkey;
                                    *funcs++ = Sop_PFI_Kto_Dacc[src_pfi];
                               }
@@ -9903,7 +9902,7 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
                          }
                          else { /* DFXL_STRETCHBLIT */
 
-                              if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
+                              if (simpld_blittingflags & DSBLIT_SRC_COLORKEY ) {
                                    gfxs->Skey = state->src_colorkey;
                                    *funcs++ = Sop_PFI_SKto_Dacc[src_pfi];
                               }
@@ -9925,13 +9924,13 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
 
                          if (scale_from_accumulator) {
                               *funcs++ = Len_is_Dlen;
-                              if (state->blittingflags & DSBLIT_DST_COLORKEY ) {
+                              if (simpld_blittingflags & DSBLIT_DST_COLORKEY ) {
                                    gfxs->Dkey = state->dst_colorkey;
                                    *funcs++ = Sacc_StoK_Aop_PFI[dst_pfi];
                               } else
                                    *funcs++ = Sacc_Sto_Aop_PFI[dst_pfi];
                          } else {
-                              if (state->blittingflags & DSBLIT_DST_COLORKEY ) {
+                              if (simpld_blittingflags & DSBLIT_DST_COLORKEY ) {
                                    gfxs->Dkey = state->dst_colorkey;
                                    *funcs++ = Sacc_toK_Aop_PFI[dst_pfi];
                               } else
