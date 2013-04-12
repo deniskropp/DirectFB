@@ -3482,6 +3482,8 @@ typedef enum {
      DSFLIP_SWAP         = 0x00000400,  /* Causes real flip even though region was specified.
                                            Does not make sense in combination with DSFLIP_BLIT! */
 
+     DSFLIP_UPDATE       = 0x00000800,  /* Update from front only, no swapping */
+
      DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
 

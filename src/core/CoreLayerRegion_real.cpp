@@ -547,6 +547,8 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
      if (right_update)
           D_DEBUG_AT( DirectFB_Task_Display, "Right: [%d, %d - %dx%d]\n", DFB_RECTANGLE_VALS_FROM_REGION( right_update ) );
 
+     if (flags & DSFLIP_UPDATE)
+          D_UNIMPLEMENTED();
 
      D_ASSERT( region != NULL );
 

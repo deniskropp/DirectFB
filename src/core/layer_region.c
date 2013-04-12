@@ -514,6 +514,9 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
      dfb_gfxcard_flush();
 
+     if (flags & DSFLIP_UPDATE)
+          goto update_only;
+
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
           case DLBM_TRIPLE:
@@ -590,6 +593,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                /* fall through */
 
           case DLBM_FRONTONLY:
+update_only:
                /* Tell the driver about the update if the region is realized. */
                if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                     CoreSurfaceBufferLock left;
@@ -732,6 +736,9 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
           }
      }
 
+     if (flags & DSFLIP_UPDATE)
+          goto update_only;
+
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
           case DLBM_TRIPLE:
@@ -818,6 +825,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
                /* fall through */
 
           case DLBM_FRONTONLY:
+update_only:
                /* Tell the driver about the update if the region is realized. */
                if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                     CoreSurfaceBufferLock left, right;
