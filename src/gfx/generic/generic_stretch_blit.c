@@ -704,6 +704,11 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      int ix, iy;
      int h;
 
+     DFBSurfaceBlittingFlags rotflip_blittingflags = state->blittingflags;
+
+     dfb_simplify_blittingflags( &rotflip_blittingflags );
+     rotflip_blittingflags &= (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL | DSBLIT_ROTATE90 );
+
      D_ASSERT( gfxs != NULL );
 
      if (dfb_config->software_warn) {
@@ -724,6 +729,16 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      /* Clip destination rectangle. */
      if (!dfb_rectangle_intersect_by_region( drect, &state->clip ))
           return;
+
+     if (rotflip_blittingflags && (drect->h != orect.h || drect->w != orect.w)) {
+          D_ONCE("WARNING: StretchBlit clipping is not implemented with rotation and/or v/h flipping\n");
+          return;
+     }
+
+     if (rotflip_blittingflags & DSBLIT_ROTATE90) {
+          D_UTIL_SWAP (drect->h, drect->w);
+          D_UTIL_SWAP (orect.h, orect.w);
+     }
 
      /* Calculate fractions. */
      fx = (srect->w << 16) / orect.w;
@@ -788,19 +803,54 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      Bop_Y = srect->y;
 
      Bop_advance = Genefx_Bop_next;
+     Aop_advance = Genefx_Aop_next;
 
-     if (state->blittingflags & DSBLIT_FLIP_HORIZONTAL) {
-          gfxs->Astep *= -1;
+     switch ((unsigned int)rotflip_blittingflags) {
+          case DSBLIT_FLIP_HORIZONTAL:
+               gfxs->Astep *= -1;
+               Aop_X += (drect->w - 1);
+               break;
 
-          Aop_X += (drect->w - 1);
+          case DSBLIT_FLIP_VERTICAL:
+               Aop_Y += (drect->h - 1);
+               Aop_advance = Genefx_Aop_prev;
+               break;
+
+          case DSBLIT_ROTATE90: // 90 deg ccw
+               Aop_Y = drect->y + drect->w - 1;
+               gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
+               Aop_advance = Genefx_Aop_crab;
+               break;
+
+          case DSBLIT_FLIP_VERTICAL | DSBLIT_FLIP_HORIZONTAL: // 180 deg
+               gfxs->Astep *= -1;
+               Aop_X += (drect->w - 1);
+               Aop_Y += (drect->h - 1);
+               Aop_advance = Genefx_Aop_prev;
+               break;
+
+          case DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL: // 270 deg ccw
+               gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
+               Bop_Y = srect->y + srect->h - 1;
+               Aop_advance = Genefx_Aop_crab;
+               Bop_advance = Genefx_Bop_prev;
+               break;
+
+          case DSBLIT_ROTATE90 | DSBLIT_FLIP_VERTICAL:
+               gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
+               Aop_X = drect->x + drect->h - 1;
+               Aop_Y = drect->y + drect->w - 1;
+               Aop_advance = Genefx_Aop_prev_crab;
+               break;
+
+          case DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL:
+               gfxs->Astep *= gfxs->dst_pitch / gfxs->dst_bpp;
+               Aop_advance = Genefx_Aop_crab;
+               break;
+
+          default:
+               break;
      }
-     if (state->blittingflags & DSBLIT_FLIP_VERTICAL) {
-          Aop_Y += (drect->h - 1);
-
-          Aop_advance = Genefx_Aop_prev;
-     }
-     else
-          Aop_advance = Genefx_Aop_next;
 
      Genefx_Aop_xy( gfxs, Aop_X, Aop_Y );
      Genefx_Bop_xy( gfxs, Bop_X, Bop_Y );
