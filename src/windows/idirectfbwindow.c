@@ -1311,7 +1311,7 @@ IDirectFBWindow_SendEvent( IDirectFBWindow      *thiz,
 
      evt = *event;
 
-     dfb_window_post_event( data->window, &evt );
+     CoreWindow_PostEvent( data->window, &evt );
 
      return DFB_OK;
 }
