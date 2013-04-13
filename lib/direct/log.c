@@ -148,9 +148,9 @@ direct_log_write( DirectLog        *log,
      if (!D_MAGIC_CHECK( log, DirectLog ))
           return DR_BUG;
 
-     direct_mutex_lock( &log->lock );
+//     direct_mutex_lock( &log->lock );
      ret = log->write( log, buffer, bytes );
-     direct_mutex_unlock( &log->lock );
+//     direct_mutex_unlock( &log->lock );
 
      return ret;
 }
@@ -202,11 +202,11 @@ direct_log_printf( DirectLog  *log,
      }
 
 
-     direct_mutex_lock( &log->lock );
+//     direct_mutex_lock( &log->lock );
 
      ret = log->write( log, ptr, len );
 
-     direct_mutex_unlock( &log->lock );
+//     direct_mutex_unlock( &log->lock );
 
      if (ptr != buf)
           direct_free( ptr );
@@ -228,11 +228,6 @@ __dfb_no_instrument_function__
 void
 direct_log_lock( DirectLog *log )
 {
-     D_MAGIC_ASSERT_IF( log, DirectLog );
-
-     if (!log)
-          log = direct_log_default();
-
      D_MAGIC_ASSERT( log, DirectLog );
 
      direct_mutex_lock( &log->lock );
@@ -242,11 +237,6 @@ __dfb_no_instrument_function__
 void
 direct_log_unlock( DirectLog *log )
 {
-     D_MAGIC_ASSERT_IF( log, DirectLog );
-
-     if (!log)
-          log = direct_log_default();
-
      D_MAGIC_ASSERT( log, DirectLog );
 
      direct_mutex_unlock( &log->lock );
