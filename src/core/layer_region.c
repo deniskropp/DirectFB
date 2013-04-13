@@ -1402,6 +1402,8 @@ dfb_layer_region_set( CoreLayerRegion            *region,
                               region->region_data, config, flags,
                               surface, surface ? surface->palette : NULL,
                               &left, &right );
+     if (ret)
+          D_DERROR( ret, "Core/LayerRegion: Driver's SetRegion() call failed!\n" );
 
      /* Unlock the region buffer since the lock is no longer necessary. */
      if (locked)
