@@ -82,6 +82,7 @@ ISaWManProcess_Real::RegisterManager(
      m_sawman->manager.call      = data->call;
      m_sawman->manager.callbacks = data->callbacks;
      m_sawman->manager.context   = data->context;
+     m_sawman->manager.fusion_id = Core_GetIdentity();
 
      /* Set manager flag for our process. */
      obj->flags = (SaWManProcessFlags)(obj->flags | SWMPF_MANAGER);

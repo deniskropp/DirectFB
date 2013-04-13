@@ -2328,6 +2328,8 @@ wm_add_window( CoreWindowStack *stack,
                    | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
                    | (window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
 
+     fusion_object_add_owner( &window->object, sawman->manager.fusion_id );
+
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, info, sizeof(*info), true )) {
           case DFB_OK:
                break;

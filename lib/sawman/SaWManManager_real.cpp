@@ -102,6 +102,8 @@ ISaWManManager_Real::Activate(
                              | (window->window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
                              | (window->window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0) );
 
+               fusion_object_add_owner( &window->window->object, m_sawman->manager.fusion_id );
+
                D_DEBUG_AT( DirectFB_SaWManManager, "calling iwnodw added\n" );
                sawman_call( m_sawman, SWMCID_WINDOW_ADDED, &info, sizeof(info), false );
                D_DEBUG_AT( DirectFB_SaWManManager, "calling iwnodw added done\n" );

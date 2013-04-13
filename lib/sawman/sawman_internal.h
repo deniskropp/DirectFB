@@ -218,6 +218,7 @@ typedef struct {
      DFBInputEvent             event;
 
      bool                      active;
+     FusionID                  fusion_id;
 } SaWManManager;
 
 typedef struct {
