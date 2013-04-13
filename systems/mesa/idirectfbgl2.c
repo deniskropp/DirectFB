@@ -33,8 +33,8 @@
 #define EGL_EGLEXT_PROTOTYPES
 #define GL_GLEXT_PROTOTYPES
 
-#include <GL/gl.h>
-#include <GL/glext.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include <EGL/egl.h>
 
 #include <directfbgl2.h>
