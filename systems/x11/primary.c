@@ -106,7 +106,7 @@ dfb_x11_destroy_window( DFBX11 *x11, X11LayerData *lds )
      return ret;
 }
 
-static DFBResult
+DFBResult
 dfb_x11_update_screen( DFBX11 *x11, X11LayerData *lds, const DFBRegion *left_region, const DFBRegion *right_region,
                        CoreSurfaceBufferLock *left_lock, CoreSurfaceBufferLock *right_lock )
 {
@@ -117,8 +117,10 @@ dfb_x11_update_screen( DFBX11 *x11, X11LayerData *lds, const DFBRegion *left_reg
      D_ASSERT( left_lock != NULL );
 
      /* FIXME: Just a hot fix! */
-     if (shared->update.left_lock.buffer)
+     if (shared->update.left_lock.buffer) {
+          D_ONCE( "using x11 update hotfix" );
           return DFB_OK;
+     }
 
      shared->update.xw           = lds->xw;
      shared->update.left_region  = *left_region;

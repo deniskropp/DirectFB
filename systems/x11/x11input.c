@@ -474,7 +474,8 @@ static void
 handle_expose_Async( void *ctx,
                      void *ctx2 )
 {
-     const XExposeEvent      *expose = ctx;
+     DFBX11                  *x11    = ctx;
+     const XExposeEvent      *expose = ctx2;
      CoreLayer               *layer  = 0;
      const DisplayLayerFuncs *funcs  = 0;
      CoreLayerContext        *context;
@@ -537,9 +538,7 @@ handle_expose_Async( void *ctx,
                                                    expose->x + expose->width  - 1,
                                                    expose->y + expose->height - 1 };
 
-                              funcs->UpdateRegion( layer, layer->driver_data, layer->layer_data,
-                                                   region->region_data, region->surface, &update,
-                                                   &lds->lock_left, &update, &lds->lock_right );
+                              dfb_x11_update_screen( x11, lds, &update, &update, &lds->lock_left, &lds->lock_right );
                          }
                     }
                }
@@ -579,7 +578,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
           if (expose_event.type) {
-               handle_expose_Async( &expose_event, NULL );
+               handle_expose_Async( x11, &expose_event );
                expose_event.type = 0;
           }
 

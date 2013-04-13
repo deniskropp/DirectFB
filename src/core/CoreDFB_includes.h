@@ -457,7 +457,7 @@ CoreSurface_Lookup( CoreDFB      *core,
           return (DirectResult) ret;
 
      if (caller != FUSION_ID_MASTER &&
-         surface->object.identity && surface->object.identity != caller &&
+         surface->object.identity != caller &&
          fusion_object_check_owner( &surface->object, caller, false ))
      {
           dfb_surface_unref( surface );
@@ -499,8 +499,6 @@ CoreSurface_Throw( CoreSurface *surface,
      fusion_call_add_permissions( &surface->call, catcher, FUSION_CALL_PERMIT_EXECUTE );
 
      fusion_object_add_owner( &surface->object, catcher );
-//     if (!surface->object.owner)// && !(surface->type & CSTF_LAYER) && !(surface->config.caps & DSCAPS_SHARED))
-//          surface->object.owner = catcher;
 
      return fusion_ref_throw( &surface->object.ref, catcher );
 }
@@ -717,12 +715,15 @@ CoreWindow_Lookup( CoreDFB     *core,
      ret = dfb_core_get_window( core, object_id, &window );
      if (ret)
           return (DirectResult) ret;
-#if 0
-     if (fusion_object_check_owner( &window->object, caller, false )) {
+
+     if (caller != FUSION_ID_MASTER &&
+         window->object.identity != caller &&
+         fusion_object_check_owner( &window->object, caller, false ))
+     {
           dfb_window_unref( window );
           return DR_ACCESSDENIED;
      }
-#endif
+
      *ret_window = window;
 
      return DR_OK;

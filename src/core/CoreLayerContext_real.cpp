@@ -290,6 +290,7 @@ ILayerContext_Real::FindWindow(
 )
 {
     CoreWindow *window;
+    FusionID    caller;
 
     D_DEBUG_AT( DirectFB_CoreLayerContext, "ILayerContext_Real::%s()\n", __FUNCTION__ );
 
@@ -299,7 +300,12 @@ ILayerContext_Real::FindWindow(
     if (!window)
          return DFB_IDNOTFOUND;
 
-    if (fusion_object_check_owner( &window->object, Core_GetIdentity(), false )) {
+    caller = Core_GetIdentity();
+
+    if (caller != FUSION_ID_MASTER &&
+        window->object.identity != caller &&
+        fusion_object_check_owner( &window->object, caller, false ))
+    {
          dfb_window_unref( window );
          return DFB_ACCESSDENIED;
     }

@@ -46,5 +46,9 @@ typedef struct {
      CoreSurface           *surface;
 } X11LayerData;
 
+DFBResult
+dfb_x11_update_screen( DFBX11 *x11, X11LayerData *lds, const DFBRegion *left_region, const DFBRegion *right_region,
+                       CoreSurfaceBufferLock *left_lock, CoreSurfaceBufferLock *right_lock );
+
 #endif // __X11__PRIMARY_H__
 

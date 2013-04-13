@@ -44,6 +44,7 @@
 #include "fusion_internal.h"
 
 D_DEBUG_DOMAIN( Fusion_Object, "Fusion/Object", "Fusion Objects and Pools" );
+D_DEBUG_DOMAIN( Fusion_Object_Owner, "Fusion/Object/Owner", "Fusion Objects and Pools" );
 
 
 #if 0
@@ -790,6 +791,8 @@ fusion_object_add_owner( FusionObject *object,
                return DR_OK;
      }
 
+     D_DEBUG_AT( Fusion_Object_Owner, "  = add %lu (object %p id %u)\n", owner, object, object->id );
+
      return fusion_vector_add( &object->owners, (void*) owner );
 }
 
@@ -805,13 +808,22 @@ fusion_object_check_owner( FusionObject *object,
 
      D_MAGIC_ASSERT( object, FusionObject );
 
-     if (succeed_if_not_owned && object->owners.count == 0)
+     D_DEBUG_AT( Fusion_Object_Owner, "  = check %lu and %ssucceed if not owned (object %p id %u)\n",
+                 owner, succeed_if_not_owned ? "" : "DON'T ", object, object->id );
+
+     if (succeed_if_not_owned && object->owners.count == 0) {
+          D_DEBUG_AT( Fusion_Object_Owner, "   -> SUCCESS (no owner)\n" );
           return DR_OK;
+     }
 
      fusion_vector_foreach (id, i, object->owners) {
-          if (id == owner)
+          if (id == owner) {
+               D_DEBUG_AT( Fusion_Object_Owner, "   -> SUCCESS (found as owner with index %d)\n", i );
                return DR_OK;
+          }
      }
+
+     D_DEBUG_AT( Fusion_Object_Owner, "   -> FAIL (not found)\n" );
 
      return DR_IDNOTFOUND;
 }
