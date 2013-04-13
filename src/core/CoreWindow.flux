@@ -464,5 +464,17 @@ interface {
 			typename	DFBInsets
 		}
 	}
+
+
+        method {
+                name PostEvent
+
+                arg {
+                        name		event
+                        direction	input
+                        type		struct
+                        typename	DFBWindowEvent
+                }
+        }
 }
 

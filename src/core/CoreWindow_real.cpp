@@ -481,6 +481,22 @@ IWindow_Real::GetInsets(
     return ret;
 }
 
+DFBResult
+IWindow_Real::PostEvent(
+     const DFBWindowEvent                    *event
+)
+{
+    DFBWindowEvent e;
+
+    D_DEBUG_AT( Core_Window, "IWindow_Real::%s()\n", __FUNCTION__ );
+
+    e = *event;
+
+    dfb_window_post_event( obj, &e );
+
+    return DFB_OK;
+}
+
 
 }
 
