@@ -365,8 +365,8 @@ UpdateScreen( DFBVNC                *vnc,
                state.source    = data->surface;
 
                /* emulate missing hw layer clipping */
-               if (dst.x + dst.w > shared->screen_size.w || dst.y + dst.h > shared->screen_size.h)
-                    return DFB_ACCESSDENIED;
+//               if (dst.x + dst.w > shared->screen_size.w || dst.y + dst.h > shared->screen_size.h)
+//                    return DFB_ACCESSDENIED;
 
 
                if (data->config.options & DLOP_ALPHACHANNEL) {
