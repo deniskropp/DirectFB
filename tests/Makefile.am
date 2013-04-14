@@ -91,6 +91,7 @@ bin_PROGRAMS = \
 	dfbtest_window_flip	\
 	dfbtest_window_flip_once	\
 	dfbtest_window_surface	\
+	dfbtest_window_update	\
 	dfbtest_windows_watcher	\
 	direct_stream	\
 	direct_test	\
@@ -223,6 +224,9 @@ dfbtest_window_flip_once_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfu
 
 dfbtest_window_surface_SOURCES = dfbtest_window_surface.c
 dfbtest_window_surface_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
+
+dfbtest_window_update_SOURCES = dfbtest_window_update.c
+dfbtest_window_update_LDADD   = $(DFB_BASE_LIBS)
 
 dfbtest_windows_watcher_SOURCES = dfbtest_windows_watcher.c
 dfbtest_windows_watcher_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
