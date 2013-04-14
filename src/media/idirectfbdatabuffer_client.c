@@ -239,6 +239,7 @@ IDirectFBDataBuffer_Client_Construct( IDirectFBDataBuffer *thiz,
      }
 
      if (call_owner != Core_GetIdentity()) {
+          D_ERROR( "IDirectFBDataBuffer/Client: Slave call owner (%lu) does not match current identity (%lu)!\n", call_owner, Core_GetIdentity() );
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_ACCESSDENIED;
      }
