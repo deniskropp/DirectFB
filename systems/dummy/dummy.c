@@ -32,6 +32,8 @@
 
 #include <core/layers.h>
 #include <core/screens.h>
+#include <core/surface_allocation.h>
+#include <core/surface_pool.h>
 
 #include <misc/conf.h>
 
@@ -49,6 +51,7 @@ DFB_CORE_SYSTEM( dummy )
 D_DEBUG_DOMAIN( Dummy_Display, "Dummy/Display", "DirectFB Dummy System Display" );
 D_DEBUG_DOMAIN( Dummy_Layer,   "Dummy/Layer",   "DirectFB Dummy System Layer" );
 D_DEBUG_DOMAIN( Dummy_Screen,  "Dummy/Screen",  "DirectFB Dummy System Screen" );
+D_DEBUG_DOMAIN( Dummy_Display_PTS, "Dummy/Display/PTS", "DirectFB Dummy System Display PTS" );
 
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/
@@ -60,15 +63,18 @@ static DirectWaitQueue  dummy_display_wq;
 static DirectLink      *dummy_display_list;
 
 typedef struct {
-     DirectLink       link;
+     DirectLink             link;
 
-     int              magic;
+     int                    magic;
 
-     CoreSurface     *surface;
-     int              index;
-     DFB_DisplayTask *task;
+     CoreSurface           *surface;
+     CoreSurfaceBuffer     *buffer;
+     int                    index;
+     DFB_DisplayTask       *task;
 
-     long long        pts;
+     long long              pts;
+
+     CoreSurfaceBufferLock  lock;
 } DummyDisplayBuffer;
 
 /**********************************************************************************************************************/
@@ -120,19 +126,25 @@ dummy_display_loop( DirectThread *thread,
                now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
           }
 
-          D_DEBUG_AT( Dummy_Display, "  => display at %lldus (%lld from pts)\n", now, now - request->pts );
+          D_DEBUG_AT( Dummy_Display_PTS, "  => display at %lldus (%lld from pts)\n", now, now - request->pts );
 
           dfb_surface_notify_display2( request->surface, request->index, request->task );
-/*
-          if (request->pts > 0) {
+
+          if (direct_config_get_int_value( "dummy-layer-dump" ) && request->pts > 0) {
                static long long first;
+
                if (!first)
                     first = request->pts;
+
                char buf[100];
-               snprintf(buf,sizeof(buf),"dfb_dummy_layer_%09lld",request->pts - first);
-               dfb_surface_dump_buffer( request->surface, CSBR_FRONT, buf, NULL );
+
+               snprintf( buf, sizeof(buf), "dfb_dummy_layer_%lu_%09lld", request->surface->resource_id, request->pts - first );
+
+               D_DEBUG_AT( Dummy_Display_PTS, "  => dumping frame with pts %lld\n", request->pts );
+
+               dfb_surface_buffer_dump_type_locked( request->buffer, buf, NULL, false, &request->lock );
           }
-*/
+
 
           if (prev_task) {
                D_DEBUG_AT( Dummy_Display, "  <= done previous task %p (pts %lld, %lld to current)\n", prev_task,
@@ -143,6 +155,8 @@ dummy_display_loop( DirectThread *thread,
 
           prev_task = request->task;
 
+
+          dfb_surface_buffer_unref( request->buffer );
 
           dfb_surface_unref( request->surface );
 
@@ -227,33 +241,56 @@ static ScreenFuncs dummyScreenFuncs = {
 /**********************************************************************************************************************/
 
 static DFBResult
-dummyDisplayRequest( CoreSurface     *surface,
-                     int              index,
-                     DFB_DisplayTask *task )
+dummyDisplayRequest( CoreSurface           *surface,
+                     CoreSurfaceBufferLock *lock )
 {
      DFBResult           ret;
      DummyDisplayBuffer *request;
 
-     D_DEBUG_AT( Dummy_Display, "%s( %p, %d, %p )\n", __FUNCTION__, surface, index, task );
+     D_DEBUG_AT( Dummy_Display, "%s( %p, %p )\n", __FUNCTION__, surface, lock );
+
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+     CORE_SURFACE_ALLOCATION_ASSERT( lock->allocation );
+
+     CORE_SURFACE_ASSERT( surface );
 
      ret = dfb_surface_ref( surface );
      if (ret)
           return ret;
 
+     CORE_SURFACE_BUFFER_ASSERT( lock->buffer );
+
+     ret = dfb_surface_buffer_ref( lock->buffer );
+     if (ret) {
+          dfb_surface_unref( surface );
+          return ret;
+     }
+
+     CORE_SURFACE_BUFFER_ASSERT( lock->buffer );
+
      /* Allocate new request */
      request = D_CALLOC( 1, sizeof(DummyDisplayBuffer) );
-     if (!request)
+     if (!request) {
+          dfb_surface_buffer_unref( lock->buffer );
+          dfb_surface_unref( surface );
           return D_OOM();
+     }
+
+     CORE_SURFACE_ALLOCATION_ASSERT( lock->allocation );
 
      /* Initialize request */
      request->surface = surface;
-     request->index   = index;
-     request->task    = task;
-     request->pts     = task ? DisplayTask_GetPTS( task ) : -1;
+     request->buffer  = lock->buffer;
+     request->index   = lock->allocation->index;
+     request->task    = lock->task;
+     request->pts     = lock->task ? DisplayTask_GetPTS( lock->task ) : -1;
+     request->lock    = *lock;
 
      D_MAGIC_SET( request, DummyDisplayBuffer );
 
      D_DEBUG_AT( Dummy_Display, "  -> %p\n", request );
+     D_DEBUG_AT( Dummy_Display, "  -> index %d\n", request->index );
+     D_DEBUG_AT( Dummy_Display, "  -> pts   %lld\n", request->pts );
 
      direct_mutex_lock( &dummy_display_lock );
 
@@ -333,7 +370,7 @@ dummyFlipRegion( CoreLayer             *layer,
                  const DFBRegion       *right_update,
                  CoreSurfaceBufferLock *right_lock )
 {
-     return dummyDisplayRequest( surface, left_lock->allocation->index, left_lock->task );
+     return dummyDisplayRequest( surface, left_lock );
 }
 
 static DFBResult
@@ -347,7 +384,7 @@ dummyUpdateRegion( CoreLayer             *layer,
                    const DFBRegion       *right_update,
                    CoreSurfaceBufferLock *right_lock )
 {
-     return dummyDisplayRequest( surface, left_lock->allocation->index, left_lock->task );
+     return dummyDisplayRequest( surface, left_lock );
 }
 
 static DisplayLayerFuncs dummyLayerFuncs = {
