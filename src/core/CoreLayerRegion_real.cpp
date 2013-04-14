@@ -101,7 +101,7 @@ ILayerRegion_Real::FlipUpdate2(
                     s64                                        pts
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s( flags 0x%08x, pts %lld )\n", __FUNCTION__, flags, (long long) pts );
 
     return dfb_layer_region_flip_update2( obj, left_update, right_update, flags, pts, NULL );
 }
@@ -167,7 +167,7 @@ DisplayTask::DisplayTask( CoreLayerRegion       *region,
 
      flags = (TaskFlags)(flags | TASK_FLAG_NOSYNC);
 
-//     if (region->config.buffermode == DLBM_FRONTONLY || region->config.buffermode == DLBM_BACKSYSTEM)
+     if (region->config.buffermode == DLBM_FRONTONLY || region->config.buffermode == DLBM_BACKSYSTEM)
           flags = (TaskFlags)(flags | TASK_FLAG_EMITNOTIFIES);
 }
 
