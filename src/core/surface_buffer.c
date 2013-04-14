@@ -668,43 +668,43 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
      return ret;
 }
 
-static DFBResult
-dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
-                         const char        *directory,
-                              const char        *prefix,
-                              bool               raw )
+DFBResult
+dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
+                                     const char            *directory,
+                                     const char            *prefix,
+                                     bool                   raw,
+                                     CoreSurfaceBufferLock *lock )
 {
-     DFBResult              ret;
-     int                    num  = -1;
-     int                    fd_p = -1;
-     int                    fd_g = -1;
-     int                    i, n;
-     int                    len = (directory ? strlen(directory) : 0) + (prefix ? strlen(prefix) : 0) + 40;
-     char                   filename[len];
-     char                   head[30];
-     bool                   rgb   = false;
-     bool                   alpha = false;
+     int                num  = -1;
+     int                fd_p = -1;
+     int                fd_g = -1;
+     int                i, n;
+     int                len = (directory ? strlen(directory) : 0) + (prefix ? strlen(prefix) : 0) + 40;
+     char               filename[len];
+     char               head[30];
+     bool               rgb   = false;
+     bool               alpha = false;
 #ifdef USE_ZLIB
-     gzFile                 gz_p = NULL, gz_g = NULL;
-     static const char     *gz_ext = ".gz";
+     gzFile             gz_p = NULL, gz_g = NULL;
+     static const char *gz_ext = ".gz";
 #else
-     static const char     *gz_ext = "";
-     int                    res;
+     static const char *gz_ext = "";
+     int                res;
 #endif
-     char                   rgb_ext[4];
-     CoreSurface           *surface;
-     CorePalette           *palette = NULL;
-     CoreSurfaceBufferLock  lock;
+     char               rgb_ext[4];
+     CoreSurface       *surface;
+     CorePalette       *palette = NULL;
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p, %p )\n", __FUNCTION__, buffer, directory, prefix );
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_ASSERT( directory != NULL );
 
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+     CORE_SURFACE_ALLOCATION_ASSERT( lock->allocation );
 
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
+     surface = buffer->surface;
+     CORE_SURFACE_ASSERT( surface );
 
      /* Check pixel format. */
      switch (buffer->format) {
@@ -766,14 +766,6 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
                return DFB_UNSUPPORTED;
      }
 
-     /* Lock the surface buffer, get the data pointer and pitch. */
-     ret = dfb_surface_buffer_lock( buffer, CSAID_CPU, CSAF_READ, &lock );
-     if (ret) {
-          if (palette)
-               dfb_palette_unref( palette );
-          return ret;
-     }
-
      /* Setup the file extension depending on whether we want the output the RAW format or not... */
      snprintf( rgb_ext, D_ARRAY_SIZE(rgb_ext), (raw == true) ? "raw" : "ppm");
 
@@ -795,7 +787,6 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
           if (num == 10000) {
                D_ERROR( "DirectFB/core/surfaces: "
                         "couldn't find an unused index for surface dump!\n" );
-               dfb_surface_buffer_unlock( &lock );
                if (palette)
                     dfb_palette_unref( palette );
                return DFB_FAILURE;
@@ -813,7 +804,6 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
           if (fd_p < 0) {
                D_PERROR("DirectFB/core/surfaces: "
                         "could not open %s!\n", filename);
-               dfb_surface_buffer_unlock( &lock );
                if (palette)
                     dfb_palette_unref( palette );
                return DFB_IO;
@@ -832,7 +822,6 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
                D_PERROR("DirectFB/core/surfaces: "
                          "could not open %s!\n", filename);
 
-               dfb_surface_buffer_unlock( &lock );
                if (palette)
                     dfb_palette_unref( palette );
 
@@ -887,7 +876,7 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
           int n3;
 
           /* Prepare one row. */
-          u8 *src8 = dfb_surface_data_offset( surface, lock.addr, lock.pitch, 0, i );
+          u8 *src8 = dfb_surface_data_offset( surface, lock->addr, lock->pitch, 0, i );
 
           /* Write color buffer to pixmap file. */
           if (rgb) {
@@ -903,7 +892,7 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
                         }
                    }
                    else
-                        dfb_convert_to_argb( buffer->format, src8, lock.pitch, surface->config.size.h,
+                        dfb_convert_to_argb( buffer->format, src8, lock->pitch, surface->config.size.h,
                                              (u32 *)(&buf_p[0]), surface->config.size.w * 4, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                    gzwrite( gz_p, buf_p, surface->config.size.w * 4 );
@@ -923,7 +912,7 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
                     }
                }
                else
-                    dfb_convert_to_rgb24( buffer->format, src8, lock.pitch, surface->config.size.h,
+                    dfb_convert_to_rgb24( buffer->format, src8, lock->pitch, surface->config.size.h,
                                           buf_p, surface->config.size.w * 3, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                gzwrite( gz_p, buf_p, surface->config.size.w * 3 );
@@ -943,7 +932,7 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
                          buf_g[n] = palette->entries[src8[n]].a;
                }
                else
-                    dfb_convert_to_a8( buffer->format, src8, lock.pitch, surface->config.size.h,
+                    dfb_convert_to_a8( buffer->format, src8, lock->pitch, surface->config.size.h,
                                        buf_g, surface->config.size.w, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                gzwrite( gz_g, buf_g, surface->config.size.w );
@@ -953,9 +942,6 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
 #endif
           }
      }
-
-     /* Unlock the surface buffer. */
-     dfb_surface_buffer_unlock( &lock );
 
      /* Release the palette. */
      if (palette)
@@ -978,6 +964,39 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
           close( fd_g );
 
      return DFB_OK;
+}
+
+static DFBResult
+dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
+                              const char        *directory,
+                              const char        *prefix,
+                              bool               raw )
+{
+     DFBResult              ret;
+     CoreSurfaceBufferLock  lock;
+     CoreSurface           *surface;
+
+     D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p, %p )\n", __FUNCTION__, buffer, directory, prefix );
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     D_ASSERT( directory != NULL );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+
+     /* Lock the surface buffer, get the data pointer and pitch. */
+     ret = dfb_surface_buffer_lock( buffer, CSAID_CPU, CSAF_READ, &lock );
+     if (ret)
+          return ret;
+
+     ret = dfb_surface_buffer_dump_type_locked( buffer, directory, prefix, raw, &lock );
+
+     /* Unlock the surface buffer. */
+     dfb_surface_buffer_unlock( &lock );
+
+     return ret;
 }
 
 DFBResult

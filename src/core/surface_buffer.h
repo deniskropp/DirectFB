@@ -208,6 +208,12 @@ DFBResult dfb_surface_buffer_dump_raw( CoreSurfaceBuffer       *buffer,
                                        const char              *directory,
                                        const char              *prefix );
 
+DFBResult dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
+                                               const char            *directory,
+                                               const char            *prefix,
+                                               bool                   raw,
+                                               CoreSurfaceBufferLock *lock );
+
 CoreSurfaceAllocation *
 dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,
                                     CoreSurfaceAccessorID    accessor,
