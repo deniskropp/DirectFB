@@ -45,6 +45,7 @@ extern "C" {
 }
 
 #include <direct/TLSObject.h>
+#include <direct/LockWQ.h>
 
 #include <core/CoreDFB.h>
 #include <core/CoreGraphicsState.h>
@@ -185,6 +186,48 @@ static Direct::TLSObject2<StateHolder> state_holder_tls;
 
 
 
+class ThrottleBlocking : public DirectFB::Renderer::Throttle
+{
+private:
+    bool           blocking;
+    Direct::LockWQ lwq;
+
+public:
+    ThrottleBlocking()
+        :
+        blocking( false )
+    {
+    }
+
+    void WaitNotBlocking()
+    {
+         Direct::LockWQ::Lock l1( lwq );
+
+         while (blocking)
+              l1.wait();
+    }
+
+protected:
+    virtual void AddTask( DirectFB::SurfaceTask *task )
+    {
+         Throttle::AddTask( task );
+
+         WaitNotBlocking();
+    }
+
+    virtual void SetThrottle( int percent )
+    {
+         Direct::LockWQ::Lock l1( lwq );
+
+         if (blocking != (percent != 0)) {
+              blocking = (percent != 0);
+
+              if (!blocking)
+                   lwq.notifyAll();
+         }
+    }
+};
+
 
 
 
@@ -216,11 +259,11 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      if (dfb_config->task_manager) {
           if (dfb_config->call_nodirect) {
                if (direct_thread_get_tid( direct_thread_self() ) == fusion_dispatcher_tid(state->core->world)) {
-                    client->renderer = new DirectFB::Renderer( client->state );
+                    client->renderer = new DirectFB::Renderer( client->state, NULL );
                }
           }
           else if (!fusion_config->secure_fusion || dfb_core_is_master( client->core ))
-               client->renderer = new DirectFB::Renderer( client->state );
+               client->renderer = new DirectFB::Renderer( client->state, new ThrottleBlocking() );
      }
 
      client->requestor = new DirectFB::IGraphicsState_Requestor( core_dfb, client->gfx_state );

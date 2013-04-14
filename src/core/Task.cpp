@@ -97,10 +97,16 @@ TaskManager_SyncAll()
 DFB_TaskList *
 TaskList_New( bool locked )
 {
+     D_DEBUG_AT( DirectFB_Task, "%s( %slock )\n", __FUNCTION__, locked ? "no " : "" );
+
      if (locked)
           return new Direct::ListLocked<DirectFB::Task*>;
 
-     return new Direct::ListSimple<DirectFB::Task*>;
+     DFB_TaskList *list = new Direct::ListSimple<DirectFB::Task*>;
+
+     D_DEBUG_AT( DirectFB_Task, "  <- %p\n", list );
+
+     return list;
 }
 
 bool
@@ -112,9 +118,13 @@ TaskList_IsEmpty( DFB_TaskList *list )
 DFBResult
 TaskList_WaitEmpty( DFB_TaskList *list )
 {
+     D_DEBUG_AT( DirectFB_Task, "%s( %p )\n", __FUNCTION__, list );
+
      DFB_TaskListLocked *locked = dynamic_cast<DFB_TaskListLocked*>( list );
 
      locked->WaitEmpty();
+
+     D_DEBUG_AT( DirectFB_Task, "%s( %p ) done.\n", __FUNCTION__, list );
 
      return DFB_OK;
 }
@@ -122,6 +132,8 @@ TaskList_WaitEmpty( DFB_TaskList *list )
 void
 TaskList_Delete( DFB_TaskList *list )
 {
+     D_DEBUG_AT( DirectFB_Task, "%s( %p )\n", __FUNCTION__, list );
+
      D_ASSERT( list != NULL );
      D_ASSUME( list->Length() == 0 );
 
@@ -1356,13 +1368,35 @@ SurfaceTask::AddAccess( CoreSurfaceAllocation  *allocation,
 }
 
 DFBResult
+SurfaceTask::AddHook( Hook *hook )
+{
+     D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s( %p, hook %p )\n", __FUNCTION__, this, hook );
+
+     DFB_TASK_CHECK_STATE( this, TASK_NEW, return DFB_BUG );
+
+     hooks.push_back( hook );
+
+     return DFB_OK;
+}
+
+DFBResult
 SurfaceTask::Setup()
 {
+     DFBResult ret;
+
      DFB_TASK_LOG( "SurfaceTask::Setup()" );
 
      D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s()\n", __FUNCTION__ );
 
      DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return DFB_BUG );
+
+     for (std::vector<Hook*>::const_iterator it = hooks.begin(); it != hooks.end(); ++it) {
+          ret = (*it)->setup( this );
+          if (ret) {
+               D_DERROR( ret, "DirectFB/SurfaceTask: Hook's setup() failed!\n" );
+               return ret;
+          }
+     }
 
      for (std::vector<SurfaceAllocationAccess>::iterator it = accesses.begin(); it != accesses.end(); ++it) {
           SurfaceAllocationAccess &access = *it;
@@ -1391,7 +1425,7 @@ SurfaceTask::Setup()
 
                if (read_tasks.Length()) {
                     for (DFB_SurfaceTaskListSimple::const_iterator it=read_tasks.begin(); it != read_tasks.end(); it++)
-                         (*it)->AddNotify( this, (*it)->accessor == accessor && (*it)->qid == qid );
+                         (*it).second->AddNotify( this, (*it).second->accessor == accessor && (*it).second->qid == qid );
 
                     read_tasks.Clear();
                }
@@ -1511,6 +1545,9 @@ SurfaceTask::Finalise()
      D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s()\n", __FUNCTION__ );
 
      DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
+
+     for (std::vector<Hook*>::const_iterator it = hooks.begin(); it != hooks.end(); ++it)
+          (*it)->finalise( this );
 
      Task::Finalise();
 

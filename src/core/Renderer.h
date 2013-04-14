@@ -84,6 +84,9 @@ TODO
   - triangle to rectangle filling
   - rectangle drawing to filling
 
+
+ - lock mask surface?
+
 */
 
 
@@ -140,6 +143,24 @@ class Base;
 class Renderer : public Direct::Magic<Renderer>
 {
 public:
+     class Throttle : public SurfaceTask::Hook
+     {
+          friend class Renderer;
+
+     public:
+          Throttle();
+
+     protected:
+          virtual void AddTask( SurfaceTask *task );
+          virtual void SetThrottle( int percent ) = 0;
+
+     private:
+          DFBResult setup( SurfaceTask *task );
+          void      finalise( SurfaceTask *task );
+
+          unsigned int task_count;
+     };
+
      class Setup
      {
      public:
@@ -197,7 +218,7 @@ public:
      };
 
 public:
-     Renderer( CardState *state );
+     Renderer( CardState *state, Throttle *throttle = NULL );
      ~Renderer();
 
 
@@ -251,11 +272,12 @@ public:
                             DFBTriangleFormation    formation );
 
 
-
 private:
      CardState             *state;
      StateModificationFlags state_mod;
      WaterTransformType     transform_type;
+
+     Throttle              *throttle;
 
      DirectThread          *thread;     // where the renderer is used (while engine is bound)
      Engine                *engine;
@@ -275,7 +297,7 @@ private:
                              DFBAccelerationMask  accel );
      DFBResult rebindEngine( DFBAccelerationMask  accel );
      void      unbindEngine();
-
+     void      flushTask();
 
      void      render    ( Primitives::Base       *primitives );
 

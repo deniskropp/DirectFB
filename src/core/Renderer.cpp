@@ -50,7 +50,8 @@ extern "C" {
 #include <Util.h>
 
 
-D_DEBUG_DOMAIN( DirectFB_Renderer, "DirectFB/Renderer", "DirectFB Renderer" );
+D_DEBUG_DOMAIN( DirectFB_Renderer,          "DirectFB/Renderer",          "DirectFB Renderer" );
+D_DEBUG_DOMAIN( DirectFB_Renderer_Throttle, "DirectFB/Renderer/Throttle", "DirectFB Renderer Throttle" );
 
 /*********************************************************************************************************************/
 
@@ -1958,21 +1959,74 @@ Quadrangles::render( Renderer::Setup *setup,
 
 }
 
+/**********************************************************************************************************************/
 
+Renderer::Throttle::Throttle()
+     :
+     task_count(0)
+{
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
+}
 
+DFBResult
+Renderer::Throttle::setup( SurfaceTask *task )
+{
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
 
+     task_count++;
 
-Renderer::Renderer( CardState *state )
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count %d\n", task_count );
+
+     if (task_count == 5) {
+          D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> throttling at 100% (blocked) from now\n" );
+
+          SetThrottle( 100 );
+     }
+
+     return DFB_OK;
+}
+
+void
+Renderer::Throttle::finalise( SurfaceTask *task )
+{
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
+
+     D_ASSERT( task_count > 0 );
+
+     if (task_count == 5) {
+          D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> throttling at 0% (full speed) from now\n" );
+
+          SetThrottle( 0 );
+     }
+
+     task_count--;
+
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count %d\n", task_count );
+}
+
+void
+Renderer::Throttle::AddTask( SurfaceTask *task )
+{
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
+
+     task->AddHook( this );
+}
+
+/**********************************************************************************************************************/
+
+Renderer::Renderer( CardState *state,
+                    Throttle  *throttle )
      :
      state( state ),
      state_mod( SMF_NONE ),
      transform_type( WTT_IDENTITY ),
+     throttle( throttle ),
      thread( NULL ),
      engine( NULL ),
      setup( NULL ),
      operations( 0 )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, throttle %p )\n", __FUNCTION__, this, throttle );
 
      CHECK_MAGIC();
 }
@@ -2122,25 +2176,6 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
           setup->tasks[0]->AddAccess( allocation, flags );
 
           dfb_surface_unlock( surface );
-
-#if 1
-//          long long t1 = direct_clock_get_abs_millis();
-          // FIXME: this is a temporary solution, slaves will be blocked via kernel module later
-//          printf("count %d\n", allocation->task_count);
-          unsigned int timeout = 5000;
-          while (allocation->task_count > 5) {
-               if (!--timeout) {
-                    D_ERROR( "DirectFB/Renderer: timeout!\n" );
-                    direct_trace_print_stacks();
-                    TaskManager::dumpTasks();
-                    break;
-               }
-               //printf("blocked\n");
-               usleep( 1000 );
-          }
-//          long long t2 = direct_clock_get_abs_millis();
-//          D_INFO("blocked %lld\n", t2 - t1);
-#endif
 
           allocations.insert( SurfaceAllocationMapPair( key, allocation ) );
      }
@@ -2403,8 +2438,8 @@ Renderer::render( Primitives::Base *primitives )
                Primitives::Base *output = tesselated->tesselate( next_accel, &state->clip, transform ? state->matrix : NULL );
 
                if (!output) {
-                    D_WARN( "no tesselation from '%s' to '%s'",
-                            ToString<DFBAccelerationMask>(accel).buffer(), ToString<DFBAccelerationMask>(next_accel).buffer() );
+                    //D_WARN( "no tesselation from '%s' to '%s'",
+                    //        ToString<DFBAccelerationMask>(accel).buffer(), ToString<DFBAccelerationMask>(next_accel).buffer() );
                     goto out;
                }
 
@@ -2727,7 +2762,12 @@ Renderer::getEngine( DFBAccelerationMask  accel,
           // TODO: add engine mask for selection by user
 
           if (dfb_config->software_only && !engine->caps.software) {
-               D_DEBUG_AT( DirectFB_Renderer, "  -> skipping engine, software only!\n" );
+               D_DEBUG_AT( DirectFB_Renderer, "  -> skipping engine (no-hardware)!\n" );
+               continue;
+          }
+
+          if (dfb_config->hardware_only && engine->caps.software) {
+               D_DEBUG_AT( DirectFB_Renderer, "  -> skipping engine (no-software)!\n" );
                continue;
           }
 
@@ -2804,26 +2844,12 @@ Renderer::unbindEngine()
 
      D_ASSUME( thread == direct_thread_self() );
 
-     leaveLock( &state->src2 );
-     D_ASSERT( setup != NULL );
-     leaveLock( &state->src_mask );
-     D_ASSERT( setup != NULL );
-     leaveLock( &state->src );
-     D_ASSERT( setup != NULL );
-     leaveLock( &state->dst );
-     D_ASSERT( setup != NULL );
-
-     /// par flush
-     setup->tasks[0]->Flush();
+     flushTask();
 
      delete setup;
      setup = NULL;
 
-     thread     = NULL;
-     engine     = NULL;
-     operations = 0;
-
-     allocations.clear();
+     thread = NULL;
 }
 
 DFBResult
@@ -2838,24 +2864,41 @@ Renderer::rebindEngine( DFBAccelerationMask  accel )
      D_ASSERT( engine != NULL );
      D_ASSERT( setup != NULL );
 
+     D_ASSUME( thread == direct_thread_self() );
+
+     flushTask();
+
+     memset( setup->tasks, 0, sizeof(SurfaceTask*) * setup->tiles );
+
+     return bindEngine( last_engine, accel );
+}
+
+void
+Renderer::flushTask()
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
+
+     CHECK_MAGIC();
+
+     D_ASSERT( engine != NULL );
+     D_ASSERT( setup != NULL );
+
      leaveLock( &state->src2 );
      leaveLock( &state->src_mask );
      leaveLock( &state->src );
      leaveLock( &state->dst );
 
+     if (throttle)
+          throttle->AddTask( setup->tasks[0] );
+
      /// par flush
      setup->tasks[0]->Flush();
-
-     memset( setup->tasks, 0, sizeof(SurfaceTask*) * setup->tiles );
 
      engine     = NULL;
      operations = 0;
 
      allocations.clear();
-
-     return bindEngine( last_engine, accel );
 }
-
 
 /*********************************************************************************************************************/
 

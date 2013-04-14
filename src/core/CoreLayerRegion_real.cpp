@@ -61,8 +61,9 @@ extern "C" {
 #include "CoreLayerRegion.h"
 
 
-D_DEBUG_DOMAIN( DirectFB_CoreLayerRegion, "DirectFB/CoreLayerRegion", "DirectFB CoreLayerRegion" );
-D_DEBUG_DOMAIN( DirectFB_Task_Display,    "DirectFB/Task/Display",    "DirectFB DisplayTask" );
+D_DEBUG_DOMAIN( DirectFB_CoreLayerRegion,   "DirectFB/CoreLayerRegion",   "DirectFB CoreLayerRegion" );
+D_DEBUG_DOMAIN( DirectFB_Task_Display,      "DirectFB/Task/Display",      "DirectFB DisplayTask" );
+D_DEBUG_DOMAIN( DirectFB_Task_Display_List, "DirectFB/Task/Display/List", "DirectFB DisplayTask List" );
 
 /*********************************************************************************************************************/
 
@@ -293,6 +294,7 @@ DisplayTask::Flush()
      D_ASSERT( region->display_tasks != NULL );
 
      AddRef();
+     D_DEBUG_AT( DirectFB_Task_Display_List, "  -> adding to list %p\n", region->display_tasks );
      region->display_tasks->Append( this );
 
      SurfaceTask::Flush();
@@ -305,10 +307,6 @@ DisplayTask::Finalise()
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );
-
-//     D_ASSERT( layer->display_tasks[index] == this );
-
-//     layer->display_tasks[index] = NULL;
 
      if (dfb_config->layers_fps) {
           if (!layer->fps)
@@ -351,6 +349,7 @@ DisplayTask::Run()
 
      D_ASSERT( region->display_tasks != NULL );
 
+     D_DEBUG_AT( DirectFB_Task_Display_List, "  -> removing from list %p\n", region->display_tasks );
      region->display_tasks->Remove( this );
      Release();
 

@@ -489,10 +489,18 @@ public:
 class SurfaceTask : public Task
 {
 public:
+     class Hook {
+     public:
+          virtual DFBResult setup( SurfaceTask *task ) { return DFB_OK; }
+          virtual void      finalise( SurfaceTask *task ) {}
+     };
+
      SurfaceTask( CoreSurfaceAccessorID accessor );
 
      DFBResult AddAccess( CoreSurfaceAllocation  *allocation,
                           CoreSurfaceAccessFlags  flags );
+
+     DFBResult AddHook( Hook *hook );
 
 protected:
      virtual DFBResult Setup();
@@ -505,6 +513,7 @@ protected:
 public://private:
      CoreSurfaceAccessorID                   accessor;
      std::vector<SurfaceAllocationAccess>    accesses; // FIXME: Use Direct::Vector
+     std::vector<Hook*>                      hooks; // FIXME: Use Direct::Vector
 
      CoreSurfaceAccessFlags GetCacheFlags()
      {

@@ -187,8 +187,6 @@ public:
      {
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %p )\n", __FUNCTION__, this );
 
-          threads.fifo.waitMost( caps.cores * 3 );
-
           for (unsigned int i=0; i<setup->tiles; i++) {
                setup->tasks[i] = new GenefxTask( this, setup->clips[i], i );
           }

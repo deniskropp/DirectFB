@@ -358,6 +358,25 @@ IGraphicsState_Real::SetTo(
  * Rendering
  */
 
+class ThrottleGraphicsState : public Renderer::Throttle
+{
+private:
+    CoreGraphicsState *state;
+
+public:
+    ThrottleGraphicsState( CoreGraphicsState *state )
+        :
+        state( state )
+    {
+    }
+
+protected:
+    virtual void SetThrottle( int percent )
+    {
+        fusion_call_set_quota( &state->call, state->object.identity, percent ? 0 : (dfb_config->graphics_state_call_limit ?: 0xffffffff) );
+    }
+};
+
 
 DFBResult
 IGraphicsState_Real::DrawRectangles(
@@ -372,7 +391,7 @@ IGraphicsState_Real::DrawRectangles(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->DrawRectangles( rects, num );
 
@@ -399,7 +418,7 @@ IGraphicsState_Real::DrawLines(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->DrawLines( lines, num );
 
@@ -425,7 +444,7 @@ IGraphicsState_Real::FillRectangles(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->FillRectangles( rects, num );
 
@@ -451,7 +470,7 @@ IGraphicsState_Real::FillTriangles(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->FillTriangles( triangles, num );
 
@@ -477,7 +496,7 @@ IGraphicsState_Real::FillTrapezoids(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->FillTrapezoids( trapezoids, num );
 
@@ -504,7 +523,7 @@ IGraphicsState_Real::FillSpans(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->FillSpans( y, spans, num );
 
@@ -537,7 +556,7 @@ IGraphicsState_Real::Blit(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->Blit( rects, points, num );
 
@@ -573,7 +592,7 @@ IGraphicsState_Real::Blit2(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->Blit2( rects, points1, points2, num );
 
@@ -607,7 +626,7 @@ IGraphicsState_Real::StretchBlit(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->StretchBlit( srects, drects, num );
 
@@ -642,7 +661,7 @@ IGraphicsState_Real::TileBlit(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->TileBlit( rects, points1, points2, num );
 
@@ -676,7 +695,7 @@ IGraphicsState_Real::TextureTriangles(
 
     if (dfb_config->task_manager) {
          if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state );
+              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
 
          obj->renderer->TextureTriangles( vertices, num, formation );
 
