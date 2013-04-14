@@ -526,6 +526,15 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
 }
 
 DirectResult
+fusion_skirmish_init2( FusionSkirmish    *skirmish,
+                       const char        *name,
+                       const FusionWorld *world,
+                       bool               local )
+{
+     return fusion_skirmish_init( skirmish, name, world );
+}
+
+DirectResult
 fusion_skirmish_prevail( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
@@ -778,6 +787,14 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
           }
      }
 
+     return DR_OK;
+}
+
+DirectResult
+fusion_skirmish_add_permissions( FusionSkirmish            *skirmish,
+                                 FusionID                   fusion_id,
+                                 FusionSkirmishPermissions  skirmish_permissions )
+{
      return DR_OK;
 }
 

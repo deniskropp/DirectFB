@@ -74,9 +74,11 @@ typedef struct {
      FusionID             caller;
      int                  call_id;
      int                  call_arg;
-     void                *call_ptr;
+     unsigned int         call_length;   /* length of data */
+     unsigned int         ret_length;    /* maximum length of return data */
 
      void                *handler;
+     void                *handler3;
      void                *ctx;
      
      FusionCallExecFlags  flags;
@@ -88,7 +90,7 @@ typedef struct {
 typedef struct {
      FusionMessageType    type;
      
-     int                  val;
+     unsigned int         length;
 } FusionCallReturn;
 
 /*

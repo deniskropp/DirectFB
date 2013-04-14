@@ -959,7 +959,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
      }
 
      /* Handle global reactions first. */
-     if (reactor->globals) {
+     if (channel == 0 && reactor->globals) {
           if (globals)
                process_globals( reactor, msg_data, globals );
           else

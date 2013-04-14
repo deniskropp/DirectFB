@@ -977,6 +977,15 @@ fusion_ref_init (FusionRef         *ref,
 }
 
 DirectResult
+fusion_ref_init2(FusionRef         *ref,
+                 const char        *name,
+                 bool               user,
+                 const FusionWorld *world)
+{
+     return fusion_ref_init( ref, name, world );
+}
+
+DirectResult
 fusion_ref_set_name (FusionRef  *ref,
                      const char *name)
 {
@@ -1051,6 +1060,22 @@ fusion_ref_stat (FusionRef *ref, int *refs)
           
      *refs = ref->multi.builtin.local + ref->multi.builtin.global;
      
+     return DR_OK;
+}
+
+DirectResult
+fusion_ref_catch (FusionRef *ref)
+{
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+
+     return fusion_ref_down( ref, false );
+}
+
+DirectResult
+fusion_ref_throw (FusionRef *ref, FusionID catcher)
+{
+     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+
      return DR_OK;
 }
 

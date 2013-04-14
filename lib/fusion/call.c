@@ -41,9 +41,10 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
-#include <fusion/types.h>
 #include <fusion/call.h>
 #include <fusion/conf.h>
+#include <fusion/hash.h>
+#include <fusion/shmalloc.h>
 
 #include "fusion_internal.h"
 
@@ -999,6 +1000,15 @@ out:
 #include <unistd.h>
 
 
+typedef struct {
+     int       call_id;
+     FusionID  fusion_id;
+
+     void     *handler;
+     void     *handler3;
+     void     *ctx;
+} CallInfo;
+
 DirectResult
 fusion_call_init (FusionCall        *call,
                   FusionCallHandler  handler,
@@ -1024,62 +1034,184 @@ fusion_call_init (FusionCall        *call,
      /* Keep back pointer to shared world data. */
      call->shared = world->shared;
 
+
+     CallInfo *info = SHCALLOC( world->shared->main_pool, 1, sizeof(CallInfo) );
+
+     D_ASSERT( info != NULL );
+
+     info->call_id   = call->call_id;
+     info->fusion_id = call->fusion_id;
+     info->handler   = call->handler;
+     info->handler3  = call->handler3;
+     info->ctx       = call->ctx;
+
+     //D_INFO_LINE_MSG("call init %d owner %lu, me %lu\n",call->call_id,call->fusion_id, fusion_id( world ));
+
+     fusion_hash_insert( world->shared->call_hash, (void*)(long) call->call_id, info );
+
      return DR_OK;
 }
 
 DirectResult
-fusion_call_execute (FusionCall          *call,
-                     FusionCallExecFlags  flags,
-                     int                  call_arg,
-                     void                *call_ptr,
-                     int                 *ret_val)
+fusion_call_init3 (FusionCall         *call,
+                   FusionCallHandler3  handler3,
+                   void               *ctx,
+                   const FusionWorld  *world)
+{
+     D_ASSERT( call != NULL );
+     D_ASSERT( handler3 != NULL );
+
+     memset( call, 0, sizeof(FusionCall) );
+
+     call->call_id = ++world->shared->call_ids;
+
+     /* Store handler, called directly when called by ourself. */
+     call->handler3 = handler3;
+     call->ctx      = ctx;
+
+     /* Store own fusion id. */
+     call->fusion_id = fusion_id( world );
+
+     /* Keep back pointer to shared world data. */
+     call->shared = world->shared;
+
+
+     CallInfo *info = SHCALLOC( world->shared->main_pool, 1, sizeof(CallInfo) );
+
+     D_ASSERT( info != NULL );
+
+     info->call_id   = call->call_id;
+     info->fusion_id = call->fusion_id;
+     info->handler   = call->handler;
+     info->handler3  = call->handler3;
+     info->ctx       = call->ctx;
+
+     //D_INFO_LINE_MSG("call init %d owner %lu, me %lu\n",call->call_id,call->fusion_id, fusion_id( world ));
+
+     fusion_hash_insert( world->shared->call_hash, (void*)(long) call->call_id, info );
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_call_init_from( FusionCall        *call,
+                       int                call_id,
+                       const FusionWorld *world )
+{
+     D_DEBUG_AT( Fusion_Call, "%s( %p, %d, %p )\n", __FUNCTION__, call, call_id, world );
+
+     D_ASSERT( call != NULL );
+     D_ASSERT( call_id != 0 );
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     CallInfo *info = fusion_hash_lookup( world->shared->call_hash, (void*)(long) call_id );
+
+     D_ASSERT( info != NULL );
+     D_ASSERT( info->call_id == call_id );
+
+     memset( call, 0, sizeof(FusionCall) );
+
+     /* Store call id. */
+     call->call_id = call_id;
+
+     /* Store handlers, called directly when called by ourself. */
+     call->handler  = info->handler;
+     call->handler3 = info->handler3;
+     call->ctx      = info->ctx;
+
+     /* Store own fusion id. */
+     call->fusion_id = info->fusion_id;
+
+     /* Keep back pointer to shared world data. */
+     call->shared = world->shared;
+
+     //D_INFO_LINE_MSG("call init %d owner %lu, me %lu\n",call->call_id,call->fusion_id, fusion_id( world ));
+
+     D_DEBUG_AT( Fusion_Call, "  -> call id %d\n", call->call_id );
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_call_set_name( FusionCall *call,
+                      const char *name )
+{
+     D_ASSERT( call != NULL );
+     D_ASSERT( name != NULL );
+
+     return DR_OK;
+}
+
+static DirectResult
+fusion_call_execute_internal (FusionCall          *call,
+                              FusionCallExecFlags  flags,
+                              int                  call_arg,
+                              void                *call_ptr,
+                              unsigned int         length,
+                              void                *ret_ptr,
+                              unsigned int         ret_size,
+                              unsigned int        *ret_length)
 {
      DirectResult        ret = DR_OK;
      FusionWorld        *world;
-     FusionCallMessage   msg;
      struct sockaddr_un  addr;
      
+
+     char               msg_buf[sizeof(FusionCallMessage) + length];
+     FusionCallMessage *msg = (FusionCallMessage *) msg_buf;
+
+
      D_ASSERT( call != NULL );
 
-     if (!call->handler)
+     if (!call->handler && !call->handler3)
           return DR_DESTROYED;
 
+     //D_INFO_LINE_MSG("call execute %d owner %lu, me %lu\n",call->call_id,call->fusion_id, _fusion_id( call->shared ));
      if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
-          int                     ret;
           FusionCallHandlerResult result;
 
-          result = call->handler( _fusion_id( call->shared ), call_arg, call_ptr, call->ctx, 0, &ret );
+          if (call->handler) {
+               D_ASSERT( length == sizeof(void*) );
+               result = call->handler( _fusion_id( call->shared ), call_arg, *(void**)call_ptr, call->ctx, 0, ret_ptr );
+          }
+          else {
+               D_ASSERT( call->handler3 != NULL );
+
+               result = call->handler3( _fusion_id( call->shared ), call_arg, call_ptr, length, call->ctx, 0, ret_ptr, ret_size, ret_length );
+          }
 
           if (result != FCHR_RETURN)
                D_WARN( "local call handler returned FCHR_RETAIN, need FCEF_NODIRECT" );
-
-          if (ret_val)
-               *ret_val = ret;
                
           return DR_OK;
      }
      
      world = _fusion_world( call->shared );
      
-     msg.type     = FMT_CALL;  
-     msg.caller   = world->fusion_id;
-     msg.call_id  = call->call_id;
-     msg.call_arg = call_arg;
-     msg.call_ptr = call_ptr; 
-     msg.handler  = call->handler;
-     msg.ctx      = call->ctx;
-     msg.flags    = flags;
+     msg->type        = FMT_CALL;
+     msg->caller      = world->fusion_id;
+     msg->call_id     = call->call_id;
+     msg->call_arg    = call_arg;
+     msg->call_length = length;
+     msg->ret_length  = ret_size;
+     msg->handler     = call->handler;
+     msg->handler3    = call->handler3;
+     msg->ctx         = call->ctx;
+     msg->flags       = flags;
+
+     direct_memcpy( msg + 1, call_ptr, length );
      
      if (flags & FCEF_ONEWAY) {
           /* Invalidate serial. */
-          msg.serial = -1;
+          msg->serial = -1;
           
           /* Send message. */
           addr.sun_family = AF_UNIX;
           snprintf( addr.sun_path, sizeof(addr.sun_path), 
                     "/tmp/.fusion-%d/%lx", call->shared->world_index, call->fusion_id );
-         
-          ret = _fusion_send_message( world->fusion_fd, &msg, sizeof(msg), &addr );
+
+          ret = _fusion_send_message( world->fusion_fd, msg, sizeof(FusionCallMessage) + length, &addr );
      }
      else {
           int       fd;
@@ -1100,8 +1232,8 @@ fusion_call_execute (FusionCall          *call,
                           "/tmp/.fusion-%d/call.%x.", fusion_world_index( world ), call->call_id ); 
           
           /* Generate call serial (socket address is based on it). */
-          for (msg.serial = 0; msg.serial <= 0xffffff; msg.serial++) {
-               snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%x", msg.serial );
+          for (msg->serial = 0; msg->serial <= 0xffffff; msg->serial++) {
+               snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%x", msg->serial );
                err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
                if (err == 0) {
                     chmod( addr.sun_path, 0660 );
@@ -1121,15 +1253,25 @@ fusion_call_execute (FusionCall          *call,
           /* Send message. */
           snprintf( addr.sun_path, sizeof(addr.sun_path), 
                     "/tmp/.fusion-%d/%lx", call->shared->world_index, call->fusion_id );
-          
-          ret = _fusion_send_message( fd, &msg, sizeof(msg), &addr );
+
+          ret = _fusion_send_message( fd, msg, sizeof(FusionCallMessage) + length, &addr );
           if (ret == DR_OK) {
-               FusionCallReturn callret;
+               char              buf[sizeof(FusionCallReturn) + ret_size];
+               FusionCallReturn *callret = (FusionCallReturn *) buf;
+
                /* Wait for reply. */
-               ret = _fusion_recv_message( fd, &callret, sizeof(callret), NULL );
+               ret = _fusion_recv_message( fd, buf, sizeof(FusionCallReturn) + ret_size, NULL );
                if (ret == DR_OK) {
-                    if (ret_val)
-                         *ret_val = callret.val;
+                    D_ASSERT( callret->length <= ret_size );
+
+                    if (callret->length) {
+                         D_ASSERT( ret_ptr != NULL );
+
+                         direct_memcpy( ret_ptr, callret + 1, callret->length );
+                    }
+
+                    if (ret_length)
+                         *ret_length = callret->length;
                } 
           }
           
@@ -1143,32 +1285,129 @@ fusion_call_execute (FusionCall          *call,
 }
 
 DirectResult
-fusion_call_return( FusionCall   *call,
-                    unsigned int  serial,
-                    int           val )
+fusion_call_execute (FusionCall          *call,
+                     FusionCallExecFlags  flags,
+                     int                  call_arg,
+                     void                *call_ptr,
+                     int                 *ret_val)
+{
+     return fusion_call_execute_internal( call, flags, call_arg, &call_ptr, sizeof(call_ptr), ret_val, sizeof(*ret_val), NULL );
+}
+
+DirectResult
+fusion_call_execute2(FusionCall          *call,
+                     FusionCallExecFlags  flags,
+                     int                  call_arg,
+                     void                *call_ptr,
+                     unsigned int         length,
+                     int                 *ret_val)
+{
+     return fusion_call_execute_internal( call, flags, call_arg, call_ptr, length, ret_val, 4, NULL );
+}
+
+DirectResult
+fusion_call_execute3(FusionCall          *call,
+                     FusionCallExecFlags  flags,
+                     int                  call_arg,
+                     void                *call_ptr,
+                     unsigned int         length,
+                     void                *ret_ptr,
+                     unsigned int         ret_size,
+                     unsigned int        *ret_length)
+{
+     return fusion_call_execute_internal( call, flags, call_arg, call_ptr, length, ret_ptr, ret_size, ret_length );
+}
+
+static DirectResult
+fusion_call_return_internal( FusionCall   *call,
+                             unsigned int  serial,
+                             const void   *ptr,
+                             unsigned int  length )
 {
      struct sockaddr_un addr;
-     FusionCallReturn   callret;
-     
+
+     char              buf[sizeof(FusionCallReturn) + length];
+     FusionCallReturn *callret = (FusionCallReturn *) buf;
+
      D_ASSERT( call != NULL );
 
      addr.sun_family = AF_UNIX;
      snprintf( addr.sun_path, sizeof(addr.sun_path), 
                "/tmp/.fusion-%d/call.%x.%x", call->shared->world_index, call->call_id, serial );
-               
-     callret.type = FMT_CALLRET;
-     callret.val  = val;
-               
-     return _fusion_send_message( _fusion_fd( call->shared ), &callret, sizeof(callret), &addr );
+
+     callret->type   = FMT_CALLRET;
+     callret->length = length;
+
+     if (length) {
+          D_ASSERT( ptr != NULL );
+
+          direct_memcpy( callret + 1, ptr, length );
+     }
+
+     return _fusion_send_message( _fusion_fd( call->shared ), callret, sizeof(FusionCallReturn) + length, &addr );
+}
+
+DirectResult
+fusion_call_return( FusionCall   *call,
+                    unsigned int  serial,
+                    int           val )
+{
+     return fusion_call_return_internal( call, serial, &val, sizeof(int) );
+}
+
+DirectResult
+fusion_call_return3( FusionCall   *call,
+                     unsigned int  serial,
+                     void         *ptr,
+                     unsigned int  length )
+{
+     return fusion_call_return_internal( call, serial, ptr, length );
+}
+
+DirectResult
+fusion_call_get_owner( FusionCall *call,
+                       FusionID   *ret_fusion_id )
+{
+     D_DEBUG_AT( Fusion_Call, "%s( %p )\n", __FUNCTION__, call );
+
+     D_ASSERT( call != NULL );
+     D_ASSERT( ret_fusion_id != NULL );
+
+     // FIXME: should return actual owner
+     *ret_fusion_id = call->fusion_id;
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_call_set_quota( FusionCall   *call,
+                       FusionID      fusion_id,
+                       unsigned int  limit )
+{
+     D_DEBUG_AT( Fusion_Call, "%s( %p, fusion_id %lu, limit %u )\n", __FUNCTION__, call, fusion_id, limit );
+
+     D_ASSERT( call != NULL );
+
+     return DR_OK;
 }
 
 DirectResult
 fusion_call_destroy (FusionCall *call)
 {
      D_ASSERT( call != NULL );
-     D_ASSERT( call->handler != NULL );
+     D_ASSERT( call->handler != NULL || call->handler3 != NULL );
 
-     call->handler = NULL;
+     CallInfo *info = fusion_hash_lookup( call->shared->call_hash, (void*)(long) call->call_id );
+
+     D_ASSERT( info != NULL );
+     D_ASSERT( info->call_id == call->call_id );
+
+     fusion_hash_remove( call->shared->call_hash, (void*)(long) call->call_id, NULL, NULL );
+
+     SHFREE( call->shared->main_pool, info );
+
+     call->handler  = NULL;
+     call->handler3 = NULL;
 
      return DR_OK;
 }
@@ -1183,45 +1422,97 @@ fusion_call_add_permissions( FusionCall            *call,
      return DR_UNIMPLEMENTED;
 }
 
-void
-_fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
+DirectResult
+fusion_world_flush_calls( FusionWorld *world, int lock )
 {
-     FusionCallHandler       call_handler;
+     return DR_OK;
+}
+
+void
+_fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg, void *ptr )
+{
      FusionCallHandlerResult result;
-     FusionCallReturn        callret;
 
      D_MAGIC_ASSERT( world, FusionWorld );
      D_ASSERT( msg != NULL );
 
-     call_handler = msg->handler;
+     char              buf[sizeof(FusionCallReturn) + msg->ret_length];
+     FusionCallReturn *callret = (FusionCallReturn *) buf;
 
-     D_ASSERT( call_handler != NULL );
+     if (msg->handler) {
+          FusionCallHandler call_handler = msg->handler;
 
-     callret.type = FMT_CALLRET;
-     callret.val  = 0;
+          D_ASSERT( call_handler != NULL );
 
-     result = call_handler( msg->caller, msg->call_arg, msg->call_ptr, msg->ctx, msg->serial, &callret.val );
-     switch (result) {
-          case FCHR_RETURN:
-               if (!(msg->flags & FCEF_ONEWAY)) {
-                    struct sockaddr_un addr;
+          callret->type   = FMT_CALLRET;
+          callret->length = sizeof(int);
 
-                    addr.sun_family = AF_UNIX;
-                    snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                              "/tmp/.fusion-%d/call.%x.%x", fusion_world_index( world ), call_id, msg->serial );
-               
-                    if (_fusion_send_message( world->fusion_fd, &callret, sizeof(callret), &addr ))
-                         D_ERROR( "Fusion/Call: Couldn't send call return (serial: 0x%08x)!\n", msg->serial );
-               }
-               break;
+          D_ASSERT( msg->call_length == sizeof(void*) );
 
-          case FCHR_RETAIN:
-               break;
+          result = call_handler( msg->caller, msg->call_arg, ptr, msg->ctx, msg->serial, (int*)(callret + 1) );
+          switch (result) {
+               case FCHR_RETURN:
+                    if (!(msg->flags & FCEF_ONEWAY)) {
+                         struct sockaddr_un addr;
 
-          default:
-               D_BUG( "unknown result %d from call handler", result );
-               break;
+                         addr.sun_family = AF_UNIX;
+                         snprintf( addr.sun_path, sizeof(addr.sun_path),
+                                   "/tmp/.fusion-%d/call.%x.%x", fusion_world_index( world ), call_id, msg->serial );
+
+                         if (_fusion_send_message( world->fusion_fd, callret, sizeof(FusionCallMessage) + callret->length, &addr ))
+                              D_ERROR( "Fusion/Call: Couldn't send call return (serial: 0x%08x)!\n", msg->serial );
+                    }
+                    break;
+
+               case FCHR_RETAIN:
+                    break;
+
+               default:
+                    D_BUG( "unknown result %d from call handler", result );
+                    break;
+          }
      }
+     else {
+          FusionCallHandler3 call_handler3 = msg->handler3;
+
+          D_ASSERT( call_handler3 != NULL );
+
+          callret->type   = FMT_CALLRET;
+          callret->length = 0;
+
+          result = call_handler3( msg->caller, msg->call_arg, ptr, msg->call_length, msg->ctx, msg->serial, callret + 1, msg->ret_length, &callret->length );
+          switch (result) {
+               case FCHR_RETURN:
+                    if (!(msg->flags & FCEF_ONEWAY)) {
+                         struct sockaddr_un addr;
+
+                         addr.sun_family = AF_UNIX;
+                         snprintf( addr.sun_path, sizeof(addr.sun_path),
+                                   "/tmp/.fusion-%d/call.%x.%x", fusion_world_index( world ), call_id, msg->serial );
+
+                         if (_fusion_send_message( world->fusion_fd, callret, sizeof(FusionCallMessage) + callret->length, &addr ))
+                              D_ERROR( "Fusion/Call: Couldn't send call return (serial: 0x%08x)!\n", msg->serial );
+                    }
+                    break;
+
+               case FCHR_RETAIN:
+                    break;
+
+               default:
+                    D_BUG( "unknown result %d from call handler", result );
+                    break;
+          }
+     }
+}
+
+void
+__Fusion_call_init( void )
+{
+}
+
+void
+__Fusion_call_deinit( void )
+{
 }
 
 #endif /* FUSION_BUILD_KERNEL */

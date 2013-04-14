@@ -786,7 +786,8 @@ join_pool( FusionSHM           *shm,
                fusion_world_index( shm->world ), shared->pool_id );
 
      /* Join the heap. */
-     ret = __shmalloc_join_heap( shm, buf, shared->addr_base, shared->max_size );
+     ret = __shmalloc_join_heap( shm, buf, shared->addr_base, shared->max_size,
+                                 true/*!fusion_config->secure_fusion*/ );
      if (ret)
           return ret;
 

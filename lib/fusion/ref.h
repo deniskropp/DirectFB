@@ -42,17 +42,17 @@ typedef struct {
           FusionWorldShared       *shared;
           FusionID                 creator;
           /* builtin impl */
-//          struct {
-//               int                 local;
-//               int                 global;
-//               FusionSkirmish      lock;
-//
-//               FusionCall         *call;
-//               int                 call_arg;
-//          } builtin;
+          struct {
+               int                 local;
+               int                 global;
+               FusionSkirmish      lock;
+
+               FusionCall         *call;
+               int                 call_arg;
+          } builtin;
           bool                     user;
      } multi;
-     
+
      /* single app */
      struct {
           int                      refs;
