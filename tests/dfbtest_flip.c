@@ -32,6 +32,8 @@
 
 #include <direct/messages.h>
 
+#include <direct/String.h>
+
 #include <directfb.h>
 #include <directfb_strings.h>
 #include <directfb_util.h>
@@ -106,6 +108,7 @@ print_usage( const char *prg )
      fprintf (stderr, "  -t, --triple                      Use triple buffer\n");
      fprintf (stderr, "  -f, --frames                      Use frame base (instead of time base)\n");
      fprintf (stderr, "  -T, --frame-time                  Use frame time base (IDirectFBSurface::GetFrameTime)\n");
+     fprintf (stderr, "  -n, --num                         Exit after num frames\n");
 
      return -1;
 }
@@ -119,12 +122,14 @@ main( int argc, char *argv[] )
      int                     i;
      DFBSurfaceDescription   desc;
      IDirectFB              *dfb;
-     IDirectFBSurface       *dest        = NULL;
-     DFBSurfacePixelFormat   dest_format = DSPF_UNKNOWN;
-     bool                    triple      = false;
-     bool                    frame_time  = false;
-     bool                    frames      = false;
-     long long               t0, count   = 0;
+     IDirectFBSurface       *dest           = NULL;
+     IDirectFBFont          *font           = NULL;
+     DFBSurfacePixelFormat   dest_format    = DSPF_UNKNOWN;
+     bool                    triple         = false;
+     bool                    use_frame_time = false;
+     bool                    frames         = false;
+     long long               t0, count      = 0;
+     long long               num            = 0;
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
@@ -156,10 +161,21 @@ main( int argc, char *argv[] )
                triple = true;
           }
           else if (strcmp (arg, "-T") == 0 || strcmp (arg, "--frame-time") == 0) {
-               frame_time = true;
+               use_frame_time = true;
           }
           else if (strcmp (arg, "-f") == 0 || strcmp (arg, "--frames") == 0) {
                frames = true;
+          }
+          else if (strcmp (arg, "-n") == 0 || strcmp (arg, "--num") == 0) {
+               if (++i == argc) {
+                    print_usage (argv[0]);
+                    return false;
+               }
+
+               if (sscanf( argv[i], "%lld", &num ) != 1) {
+                    fprintf (stderr, "\nInvalid number specified!\n\n" );
+                    return false;
+               }
           }
           else
                return print_usage( argv[0] );
@@ -196,19 +212,28 @@ main( int argc, char *argv[] )
      D_INFO( "DFBTest/Flip: Destination is %dx%d using %s\n",
              desc.width, desc.height, dfb_pixelformat_name(desc.pixelformat) );
 
+     /* Load the font. */
+     DFBFontDescription fdesc = { .flags = DFDESC_HEIGHT, .height = 36 };
+     ret = dfb->CreateFont( dfb, DATADIR "/decker.dgiff", &fdesc, &font );
+     if (ret) {
+          D_DERROR( ret, "DFBTest/Flip: IDirectFB::CreateFont( " DATADIR "/decker.dgiff ) failed!\n" );
+          goto out;
+     }
+     dest->SetFont( dest, font );
+
      t0 = direct_clock_get_abs_millis();
 
-     while (true) {
-          long long t1, t2, base;
+     while (num <= 0 || count < num) {
+          long long t1, t2, base, frame_time = 0;
 
-          if (frame_time) {
+          if (use_frame_time) {
                long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
-               dest->GetFrameTime( dest, &base );
+               dest->GetFrameTime( dest, &frame_time );
 
-               D_INFO( "Got frame time %lld (now %lld) with advance %lld (us in future)\n", base, now, base - now );
+               D_INFO( "Got frame time %lld (now %lld) with advance %lld (us in future)\n", frame_time, now, frame_time - now );
 
-               base = base * 5 / 17000;
+               base = frame_time * 5 / 17000;
           }
           else if (frames) {
                base = count * 5;
@@ -222,16 +247,21 @@ main( int argc, char *argv[] )
           dest->SetColor( dest, 0xff, 0xff, 0xff, 0xff );
           dest->FillRectangle( dest, base % (desc.width - 100), 100, 100, 100 );
 
-          t1 = direct_clock_get_abs_millis();
+          dest->DrawString( dest, D_String_PrintTLS( "base %9lld,   frame time %9lld,   frame %4lld", base, frame_time, count ), -1, desc.width - 10, 10, DSTF_TOPRIGHT );
+
+          //t1 = direct_clock_get_abs_millis();
           dest->Flip( dest, NULL, triple ? DSFLIP_ONSYNC : DSFLIP_WAITFORSYNC );
-          t2 = direct_clock_get_abs_millis();
+          //t2 = direct_clock_get_abs_millis();
 
           count++;
 
-          D_INFO( "Took %lld ms\n", t2 - t1 );
+//          D_INFO( "Took %lld ms\n", t2 - t1 );
      }
 
 out:
+     if (font)
+          font->Release( font );
+
      if (dest)
           dest->Release( dest );
 
