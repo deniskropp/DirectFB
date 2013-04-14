@@ -40,6 +40,7 @@ extern "C" {
 
 
 #include <list>
+#include <map>
 
 #include <direct/LockWQ.h>
 
@@ -64,16 +65,16 @@ public:
 
 
 template <typename _Item>
-class ListSimple : public List<_Item>
+class ListSimpleSlow : public List<_Item>
 {
 public:
-     ListSimple()
+     ListSimpleSlow()
           :
           length( 0 )
      {
      }
 
-     virtual ~ListSimple()
+     virtual ~ListSimpleSlow()
      {
           D_ASSUME( list.empty() );
      }
@@ -125,16 +126,66 @@ private:
 
 
 template <typename _Item>
-class ListLocked : public List<_Item>
+class ListSimple : public List<_Item>
 {
 public:
-     ListLocked()
+     ListSimple()
+     {
+     }
+
+     virtual ~ListSimple()
+     {
+          D_ASSUME( map.empty() );
+     }
+
+     virtual void Append( const _Item &item )
+     {
+          map[ item ] = item;
+     }
+
+     virtual void Prepend( const _Item &item )
+     {
+          map[ item ] = item;
+     }
+
+     virtual void Remove( const _Item &item )
+     {
+          map.erase( item );
+     }
+
+     virtual size_t Length() const
+     {
+          return map.size();
+     }
+
+     virtual void Clear()
+     {
+          map.clear();
+     }
+
+
+     typedef typename std::map<_Item,_Item>::const_iterator const_iterator;
+
+     inline const_iterator begin() const { return map.begin(); }
+     inline const_iterator end()   const { return map.end(); }
+
+
+private:
+     std::map<_Item,_Item> map;
+};
+
+
+template <typename _Item>
+class ListLockedSlow : public List<_Item>
+{
+public:
+     ListLockedSlow()
           :
           length( 0 )
      {
      }
 
-     virtual ~ListLocked()
+     virtual ~ListLockedSlow()
      {
           D_ASSUME( list.empty() );
      }
@@ -203,6 +254,75 @@ private:
      LockWQ              lwq;
      std::list<_Item>    list;
      size_t              length;
+};
+
+
+template <typename _Item>
+class ListLocked : public List<_Item>
+{
+public:
+     ListLocked()
+     {
+     }
+
+     virtual ~ListLocked()
+     {
+          D_ASSUME( map.empty() );
+     }
+
+     virtual void Append( const _Item &item )
+     {
+          LockWQ::Lock l1( lwq );
+
+          map[ item ] = item;
+     }
+
+     virtual void Prepend( const _Item &item )
+     {
+          LockWQ::Lock l1( lwq );
+
+          map[ item ] = item;
+     }
+
+     virtual void Remove( const _Item &item )
+     {
+          LockWQ::Lock l1( lwq );
+
+          map.erase( item );
+
+          if (map.empty())
+               lwq.notifyAll();
+     }
+
+     virtual size_t Length() const
+     {
+          return map.size();
+     }
+
+     virtual void Clear()
+     {
+          LockWQ::Lock l1( lwq );
+
+          if (!map.empty()) {
+               map.clear();
+
+               lwq.notifyAll();
+          }
+     }
+
+
+     void WaitEmpty()
+     {
+          LockWQ::Lock l1( lwq );
+
+          while (!map.empty())
+               l1.wait();
+     }
+
+
+private:
+     LockWQ                lwq;
+     std::map<_Item,_Item> map;
 };
 
 
