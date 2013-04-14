@@ -47,6 +47,7 @@ extern "C" {
 #define DFB_TASK_DEBUG_STATE  (1)  // DFB_TASK_CHECK_STATE with warning and task log if enabled
 #define DFB_TASK_DEBUG_TASKS  (0)  // TaskManager::dumpTasks() enabled
 #define DFB_TASK_DEBUG_TIMES  (0)  // print warnings when task operations exceed time limits (set below)
+#define DFB_TASK_DEBUG_TIMING (0)  // measure time it took the task in each state
 
 /* max times in micro seconds before warning appears */
 #define DFB_TASK_WARN_EMIT    3000
@@ -286,8 +287,21 @@ protected:
      u64                      qid;
      Task                    *next;
 
+     Task                    *follower;
+     Task                    *following;
+
      /* allocation on hwid */
      u32                      hwid;
+
+     /* timing */
+     long long                ts_emit;
+
+#if DFB_TASK_DEBUG_TIMING
+     long long                ts_flushed;
+     long long                ts_ready;
+     long long                ts_running;
+     long long                ts_done;
+#endif
 
 private:
      unsigned int             listed;

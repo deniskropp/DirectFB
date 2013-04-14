@@ -312,7 +312,10 @@ Task::Task()
      next_slave( NULL ),
      qid( 0 ),
      next( NULL ),
+     follower( NULL ),
+     following( NULL ),
      hwid( 0 ),
+     ts_emit( 0 ),
      listed( 0 ),
      finished( false ),
      dump( false )
@@ -320,6 +323,13 @@ Task::Task()
      D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
 
      DFB_TASK_LOG( "Task()" );
+
+#if DFB_TASK_DEBUG_TIMING
+     ts_flushed = 0;
+     ts_ready   = 0;
+     ts_running = 0;
+     ts_done    = 0;
+#endif
 
      D_DEBUG_AT( DirectFB_Task, "  <- %p\n", this );
 }
@@ -371,10 +381,34 @@ Task::~Task()
           DFB_TASK_CHECK_STATE( this, TASK_NEW, );
 #endif
 
+#if DFB_TASK_DEBUG_TIMING
+     long long flushed_to_ready = direct_config_get_int_value( "task-dump-on-flushed-to-ready" );
+     long long ready_to_running = direct_config_get_int_value( "task-dump-on-ready-to-running" );
+     long long running_to_done  = direct_config_get_int_value( "task-dump-on-running-to-done" );
+     if (flushed_to_ready && ts_ready - ts_flushed >= flushed_to_ready)
+          dump = true;
+     if (ready_to_running && ts_running - ts_ready >= ready_to_running)
+          dump = true;
+     if (running_to_done && ts_done - ts_running >= running_to_done)
+          dump = true;
+#endif
+
      if (dump)
           DumpLog( DirectFB_Task, DIRECT_LOG_VERBOSE );
 
      state = TASK_INVALID;
+
+     if (following) {
+          D_MAGIC_ASSERT( following, Task );
+
+          following->follower = NULL;
+     }
+
+     if (follower) {
+          D_MAGIC_ASSERT( follower, Task );
+
+          follower->following = NULL;
+     }
 
      D_MAGIC_CLEAR( this );
 }
@@ -454,6 +488,10 @@ Task::Flush()
 
      state = TASK_FLUSHED;
 
+#if DFB_TASK_DEBUG_TIMING
+     ts_flushed = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
+
      TaskManager::pushTask( this );
 }
 
@@ -480,6 +518,10 @@ Task::emit( int following )
 
      state = TASK_RUNNING;
 
+#if DFB_TASK_DEBUG_TIMING
+     ts_running = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
+
      ret = Push();
      switch (ret) {
           case DFB_BUSY:
@@ -502,6 +544,10 @@ Task::emit( int following )
                DFB_TASK_CHECK_STATE( slave, TASK_NEW, );
 
                slave->state = TASK_RUNNING;
+
+#if DFB_TASK_DEBUG_TIMING
+               ts_running = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
 
                ret = slave->Push();
                switch (ret) {
@@ -532,6 +578,14 @@ Task::emit( int following )
                DFB_TASK_CHECK_STATE( (*it).first, TASK_READY, );
 
                if ((*it).second) {
+                    if (following == 1) {
+                         D_ASSERT( follower == NULL );
+                         D_ASSERT( (*it).first->following == NULL );
+
+                         this->follower         = (*it).first;
+                         (*it).first->following = this;
+                    }
+
                     (*it).first->handleNotify( following - 1 );
 
                     it = notifies.erase( it );
@@ -605,6 +659,28 @@ Task::finish()
       * master task shutdown
       */
      if (shutdown) {
+          if (shutdown->follower) {
+               std::vector<TaskNotify>::iterator it = shutdown->follower->notifies.begin();
+
+               while (it != shutdown->follower->notifies.end()) {
+                    DFB_TASK_CHECK_STATE( (*it).first, TASK_READY, );
+
+                    if ((*it).second) {
+                         D_ASSERT( shutdown->follower->follower == NULL );
+                         D_ASSERT( (*it).first->following == NULL );
+
+                         shutdown->follower->follower = (*it).first;
+                         (*it).first->following       = shutdown->follower;
+
+                         (*it).first->handleNotify( 0 );
+
+                         it = shutdown->follower->notifies.erase( it );
+                    }
+                    else
+                         ++it;
+               }
+          }
+
           shutdown->notifyAll();
           shutdown->Finalise();
 
@@ -651,6 +727,10 @@ Task::Done( DFBResult ret )
 
      state = TASK_DONE;
 
+#if DFB_TASK_DEBUG_TIMING
+     ts_done = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
+
      TaskManager::pushTask( this );
 //     TaskManager::fifo.pushFront( this );
 }
@@ -670,6 +750,10 @@ Task::Setup()
      DFB_TASK_LOG( "Setup()" );
 
      state = TASK_READY;
+
+#if DFB_TASK_DEBUG_TIMING
+     ts_ready = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
 
      return DFB_OK;
 }
@@ -904,19 +988,31 @@ Task::Log( const std::string &action )
 void
 Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 {
-#if DFB_TASK_DEBUG_LOG
      D_MAGIC_ASSERT( this, Task );
 
      DFB_TASK_CHECK_STATE( this, TASK_STATE_ALL & ~TASK_INVALID, return );
 
+#if DFB_TASK_DEBUG_LOG
      Direct::Mutex::Lock lock( tasklog_lock );
+#endif
 
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
-                            "==[ TASK DUMP for %p, state %d, flags 0x%x, log size %zu ]\n", this, state, flags, tasklog.size() );
+                            "==[ TASK DUMP for %p, state %d, flags 0x%x, log size %zu ]\n", this, state, flags,
+#if DFB_TASK_DEBUG_LOG
+                            tasklog.size() );
+#else
+                            (size_t) 0 );
+#endif
+
+#if DFB_TASK_DEBUG_TIMING
+     direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
+                            "  [ timing: %6lld %6lld %6lld (flushed->ready->running->done) ]\n", ts_ready - ts_flushed, ts_running - ts_ready, ts_done - ts_running );
+#endif
 
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
                             "  [ %s ]\n", Description().buffer() );
 
+#if DFB_TASK_DEBUG_LOG
      for (std::vector<LogEntry>::const_iterator it=tasklog.begin(); it!=tasklog.end(); it++) {
           direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
                                  "  [%-16.16s %3lld.%03lld,%03lld]  %-30s\n",
