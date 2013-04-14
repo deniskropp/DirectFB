@@ -53,6 +53,13 @@ public:
 };
 
 
+template<>
+inline ToString<int>::ToString( const int &n )
+{
+     PrintF( "%d", n );
+}
+
+
 
 #endif // __cplusplus
 
