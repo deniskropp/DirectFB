@@ -61,7 +61,7 @@ DirectResult
 fusion_skirmish_prevail_multi( FusionSkirmish **skirmishs,
                                unsigned int     num )
 {
-     DirectResult ret;
+     DirectResult ret = DR_OK;
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, %u )\n", __FUNCTION__, skirmishs, num );
 
@@ -92,7 +92,7 @@ DirectResult
 fusion_skirmish_dismiss_multi( FusionSkirmish **skirmishs,
                                unsigned int     num )
 {
-     DirectResult ret, ret2;
+     DirectResult ret = DR_OK, ret2;
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, %u )\n", __FUNCTION__, skirmishs, num );
 
