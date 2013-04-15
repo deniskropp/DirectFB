@@ -128,7 +128,6 @@ LIB_DIRECT_SOURCES = \
 	$(DFB_SOURCE)/lib/direct/memcpy.c				\
 	$(DFB_SOURCE)/lib/direct/messages.c			\
 	$(DFB_SOURCE)/lib/direct/modules.c				\
-	$(DFB_SOURCE)/lib/direct/perf.c				\
 	$(DFB_SOURCE)/lib/direct/print.c				\
 	$(DFB_SOURCE)/lib/direct/result.c				\
 	$(DFB_SOURCE)/lib/direct/serial.c				\
@@ -262,7 +261,7 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/CoreDFB_real.cpp			\
 	$(DFB_SOURCE)/src/core/CoreGraphicsState.cpp			\
 	$(DFB_SOURCE)/src/core/CoreGraphicsState_real.cpp		\
-	$(DFB_SOURCE)/src/core/CoreGraphicsStateClient.c		\
+	$(DFB_SOURCE)/src/core/CoreGraphicsStateClient.cpp		\
 	$(DFB_SOURCE)/src/core/CoreLayer.cpp				\
 	$(DFB_SOURCE)/src/core/CoreLayerContext.cpp			\
 	$(DFB_SOURCE)/src/core/CoreLayerContext_real.cpp		\
