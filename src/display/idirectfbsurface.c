@@ -310,7 +310,7 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      if (data->font) {
           IDirectFBFont_data *font_data = data->font->priv;
 
-          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state ))
+          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state, &data->state_client ))
                mask |= DFXL_DRAWSTRING;
      }
 
