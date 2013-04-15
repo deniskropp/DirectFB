@@ -130,33 +130,6 @@ direct_log_destroy( DirectLog *log )
 
 __dfb_no_instrument_function__
 DirectResult
-direct_log_write( DirectLog        *log,
-                  const char       *buffer,
-                  size_t            bytes )
-{
-     DirectResult ret;
-
-     /*
-      * Don't use D_MAGIC_ASSERT or any other
-      * macros/functions that might cause an endless loop.
-      */
-
-     /* Use the default log if passed log is invalid. */
-     if (!D_MAGIC_CHECK( log, DirectLog ))
-          log = direct_log_default();
-
-     if (!D_MAGIC_CHECK( log, DirectLog ))
-          return DR_BUG;
-
-//     direct_mutex_lock( &log->lock );
-     ret = log->write( log, buffer, bytes );
-//     direct_mutex_unlock( &log->lock );
-
-     return ret;
-}
-
-__dfb_no_instrument_function__
-DirectResult
 direct_log_printf( DirectLog  *log,
                    const char *format, ... )
 {
