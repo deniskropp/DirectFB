@@ -150,7 +150,6 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      D_ASSERT( data != NULL );
      D_ASSERT( data->children_data == NULL );
 
-     CoreGraphicsStateClient_FlushCurrent();
 
      if (data->surface_client)
           dfb_surface_client_unref( data->surface_client );
@@ -311,7 +310,7 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      if (data->font) {
           IDirectFBFont_data *font_data = data->font->priv;
 
-          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state, &data->state_client ))
+          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state ))
                mask |= DFXL_DRAWSTRING;
      }
 
