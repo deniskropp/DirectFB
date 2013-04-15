@@ -158,15 +158,15 @@ dfbtest_gl1_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdi
 
 dfbtest_gl2_SOURCES = dfbtest_gl2.c
 dfbtest_gl2_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_gl2_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS)
+dfbtest_gl2_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS) -lm
 
 dfbtest_gl3_SOURCES = dfbtest_gl3.c
 dfbtest_gl3_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_gl3_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS)
+dfbtest_gl3_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS) -lm
 
 dfbtest_old_gl2_SOURCES = dfbtest_old_gl2.c
 dfbtest_old_gl2_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_old_gl2_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS)
+dfbtest_old_gl2_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect) $(GL_LIBS) $(GLES2_LIBS) -lm
 
 dfbtest_mirror_SOURCES = dfbtest_mirror.c
 dfbtest_mirror_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
@@ -226,7 +226,7 @@ dfbtest_window_surface_SOURCES = dfbtest_window_surface.c
 dfbtest_window_surface_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_window_update_SOURCES = dfbtest_window_update.c
-dfbtest_window_update_LDADD   = $(DFB_BASE_LIBS)
+dfbtest_window_update_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 dfbtest_windows_watcher_SOURCES = dfbtest_windows_watcher.c
 dfbtest_windows_watcher_LDADD   = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
