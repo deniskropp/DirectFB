@@ -295,11 +295,16 @@ direct_module_ref( DirectModuleEntry *module )
           return NULL;
 
 #if DIRECT_BUILD_DYNLOAD
-     if (!module->loaded && !load_module( module ))
+     if (!module->loaded && !load_module( module )) {
+          D_DEBUG_AT( Direct_Modules, "  -> load_module failed, returning NULL\n" );
+
           return NULL;
+     }
 #endif
 
      module->refs++;
+
+     D_DEBUG_AT( Direct_Modules, "  -> refs %d, funcs %p\n", module->refs, module->funcs );
 
      return module->funcs;
 }
@@ -357,6 +362,8 @@ lookup_by_file( const DirectModuleDir *directory,
 {
      DirectLink *l;
 
+     D_DEBUG_AT( Direct_Modules, "%s()\n", __FUNCTION__ );
+
      D_ASSERT( directory != NULL );
      D_ASSERT( file != NULL );
 
@@ -378,6 +385,8 @@ lookup_by_file( const DirectModuleDir *directory,
 static bool
 load_module( DirectModuleEntry *module )
 {
+     D_DEBUG_AT( Direct_Modules, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( module, DirectModuleEntry );
 
      D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs )\n", __FUNCTION__, module, module->file, module->refs );
@@ -388,6 +397,8 @@ load_module( DirectModuleEntry *module )
      D_ASSERT( module->disabled == false );
 
      module->handle = open_module( module );
+     if (module->handle)
+          module->loaded = true;
 
      return module->loaded;
 }
@@ -396,6 +407,8 @@ static void
 unload_module( DirectModuleEntry *module )
 {
      void *handle;
+
+     D_DEBUG_AT( Direct_Modules, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( module, DirectModuleEntry );
 
@@ -423,6 +436,8 @@ open_module( DirectModuleEntry *module )
      char            *buf;
      void            *handle;
 
+     D_DEBUG_AT( Direct_Modules, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( module, DirectModuleEntry );
 
      D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs )\n", __FUNCTION__, module, module->file, module->refs );
@@ -446,6 +461,7 @@ open_module( DirectModuleEntry *module )
      D_DEBUG_AT( Direct_Modules, "Loading '%s'...\n", buf );
 
      handle = dlopen( buf, RTLD_NOW );
+     D_DEBUG_AT( Direct_Modules, "  -> dlopen returned %p\n", handle );
      if (!handle)
           D_DLERROR( "Direct/Modules: Unable to dlopen `%s'!\n", buf );
 
