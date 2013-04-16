@@ -705,9 +705,13 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      int h;
 
      DFBSurfaceBlittingFlags rotflip_blittingflags = state->blittingflags;
+     bool                    rotated = false;
 
      dfb_simplify_blittingflags( &rotflip_blittingflags );
      rotflip_blittingflags &= (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL | DSBLIT_ROTATE90 );
+
+     if (rotflip_blittingflags & DSBLIT_ROTATE90)
+          rotated = true;
 
      D_ASSERT( gfxs != NULL );
 
@@ -730,33 +734,74 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      if (!dfb_rectangle_intersect_by_region( drect, &state->clip ))
           return;
 
-     if (rotflip_blittingflags && (drect->h != orect.h || drect->w != orect.w)) {
-          D_ONCE("WARNING: StretchBlit clipping is not implemented with rotation and/or v/h flipping\n");
-          return;
+
+     /* Calculate fractions */
+     if (rotated) {
+          fx = (srect->h << 16) / orect.w;
+          fy = (srect->w << 16) / orect.h;
+     }
+     else
+     {
+          fx = (srect->w << 16) / orect.w;
+          fy = (srect->h << 16) / orect.h;
      }
 
-     if (rotflip_blittingflags & DSBLIT_ROTATE90) {
-          D_UTIL_SWAP (drect->h, drect->w);
-          D_UTIL_SWAP (orect.h, orect.w);
+     /* Calculate horizontal and vertical phase. */
+
+     switch (rotflip_blittingflags & (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL | DSBLIT_ROTATE90)) {
+          case DSBLIT_NOFX:
+               ix = fx * (drect->x - orect.x);
+               iy = fy * (drect->y - orect.y);
+               break;
+          case DSBLIT_FLIP_HORIZONTAL:
+               ix = fx * ((orect.x + orect.w - 1) - (drect->x + drect->w - 1));
+               iy = fy * (drect->y - orect.y);
+               break;
+          case DSBLIT_FLIP_VERTICAL:
+               ix = fx * (drect->x - orect.x);
+               iy = fy * ((orect.y + orect.h - 1) - (drect->y + drect->h - 1));
+               break;
+          case DSBLIT_ROTATE90:
+               ix = fx * (drect->x - orect.x);
+               iy = fy * ((orect.y + orect.h - 1) - (drect->y + drect->h - 1));
+               break;
+          case DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL: // ROTATE180
+               ix = fx * ((orect.x + orect.w - 1) - (drect->x + drect->w - 1));
+               iy = fy * ((orect.y + orect.h - 1) - (drect->y + drect->h - 1));
+               break;
+          case DSBLIT_ROTATE90 | DSBLIT_FLIP_VERTICAL | DSBLIT_FLIP_HORIZONTAL: // ROTATE270
+               ix = fx * ((orect.x + orect.w - 1) - (drect->x + drect->w - 1));
+               iy = fy * (drect->y - orect.y);
+               break;
+          case DSBLIT_ROTATE90 | DSBLIT_FLIP_HORIZONTAL:
+               ix = fx * (drect->x - orect.x);
+               iy = fy * (drect->y - orect.y);
+               break;
+          case DSBLIT_ROTATE90 | DSBLIT_FLIP_VERTICAL:
+               ix = fx * ((orect.x + orect.w - 1) - (drect->x + drect->w - 1));
+               iy = fy * ((orect.y + orect.h - 1) - (drect->y + drect->h - 1));
+               break;
      }
 
-     /* Calculate fractions. */
-     fx = (srect->w << 16) / orect.w;
-     fy = (srect->h << 16) / orect.h;
-
-     /* Calculate horizontal phase and offset. */
-     ix = fx * (drect->x - orect.x);
-     srect->x += ix >> 16;
-     ix &= 0xFFFF;
-
-     /* Calculate vertical phase and offset. */
-     iy = fy * (drect->y - orect.y);
-     srect->y += iy >> 16;
-     iy &= 0xFFFF;
 
      /* Adjust source size. */
-     srect->w = ((drect->w * fx + ix) + 0xFFFF) >> 16;
-     srect->h = ((drect->h * fy + iy) + 0xFFFF) >> 16;
+     if (rotated) {
+          srect->x += iy >> 16;
+          srect->y += ix >> 16;
+          ix &= 0xFFFF;
+          iy &= 0xFFFF;
+          srect->w = ((drect->h * fy + iy) + 0xFFFF) >> 16;
+          srect->h = ((drect->w * fx + ix) + 0xFFFF) >> 16;
+     }
+     else
+     {
+          srect->x += ix >> 16;
+          srect->y += iy >> 16;
+          ix &= 0xFFFF;
+          iy &= 0xFFFF;
+          srect->w = ((drect->w * fx + ix) + 0xFFFF) >> 16;
+          srect->h = ((drect->h * fy + iy) + 0xFFFF) >> 16;
+     }
 
      D_ASSERT( srect->x + srect->w <= state->source->config.size.w );
      D_ASSERT( srect->y + srect->h <= state->source->config.size.h );
@@ -788,13 +833,23 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                break;
      }
 
-     gfxs->Slen   = srect->w;
-     gfxs->Dlen   = drect->w;
-     gfxs->length = gfxs->Dlen;
-     gfxs->SperD  = fx;
-     gfxs->Xphase = ix;
+     if (rotated) {
+          gfxs->Dlen   = drect->h;
+          gfxs->SperD  = fy;
+          gfxs->Xphase = iy;
 
-     h = drect->h;
+          h = drect->w;
+     }
+     else {
+          gfxs->Dlen   = drect->w;
+          gfxs->SperD  = fx;
+          gfxs->Xphase = ix;
+
+          h = drect->h;
+     }
+
+     gfxs->Slen   = srect->w;
+     gfxs->length = gfxs->Dlen;
 
      Aop_X = drect->x;
      Aop_Y = drect->y;
@@ -817,7 +872,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                break;
 
           case DSBLIT_ROTATE90: // 90 deg ccw
-               Aop_Y = drect->y + drect->w - 1;
+               Aop_Y = drect->y + drect->h - 1;
                gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
                Aop_advance = Genefx_Aop_crab;
                break;
@@ -838,8 +893,8 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
           case DSBLIT_ROTATE90 | DSBLIT_FLIP_VERTICAL:
                gfxs->Astep *= -gfxs->dst_pitch / gfxs->dst_bpp;
-               Aop_X = drect->x + drect->h - 1;
-               Aop_Y = drect->y + drect->w - 1;
+               Aop_X = drect->x + drect->w - 1;
+               Aop_Y = drect->y + drect->h - 1;
                Aop_advance = Genefx_Aop_prev_crab;
                break;
 
@@ -860,7 +915,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
           Aop_advance( gfxs );
 
-          iy += fy;
+          iy += rotated ? fx : fy;
 
           while (iy > 0xFFFF) {
                iy -= 0x10000;
