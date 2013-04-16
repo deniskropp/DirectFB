@@ -94,8 +94,8 @@ common_log_write( DirectLog  *log,
      ssize_t ret;
 
      ret = write( (long) log->data, buffer, bytes );
-
-     (void)ret;
+     if (ret < 0)
+          perror( "write() to log failed" );
 
 #ifdef ANDROID_NDK
 __android_log_print( ANDROID_LOG_INFO, "android-dfb", "%s", buffer );
