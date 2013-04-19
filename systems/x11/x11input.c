@@ -477,7 +477,6 @@ handle_expose_Async( void *ctx,
      DFBX11                  *x11    = ctx;
      const XExposeEvent      *expose = ctx2;
      CoreLayer               *layer  = 0;
-     const DisplayLayerFuncs *funcs  = 0;
      CoreLayerContext        *context;
      int                      i;
      X11LayerData            *lds;
@@ -499,11 +498,6 @@ handle_expose_Async( void *ctx,
      /* layer not found? */
      if( i==dfb_layer_num() )
           return;
-
-     funcs = layer->funcs;
-
-     D_ASSERT( funcs != NULL );
-     D_ASSERT( funcs->UpdateRegion != NULL );
 
      lds = layer->shared->layer_data;
 
