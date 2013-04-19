@@ -531,7 +531,30 @@ fusion_skirmish_init2( FusionSkirmish    *skirmish,
                        const FusionWorld *world,
                        bool               local )
 {
-     return fusion_skirmish_init( skirmish, name, world );
+     D_ASSERT( skirmish != NULL );
+     D_ASSERT( name != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_init2( %p, '%s', %s )\n", skirmish, name ? : "", local ? "local" : "shared" );
+
+     if (!local)
+          return fusion_skirmish_init( skirmish, name, world );
+
+
+     skirmish->single = D_CALLOC( 1, sizeof(FusionSkirmishSingle) + strlen(name) + 1 );
+     if (skirmish->single == 0)
+          return DR_NOLOCALMEMORY;
+
+     skirmish->single->name = (char*)(skirmish->single + 1);
+     strcpy( skirmish->single->name, name );
+
+     direct_recursive_mutex_init( &skirmish->single->lock );
+     direct_waitqueue_init( &skirmish->single->cond );
+
+     /* Keep back pointer to shared world data. */
+     skirmish->multi.shared = world->shared;
+
+     return DR_OK;
 }
 
 DirectResult
@@ -539,6 +562,20 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
      
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_prevail( %p )\n", skirmish );
+
+     if (fusion_config->skirmish_warn_on_thread && fusion_config->skirmish_warn_on_thread == direct_thread_get_tid(direct_thread_self()))
+          D_WARN( "%s '%s' 0x%08x", __FUNCTION__, skirmish->single ? skirmish->single->name : "", skirmish->multi.id );
+
+     if (skirmish->single) {
+          if (direct_mutex_lock( &skirmish->single->lock ))
+               return errno2result( errno );
+
+          skirmish->single->count++;
+
+          return DR_OK;
+     }
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
           
@@ -587,6 +624,15 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
      
+     if (skirmish->single) {
+          if (direct_mutex_trylock( &skirmish->single->lock ))
+               return errno2result( errno );
+
+          skirmish->single->count++;
+
+          return DR_OK;
+     }
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
           
@@ -616,6 +662,19 @@ fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
      D_ASSERT( skirmish != NULL );
      
+     if (skirmish->single) {
+          if (direct_mutex_trylock( &skirmish->single->lock )) {
+               *lock_count = 0;
+               return errno2result( errno );
+          }
+
+          *lock_count = skirmish->single->count;
+
+          direct_mutex_unlock( &skirmish->single->lock );
+
+          return DR_OK;
+     }
+
      if (skirmish->multi.builtin.destroyed) {
           *lock_count = 0;
           return DR_DESTROYED;
@@ -631,6 +690,15 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
      
+     if (skirmish->single) {
+          skirmish->single->count--;
+
+          if (direct_mutex_unlock( &skirmish->single->lock ))
+               return errno2result( errno );
+
+          return DR_OK;
+     }
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
           
@@ -665,6 +733,18 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 
      D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_destroy( %p )\n", skirmish );
      
+     if (skirmish->single) {
+          int retval;
+
+          direct_waitqueue_broadcast( &skirmish->single->cond );
+          direct_waitqueue_deinit( &skirmish->single->cond );
+
+          retval = direct_mutex_deinit( &skirmish->single->lock );
+          D_FREE( skirmish->single );
+
+          return errno2result( retval );
+     }
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
           
@@ -695,6 +775,14 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      
      D_ASSERT( skirmish != NULL );
      
+     if (skirmish->single) {
+          if (timeout)
+               return direct_waitqueue_wait_timeout( &skirmish->single->cond, 
+                                                     &skirmish->single->lock, timeout * 1000 );
+
+          return direct_waitqueue_wait( &skirmish->single->cond, &skirmish->single->lock );
+     }
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
  
@@ -765,6 +853,12 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
      WaitNode *node, *temp;
      
      D_ASSERT( skirmish != NULL );
+
+     if (skirmish->single) {
+          direct_waitqueue_broadcast( &skirmish->single->cond );
+
+          return DR_OK;
+     }
 
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
