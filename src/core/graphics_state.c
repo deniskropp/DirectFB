@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include <directfb.h>
@@ -119,4 +121,21 @@ dfb_graphics_state_create( CoreDFB            *core,
 
      return DFB_OK;
 }
+
+void
+dfb_graphics_state_dispatch_done( CoreGraphicsState *state,
+                                  u32                cookie )
+{
+     CoreGraphicsStateNotification notification;
+
+     D_DEBUG_AT( Core_GraphicsState, "%s( %p, %u )\n", __FUNCTION__, state, cookie );
+
+     D_MAGIC_ASSERT( state, CoreGraphicsState );
+
+     notification.flags  = CGSNF_DONE;
+     notification.cookie = cookie;
+
+     dfb_graphics_state_dispatch( state, &notification, NULL );
+}
+
 

@@ -48,11 +48,15 @@ struct __DFB_CoreGraphicsState {
 };
 
 typedef enum {
-     CGSNF_NONE     = 0x00000000
+     CGSNF_NONE     = 0x00000000,
+
+     CGSNF_DONE     = 0x00000001,
 } CoreGraphicsStateNotificationFlags;
 
 typedef struct {
      CoreGraphicsStateNotificationFlags  flags;
+
+     u32                                 cookie;
 } CoreGraphicsStateNotification;
 
 
@@ -64,6 +68,12 @@ DFBResult dfb_graphics_state_create( CoreDFB            *core,
  * Creates a pool of graphics state objects.
  */
 FusionObjectPool *dfb_graphics_state_pool_create( const FusionWorld *world );
+
+/*
+ * Dispatches a notification about rendering done
+ */
+void dfb_graphics_state_dispatch_done( CoreGraphicsState *state,
+                                       u32                cookie );
 
 /*
  * Generates dfb_graphics_state_ref(), dfb_graphics_state_attach() etc.
