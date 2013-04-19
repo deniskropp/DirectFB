@@ -70,13 +70,13 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      int             h;
      XopAdvanceFunc  Aop_advance;
      XopAdvanceFunc  Bop_advance;
-     XopAdvanceFunc  Mop_advance;
+     XopAdvanceFunc  Mop_advance = NULL;
      int             Aop_X;
      int             Aop_Y;
      int             Bop_X;
      int             Bop_Y;
-     int             Mop_X;
-     int             Mop_Y;
+     int             Mop_X = 0;
+     int             Mop_Y = 0;
 
      DFBSurfaceBlittingFlags rotflip_blittingflags = state->blittingflags;
 
