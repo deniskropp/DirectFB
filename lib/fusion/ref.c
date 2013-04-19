@@ -954,26 +954,7 @@ fusion_ref_init (FusionRef         *ref,
                  const char        *name,
                  const FusionWorld *world)
 {
-     D_ASSERT( ref != NULL );
-     D_ASSERT( name != NULL );
-     D_MAGIC_ASSERT( world, FusionWorld );
-
-     D_DEBUG_AT( Fusion_Ref, "fusion_ref_init( %p, '%s' )\n", ref, name ? : "" );
-     
-     ref->multi.id = ++world->shared->ref_ids;
-     
-     ref->multi.builtin.local  = 0;
-     ref->multi.builtin.global = 0;
-     
-     fusion_skirmish_init( &ref->multi.builtin.lock, name, world );
-     
-     ref->multi.builtin.call = NULL;
-
-     /* Keep back pointer to shared world data. */
-     ref->multi.shared  = world->shared;
-     ref->multi.creator = fusion_id( world );
-
-     return DR_OK;
+     return fusion_ref_init2( ref, name, false, world );
 }
 
 DirectResult
@@ -982,7 +963,29 @@ fusion_ref_init2(FusionRef         *ref,
                  bool               user,
                  const FusionWorld *world)
 {
-     return fusion_ref_init( ref, name, world );
+     ref->multi.id      = ++world->shared->ref_ids;
+     ref->multi.shared  = world->shared;
+     ref->multi.creator = fusion_id( world );
+     ref->multi.user    = user;
+
+     if (user) {
+          direct_recursive_mutex_init( &ref->single.lock );
+          direct_waitqueue_init( &ref->single.cond );
+
+          ref->single.refs      = 0;
+          ref->single.destroyed = false;
+          ref->single.locked    = 0;
+     }
+     else {
+          ref->multi.builtin.local  = 0;
+          ref->multi.builtin.global = 0;
+
+          fusion_skirmish_init( &ref->multi.builtin.lock, name, world );
+
+          ref->multi.builtin.call = NULL;
+     }
+
+     return DR_OK;
 }
 
 DirectResult
@@ -1003,7 +1006,7 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
      ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
      if (ret)
           return ret;
-     
+
      if (global) {
           if (ref->multi.builtin.global+add < 0) {
                D_BUG( "ref has no global references" );
@@ -1013,7 +1016,7 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
 
           ref->multi.builtin.global += add;
      }
-     else {          
+     else {
           if (ref->multi.builtin.local+add < 0) {
                D_BUG( "ref has no local references" );
                fusion_skirmish_dismiss( &ref->multi.builtin.lock );
@@ -1021,8 +1024,8 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
           }
 
           ref->multi.builtin.local += add;
-          
-          _fusion_add_local( _fusion_world(ref->multi.shared), ref, add ); 
+
+          _fusion_add_local( _fusion_world(ref->multi.shared), ref, add );
      }
 
      if (ref->multi.builtin.local+ref->multi.builtin.global == 0) {
@@ -1030,11 +1033,11 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
 
           if (ref->multi.builtin.call) {
                fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-               return fusion_call_execute( ref->multi.builtin.call, FCEF_ONEWAY, 
+               return fusion_call_execute( ref->multi.builtin.call, FCEF_ONEWAY,
                                            ref->multi.builtin.call_arg, NULL, NULL );
           }
      }
-     
+
      fusion_skirmish_dismiss( &ref->multi.builtin.lock );
 
      return DR_OK;
@@ -1043,38 +1046,292 @@ _fusion_ref_change (FusionRef *ref, int add, bool global)
 DirectResult
 fusion_ref_up (FusionRef *ref, bool global)
 {
-     return _fusion_ref_change( ref, +1, global );
+     DirectResult ret = DR_OK;
+
+     D_ASSERT( ref != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_up( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
+
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x up (%s), single refs %d\n", ref->multi.id, global ? "global" : "local", ref->single.refs );
+          direct_trace_print_stack( NULL );
+     }
+
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               if (ref->single.destroyed)
+                    ret = DR_DESTROYED;
+               else if (ref->single.locked)
+                    ret = DR_LOCKED;
+               else
+                    ref->single.refs++;
+
+               direct_mutex_unlock (&ref->single.lock);
+          }
+          else {
+               FusionRefSlaveSlaveEntry *entry;
+
+               direct_mutex_lock( &world->refs_lock );
+
+               entry = direct_map_lookup( world->refs_map, &ref->multi.id );
+               if (!entry) {
+                    entry = D_CALLOC( 1, sizeof(FusionRefSlaveSlaveEntry) );
+                    if (!entry) {
+                         direct_mutex_unlock( &world->refs_lock );
+                         return D_OOM();
+                    }
+
+                    entry->ref_id = ref->multi.id;
+
+                    direct_map_insert( world->refs_map, &ref->multi.id, entry );
+               }
+
+               entry->refs_local++;
+
+               direct_mutex_unlock( &world->refs_lock );
+          }
+     }
+     else
+          return _fusion_ref_change( ref, +1, global );
+
+     return ret;
 }
 
 DirectResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
-     return _fusion_ref_change( ref, -1, global );
+     D_ASSERT( ref != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_down( %p [%d]%s )\n", ref, ref->multi.id, global ? " GLOBAL" : "" );
+
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs %d\n", ref->multi.id, global ? "global" : "local", ref->single.refs );
+          direct_trace_print_stack( NULL );
+     }
+
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               if (!ref->single.refs) {
+                    D_BUG( "no more references" );
+                    direct_mutex_unlock (&ref->single.lock);
+                    return DR_BUG;
+               }
+
+               if (ref->single.destroyed) {
+                    direct_mutex_unlock (&ref->single.lock);
+                    return DR_DESTROYED;
+               }
+
+               if (! --ref->single.refs) {
+                    ref->single.dead++;
+
+                    if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+                         D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs got %d! -> call %p\n", ref->multi.id, global ? "global" : "local", ref->single.refs,
+                                 ref->single.call );
+                    }
+
+                    if (ref->single.call) {
+                         FusionCall *call = ref->single.call;
+
+                         if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+                              D_INFO( "Fusion/Ref: 0x%08x down (%s), call_id 0x%08x, handler %p/%p\n", ref->multi.id, global ? "global" : "local",
+                                      call->call_id, call->handler, call->handler3 );
+                         }
+
+                         if (call->handler) {
+                              FusionCall copy_call = *call;
+                              int        copy_arg  = ref->single.call_arg;
+
+                              direct_mutex_unlock( &ref->single.lock );
+
+                              fusion_call_execute( &copy_call, FCEF_NODIRECT | FCEF_ONEWAY, copy_arg, NULL, NULL );
+
+                              return DR_OK;
+                         }
+                         else if (call->handler3) {
+                              fusion_call_execute3( call, FCEF_NODIRECT | FCEF_ONEWAY | FCEF_QUEUE,
+                                                    ref->single.call_arg, NULL, 0, NULL, 0, NULL );
+
+                              direct_mutex_unlock( &ref->single.lock );
+
+                              fusion_world_flush_calls( world, 1 );
+
+                              return DR_OK;
+                         }
+                    }
+                    else
+                         direct_waitqueue_broadcast (&ref->single.cond);
+               }
+
+               direct_mutex_unlock (&ref->single.lock);
+          }
+          else {
+               FusionRefSlaveSlaveEntry *entry;
+
+               direct_mutex_lock( &world->refs_lock );
+
+               entry = direct_map_lookup( world->refs_map, &ref->multi.id );
+               if (!entry) {
+                    direct_mutex_unlock( &world->refs_lock );
+                    D_WARN( "ref (%d) not found", ref->multi.id );
+                    return DR_ITEMNOTFOUND;
+               }
+
+               if (!--entry->refs_local) {
+                    int i;
+
+                    for (i=0; i<entry->refs_catch; i++)
+                         fusion_call_execute( &ref->multi.shared->refs_call, FCEF_ONEWAY, ref->multi.id, NULL, NULL );
+
+                    entry->refs_catch = 0;
+               }
+
+               direct_mutex_unlock( &world->refs_lock );
+          }
+     }
+     else
+          return _fusion_ref_change( ref, -1, global );
+
+     return DR_OK;
 }
 
 DirectResult
 fusion_ref_stat (FusionRef *ref, int *refs)
 {
+     int val;
+
      D_ASSERT( ref != NULL );
      D_ASSERT( refs != NULL );
-          
-     *refs = ref->multi.builtin.local + ref->multi.builtin.global;
-     
+
+     if (ref->multi.user) {
+          if (ref->single.destroyed)
+               return DR_DESTROYED;
+
+          val = ref->single.refs;
+     }
+     else
+          val = ref->multi.builtin.local + ref->multi.builtin.global;
+
+     *refs = val;
+
      return DR_OK;
 }
 
 DirectResult
 fusion_ref_catch (FusionRef *ref)
 {
-     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+     D_ASSERT( ref != NULL );
 
-     return fusion_ref_down( ref, false );
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x catch, single refs %d\n", ref->multi.id, ref->single.refs );
+          direct_trace_print_stack( NULL );
+     }
+
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               /*
+                * If catcher is master, then we are most likely running in always-indirect mode!
+                */
+               direct_mutex_lock (&ref->single.lock);
+
+               if (ref->single.refs < 2) {
+                    D_BUG( "master->master catch with less than two refs" );
+                    direct_mutex_unlock (&ref->single.lock);
+                    return DR_BUG;
+               }
+
+               ref->single.refs--;
+
+               direct_mutex_unlock (&ref->single.lock);
+          }
+          else {
+               FusionRefSlaveSlaveEntry *entry;
+
+               direct_mutex_lock( &world->refs_lock );
+
+               entry = direct_map_lookup( world->refs_map, &ref->multi.id );
+               if (!entry) {
+                    entry = D_CALLOC( 1, sizeof(FusionRefSlaveSlaveEntry) );
+                    if (!entry) {
+                         direct_mutex_unlock( &world->refs_lock );
+                         return D_OOM();
+                    }
+
+                    entry->ref_id = ref->multi.id;
+
+                    direct_map_insert( world->refs_map, &ref->multi.id, entry );
+               }
+
+               entry->refs_catch++;
+
+               direct_mutex_unlock( &world->refs_lock );
+          }
+     }
+     else
+          return fusion_ref_down( ref, false );
+
+     return DR_OK;
 }
 
 DirectResult
 fusion_ref_throw (FusionRef *ref, FusionID catcher)
 {
-     D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+     D_ASSERT( ref != NULL );
+
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x throw, single refs %d\n", ref->multi.id, ref->single.refs );
+          direct_trace_print_stack( NULL );
+     }
+
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               /*
+                * If catcher is master, then we are most likely running in always-indirect mode!
+                */
+               if (catcher != FUSION_ID_MASTER) {
+                    FusionRefSlaveKey    key;
+                    FusionRefSlaveEntry *slave;
+
+                    key.fusion_id = catcher;
+                    key.ref_id    = ref->multi.id;
+
+                    direct_mutex_lock( &world->refs_lock );
+
+                    slave = direct_map_lookup( world->refs_map, &key );
+                    if (!slave) {
+                         slave = D_CALLOC( 1, sizeof(FusionRefSlaveEntry) );
+                         if (!slave) {
+                              direct_mutex_unlock( &world->refs_lock );
+                              return D_OOM();
+                         }
+
+                         slave->key = key;
+                         slave->ref = ref;
+
+                         direct_map_insert( world->refs_map, &key, slave );
+                    }
+
+                    slave->refs++;
+
+                    direct_mutex_unlock( &world->refs_lock );
+               }
+          }
+          else {
+               D_UNIMPLEMENTED();
+          }
+     }
 
      return DR_OK;
 }
@@ -1082,38 +1339,67 @@ fusion_ref_throw (FusionRef *ref, FusionID catcher)
 DirectResult
 fusion_ref_zero_lock (FusionRef *ref)
 {
-     DirectResult ret;
-     
+     DirectResult ret = DR_OK;
+
      D_ASSERT( ref != NULL );
 
-     ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
-     if (ret)
-          return ret;
-     
-     if (ref->multi.builtin.call) {
-          ret = DR_ACCESSDENIED;
-     }
-     else {
-          if (ref->multi.builtin.local)
-               _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
-          
-          while (ref->multi.builtin.local+ref->multi.builtin.global) {    
-               ret = fusion_skirmish_wait( &ref->multi.builtin.lock, 1000 ); /* 1 second */
-               if (ret && ret != DR_TIMEOUT);
-                    return ret;
-               
-               if (ref->multi.builtin.call) {
-                    ret = DR_ACCESSDENIED;
-                    break;
-               }
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
 
-               if (ref->multi.builtin.local)
-                    _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               do {
+                    if (ref->single.destroyed)
+                         ret = DR_DESTROYED;
+                    else if (ref->single.locked)
+                         ret = DR_LOCKED;
+                    else if (ref->single.refs)
+                         direct_waitqueue_wait (&ref->single.cond, &ref->single.lock);
+                    else {
+                         ref->single.locked = direct_gettid();
+                         break;
+                    }
+               } while (ret == DR_OK);
+
+               direct_mutex_unlock (&ref->single.lock);
+          }
+          else {
+               D_UNIMPLEMENTED();
+
+               return DR_UNIMPLEMENTED;
           }
      }
-          
-     if (ret)
-          fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+     else {
+          ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
+          if (ret)
+               return ret;
+
+          if (ref->multi.builtin.call) {
+               ret = DR_ACCESSDENIED;
+          }
+          else {
+               if (ref->multi.builtin.local)
+                    _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
+
+               while (ref->multi.builtin.local+ref->multi.builtin.global) {
+                    ret = fusion_skirmish_wait( &ref->multi.builtin.lock, 1000 ); /* 1 second */
+                    if (ret && ret != DR_TIMEOUT);
+                         return ret;
+
+                    if (ref->multi.builtin.call) {
+                         ret = DR_ACCESSDENIED;
+                         break;
+                    }
+
+                    if (ref->multi.builtin.local)
+                         _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
+               }
+          }
+
+          if (ret)
+               fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+     }
 
      return ret;
 }
@@ -1121,22 +1407,47 @@ fusion_ref_zero_lock (FusionRef *ref)
 DirectResult
 fusion_ref_zero_trylock (FusionRef *ref)
 {
-     DirectResult ret;
-     
+     DirectResult ret = DR_OK;
+
      D_ASSERT( ref != NULL );
 
-     ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
-     if (ret)
-          return ret;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
 
-     if (ref->multi.builtin.local)
-          _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
 
-     if (ref->multi.builtin.local+ref->multi.builtin.global)
-          ret = DR_BUSY;
-     
-     if (ret)
-          fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+               if (ref->single.destroyed)
+                    ret = DR_DESTROYED;
+               else if (ref->single.locked)
+                    ret = DR_LOCKED;
+               else if (ref->single.refs)
+                    ret = DR_BUSY;
+               else
+                    ref->single.locked = direct_gettid();
+
+               direct_mutex_unlock (&ref->single.lock);
+          }
+          else {
+               D_UNIMPLEMENTED();
+
+               return DR_UNIMPLEMENTED;
+          }
+     }
+     else {
+          ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
+          if (ret)
+               return ret;
+
+          if (ref->multi.builtin.local)
+               _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
+
+          if (ref->multi.builtin.local+ref->multi.builtin.global)
+               ret = DR_BUSY;
+
+          if (ret)
+               fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+     }
 
      return ret;
 }
@@ -1144,39 +1455,91 @@ fusion_ref_zero_trylock (FusionRef *ref)
 DirectResult
 fusion_ref_unlock (FusionRef *ref)
 {
-     D_ASSERT( ref != NULL );
-          
-     fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+     DirectResult ret = DR_OK;
 
-     return DR_OK;
+     D_ASSERT( ref != NULL );
+
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               if (ref->single.locked == direct_gettid()) {
+                    ref->single.locked = 0;
+
+                    direct_waitqueue_broadcast (&ref->single.cond);
+               }
+               else
+                    ret = DR_ACCESSDENIED;
+
+               direct_mutex_unlock (&ref->single.lock);
+          }
+          else {
+               D_UNIMPLEMENTED();
+
+               return DR_UNIMPLEMENTED;
+          }
+     }
+     else
+          fusion_skirmish_dismiss( &ref->multi.builtin.lock );
+
+     return ret;
 }
 
 DirectResult
 fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 {
-     DirectResult ret;
+     DirectResult ret = DR_OK;
 
      D_ASSERT( ref != NULL );
      D_ASSERT( call != NULL );
 
-     ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
-     if (ret)
-          return ret;
-     
-     if (ref->multi.builtin.local+ref->multi.builtin.global == 0) {
-          D_BUG( "ref has no references" );
-          ret = DR_BUG;
-     }
-     else if (ref->multi.builtin.call) {
-          ret = DR_BUSY;
+     if (ref->multi.user) {
+          FusionWorld *world = _fusion_world( ref->multi.shared );
+
+          if (world->fusion_id == FUSION_ID_MASTER) {
+               direct_mutex_lock (&ref->single.lock);
+
+               if (ref->single.destroyed)
+                    ret = DR_DESTROYED;
+               else if (!ref->single.refs)
+                    ret = DR_BUG;
+               else if (ref->single.call)
+                    ret = DR_BUSY;
+               else {
+                    ref->single.call     = call;
+                    ref->single.call_arg = call_arg;
+               }
+
+               direct_mutex_unlock (&ref->single.lock);
+          }
+          else {
+               D_UNIMPLEMENTED();
+
+               return DR_UNIMPLEMENTED;
+          }
      }
      else {
-          ref->multi.builtin.call = call;
-          ref->multi.builtin.call_arg = call_arg;
-          fusion_skirmish_notify( &ref->multi.builtin.lock );
+          ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
+          if (ret)
+               return ret;
+
+          if (ref->multi.builtin.local+ref->multi.builtin.global == 0) {
+               D_BUG( "ref has no references" );
+               ret = DR_BUG;
+          }
+          else if (ref->multi.builtin.call) {
+               ret = DR_BUSY;
+          }
+          else {
+               ref->multi.builtin.call = call;
+               ref->multi.builtin.call_arg = call_arg;
+               fusion_skirmish_notify( &ref->multi.builtin.lock );
+          }
+
+          fusion_skirmish_dismiss( &ref->multi.builtin.lock );
      }
-     
-     fusion_skirmish_dismiss( &ref->multi.builtin.lock );
 
      return ret;
 }
@@ -1188,7 +1551,7 @@ fusion_ref_inherit (FusionRef *ref, FusionRef *from)
      D_ASSERT( from != NULL );
 
      D_UNIMPLEMENTED();
-     
+
      return fusion_ref_up( ref, true );
 }
 
@@ -1196,16 +1559,16 @@ DirectResult
 fusion_ref_destroy (FusionRef *ref)
 {
      FusionSkirmish *skirmish;
-     
+
      D_ASSERT( ref != NULL );
 
      D_DEBUG_AT( Fusion_Ref, "fusion_ref_destroy( %p )\n", ref );
-    
+
      skirmish = &ref->multi.builtin.lock;
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
 
-     _fusion_remove_all_locals( _fusion_world(ref->multi.shared), ref ); 
+     _fusion_remove_all_locals( _fusion_world(ref->multi.shared), ref );
 
      fusion_skirmish_destroy( skirmish );
 
