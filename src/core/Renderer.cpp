@@ -38,6 +38,7 @@ extern "C" {
 #include <direct/debug.h>
 #include <direct/messages.h>
 
+#include <core/graphics_state.h>
 #include <core/surface_allocation.h>
 #include <core/surface_pool.h>
 
@@ -1961,66 +1962,83 @@ Quadrangles::render( Renderer::Setup *setup,
 
 /**********************************************************************************************************************/
 
-Renderer::Throttle::Throttle()
+Renderer::Throttle::Throttle( Renderer &renderer )
      :
+     ref_count(1),
      task_count(0)
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
+
+     gfx_state = renderer.gfx_state;
+
+     dfb_graphics_state_ref( gfx_state );
 }
 
-DFBResult
-Renderer::Throttle::setup( SurfaceTask *task )
+Renderer::Throttle::~Throttle()
+{
+     dfb_graphics_state_unref( gfx_state );
+}
+
+void
+Renderer::Throttle::AddTask( SurfaceTask *task, u32 cookie )
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
 
-     task_count++;
+     ref();
 
-     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count %d\n", task_count );
+     task->AddHook( new Hook( *this, cookie ) );
+}
 
-     if (task_count == 5) {
-          D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> throttling at 100% (blocked) from now\n" );
+DFBResult
+Renderer::Throttle::Hook::setup( SurfaceTask *task )
+{
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
 
-          SetThrottle( 100 );
+     throttle.task_count++;
+
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count %d\n", throttle.task_count );
+
+     if (throttle.task_count == 5) {
+          D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> throttling at 100%% (blocked) from now\n" );
+
+          throttle.SetThrottle( 100 );
      }
 
      return DFB_OK;
 }
 
 void
-Renderer::Throttle::finalise( SurfaceTask *task )
+Renderer::Throttle::Hook::finalise( SurfaceTask *task )
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
 
-     D_ASSERT( task_count > 0 );
+     D_ASSERT( throttle.task_count > 0 );
 
-     if (task_count == 5) {
-          D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> throttling at 0% (full speed) from now\n" );
+     if (throttle.task_count == 5) {
+          D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> throttling at 0%% (full speed) from now\n" );
 
-          SetThrottle( 0 );
+          throttle.SetThrottle( 0 );
      }
 
-     task_count--;
+     throttle.task_count--;
 
-     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count %d\n", task_count );
-}
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count %d\n", throttle.task_count );
 
-void
-Renderer::Throttle::AddTask( SurfaceTask *task )
-{
-     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
+     dfb_graphics_state_dispatch_done( throttle.gfx_state, cookie );
 
-     task->AddHook( this );
+     throttle.unref();
 }
 
 /**********************************************************************************************************************/
 
-Renderer::Renderer( CardState *state,
-                    Throttle  *throttle )
+Renderer::Renderer( CardState         *state,
+                    CoreGraphicsState *gfx_state )
      :
      state( state ),
+     gfx_state( gfx_state ),
      state_mod( SMF_NONE ),
      transform_type( WTT_IDENTITY ),
-     throttle( throttle ),
+     throttle( NULL ),
      thread( NULL ),
      engine( NULL ),
      setup( NULL ),
@@ -2031,35 +2049,57 @@ Renderer::Renderer( CardState *state,
      CHECK_MAGIC();
 }
 
+void
+Renderer::SetThrottle( Throttle *throttle )
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, throttle %p )\n", __FUNCTION__, this, throttle );
+
+     CHECK_MAGIC();
+
+     this->throttle = throttle;
+}
+
 Renderer::~Renderer()
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
 
      CHECK_MAGIC();
 
-     Flush();
+     Flush( 0 );
+
+     if (throttle)
+          throttle->unref();
 }
 
 
 void
-Renderer::Flush()
+Renderer::Flush( u32 cookie )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %u )\n", __FUNCTION__, this, cookie );
 
      CHECK_MAGIC();
 
      if (engine) {
-          unbindEngine();
+          unbindEngine( cookie );
 
           RendererTLS *tls = Renderer_GetTLS();
 
           if (tls->last_renderer == this)
                tls->last_renderer = NULL;
      }
+     else if (throttle) {
+          if (throttle->task_count == 0) {
+               dfb_graphics_state_dispatch_done( gfx_state, cookie );
+          }
+          else
+               D_UNIMPLEMENTED();
+     }
+     else
+          D_UNIMPLEMENTED();
 }
 
 void
-Renderer::FlushCurrent()
+Renderer::FlushCurrent( u32 cookie )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
 
@@ -2068,7 +2108,19 @@ Renderer::FlushCurrent()
      D_DEBUG_AT( DirectFB_Renderer, "  -> current renderer is %p\n", tls->last_renderer );
 
      if (tls->last_renderer)
-          tls->last_renderer->Flush();
+          tls->last_renderer->Flush( cookie );
+}
+
+Renderer *
+Renderer::GetCurrent()
+{
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s()\n", __FUNCTION__ );
+
+     RendererTLS *tls = Renderer_GetTLS();
+
+     D_DEBUG_AT( DirectFB_Renderer, "  -> current renderer is %p\n", tls->last_renderer );
+
+     return tls->last_renderer;
 }
 
 
@@ -2329,7 +2381,7 @@ Renderer::render( Primitives::Base *primitives )
 
      if (tls->last_renderer != this) {
           if (tls->last_renderer)
-               tls->last_renderer->Flush();
+               tls->last_renderer->Flush( 0 );
 
           tls->last_renderer = this;
      }
@@ -2832,7 +2884,7 @@ Renderer::bindEngine( Engine              *engine,
 }
 
 void
-Renderer::unbindEngine()
+Renderer::unbindEngine( u32 cookie )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
 
@@ -2844,7 +2896,7 @@ Renderer::unbindEngine()
 
      D_ASSUME( thread == direct_thread_self() );
 
-     flushTask();
+     flushTask( cookie );
 
      delete setup;
      setup = NULL;
@@ -2866,7 +2918,7 @@ Renderer::rebindEngine( DFBAccelerationMask  accel )
 
      D_ASSUME( thread == direct_thread_self() );
 
-     flushTask();
+     flushTask( 0 );
 
      memset( setup->tasks, 0, sizeof(SurfaceTask*) * setup->tiles );
 
@@ -2874,7 +2926,7 @@ Renderer::rebindEngine( DFBAccelerationMask  accel )
 }
 
 void
-Renderer::flushTask()
+Renderer::flushTask( u32 cookie )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
 
@@ -2889,7 +2941,7 @@ Renderer::flushTask()
      leaveLock( &state->dst );
 
      if (throttle)
-          throttle->AddTask( setup->tasks[0] );
+          throttle->AddTask( setup->tasks[0], cookie );
 
      /// par flush
      setup->tasks[0]->Flush();

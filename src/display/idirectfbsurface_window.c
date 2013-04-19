@@ -190,7 +190,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      }
 #endif
 
-     CoreGraphicsStateClient_FlushCurrent();
+     CoreGraphicsStateClient_FlushCurrent( 0 );
 
      ret = CoreWindow_Repaint( data->window, &reg, &reg, flags );
      if (ret)
@@ -284,7 +284,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
      }
 #endif
 
-     CoreGraphicsStateClient_FlushCurrent();
+     CoreGraphicsStateClient_FlushCurrent( 0 );
 
      ret = CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags );
      if (ret)

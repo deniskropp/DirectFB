@@ -647,7 +647,13 @@ interface {
 	method {
 		name      Flush
 		async  	  yes
-		queue     yes
+
+                arg {
+                          name      cookie
+                          direction input
+                          type      int
+                          typename  u32
+                }
 	}
 
 	method {

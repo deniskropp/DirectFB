@@ -1187,9 +1187,6 @@ local_init( WMData  *wmdata,
      if (ret)
           return ret;
 
-     /* Make legacy functions use state client */
-     wmdata->state.client = &wmdata->client;
-
      return DFB_OK;
 }
 
@@ -2328,7 +2325,8 @@ wm_add_window( CoreWindowStack *stack,
                    | (window->flags & CWF_FOCUSED ? SWMWF_FOCUSED : 0)
                    | (window->flags & CWF_ENTERED ? SWMWF_ENTERED : 0);
 
-     fusion_object_add_owner( &window->object, sawman->manager.fusion_id );
+     if (sawman->manager.fusion_id)
+          fusion_object_add_owner( &window->object, sawman->manager.fusion_id );
 
      switch (ret = sawman_call( sawman, SWMCID_WINDOW_ADDED, info, sizeof(*info), true )) {
           case DFB_OK:
@@ -3520,7 +3518,7 @@ update_single( SaWMan              *sawman,
                     state->modified    |= SMF_DESTINATION;
                }
 
-               CoreGraphicsStateClient_Flush( &wmdata->client );
+               CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
 
                dfb_layer_region_flip_update( tier->region, &reg, flags );
           }
@@ -4150,7 +4148,7 @@ wm_update_cursor( CoreWindowStack       *stack,
                                                  old_region.x1, old_region.y1, &wmdata->client );
                }
 
-               CoreGraphicsStateClient_Flush( &wmdata->client );
+               CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
 
                restored = true;
           }
@@ -4229,7 +4227,7 @@ wm_update_cursor( CoreWindowStack       *stack,
           state->destination  = NULL;
           state->modified    |= SMF_DESTINATION;
 
-          CoreGraphicsStateClient_Flush( &wmdata->client );
+          CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
 
           tier->cursor_drawn = true;
 
@@ -4287,7 +4285,7 @@ wm_update_cursor( CoreWindowStack       *stack,
           }
      }
 
-     CoreGraphicsStateClient_Flush( &wmdata->client );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
 
      sawman_unlock( sawman );
 

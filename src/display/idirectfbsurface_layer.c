@@ -141,13 +141,13 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     CoreGraphicsStateClient_FlushCurrent();
+     CoreGraphicsStateClient_FlushCurrent( 0 );
 
      ret = CoreLayerRegion_FlipUpdate2( data->region, &reg, &reg, flags, data->base.current_frame_time );
      if (ret)
           return ret;
 
-     CoreGraphicsStateClient_Flush( &data->base.state_client );
+     CoreGraphicsStateClient_Flush( &data->base.state_client, 0 );
 
      dfb_surface_dispatch_update( data->base.surface, &reg, &reg );
 
@@ -222,13 +222,13 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
      D_DEBUG_AT( Surface, "  -> FLIPSTEREO %4d,%4d-%4dx%4d, %4d,%4d-%4dx%4d\n", 
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
-     CoreGraphicsStateClient_FlushCurrent();
+     CoreGraphicsStateClient_FlushCurrent( 0 );
 
      ret = CoreLayerRegion_FlipUpdate2( data->region, &l_reg, &r_reg, flags, -1 );
      if (ret)
           return ret;
 
-     CoreGraphicsStateClient_Flush( &data->base.state_client );
+     CoreGraphicsStateClient_Flush( &data->base.state_client, 0 );
 
      dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg );
 

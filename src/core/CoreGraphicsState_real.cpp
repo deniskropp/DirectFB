@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 #include "CoreGraphicsState.h"
@@ -364,8 +366,10 @@ private:
     CoreGraphicsState *state;
 
 public:
-    ThrottleGraphicsState( CoreGraphicsState *state )
+    ThrottleGraphicsState( Renderer          &renderer,
+                           CoreGraphicsState *state )
         :
+        Throttle( renderer ),
         state( state )
     {
     }
@@ -376,6 +380,16 @@ protected:
         fusion_call_set_quota( &state->call, state->object.identity, percent ? 0 : (dfb_config->graphics_state_call_limit ?: 0xffffffff) );
     }
 };
+
+static void
+CoreGraphicsState_SetupRenderer( CoreGraphicsState *state )
+{
+    if (!state->renderer) {
+         state->renderer = new Renderer( &state->state, state );
+
+         state->renderer->SetThrottle( new ThrottleGraphicsState(*state->renderer, state) );
+    }
+}
 
 
 DFBResult
@@ -390,8 +404,7 @@ IGraphicsState_Real::DrawRectangles(
          return DFB_NOCONTEXT;
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->DrawRectangles( rects, num );
 
@@ -417,8 +430,7 @@ IGraphicsState_Real::DrawLines(
          return DFB_NOCONTEXT;
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->DrawLines( lines, num );
 
@@ -443,8 +455,7 @@ IGraphicsState_Real::FillRectangles(
          return DFB_NOCONTEXT;
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->FillRectangles( rects, num );
 
@@ -469,8 +480,7 @@ IGraphicsState_Real::FillTriangles(
          return DFB_NOCONTEXT;
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->FillTriangles( triangles, num );
 
@@ -495,8 +505,7 @@ IGraphicsState_Real::FillTrapezoids(
          return DFB_NOCONTEXT;
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->FillTrapezoids( trapezoids, num );
 
@@ -522,8 +531,7 @@ IGraphicsState_Real::FillSpans(
          return DFB_NOCONTEXT;
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->FillSpans( y, spans, num );
 
@@ -555,8 +563,7 @@ IGraphicsState_Real::Blit(
     D_ASSERT( points != NULL );
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->Blit( rects, points, num );
 
@@ -591,8 +598,7 @@ IGraphicsState_Real::Blit2(
     D_ASSERT( points2 != NULL );
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->Blit2( rects, points1, points2, num );
 
@@ -625,8 +631,7 @@ IGraphicsState_Real::StretchBlit(
     D_ASSERT( drects != NULL );
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->StretchBlit( srects, drects, num );
 
@@ -660,8 +665,7 @@ IGraphicsState_Real::TileBlit(
     D_ASSERT( points2 != NULL );
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->TileBlit( rects, points1, points2, num );
 
@@ -694,8 +698,7 @@ IGraphicsState_Real::TextureTriangles(
     D_ASSERT( vertices != NULL );
 
     if (dfb_config->task_manager) {
-         if (!obj->renderer)
-              obj->renderer = new Renderer( &obj->state, new ThrottleGraphicsState(obj) );
+         CoreGraphicsState_SetupRenderer( obj );
 
          obj->renderer->TextureTriangles( vertices, num, formation );
 
@@ -715,13 +718,19 @@ IGraphicsState_Real::TextureTriangles(
 
 DFBResult
 IGraphicsState_Real::Flush(
+                    u32                                         cookie
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s()\n", __FUNCTION__ );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s( cookie %u )\n", __FUNCTION__, cookie );
 
     if (dfb_config->task_manager) {
         if (obj->renderer)
-            obj->renderer->Flush();
+            obj->renderer->Flush( cookie );
+    }
+    else if (cookie) {
+        dfb_gfxcard_sync();
+
+        dfb_graphics_state_dispatch_done( obj, cookie );
     }
     else
         dfb_gfxcard_flush();

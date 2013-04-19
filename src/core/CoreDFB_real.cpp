@@ -143,7 +143,7 @@ ICore_Real::CreateState(
 
     return dfb_graphics_state_create( core, ret_state );
 }
-
+/*
 static bool
 State_ObjectCallback( FusionObjectPool *pool,
                       FusionObject     *object,
@@ -156,26 +156,7 @@ State_ObjectCallback( FusionObjectPool *pool,
 
      return true;
 }
-
-DFBResult
-ICore_Real::WaitIdle(
-
-)
-{
-    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
-
-    D_MAGIC_ASSERT( obj, CoreDFB );
-
-    dfb_core_enum_graphics_states( core, State_ObjectCallback, this );
-
-    TaskManager::Sync();
-
-    if (!dfb_config->task_manager)
-         return dfb_gfxcard_sync();
-
-    return DFB_OK;
-}
-
+*/
 DFBResult
 ICore_Real::CreateImageProvider(
                     u32                                        buffer_call,
@@ -344,6 +325,16 @@ ICore_Real::ClipboardGetTimestamp(
          return ret;
 
     *ret_timestamp_us = tv.tv_sec * 1000000 + tv.tv_usec;
+
+    return DFB_OK;
+}
+
+
+DFBResult
+ICore_Real::Roundtrip(
+)
+{
+    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
 
     return DFB_OK;
 }

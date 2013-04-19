@@ -1646,9 +1646,9 @@ IDirectFB_WaitIdle( IDirectFB *thiz )
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
-     CoreGraphicsStateClient_FlushCurrent();
+     CoreGraphicsStateClient_FlushCurrent( ++data->idle_cookie );
 
-     return CoreDFB_WaitIdle( data->core );
+     return DFB_OK;
 }
 
 static DFBResult

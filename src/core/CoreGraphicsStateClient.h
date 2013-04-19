@@ -42,6 +42,8 @@
 struct __DFB_CoreGraphicsStateClient {
      int                magic;
 
+     void              *priv;
+
      CoreDFB           *core;
      CardState         *state;          /* Local state structure */
 
@@ -57,9 +59,10 @@ DFBResult CoreGraphicsStateClient_Init            ( CoreGraphicsStateClient *cli
 
 void      CoreGraphicsStateClient_Deinit          ( CoreGraphicsStateClient *client );
 
-void      CoreGraphicsStateClient_Flush           ( CoreGraphicsStateClient *client );
+void      CoreGraphicsStateClient_Flush           ( CoreGraphicsStateClient *client,
+                                                    u32                      cookie );
 void      CoreGraphicsStateClient_FlushAll        ( void );
-void      CoreGraphicsStateClient_FlushCurrent    ( void );
+void      CoreGraphicsStateClient_FlushCurrent    ( u32                      cookie );
 
 DFBResult CoreGraphicsStateClient_ReleaseSource   ( CoreGraphicsStateClient *client );
 

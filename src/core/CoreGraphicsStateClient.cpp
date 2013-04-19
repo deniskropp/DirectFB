@@ -26,6 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+//#define DIRECT_ENABLE_DEBUG
+
 #include <config.h>
 
 extern "C" {
@@ -93,7 +95,7 @@ public:
           direct_mutex_lock( &lock );
 
           for (std::list<CoreGraphicsStateClient*>::const_iterator it = clients.begin(); it != clients.end(); ++it)
-               CoreGraphicsStateClient_Flush( *it );
+               CoreGraphicsStateClient_Flush( *it, 0 );
 
           direct_mutex_unlock( &lock );
      }
@@ -104,7 +106,7 @@ public:
 
           for (std::list<CoreGraphicsStateClient*>::const_iterator it = clients.begin(); it != clients.end(); ++it) {
                if ((*it)->state->destination == surface)
-                    CoreGraphicsStateClient_Flush( *it );
+                    CoreGraphicsStateClient_Flush( *it, 0 );
           }
 
           direct_mutex_unlock( &lock );
@@ -158,7 +160,7 @@ public:
                if (this->client) {
                     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flushing previous (%p)\n", this->client );
 
-                    CoreGraphicsStateClient_Flush( this->client );
+                    CoreGraphicsStateClient_Flush( this->client, 0 );
                }
 
                this->client = client;
@@ -193,8 +195,9 @@ private:
     Direct::LockWQ lwq;
 
 public:
-    ThrottleBlocking()
+    ThrottleBlocking( DirectFB::Renderer &renderer )
         :
+        Throttle( renderer ),
         blocking( false )
     {
     }
@@ -208,9 +211,9 @@ public:
     }
 
 protected:
-    virtual void AddTask( DirectFB::SurfaceTask *task )
+    virtual void AddTask( DirectFB::SurfaceTask *task, u32 cookie )
     {
-         Throttle::AddTask( task );
+         Throttle::AddTask( task, cookie );
 
          WaitNotBlocking();
     }
@@ -232,6 +235,70 @@ protected:
 
 
 extern "C" {
+
+static ReactionResult CoreGraphicsStateClient_Reaction( const void *msg_data,
+                                                        void       *ctx );
+
+class CoreGraphicsStateClientPrivate
+{
+private:
+     CoreGraphicsStateClient *client;
+     Direct::LockWQ           lwq;
+     Reaction                 gfx_reaction;
+     u32                      last_cookie;
+
+public:
+     CoreGraphicsStateClientPrivate( CoreGraphicsStateClient *client )
+          :
+          client( client ),
+          last_cookie(0)
+     {
+          dfb_graphics_state_attach( client->gfx_state, CoreGraphicsStateClient_Reaction, this, &gfx_reaction );
+     }
+
+     virtual ~CoreGraphicsStateClientPrivate()
+     {
+          dfb_graphics_state_detach( client->gfx_state, &gfx_reaction );
+     }
+
+     void handleDone( u32 cookie )
+     {
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( cookie %u )\n", __FUNCTION__, cookie );
+
+          Direct::LockWQ::Lock l1( lwq );
+
+          last_cookie = cookie;
+
+          lwq.notifyAll();
+     }
+
+     void waitDone( u32 cookie )
+     {
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( cookie %u )\n", __FUNCTION__, cookie );
+
+          Direct::LockWQ::Lock l1( lwq );
+
+          while (last_cookie != cookie) {
+               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> last cookie is %u, waiting...\n", last_cookie );
+               l1.wait();
+          }
+
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> waitDone() done.\n" );
+     }
+};
+
+static ReactionResult
+CoreGraphicsStateClient_Reaction( const void *msg_data,
+                                  void       *ctx )
+{
+     const CoreGraphicsStateNotification *notification = (const CoreGraphicsStateNotification *) msg_data;
+     CoreGraphicsStateClientPrivate      *priv         = (CoreGraphicsStateClientPrivate *) ctx;
+
+     priv->handleDone( notification->cookie );
+
+     return RS_OK;
+}
+
 
 DFBResult
 CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
@@ -259,18 +326,25 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      if (dfb_config->task_manager) {
           if (dfb_config->call_nodirect) {
                if (direct_thread_get_tid( direct_thread_self() ) == fusion_dispatcher_tid(state->core->world)) {
-                    client->renderer = new DirectFB::Renderer( client->state, NULL );
+                    client->renderer = new DirectFB::Renderer( client->state, client->gfx_state );
                }
           }
-          else if (!fusion_config->secure_fusion || dfb_core_is_master( client->core ))
-               client->renderer = new DirectFB::Renderer( client->state, new ThrottleBlocking() );
+          else if (!fusion_config->secure_fusion || dfb_core_is_master( client->core )) {
+               client->renderer = new DirectFB::Renderer( client->state, client->gfx_state );
+               client->renderer->SetThrottle( new ThrottleBlocking( *client->renderer ) );
+          }
      }
 
      client->requestor = new DirectFB::IGraphicsState_Requestor( core_dfb, client->gfx_state );
 
+     client->priv = new CoreGraphicsStateClientPrivate( client );
+
      D_MAGIC_SET( client, CoreGraphicsStateClient );
 
      client_list.AddClient( client );
+
+     /* Make legacy functions use state client */
+     state->client = client;
 
      return DFB_OK;
 }
@@ -289,12 +363,13 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
 
      D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> deinit, flushing (%p)\n", client );
 
-     CoreGraphicsStateClient_Flush( client );
+     CoreGraphicsStateClient_Flush( client, 0 );
 
      if (client->renderer)
           delete client->renderer;
 
      delete (DirectFB::IGraphicsState_Requestor *) client->requestor;
+     delete (CoreGraphicsStateClientPrivate *) client->priv;
 
      dfb_graphics_state_unref( client->gfx_state );
 
@@ -312,16 +387,21 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
      } while (0)
 
 void
-CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client )
+CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client, u32 cookie )
 {
-     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( %p, cookie %u )\n", __FUNCTION__, client, cookie );
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
+
+     CoreGraphicsStateClientPrivate *priv = (CoreGraphicsStateClientPrivate *) client->priv;
 
      if (client->renderer) {
           D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush renderer\n" );
 
-          client->renderer->Flush();
+          client->renderer->Flush( cookie );
+
+          if (cookie)
+               priv->waitDone( cookie );
      }
      else {
           StateHolder *holder = state_holder_tls.Get( NULL );
@@ -331,14 +411,20 @@ CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client )
                if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush gfxcard\n" );
 
-                    dfb_gfxcard_flush();
+                    if (cookie)
+                         dfb_gfxcard_sync();
+                    else
+                         dfb_gfxcard_flush();
                }
                else {
                     DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
                     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush via requestor\n" );
 
-                    requestor->Flush();
+                    requestor->Flush( cookie );
+
+                    if (cookie)
+                         priv->waitDone( cookie );
                }
           }
      }
@@ -353,9 +439,9 @@ CoreGraphicsStateClient_FlushAll()
 }
 
 void
-CoreGraphicsStateClient_FlushCurrent()
+CoreGraphicsStateClient_FlushCurrent( u32 cookie )
 {
-     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( cookie %u )\n", __FUNCTION__, cookie );
 
      StateHolder *holder = state_holder_tls.Get( NULL );
      D_ASSERT( holder != NULL );
@@ -363,26 +449,48 @@ CoreGraphicsStateClient_FlushCurrent()
      if (holder->client) {
           D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> unsetting client %p (secure slave or always-indirect)\n", holder->client );
 
-          holder->set( NULL );
+          CoreGraphicsStateClient_Flush( holder->client, cookie );
+          //holder->set( NULL );
      }
      else if (dfb_config->task_manager) {
           if (dfb_config->call_nodirect) {
                if (direct_thread_get_tid( direct_thread_self() ) == fusion_dispatcher_tid(core_dfb->world)) {
                     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in dispatcher with task-manager and always-indirect, flushing Renderer\n" );
 
-                    DirectFB::Renderer::FlushCurrent();
+                    DirectFB::Renderer *renderer = DirectFB::Renderer::GetCurrent();
+
+                    if (renderer) {
+                         CoreGraphicsStateClientPrivate *priv = (CoreGraphicsStateClientPrivate *)( (CoreGraphicsStateClient *) renderer->state->client)->priv;
+
+                         renderer->FlushCurrent( cookie );
+
+                         if (cookie)
+                              priv->waitDone( cookie );
+                    }
                }
           }
           else if (!fusion_config->secure_fusion || dfb_core_is_master( core_dfb )) {
                D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in master (or insecure slave) with task-manager, flushing Renderer\n" );
 
-               DirectFB::Renderer::FlushCurrent();
+               DirectFB::Renderer *renderer = DirectFB::Renderer::GetCurrent();
+
+               if (renderer) {
+                    CoreGraphicsStateClientPrivate *priv = (CoreGraphicsStateClientPrivate *)( (CoreGraphicsStateClient *) renderer->state->client)->priv;
+
+                    renderer->FlushCurrent( cookie );
+
+                    if (cookie)
+                         priv->waitDone( cookie );
+               }
           }
      }
      else if (!dfb_config->call_nodirect && (dfb_core_is_master( core_dfb ) || !fusion_config->secure_fusion)) {
-          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in master (or insecure slave) without task-manager, calling dfb_gfxcard_flush()\n" );
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in master (or insecure slave) without task-manager, calling dfb_gfxcard_flush/sync()\n" );
 
-          dfb_gfxcard_flush();
+          if (cookie)
+               dfb_gfxcard_sync();
+          else
+               dfb_gfxcard_flush();
      }
 }
 

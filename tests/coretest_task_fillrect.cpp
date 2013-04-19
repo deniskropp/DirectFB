@@ -198,7 +198,7 @@ main( int argc, char *argv[] )
           dfb_state_set_destination( &state, dst );
 
 
-          renderer = new DirectFB::Renderer( &state );
+          renderer = new DirectFB::Renderer( &state, NULL );
 
 
           for (int i=0; i<100000; i++) {

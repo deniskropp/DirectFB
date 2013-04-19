@@ -682,7 +682,7 @@ IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
      if (!data->stack)
           return DFB_OK;
 
-     CoreGraphicsStateClient_Flush( &surface_data->state_client );
+     CoreGraphicsStateClient_Flush( &surface_data->state_client, 0 );
 
      return CoreWindowStack_BackgroundSetImage( data->stack,
                                                 surface_data->surface );

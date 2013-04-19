@@ -3,9 +3,9 @@ interface {
         version     "1.0"
         object      CoreDFB
 
-	method {
-		name	Initialize
-	}
+        method {
+                name	Initialize
+        }
 
 	method {
 		name	Register
@@ -85,10 +85,6 @@ interface {
                         type        object
                         typename    CoreGraphicsState
                 }
-        }
-
-        method {
-                name    WaitIdle
         }
 
         method {
@@ -239,6 +235,10 @@ interface {
                         type        int
                         typename    u64
                 }
+        }
+
+        method {
+                name	Roundtrip
         }
 }
 

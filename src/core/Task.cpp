@@ -77,14 +77,6 @@ TaskManager_Shutdown()
 }
 
 void
-TaskManager_Sync()
-{
-     D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
-
-     TaskManager::Sync();
-}
-
-void
 TaskManager_SyncAll()
 {
      D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
@@ -1102,31 +1094,6 @@ TaskManager::Shutdown()
 #if DFB_TASK_DEBUG_TASKS
      direct_mutex_deinit( &tasks_lock );
 #endif
-}
-
-void
-TaskManager::Sync()
-{
-     D_ASSERT( direct_thread_self() != TaskManager::thread );
-
-     int timeout = 10000;
-
-     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
-
-     // FIXME: this is a hack, will avoid Sync() at all
-     while (*(volatile unsigned int*)&task_count_sync) {
-          if (!--timeout) {
-#if DFB_TASK_DEBUG_TASKS
-               D_ERROR( "TaskManager: Timeout while syncing (task count %d, nosync %d, tasks %zu)!\n", task_count_sync, task_count, tasks.size() );
-#else
-               D_ERROR( "TaskManager: Timeout while syncing (task count %d, nosync %d)!\n", task_count_sync, task_count );
-#endif
-               dumpTasks();
-               return;
-          }
-
-          usleep( 1000 );
-     }
 }
 
 void

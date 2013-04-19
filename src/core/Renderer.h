@@ -143,22 +143,63 @@ class Base;
 class Renderer : public Direct::Magic<Renderer>
 {
 public:
-     class Throttle : public SurfaceTask::Hook
+     class Throttle
      {
           friend class Renderer;
 
+          class Hook : public SurfaceTask::Hook {
+          public:
+               Hook( Throttle &throttle,
+                     u32       cookie )
+                    :
+                    throttle( throttle ),
+                    cookie( cookie )
+               {
+               }
+
+          private:
+               DFBResult setup( SurfaceTask *task );
+               void      finalise( SurfaceTask *task );
+
+               Throttle &throttle;
+               u32       cookie;
+          };
+
      public:
-          Throttle();
+          Throttle( Renderer &renderer );
+          virtual ~Throttle();
+
+          void ref()
+          {
+               lock.lock();
+
+               ref_count++;
+
+               lock.unlock();
+          }
+
+          void unref()
+          {
+               lock.lock();
+
+               if (--ref_count) {
+                    lock.unlock();
+
+//                    delete this;
+               }
+               else
+                    lock.unlock();
+          }
 
      protected:
-          virtual void AddTask( SurfaceTask *task );
+          virtual void AddTask( SurfaceTask *task, u32 cookie );
           virtual void SetThrottle( int percent ) = 0;
 
      private:
-          DFBResult setup( SurfaceTask *task );
-          void      finalise( SurfaceTask *task );
-
-          unsigned int task_count;
+          CoreGraphicsState *gfx_state;
+          unsigned int       ref_count;
+          unsigned int       task_count;
+          Direct::Mutex      lock;
      };
 
      class Setup
@@ -218,12 +259,16 @@ public:
      };
 
 public:
-     Renderer( CardState *state, Throttle *throttle = NULL );
+     Renderer( CardState         *state,
+               CoreGraphicsState *gfx_state );
      ~Renderer();
 
+     void SetThrottle( Throttle *throttle );
 
-     void Flush();
-     static void FlushCurrent();
+     void Flush( u32 cookie = 0 );
+
+     static void      FlushCurrent( u32 cookie = 0 );
+     static Renderer *GetCurrent();
 
 
      void DrawRectangles  ( const DFBRectangle     *rects,
@@ -272,8 +317,10 @@ public:
                             DFBTriangleFormation    formation );
 
 
-private:
+public:
      CardState             *state;
+     CoreGraphicsState     *gfx_state;
+private:
      StateModificationFlags state_mod;
      WaterTransformType     transform_type;
 
@@ -296,8 +343,8 @@ private:
      DFBResult bindEngine  ( Engine              *engine,
                              DFBAccelerationMask  accel );
      DFBResult rebindEngine( DFBAccelerationMask  accel );
-     void      unbindEngine();
-     void      flushTask();
+     void      unbindEngine( u32                  cookie );
+     void      flushTask   ( u32                  cookie );
 
      void      render    ( Primitives::Base       *primitives );
 
