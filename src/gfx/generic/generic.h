@@ -234,16 +234,17 @@ void Genefx_TextureTriangleAffine( GenefxState        *gfxs,
           if (dfb_config->software_trace) {                                          \
                int         i;                                                        \
                GenefxFunc *funcs = gfxs->funcs;                                      \
+               DirectLog  *log = direct_log_default();                               \
                                                                                      \
-               direct_log_lock( NULL );                                              \
-               direct_log_printf( NULL, "  Software Fallback Pipeline:\n" );         \
+               direct_log_lock( log );                                               \
+               direct_log_printf( log, "  Software Fallback Pipeline:\n" );          \
                                                                                      \
                for (i=0; funcs[i]; ++i)                                              \
-                    direct_log_printf( NULL, "    [%2d] %s\n", i,                    \
+                    direct_log_printf( log, "    [%2d] %s\n", i,                     \
                                        direct_trace_lookup_symbol_at( funcs[i] ) );  \
                                                                                      \
-               direct_log_printf( NULL, "\n" );                                      \
-               direct_log_unlock( NULL );                                            \
+               direct_log_printf( log, "\n" );                                       \
+               direct_log_unlock( log );                                             \
           }                                                                          \
      }
 
