@@ -972,19 +972,13 @@ dfb_surface_buffer_dump_type( CoreSurfaceBuffer *buffer,
                               const char        *prefix,
                               bool               raw )
 {
-     DFBResult              ret;
-     CoreSurfaceBufferLock  lock;
-     CoreSurface           *surface;
+     DFBResult             ret;
+     CoreSurfaceBufferLock lock;
 
      D_DEBUG_AT( Core_SurfBuffer, "%s( %p, %p, %p )\n", __FUNCTION__, buffer, directory, prefix );
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_ASSERT( directory != NULL );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      /* Lock the surface buffer, get the data pointer and pitch. */
      ret = dfb_surface_buffer_lock( buffer, CSAID_CPU, CSAF_READ, &lock );
