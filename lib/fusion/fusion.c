@@ -2639,6 +2639,8 @@ fusion_exit( FusionWorld *world,
      direct_mutex_deinit( &world->refs_lock );
      direct_map_destroy( world->refs_map );
 
+     fusion_hash_destroy( shared->call_hash );
+
      /* Master has to deinitialize shared data. */
      if (fusion_master( world )) {
           fusion_call_destroy( &shared->refs_call );
@@ -2664,8 +2666,6 @@ fusion_exit( FusionWorld *world,
 
      /* Reset local dispatch nodes. */
      _fusion_reactor_free_all( world );
-
-     fusion_hash_destroy( shared->call_hash );
 
      /* Remove world from global list. */
      fusion_worlds[shared->world_index] = NULL;
