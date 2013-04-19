@@ -494,11 +494,13 @@ net_open( DirectStream *stream, const char *filename, int proto )
      hints.ai_socktype = sock;
      hints.ai_family   = PF_UNSPEC;
 
-     if (getaddrinfo( stream->remote.host, port,
-                      &hints, &stream->remote.addr )) {
-          D_ERROR( "Direct/Stream: "
-                   "failed to resolve host '%s'!\n", stream->remote.host );
-          return DR_FAILURE;
+     if (getaddrinfo( stream->remote.host, port, &hints, &stream->remote.addr )) {
+          /* give it a second chance without AI_CANONNAME which fails on some platforms */
+          hints.ai_flags = 0;
+          if (getaddrinfo( stream->remote.host, port, &hints, &stream->remote.addr )) {
+               D_ERROR( "Direct/Stream: failed to resolve host '%s'!\n", stream->remote.host );
+               return DR_FAILURE;
+          }
      }
 
      ret = net_connect( stream->remote.addr, sock, proto, &stream->remote.sd );
@@ -707,9 +709,12 @@ ftp_open_pasv( DirectStream *stream, char *buf, size_t size )
                hints.ai_family   = PF_UNSPEC;
 
                if (getaddrinfo( buf, buf+len+1, &hints, &addr )) {
-                    D_DEBUG_AT( Direct_Stream,
-                                "failed to resolve host '%s'.\n", buf );
-                    return DR_FAILURE;
+                    /* give it a second chance without AI_CANONNAME which fails on some platforms */
+                    hints.ai_flags = 0;
+                    if (getaddrinfo( buf, buf+len+1, &hints, &addr )) {
+                         D_DEBUG_AT( Direct_Stream, "failed to resolve host '%s'.\n", buf );
+                         return DR_FAILURE;
+                    }
                }
 
                ret = net_connect( addr, SOCK_STREAM, IPPROTO_TCP, &stream->fd );
