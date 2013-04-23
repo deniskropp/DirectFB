@@ -119,9 +119,6 @@ direct_signals_initialize( void )
 DirectResult
 direct_signals_shutdown( void )
 {
-#ifndef ANDROID_NDK
-     D_ASSERT( sighandler_thread != NULL );
-#endif
      D_DEBUG_AT( Direct_Signals, "Shutting down...\n" );
 #ifdef ANDROID_NDK
      remove_handlers();
