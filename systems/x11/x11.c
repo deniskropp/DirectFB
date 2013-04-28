@@ -396,7 +396,7 @@ system_shutdown( bool emergency )
 
           layer = dfb_layer_at( i );
           lds   = layer->layer_data;
-          if( lds->xw ) {
+          if( lds && lds->xw ) {
               dfb_x11_close_window( x11, lds->xw );
               lds->xw = 0;
               shared->window_count--;
