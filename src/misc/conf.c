@@ -490,8 +490,13 @@ static void config_allocate( void )
      dfb_config->layers_clear             = true;
      dfb_config->wm_fullscreen_updates    = false;
 
-     /* default to fbdev */
-     dfb_config->system = D_STRDUP( "FBDev" );
+     /* default to x11 if DISPLAY is set, or drm/fbdev if permitted */
+     if (getenv( "DISPLAY" ))
+          dfb_config->system = D_STRDUP( "x11" );
+     else if (!access( "/dev/dri/card0", O_RDWR ))
+          dfb_config->system = D_STRDUP( "drmkms" );
+     else if (!access( "/dev/fb0", O_RDWR ))
+          dfb_config->system = D_STRDUP( "fbdev" );
 
      /* default to no-vt-switch if we don't have root privileges */
      if (direct_geteuid())
