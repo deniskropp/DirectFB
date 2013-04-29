@@ -596,7 +596,7 @@ draw_window( SaWManTier   *tier,
      dfb_state_set_blitting_flags( state, flags );
 
      /* Set render options. */
-     if (sawman->scaling_mode == SWMSM_SMOOTH_SW)
+     if (sawman->scaling_mode == SWMSM_SMOOTH)
           dfb_state_set_render_options( state, DSRO_SMOOTH_DOWNSCALE | DSRO_SMOOTH_UPSCALE );
      else
           dfb_state_set_render_options( state, DSRO_NONE );

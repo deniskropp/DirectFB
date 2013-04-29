@@ -626,7 +626,7 @@ input_filter( void          *context,
                          return DFB_BUSY;
 
                     case DIKS_F11:
-                         tm->scaling_mode = (tm->scaling_mode == SWMSM_SMOOTH_SW) ? SWMSM_STANDARD : SWMSM_SMOOTH_SW;
+                         tm->scaling_mode = (tm->scaling_mode == SWMSM_SMOOTH) ? SWMSM_STANDARD : SWMSM_SMOOTH;
                          manager->SetScalingMode( manager, tm->scaling_mode );
                          manager->Unlock( manager );
                          return DFB_BUSY;

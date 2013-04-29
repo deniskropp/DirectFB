@@ -73,8 +73,8 @@ typedef enum {
 
 
 typedef enum {
-     SWMSM_SMOOTH_SW,    /* Smooth scaling algorithm in software */
-     SWMSM_STANDARD      /* As provided by hardware, otherwise software (nearest neighbor) */
+     SWMSM_STANDARD,      /* As provided by hardware, otherwise software (nearest neighbor) */
+     SWMSM_SMOOTH         /* Smooth scaling algorithm in hardware */
 } SaWManScalingMode;
 
 

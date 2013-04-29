@@ -306,7 +306,7 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
 
      D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
-     if (mode != SWMSM_STANDARD && mode != SWMSM_SMOOTH_SW)
+     if (mode != SWMSM_STANDARD && mode != SWMSM_SMOOTH)
           return DFB_INVARG;
 
      sawman = data->sawman;

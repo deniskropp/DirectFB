@@ -233,7 +233,7 @@ sawman_initialize( SaWMan         *sawman,
 
      /* Default to HW Scaling if supported. */
      if (dfb_gfxcard_get_device_info( &info ), info.caps.accel & DFXL_STRETCHBLIT)
-          sawman->scaling_mode = SWMSM_STANDARD;
+          sawman->scaling_mode = SWMSM_SMOOTH;
 
      /* Initialize grabbed keys. */
      for (i=0; i<SAWMAN_MAX_IMPLICIT_KEYGRABS; i++)
