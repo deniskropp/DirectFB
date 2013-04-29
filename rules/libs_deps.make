@@ -24,3 +24,5 @@ endif
 
 DFB_BASE_LIBS = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
+GL_DFB_BASE_LIBS    = $(GL_LIBS)
+GLES2_DFB_BASE_LIBS = $(GLES2_LIBS)
