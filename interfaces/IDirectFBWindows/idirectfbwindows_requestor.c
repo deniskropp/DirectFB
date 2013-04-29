@@ -62,6 +62,8 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBWindows, Requestor )
 static void
 IDirectFBWindows_Requestor_Destruct( IDirectFBWindows *thiz )
 {
+     IDirectFBWindows_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
 
      voodoo_manager_request( data->manager, data->instance,
