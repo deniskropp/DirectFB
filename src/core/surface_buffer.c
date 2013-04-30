@@ -268,7 +268,9 @@ dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,
 
                D_ASSERT( alloc->flags & CSALF_PREALLOCATED );
 
-               return alloc;
+               /* Return if allocation has required flags. */
+               if (D_FLAGS_ARE_SET( alloc->access[accessor], flags ))
+                    return alloc;
           }
      }
 
