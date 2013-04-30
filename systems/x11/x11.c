@@ -112,6 +112,22 @@ static FusionCallHandlerResult call_handler( int           caller,
 
 /**********************************************************************************************************************/
 
+static void
+sync_display( DFBX11 *x11 )
+{
+     D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
+
+     XSync( x11->display, False );
+}
+
+static void
+sync_display_noop( DFBX11 *x11 )
+{
+     D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
+}
+
+/**********************************************************************************************************************/
+
 static DFBX11Shared *shared_for_error_handler;
 
 static int
@@ -136,6 +152,11 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
      int i, n, d;
 
      XInitThreads();
+
+     if (direct_config_get_int_value( "x11-sync" ))
+          x11->Sync = sync_display;
+     else
+          x11->Sync = sync_display_noop;
 
      x11->shared = shared;
      x11->core   = core;
