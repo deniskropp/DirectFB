@@ -1274,7 +1274,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
           D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p ) ==> got %zu (of up to %zu)\n", __FUNCTION__, world, len, buf_size );
 
-          direct_thread_lock( world->dispatch_loop );
+          direct_thread_lock( thread );
 
           if (world->dispatch_stop) {
                D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
@@ -1357,7 +1357,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
           handle_dispatch_cleanups( world );
 
-          direct_thread_unlock( world->dispatch_loop );
+          direct_thread_unlock( thread );
 
           if (!world->refs) {
                D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
@@ -2927,7 +2927,7 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
 
                D_DEBUG_AT( Fusion_Main_Dispatch, " -> message from '%s'...\n", addr.sun_path );
 
-               direct_thread_lock( world->dispatch_loop );
+               direct_thread_lock( self );
 
                if (world->dispatch_stop) {
                     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
@@ -3001,7 +3001,7 @@ fusion_dispatch_loop( DirectThread *self, void *arg )
 
                handle_dispatch_cleanups( world );
 
-               direct_thread_unlock( world->dispatch_loop );
+               direct_thread_unlock( self );
 
                if (!world->refs) {
                     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
