@@ -599,7 +599,11 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                     for (x=0,x3=0; x<width; x++,x3+=3) {
                          int r, g, b;
 
+#ifdef WORDS_BIGENDIAN
                          YCBCR_TO_RGB( src8[x3+1], src8[x3+2], src8[x3], r, g, b );
+#else
+                         YCBCR_TO_RGB( src8[x3+1], src8[x3], src8[x3+2], r, g, b );
+#endif
 
                          dst[x] = PIXEL_RGB16( r, g, b );
                     }
@@ -1922,13 +1926,8 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                          cr = (src32[n] & 0xff0000) >> 16;
                          y  = (src32[n] & 0x00ff00) >>  8;
                          cb = (src32[n] & 0x0000ff) >>  0;
-#ifdef WORDS_BIGENDIAN
                          YCBCR_TO_RGB (y, cb, cr,
                                        dst[n3+0], dst[n3+1], dst[n3+2]);
-#else
-                         YCBCR_TO_RGB (y, cb, cr,
-                                       dst[n3+2], dst[n3+1], dst[n3+0]);
-#endif
                     }
 
                     src += spitch;
@@ -1940,19 +1939,12 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     const u8 * __restrict src8 = src;
 
                     for (n=0, n3=0; n<width; n++, n3+=3) {
-                         register u32 y, cb, cr;
 #ifdef WORDS_BIGENDIAN
-                         cr = src8[n3+0];
-                         y  = src8[n3+1];
-                         cb = src8[n3+2];
-                         YCBCR_TO_RGB (y, cb, cr,
+                         YCBCR_TO_RGB (src8[n3+1], src8[n3+2], src8[n3+0],
                                        dst[n3+0], dst[n3+1], dst[n3+2]);
 #else
-                         cr = src8[n3+2];
-                         y  = src8[n3+1];
-                         cb = src8[n3+0];
-                         YCBCR_TO_RGB (y, cb, cr,
-                                       dst[n3+2], dst[n3+1], dst[n3+0]);
+                         YCBCR_TO_RGB (src8[n3+1], src8[n3], src8[n3+2],
+                                       dst[n3+0], dst[n3+1], dst[n3+2]);
 #endif
                     }
 
