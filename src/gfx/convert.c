@@ -923,14 +923,15 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
           case DSPF_VYU:
                while (height--) {
                     const u8 *src8 = src;
+                    int x3;
 
-                    for (x=0; x<width; x++) {
+                    for (x=0,x3=0; x<width; x++,x3+=3) {
                          int r, g, b;
 
 #ifdef WORDS_BIGENDIAN
-                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3+2], src8[x*3], r, g, b );
+                         YCBCR_TO_RGB( src8[x3+1], src8[x3+2], src8[x3], r, g, b );
 #else
-                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3], src8[x*3+2], r, g, b );
+                         YCBCR_TO_RGB( src8[x3+1], src8[x3], src8[x3+2], r, g, b );
 #endif
 
                          dst[x] = PIXEL_RGB555( r, g, b );
@@ -1226,14 +1227,15 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
           case DSPF_VYU:
                while (height--) {
                     const u8 *src8 = src;
+                    int x3;
 
-                    for (x=0; x<width; x++) {
+                    for (x=0,x3=0; x<width; x++,x3+=3) {
                          int r, g, b;
 
 #ifdef WORDS_BIGENDIAN
-                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3+2], src8[x*3], r, g, b );
+                         YCBCR_TO_RGB( src8[x3+1], src8[x3+2], src8[x3], r, g, b );
 #else
-                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3], src8[x*3+2], r, g, b );
+                         YCBCR_TO_RGB( src8[x3+1], src8[x3], src8[x3+2], r, g, b );
 #endif
 
                          dst[x] = PIXEL_RGB32( r, g, b );
@@ -1576,14 +1578,15 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
           case DSPF_VYU:
                while (height--) {
                     const u8 *src8 = src;
+                    int x3;
 
-                    for (x=0; x<width; x++) {
+                    for (x=0,x3=0; x<width; x++,x3+=3) {
                          int r, g, b;
 
 #ifdef WORDS_BIGENDIAN
-                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3+2], src8[x*3], r, g, b );
+                         YCBCR_TO_RGB( src8[x3+1], src8[x3+2], src8[x3], r, g, b );
 #else
-                         YCBCR_TO_RGB( src8[x*3+1], src8[x*3], src8[x*3+2], r, g, b );
+                         YCBCR_TO_RGB( src8[x3+1], src8[x3], src8[x3+2], r, g, b );
 #endif
 
                          dst[x] = PIXEL_ARGB( 0xff, r, g, b );
