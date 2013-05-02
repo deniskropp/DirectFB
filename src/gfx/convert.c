@@ -2047,13 +2047,8 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     const u8 * __restrict cr = src + 2 * surface_height * spitch;
 
                     for (n=0, n3=0; n<width; n++, n3+=3) {
-#ifdef WORDS_BIGENDIAN
                          YCBCR_TO_RGB (*y++, *cb++, *cr++,
                                        dst[n3+0], dst[n3+1], dst[n3+2]);
-#else
-                         YCBCR_TO_RGB (*y++, *cb++, *cr++,
-                                       dst[n3+2], dst[n3+1], dst[n3+0]);
-#endif
                     }
 
                     src += spitch;
