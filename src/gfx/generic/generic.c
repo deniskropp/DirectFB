@@ -9122,15 +9122,11 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
           case DSPF_YV12:
           case DSPF_YV16:
           case DSPF_NV12:
+          case DSPF_NV21:
           case DSPF_NV16:
           case DSPF_YUV444P:
                RGB_TO_YCBCR( color.r, color.g, color.b,
                              gfxs->YCop, gfxs->CbCop, gfxs->CrCop );
-               gfxs->Cop = gfxs->YCop;
-               break;
-          case DSPF_NV21:
-               RGB_TO_YCBCR( color.r, color.g, color.b,
-                             gfxs->YCop, gfxs->CrCop, gfxs->CbCop );
                gfxs->Cop = gfxs->YCop;
                break;
           case DSPF_LUT1:
