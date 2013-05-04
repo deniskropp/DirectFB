@@ -100,6 +100,8 @@ struct __DFB_X11 {
      int                  screennum;
 
      Visual              *visuals[DFB_NUM_PIXELFORMATS];
+     
+     void               (*Sync)( DFBX11 *x11 );
 };
 
 typedef enum {

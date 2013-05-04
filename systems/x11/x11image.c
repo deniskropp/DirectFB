@@ -166,6 +166,7 @@ dfb_x11_image_init_handler( DFBX11 *x11, x11Image *image )
           XUnlockDisplay( x11->display );
           return DFB_FAILURE;
      }
+     x11->Sync( x11 );
 
      /* we firstly create our shared memory segment with the size we need, and
       correct permissions for the owner, the group and the world --> 0777 */
@@ -188,14 +189,17 @@ dfb_x11_image_init_handler( DFBX11 *x11, x11Image *image )
 
      if (!XShmAttach( x11->display, &image->seginfo ))
           goto error_xshmattach;
+     x11->Sync( x11 );
 
      image->ximage = ximage;
      image->pitch  = ximage->bytes_per_line;
 
      image->pixmap = XShmCreatePixmap( x11->display, DefaultRootWindow(x11->display), ximage->data,
                                        &image->seginfo, image->width, image->height, image->depth );
+     x11->Sync( x11 );
 
      image->gc = XCreateGC( x11->display, image->pixmap, 0, NULL );
+     x11->Sync( x11 );
 
      XUnlockDisplay( x11->display );
 
@@ -210,6 +214,7 @@ error_shmat:
 
 error:
      XDestroyImage( ximage );
+     x11->Sync( x11 );
 
      XUnlockDisplay( x11->display );
 
@@ -224,11 +229,15 @@ dfb_x11_image_destroy_handler( DFBX11 *x11, x11Image *image )
      XLockDisplay( x11->display );
 
      XFreeGC( x11->display, image->gc );
+     x11->Sync( x11 );
      XFreePixmap( x11->display, image->pixmap );
+     x11->Sync( x11 );
 
      XShmDetach( x11->display, &image->seginfo );
+     x11->Sync( x11 );
 
      XDestroyImage( image->ximage );
+     x11->Sync( x11 );
 
      XUnlockDisplay( x11->display );
 
