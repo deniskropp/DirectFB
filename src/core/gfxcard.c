@@ -1125,6 +1125,11 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      if (state->disabled & accel)
           return false;
 
+     if (fusion_skirmish_prevail_multi( locks, num_locks ))
+          return false;
+
+     dfb_state_update_destination( state );
+
      /* If destination or blend functions have been changed... */
      if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND | SMF_RENDER_OPTIONS)) {
           /* ...force rechecking for all functions. */
@@ -1150,11 +1155,6 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
      D_DEBUG_AT( Core_GfxState, "  -> checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
                  state->checked, state->accel, state->modified, state->mod_hw );
-
-     if (fusion_skirmish_prevail_multi( locks, num_locks ))
-          return false;
-
-     dfb_state_update_destination( state );
 
      if (DFB_BLITTING_FUNCTION(accel)) {
           dfb_state_update_sources( state, CSF_SOURCE );
