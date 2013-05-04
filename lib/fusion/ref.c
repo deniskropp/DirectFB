@@ -853,6 +853,8 @@ fusion_ref_down (FusionRef *ref, bool global)
      }
 
      if (! --ref->single.refs) {
+          ref->single.dead++;
+
           if (ref->single.call) {
                FusionCall *call = ref->single.call;
 
