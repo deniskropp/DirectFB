@@ -669,8 +669,6 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
 
           case DSPF_YV16:
                {
-               const u8 *src_cr = src + surface_height * spitch;
-               const u8 *src_cb = src_cr + surface_height * spitch/2;
                ++height;
                while (--height) {
                     const u8 * __restrict y  = src;
@@ -689,8 +687,8 @@ dfb_convert_to_rgb16( DFBSurfacePixelFormat  format,
                     }
 
                     src += spitch;
-                    src_cb += spitch/2;
-                    src_cr += spitch/2;
+                    src_cb += scbpitch;
+                    src_cr += scrpitch;
                     dst += dp2;
                }
                }
@@ -948,8 +946,6 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
 
           case DSPF_YV16:
                {
-               const u8 *src_cr = src + surface_height * spitch;
-               const u8 *src_cb = src_cr + surface_height * spitch/2;
                ++height;
                while (--height) {
                     const u8 * __restrict y  = src;
@@ -968,8 +964,8 @@ dfb_convert_to_rgb555( DFBSurfacePixelFormat  format,
                     }
 
                     src += spitch;
-                    src_cb += spitch/2;
-                    src_cr += spitch/2;
+                    src_cb += scbpitch;
+                    src_cr += scrpitch;
                     dst += dp2;
                }
                }
@@ -1252,8 +1248,6 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
 
           case DSPF_YV16:
                {
-               const u8 *src_cr = src + surface_height * spitch;
-               const u8 *src_cb = src_cr + surface_height * spitch/2;
                ++height;
                while (--height) {
                     const u8 * __restrict y  = src;
@@ -1272,8 +1266,8 @@ dfb_convert_to_rgb32( DFBSurfacePixelFormat  format,
                     }
 
                     src += spitch;
-                    src_cb += spitch/2;
-                    src_cr += spitch/2;
+                    src_cb += scbpitch;
+                    src_cr += scrpitch;
                     dst += dp4;
                }
                }
@@ -1603,8 +1597,6 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
 
           case DSPF_YV16:
                {
-               const u8 *src_cr = src + surface_height * spitch;
-               const u8 *src_cb = src_cr + surface_height * spitch/2;
                ++height;
                while (--height) {
                     const u8 * __restrict y  = src;
@@ -1623,8 +1615,8 @@ dfb_convert_to_argb( DFBSurfacePixelFormat  format,
                     }
 
                     src += spitch;
-                    src_cb += spitch/2;
-                    src_cr += spitch/2;
+                    src_cb += scbpitch;
+                    src_cr += scrpitch;
                     dst += dp4;
                }
                }
@@ -2056,8 +2048,6 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                break;
           case DSPF_YV16:
                {
-               const u8 *src_cr = src + surface_height * spitch;
-               const u8 *src_cb = src_cr + surface_height * spitch/2;
                ++height;
                while (--height) {
                     const u8 * __restrict y  = src;
@@ -2065,13 +2055,8 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     const u8 * __restrict cr = src_cr;
 
                     for (n=0, n3=0; n<width; n++, n3+=3) {
-#ifdef WORDS_BIGENDIAN
                          YCBCR_TO_RGB (*y, *cb, *cr,
                                        dst[n3+0], dst[n3+1], dst[n3+2]);
-#else
-                         YCBCR_TO_RGB (*y, *cb, *cr,
-                                       dst[n3+2], dst[n3+1], dst[n3+0]);
-#endif
 
                          ++y;
                          cb += (n & 1);
@@ -2079,8 +2064,8 @@ dfb_convert_to_rgb24( DFBSurfacePixelFormat  format,
                     }
 
                     src += spitch;
-                    src_cb += spitch/2;
-                    src_cr += spitch/2;
+                    src_cb += scbpitch;
+                    src_cr += scrpitch;
                     dst += dpitch;
                }
                }
