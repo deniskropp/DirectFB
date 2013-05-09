@@ -404,7 +404,9 @@ update_screen( int x, int y, int w, int h )
      switch (screen->format->BitsPerPixel) {
           case 16:
                dfb_convert_to_rgb16( surface->config.format,
-                                     srces[0], pitches[0], surface->config.size.h,
+                                     srces[0], pitches[0],
+                                     srces[1], pitches[1], srces[2], pitches[2],
+                                     surface->config.size.h,
                                      dst, screen->pitch, w, h );
                break;
 
