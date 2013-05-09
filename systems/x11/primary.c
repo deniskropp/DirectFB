@@ -1014,12 +1014,16 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           switch (xw->depth) {
                case 32:
-                    dfb_convert_to_argb( allocation->config.format, srces[0], pitches[0],
+                    dfb_convert_to_argb( allocation->config.format,
+                                         srces[0], pitches[0],
+                                         srces[1], pitches[1], srces[2], pitches[2],
                                          allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                case 24:
-                    dfb_convert_to_rgb32( allocation->config.format, srces[0], pitches[0],
+                    dfb_convert_to_rgb32( allocation->config.format,
+                                          srces[0], pitches[0],
+                                          srces[1], pitches[1], srces[2], pitches[2],
                                           allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
@@ -1042,13 +1046,17 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                          }
                     }
                     else {
-                    dfb_convert_to_rgb16( allocation->config.format, srces[0], pitches[0],
+                    dfb_convert_to_rgb16( allocation->config.format,
+                                          srces[0], pitches[0],
+                                          srces[1], pitches[1], srces[2], pitches[2],
                                           allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     }
                     break;
 
                case 15:
-                    dfb_convert_to_rgb555( allocation->config.format, srces[0], pitches[0],
+                    dfb_convert_to_rgb555( allocation->config.format,
+                                           srces[0], pitches[0],
+                                           srces[1], pitches[1], srces[2], pitches[2],
                                            allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 

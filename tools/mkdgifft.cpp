@@ -793,6 +793,7 @@ write_glyph( DGIFFGlyphInfo *glyph, const DFBSurfaceDescription &desc, void *dst
      switch (m_format) {
           case DSPF_ARGB:
                dfb_convert_to_argb( desc.pixelformat, desc.preallocated[0].data, desc.preallocated[0].pitch,
+                                    NULL, 0, NULL, 0,
                                     desc.height, (u32*) dst, pitch, desc.width, desc.height );
                break;
 

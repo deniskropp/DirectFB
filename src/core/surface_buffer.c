@@ -929,7 +929,10 @@ dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
                         }
                    }
                    else
-                        dfb_convert_to_argb( buffer->format, srces[0], pitches[0], surface->config.size.h,
+                        dfb_convert_to_argb( buffer->format,
+                                             srces[0], pitches[0],
+                                             srces[1], pitches[1], srces[2], pitches[2],
+                                             surface->config.size.h,
                                              (u32 *)(&buf_p[0]), surface->config.size.w * 4, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                    gzwrite( gz_p, buf_p, surface->config.size.w * 4 );
@@ -949,7 +952,10 @@ dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
                     }
                }
                else
-                    dfb_convert_to_rgb24( buffer->format, srces[0], pitches[0], surface->config.size.h,
+                    dfb_convert_to_rgb24( buffer->format,
+                                          srces[0], pitches[0],
+                                          srces[1], pitches[1], srces[2], pitches[2],
+                                          surface->config.size.h,
                                           buf_p, surface->config.size.w * 3, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                gzwrite( gz_p, buf_p, surface->config.size.w * 3 );

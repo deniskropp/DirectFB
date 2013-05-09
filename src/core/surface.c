@@ -1628,7 +1628,10 @@ dfb_surface_dump_buffer2( CoreSurface           *surface,
                     }
                }
                else
-                    dfb_convert_to_rgb24( lock.buffer->format, srces[0], pitches[0], surface->config.size.h,
+                    dfb_convert_to_rgb24( lock.buffer->format,
+                                          srces[0], pitches[0],
+                                          srces[1], pitches[1], srces[2], pitches[2],
+                                          surface->config.size.h,
                                           buf_p, surface->config.size.w * 3, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                gzwrite( gz_p, buf_p, surface->config.size.w * 3 );
