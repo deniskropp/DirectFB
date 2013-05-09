@@ -778,7 +778,8 @@ static DFBResult
 update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *lock, XWindow *xw )
 {
      void                  *dst;
-     void                  *src;
+     u8                    *srces[3];
+     int                    pitches[3];
      unsigned int           offset = 0;
      XImage                *ximage;
      CoreSurfaceAllocation *allocation;
@@ -1008,23 +1009,24 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
           }
 
           dst = xw->virtualscreen + rect.x * xw->bpp + (rect.y + offset) * ximage->bytes_per_line;
-          src = dfb_surface_data_offset( allocation->surface, lock->addr, lock->pitch, rect.x, rect.y );
+          dfb_surface_get_data_offsets( allocation->surface, lock->addr, lock->pitch, rect.x, rect.y,
+                                        3, srces, pitches );
 
           switch (xw->depth) {
                case 32:
-                    dfb_convert_to_argb( allocation->config.format, src, lock->pitch,
+                    dfb_convert_to_argb( allocation->config.format, srces[0], pitches[0],
                                          allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                case 24:
-                    dfb_convert_to_rgb32( allocation->config.format, src, lock->pitch,
+                    dfb_convert_to_rgb32( allocation->config.format, srces[0], pitches[0],
                                           allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
                case 16:
                     if (allocation->config.format == DSPF_LUT8) {
                          int width = rect.w; int height = rect.h;
-                         const u8    *src8    = src;
+                         const u8    *src8    = srces[0];
                          u16         *dst16   = dst;
                          CorePalette *palette = allocation->surface->palette;//FIXME
                          int          x;
@@ -1035,18 +1037,18 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                                    dst16[x] = PIXEL_RGB16( color.r, color.g, color.b );
                               }
 
-                              src8  += lock->pitch;
+                              src8  += pitches[0];
                               dst16 += ximage->bytes_per_line / 2;
                          }
                     }
                     else {
-                    dfb_convert_to_rgb16( allocation->config.format, src, lock->pitch,
+                    dfb_convert_to_rgb16( allocation->config.format, srces[0], pitches[0],
                                           allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     }
                     break;
 
                case 15:
-                    dfb_convert_to_rgb555( allocation->config.format, src, lock->pitch,
+                    dfb_convert_to_rgb555( allocation->config.format, srces[0], pitches[0],
                                            allocation->config.size.h, dst, ximage->bytes_per_line, rect.w, rect.h );
                     break;
 
