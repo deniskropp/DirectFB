@@ -1008,7 +1008,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
           }
 
           dst = xw->virtualscreen + rect.x * xw->bpp + (rect.y + offset) * ximage->bytes_per_line;
-          src = lock->addr + DFB_BYTES_PER_LINE( allocation->config.format, rect.x ) + rect.y * lock->pitch;
+          src = dfb_surface_data_offset( allocation->surface, lock->addr, lock->pitch, rect.x, rect.y );
 
           switch (xw->depth) {
                case 32:

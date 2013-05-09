@@ -392,11 +392,10 @@ update_screen( int x, int y, int w, int h )
           return ret;
      }
 
-     src = lock.addr;
      dst = screen->pixels;
-
-     src += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * lock.pitch;
      dst += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * screen->pitch;
+
+     src = dfb_surface_data_offset( surface, lock.addr, lock.pitch, x, y);
 
      D_DEBUG_AT( SDL_Updates, "  -> copying pixels...\n" );
 
