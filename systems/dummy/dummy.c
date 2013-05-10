@@ -61,6 +61,7 @@ static bool             dummy_display_thread_stop;
 static DirectMutex      dummy_display_lock;
 static DirectWaitQueue  dummy_display_wq;
 static DirectLink      *dummy_display_list;
+static DFB_DisplayTask *dummy_display_task;
 
 typedef struct {
      DirectLink             link;
@@ -83,8 +84,6 @@ static void *
 dummy_display_loop( DirectThread *thread,
                     void         *ctx )
 {
-     DFB_DisplayTask *prev_task = NULL;
-
      while (!dummy_display_thread_stop) {
           DummyDisplayBuffer *request;
 
@@ -101,8 +100,6 @@ dummy_display_loop( DirectThread *thread,
 
           request = (DummyDisplayBuffer*) dummy_display_list;
           D_MAGIC_ASSERT( request, DummyDisplayBuffer );
-
-          direct_list_remove( &dummy_display_list, &request->link );
 
           direct_mutex_unlock( &dummy_display_lock );
 
@@ -146,14 +143,22 @@ dummy_display_loop( DirectThread *thread,
           }
 
 
-          if (prev_task) {
-               D_DEBUG_AT( Dummy_Display, "  <= done previous task %p (pts %lld, %lld to current)\n", prev_task,
-                           DisplayTask_GetPTS( prev_task ), request->pts - DisplayTask_GetPTS( prev_task ) );
+          direct_mutex_lock( &dummy_display_lock );
 
-               Task_Done( prev_task );
+          if (dummy_display_task) {
+               D_DEBUG_AT( Dummy_Display, "  <= done previous task %p (pts %lld, %lld to current)\n", dummy_display_task,
+                           DisplayTask_GetPTS( dummy_display_task ), request->pts - DisplayTask_GetPTS( dummy_display_task ) );
+
+               Task_Done( dummy_display_task );
           }
 
-          prev_task = request->task;
+          dummy_display_task = request->task;
+
+          direct_list_remove( &dummy_display_list, &request->link );
+
+          direct_mutex_unlock( &dummy_display_lock );
+
+          direct_waitqueue_broadcast( &dummy_display_wq );
 
 
           dfb_surface_buffer_unref( request->buffer );
@@ -168,8 +173,8 @@ dummy_display_loop( DirectThread *thread,
 out:
      D_DEBUG_AT( Dummy_Display, "%s() <- stop!\n", __FUNCTION__ );
 
-     if (prev_task)
-          Task_Done( prev_task );
+     if (dummy_display_task)
+          Task_Done( dummy_display_task );
 
      return NULL;
 }
@@ -359,6 +364,28 @@ dummySetRegion( CoreLayer                  *layer,
 }
 
 static DFBResult
+dummyRemoveRegion( CoreLayer *layer,
+                   void      *driver_data,
+                   void      *layer_data,
+                   void      *region_data )
+{
+     direct_mutex_lock( &dummy_display_lock );
+
+     while (dummy_display_list)
+          direct_waitqueue_wait( &dummy_display_wq, &dummy_display_lock );
+
+     if (dummy_display_task) {
+          Task_Done( dummy_display_task );
+
+          dummy_display_task = NULL;
+     }
+
+     direct_mutex_unlock( &dummy_display_lock );
+
+     return DFB_OK;
+}
+
+static DFBResult
 dummyFlipRegion( CoreLayer             *layer,
                  void                  *driver_data,
                  void                  *layer_data,
@@ -391,6 +418,7 @@ static DisplayLayerFuncs dummyLayerFuncs = {
      .InitLayer     = dummyInitLayer,
      .TestRegion    = dummyTestRegion,
      .SetRegion     = dummySetRegion,
+     .RemoveRegion  = dummyRemoveRegion,
      .FlipRegion    = dummyFlipRegion,
      .UpdateRegion  = dummyUpdateRegion
 };
