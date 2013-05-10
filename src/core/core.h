@@ -159,6 +159,9 @@ DirectResult dfb_core_dump_all           ( CoreDFB               *core,
                                            DirectLogDomain       *domain,
                                            DirectLogLevel         level );
 
+DirectResult dfb_core_wait_all           ( CoreDFB               *core,
+                                           long long              timeout );
+
 /*
  * Arena shared fields
  */

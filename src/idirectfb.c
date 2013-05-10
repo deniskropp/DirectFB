@@ -273,9 +273,10 @@ containers_remove_input_eventbuffer(IDirectFBEventBuffer  *thiz)
  * Free data structure and set the pointer to NULL,
  * to indicate the dead interface.
  */
-void
+DFBResult
 IDirectFB_Destruct( IDirectFB *thiz )
 {
+     DFBResult       ret;
      int             i;
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
 
@@ -299,7 +300,7 @@ IDirectFB_Destruct( IDirectFB *thiz )
           }
      }
 
-     dfb_core_destroy( data->core, false );
+     ret = dfb_core_destroy( data->core, false );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 
@@ -307,6 +308,8 @@ IDirectFB_Destruct( IDirectFB *thiz )
 
      if (thiz == idirectfb_singleton)
           idirectfb_singleton = NULL;
+
+     return ret;
 }
 
 
@@ -330,7 +333,7 @@ IDirectFB_Release( IDirectFB *thiz )
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (--data->ref == 0)
-          IDirectFB_Destruct( thiz );
+          return IDirectFB_Destruct( thiz );
 
      return DFB_OK;
 }

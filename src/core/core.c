@@ -402,6 +402,8 @@ error:
 DFBResult
 dfb_core_destroy( CoreDFB *core, bool emergency )
 {
+     DFBResult ret;
+
      D_MAGIC_ASSERT( core, CoreDFB );
      D_ASSERT( core->refs > 0 );
      D_ASSERT( core == core_dfb );
@@ -461,9 +463,9 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
      dfb_core_process_cleanups( core, emergency );
 
      if (dfb_core_is_master( core_dfb ))
-          dfb_core_arena_shutdown( core_dfb, emergency );
+          ret = dfb_core_arena_shutdown( core_dfb, emergency );
      else
-          dfb_core_arena_leave( core_dfb, emergency );
+          ret = dfb_core_arena_leave( core_dfb, emergency );
 
      fusion_call_destroy( &core_dfb->async_call );
 
@@ -482,7 +484,7 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      direct_shutdown();
 
-     return DFB_OK;
+     return ret;
 }
 
 CoreGraphicsState *
@@ -1116,9 +1118,13 @@ dump_objects( FusionObjectPool *pool,
               void             *ctx )
 {
      DumpContext *context = (DumpContext *) ctx;
+     const char  *desc    = "";
+
+     if (dfb_core_is_master( core_dfb ) && pool->describe)
+          desc = pool->describe( object, pool->ctx );
 
      direct_log_domain_log( context->domain, context->level, __FUNCTION__, __FILE__, __LINE__,
-                            "  [%u] 0x%08x %d \n", object->id, object->ref.multi.id, object->ref.single.refs );
+                            "  [id %u] ref 0x%08x %d %s\n", object->id, object->ref.multi.id, object->ref.single.refs, desc );
 
      return true;
 }
@@ -1129,6 +1135,8 @@ dfb_core_dump_all( CoreDFB         *core,
                    DirectLogLevel   level )
 {
      CoreDFBShared *shared;
+
+     D_DEBUG_AT( DirectFB_Core, "%s()\n", __FUNCTION__ );
 
      D_ASSERT( core != NULL || core_dfb != NULL );
 
@@ -1156,19 +1164,87 @@ dfb_core_dump_all( CoreDFB         *core,
           };
 
           for (i=0; i<D_ARRAY_SIZE(pools); i++) {
-               DumpContext context;
-
-               context.domain = domain;
-               context.level  = level;
-
-               direct_log_domain_log( domain, level, __FUNCTION__, __FILE__, __LINE__,
-                                      "== %s ==\n", pools[i]->name );
-
-               fusion_object_pool_enum( pools[i], dump_objects, &context );
+               if (pools[i]) {
+                    DumpContext context;
+     
+                    context.domain = domain;
+                    context.level  = level;
+     
+                    direct_log_domain_log( domain, level, __FUNCTION__, __FILE__, __LINE__,
+                                           "== %s ==\n", pools[i]->name );
+     
+                    fusion_object_pool_enum( pools[i], dump_objects, &context );
+               }
           }
      }
 
-     return true;
+     return DR_OK;
+}
+
+DirectResult
+dfb_core_wait_all( CoreDFB   *core,
+                   long long  timeout )
+{
+     CoreDFBShared *shared;
+     long long      start;
+
+     D_DEBUG_AT( DirectFB_Core, "%s( timeout %lld us )\n", __FUNCTION__, timeout );
+
+     D_ASSERT( core != NULL || core_dfb != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     start = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+     while (true) {
+          int               i;
+          FusionObjectPool *pools[] = {
+               shared->graphics_state_pool,
+               shared->layer_context_pool,
+               shared->layer_region_pool,
+               shared->palette_pool,
+               shared->surface_pool,
+               shared->surface_allocation_pool,
+               shared->surface_buffer_pool,
+               shared->surface_client_pool,
+               shared->window_pool
+          };
+
+          for (i=0; i<D_ARRAY_SIZE(pools); i++) {
+               if (pools[i]) {
+                    unsigned int num = fusion_hash_size( pools[i]->objects );
+     
+                    if (num > 0) {
+                         long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+     
+                         if (now - start >= timeout) {
+                              D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in pool, timeout!\n", num );
+                              return DR_TIMEOUT;
+                         }
+     
+                         D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in '%s', waiting 10ms...\n", num, pools[i]->name );
+     
+                         break;
+                    }
+               }
+          }
+
+          if (i < D_ARRAY_SIZE(pools)) {
+               D_DEBUG_AT( DirectFB_Core, "  -> waiting another 10ms for objects to be dead...\n" );
+
+               direct_thread_sleep( 10000 );
+          }
+          else
+               break;
+     }
+
+     return DR_OK;
 }
 
 DirectResult
@@ -1604,7 +1680,9 @@ dfb_core_signal_handler( int   num,
 static int
 dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
+     DFBResult      ret;
      CoreDFBShared *shared;
+     int            loops = 4;
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
@@ -1619,21 +1697,36 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      core->shutdown_tid = direct_gettid();
 
 
-     dfb_core_dump_all( core, &DirectFB_Core, DIRECT_LOG_VERBOSE );
-
+     if (dfb_wm_core.initialized)
+          dfb_wm_deactivate_all_stacks( dfb_wm_core.data_local );
 
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
+     shared->window_pool = NULL;
 
-     fusion_stop_dispatcher( core->world, emergency );
+
+     while (--loops) {
+          dfb_gfx_cleanup();
+
+          ret = dfb_core_wait_all( core, 500000 );
+          if (ret == DFB_OK)
+               break;
+     }
+
+     if (ret == DFB_TIMEOUT) {
+          D_ERROR( "DirectFB/Core: Some objects remain alive, application or internal ref counting issue!\n" );
+
+          dfb_core_dump_all( core, &DirectFB_Core, DIRECT_LOG_VERBOSE );
+
+          direct_print_interface_leaks();
+     }
+
 
      /* Close window stacks. */
      if (dfb_wm_core.initialized)
           dfb_wm_close_all_stacks( dfb_wm_core.data_local );
 
      CoreDFB_Deinit_Dispatch( &shared->call );
-
-     dfb_gfx_cleanup();
 
      /* Destroy layer context and region objects. */
      fusion_object_pool_destroy( shared->layer_region_pool, core->world );
@@ -1678,7 +1771,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      TaskManager_Shutdown();
 
-     return 0;
+     return ret;
 }
 
 DFBResult
@@ -1714,16 +1807,13 @@ dfb_core_initialize( CoreDFB *core )
 
      TaskManager_Initialise();
 
-     extern void register_myengine(void);
-     //register_myengine();
-
-     extern void register_genefx(void);
-     register_genefx();
-
      for (i=0; i<D_ARRAY_SIZE(core_parts); i++) {
           if ((ret = dfb_core_part_initialize( core, core_parts[i] )))
                return ret;
      }
+
+     extern void register_genefx(void);
+     register_genefx();
 
      if (dfb_config->resource_manager) {
           DirectInterfaceFuncs *funcs;
