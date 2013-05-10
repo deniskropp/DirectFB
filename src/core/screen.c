@@ -32,6 +32,8 @@
 
 #include <direct/debug.h>
 
+#include <misc/conf.h>
+
 #include <core/layers.h>
 #include <core/screen.h>
 #include <core/screens_internal.h>
@@ -556,5 +558,72 @@ dfb_screen_get_layer_dimension( CoreScreen *screen,
                                       ret_width, ret_height );
 
      return ret;
+}
+
+DFBResult
+dfb_screen_get_frame_interval( CoreScreen *screen,
+                               long long  *ret_micros )
+{
+     CoreScreenShared *shared;
+     long long         interval = dfb_config->screen_frame_interval;
+
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     D_ASSERT( screen->funcs != NULL );
+
+     shared = screen->shared;
+
+     // TODO: what to do with more than one encoder? different rates? layers on different mixers on encoders?
+
+     if (shared->description.encoders) {
+          const DFBScreenEncoderConfig *config = &shared->encoders[0].configuration;
+
+          if (config->flags & DSECONF_FREQUENCY) {
+               switch (config->frequency) {
+                    case DSEF_25HZ:
+                         interval = 1000000000LL/25000LL;
+                         break;
+
+                    case DSEF_29_97HZ:
+                         interval = 1000000000LL/29970LL;
+                         break;
+
+                    case DSEF_50HZ:
+                         interval = 1000000000LL/50000LL;
+                         break;
+
+                    case DSEF_59_94HZ:
+                         interval = 1000000000LL/59940LL;
+                         break;
+
+                    case DSEF_60HZ:
+                         interval = 1000000000LL/60000LL;
+                         break;
+
+                    case DSEF_75HZ:
+                         interval = 1000000000LL/75000LL;
+                         break;
+
+                    case DSEF_30HZ:
+                         interval = 1000000000LL/30000LL;
+                         break;
+
+                    case DSEF_24HZ:
+                         interval = 1000000000LL/24000LL;
+                         break;
+
+                    case DSEF_23_976HZ:
+                         interval = 1000000000LL/23976LL;
+                         break;
+
+                    default:
+                         break;
+               }
+          }
+     }
+
+     *ret_micros = interval;
+
+     return DFB_OK;
 }
 

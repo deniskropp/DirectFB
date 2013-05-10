@@ -120,5 +120,8 @@ DFBResult dfb_screen_get_layer_dimension( CoreScreen                 *screen,
                                           int                        *ret_width,
                                           int                        *ret_height );
 
+DFBResult dfb_screen_get_frame_interval ( CoreScreen                 *screen,
+                                          long long                  *ret_micros );
+
 #endif
 
