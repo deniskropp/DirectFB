@@ -633,7 +633,7 @@ static void Cop_to_Aop_vyu( GenefxState *gfxs )
      u8   *D  = gfxs->Aop[0];
 
      while (--w) {
-#ifdef BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
           D[0] = gfxs->CrCop;
           D[1] = gfxs->YCop;
           D[2] = gfxs->CbCop;
@@ -5283,7 +5283,7 @@ static void Sacc_Sto_Aop_vyu( GenefxState *gfxs )
                u8 u = (S->YUV.u & 0xFF00) ? 0xFF : S->YUV.u;
                u8 v = (S->YUV.v & 0xFF00) ? 0xFF : S->YUV.v;
 
-#ifdef BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                D[0] = v;
                D[1] = y;
                D[2] = u;
