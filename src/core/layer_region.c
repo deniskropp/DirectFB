@@ -46,6 +46,7 @@
 #include <core/layer_control.h>
 #include <core/layer_region.h>
 #include <core/layers_internal.h>
+#include <core/screen.h>
 #include <core/surface.h>
 
 #include <core/CoreLayerRegion.h>
@@ -491,6 +492,9 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
      funcs = layer->funcs;
 
+     if (!(surface->frametime_config.flags & DFTCF_INTERVAL))
+          dfb_screen_get_frame_interval( layer->screen, &surface->frametime_config.interval );
+
      /* Unfreeze region? */
      if (D_FLAGS_IS_SET( region->state, CLRSF_FROZEN )) {
           D_FLAGS_CLEAR( region->state, CLRSF_FROZEN );
@@ -714,6 +718,9 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
      D_ASSERT( layer->funcs != NULL );
 
      funcs = layer->funcs;
+
+     if (!(surface->frametime_config.flags & DFTCF_INTERVAL))
+          dfb_screen_get_frame_interval( layer->screen, &surface->frametime_config.interval );
 
      /* Unfreeze region? */
      if (D_FLAGS_IS_SET( region->state, CLRSF_FROZEN )) {

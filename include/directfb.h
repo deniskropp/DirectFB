@@ -3700,6 +3700,22 @@ typedef struct {
 } DFBConvolutionFilter;
 
 
+typedef enum {
+     DFTCF_NONE        = 0x00000000,  /* None of these */
+
+     DFTCF_INTERVAL    = 0x00000001,  /* Interval is specified, otherwise the interval is set automatically depending on screen refresh */
+     DFTCF_MAX_ADVANCE = 0x00000002,  /* Maximum time to render in advance, GetFrameTime will block to keep the limit */
+
+     DFTCF_ALL         = 0x00000003,  /* All of these */
+} DFBFrameTimeConfigFlags;
+
+typedef struct {
+     DFBFrameTimeConfigFlags  flags;
+
+     long long                interval;
+     long long                max_advance;
+} DFBFrameTimeConfig;
+
 /********************
  * IDirectFBSurface *
  ********************/
@@ -4834,6 +4850,16 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*GetFrameTime) (
           IDirectFBSurface              *thiz,
           long long                     *ret_micros
+     );
+
+     /*
+      * Set configuration for GetFrameTime
+      *
+      * This can be called on renderer and/or client side.
+      */
+     DFBResult (*SetFrameTimeConfig) (
+          IDirectFBSurface              *thiz,
+          const DFBFrameTimeConfig      *config
      );
 )
 

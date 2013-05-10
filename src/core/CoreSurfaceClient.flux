@@ -15,5 +15,18 @@ interface {
 			typename    u32
 		}
 	}
+
+
+        method {
+                     name	SetFrameTimeConfig
+                     async	yes
+
+                     arg {
+                             name	 config
+                             direction   input
+                             type        struct
+                             typename    DFBFrameTimeConfig
+                     }
+             }
 }
 

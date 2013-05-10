@@ -151,6 +151,8 @@ typedef struct {
      DFBSurfaceStereoEye      src_eye;
 
      long long                current_frame_time;
+
+     DFBFrameTimeConfig       frametime_config;
 } IDirectFBSurface_data;
 
 /*

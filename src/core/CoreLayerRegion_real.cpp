@@ -46,6 +46,7 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/core.h>
+#include <core/screen.h>
 #include <core/surface_pool.h>
 
 #include <gfx/util.h>
@@ -177,10 +178,10 @@ DisplayTask::~DisplayTask()
      D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s()\n", __FUNCTION__ );
 
      if (left_allocation)
-          dfb_surface_allocation_ref( left_allocation );
+          dfb_surface_allocation_unref( left_allocation );
 
      if (right_allocation)
-          dfb_surface_allocation_ref( right_allocation );
+          dfb_surface_allocation_unref( right_allocation );
 
 }
 
@@ -566,6 +567,9 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
 
      surface = region->surface;
      layer   = dfb_layer_at( region->layer_id );
+
+     if (!(surface->frametime_config.flags & DFTCF_INTERVAL))
+          dfb_screen_get_frame_interval( layer->screen, &surface->frametime_config.interval );
 
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
