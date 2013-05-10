@@ -1124,7 +1124,8 @@ dump_objects( FusionObjectPool *pool,
           desc = pool->describe( object, pool->ctx );
 
      direct_log_domain_log( context->domain, context->level, __FUNCTION__, __FILE__, __LINE__,
-                            "  [id %u] ref 0x%08x %d %s\n", object->id, object->ref.multi.id, object->ref.single.refs, desc );
+                            "  %p [id %u] ref id 0x%08x single refs %d {%s}\n", object, object->id,
+                            object->ref.multi.id, object->ref.single.refs, desc );
 
      return true;
 }
@@ -1219,17 +1220,17 @@ dfb_core_wait_all( CoreDFB   *core,
           for (i=0; i<D_ARRAY_SIZE(pools); i++) {
                if (pools[i]) {
                     unsigned int num = fusion_hash_size( pools[i]->objects );
-     
+
                     if (num > 0) {
                          long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-     
+
                          if (now - start >= timeout) {
                               D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in pool, timeout!\n", num );
                               return DR_TIMEOUT;
                          }
-     
+
                          D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in '%s', waiting 10ms...\n", num, pools[i]->name );
-     
+
                          break;
                     }
                }
