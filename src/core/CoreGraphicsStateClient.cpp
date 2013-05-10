@@ -316,6 +316,7 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      client->core     = state->core;
      client->state    = state;
      client->renderer = NULL;
+     client->throttle = NULL;
 
      ret = CoreDFB_CreateState( state->core, &client->gfx_state );
      if (ret)
@@ -331,7 +332,8 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
           }
           else if (!fusion_config->secure_fusion || dfb_core_is_master( client->core )) {
                client->renderer = new DirectFB::Renderer( client->state, client->gfx_state );
-               client->renderer->SetThrottle( new ThrottleBlocking( *client->renderer ) );
+               client->throttle = new ThrottleBlocking( *client->renderer );
+               client->renderer->SetThrottle( client->throttle );
           }
      }
 
@@ -367,6 +369,9 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
 
      if (client->renderer)
           delete client->renderer;
+
+     if (client->throttle)
+          delete client->throttle;
 
      delete (DirectFB::IGraphicsState_Requestor *) client->requestor;
      delete (CoreGraphicsStateClientPrivate *) client->priv;
