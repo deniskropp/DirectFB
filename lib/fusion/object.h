@@ -40,6 +40,8 @@
 
 typedef void (*FusionObjectDestructor)( FusionObject *object, bool zombie, void *ctx );
 
+typedef const char * (*FusionObjectDescribe)( FusionObject *object, void *ctx );
+
 typedef bool (*FusionPropIterator)( char *key, void *value, void *ctx);
 
 
@@ -96,6 +98,8 @@ struct __Fusion_FusionObjectPool {
      FusionCall              call;
 
      bool                    secure;
+
+     FusionObjectDescribe    describe;
 };
 
 
@@ -113,6 +117,9 @@ FusionObjectPool FUSION_API *fusion_object_pool_create        ( const char      
 
 DirectResult     FUSION_API  fusion_object_pool_destroy       ( FusionObjectPool       *pool,
                                                                 FusionWorld            *world );
+
+DirectResult     FUSION_API  fusion_object_pool_set_describe  ( FusionObjectPool       *pool,
+                                                                FusionObjectDescribe    func );
 
 
 DirectResult     FUSION_API  fusion_object_pool_enum          ( FusionObjectPool       *pool,

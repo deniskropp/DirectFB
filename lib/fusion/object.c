@@ -237,7 +237,7 @@ fusion_object_pool_destroy( FusionObjectPool *pool,
      FusionWorldShared  *shared;
      FusionHashIterator  it;
 
-     D_ASSERT( pool != NULL );
+     D_MAGIC_ASSERT( pool, FusionObjectPool );
      D_MAGIC_ASSERT( world, FusionWorld );
 
      shared = world->shared;
@@ -305,6 +305,17 @@ fusion_object_pool_destroy( FusionObjectPool *pool,
      /* Deallocate shared memory. */
      SHFREE( shared->main_pool, pool->name );
      SHFREE( shared->main_pool, pool );
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_object_pool_set_describe( FusionObjectPool     *pool,
+                                 FusionObjectDescribe  func )
+{
+     D_MAGIC_ASSERT( pool, FusionObjectPool );
+
+     pool->describe = func;
 
      return DR_OK;
 }
