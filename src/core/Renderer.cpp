@@ -1976,6 +1976,8 @@ Renderer::Throttle::Throttle( Renderer &renderer )
 
 Renderer::Throttle::~Throttle()
 {
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
+
      dfb_graphics_state_unref( gfx_state );
 }
 
