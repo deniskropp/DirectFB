@@ -47,11 +47,14 @@ ToString<FusionObject>::ToString( const FusionObject &object )
      FusionID owner;
      int      i;
 
-     PrintF( "%p:%u/0x%x-%lu", &object, object.id, object.ref.multi.id, object.identity );
+     PrintF( "%p [id %u] ref 0x%x (single %d) identity %lu owners[", &object, object.id,
+             object.ref.multi.id, object.ref.single.refs, object.identity );
 
      fusion_vector_foreach (owner, i, object.owners) {
-          PrintF( "/%lu", owner );
+          PrintF( i ? ",%lu" : "%lu", owner );
      }
+
+     PrintF( "]" );
 }
 
 
