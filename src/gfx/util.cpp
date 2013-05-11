@@ -335,14 +335,15 @@ dfb_gfx_copy_regions_client( CoreSurface             *source,
                              unsigned int             num,
                              int                      x,
                              int                      y,
-                             CoreGraphicsStateClient *client )
+                             CoreGraphicsStateClient *_client )
 {
-     unsigned int  i, n = 0;
-     DFBRectangle  rect = { 0, 0, source->config.size.w, source->config.size.h };
-     DFBRectangle  rects[num];
-     DFBPoint      points[num];
-     CardState    *state = client->state;
-     CardState     backup;
+     unsigned int             i, n = 0;
+     DFBRectangle             rect = { 0, 0, source->config.size.w, source->config.size.h };
+     DFBRectangle             rects[num];
+     DFBPoint                 points[num];
+     CoreGraphicsStateClient *client = _client ? _client : &state_client_tls.Get()->client;
+     CardState               *state  = client->state;
+     CardState                backup;
 
      for (i=0; i<num; i++) {
           DFB_REGION_ASSERT( &regions[i] );
@@ -384,6 +385,8 @@ dfb_gfx_copy_regions_client( CoreSurface             *source,
 
           CoreGraphicsStateClient_Blit( client, rects, points, n );
 
+          if (!_client)
+               CoreGraphicsStateClient_Flush( client, 0 );
 
           D_FLAGS_SET( state->modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO | SMF_BLITTING_FLAGS );
 
