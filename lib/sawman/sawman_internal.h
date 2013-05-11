@@ -478,6 +478,8 @@ typedef struct {
      SaWMan                       *sawman;
      SaWManProcess                *process;
 
+     int                           refs;
+
      CardState                     state;
      CoreGraphicsStateClient       client;
 } WMData;
