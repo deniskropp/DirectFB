@@ -67,6 +67,7 @@ extern "C" {
 #include <list>
 #include <map>
 
+#include <direct/LockWQ.h>
 #include <direct/Magic.h>
 
 
@@ -168,25 +169,27 @@ public:
 
      void ref()
      {
-          lock.lock();
+          lwq.lock();
 
           ref_count++;
 
-          lock.unlock();
+          lwq.unlock();
      }
 
      void unref()
      {
-          lock.lock();
+          lwq.lock();
 
           if (--ref_count) {
-               lock.unlock();
+               lwq.unlock();
 
-//                    delete this;
+               delete this;
           }
           else
-               lock.unlock();
+               lwq.unlock();
      }
+
+     DFBResult waitDone( unsigned long timeout_us = 0 );
 
 protected:
      virtual void AddTask( SurfaceTask *task, u32 cookie );
@@ -196,7 +199,7 @@ private:
      CoreGraphicsState *gfx_state;
      unsigned int       ref_count;
      unsigned int       task_count;
-     Direct::Mutex      lock;
+     Direct::LockWQ     lwq;
 };
 
 class Renderer : public Direct::Magic<Renderer>

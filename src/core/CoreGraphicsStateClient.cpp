@@ -371,7 +371,7 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
           delete client->renderer;
 
      if (client->throttle)
-          delete client->throttle;
+          client->throttle->unref();
 
      delete (DirectFB::IGraphicsState_Requestor *) client->requestor;
      delete (CoreGraphicsStateClientPrivate *) client->priv;
