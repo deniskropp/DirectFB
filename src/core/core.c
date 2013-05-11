@@ -1124,8 +1124,10 @@ dump_objects( FusionObjectPool *pool,
           desc = pool->describe( object, pool->ctx );
 
      direct_log_domain_log( context->domain, context->level, __FUNCTION__, __FILE__, __LINE__,
-                            "  %p [id %u] ref id 0x%08x single refs %d {%s}\n", object, object->id,
+                            "        %p [id %u] ref id 0x%08x single refs %d {%s}\n", object, object->id,
                             object->ref.multi.id, object->ref.single.refs, desc );
+
+     direct_trace_print_stack( object->create_stack );
 
      return true;
 }
@@ -1172,7 +1174,7 @@ dfb_core_dump_all( CoreDFB         *core,
                     context.level  = level;
      
                     direct_log_domain_log( domain, level, __FUNCTION__, __FILE__, __LINE__,
-                                           "== %s ==\n", pools[i]->name );
+                                           "  - Objects in '%s' -\n", pools[i]->name );
      
                     fusion_object_pool_enum( pools[i], dump_objects, &context );
                }
