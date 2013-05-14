@@ -395,7 +395,7 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
      kms_bo_get_prop(alloc->bo, KMS_PITCH, &alloc->pitch);
 #endif
 
-     alloc->size = alloc->pitch * surface->config.size.h;
+     alloc->size = alloc->pitch * drm_fake_height;
 
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo        %p\n", alloc->bo );
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.handle %u\n", alloc->handle );
