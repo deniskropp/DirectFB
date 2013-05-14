@@ -86,7 +86,7 @@ typedef struct {
 DFBResult IDirectFB_Construct  ( IDirectFB  *thiz,
                                  CoreDFB    *core );
 
-void      IDirectFB_Destruct   ( IDirectFB  *thiz );
+DFBResult IDirectFB_Destruct   ( IDirectFB  *thiz );
 
 DFBResult IDirectFB_SetAppFocus( IDirectFB  *thiz,
                                  DFBBoolean  focused );

@@ -52,12 +52,17 @@
 #include <misc/conf.h>
 
 
+D_DEBUG_DOMAIN( Core_GfxState, "Core/GfxState", "Core Gfx State" );
+
+
 static inline void
 validate_clip( CardState *state,
                int        xmax,
                int        ymax,
                bool       warn )
 {
+     D_DEBUG_AT( Core_GfxState, "%s( %p, %d, %d, %d )\n", __FUNCTION__, state, xmax, ymax, warn );
+
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( &state->clip );
 
@@ -457,16 +462,21 @@ dfb_state_update_destination( CardState *state )
 {
      CoreSurface *destination;
 
+     D_DEBUG_AT( Core_GfxState, "%s( %p )\n", __FUNCTION__, state );
+
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( &state->clip );
 
      destination = state->destination;
 
      if (D_FLAGS_IS_SET( state->flags, CSF_DESTINATION )) {
+          D_DEBUG_AT( Core_GfxState, "  -> CSF_DESTINATION is set\n" );
 
           D_ASSERT( destination != NULL );
 
           if (direct_serial_update( &state->dst_serial, &destination->serial )) {
+               D_DEBUG_AT( Core_GfxState, "  -> serial is updated\n" );
+
                validate_clip( state, destination->config.size.w - 1, destination->config.size.h - 1, true );
 
                state->modified |= SMF_DESTINATION;
@@ -479,6 +489,8 @@ dfb_state_update_destination( CardState *state )
 void
 dfb_state_update_sources( CardState *state, CardStateFlags flags )
 {
+     D_DEBUG_AT( Core_GfxState, "%s( %p )\n", __FUNCTION__, state );
+
      D_MAGIC_ASSERT( state, CardState );
      DFB_REGION_ASSERT( &state->clip );
 

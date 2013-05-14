@@ -55,7 +55,7 @@ public:
           :
           magic(0)
      {
-          D_MAGIC_SET( this, _Entity );
+          D_MAGIC_SET( this, _Entity ); // FIXME: make overall macro to avoid using "_Entity" all over the place
      }
 
      ~Magic()

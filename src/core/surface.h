@@ -254,6 +254,8 @@ struct __DFB_CoreSurface
 
      FusionVector             clients;
      u32                      flips_acked;
+
+     DFBFrameTimeConfig       frametime_config;
 };
 
 #define CORE_SURFACE_ASSERT(surface)                                                           \

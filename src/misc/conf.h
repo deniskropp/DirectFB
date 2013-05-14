@@ -313,6 +313,8 @@ typedef struct
      unsigned int  layers_fps;
 
      bool          single_window;
+
+     long long     screen_frame_interval;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

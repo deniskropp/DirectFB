@@ -3429,21 +3429,89 @@ static DFBResult
 IDirectFBSurface_GetFrameTime( IDirectFBSurface *thiz,
                                long long        *ret_micros )
 {
-     long long now;
+     long long    now;
+     long long    interval = 0;
+     long long    max = 0;
+     CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface_Updates, "%s( %p )\n", __FUNCTION__, thiz );
 
-     now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+     surface = data->surface;
+     if (!surface)
+          return DFB_DEAD;
 
-     data->current_frame_time += 16666;
+     interval = surface->frametime_config.interval;
+
+     D_DEBUG_AT( Surface_Updates, "  -> from surface interval: %lld\n", interval );
+
+     D_DEBUG_AT( Surface_Updates, "  -> config flags: 0x%08x\n", data->frametime_config.flags );
+
+     if (surface->frametime_config.flags & DFTCF_MAX_ADVANCE)
+          max = surface->frametime_config.max_advance;
+
+     if (data->frametime_config.flags & DFTCF_INTERVAL) {
+          interval = data->frametime_config.interval;
+
+          D_DEBUG_AT( Surface_Updates, "  -> local configured interval: %lld\n", interval );
+     }
+
+     if (data->frametime_config.flags & DFTCF_MAX_ADVANCE)
+          max = data->frametime_config.max_advance;
+
+     if (!interval) {
+          interval = 16666;
+
+          D_DEBUG_AT( Surface_Updates, "  -> using fallback default interval: %lld\n", interval );
+     }
+
+     if (!max)
+          max = interval * 5;
+
+     data->current_frame_time += interval;
+
+     now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
      if (now > data->current_frame_time)
           data->current_frame_time = now;
+     else if (max) {
+          while (data->current_frame_time - now > max) {
+               D_DEBUG_AT( Surface_Updates, "  -> sleeping for %lld us...\n", data->current_frame_time - now - max );
+
+               direct_thread_sleep( data->current_frame_time - now - max );
+
+               now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+          }
+     }
+
+     D_DEBUG_AT( Surface_Updates, "  -> %lld (%lld ahead)\n", data->current_frame_time, data->current_frame_time - now );
 
      if (ret_micros)
           *ret_micros = data->current_frame_time;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_SetFrameTimeConfig( IDirectFBSurface         *thiz,
+                                     const DFBFrameTimeConfig *config )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface_Updates, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (config) {
+          if (config->flags & DFTCF_INTERVAL)
+               D_DEBUG_AT( Surface_Updates, "  -> interval: %lld\n", config->interval );
+
+          if (config->flags & DFTCF_MAX_ADVANCE)
+               D_DEBUG_AT( Surface_Updates, "  -> max_advance: %lld\n", config->max_advance );
+
+          data->frametime_config = *config;
+     }
+     else
+          memset( &data->frametime_config, 0, sizeof(data->frametime_config) );
 
      return DFB_OK;
 }
@@ -3665,7 +3733,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->MakeClient = IDirectFBSurface_MakeClient;
      thiz->FrameAck   = IDirectFBSurface_FrameAck;
 
-     thiz->GetFrameTime = IDirectFBSurface_GetFrameTime;
+     thiz->GetFrameTime       = IDirectFBSurface_GetFrameTime;
+     thiz->SetFrameTimeConfig = IDirectFBSurface_SetFrameTimeConfig;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

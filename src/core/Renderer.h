@@ -67,6 +67,7 @@ extern "C" {
 #include <list>
 #include <map>
 
+#include <direct/LockWQ.h>
 #include <direct/Magic.h>
 
 
@@ -140,67 +141,71 @@ class Base;
 }
 
 
+class Throttle
+{
+     friend class Renderer;
+
+     class Hook : public SurfaceTask::Hook {
+     public:
+          Hook( Throttle &throttle,
+                u32       cookie )
+               :
+               throttle( throttle ),
+               cookie( cookie )
+          {
+          }
+
+     private:
+          DFBResult setup( SurfaceTask *task );
+          void      finalise( SurfaceTask *task );
+
+          Throttle &throttle;
+          u32       cookie;
+     };
+
+public:
+     Throttle( Renderer &renderer );
+     virtual ~Throttle();
+
+     void ref()
+     {
+          lwq.lock();
+
+          ref_count++;
+
+          lwq.unlock();
+     }
+
+     void unref()
+     {
+          lwq.lock();
+
+          if (--ref_count) {
+               lwq.unlock();
+
+               delete this;
+          }
+          else
+               lwq.unlock();
+     }
+
+     DFBResult waitDone( unsigned long timeout_us = 0 );
+
+protected:
+     virtual void AddTask( SurfaceTask *task, u32 cookie );
+     virtual void SetThrottle( int percent ) = 0;
+
+private:
+     CoreGraphicsState *gfx_state;
+     unsigned int       ref_count;
+     unsigned int       task_count;
+     Direct::LockWQ     lwq;
+};
+
 class Renderer : public Direct::Magic<Renderer>
 {
 public:
-     class Throttle
-     {
-          friend class Renderer;
-
-          class Hook : public SurfaceTask::Hook {
-          public:
-               Hook( Throttle &throttle,
-                     u32       cookie )
-                    :
-                    throttle( throttle ),
-                    cookie( cookie )
-               {
-               }
-
-          private:
-               DFBResult setup( SurfaceTask *task );
-               void      finalise( SurfaceTask *task );
-
-               Throttle &throttle;
-               u32       cookie;
-          };
-
-     public:
-          Throttle( Renderer &renderer );
-          virtual ~Throttle();
-
-          void ref()
-          {
-               lock.lock();
-
-               ref_count++;
-
-               lock.unlock();
-          }
-
-          void unref()
-          {
-               lock.lock();
-
-               if (--ref_count) {
-                    lock.unlock();
-
-//                    delete this;
-               }
-               else
-                    lock.unlock();
-          }
-
-     protected:
-          virtual void AddTask( SurfaceTask *task, u32 cookie );
-          virtual void SetThrottle( int percent ) = 0;
-
-     private:
-          CoreGraphicsState *gfx_state;
-          unsigned int       ref_count;
-          unsigned int       task_count;
-          Direct::Mutex      lock;
-     };
+     typedef ::DirectFB::Throttle Throttle;
 
      class Setup
      {

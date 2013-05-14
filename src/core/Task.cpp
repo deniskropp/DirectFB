@@ -779,6 +779,7 @@ Task::Push()
 
      static TaskThreads *threads;
 
+     // FIXME: race condition
      if (!threads)
           threads = new TaskThreads( "Task", 4 );
 

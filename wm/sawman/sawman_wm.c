@@ -1171,21 +1171,11 @@ local_init( WMData  *wmdata,
             SaWMan  *sawman,
             CoreDFB *core )
 {
-     DFBResult ret;
-
      wmdata->core   = core;
      wmdata->world  = dfb_core_world( core );
      wmdata->sawman = sawman;
 
      sawman_config_init( NULL, NULL );
-
-     /* Initialise the graphics state used for rendering */
-     dfb_state_init( &wmdata->state, core );
-
-     /* Create a client to use the task manager if enabled */
-     ret = CoreGraphicsStateClient_Init( &wmdata->client, &wmdata->state );
-     if (ret)
-          return ret;
 
      return DFB_OK;
 }
@@ -1193,10 +1183,44 @@ local_init( WMData  *wmdata,
 static void
 local_deinit( WMData *wmdata )
 {
-     CoreGraphicsStateClient_Deinit( &wmdata->client );
-
-     dfb_state_destroy( &wmdata->state );
+     D_ASSERT( wmdata->refs == 0 );
 }
+
+static DFBResult
+local_ref( WMData *wmdata )
+{
+     if (!wmdata->refs) {
+          DFBResult ret;
+
+          /* Initialise the graphics state used for rendering */
+          dfb_state_init( &wmdata->state, core_dfb );
+
+          /* Create a client to use the task manager if enabled */
+          ret = CoreGraphicsStateClient_Init( &wmdata->client, &wmdata->state );
+          if (ret) {
+               dfb_state_destroy( &wmdata->state );
+               return ret;
+          }
+     }
+
+     wmdata->refs++;
+
+     return DFB_OK;
+}
+
+static void
+local_unref( WMData *wmdata )
+{
+     D_ASSERT( wmdata->refs > 0 );
+
+     if (!--wmdata->refs) {
+          CoreGraphicsStateClient_Deinit( &wmdata->client );
+
+          dfb_state_destroy( &wmdata->state );
+     }
+}
+
+/**************************************************************************************************/
 
 static void
 wm_get_info( CoreWMInfo *info )
@@ -1637,9 +1661,14 @@ wm_set_active( CoreWindowStack *stack,
 
      sawman_unlock( sawman );
 
-     if (active)
+     if (active) {
+          local_ref( wm_data );
+
           return dfb_windowstack_repaint_all( stack );
+     }
      else {
+          local_unref( wm_data );
+
           tier->active        = false;
           tier->single_mode   = false;
           tier->single_window = NULL;

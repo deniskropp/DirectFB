@@ -52,6 +52,7 @@ const char *ToString_CoreSurfaceConfig        ( const CoreSurfaceConfig         
 
 const char *ToString_CoreSurfaceAllocation    ( const CoreSurfaceAllocation          *allocation );
 const char *ToString_CoreSurfaceBuffer        ( const CoreSurfaceBuffer              *buffer );
+const char *ToString_CoreSurface              ( const CoreSurface                    *surface );
 
 
 #ifdef __cplusplus

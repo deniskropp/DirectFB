@@ -103,6 +103,7 @@ namespace Util {
 }
 class Renderer;
 class Task;
+class Throttle;
 class SurfaceTask;
 class DisplayTask;
 }
@@ -112,6 +113,7 @@ class DisplayTask;
 #define DFB_TaskList               Direct::List<DirectFB::Task*>
 #define DFB_TaskListLocked         Direct::ListLocked<DirectFB::Task*>
 #define DFB_TaskListSimple         Direct::ListSimple<DirectFB::Task*>
+#define DFB_Throttle               DirectFB::Throttle
 #define DFB_SurfaceTask            DirectFB::SurfaceTask
 #define DFB_SurfaceTaskList        Direct::List<DirectFB::SurfaceTask*>
 #define DFB_SurfaceTaskListLocked  Direct::ListLocked<DirectFB::SurfaceTask*>
@@ -127,6 +129,7 @@ typedef void DFB_Task;
 typedef void DFB_TaskList;
 typedef void DFB_TaskListLocked;
 typedef void DFB_TaskListSimple;
+typedef void DFB_Throttle;
 typedef void DFB_SurfaceTask;
 typedef void DFB_SurfaceTaskList;
 typedef void DFB_SurfaceTaskListLocked;

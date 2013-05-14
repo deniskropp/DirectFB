@@ -109,6 +109,7 @@ static const char *config_usage_strings[]  = {
      "  [no-]always-indirect           Use purely indirect Flux calls (for secure master)\n"
      "  [no-]always-flush-callbuffer   Flush call buffer upon commit, effectively disabling it\n"
      "  [no-]layers-fps=[<ms>]         Print FPS of layers being updated, optional interval (default 1000)\n"
+     "  screen-frame-interval=<us>     Set default value for screen refresh interval if not encoder defined\n"
      "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n",
 #ifdef USE_MMX
@@ -512,6 +513,7 @@ static void config_allocate( void )
      dfb_config->core_sighandler    = true;
 
      dfb_config->flip_notify_max_latency = 200;
+     dfb_config->screen_frame_interval   = 16666;
 }
 
 const char *dfb_config_usage( void )
@@ -1864,6 +1866,25 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-layers-fps" ) == 0) {
           dfb_config->layers_fps = 0;
+     } else
+     if (strcmp (name, "screen-frame-interval" ) == 0) {
+          if (value) {
+               char *error;
+               long long interval;
+
+               interval = strtoll( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->screen_frame_interval = interval;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
      } else
      if (strcmp (name, "matrox-tv-standard" ) == 0) {
           if (value) {

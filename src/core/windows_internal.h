@@ -213,6 +213,7 @@ struct __DFB_CoreWindowStack {
 };
 
 
+DFBResult dfb_wm_deactivate_all_stacks( void *data );
 DFBResult dfb_wm_close_all_stacks( void *data );
 
 

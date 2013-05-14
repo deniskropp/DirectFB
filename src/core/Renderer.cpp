@@ -1976,6 +1976,8 @@ Renderer::Throttle::Throttle( Renderer &renderer )
 
 Renderer::Throttle::~Throttle()
 {
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
+
      dfb_graphics_state_unref( gfx_state );
 }
 
@@ -1987,6 +1989,24 @@ Renderer::Throttle::AddTask( SurfaceTask *task, u32 cookie )
      ref();
 
      task->AddHook( new Hook( *this, cookie ) );
+}
+
+DFBResult
+Renderer::Throttle::waitDone( unsigned long timeout_us )
+{
+     DirectResult ret = DR_OK;
+
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, timeout %lu )\n", __FUNCTION__, this, timeout_us );
+
+     Direct::LockWQ::Lock l1( lwq );
+
+     if (task_count > 0) {
+          ret = l1.wait( timeout_us );
+          if (ret)
+               D_DERROR_AT( DirectFB_Renderer_Throttle, ret, "  -> error waiting for %u tasks to be done\n", task_count );
+     }
+
+     return (DFBResult) ret;
 }
 
 DFBResult
@@ -2020,11 +2040,13 @@ Renderer::Throttle::Hook::finalise( SurfaceTask *task )
           throttle.SetThrottle( 0 );
      }
 
-     throttle.task_count--;
+     if (!--throttle.task_count)
+          throttle.lwq.notifyAll();
 
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count %d\n", throttle.task_count );
 
-     dfb_graphics_state_dispatch_done( throttle.gfx_state, cookie );
+     if (cookie)
+          dfb_graphics_state_dispatch_done( throttle.gfx_state, cookie );
 
      throttle.unref();
 }
@@ -2055,6 +2077,8 @@ Renderer::SetThrottle( Throttle *throttle )
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, throttle %p )\n", __FUNCTION__, this, throttle );
 
      CHECK_MAGIC();
+
+     throttle->ref();
 
      this->throttle = throttle;
 }
@@ -2088,13 +2112,11 @@ Renderer::Flush( u32 cookie )
                tls->last_renderer = NULL;
      }
      else if (throttle) {
-          if (throttle->task_count == 0) {
-               dfb_graphics_state_dispatch_done( gfx_state, cookie );
-          }
-          else
-               D_UNIMPLEMENTED();
+          throttle->waitDone( 10000000 );
+
+          dfb_graphics_state_dispatch_done( gfx_state, cookie );
      }
-     else
+     else if (cookie)
           D_UNIMPLEMENTED();
 }
 

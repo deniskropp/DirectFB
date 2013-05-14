@@ -400,6 +400,55 @@ dfb_wm_core_resume( DFBWMCore *data )
 }
 
 DFBResult
+dfb_wm_deactivate_all_stacks( void *data )
+{
+     CoreLayerContext *context;
+     CoreWindowStack  *stack, *next;
+     DFBWMCore        *local;
+     DFBWMCoreShared  *shared;
+
+     D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, data );
+
+     local = data;
+
+     D_MAGIC_ASSERT( local, DFBWMCore );
+     D_ASSERT( local->funcs != NULL );
+     D_ASSERT( local->funcs->CloseStack != NULL );
+
+     shared = local->shared;
+
+     D_MAGIC_ASSERT( shared, DFBWMCoreShared );
+
+     D_DEBUG_AT( Core_WM, "  -> checking %d stacks...\n", direct_list_count_elements_EXPENSIVE(shared->stacks) );
+
+     direct_list_foreach_safe (stack, next, shared->stacks) {
+          D_DEBUG_AT( Core_WM, "  -> checking %p...\n", stack );
+
+          D_MAGIC_ASSERT( stack, CoreWindowStack );
+
+          context = stack->context;
+          D_MAGIC_ASSERT( context, CoreLayerContext );
+
+          D_DEBUG_AT( Core_WM, "  -> ref context %p...\n", context );
+
+          dfb_layer_context_ref( context );
+
+          dfb_layer_context_lock( context );
+
+          if (stack->flags & CWSF_ACTIVATED)
+               dfb_wm_set_active( stack, false );
+
+          dfb_layer_context_unlock( context );
+
+          D_DEBUG_AT( Core_WM, "  -> unref context %p...\n", context );
+
+          dfb_layer_context_unref( context );
+     }
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_wm_close_all_stacks( void *data )
 {
      CoreLayerContext *context;

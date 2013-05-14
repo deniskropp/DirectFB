@@ -91,5 +91,46 @@ ISurfaceClient_Real::FrameAck(
 }
 
 
+DFBResult
+ISurfaceClient_Real::SetFrameTimeConfig(
+                        const DFBFrameTimeConfig       *config
+                        )
+{
+     int                i;
+     CoreSurface       *surface;
+     CoreSurfaceClient *client;
+     long long          interval = 0;
+
+     D_DEBUG_AT( DirectFB_CoreSurfaceClient, "ISurfaceClient_Real::%s( %p )\n", __FUNCTION__, config );
+
+     surface = obj->surface;
+     CORE_SURFACE_ASSERT( surface );
+
+     D_DEBUG_AT( DirectFB_CoreSurfaceClient, "  -> surface %p (id %u)\n", surface, surface->object.id );
+
+     dfb_surface_lock( surface );
+
+     obj->frametime_config = *config;
+
+     fusion_vector_foreach (client, i, surface->clients) {
+          if (!interval || ((client->frametime_config.flags & DFTCF_INTERVAL) && client->frametime_config.interval < interval))
+               interval = client->frametime_config.interval;
+     }
+
+     D_DEBUG_AT( DirectFB_CoreSurfaceClient, "  -> lowest interval %lld\n", interval );
+
+     if (interval) {
+          surface->frametime_config.flags    = (DFBFrameTimeConfigFlags)(surface->frametime_config.flags | DFTCF_INTERVAL);
+          surface->frametime_config.interval = interval;
+     }
+     else
+          surface->frametime_config.flags = (DFBFrameTimeConfigFlags)(surface->frametime_config.flags & ~DFTCF_INTERVAL);
+
+     dfb_surface_unlock( surface );
+
+     return DFB_OK;
+}
+
+
 }
 

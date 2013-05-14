@@ -95,6 +95,8 @@ typedef struct {
 typedef struct {
      CoreDFB                      *core;
 
+     int                           refs;
+
      CardState                     state;
      CoreGraphicsStateClient       client;
 } WMData;
@@ -3309,17 +3311,7 @@ static DFBResult
 local_init( WMData  *wmdata,
             CoreDFB *core )
 {
-     DFBResult ret;
-
      wmdata->core = core;
-
-     /* Initialise the graphics state used for rendering */
-     dfb_state_init( &wmdata->state, core );
-
-     /* Create a client to use the task manager if enabled */
-     ret = CoreGraphicsStateClient_Init( &wmdata->client, &wmdata->state );
-     if (ret)
-          return ret;
 
      return DFB_OK;
 }
@@ -3327,9 +3319,41 @@ local_init( WMData  *wmdata,
 static void
 local_deinit( WMData *wmdata )
 {
-     CoreGraphicsStateClient_Deinit( &wmdata->client );
+     D_ASSERT( wmdata->refs == 0 );
+}
 
-     dfb_state_destroy( &wmdata->state );
+static DFBResult
+local_ref( WMData *wmdata )
+{
+     if (!wmdata->refs) {
+          DFBResult ret;
+
+          /* Initialise the graphics state used for rendering */
+          dfb_state_init( &wmdata->state, core_dfb );
+
+          /* Create a client to use the task manager if enabled */
+          ret = CoreGraphicsStateClient_Init( &wmdata->client, &wmdata->state );
+          if (ret) {
+               dfb_state_destroy( &wmdata->state );
+               return ret;
+          }
+     }
+
+     wmdata->refs++;
+
+     return DFB_OK;
+}
+
+static void
+local_unref( WMData *wmdata )
+{
+     D_ASSERT( wmdata->refs > 0 );
+
+     if (!--wmdata->refs) {
+          CoreGraphicsStateClient_Deinit( &wmdata->client );
+
+          dfb_state_destroy( &wmdata->state );
+     }
 }
 
 /**************************************************************************************************/
@@ -3451,7 +3475,7 @@ defaultwm_surface_reaction( const void *msg_data,
                                    }
 
                                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                                data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
+                                                                data->updated.regions, data->updated.num_regions, 0, 0, NULL );
                               }
                          }
                          else {
@@ -3465,7 +3489,7 @@ defaultwm_surface_reaction( const void *msg_data,
                                    }
 
                                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                                data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
+                                                                data->updated.regions, data->updated.num_regions, 0, 0, NULL );
                               }
                          }
 
@@ -3477,8 +3501,6 @@ defaultwm_surface_reaction( const void *msg_data,
 
                          flush_updating( data );
                     }
-
-                    CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
 
                     fusion_skirmish_dismiss( &data->update_skirmish );
                     //dfb_layer_context_unlock( data->region->context );
@@ -3611,8 +3633,13 @@ wm_set_active( CoreWindowStack *stack,
 
      data->active = active;
 
-     if (active)
+     if (active) {
+          local_ref( wm_data );
+
           return dfb_windowstack_repaint_all( stack );
+     }
+     else
+          local_unref( wm_data );
 
      /* Force release of all pressed keys. */
      return wm_flush_keys( stack, wm_data, stack_data );

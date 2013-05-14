@@ -193,6 +193,17 @@ ToString<CoreSurfaceBuffer>::ToString( const CoreSurfaceBuffer &buffer )
              ToString<CoreSurfaceConfig>(buffer.config).buffer() );
 }
 
+template<>
+ToString<CoreSurface>::ToString( const CoreSurface &surface )
+{
+     PrintF( "{CoreSurface %s [%d] buffers:%d type:%s resid:%lu %s}",
+             *ToString<FusionObject>(surface.object),
+             surface.clients.count, surface.num_buffers,
+             *ToString<CoreSurfaceTypeFlags>(surface.type),
+             surface.resource_id,
+             *ToString<CoreSurfaceConfig>(surface.config) );
+}
+
 /*********************************************************************************************************************/
 
 extern "C" {
@@ -256,6 +267,12 @@ const char *
 ToString_CoreSurfaceBuffer( const CoreSurfaceBuffer *v )
 {
      return ToString<CoreSurfaceBuffer>( *v ).CopyTLS();
+}
+
+const char *
+ToString_CoreSurface( const CoreSurface *v )
+{
+     return ToString<CoreSurface>( *v ).CopyTLS();
 }
 
 

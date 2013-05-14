@@ -100,6 +100,8 @@ direct_modules_register( DirectModuleDir *directory,
 
 #if DIRECT_BUILD_DYNLOAD
      if ((entry = lookup_by_name( directory, name )) != NULL) {
+          D_DEBUG_AT( Direct_Modules, "  -> found entry %p\n", entry );
+
           D_MAGIC_ASSERT( entry, DirectModuleEntry );
 
           entry->loaded = true;
@@ -122,6 +124,8 @@ direct_modules_register( DirectModuleDir *directory,
                return;
           }
 
+          D_DEBUG_AT( Direct_Modules, "  -> allocated entry %p\n", entry );
+
           D_MAGIC_SET( entry, DirectModuleEntry );
      }
 
@@ -142,7 +146,7 @@ direct_modules_register( DirectModuleDir *directory,
 
      direct_list_prepend( &directory->entries, &entry->link );
 
-     D_DEBUG_AT( Direct_Modules, "...registered.\n" );
+     D_DEBUG_AT( Direct_Modules, "...registered as %p\n", entry );
 }
 
 void
@@ -228,6 +232,8 @@ direct_modules_explore_directory( DirectModuleDir *directory )
           if (!module)
                continue;
 
+          D_DEBUG_AT( Direct_Modules, "  -> allocated entry %p\n", module );
+
           D_MAGIC_SET( module, DirectModuleEntry );
 
           module->directory = directory;
@@ -287,7 +293,8 @@ direct_module_ref( DirectModuleEntry *module )
 {
      D_ASSERT( module != NULL );
 
-     D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs )\n", __FUNCTION__, module, module->name, module->refs );
+     D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs, loaded %d, dynamic %d, disabled %d )\n", __FUNCTION__,
+                 module, module->name, module->refs, module->loaded, module->dynamic, module->disabled );
 
      D_MAGIC_ASSERT( module, DirectModuleEntry );
 
@@ -314,7 +321,8 @@ direct_module_unref( DirectModuleEntry *module )
 {
      D_ASSERT( module != NULL );
 
-     D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs )\n", __FUNCTION__, module, module->name, module->refs );
+     D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs, loaded %d, dynamic %d, disabled %d )\n", __FUNCTION__,
+                 module, module->name, module->refs, module->loaded, module->dynamic, module->disabled );
 
      D_MAGIC_ASSERT( module, DirectModuleEntry );
      D_ASSERT( module->refs > 0 );
@@ -415,16 +423,18 @@ unload_module( DirectModuleEntry *module )
      D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs )\n", __FUNCTION__, module, module->file, module->refs );
 
      D_ASSERT( module->dynamic == true );
-     D_ASSERT( module->handle != NULL );
      D_ASSERT( module->loaded == true );
 
      handle = module->handle;
+     D_ASSUME( handle != NULL );
 
-     module->handle = NULL;
-     module->loaded = false;
+     if (handle) {
+          module->handle = NULL;
+          module->loaded = false;
 
-     /* may call direct_modules_unregister() */
-     dlclose( handle );
+          /* may call direct_modules_unregister() */
+          dlclose( handle );
+     }
 }
 
 static void *

@@ -633,7 +633,7 @@ static void Cop_to_Aop_vyu( GenefxState *gfxs )
      u8   *D  = gfxs->Aop[0];
 
      while (--w) {
-#ifdef BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
           D[0] = gfxs->CrCop;
           D[1] = gfxs->YCop;
           D[2] = gfxs->CbCop;
@@ -5283,7 +5283,7 @@ static void Sacc_Sto_Aop_vyu( GenefxState *gfxs )
                u8 u = (S->YUV.u & 0xFF00) ? 0xFF : S->YUV.u;
                u8 v = (S->YUV.v & 0xFF00) ? 0xFF : S->YUV.v;
 
-#ifdef BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                D[0] = v;
                D[1] = y;
                D[2] = u;
@@ -9122,15 +9122,11 @@ gAcquireSetup( CardState *state, DFBAccelerationMask accel )
           case DSPF_YV12:
           case DSPF_YV16:
           case DSPF_NV12:
+          case DSPF_NV21:
           case DSPF_NV16:
           case DSPF_YUV444P:
                RGB_TO_YCBCR( color.r, color.g, color.b,
                              gfxs->YCop, gfxs->CbCop, gfxs->CrCop );
-               gfxs->Cop = gfxs->YCop;
-               break;
-          case DSPF_NV21:
-               RGB_TO_YCBCR( color.r, color.g, color.b,
-                             gfxs->YCop, gfxs->CrCop, gfxs->CbCop );
                gfxs->Cop = gfxs->YCop;
                break;
           case DSPF_LUT1:

@@ -53,6 +53,8 @@ struct __DFB_CoreSurfaceClient {
      FusionCall               call;
 
      u32                      flip_count;    /* last acknowledged frame */
+
+     DFBFrameTimeConfig       frametime_config;
 };
 
 #define CORE_SURFACE_CLIENT_ASSERT(client)                                                     \

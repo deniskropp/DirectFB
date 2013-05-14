@@ -32,12 +32,15 @@
 
 #include <directfb.h>
 
+#include <direct/String.h>
+
 #include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <core/CoreGraphicsState.h>
+#include <core/Debug.h>
 
 #include <core/core.h>
 #include <core/state.h>
@@ -76,6 +79,19 @@ state_destructor( FusionObject *object, bool zombie, void *ctx )
      fusion_object_destroy( object );
 }
 
+static const char *
+state_describe( FusionObject *object, void *ctx )
+{
+     CoreGraphicsState *state = (CoreGraphicsState*) object;
+
+     D_MAGIC_ASSERT( state, CoreGraphicsState );
+
+     return D_String_PrintTLS( "flags 0x%08x, modified 0x%08x, mod_hw 0x%08x, dest %s, source %s",
+                               state->state.flags, state->state.modified, state->state.mod_hw,
+                               state->state.destination ? ToString_CoreSurface( state->state.destination ) : "NULL",
+                               state->state.source ? ToString_CoreSurface( state->state.source ) : "NULL" );
+}
+
 FusionObjectPool *
 dfb_graphics_state_pool_create( const FusionWorld *world )
 {
@@ -85,6 +101,8 @@ dfb_graphics_state_pool_create( const FusionWorld *world )
                                        sizeof(CoreGraphicsState),
                                        sizeof(CoreGraphicsStateNotification),
                                        state_destructor, NULL, world );
+
+     fusion_object_pool_set_describe( pool, state_describe );
 
      return pool;
 }

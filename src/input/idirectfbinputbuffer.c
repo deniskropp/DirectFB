@@ -204,6 +204,7 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      IDirectFBEventBuffer_data *data = thiz->priv;
 #if !DIRECTFB_BUILD_PURE_VOODOO
      AttachedDevice            *device;
+     AttachedSurface           *surface;
      AttachedWindow            *window;
 #endif
      EventBufferItem           *item;
@@ -237,6 +238,14 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
 #endif
 
 #if !DIRECTFB_BUILD_PURE_VOODOO
+     direct_list_foreach_safe (surface, n, data->surfaces) {
+          dfb_surface_detach( surface->surface, &surface->reaction );
+
+          dfb_surface_unref( surface->surface );
+
+          D_FREE( surface );
+     }
+
      direct_list_foreach_safe (device, n, data->devices) {
           dfb_input_detach( device->device, &device->reaction );
 
@@ -1070,6 +1079,7 @@ static ReactionResult IDirectFBEventBuffer_SurfaceReact( const void *msg_data,
           D_DEBUG_AT( IDFBEvBuf_Surface, "  -> updated %d,%d-%dx%d (right)\n",
                       DFB_RECTANGLE_VALS_FROM_REGION(&evt->update_right) );
           D_DEBUG_AT( IDFBEvBuf_Surface, "  -> flip count %u\n", evt->flip_count );
+          D_DEBUG_AT( IDFBEvBuf_Surface, "  -> time stamp %lld\n", evt->time_stamp );
      }
 
      item = D_CALLOC( 1, sizeof(EventBufferItem) );

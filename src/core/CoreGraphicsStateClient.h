@@ -51,6 +51,7 @@ struct __DFB_CoreGraphicsStateClient {
      void              *requestor;
 
      DFB_Renderer      *renderer;       /* Local renderer in case of master/single process with direct calls */
+     DFB_Throttle      *throttle;
 };
 
 
