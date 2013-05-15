@@ -1222,6 +1222,13 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           return false;
      }
 
+     if (!(state->accel & accel)) {
+          dfb_surface_unlock_buffer( dst, &state->dst );
+          Core_PopIdentity();
+          fusion_skirmish_dismiss_multi( locks, num_locks );
+          return false;
+     }
+
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* If the front buffer policy of the source is 'system only' no accelerated blitting is available. */
           /* ...lock source for reading */
@@ -1294,12 +1301,6 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           }
 
           state->flags |= CSF_SOURCE_LOCKED;
-     }
-     else if (!(state->accel & accel)) {
-          dfb_surface_unlock_buffer( dst, &state->dst );
-          Core_PopIdentity();
-          fusion_skirmish_dismiss_multi( locks, num_locks );
-          return false;
      }
 
      fusion_skirmish_dismiss_multi( locks, num_locks );
