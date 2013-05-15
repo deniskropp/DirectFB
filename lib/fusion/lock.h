@@ -36,6 +36,7 @@
 #include <direct/util.h>
 
 typedef struct {
+     int                      magic;
      DirectMutex              lock;
      DirectWaitQueue          cond;
      int                      count;

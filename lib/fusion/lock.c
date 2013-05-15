@@ -185,6 +185,8 @@ fusion_skirmish_init2( FusionSkirmish    *skirmish,
      direct_recursive_mutex_init( &skirmish->single->lock );
      direct_waitqueue_init( &skirmish->single->cond );
 
+     D_MAGIC_SET( skirmish->single, FusionSkirmishSingle );
+
      /* Keep back pointer to shared world data. */
      skirmish->multi.shared = world->shared;
 
@@ -196,12 +198,14 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
 
-     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_prevail( %p )\n", skirmish );
-
      if (fusion_config->skirmish_warn_on_thread && fusion_config->skirmish_warn_on_thread == direct_thread_get_tid(direct_thread_self()))
           D_WARN( "%s '%s' 0x%08x", __FUNCTION__, skirmish->single ? skirmish->single->name : "", skirmish->multi.id );
 
      if (skirmish->single) {
+          D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           if (direct_mutex_lock( &skirmish->single->lock ))
                return errno2result( errno );
 
@@ -209,6 +213,8 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
 
           return DR_OK;
      }
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p [%d] )\n", __FUNCTION__, skirmish, skirmish->multi.id );
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_PREVAIL, &skirmish->multi.id)) {
           switch (errno) {
@@ -233,6 +239,10 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
      D_ASSERT( skirmish != NULL );
 
      if (skirmish->single) {
+          D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           if (direct_mutex_trylock( &skirmish->single->lock ))
                return errno2result( errno );
 
@@ -240,6 +250,8 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
 
           return DR_OK;
      }
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p [%d] )\n", __FUNCTION__, skirmish, skirmish->multi.id );
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_SWOOP, &skirmish->multi.id)) {
           switch (errno) {
@@ -269,6 +281,10 @@ fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
      D_ASSERT( skirmish != NULL );
 
      if (skirmish->single) {
+          D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           if (direct_mutex_trylock( &skirmish->single->lock )) {
                *lock_count = 0;
                return errno2result( errno );
@@ -280,6 +296,8 @@ fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 
           return DR_OK;
      }
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p [%d] )\n", __FUNCTION__, skirmish, skirmish->multi.id );
 
      data[0] = skirmish->multi.id;
      data[1] = 0;
@@ -308,6 +326,10 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
      D_ASSERT( skirmish != NULL );
 
      if (skirmish->single) {
+          D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           skirmish->single->count--;
 
           if (direct_mutex_unlock( &skirmish->single->lock ))
@@ -315,6 +337,8 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 
           return DR_OK;
      }
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p [%d] )\n", __FUNCTION__, skirmish, skirmish->multi.id );
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_DISMISS, &skirmish->multi.id)) {
           switch (errno) {
@@ -338,19 +362,26 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
-     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_destroy( %p [%d] )\n", skirmish, skirmish->multi.id );
-     
      if (skirmish->single) {
           int retval;
+
+          D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
 
           direct_waitqueue_broadcast( &skirmish->single->cond );
           direct_waitqueue_deinit( &skirmish->single->cond );
 
           retval = direct_mutex_deinit( &skirmish->single->lock );
+
+          D_MAGIC_CLEAR( skirmish->single );
+
           D_FREE( skirmish->single );
 
           return errno2result( retval );
      }
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p [%d] )\n", __FUNCTION__, skirmish, skirmish->multi.id );
 
      while (ioctl( _fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_DESTROY, &skirmish->multi.id )) {
           switch (errno) {
@@ -377,12 +408,18 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      D_ASSERT( skirmish != NULL );
 
      if (skirmish->single) {
+          D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           if (timeout)
                return direct_waitqueue_wait_timeout( &skirmish->single->cond, 
                                                      &skirmish->single->lock, timeout * 1000 );
 
           return direct_waitqueue_wait( &skirmish->single->cond, &skirmish->single->lock );
      }
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p [%d] )\n", __FUNCTION__, skirmish, skirmish->multi.id );
 
      wait.id         = skirmish->multi.id;
      wait.timeout    = timeout;
@@ -414,10 +451,16 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
      D_ASSERT( skirmish != NULL );
 
      if (skirmish->single) {
+          D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           direct_waitqueue_broadcast( &skirmish->single->cond );
 
           return DR_OK;
      }
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p [%d] )\n", __FUNCTION__, skirmish, skirmish->multi.id );
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_NOTIFY, &skirmish->multi.id)) {
           switch (errno) {
@@ -443,8 +486,13 @@ fusion_skirmish_add_permissions( FusionSkirmish            *skirmish,
 {
      FusionEntryPermissions permissions;
 
-     if (skirmish->single)
+     if (skirmish->single) {
+          D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
+
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           return DR_OK;
+     }
 
      permissions.type        = FT_SKIRMISH;
      permissions.id          = skirmish->multi.id;
@@ -551,6 +599,8 @@ fusion_skirmish_init2( FusionSkirmish    *skirmish,
      direct_recursive_mutex_init( &skirmish->single->lock );
      direct_waitqueue_init( &skirmish->single->cond );
 
+     D_MAGIC_SET( skirmish->single, FusionSkirmishSingle );
+
      /* Keep back pointer to shared world data. */
      skirmish->multi.shared = world->shared;
 
@@ -568,6 +618,8 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
           D_WARN( "%s '%s' 0x%08x", __FUNCTION__, skirmish->single ? skirmish->single->name : "", skirmish->multi.id );
 
      if (skirmish->single) {
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           if (direct_mutex_lock( &skirmish->single->lock ))
                return errno2result( errno );
 
@@ -625,6 +677,8 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
      D_ASSERT( skirmish != NULL );
      
      if (skirmish->single) {
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           if (direct_mutex_trylock( &skirmish->single->lock ))
                return errno2result( errno );
 
@@ -663,6 +717,8 @@ fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
      D_ASSERT( skirmish != NULL );
      
      if (skirmish->single) {
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           if (direct_mutex_trylock( &skirmish->single->lock )) {
                *lock_count = 0;
                return errno2result( errno );
@@ -691,6 +747,8 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
      D_ASSERT( skirmish != NULL );
      
      if (skirmish->single) {
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           skirmish->single->count--;
 
           if (direct_mutex_unlock( &skirmish->single->lock ))
@@ -736,10 +794,15 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
      if (skirmish->single) {
           int retval;
 
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           direct_waitqueue_broadcast( &skirmish->single->cond );
           direct_waitqueue_deinit( &skirmish->single->cond );
 
           retval = direct_mutex_deinit( &skirmish->single->lock );
+
+          D_MAGIC_CLEAR( skirmish->single );
+
           D_FREE( skirmish->single );
 
           return errno2result( retval );
@@ -776,6 +839,8 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      D_ASSERT( skirmish != NULL );
      
      if (skirmish->single) {
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           if (timeout)
                return direct_waitqueue_wait_timeout( &skirmish->single->cond, 
                                                      &skirmish->single->lock, timeout * 1000 );
@@ -855,6 +920,8 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
      D_ASSERT( skirmish != NULL );
 
      if (skirmish->single) {
+          D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
           direct_waitqueue_broadcast( &skirmish->single->cond );
 
           return DR_OK;
@@ -915,6 +982,8 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      direct_recursive_mutex_init( &skirmish->single->lock );
      direct_waitqueue_init( &skirmish->single->cond );
 
+     D_MAGIC_SET( skirmish->single, FusionSkirmishSingle );
+
      return DR_OK;
 }
 
@@ -932,7 +1001,7 @@ DirectResult
 fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
-     D_ASSERT( skirmish->single != NULL );
+     D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
@@ -948,7 +1017,7 @@ DirectResult
 fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
-     D_ASSERT( skirmish->single != NULL );
+     D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
@@ -964,7 +1033,7 @@ DirectResult
 fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
      D_ASSERT( skirmish != NULL );
-     D_ASSERT( skirmish->single != NULL );
+     D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
      D_ASSERT( lock_count != NULL );
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
@@ -985,7 +1054,7 @@ DirectResult
 fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
-     D_ASSERT( skirmish->single != NULL );
+     D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
@@ -1003,7 +1072,7 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
      int retval;
 
      D_ASSERT( skirmish != NULL );
-     D_ASSERT( skirmish->single != NULL );
+     D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
@@ -1011,6 +1080,9 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
      direct_waitqueue_deinit( &skirmish->single->cond );
 
      retval = direct_mutex_deinit( &skirmish->single->lock );
+
+     D_MAGIC_CLEAR( skirmish->single );
+
      D_FREE( skirmish->single );
 
      return errno2result( retval );
@@ -1021,7 +1093,7 @@ DirectResult
 fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 {
      D_ASSERT( skirmish != NULL );
-     D_ASSERT( skirmish->single != NULL );
+     D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
@@ -1036,7 +1108,7 @@ DirectResult
 fusion_skirmish_notify( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
-     D_ASSERT( skirmish->single != NULL );
+     D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
 
      D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, skirmish->single->name );
 
@@ -1050,6 +1122,8 @@ fusion_skirmish_add_permissions( FusionSkirmish            *skirmish,
                                  FusionID                   fusion_id,
                                  FusionSkirmishPermissions  skirmish_permissions )
 {
+     D_MAGIC_ASSERT( skirmish->single, FusionSkirmishSingle );
+
      return DR_OK;
 }
 
