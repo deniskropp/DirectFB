@@ -1265,7 +1265,7 @@ repaint_tier( SaWMan              *sawman,
 //     D_ASSERT( num_updates > 0 );
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 
-     if (num_updates == 0) 
+     if (num_updates == 0)
           return;
 
      stack = tier->stack;
@@ -1276,6 +1276,8 @@ repaint_tier( SaWMan              *sawman,
 
      state   = &wmdata->state;
      surface = region->surface;
+
+     D_ASSERT( wmdata->refs > 0 );
 
      if (/*!data->active ||*/ !surface)
           return;
@@ -2190,6 +2192,7 @@ sawman_process_updates( SaWMan              *sawman,
      DirectResult  ret;
      int           idx = -1;
      SaWManTier   *tier;
+     StackData    *data;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      FUSION_SKIRMISH_ASSERT( sawman->lock );
@@ -2241,6 +2244,10 @@ sawman_process_updates( SaWMan              *sawman,
 
           sawman->focused_window_switched = false;
      }
+
+     data = sawman->stack->stack_data;
+     if (!data->active)
+          return DFB_OK;
 
      direct_list_foreach (tier, sawman->tiers) {
           bool          none = false;
