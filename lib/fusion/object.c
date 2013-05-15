@@ -96,17 +96,17 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
      if (object) {
           D_MAGIC_ASSERT( object, FusionObject );
 
-          D_DEBUG_AT( Fusion_Object, "  -> object %p [%u] (ref %x), single refs %d\n",
-                      object, object->id, object->ref.multi.id, object->ref.single.refs );
           D_DEBUG_AT( Fusion_Object, "  -> %s\n", ToString_FusionObject( object ) );
 
-          if (object->ref.single.dead > 1) {
-               D_DEBUG_AT( Fusion_Object, "  -> died multiple times (%d), skipping...\n", object->ref.single.dead );
-
+          if (object->ref.single.dead) {
                object->ref.single.dead--;
 
-               fusion_skirmish_dismiss( &pool->lock );
-               return FCHR_RETURN;
+               if (object->ref.single.dead) {
+                    D_DEBUG_AT( Fusion_Object, "  -> died multiple times (%d more), skipping...\n", object->ref.single.dead );
+
+                    fusion_skirmish_dismiss( &pool->lock );
+                    return FCHR_RETURN;
+               }
           }
 
 
