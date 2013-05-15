@@ -935,7 +935,7 @@ DFBResult IDirectFBEventBuffer_AttachSurface( IDirectFBEventBuffer *thiz,
                item->evt.surface.update.y2    = surface->config.size.h - 1;
                item->evt.surface.update_right = item->evt.surface.update;
                item->evt.surface.flip_count   = surface->flips;
-               item->evt.surface.time_stamp   = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+               item->evt.surface.time_stamp   = surface->last_frame_time;
 
                IDirectFBEventBuffer_AddItem( data, item );
           }

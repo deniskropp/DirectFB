@@ -147,9 +147,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
      if (ret)
           return ret;
 
-     CoreGraphicsStateClient_Flush( &data->base.state_client, 0 );
-
-     dfb_surface_dispatch_update( data->base.surface, &reg, &reg );
+     dfb_surface_dispatch_update( data->base.surface, &reg, &reg, data->base.current_frame_time );
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
 
@@ -224,13 +222,11 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
-     ret = CoreLayerRegion_FlipUpdate2( data->region, &l_reg, &r_reg, flags, -1 );
+     ret = CoreLayerRegion_FlipUpdate2( data->region, &l_reg, &r_reg, flags, data->base.current_frame_time );
      if (ret)
           return ret;
 
-     CoreGraphicsStateClient_Flush( &data->base.state_client, 0 );
-
-     dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg );
+     dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg, data->base.current_frame_time );
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
 

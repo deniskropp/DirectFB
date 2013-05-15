@@ -660,6 +660,8 @@ update_only:
 
      D_DEBUG_AT( Core_Layers, "  -> done.\n" );
 
+     dfb_surface_dispatch_update( region->surface, update, update, -1 );
+
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
 
@@ -916,6 +918,8 @@ update_only:
      }
 
      D_DEBUG_AT( Core_Layers, "  -> done.\n" );
+
+     dfb_surface_dispatch_update( region->surface, left_update, right_update, -1 );
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );

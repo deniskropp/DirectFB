@@ -192,7 +192,8 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
-     ret = CoreWindow_Repaint( data->window, &reg, &reg, flags );
+
+     ret = CoreWindow_Repaint( data->window, &reg, &reg, flags, data->base.current_frame_time );
      if (ret)
           return ret;
 
@@ -201,6 +202,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
           ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_OPACITY );
      }
+
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
 
@@ -286,7 +288,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
-     ret = CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags );
+     ret = CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags, data->base.current_frame_time );
      if (ret)
           return ret;
 

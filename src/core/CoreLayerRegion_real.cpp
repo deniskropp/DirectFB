@@ -656,6 +656,8 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
 
      D_DEBUG_AT( DirectFB_Task_Display, "  -> done.\n" );
 
+     dfb_surface_dispatch_update( region->surface, left_update, right_update, pts );
+
      /* Unlock the region. */
      dfb_layer_region_unlock( region );
 

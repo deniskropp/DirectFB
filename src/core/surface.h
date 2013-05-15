@@ -256,6 +256,8 @@ struct __DFB_CoreSurface
      u32                      flips_acked;
 
      DFBFrameTimeConfig       frametime_config;
+
+     long long                last_frame_time;
 };
 
 #define CORE_SURFACE_ASSERT(surface)                                                           \
@@ -332,7 +334,8 @@ DFBResult dfb_surface_dispatch_event( CoreSurface                  *surface,
 
 DFBResult dfb_surface_dispatch_update( CoreSurface                  *surface,
                                        const DFBRegion              *update,
-                                       const DFBRegion              *update_right );
+                                       const DFBRegion              *update_right,
+                                       long long                     timestamp );
 
 DFBResult dfb_surface_reconfig      ( CoreSurface                  *surface,
                                       const CoreSurfaceConfig      *config );
