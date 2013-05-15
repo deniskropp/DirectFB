@@ -515,7 +515,7 @@ public:
 
      virtual ~TransferTask()
      {
-          dfb_surface_buffer_ref( buffer );
+          dfb_surface_buffer_unref( buffer );
      }
 
      static DFBResult Generate( CoreSurfaceAllocation *allocation,
