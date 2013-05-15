@@ -180,7 +180,7 @@ public:
      {
           lwq.lock();
 
-          if (--ref_count) {
+          if (!--ref_count) {
                lwq.unlock();
 
                delete this;
