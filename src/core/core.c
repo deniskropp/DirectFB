@@ -40,6 +40,7 @@
 #include <direct/hash.h>
 #include <direct/list.h>
 
+#include <fusion/Debug.h>
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 #include <fusion/shm/shm_internal.h>
@@ -1124,8 +1125,7 @@ dump_objects( FusionObjectPool *pool,
           desc = pool->describe( object, pool->ctx );
 
      direct_log_domain_log( context->domain, context->level, __FUNCTION__, __FILE__, __LINE__,
-                            "        %p [id %u] ref id 0x%08x single refs %d {%s}\n", object, object->id,
-                            object->ref.multi.id, object->ref.single.refs, desc );
+                            "        %s {%s}\n", ToString_FusionObject( object ), desc );
 
      direct_trace_print_stack( object->create_stack );
 
@@ -1685,7 +1685,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
      DFBResult      ret;
      CoreDFBShared *shared;
-     int            loops = 4;
+     int            loops = 1;
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
@@ -1724,6 +1724,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
           direct_print_interface_leaks();
      }
 
+     fusion_stop_dispatcher( core->world, false );
 
      /* Close window stacks. */
      if (dfb_wm_core.initialized)
@@ -1774,7 +1775,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      TaskManager_Shutdown();
 
-     return ret;
+     return DFB_OK;//ret;
 }
 
 DFBResult
