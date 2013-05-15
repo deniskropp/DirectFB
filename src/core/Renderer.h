@@ -141,7 +141,7 @@ class Base;
 }
 
 
-class Throttle
+class Throttle : public Direct::Magic<Throttle>
 {
      friend class Renderer;
 
@@ -167,27 +167,8 @@ public:
      Throttle( Renderer &renderer );
      virtual ~Throttle();
 
-     void ref()
-     {
-          lwq.lock();
-
-          ref_count++;
-
-          lwq.unlock();
-     }
-
-     void unref()
-     {
-          lwq.lock();
-
-          if (--ref_count) {
-               lwq.unlock();
-
-               delete this;
-          }
-          else
-               lwq.unlock();
-     }
+     void ref();
+     void unref();
 
      DFBResult waitDone( unsigned long timeout_us = 0 );
 
@@ -230,6 +211,7 @@ public:
 
                memset( tasks, 0, sizeof(SurfaceTask*) * tiles );
 
+               // FIXME: add Renderer control API for this
                if (0) {
                     int tw = width / tiles;
 
