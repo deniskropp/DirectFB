@@ -553,14 +553,28 @@ render_glyph( CoreFont      *thiz,
                          switch (surface->config.format) {
                               case DSPF_ARGB:
                               case DSPF_ABGR:
-                                   for (i=0; i<info->width; i++)
-                                        dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
-                                                     0xFF : 0x00) << 24) | 0xFFFFFF;
+                                   if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
+                                        for (i=0; i<info->width; i++)
+                                             dst32[i] = (src[i>>3] & (1<<(7-(i%8)))) ?
+                                                          0xFFFFFFFF : 0x00000000;
+                                   }
+                                   else {
+                                        for (i=0; i<info->width; i++)
+                                             dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                          0xFF : 0x00) << 24) | 0xFFFFFF;
+                                   }
                                    break;
                               case DSPF_AiRGB:
-                                   for (i=0; i<info->width; i++)
-                                        dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
-                                                     0x00 : 0xFF) << 24) | 0xFFFFFF;
+                                   if (thiz->surface_caps & DSCAPS_PREMULTIPLIED) {
+                                        for (i=0; i<info->width; i++)
+                                             dst32[i] = (src[i>>3] & (1<<(7-(i%8)))) ?
+                                                          0x00FFFFFF : 0xFF000000;
+                                   }
+                                   else {
+                                        for (i=0; i<info->width; i++)
+                                             dst32[i] = (((src[i>>3] & (1<<(7-(i%8)))) ?
+                                                          0x00 : 0xFF) << 24) | 0xFFFFFF;
+                                   }
                                    break;
                               case DSPF_ARGB8565:
                                    for (i = 0, j = -1; i < info->width; ++i) {
