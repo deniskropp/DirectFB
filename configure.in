@@ -1882,7 +1882,7 @@ AC_MSG_CHECKING(which gfxdrivers should be built)
 AC_ARG_WITH(gfxdrivers,
             AC_HELP_STRING([--with-gfxdrivers=LIST],
                            [LIST is a comma separated selection of gfxdrivers]
-                           [to build. Possible gfxdrivers are: all (builds all]
+                           [to build. Possible gfxdrivers are: all (builds most]
                            [drivers), none (builds none), ati128, cle266,]
                            [cyber5k, davinci, ep9x, gp2d, gl, gles2, i810, i830, mach64,]
                            [matrox, neomagic, nsc, nvidia, omap, pvr2d, pxa3xx,]
