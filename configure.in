@@ -586,7 +586,7 @@ DIRECT_BUILD_OSTYPE=DIRECT_OS_LINUX_GNU_LIBC
 AC_SUBST(DIRECT_BUILD_OSTYPE)
 
 
-linux_fusion="N/A"
+enable_multi_kernel="N/A"
 AC_ARG_ENABLE(multi,
               AC_HELP_STRING([--enable-multi],
                              [enable multi application core @<:@default=no@:>@]),
@@ -596,14 +596,14 @@ if test "$enable_multi" = "yes"; then
   AC_ARG_ENABLE(multi-kernel,
                 AC_HELP_STRING([--enable-multi-kernel],
                                [enable multi app linux fusion kernel device @<:@default=yes@:>@]),
-                [], [linux_fusion=yes])
+                [], [enable_multi_kernel=yes])
 
   FUSION_BUILD_KERNEL=0
 
   dnl Test for Fusion Kernel Device
-  if test "$linux_fusion" = "yes"; then
-    AC_CHECK_HEADER( [linux/fusion.h],, linux_fusion=no)
-    if test "$linux_fusion" = "yes"; then
+  if test "$enable_multi_kernel" = "yes"; then
+    AC_CHECK_HEADER( [linux/fusion.h], [], [enable_multi_kernel=no])
+    if test "$enable_multi_kernel" = "yes"; then
        FUSION_BUILD_KERNEL=1
     else
        fusion_warning="
@@ -2957,7 +2957,7 @@ Build options:
 
 Misc options:
   Multi Application Core    $enable_multi
-  Fusion Kernel Device      $linux_fusion
+  Fusion Kernel Device      $enable_multi_kernel
   Fusion message size       $with_message_size
   Fluxed args size          $with_args_size
   One (IPC)                 $enable_one
