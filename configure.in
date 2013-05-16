@@ -699,39 +699,39 @@ fi
 AC_ARG_ENABLE(fs-ieee-floats,
               AC_HELP_STRING([--enable-fs-ieee-floats],
                              [enable using IEEE floats for internal mixing routines @<:@default=no@:>@]),
-              [], [fs_enable_ieee_floats=no])
-if test "x$fs_enable_ieee_floats" = xyes; then
+              [], [enable_fs_ieee_floats=no])
+if test "x$enable_fs_ieee_floats" = xyes; then
   AC_DEFINE(FS_USE_IEEE_FLOATS,1,[Define to 1 to enable IEEE floats for mixing routines.])
 fi
 
 AC_ARG_ENABLE(fs-precision,
               AC_HELP_STRING([--enable-fs-precision],
                              [privilege precision over speed @<:@default=auto@:>@]),
-              [], [fs_enable_precision=auto])
-if test "x$fs_enable_precision" = xauto; then
+              [], [enable_fs_precision=auto])
+if test "x$enable_fs_precision" = xauto; then
   if test "x$have_x86" = xyes || test "x$have_ppc" = xyes; then
-    fs_enable_precision=yes
+    enable_fs_precision=yes
   else
-    fs_enable_precision=no
+    enable_fs_precision=no
   fi
 fi
-if test "x$fs_enable_precision" = xyes; then
+if test "x$enable_fs_precision" = xyes; then
   AC_DEFINE(FS_ENABLE_PRECISION,1,[Define to 1 to enable precision.])
 fi
 
 AC_ARG_ENABLE(fs-linear-filter,
               AC_HELP_STRING([--enable-fs-linear-filter],
                              [enable linear filtering @<:@default=yes@:>@]),
-              [], [fs_enable_linear_filter=yes])
-if test "x$fs_enable_linear_filter" = xyes; then
+              [], [enable_fs_linear_filter=yes])
+if test "x$enable_fs_linear_filter" = xyes; then
   AC_DEFINE(FS_ENABLE_LINEAR_FILTER,1,[Define to 1 to enable linear filter.])
 fi
 
 AC_ARG_ENABLE(fs-multichannel,
               AC_HELP_STRING([--disable-fs-multichannel],
                              [disable support for more than 2 channels @<:@default=no@:>@]),
-              [], [fs_enable_multichannel=yes])
-if test "x$fs_enable_multichannel" = xyes; then
+              [], [enable_fs_multichannel=yes])
+if test "x$enable_fs_multichannel" = xyes; then
   FS_MAX_CHANNELS=6
 else
   FS_MAX_CHANNELS=2
@@ -815,7 +815,7 @@ AM_CONDITIONAL(BUILD_WAVE, test "x$fsdriver_wave" = "xyes")
 #
 # Check for Timidity
 #
-timidty="no"
+timidity="no"
 AC_ARG_WITH(timidity,
             AC_HELP_STRING([--with-timidity],
                            [build Timidity music provider @<:@default=yes@:>@]),
@@ -3040,10 +3040,10 @@ Building FusionSound        $enable_fusionsound]);
 if test "$enable_fusionsound" = "yes"; then
 AC_MSG_RESULT([
   Options:
-    IEEE floats:            $fs_enable_ieee_floats
-    Precision:              $fs_enable_precision
-    Linear filter:          $fs_enable_linear_filter
-    Multichannel            $fs_enable_multichannel
+    IEEE floats:            $enable_fs_ieee_floats
+    Precision:              $enable_fs_precision
+    Linear filter:          $enable_fs_linear_filter
+    Multichannel            $enable_fs_multichannel
   Drivers:
     OSS                     $fsdriver_oss
     ALSA                    $fsdriver_alsa
