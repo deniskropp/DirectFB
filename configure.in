@@ -1405,7 +1405,6 @@ fi
 AC_SUBST(GSTREAMER_LIBS)
 AC_SUBST(GSTREAMER_INCL)
 
-AM_CONDITIONAL(HAVE_FUSIONSOUND, test "x$have_fusionsound" = xyes)
 
 dnl Allow to disable GIF support
 AC_ARG_ENABLE(gif,
@@ -3021,7 +3020,7 @@ Building Video Provider Modules:
   Video4Linux               $V4L (v2: $V4L2)
   MNG                       $MNG                 $LIBMNG_CFLAGS $LIBMNG_LIBS
   Gstreamer                 $gstreamer (v1: $HAVE_GSTREAMER_1_0)       $GSTREAMER_INCL $GSTREAMER_LIBS
-    with FusionSound        $have_fusionsound
+    with FusionSound        $enable_fusionsound
   AviFile                   $avifile
   Flash                     $flash
   Libmpeg3                  $mpeg3
