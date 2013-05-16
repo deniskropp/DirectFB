@@ -376,7 +376,7 @@ ISaWManManager_Real::SetWindowConfig(
                window->config.bounds.h = config->bounds.h;
           }
           else
-               window->config.bounds = config->bounds;          
+               window->config.bounds = config->bounds;
 
           if (window->surface && !(window->config.options & DWOP_SCALE)) {
                ret = dfb_surface_reformat( window->surface,

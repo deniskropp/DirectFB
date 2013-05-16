@@ -108,7 +108,7 @@ endif
 
 if ENABLE_DIVINE
 idivine_LTLIBRARIES = \
-	libidivine_dispatcher.la        
+	libidivine_dispatcher.la
 endif
 
 if BUILD_STATIC
@@ -198,7 +198,7 @@ libicomacomponent_dispatcher_la_LIBADD  = $(LIBS)
 libifusionsound_dispatcher_la_SOURCES = ifusionsound_dispatcher.c ifusionsound_dispatcher.h
 libifusionsound_dispatcher_la_LDFLAGS = -avoid-version -module
 libifusionsound_dispatcher_la_LIBADD = $(LIBS)
- 
+
 libifusionsoundbuffer_dispatcher_la_SOURCES = ifusionsoundbuffer_dispatcher.c ifusionsoundbuffer_dispatcher.h
 libifusionsoundbuffer_dispatcher_la_LDFLAGS = -avoid-version -module
 libifusionsoundbuffer_dispatcher_la_LIBADD = $(LIBS) ../compressor/libfusionsound_compressor.la
