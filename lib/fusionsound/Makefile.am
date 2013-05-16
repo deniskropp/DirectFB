@@ -20,8 +20,8 @@ include_HEADERS = \
 	fusionsound.h \
 	fusionsound_limits.h \
 	fusionsound_version.h
-                
-                
+
+
 lib_LTLIBRARIES = libfusionsound.la
 
 libfusionsound_la_SOURCES = \

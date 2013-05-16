@@ -319,7 +319,7 @@ sawman_update_window( SaWMan              *sawman,
                area = DFB_REGION_INIT_TRANSLATED( region, sawwin->dst.x, sawwin->dst.y );
      }
      else {
-          if ((update_flags & SWMUF_UPDATE_BORDER) && sawman_window_border( sawwin )) 
+          if ((update_flags & SWMUF_UPDATE_BORDER) && sawman_window_border( sawwin ))
                area = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->bounds );
           else
                area = DFB_REGION_INIT_FROM_RECTANGLE( &sawwin->dst );
@@ -713,15 +713,15 @@ sawman_withdraw_window( SaWMan       *sawman,
                if (sawman->keys[i].code != -1 && sawman->keys[i].owner == sawwin) {
                     if (!DFB_WINDOW_DESTROYED( window )) {
                          DFBWindowEvent we;
-     
+
                          we.type       = DWET_KEYUP;
                          we.key_code   = sawman->keys[i].code;
                          we.key_id     = sawman->keys[i].id;
                          we.key_symbol = sawman->keys[i].symbol;
-     
+
                          sawman_post_event( sawman, sawwin, &we );
                     }
-     
+
                     sawman->keys[i].code  = -1;
                     sawman->keys[i].owner = NULL;
                }
@@ -736,8 +736,8 @@ sawman_withdraw_window( SaWMan       *sawman,
 
           tier = sawman_tier_by_class( sawman, sawwin->window->config.stacking );
           D_ASSERT(tier->region != NULL);
-          if (tier->region->config.options & DLOP_STEREO) 
-               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, 
+          if (tier->region->config.options & DLOP_STEREO)
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE,
                     SWMUF_FORCE_INVISIBLE | SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
      }
 
@@ -970,7 +970,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
      if (!DFB_RECTANGLE_EQUAL( src, sawwin->src )) {
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
 
-          if (stereo_layer) 
+          if (stereo_layer)
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE | SWMUF_RIGHT_EYE );
 
           sawwin->src = src;
@@ -981,7 +981,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
      if (!DFB_RECTANGLE_EQUAL( dst, sawwin->dst )) {
           if (!src_updated) {
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
-               if (stereo_layer) 
+               if (stereo_layer)
                     sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE | SWMUF_RIGHT_EYE );
           }
 
@@ -989,7 +989,7 @@ sawman_update_geometry( SaWManWindow *sawwin )
           dst_updated = true;
 
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE );
-          if (stereo_layer) 
+          if (stereo_layer)
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_NONE | SWMUF_RIGHT_EYE );
      }
 
@@ -1153,7 +1153,7 @@ sawman_restack_window( SaWMan                 *sawman,
                return DFB_OK;
 
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-          if ( stereo_layer ) 
+          if ( stereo_layer )
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
 
           /* Actually change the stacking order now. */
@@ -1166,13 +1166,13 @@ sawman_restack_window( SaWMan                 *sawman,
           fusion_vector_foreach (tmpsaw, i, sawwin->children) {
                if (tmpsaw->window->config.options & (DWOP_KEEP_ABOVE|DWOP_KEEP_UNDER)) {
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-                    if ( stereo_layer ) 
-                         sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, 
+                    if ( stereo_layer )
+                         sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE,
                               SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
                     sawman_insert_window( sawman, tmpsaw, NULL, false );
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-                    if ( stereo_layer ) 
-                         sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, 
+                    if ( stereo_layer )
+                         sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE,
                               SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
                }
           }
@@ -1288,8 +1288,8 @@ sawman_restack_window( SaWMan                 *sawman,
                return DFB_OK;
 
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-          if ( stereo_layer ) 
-               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, 
+          if ( stereo_layer )
+               sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE,
                                      SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
 
           /* Actually change the stacking order now. */
@@ -1303,13 +1303,13 @@ sawman_restack_window( SaWMan                 *sawman,
           /* Reinsert sub windows to ensure they're in order (above top level). */
           fusion_vector_foreach (tmp, i, window->subwindows) {
                sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-               if ( stereo_layer ) 
-                    sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, 
+               if ( stereo_layer )
+                    sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE,
                                           SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
                sawman_insert_window( sawman, tmp->window_data, NULL, false );
                sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-               if ( stereo_layer ) 
-                    sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, 
+               if ( stereo_layer )
+                    sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE,
                                           SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
           }
 #endif
@@ -1318,26 +1318,26 @@ sawman_restack_window( SaWMan                 *sawman,
           fusion_vector_foreach (tmpsaw, i, sawwin->children) {
                if (tmpsaw->window->config.options & (DWOP_KEEP_ABOVE|DWOP_KEEP_UNDER)) {
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-                    if ( stereo_layer ) 
-                         sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, 
+                    if ( stereo_layer )
+                         sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE,
                                                SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
                     sawman_insert_window( sawman, tmpsaw, NULL, false );
                     sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-                    if ( stereo_layer ) 
-                         sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE, 
+                    if ( stereo_layer )
+                         sawman_update_window( sawman, tmpsaw, NULL, DSFLIP_NONE,
                                                SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
 
 #ifndef OLD_COREWINDOWS_STRUCTURE
                     /* Reinsert sub windows to ensure they're in order (above top level). */
                     fusion_vector_foreach (tmp, n, tmpsaw->window->subwindows) {
                          sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-                         if ( stereo_layer ) 
-                              sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, 
+                         if ( stereo_layer )
+                              sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE,
                                                     SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
                          sawman_insert_window( sawman, tmp->window_data, NULL, false );
                          sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-                         if ( stereo_layer ) 
-                              sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE, 
+                         if ( stereo_layer )
+                              sawman_update_window( sawman, tmp->window_data, NULL, DSFLIP_NONE,
                                                     SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
                     }
 #endif
@@ -1346,7 +1346,7 @@ sawman_restack_window( SaWMan                 *sawman,
      }
 
      sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER );
-     if ( stereo_layer ) 
+     if ( stereo_layer )
           sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
 
      return DFB_OK;
@@ -1469,8 +1469,8 @@ sawman_set_opacity( SaWMan       *sawman,
           if (sawwin->flags & SWMWF_INSERTED) {
                sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, SWMUF_FORCE_INVISIBLE | SWMUF_UPDATE_BORDER );
 
-               if (tier->region->config.options & DLOP_STEREO) 
-                    sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE, 
+               if (tier->region->config.options & DLOP_STEREO)
+                    sawman_update_window( sawman, sawwin, NULL, DSFLIP_NONE,
                          SWMUF_FORCE_INVISIBLE | SWMUF_UPDATE_BORDER | SWMUF_RIGHT_EYE );
 
                /* Ungrab pointer/keyboard, pass focus... */

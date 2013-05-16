@@ -692,7 +692,7 @@ AC_ARG_ENABLE(fusionsound,
 if test "$enable_fusionsound" = "yes"; then
   AC_DEFINE(HAVE_FUSIONSOUND,1,[Define to 1 if you want FusionSound support.])
 fi
- 
+
 #
 # fusionsound options
 #
@@ -733,7 +733,7 @@ if test "x$fs_enable_multichannel" = xyes; then
 else
   FS_MAX_CHANNELS=2
 fi
-AC_SUBST(FS_MAX_CHANNELS)  
+AC_SUBST(FS_MAX_CHANNELS)
 
 
 # Check for fusionsound drivers
@@ -829,7 +829,7 @@ if test "x$with_timidity" = "xyes"; then
     AC_MSG_WARN([
 *** libtimidity is required - Timidity music provider will not be built.])
   fi
-fi 
+fi
 
 AC_SUBST(TIMIDITY_CFLAGS)
 AC_SUBST(TIMIDITY_LIBS)
@@ -860,9 +860,9 @@ AC_ARG_WITH(tremor,
 
 if test "x$with_vorbis" = "xyes"; then
   if test "x$with_tremor" = "xyes"; then
-    AC_CHECK_HEADER(tremor/ivorbiscodec.h, 
+    AC_CHECK_HEADER(tremor/ivorbiscodec.h,
       AC_CHECK_LIB(vorbisidec, ov_clear, tremor="yes", ), )
-    
+
     if test "x$tremor" = "xyes"; then
       vorbis="yes"
       VORBISFILE_CFLAGS=""
@@ -875,7 +875,7 @@ if test "x$with_vorbis" = "xyes"; then
   else
     VORBIS_REQUIRED_VERSION=1.0.0
     AC_MSG_CHECKING(for vorbisfile >= $VORBIS_REQUIRED_VERSION)
-  
+
     if $PKG_CONFIG --atleast-version $VORBIS_REQUIRED_VERSION vorbisfile; then
       vorbis="yes"
       VORBISFILE_CFLAGS=`$PKG_CONFIG --cflags vorbisfile`
@@ -898,7 +898,7 @@ AM_CONDITIONAL(BUILD_VORBIS, test "x$vorbis" = "xyes")
 # Check for MAD
 #
 mad="no"
-AC_ARG_WITH(mad,            
+AC_ARG_WITH(mad,
   [  --with-mad               build MAD MP3 music provider [[default=yes]]],
   with_mad="$withval", with_mad="yes")
 
@@ -926,7 +926,7 @@ AM_CONDITIONAL(BUILD_MAD, test "x$mad" = "xyes")
 # Check for CD-DA
 #
 cdda="no"
-AC_ARG_WITH(cdda,            
+AC_ARG_WITH(cdda,
   [  --with-cdda              build CD-DA music provider [[default=yes]]],
   with_cdda="$withval", with_cdda="yes")
 
@@ -944,17 +944,17 @@ fi
 
 AC_SUBST(CDDB_CFLAGS)
 AC_SUBST(CDDB_LIBS)
-AM_CONDITIONAL(BUILD_CDDA, test "x$cdda" = "xyes")   
+AM_CONDITIONAL(BUILD_CDDA, test "x$cdda" = "xyes")
 
 
 #
 # Check for Playlist
 #
-AC_ARG_WITH(playlist,            
+AC_ARG_WITH(playlist,
   [  --with-playlist          build Playlist music provider [[default=yes]]],
   playlist="$withval", playlist="yes")
 
-AM_CONDITIONAL(BUILD_PLAYLIST, test "x$playlist" = "xyes") 
+AM_CONDITIONAL(BUILD_PLAYLIST, test "x$playlist" = "xyes")
 
 # fusionsound music providers end
 
@@ -1380,7 +1380,7 @@ if test "x$enable_gstreamer" = "xyes"; then
       AC_MSG_RESULT([not found])
     fi
     if test "$HAVE_GSTREAMER_1_0" = "no"; then
-      GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-0.10` 
+      GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-0.10`
       GSTREAMER_LIBS=`$PKG_CONFIG --libs gstreamer-app-0.10`
     else
       GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-1.0`
@@ -1601,7 +1601,7 @@ if test x$enable_flash = xyes; then
       AC_LANG_PUSH(C++)
       AC_CHECK_LIB(z, gzsetparams, LIBZ=-lz)
       AC_CHECK_LIB(jpeg, jpeg_destroy_decompress, LIBJPEG=-ljpeg)
-      AC_CHECK_LIB(flash, FlashGetInfo, 
+      AC_CHECK_LIB(flash, FlashGetInfo,
         [  flash=yes
            FLASH_LIBS="-lflash $LIBJPEG $LIBZ -lm"],
         [  AC_MSG_WARN([
@@ -1729,7 +1729,7 @@ if test "x$enable_swfdec" = "xyes"; then
 *** Swfdec 0.5.0 or newer is required - Swfdec video provider will not be built.])
     fi
 fi
-          
+
 AC_SUBST(SWFDEC_CFLAGS)
 AC_SUBST(SWFDEC_LIBS)
 

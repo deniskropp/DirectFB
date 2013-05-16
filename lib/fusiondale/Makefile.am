@@ -19,7 +19,7 @@ include_HEADERS = \
 	fusiondale.h \
 	fusiondale_util.h \
 	fusiondale_version.h
-                
+
 lib_LTLIBRARIES = libfusiondale.la
 
 libfusiondale_la_SOURCES = \
