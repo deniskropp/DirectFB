@@ -1365,7 +1365,7 @@ dnl Allow to disable GSTREAMER support
 gstreamer=no
 AC_ARG_ENABLE(gstreamer,
               [--enable-gstreamer            build gstreamer video provider [[default=no]]],
-              $enable_gstreamer="$enableval",
+              enable_gstreamer="$enableval",
               [enable_gstreamer=no])
 
 AM_CONDITIONAL(GSTREAMER_PROVIDER, test "$enable_gstreamer" = "yes")
