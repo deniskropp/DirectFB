@@ -799,7 +799,7 @@ if test "x$checkfor_alsa" = "xyes"; then
 fi
 
 if test "x$checkfor_wave" = "xyes"; then
-  wave=yes
+  fsdriver_wave=yes
 fi
 
 AC_SUBST(ALSA_CFLAGS)
@@ -842,13 +842,16 @@ AM_CONDITIONAL(BUILD_TIMIDITY, test "x$timidity" = "xyes")
 #
 # Check for Wave
 #
-wave="no"
 AC_ARG_WITH(wave,
             AC_HELP_STRING([--with-wave],
                            [build Wave music provider @<:@default=yes@:>@]),
-            [wave="$withval"], [wave=yes])
+            [if test $fsdriver_wave != yes ; then
+               with_wave="$withval"
+             else
+               with_wave=yes
+             fi], [with_wave=yes])
 
-AM_CONDITIONAL(BUILD_WAVE, test "x$wave" = "xyes")
+AM_CONDITIONAL(BUILD_WAVE, test "x$with_wave" = "xyes")
 
 
 #
@@ -3048,7 +3051,7 @@ AC_MSG_RESULT([
     WAVE                    $fsdriver_wave
   Music Providers:
     Timidity                $timidity
-    Wave                    $wave
+    Wave                    $with_wave
     Ogg/Vorbis              $vorbis
     MAD                     $mad
     CD-DA                   $cdda
