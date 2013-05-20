@@ -792,8 +792,16 @@ gp2dCheckState( void                *drv,
           /* Return if blending with unsupported blend functions is requested. */
           if (state->drawingflags & DSDRAW_BLEND) {
                // FIXME: get better documentation
-               D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
-               return;
+               /* Return if the destination format is not supported. */
+               switch (state->destination->config.format) {
+                    case DSPF_RGB16:
+                    case DSPF_RGB32:
+                         break;
+
+                    default:
+                         D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
+                         return;
+               }
 
                switch (accel) {
                     case DFXL_FILLRECTANGLE:
@@ -859,12 +867,21 @@ gp2dCheckState( void                *drv,
           /* Return if blending with unsupported blend functions is requested. */
           if (flags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                // FIXME: get better documentation
-               D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
-               return;
+               /* Return if the destination format is not supported. */
+               switch (state->destination->config.format) {
+                    case DSPF_RGB16:
+                    case DSPF_RGB32:
+                         break;
+
+                    default:
+                         D_DEBUG_AT( GP2D_BLT, "  -> unsupported (line %d)\n", __LINE__ );
+                         return;
+               }
 
                switch (state->source->config.format) {
                     case DSPF_ARGB1555:
                     case DSPF_RGB16:
+                    case DSPF_A8:
                          break;
 
                     default:
