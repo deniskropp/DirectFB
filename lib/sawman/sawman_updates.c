@@ -179,14 +179,14 @@ static inline DFBLinkRegion *dfb_linkregionpool_get( DFBLinkRegionPool *pool, DF
 
      pool->free++;
 
-     if (r) 
+     if (r)
           lr->region = *r;
 
      lr->link.magic = 0;
      return lr;
 }
 
-/* Add only the allowed part of region "region" to the region list "list". 
+/* Add only the allowed part of region "region" to the region list "list".
  * This creates at most 4 new regions, on all sides of "forbidden".
  */
 static inline void dfb_linkregionpool_add_allowedpartofregion( DFBLinkRegionPool *pool,
@@ -231,7 +231,7 @@ static inline void dfb_linkregionpool_add_allowedpartofregion( DFBLinkRegionPool
  *   (1) rectangle to the right, connecting in height
  *   (2) rectangle to the bottom, connecting in width
  * top/left is caught too by this principle
- * 
+ *
  * We sort the list in-place: entries will be removed only.
  * We never remove the first entry.
  */
@@ -469,24 +469,24 @@ update_region2( SaWMan          *sawman,
                D_DEBUG_AT( SaWMan_Update, " -=> [%d] <=-\n", i );
 
                MISC_REGION_DEBUG_AT( SaWMan_Update, &dirty, "dirty" );
-     
+
                /* visible (window) */
                if (right_eye)
                     misc_region_init_updates( &visible, NULL, &sawwin->right.visible );
                else
                     misc_region_init_updates( &visible, NULL, &sawwin->left.visible );
-     
+
                /* render (extents) */
                misc_region_init_with_extents( &render, NULL, &extents );
-     
+
                misc_region_init( &opt, NULL );
-     
+
                /* render = visible & render(extents) */
                misc_region_intersect( &render, &visible, &render );
-     
+
                /* opt = render & dirty */
                misc_region_intersect( &opt, &render, &dirty );
-     
+
                if (window->config.opacity == 0xff &&
                    window->surface && (window->surface->config.caps & DSCAPS_PREMULTIPLIED) &&
                    (window->config.options & DWOP_ALPHACHANNEL) && !(window->config.options & DWOP_COLORKEYING) &&
@@ -494,86 +494,86 @@ update_region2( SaWMan          *sawman,
                    !stack->bg.color.a && !stack->bg.color.r && !stack->bg.color.g && !stack->bg.color.b)
                {
                     misc_region_t blend;
-     
+
                     misc_region_init( &blend, NULL );
-     
+
                     /* blend = render - opt */
                     misc_region_subtract( &blend, &render, &opt );
-     
+
                     MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
                     MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
                     MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "opt" );
                     MISC_REGION_DEBUG_AT( SaWMan_Update, &blend, "blend" );
-     
+
                     /////// FIXME: use batch blit!
-     
+
                     /*
                      * Draw optimized window areas
                      */
                     boxes = misc_region_boxes( &opt, &num );
-     
+
                     for (n=0; n<num; n++) {
                          DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-     
+
                          sawman_draw_window( tier, sawwin, state, &draw, false, right_eye );
                     }
-     
-     
+
+
                     /////// FIXME: use batch blit!
-     
+
                     /*
                      * Draw blended window areas
                      */
                     boxes = misc_region_boxes( &blend, &num );
-     
+
                     for (n=0; n<num; n++) {
                          DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-     
+
                          sawman_draw_window( tier, sawwin, state, &draw, true, right_eye );
                     }
-     
-     
+
+
                     misc_region_deinit( &blend );
                }
                else {
                     MISC_REGION_DEBUG_AT( SaWMan_Update, &visible, "visible" );
                     MISC_REGION_DEBUG_AT( SaWMan_Update, &render, "render" );
                     MISC_REGION_DEBUG_AT( SaWMan_Update, &opt, "clear" );
-     
+
                     /////// FIXME: use fill rectangles!
-     
+
                     /*
                      * Clear background
                      */
                     boxes = misc_region_boxes( &opt, &num );
-     
+
                     for (n=0; n<num; n++) {
                          DFBRegion clear = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-     
+
                          sawman_draw_background( tier, state, &clear );
                     }
-     
-     
+
+
                     /////// FIXME: use batch blit!
-     
+
                     /*
                      * Draw visible window areas
                      */
                     boxes = misc_region_boxes( &render, &num );
-     
+
                     for (n=0; n<num; n++) {
                          DFBRegion draw = { boxes[n].x1, boxes[n].y1, boxes[n].x2 - 1, boxes[n].y2 - 1 };
-     
+
                          sawman_draw_window( tier, sawwin, state, &draw, true, right_eye );
                     }
-     
+
                }
-     
-     
+
+
                /* dirty -= render */
                misc_region_subtract( &dirty, &dirty, &render );
-     
-     
+
+
                misc_region_deinit( &opt );
                misc_region_deinit( &render );
                misc_region_deinit( &visible );
@@ -676,7 +676,7 @@ update_region3( SaWMan          *sawman,
 
           updatesBlend[winNum]   = 0;
           updatesNoBlend[winNum] = 0;
-          
+
           if (SAWMAN_VISIBLE_WINDOW( window ) && (tier->classes & (1 << window->config.stacking))) {
                DFBRectangle bounds = window->config.bounds;
 
@@ -687,7 +687,7 @@ update_region3( SaWMan          *sawman,
                /* check against bounding boxes to quickly discard non-overlapping windows */
                if (!dfb_rectangle_region_intersects(&bounds, &updateRegion) )
                     continue;
-                                                    
+
                /* Optimizing. Only possible when the opacity is max and
                   there is no color keying because this requires additional blending */
                if (      (window->config.opacity == 0xff)
@@ -700,7 +700,7 @@ update_region3( SaWMan          *sawman,
                      &&   windows_to_optimize--)
                {
                     DirectLink *updates    = 0;
-                    
+
                     D_DEBUG_AT( SaWMan_Update, " ---> window optimized\n" );
 
                     /* copy all applicable updates in a separate structure */
@@ -725,7 +725,7 @@ update_region3( SaWMan          *sawman,
                               If intersection with noBlend: -> blend, double source
                               Else: draw opaque (add to noBlend).
                          */
-                         
+
                          for (u=winNum-1; u>=0; u--) {
                               direct_list_foreach(lr, updatesBlend[u]) {
                                    DFBRegion *R = &linkRegion->region;
@@ -740,7 +740,7 @@ update_region3( SaWMan          *sawman,
                                         dfb_region_clip( R, r->x1, r->y1, r->x2, r->y2 );
                                         DFBLinkRegion *lnk = dfb_linkregionpool_get( &regionpool, R );
                                         direct_list_append( &updatesBlend[winNum], &lnk->link );
-                                        
+
                                         goto continueupdates;
                                    }
                               }
@@ -760,7 +760,7 @@ update_region3( SaWMan          *sawman,
                                         /* re-add remaing sections to reconsider */
                                         dfb_linkregionpool_add_allowedpartofregion( &regionpool, &updates, R, r );
 
-                                        /* proceed to draw immediately 
+                                        /* proceed to draw immediately
                                          * we can store the window in another list, but this is more efficient */
                                         dfb_region_clip( R, r->x1, r->y1, r->x2, r->y2 );
                                         SaWManWindow *sw = fusion_vector_at( &sawman->layout, u );
@@ -775,7 +775,7 @@ update_region3( SaWMan          *sawman,
 
                          /* if we came here, it is a non-overlapping dull window */
                          DFBLinkRegion *lnk;
-                         
+
                          lnk = dfb_linkregionpool_get( &regionpool, &linkRegion->region );
                          direct_list_append( &updatesNoBlend[winNum], &lnk->link );
                          lnk = dfb_linkregionpool_get( &regionpool, &linkRegion->region );
@@ -788,7 +788,7 @@ update_region3( SaWMan          *sawman,
                else {
                     int translucent = SAWMAN_TRANSLUCENT_WINDOW(window);
 
-                    D_DEBUG_AT( SaWMan_Update, " ---> default %s window\n", 
+                    D_DEBUG_AT( SaWMan_Update, " ---> default %s window\n",
                                    translucent ? "blended" : "opaque" );
 
                     /* store the updates of this window inside the update region */
@@ -899,7 +899,7 @@ update_region3( SaWMan          *sawman,
      /* draw all the windows */
      fusion_vector_foreach (sawwin, winNum, sawman->layout) {
           D_DEBUG_AT( SaWMan_Update, "     > window %d\n", winNum );
-          
+
           /* collate the updates to reduce number of draw calls */
           /* (is this needed?) */
           /* collate( &updatesNoBlend[winNum] ); */
@@ -1163,7 +1163,7 @@ sawman_flush_updating( SaWMan     *sawman,
      D_ASSUME( tier->left.updated.num_regions == 0 && tier->right.updated.num_regions == 0 );
 
      if (tier->left.updating.num_regions) {
-          /* 
+          /*
            * save here as it might get reset in case surface reaction
            * is called synchronously during dfb_layer_region_flip_update()
            */
@@ -1183,7 +1183,7 @@ sawman_flush_updating( SaWMan     *sawman,
      }
 
      if (tier->right.updating.num_regions) {
-          /* 
+          /*
            * save here as it might get reset in case surface reaction
            * is called synchronously during dfb_layer_region_flip_update()
            */
@@ -1404,8 +1404,8 @@ get_single_window( SaWMan     *sawman,
                     return NULL;
                }
 
-               if (      single 
-                    || ( window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR) ) 
+               if (      single
+                    || ( window->caps & (DWCAPS_INPUTONLY | DWCAPS_COLOR) )
                     || ( window->config.options & DWOP_INPUTONLY ) )
                     return NULL;
 
@@ -1451,7 +1451,7 @@ get_border_only( SaWMan     *sawman,
 
           none = false;
 
-          if (     SAWMAN_VISIBLE_WINDOW(window) 
+          if (     SAWMAN_VISIBLE_WINDOW(window)
               && !(window->caps & DWCAPS_INPUTONLY)
               && !(window->config.options & DWOP_INPUTONLY) )
                return false;
@@ -1472,7 +1472,7 @@ windows_updating( SaWMan     *sawman,
 
      fusion_vector_foreach (window, i, sawman->layout) {
           D_MAGIC_ASSERT( window, SaWManWindow );
-          
+
           if (window->flags & SWMWF_UPDATING) {
                long long diff = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ) / 1000LL - window->update_ms;
 
@@ -1582,7 +1582,7 @@ process_single( SaWMan              *sawman,
           options |= DLOP_ALPHACHANNEL;
 
      if (window->caps & DWCAPS_LR_MONO ||
-         window->caps & DWCAPS_STEREO) 
+         window->caps & DWCAPS_STEREO)
           options |= DLOP_STEREO;
 
      if (window->config.options & DWOP_COLORKEYING)
@@ -1631,7 +1631,7 @@ process_single( SaWMan              *sawman,
                       single->src.w, single->src.h, src.w, src.h,
                       dfb_pixelformat_name( surface->config.format ), single, tier );
 
-          config.flags        = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS | 
+          config.flags        = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT | DLCONF_OPTIONS |
                                 DLCONF_BUFFERMODE | DLCONF_SURFACE_CAPS;
           config.width        = src.w;
           config.height       = src.h;
@@ -1649,7 +1649,7 @@ process_single( SaWMan              *sawman,
           {
                case DFB_OK:
                     config = sawman->callback.layer_reconfig.config;
-               case DFB_NOIMPL: 
+               case DFB_NOIMPL:
                     /* continue, no change demanded */
                     break;
 
@@ -2354,7 +2354,7 @@ sawman_process_updates( SaWMan              *sawman,
 
                dfb_updates_add( &tier->left.updates, &region );
 
-               if (tier->region->config.options & DLOP_STEREO) 
+               if (tier->region->config.options & DLOP_STEREO)
                     dfb_updates_add( &tier->right.updates, &region );
 
                if (sawman->cursor.context && tier->context->layer_id == sawman->cursor.context->layer_id)

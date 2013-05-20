@@ -586,7 +586,7 @@ DIRECT_BUILD_OSTYPE=DIRECT_OS_LINUX_GNU_LIBC
 AC_SUBST(DIRECT_BUILD_OSTYPE)
 
 
-linux_fusion="N/A"
+enable_multi_kernel="N/A"
 AC_ARG_ENABLE(multi,
               AC_HELP_STRING([--enable-multi],
                              [enable multi application core @<:@default=no@:>@]),
@@ -596,14 +596,14 @@ if test "$enable_multi" = "yes"; then
   AC_ARG_ENABLE(multi-kernel,
                 AC_HELP_STRING([--enable-multi-kernel],
                                [enable multi app linux fusion kernel device @<:@default=yes@:>@]),
-                [], [linux_fusion=yes])
+                [], [enable_multi_kernel=yes])
 
   FUSION_BUILD_KERNEL=0
 
   dnl Test for Fusion Kernel Device
-  if test "$linux_fusion" = "yes"; then
-    AC_CHECK_HEADER( [linux/fusion.h],, linux_fusion=no)
-    if test "$linux_fusion" = "yes"; then
+  if test "$enable_multi_kernel" = "yes"; then
+    AC_CHECK_HEADER( [linux/fusion.h], [], [enable_multi_kernel=no])
+    if test "$enable_multi_kernel" = "yes"; then
        FUSION_BUILD_KERNEL=1
     else
        fusion_warning="
@@ -688,52 +688,55 @@ AC_ARG_ENABLE(fusionsound,
               AC_HELP_STRING([--enable-fusionsound],
                              [enable FusionSound @<:@default=no@:>@]),
               [], [enable_fusionsound=no])
-
 if test "$enable_fusionsound" = "yes"; then
   AC_DEFINE(HAVE_FUSIONSOUND,1,[Define to 1 if you want FusionSound support.])
 fi
- 
+
 #
 # fusionsound options
 #
 
 AC_ARG_ENABLE(fs-ieee-floats,
-  [  --enable-fs-ieee-floats    enable using IEEE floats for internal mixing routines [[default=no]]],,
-  fs_enable_ieee_floats=no)
-if test "x$fs_enable_ieee_floats" = xyes; then
+              AC_HELP_STRING([--enable-fs-ieee-floats],
+                             [enable using IEEE floats for internal mixing routines @<:@default=no@:>@]),
+              [], [enable_fs_ieee_floats=no])
+if test "x$enable_fs_ieee_floats" = xyes; then
   AC_DEFINE(FS_USE_IEEE_FLOATS,1,[Define to 1 to enable IEEE floats for mixing routines.])
 fi
 
 AC_ARG_ENABLE(fs-precision,
-  [  --enable-fs-precision      privilege precision over speed [[default=auto]]],,
-  fs_enable_precision=auto)
-if test "x$fs_enable_precision" = xauto; then
+              AC_HELP_STRING([--enable-fs-precision],
+                             [privilege precision over speed @<:@default=auto@:>@]),
+              [], [enable_fs_precision=auto])
+if test "x$enable_fs_precision" = xauto; then
   if test "x$have_x86" = xyes || test "x$have_ppc" = xyes; then
-    fs_enable_precision=yes
+    enable_fs_precision=yes
   else
-    fs_enable_precision=no
+    enable_fs_precision=no
   fi
 fi
-if test "x$fs_enable_precision" = xyes; then
+if test "x$enable_fs_precision" = xyes; then
   AC_DEFINE(FS_ENABLE_PRECISION,1,[Define to 1 to enable precision.])
 fi
 
 AC_ARG_ENABLE(fs-linear-filter,
-  [  --enable-fs-linear-filter  enable linear filtering [[default=yes]]],,
-  fs_enable_linear_filter=yes)
-if test "x$fs_enable_linear_filter" = xyes; then
+              AC_HELP_STRING([--enable-fs-linear-filter],
+                             [enable linear filtering @<:@default=yes@:>@]),
+              [], [enable_fs_linear_filter=yes])
+if test "x$enable_fs_linear_filter" = xyes; then
   AC_DEFINE(FS_ENABLE_LINEAR_FILTER,1,[Define to 1 to enable linear filter.])
 fi
 
 AC_ARG_ENABLE(fs-multichannel,
-  [  --disable-fs-multichannel  disable support for more than 2 channels [[default=no]]],,
-  fs_enable_multichannel=yes)
-if test "x$fs_enable_multichannel" = xyes; then
+              AC_HELP_STRING([--disable-fs-multichannel],
+                             [disable support for more than 2 channels @<:@default=no@:>@]),
+              [], [enable_fs_multichannel=yes])
+if test "x$enable_fs_multichannel" = xyes; then
   FS_MAX_CHANNELS=6
 else
   FS_MAX_CHANNELS=2
 fi
-AC_SUBST(FS_MAX_CHANNELS)  
+AC_SUBST(FS_MAX_CHANNELS)
 
 
 # Check for fusionsound drivers
@@ -744,12 +747,12 @@ fsdriver_wave=no
 
 AC_MSG_CHECKING(which fusionsound drivers should be built)
 AC_ARG_WITH(fs-drivers,
-[  --with-fs-drivers=<list>     compile fusionsound drivers in <list> ]
-[                               drivers may be comma separated ]
-[                               'all' builds all drivers (default), 'none' builds none ]
-[                               Possible drivers are: ]
-[                               oss,alsa,wave], fsdrivers="$withval",[fsdrivers="all"])
-
+            AC_HELP_STRING([--with-fs-drivers=LIST],
+                           [LIST is a comma separated selection of fusionsound drivers]
+                           [to build. Possible drivers are: all (builds all]
+                           [drivers), none (builds none), oss, alsa, wave.]
+                           [@<:@default=all@:>@]),
+            [fsdrivers="$withval"], [fsdrivers=all])
 if test "$fsdrivers" = "all"; then
   checkfor_oss=yes
   checkfor_alsa=yes
@@ -796,7 +799,7 @@ if test "x$checkfor_alsa" = "xyes"; then
 fi
 
 if test "x$checkfor_wave" = "xyes"; then
-  wave=yes
+  fsdriver_wave=yes
 fi
 
 AC_SUBST(ALSA_CFLAGS)
@@ -812,11 +815,11 @@ AM_CONDITIONAL(BUILD_WAVE, test "x$fsdriver_wave" = "xyes")
 #
 # Check for Timidity
 #
-timidty="no"
+timidity="no"
 AC_ARG_WITH(timidity,
-  [  --with-timidity          build Timidity music provider [[default=yes]]],
-  with_timidity="$withval", with_timidity="yes")
-
+            AC_HELP_STRING([--with-timidity],
+                           [build Timidity music provider @<:@default=yes@:>@]),
+            [], [with_timidity=yes])
 if test "x$with_timidity" = "xyes"; then
   AC_MSG_CHECKING([for libtimidity >= 0.1.0])
   if $PKG_CONFIG --atleast-version=0.1.0 libtimidity; then
@@ -829,7 +832,7 @@ if test "x$with_timidity" = "xyes"; then
     AC_MSG_WARN([
 *** libtimidity is required - Timidity music provider will not be built.])
   fi
-fi 
+fi
 
 AC_SUBST(TIMIDITY_CFLAGS)
 AC_SUBST(TIMIDITY_LIBS)
@@ -839,11 +842,16 @@ AM_CONDITIONAL(BUILD_TIMIDITY, test "x$timidity" = "xyes")
 #
 # Check for Wave
 #
-wave="no"
 AC_ARG_WITH(wave,
-  [  --with-wave              build Wave music provider [[default=yes]]],
-  wave="$withval", wave="yes")
-AM_CONDITIONAL(BUILD_WAVE, test "x$wave" = "xyes")
+            AC_HELP_STRING([--with-wave],
+                           [build Wave music provider @<:@default=yes@:>@]),
+            [if test $fsdriver_wave != yes ; then
+               with_wave="$withval"
+             else
+               with_wave=yes
+             fi], [with_wave=yes])
+
+AM_CONDITIONAL(BUILD_WAVE, test "x$with_wave" = "xyes")
 
 
 #
@@ -852,17 +860,18 @@ AM_CONDITIONAL(BUILD_WAVE, test "x$wave" = "xyes")
 vorbis="no"
 tremor="no"
 AC_ARG_WITH(vorbis,
-  [  --with-vorbis            build Ogg/Vorbis music provider [[default=yes]]],
-  with_vorbis="$withval", with_vorbis="yes")
+            AC_HELP_STRING([--with-vorbis],
+                           [build Ogg/Vorbis music provider @<:@default=yes@:>@]),
+            [], [with_vorbis=yes])
 AC_ARG_WITH(tremor,
-  [  --with-tremor            build Ogg/Vorbis music provider using Tremor [[default=no]]],
-  with_tremor="$withval", with_tremor="no")
-
+            AC_HELP_STRING([--with-tremor],
+                           [build Ogg/Vorbis music provider using Tremor @<:@default=no@:>@]),
+            [], [with_tremor=no])
 if test "x$with_vorbis" = "xyes"; then
   if test "x$with_tremor" = "xyes"; then
-    AC_CHECK_HEADER(tremor/ivorbiscodec.h, 
+    AC_CHECK_HEADER(tremor/ivorbiscodec.h,
       AC_CHECK_LIB(vorbisidec, ov_clear, tremor="yes", ), )
-    
+
     if test "x$tremor" = "xyes"; then
       vorbis="yes"
       VORBISFILE_CFLAGS=""
@@ -875,7 +884,7 @@ if test "x$with_vorbis" = "xyes"; then
   else
     VORBIS_REQUIRED_VERSION=1.0.0
     AC_MSG_CHECKING(for vorbisfile >= $VORBIS_REQUIRED_VERSION)
-  
+
     if $PKG_CONFIG --atleast-version $VORBIS_REQUIRED_VERSION vorbisfile; then
       vorbis="yes"
       VORBISFILE_CFLAGS=`$PKG_CONFIG --cflags vorbisfile`
@@ -898,10 +907,10 @@ AM_CONDITIONAL(BUILD_VORBIS, test "x$vorbis" = "xyes")
 # Check for MAD
 #
 mad="no"
-AC_ARG_WITH(mad,            
-  [  --with-mad               build MAD MP3 music provider [[default=yes]]],
-  with_mad="$withval", with_mad="yes")
-
+AC_ARG_WITH(mad,
+            AC_HELP_STRING([--with-mad],
+                           [build MAD MP3 music provider @<:@default=yes@:>@]),
+            [], [with_mad=yes])
 if test "x$with_mad" = "xyes"; then
   AC_CHECK_LIB(mad, mad_timer_add, mad="yes", mad="no")
   if test "x$mad" = "xyes"; then
@@ -926,10 +935,10 @@ AM_CONDITIONAL(BUILD_MAD, test "x$mad" = "xyes")
 # Check for CD-DA
 #
 cdda="no"
-AC_ARG_WITH(cdda,            
-  [  --with-cdda              build CD-DA music provider [[default=yes]]],
-  with_cdda="$withval", with_cdda="yes")
-
+AC_ARG_WITH(cdda,
+            AC_HELP_STRING([--with-cdda],
+                           [build CD-DA music provider @<:@default=yes@:>@]),
+            [], [with_cdda=yes])
 if test "x$with_cdda" = "xyes"; then
   cdda="yes"
   if $PKG_CONFIG --atleast-version 1.0.0 libcddb; then
@@ -944,17 +953,18 @@ fi
 
 AC_SUBST(CDDB_CFLAGS)
 AC_SUBST(CDDB_LIBS)
-AM_CONDITIONAL(BUILD_CDDA, test "x$cdda" = "xyes")   
+AM_CONDITIONAL(BUILD_CDDA, test "x$cdda" = "xyes")
 
 
 #
 # Check for Playlist
 #
-AC_ARG_WITH(playlist,            
-  [  --with-playlist          build Playlist music provider [[default=yes]]],
-  playlist="$withval", playlist="yes")
+AC_ARG_WITH(playlist,
+            AC_HELP_STRING([--with-playlist],
+                           [build Playlist music provider @<:@default=yes@:>@]),
+            [], [with_playlist=yes])
 
-AM_CONDITIONAL(BUILD_PLAYLIST, test "x$playlist" = "xyes") 
+AM_CONDITIONAL(BUILD_PLAYLIST, test "x$with_playlist" = "xyes")
 
 # fusionsound music providers end
 
@@ -1138,7 +1148,6 @@ AC_ARG_ENABLE(fbdev,
               AC_HELP_STRING([--enable-fbdev],
                              [build with linux fbdev support @<:@default=auto@:>@]),
               [], [enable_fbdev=yes])
-
 if test "$have_linux" = "no"; then
   enable_fbdev=no
   AC_MSG_WARN([
@@ -1308,7 +1317,7 @@ PNG=no
 AC_ARG_ENABLE(png,
               AC_HELP_STRING([--enable-png],
                              [build PNG image provider, @<:@default=yes@:>@]),
-              [], [enable_png="yes"])
+              [], [enable_png=yes])
 if test "$enable_png" = "yes"; then
   PKG_CHECK_MODULES([LIBPNG], [libpng >= 1.2.2], [PNG=yes], [PNG=no
     AC_MSG_WARN([*** PNG library not found. PNG image provider will not be built.])])
@@ -1327,11 +1336,10 @@ fi
 dnl Test for libmng
 MNG=no
 
-AC_ARG_ENABLE(mngg,
+AC_ARG_ENABLE(mng,
               AC_HELP_STRING([--enable-mng],
                              [build MNG video provider @<:@default=no@:>@]),
-              [enable_mng="$enableval"], [enable_mng="no"])
-
+              [], [enable_mng=no])
 if test "$enable_mng" = "yes"; then
   if test -z "$LIBMNG"; then
     AC_CHECK_LIB(mng, mng_version_text,
@@ -1364,9 +1372,9 @@ AM_CONDITIONAL(MNG_PROVIDER, test "$MNG" = "yes")
 dnl Allow to disable GSTREAMER support
 gstreamer=no
 AC_ARG_ENABLE(gstreamer,
-              [--enable-gstreamer            build gstreamer video provider [[default=no]]],
-              $enable_gstreamer="$enableval",
-              [enable_gstreamer=no])
+              AC_HELP_STRING([--enable-gstreamer],
+	                      [build gstreamer video provider @<:@default=no@:>@]),
+              [], [enable_gstreamer=no])
 
 AM_CONDITIONAL(GSTREAMER_PROVIDER, test "$enable_gstreamer" = "yes")
 
@@ -1380,7 +1388,7 @@ if test "x$enable_gstreamer" = "xyes"; then
       AC_MSG_RESULT([not found])
     fi
     if test "$HAVE_GSTREAMER_1_0" = "no"; then
-      GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-0.10` 
+      GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-0.10`
       GSTREAMER_LIBS=`$PKG_CONFIG --libs gstreamer-app-0.10`
     else
       GSTREAMER_INCL=`$PKG_CONFIG --cflags-only-I gstreamer-app-1.0`
@@ -1391,13 +1399,11 @@ if test "x$enable_gstreamer" = "xyes"; then
 else
     GSTREAMER_INCL=
     GSTREAMER_LIBS=
-    gstreamer=no
 fi
 
 AC_SUBST(GSTREAMER_LIBS)
 AC_SUBST(GSTREAMER_INCL)
 
-AM_CONDITIONAL(HAVE_FUSIONSOUND, test "x$have_fusionsound" = xyes)
 
 dnl Allow to disable GIF support
 AC_ARG_ENABLE(gif,
@@ -1412,9 +1418,9 @@ AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
 dnl Imlib2 check
 imlib2="no"
 AC_ARG_ENABLE(imlib2,
-  [  --enable-imlib2         build Imlib2 image provider [[default=no]]],
-  enable_imlib2="$enableval", enable_imlib2="no")
-
+              AC_HELP_STRING([--enable-imlib2],
+                             [build Imlib2 image provider @<:@default=no@:>@]),
+              [], [enable_imlib2=no])
 if test "x$enable_imlib2" = "xyes"; then
   AC_PATH_PROG(IMLIB2_CONFIG, imlib2-config, no)
   if test "x$IMLIB2_CONFIG" = xno; then
@@ -1435,10 +1441,11 @@ AM_CONDITIONAL(IMLIB2, test "x$imlib2" = xyes)
 
 dnl PNM check
 AC_ARG_ENABLE(pnm,
-  [  --enable-pnm            build PNM (PBM/PGM/PPM) image provider [[default=yes]]],
-  pnm="$enableval", pnm="yes")
+              AC_HELP_STRING([--enable-pnm],
+                             [build PNM (PBM/PGM/PPM) image provider @<:@default=yes@:>@]),
+              [], [enable_pnm=yes])
 
-AM_CONDITIONAL(PNM, test "x$pnm" = "xyes")
+AM_CONDITIONAL(PNM, test "x$enable_pnm" = "xyes")
 
 
 dnl SVG check
@@ -1446,9 +1453,9 @@ SVGCAIRO_REQUIRED_VERSION=0.1.6
 
 svg="no"
 AC_ARG_ENABLE(svg,
-  [  --enable-svg            build SVG image provider [[default=no]]],
-  enable_svg="$enableval", enable_svg="no")
-
+              AC_HELP_STRING([--enable-svg],
+                             [build SVG image provider @<:@default=no@:>@]),
+              [], [enable_svg=no])
 if test "x$enable_svg" = "xyes"; then
   AC_MSG_CHECKING(for libsvg-cairo >= $SVGCAIRO_REQUIRED_VERSION)
   if $PKG_CONFIG --atleast-version=$SVGCAIRO_REQUIRED_VERSION libsvg-cairo; then
@@ -1472,26 +1479,29 @@ AM_CONDITIONAL(SVG, test "x$svg" = "xyes")
 
 dnl MPEG2 check
 AC_ARG_ENABLE(mpeg2,
-  [  --enable-mpeg2          build MPEG2 image provider [[default=yes]]],
-  mpeg2="$enableval", mpeg2="yes")
+              AC_HELP_STRING([--enable-mpeg2],
+                             [build MPEG2 image provider @<:@default=yes@:>@]),
+              [], [enable_mpeg2=yes])
 
-AM_CONDITIONAL(MPEG2, test "x$mpeg2" = "xyes")
+AM_CONDITIONAL(MPEG2, test "x$enable_mpeg2" = "xyes")
 
 
 dnl BMP check
 AC_ARG_ENABLE(bmp,
-  [  --enable-bmp            build BMP image provider [[default=yes]]],
-  bmp="$enableval", bmp="yes")
+              AC_HELP_STRING([--enable-bmp],
+                             [build BMP image provider @<:@default=yes@:>@]),
+              [], [enable_bmp=yes])
 
-AM_CONDITIONAL(BMP, test "x$bmp" = "xyes")
+AM_CONDITIONAL(BMP, test "x$enable_bmp" = "xyes")
 
 
 dnl JPEG2000 Check
 AC_ARG_ENABLE(jpeg2000,
-  [  --enable-jpeg2000       build JPEG2000 image provider [[default=yes]]],
-  jpeg2000="$enableval", jpeg2000="yes")
+              AC_HELP_STRING([--enable-jpeg2000],
+                             [build JPEG2000 image provider @<:@default=yes@:>@]),
+              [], [enable_jpeg2000=yes])
 
-if test "$jpeg2000" = "yes"; then
+if test "$enable_jpeg2000" = "yes"; then
   dnl Test for libjasper
   AC_CHECK_LIB(jasper, jas_image_decode, jasper="yes", jasper="no", [-lm])
   if test "$jasper" = "yes"; then
@@ -1502,13 +1512,13 @@ if test "$jpeg2000" = "yes"; then
   else
     AC_MSG_WARN([
 *** Jasper not found. JPEG2000 image provider will not be built.])
-    jpeg2000="no"
+    enable_jpeg2000="no"
   fi
 fi
 
 AC_SUBST(JASPER_LIBS)
 
-AM_CONDITIONAL(JPEG2000, test "x$jpeg2000" = "xyes")
+AM_CONDITIONAL(JPEG2000, test "x$enable_jpeg2000" = "xyes")
 
 
 #
@@ -1516,9 +1526,9 @@ AM_CONDITIONAL(JPEG2000, test "x$jpeg2000" = "xyes")
 #
 openquicktime="no"
 AC_ARG_ENABLE(openquicktime,
-  [  --enable-openquicktime  build OpenQuicktime video provider [[default=no]]],
-  enable_openquicktime="$enableval", enable_openquicktime="no")
-
+              AC_HELP_STRING([--enable-openquicktime],
+                             [build OpenQuicktime video provider @<:@default=no@:>@]),
+              [], [enable_openquicktime=no])
 if test "x$enable_openquicktime" = "xyes"; then
   AC_CHECK_LIB(openquicktime, quicktime_open, openquicktime="yes", openquicktime="no")
   if test "x$openquicktime" = xyes; then
@@ -1542,9 +1552,9 @@ AM_CONDITIONAL(OPENQUICKTIME_PROVIDER, test "x$openquicktime" = xyes)
 #
 avifile=no
 AC_ARG_ENABLE(avifile,
-  [  --enable-avifile        build AviFile video provider [[default=no]]],
-  enable_avifile="$enableval", enable_avifile="no")
-
+              AC_HELP_STRING([--enable-avifile],
+                             [build AviFile video provider @<:@default=no@:>@]),
+              [], [enable_avifile=no])
 if test x$enable_avifile = xyes; then
   AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
   if test x$AVIFILE_CONFIG = xno; then
@@ -1568,10 +1578,10 @@ AM_CONDITIONAL(AVIFILE_PROVIDER, test x$avifile = xyes)
 #
 mpeg3=no
 AC_ARG_ENABLE(libmpeg3,
-  [  --enable-libmpeg3       build Libmpeg3 video provider [[default=no]]],
-  enable_mpeg3="$enableval", enable_mpeg3="no")
-
-if test x$enable_mpeg3 = xyes; then
+              AC_HELP_STRING([--enable-libmpeg3],
+                             [build Libmpeg3 video provider @<:@default=no@:>@]),
+              [], [enable_libmpeg3=no])
+if test x$enable_libmpeg3 = xyes; then
   AC_CHECK_LIB(mpeg3, mpeg3_open,
     [
       AC_CHECK_HEADER(libmpeg3.h,
@@ -1593,15 +1603,16 @@ AC_SUBST(LIBMPEG3_LIBS)
 #
 flash=no
 AC_ARG_ENABLE(flash,
-  [  --enable-flash          build Flash media provider [[default=no]]],
-  enable_flash="$enableval", enable_flash=no)
+              AC_HELP_STRING([--enable-flash],
+                             [build Flash media provider @<:@default=no@:>@]),
+              [], [enable_flash=no])
 if test x$enable_flash = xyes; then
   AC_CHECK_HEADER(flash.h,
     [ AC_PROG_CXX
       AC_LANG_PUSH(C++)
       AC_CHECK_LIB(z, gzsetparams, LIBZ=-lz)
       AC_CHECK_LIB(jpeg, jpeg_destroy_decompress, LIBJPEG=-ljpeg)
-      AC_CHECK_LIB(flash, FlashGetInfo, 
+      AC_CHECK_LIB(flash, FlashGetInfo,
         [  flash=yes
            FLASH_LIBS="-lflash $LIBJPEG $LIBZ -lm"],
         [  AC_MSG_WARN([
@@ -1622,9 +1633,9 @@ AM_CONDITIONAL(FLASH_PROVIDER, test x$flash = xyes)
 #
 xine="no"
 AC_ARG_ENABLE(xine,
-  [  --enable-xine           build Xine video provider [[default=no]]],
-  enable_xine="$enableval", enable_xine="no")
-
+              AC_HELP_STRING([--enable-xine],
+                             [build Xine video provider @<:@default=no@:>@]),
+              [], [enable_xine=no])
 if test "x$enable_xine" = "xyes"; then
 	AC_PATH_PROG(XINE_CONFIG, xine-config, no)
 	if test "x$XINE_CONFIG" = "xno"; then
@@ -1662,9 +1673,9 @@ AM_CONDITIONAL(XINE_PROVIDER, test "x$xine" = "xyes")
 #
 xine_vdpau="no"
 AC_ARG_ENABLE(xine-vdpau,
-  [  --enable-xine-vdpau      build Xine/VDPAU video provider [[default=no]]],
-  enable_xine_vdpau="$enableval", enable_xine_vdpau="no")
-
+              AC_HELP_STRING([--enable-xine-vdpau],
+                             [build Xine/VDPAU video provider @<:@default=no@:>@]),
+              [], [enable_xine_vdpau=no])
 if test "x$enable_xine_vdpau" = "xyes"; then
 	AC_PATH_PROG(PKG_CONFIG, pkg-config, no)
 	if test "$PKG_CONFIG" = "no"; then
@@ -1707,9 +1718,9 @@ AM_CONDITIONAL(XINE_VDPAU_PROVIDER, test "x$xine_vdpau" = "xyes")
 #
 swfdec="no"
 AC_ARG_ENABLE(swfdec,
-  [  --enable-swfdec         build Swfdec (Flash decoder) video provider [[default=no]]],
-  enable_swfdec="$enableval", enable_swfdec="no")
-
+              AC_HELP_STRING([--enable-swfdec],
+                             [build Swfdec (Flash decoder) video provider @<:@default=no@:>@]),
+              [], [enable_swfdec=no])
 if test "x$enable_swfdec" = "xyes"; then
     swfdec_pc="no"
     AC_MSG_CHECKING([for libswfdec >= 0.5.0])
@@ -1729,7 +1740,7 @@ if test "x$enable_swfdec" = "xyes"; then
 *** Swfdec 0.5.0 or newer is required - Swfdec video provider will not be built.])
     fi
 fi
-          
+
 AC_SUBST(SWFDEC_CFLAGS)
 AC_SUBST(SWFDEC_LIBS)
 
@@ -1740,9 +1751,9 @@ AM_CONDITIONAL(SWFDEC_PROVIDER, test "x$swfdec" = "xyes")
 #
 ffmpeg="no"
 AC_ARG_ENABLE(ffmpeg,
-  [  --enable-ffmpeg         build FFmpeg video provider [[default=no]]],
-  enable_ffmpeg="$enableval", enable_ffmpeg="no")
-
+              AC_HELP_STRING([--enable-ffmpeg],
+                             [build FFmpeg video provider @<:@default=no@:>@]),
+              [], [enable_ffmpeg=no])
 if test "x$enable_ffmpeg" = "xyes"; then
     AC_MSG_CHECKING([for libavcodec/libavformat/libavutil])
     if $PKG_CONFIG libavcodec libavformat libavutil; then
@@ -1836,7 +1847,7 @@ webp=no
 AC_ARG_ENABLE(webp,
               AC_HELP_STRING([--enable-webp],
                              [build WebP image provider, @<:@default=auto@:>@]),
-              [], [enable_webp="yes"])
+              [], [enable_webp=yes])
 if test "$enable_webp" = "yes"; then
   PKG_CHECK_MODULES([LIBWEBP], [libwebp >= 0.2.1], [webp=yes], [webp=no
     AC_MSG_WARN([*** WebP library not found. WEBP image provider will not be built.])])
@@ -1882,7 +1893,7 @@ AC_MSG_CHECKING(which gfxdrivers should be built)
 AC_ARG_WITH(gfxdrivers,
             AC_HELP_STRING([--with-gfxdrivers=LIST],
                            [LIST is a comma separated selection of gfxdrivers]
-                           [to build. Possible gfxdrivers are: all (builds all]
+                           [to build. Possible gfxdrivers are: all (builds most]
                            [drivers), none (builds none), ati128, cle266,]
                            [cyber5k, davinci, ep9x, gp2d, gl, gles2, i810, i830, mach64,]
                            [matrox, neomagic, nsc, nvidia, omap, pvr2d, pxa3xx,]
@@ -2194,7 +2205,6 @@ AC_ARG_WITH(inputdrivers,
                            [sonypijogdial, tslib, ucb1x00, wm97xx, zytronic.]
                            [@<:@default=all@:>@]),
             [inputdrivers="$withval"], [inputdrivers=all])
-
 if test "$inputdrivers" = "all"; then
   checkfor_dbox2remote=yes
   checkfor_dreamboxremote=yes
@@ -2948,7 +2958,7 @@ Build options:
 
 Misc options:
   Multi Application Core    $enable_multi
-  Fusion Kernel Device      $linux_fusion
+  Fusion Kernel Device      $enable_multi_kernel
   Fusion message size       $with_message_size
   Fluxed args size          $with_args_size
   One (IPC)                 $enable_one
@@ -2996,12 +3006,12 @@ Building Image Provider Modules:
   JPEG                      $JPEG                 $LIBJPEG
   PNG                       $PNG                  $LIBPNG_CFLAGS $LIBPNG_LIBS
   Imlib2                    $imlib2               $IMLIB2_CFLAGS $IMLIB2_LIBS
-  PNM                       $pnm
+  PNM                       $enable_pnm
   SVG                       $svg                  $LIBSVG_CFLAGS $LIBSVG_LIBS
-  BMP                       $bmp
+  BMP                       $enable_bmp
   WEBP                      $webp                 $LIBWEBP_CFLAGS $LIBWEBP_LIBS
-  JPEG2000                  $jpeg2000             $JASPER_LIBS
-  MPEG2                     $mpeg2
+  JPEG2000                  $enable_jpeg2000             $JASPER_LIBS
+  MPEG2                     $enable_mpeg2
 
 
 Building Video Provider Modules:
@@ -3009,7 +3019,7 @@ Building Video Provider Modules:
   Video4Linux               $V4L (v2: $V4L2)
   MNG                       $MNG                 $LIBMNG_CFLAGS $LIBMNG_LIBS
   Gstreamer                 $gstreamer (v1: $HAVE_GSTREAMER_1_0)       $GSTREAMER_INCL $GSTREAMER_LIBS
-    with FusionSound        $have_fusionsound
+    with FusionSound        $enable_fusionsound
   AviFile                   $avifile
   Flash                     $flash
   Libmpeg3                  $mpeg3
@@ -3029,22 +3039,22 @@ Building FusionSound        $enable_fusionsound]);
 if test "$enable_fusionsound" = "yes"; then
 AC_MSG_RESULT([
   Options:
-    IEEE floats:            $fs_enable_ieee_floats
-    Precision:              $fs_enable_precision
-    Linear filter:          $fs_enable_linear_filter
-    Multichannel            $fs_enable_multichannel
+    IEEE floats:            $enable_fs_ieee_floats
+    Precision:              $enable_fs_precision
+    Linear filter:          $enable_fs_linear_filter
+    Multichannel            $enable_fs_multichannel
   Drivers:
     OSS                     $fsdriver_oss
     ALSA                    $fsdriver_alsa
     WAVE                    $fsdriver_wave
   Music Providers:
     Timidity                $timidity
-    Wave                    $wave
+    Wave                    $with_wave
     Ogg/Vorbis              $vorbis
     MAD                     $mad
     CD-DA                   $cdda
     FFmpeg                  $ffmpeg
-    Playlist                $playlist]);
+    Playlist                $with_playlist]);
 fi
 
 if test "$have_linux" = "yes"; then
