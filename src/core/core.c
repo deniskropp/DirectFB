@@ -1708,7 +1708,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      shared->window_pool = NULL;
 
 
-     while (--loops) {
+     while (loops--) {
           dfb_gfx_cleanup();
 
           ret = dfb_core_wait_all( core, 500000 );
@@ -1775,7 +1775,10 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      TaskManager_Shutdown();
 
-     return DFB_OK;//ret;
+     if (direct_config_get_int_value( "dfb-error-shutdown-timeout" ))
+          return ret;
+
+     return DFB_OK;
 }
 
 DFBResult
