@@ -821,7 +821,7 @@ ISurface_Real::Flip2(
      DFBResult ret;
      DFBRegion l, r;
 
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( timestamp %lld )\n", __FUNCTION__, timestamp );
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( timestamp %lld )\n", __FUNCTION__, (long long) timestamp );
 
      dfb_surface_lock( obj );
 
