@@ -57,6 +57,9 @@ IComaComponent_Destruct( IComaComponent *thiz )
 
      coma_component_unref( data->component );
 
+     if (data->listeners)
+          D_FREE( data->listeners );
+
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -293,13 +296,15 @@ IComaComponent_Construct( IComaComponent *thiz,
      data->coma              = coma;
      data->component         = component;
      data->num_notifications = num_notifications;
-     data->listeners         = D_CALLOC( num_notifications, sizeof(ComaListener) );
 
-     if (!data->listeners) {
-          D_OOM();
-          coma_component_unref( component );
-          DIRECT_DEALLOCATE_INTERFACE( thiz );
-          return DR_NOLOCALMEMORY;
+     if (num_notifications > 0) {
+          data->listeners = D_CALLOC( num_notifications, sizeof(ComaListener) );
+          if (!data->listeners) {
+               D_OOM();
+               coma_component_unref( component );
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
+               return DR_NOLOCALMEMORY;
+          }
      }
 
      /* Assign interface pointers. */
