@@ -389,8 +389,19 @@ drmkmsPlaneTestRegion( CoreLayer                  *layer,
                        CoreLayerRegionConfig      *config,
                        CoreLayerRegionConfigFlags *ret_failed )
 {
+     DRMKMSLayerData *data  = layer_data;
+
+     CoreLayerRegionConfigFlags failed = DLCONF_NONE;
+
+     if (((config->options & DLOP_OPACITY     ) && !data->alpha_propid   ) ||
+         ((config->options & DLOP_SRC_COLORKEY) && !data->colorkey_propid))
+          failed |= DLCONF_OPTIONS;
+
      if (ret_failed)
-          *ret_failed = DLCONF_NONE;
+          *ret_failed = failed;
+
+     if (failed)
+          return DFB_UNSUPPORTED;
 
      return DFB_OK;
 }
@@ -426,7 +437,7 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
 
      }
 
-     if (updated & (CLRCF_SRCKEY | CLRCF_OPTIONS)) {
+     if ((updated & (CLRCF_SRCKEY | CLRCF_OPTIONS)) && data->alpha_propid) {
           uint32_t drm_colorkey = config->src_key.r << 16 | config->src_key.g << 8 | config->src_key.b;
 
           if (config->options & DLOP_SRC_COLORKEY)
@@ -440,7 +451,7 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
           }
      }
 
-     if (updated & CLRCF_OPACITY) {
+     if (updated & CLRCF_OPACITY && data->alpha_propid) {
           ret = drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->alpha_propid, config->opacity );
 
           if (ret) {
