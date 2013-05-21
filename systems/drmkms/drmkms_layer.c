@@ -101,7 +101,7 @@ drmkmsTestRegion( CoreLayer                  *layer,
 
           D_DEBUG_AT( DRMKMS_Layer, "    -> rejecting layer that is smaller than the screen (drm/kms limitation)\n" );
           if (ret_failed)
-               *ret_failed = DLCONF_WIDTH | DLCONF_HEIGHT;
+               *ret_failed = CLRCF_WIDTH | CLRCF_HEIGHT;
 
           return DFB_UNSUPPORTED;
      }
@@ -391,11 +391,11 @@ drmkmsPlaneTestRegion( CoreLayer                  *layer,
 {
      DRMKMSLayerData *data  = layer_data;
 
-     CoreLayerRegionConfigFlags failed = DLCONF_NONE;
+     CoreLayerRegionConfigFlags failed = CLRCF_NONE;
 
      if (((config->options & DLOP_OPACITY     ) && !data->alpha_propid   ) ||
          ((config->options & DLOP_SRC_COLORKEY) && !data->colorkey_propid))
-          failed |= DLCONF_OPTIONS;
+          failed |= CLRCF_OPTIONS;
 
      if (ret_failed)
           *ret_failed = failed;
