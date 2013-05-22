@@ -694,11 +694,14 @@ dfb_surface_dispatch_update( CoreSurface     *surface,
                              const DFBRegion *update_right,
                              long long        timestamp )
 {
+     DFBResult       ret;
      DFBSurfaceEvent event;
 
      D_DEBUG_AT( Core_Surface_Updates, "%s( %p [%u], %p / %p, timestamp %lld )\n", __FUNCTION__, surface, surface->object.id, update, update_right, timestamp );
 
      D_MAGIC_ASSERT( surface, CoreSurface );
+
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      event.clazz      = DFEC_SURFACE;
      event.type       = DSEVT_UPDATE;
@@ -734,7 +737,19 @@ dfb_surface_dispatch_update( CoreSurface     *surface,
           event.update_right.y2 = surface->config.size.h - 1;
      }
 
-     return dfb_surface_dispatch_channel( surface, CSCH_EVENT, &event, sizeof(DFBSurfaceEvent), NULL );
+     ret = dfb_surface_dispatch_channel( surface, CSCH_EVENT, &event, sizeof(DFBSurfaceEvent), NULL );
+     if (ret)
+          return ret;
+
+     D_DEBUG_AT( Core_Surface_Updates, "  -> client count %d\n", fusion_vector_size( &surface->clients ) );
+
+     if (fusion_vector_is_empty( &surface->clients )) {
+          surface->flips_acked = surface->flips;
+
+          dfb_surface_notify_frame( surface, surface->flips_acked );
+     }
+
+     return DFB_OK;
 }
 
 DFBResult
