@@ -43,6 +43,8 @@ extern "C" {
 #include <core/surface_buffer.h>
 }
 
+#include <core/Task.h>
+
 /*********************************************************************************************************************/
 
 // Core enums
@@ -204,6 +206,54 @@ ToString<CoreSurface>::ToString( const CoreSurface &surface )
              *ToString<CoreSurfaceConfig>(surface.config) );
 }
 
+template<>
+ToString<DirectFB::Task>::ToString( const DirectFB::Task &task )
+{
+     task.Describe( *this );
+}
+
+template<>
+ToString<DirectFB::TaskState>::ToString( const DirectFB::TaskState &state )
+{
+     switch (state) {
+          case DirectFB::TASK_STATE_NONE:
+               PrintF( "<NONE>" );
+               break;
+
+          case DirectFB::TASK_NEW:
+               PrintF( "NEW" );
+               break;
+
+          case DirectFB::TASK_FLUSHED:
+               PrintF( "FLUSHED" );
+               break;
+
+          case DirectFB::TASK_READY:
+               PrintF( "READY" );
+               break;
+
+          case DirectFB::TASK_RUNNING:
+               PrintF( "RUNNING" );
+               break;
+
+          case DirectFB::TASK_DONE:
+               PrintF( "DONE" );
+               break;
+
+          case DirectFB::TASK_INVALID:
+               PrintF( "INVALID" );
+               break;
+
+          case DirectFB::TASK_STATE_ALL:
+               PrintF( "<ALL>" );
+               break;
+
+          default:
+               PrintF( "invalid 0x%x", state );
+               break;
+     }
+}
+
 /*********************************************************************************************************************/
 
 extern "C" {
@@ -273,6 +323,12 @@ const char *
 ToString_CoreSurface( const CoreSurface *v )
 {
      return ToString<CoreSurface>( *v ).CopyTLS();
+}
+
+const char *
+ToString_Task( const DFB_Task *v )
+{
+     return ToString<DFB_Task>( *v ).CopyTLS();
 }
 
 
