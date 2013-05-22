@@ -586,7 +586,7 @@ DIRECT_BUILD_OSTYPE=DIRECT_OS_LINUX_GNU_LIBC
 AC_SUBST(DIRECT_BUILD_OSTYPE)
 
 
-enable_multi_kernel="N/A"
+enable_multi_kernel="yes"
 AC_ARG_ENABLE(multi,
               AC_HELP_STRING([--enable-multi],
                              [enable multi application core @<:@default=no@:>@]),
@@ -606,6 +606,7 @@ if test "$enable_multi" = "yes"; then
     if test "$enable_multi_kernel" = "yes"; then
        FUSION_BUILD_KERNEL=1
     else
+       enable_multi_kernel="N/A"
        fusion_warning="
 Linux-Fusion header not found. Using EXPERIMENTAL Builtin Multi application core!"
        AC_MSG_WARN([*** $fusion_warning *** ])
@@ -614,6 +615,7 @@ Linux-Fusion header not found. Using EXPERIMENTAL Builtin Multi application core
 
   FUSION_BUILD_MULTI=1
 else
+  enable_multi_kernel="N/A"
   FUSION_BUILD_MULTI=0
   FUSION_BUILD_KERNEL=0
 fi
