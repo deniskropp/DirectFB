@@ -1185,10 +1185,12 @@ TaskManager::pullTask()
 {
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
 
+#if 0
      static int c;
 
      if (c++ % 1000 == 0)
           dumpTasks();
+#endif
 
      return fifo.pull();
 }
