@@ -1606,6 +1606,8 @@ fusion_ref_init (FusionRef         *ref,
      ref->single.destroyed = false;
      ref->single.locked    = 0;
 
+     ref->multi.id         = (long) ref;
+
      return DR_OK;
 }
 
@@ -1636,6 +1638,11 @@ fusion_ref_up (FusionRef *ref, bool global)
 
      D_DEBUG_AT( Fusion_Ref, "%s( %p, %d )\n", __FUNCTION__, ref, global );
 
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x up (%s), single refs %d\n", ref->multi.id, global ? "global" : "local", ref->single.refs );
+          direct_trace_print_stack( NULL );
+     }
+
      direct_mutex_lock (&ref->single.lock);
 
      if (ref->single.destroyed)
@@ -1656,6 +1663,11 @@ fusion_ref_down (FusionRef *ref, bool global)
      D_ASSERT( ref != NULL );
 
      D_DEBUG_AT( Fusion_Ref, "%s( %p, %d )\n", __FUNCTION__, ref, global );
+
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x down (%s), single refs %d\n", ref->multi.id, global ? "global" : "local", ref->single.refs );
+          direct_trace_print_stack( NULL );
+     }
 
      direct_mutex_lock (&ref->single.lock);
 
@@ -1696,6 +1708,11 @@ fusion_ref_catch (FusionRef *ref)
 {
      D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
 
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x catch, single refs %d\n", ref->multi.id, ref->single.refs );
+          direct_trace_print_stack( NULL );
+     }
+
      return fusion_ref_down( ref, false );
 }
 
@@ -1703,6 +1720,11 @@ DirectResult
 fusion_ref_throw (FusionRef *ref, FusionID catcher)
 {
      D_DEBUG_AT( Fusion_Ref, "%s( %p )\n", __FUNCTION__, ref );
+
+     if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
+          D_INFO( "Fusion/Ref: 0x%08x throw, single refs %d\n", ref->multi.id, ref->single.refs );
+          direct_trace_print_stack( NULL );
+     }
 
      return DR_OK;
 }
