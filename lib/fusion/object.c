@@ -472,9 +472,14 @@ fusion_object_get( FusionObjectPool  *pool,
 
      object = fusion_hash_lookup( pool->objects, (void*)(long) object_id );
      if (object) {
-          ret = fusion_object_ref( object );
-          if (ret == DR_OK)
-               *ret_object = object;
+          int refs;
+
+          ret = fusion_ref_stat( &object->ref, &refs );
+          if (ret == DR_OK && refs > 0) {
+               ret = fusion_object_ref( object );
+               if (ret == DR_OK)
+                    *ret_object = object;
+          }
      }
 
      /* Unlock the pool. */
