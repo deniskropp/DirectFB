@@ -40,6 +40,7 @@ extern "C" {
 #include <directfb_util.h>
 
 #include <core/core_strings.h>
+#include <core/layer_region.h>
 #include <core/surface_buffer.h>
 }
 
@@ -121,6 +122,17 @@ ToString<DFBSurfacePixelFormat>::ToString( const DFBSurfacePixelFormat &format )
 }
 
 template<>
+ToString<DFBSurfaceFlipFlags>::ToString( const DFBSurfaceFlipFlags &flags )
+{
+     static const DirectFBSurfaceFlipFlagsNames(flags_names);
+
+     for (int i=0, n=0; flags_names[i].flag; i++) {
+          if (flags & flags_names[i].flag)
+               PrintF( "%s%s", n++ ? "," : "", flags_names[i].name );
+     }
+}
+
+template<>
 ToString<DFBSurfacePorterDuffRule>::ToString( const DFBSurfacePorterDuffRule &rule )
 {
      static const DirectFBPorterDuffRuleNames(rules_names);
@@ -147,6 +159,32 @@ ToString<DFBDimension>::ToString( const DFBDimension &v )
      PrintF( "%dx%d", v.w, v.h );
 }
 
+template<>
+ToString<DFBDisplayLayerBufferMode>::ToString( const DFBDisplayLayerBufferMode &mode )
+{
+     switch (mode) {
+          case DLBM_FRONTONLY:
+               PrintF( "FRONTONLY" );
+               break;
+
+          case DLBM_BACKVIDEO:
+               PrintF( "BACKVIDEO" );
+               break;
+
+          case DLBM_BACKSYSTEM:
+               PrintF( "BACKSYSTEM" );
+               break;
+
+          case DLBM_TRIPLE:
+               PrintF( "TRIPLE" );
+               break;
+
+          default:
+               PrintF( "invalid 0x%x", mode );
+               break;
+     }
+}
+
 
 
 // CoreSurface types
@@ -168,6 +206,19 @@ ToString<CoreSurfaceConfig>::ToString( const CoreSurfaceConfig &config )
              ToString<DFBSurfacePixelFormat>(config.format).buffer(),
              ToString<DFBSurfaceCapabilities>(config.caps).buffer(),
              buffers );
+}
+
+
+// CoreLayer types
+
+template<>
+ToString<CoreLayerRegionConfig>::ToString( const CoreLayerRegionConfig &config )
+{
+     PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%d",
+             config.width, config.height,
+             *ToString<DFBSurfacePixelFormat>(config.format),
+             *ToString<DFBSurfaceCapabilities>(config.surface_caps),
+             *ToString<DFBDisplayLayerBufferMode>(config.buffermode) );
 }
 
 
@@ -296,7 +347,13 @@ ToString_DFBSurfacePixelFormat( DFBSurfacePixelFormat v )
 }
 
 const char *
-DFB_ToString_DFBDimension( const DFBDimension *v )
+ToString_DFBSurfaceFlipFlags( DFBSurfaceFlipFlags v )
+{
+     return ToString<DFBSurfaceFlipFlags>( v ).CopyTLS();
+}
+
+const char *
+ToString_DFBDimension( const DFBDimension *v )
 {
      return ToString<DFBDimension>( *v ).CopyTLS();
 }
@@ -305,6 +362,12 @@ const char *
 ToString_CoreSurfaceConfig( const CoreSurfaceConfig *v )
 {
      return ToString<CoreSurfaceConfig>( *v ).CopyTLS();
+}
+
+const char *
+ToString_CoreLayerRegionConfig( const CoreLayerRegionConfig *v )
+{
+     return ToString<CoreLayerRegionConfig>( *v ).CopyTLS();
 }
 
 const char *
