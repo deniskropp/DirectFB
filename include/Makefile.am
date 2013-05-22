@@ -7,6 +7,7 @@ DISTCLEANFILES = directfb_keynames.h directfb_strings.h directfb_water_strings.h
 include_HEADERS = \
 	directfb.h		\
 	directfb_build.h	\
+	directfb_graphics.h	\
 	directfb_keyboard.h	\
 	directfb_keynames.h	\
 	directfb_strings.h	\
@@ -63,6 +64,9 @@ directfb_strings.h: directfb.h $(MKNAMES) Makefile
 
 	@$(MKNAMES) DFBSurfaceBlittingFlags DSBLIT NOFX SurfaceBlittingFlags flag $(INCP)/directfb.h \
 	   | grep -v DSBLIT_ALL >> $@
+
+	@$(MKNAMES) DFBSurfaceFlipFlags DSFLIP NONE SurfaceFlipFlags flag $(INCP)/directfb.h \
+	   | grep -v DSFLIP_ALL >> $@
 
 	@$(MKNAMES) DFBSurfaceBlendFunction DSBF UNKNOWN SurfaceBlendFunction function $(INCP)/directfb.h \
 	   >> $@
