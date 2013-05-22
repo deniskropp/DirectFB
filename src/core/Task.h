@@ -44,7 +44,7 @@ extern "C" {
 
 
 #define DFB_TASK_DEBUG_LOG    (0)  // Task::Log(), DumpLog() enabled
-#define DFB_TASK_DEBUG_STATE  (1)  // DFB_TASK_CHECK_STATE with warning and task log if enabled
+#define DFB_TASK_DEBUG_STATE  (0)  // DFB_TASK_CHECK_STATE with warning and task log if enabled
 #define DFB_TASK_DEBUG_TASKS  (0)  // TaskManager::dumpTasks() enabled
 #define DFB_TASK_DEBUG_TIMES  (0)  // print warnings when task operations exceed time limits (set below)
 #define DFB_TASK_DEBUG_TIMING (0)  // measure time it took the task in each state
@@ -58,6 +58,7 @@ extern "C" {
 DFBResult    TaskManager_Initialise( void );
 void         TaskManager_Shutdown( void );
 void         TaskManager_SyncAll( void );
+void         TaskManager_DumpTasks( void );
 
 
 DFB_TaskList *TaskList_New( bool locked );
@@ -112,7 +113,7 @@ D_DEBUG_DOMAIN( DirectFB_Task, "DirectFB/Task", "DirectFB Task" );
      do {                                                                            \
           if (!((_task)->state & (_states))) {                                       \
                D_WARN( "task state (0x%02x %s) does not match 0x%02x -- %p",         \
-                       (_task)->state, dfb_task_state_name((_task)->state), (_states), _task );     \
+                       (_task)->state, *ToString<DirectFB::TaskState>((_task)->state), (_states), _task );     \
                                                                                      \
                (_task)->DumpLog( DirectFB_Task, DIRECT_LOG_INFO );                   \
                                                                                      \
@@ -219,7 +220,7 @@ class TaskManager;
 
 class DisplayTask;
 
-typedef std::pair<Task*,bool> TaskNotify;
+typedef std::pair<Task*,TaskState> TaskNotify;
 
 
 class Task
@@ -250,7 +251,8 @@ protected:
      virtual DFBResult Push();
      virtual DFBResult Run();
      virtual void      Finalise();
-     virtual void      Describe( Direct::String &string );
+public:
+     virtual void      Describe( Direct::String &string ) const;
 
 protected:
      TaskState state;
@@ -286,8 +288,8 @@ protected:
      u64                      qid;
      Task                    *next;
 
-     Task                    *follower;
-     Task                    *following;
+//     Task                    *follower;
+//     Task                    *following;
 
      /* allocation on hwid */
      u32                      hwid;
@@ -503,8 +505,10 @@ public:
 protected:
      virtual DFBResult Setup();
      virtual void      Finalise();
-     virtual void      Describe( Direct::String &string );
+public:
+     virtual void      Describe( Direct::String &string ) const;
 
+protected:
      virtual DFBResult CacheFlush();
      virtual DFBResult CacheInvalidate();
 
@@ -560,7 +564,8 @@ protected:
      virtual DFBResult Setup();
      virtual DFBResult Run();
      virtual void      Finalise();
-     virtual void      Describe( Direct::String &string );
+public:
+     virtual void      Describe( Direct::String &string ) const;
 
 private:
      CoreLayerRegion       *region;
@@ -671,37 +676,6 @@ pool_lock / read / write / unlock
 
 /*********************************************************************************************************************/
 
-static inline const char *
-dfb_task_state_name( DirectFB::TaskState state )
-{
-     switch (state) {
-          case DirectFB::TASK_STATE_NONE:
-               return "<NONE>";
-
-          case DirectFB::TASK_NEW:
-               return "NEW";
-
-          case DirectFB::TASK_FLUSHED:
-               return "FLUSHED";
-
-          case DirectFB::TASK_READY:
-               return "READY";
-
-          case DirectFB::TASK_RUNNING:
-               return "RUNNING";
-
-          case DirectFB::TASK_DONE:
-               return "DONE";
-
-          case DirectFB::TASK_INVALID:
-               return "INVALID";
-
-          case DirectFB::TASK_STATE_ALL:
-               return "<ALL>";
-     }
-
-     return "invalid";
-}
 
 #endif // __cplusplus
 

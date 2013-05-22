@@ -27,6 +27,17 @@ CoreLayerRegion_Call( CoreLayerRegion     *region,
 }
 
 #ifdef __cplusplus
+namespace DirectFB {
+#endif
+
+
+void CoreLayersFPSHandle( CoreLayer *layer );
+
+
+#ifdef __cplusplus
+}
+
+
 }
 #endif
 

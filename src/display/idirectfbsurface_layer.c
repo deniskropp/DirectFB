@@ -49,6 +49,7 @@
 #include <core/CoreGraphicsState.h>
 #include <core/CoreLayerRegion.h>
 #include <core/CoreSurface.h>
+#include <core/Debug.h>
 
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_layer.h"
@@ -94,15 +95,18 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
                              const DFBRegion     *region,
                              DFBSurfaceFlipFlags  flags )
 {
-     DFBResult ret = DFB_OK;
-     DFBRegion reg;
+     DFBResult    ret = DFB_OK;
+     DFBRegion    reg;
+     CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
-     D_DEBUG_AT( Surface, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, thiz, region, flags );
-
-     if (!data->base.surface)
+     surface = data->base.surface;
+     if (!surface)
           return DFB_DESTROYED;
+
+     D_DEBUG_AT( Surface, "%s( %p, %p, flags %s ) <- caps %s\n", __FUNCTION__, thiz, region,
+                 ToString_DFBSurfaceFlipFlags(flags), ToString_DFBSurfaceCapabilities(surface->config.caps) );
 
      if (data->base.locked)
           return DFB_LOCKED;
@@ -143,11 +147,23 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
+     switch (data->region->config.buffermode) {
+          case DLBM_TRIPLE:
+          case DLBM_BACKVIDEO:
+               if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
+                                             reg.x1 == 0 && reg.y1 == 0 &&
+                                             reg.x2 == surface->config.size.w - 1 &&
+                                             reg.y2 == surface->config.size.h - 1))
+                    data->base.local_flip_count++;
+               break;
+
+          default:
+               break;
+     }
+
      ret = CoreLayerRegion_FlipUpdate2( data->region, &reg, &reg, flags, data->base.current_frame_time );
      if (ret)
           return ret;
-
-     dfb_surface_dispatch_update( data->base.surface, &reg, &reg, data->base.current_frame_time );
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
 
@@ -160,14 +176,16 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
                                    const DFBRegion     *right_region,
                                    DFBSurfaceFlipFlags  flags )
 {
-     DFBResult ret = DFB_OK;
-     DFBRegion l_reg, r_reg;
+     DFBResult    ret = DFB_OK;
+     DFBRegion    l_reg, r_reg;
+     CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
      D_DEBUG_AT( Surface, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, thiz, left_region, right_region, flags );
 
-     if (!data->base.surface)
+     surface = data->base.surface;
+     if (!surface)
           return DFB_DESTROYED;
 
      if (!(data->base.surface->config.caps & DSCAPS_STEREO))
@@ -222,11 +240,20 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
+     if (surface->config.caps & DSCAPS_FLIPPING) {
+          if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
+                                        l_reg.x1 == 0 && l_reg.y1 == 0 &&
+                                        l_reg.x2 == surface->config.size.w - 1 &&
+                                        l_reg.y2 == surface->config.size.h - 1 &&
+                                        r_reg.x1 == 0 && r_reg.y1 == 0 &&
+                                        r_reg.x2 == surface->config.size.w - 1 &&
+                                        r_reg.y2 == surface->config.size.h - 1))
+               data->base.local_flip_count++;
+     }
+
      ret = CoreLayerRegion_FlipUpdate2( data->region, &l_reg, &r_reg, flags, data->base.current_frame_time );
      if (ret)
           return ret;
-
-     dfb_surface_dispatch_update( data->base.surface, &l_reg, &r_reg, data->base.current_frame_time );
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
 

@@ -47,8 +47,8 @@ extern "C" {
 #include <gfx/util.h>
 }
 
-#include <Debug.h>
-#include <Util.h>
+#include <core/Debug.h>
+#include <core/Util.h>
 
 
 D_DEBUG_DOMAIN( DirectFB_Renderer,          "DirectFB/Renderer",          "DirectFB Renderer" );
@@ -2103,11 +2103,13 @@ Renderer::Throttle::Hook::finalise( SurfaceTask *task )
 
 /**********************************************************************************************************************/
 
-Renderer::Renderer( CardState         *state,
-                    CoreGraphicsState *gfx_state )
+Renderer::Renderer( CardState            *state,
+                    CoreGraphicsState    *gfx_state,
+                    const Direct::String &name )
      :
      state( state ),
      gfx_state( gfx_state ),
+     name( name ),
      state_mod( SMF_NONE ),
      transform_type( WTT_IDENTITY ),
      throttle( NULL ),

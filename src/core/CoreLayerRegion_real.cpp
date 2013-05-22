@@ -55,6 +55,7 @@ extern "C" {
 
 #include <direct/Lists.h>
 
+#include <core/Debug.h>
 #include <core/Task.h>
 #include <core/Util.h>
 
@@ -302,10 +303,8 @@ DisplayTask::Flush()
 }
 
 void
-DisplayTask::Finalise()
+CoreLayersFPSHandle( CoreLayer *layer )
 {
-     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
-
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->shared != NULL );
 
@@ -318,6 +317,14 @@ DisplayTask::Finalise()
           if (layer->fps->Count( dfb_config->layers_fps ))
                D_INFO( "Core/Layer/%u: FPS %s\n", layer->shared->layer_id, layer->fps->Get().buffer() );
      }
+}
+
+void
+DisplayTask::Finalise()
+{
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+
+     D_ASSERT( layer != NULL );
 
      if (layer->display_task == this)
           layer->display_task = NULL;
@@ -340,7 +347,8 @@ DisplayTask::Run()
 
      surface = region->surface;
 
-     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p [%s] )\n", __FUNCTION__,
+                 this, *ToString<DirectFB::Task>(*this) );
 
      funcs = layer->funcs;
      D_ASSERT( funcs != NULL );
@@ -508,7 +516,7 @@ out:
 }
 
 void
-DisplayTask::Describe( Direct::String &string )
+DisplayTask::Describe( Direct::String &string ) const
 {
      SurfaceTask::Describe( string );
 
@@ -568,6 +576,10 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
      surface = region->surface;
      layer   = dfb_layer_at( region->layer_id );
 
+     CoreLayersFPSHandle( layer );
+
+     dfb_surface_lock( surface );
+
      if (!(surface->frametime_config.flags & DFTCF_INTERVAL))
           dfb_screen_get_frame_interval( layer->screen, &surface->frametime_config.interval );
 
@@ -588,8 +600,6 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
                        right_update->x2 == surface->config.size.w - 1 &&
                        right_update->y2 == surface->config.size.h - 1)))))
                {
-                    dfb_surface_lock( surface );
-
                     dfb_surface_flip_buffers( surface, false );
 
                     /* Use the driver's routine if the region is realized. */
@@ -598,8 +608,6 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
 
                          DisplayTask::Generate( region, left_update, right_update, flags, pts, ret_task );
                     }
-
-                    dfb_surface_unlock( surface );
                     break;
                }
 
@@ -608,12 +616,17 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
           case DLBM_BACKSYSTEM:
                D_DEBUG_AT( DirectFB_Task_Display, "  -> Going to copy portion...\n" );
 
-               dfb_layer_region_unlock( region );
-
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
                     D_DEBUG_AT( DirectFB_Task_Display, "  -> Waiting for VSync...\n" );
 
+                    dfb_surface_unlock( surface );
+                    dfb_layer_region_unlock( region );
+
                     dfb_layer_wait_vsync( layer );
+
+                    dfb_layer_region_lock( region );
+                    surface = region->surface;
+                    dfb_surface_lock( surface );
                }
 
                D_DEBUG_AT( DirectFB_Task_Display, "  -> Copying content from back to front buffer...\n" );
@@ -629,10 +642,15 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
                if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT) {
                     D_DEBUG_AT( DirectFB_Task_Display, "  -> Waiting for VSync...\n" );
 
-                    dfb_layer_wait_vsync( layer );
-               }
+                    dfb_surface_unlock( surface );
+                    dfb_layer_region_unlock( region );
 
-               dfb_layer_region_lock( region );
+                    dfb_layer_wait_vsync( layer );
+
+                    dfb_layer_region_lock( region );
+                    surface = region->surface;
+                    dfb_surface_lock( surface );
+               }
 
                /* fall through */
 
@@ -641,11 +659,7 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
                     /* Tell the driver about the update if the region is realized. */
                     D_DEBUG_AT( DirectFB_Task_Display, "  -> Issuing display task...\n" );
 
-                    dfb_surface_lock( surface );
-
                     DisplayTask::Generate( region, left_update, right_update, flags, pts, ret_task );
-
-                    dfb_surface_unlock( surface );
                }
                break;
 
@@ -657,6 +671,8 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
      D_DEBUG_AT( DirectFB_Task_Display, "  -> done.\n" );
 
      dfb_surface_dispatch_update( region->surface, left_update, right_update, pts );
+
+     dfb_surface_unlock( surface );
 
      /* Unlock the region. */
      dfb_layer_region_unlock( region );

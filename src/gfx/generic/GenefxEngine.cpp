@@ -51,6 +51,7 @@ extern "C" {
 #include <gfx/generic/generic.h>
 }
 
+#include <core/Debug.h>
 #include <core/Util.h>
 
 
@@ -176,6 +177,8 @@ public:
                                                       DFXL_TEXTRIANGLES);
           caps.render_options = (DFBSurfaceRenderOptions)(DSRO_SMOOTH_DOWNSCALE | DSRO_SMOOTH_UPSCALE);
           caps.max_operations = 300000;
+
+          desc.name = "Genefx";
      }
 
 

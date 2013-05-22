@@ -153,6 +153,8 @@ typedef struct {
      long long                current_frame_time;
 
      DFBFrameTimeConfig       frametime_config;
+
+     unsigned int             local_flip_count;
 } IDirectFBSurface_data;
 
 /*

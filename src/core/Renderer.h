@@ -39,7 +39,7 @@ extern "C" {
 #include <core/surface.h>
 
 #include <directfb.h>
-#include <directfb_water.h>
+#include <directfb_graphics.h>
 
 
 // C Wrapper
@@ -176,8 +176,9 @@ protected:
      virtual void AddTask( SurfaceTask *task, u32 cookie );
      virtual void SetThrottle( int percent ) = 0;
 
-private:
      CoreGraphicsState *gfx_state;
+
+private:
      unsigned int       ref_count;
      unsigned int       task_count;
      Direct::LockWQ     lwq;
@@ -213,7 +214,9 @@ public:
 
                // FIXME: add Renderer control API for this
                if (0) {
-                    int tw = width / tiles;
+                    int tw = ((width / tiles) + 7) & ~7;
+
+                    tiles = (width / tw) + !!(tiles % tw);
 
                     for (unsigned int i=0; i<tiles; i++) {
                          clips[i].x1 = tw * i;
@@ -246,8 +249,9 @@ public:
      };
 
 public:
-     Renderer( CardState         *state,
-               CoreGraphicsState *gfx_state );
+     Renderer( CardState            *state,
+               CoreGraphicsState    *gfx_state,
+               const Direct::String &name = "NONAME" );
      ~Renderer();
 
      void SetThrottle( Throttle *throttle );
@@ -307,6 +311,8 @@ public:
 public:
      CardState             *state;
      CoreGraphicsState     *gfx_state;
+     const Direct::String   name;
+
 private:
      StateModificationFlags state_mod;
      WaterTransformType     transform_type;
@@ -404,17 +410,19 @@ class Engine {
      friend class Renderer;
 
 public:
-     class Capabilities {
+     class Description {
      public:
-          bool                     software;
-          unsigned int             cores;
-          DFBAccelerationMask      clipping;
-          DFBSurfaceRenderOptions  render_options;
-          unsigned int             max_scale_down_x;
-          unsigned int             max_scale_down_y;
-          unsigned int             max_operations;
-          WaterTransformType       transforms;
+          Direct::String      name;
 
+          Description()
+               :
+               name( "NONAME" )
+          {
+          }
+     };
+
+     class Capabilities : public DFBGraphicsEngineCapabilities {
+     public:
           Capabilities()
           {
                software         = false;
@@ -429,6 +437,7 @@ public:
      };
 
      Capabilities caps;
+     Description  desc;
 
 protected:
      Engine()

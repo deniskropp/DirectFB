@@ -132,14 +132,16 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                               const DFBRegion     *region,
                               DFBSurfaceFlipFlags  flags )
 {
-     DFBResult ret = DFB_OK;
-     DFBRegion reg;
+     DFBResult    ret = DFB_OK;
+     DFBRegion    reg;
+     CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      D_DEBUG_AT( Surface, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, thiz, region, flags );
 
-     if (!data->base.surface)
+     surface = data->base.surface;
+     if (!surface)
           return DFB_DESTROYED;
 
      if (data->base.locked)
@@ -192,6 +194,14 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
+     D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d %4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ), surface->config.size.w, surface->config.size.h );
+     if (surface->config.caps & DSCAPS_FLIPPING) {
+          if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
+                                        reg.x1 == 0 && reg.y1 == 0 &&
+                                        reg.x2 == surface->config.size.w - 1 &&
+                                        reg.y2 == surface->config.size.h - 1))
+               data->base.local_flip_count++;
+     }
 
      ret = CoreWindow_Repaint( data->window, &reg, &reg, flags, data->base.current_frame_time );
      if (ret)
@@ -202,7 +212,6 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
           ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_OPACITY );
      }
-
 
      IDirectFBSurface_WaitForBackBuffer( &data->base );
 
@@ -215,14 +224,16 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                                     const DFBRegion     *right_region,
                                     DFBSurfaceFlipFlags  flags )
 {
-     DFBResult ret = DFB_OK;
-     DFBRegion l_reg, r_reg;
+     DFBResult    ret = DFB_OK;
+     DFBRegion    l_reg, r_reg;
+     CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      D_DEBUG_AT( Surface, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, thiz, left_region, right_region, flags );
 
-     if (!data->base.surface)
+     surface = data->base.surface;
+     if (!surface)
           return DFB_DESTROYED;
 
      if (!(data->base.surface->config.caps & DSCAPS_STEREO)) 
@@ -272,7 +283,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                return DFB_INVAREA;
      }
 
-     D_DEBUG_AT( Surface, "  -> FLIP Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n", 
+     D_DEBUG_AT( Surface, "  -> FLIPSTEREO Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n", 
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
 
@@ -287,6 +298,17 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 #endif
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
+
+     if (surface->config.caps & DSCAPS_FLIPPING) {
+          if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
+                                        l_reg.x1 == 0 && l_reg.y1 == 0 &&
+                                        l_reg.x2 == surface->config.size.w - 1 &&
+                                        l_reg.y2 == surface->config.size.h - 1 &&
+                                        r_reg.x1 == 0 && r_reg.y1 == 0 &&
+                                        r_reg.x2 == surface->config.size.w - 1 &&
+                                        r_reg.y2 == surface->config.size.h - 1))
+               data->base.local_flip_count++;
+     }
 
      ret = CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags, data->base.current_frame_time );
      if (ret)
