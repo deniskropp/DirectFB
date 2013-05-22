@@ -45,10 +45,12 @@ const char *ToString_DFBSurfaceBlittingFlags  ( DFBSurfaceBlittingFlags         
 const char *ToString_DFBSurfaceCapabilities   ( DFBSurfaceCapabilities                caps );
 const char *ToString_DFBSurfaceDrawingFlags   ( DFBSurfaceDrawingFlags                flags );
 const char *ToString_DFBSurfacePixelFormat    ( DFBSurfacePixelFormat                 format );
+const char *ToString_DFBSurfaceFlipFlags      ( DFBSurfaceFlipFlags                   flags );
 
 const char *ToString_DFBDimension             ( const DFBDimension                   *dimension );
 
 const char *ToString_CoreSurfaceConfig        ( const CoreSurfaceConfig              *config );
+const char *ToString_CoreLayerRegionConfig    ( const CoreLayerRegionConfig          *config );
 
 const char *ToString_CoreSurfaceAllocation    ( const CoreSurfaceAllocation          *allocation );
 const char *ToString_CoreSurfaceBuffer        ( const CoreSurfaceBuffer              *buffer );
