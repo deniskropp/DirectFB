@@ -65,8 +65,6 @@ D_DEBUG_DOMAIN( Core_WM, "Core/WM", "DirectFB WM Core" );
 typedef struct {
      int                  magic;
 
-     DirectLink          *stacks;
-
      int                  abi;
 
      char                *name;
@@ -399,51 +397,54 @@ dfb_wm_core_resume( DFBWMCore *data )
      return wm_local->funcs->Resume( wm_local->data, wm_shared->data );
 }
 
+/**************************************************************************************************/
+
+static bool
+dfb_wm_layer_context_callback( FusionObjectPool *pool,
+                               FusionObject     *object,
+                               void             *ctx )
+{
+     CoreLayerContext     *context = (CoreLayerContext *) object;
+     CoreWindowStackFlags  flags   = (CoreWindowStackFlags)(long) ctx;
+
+     D_DEBUG_AT( Core_WM, "  -> ref context %p...\n", context );
+
+     dfb_layer_context_ref( context );
+
+     dfb_layer_context_lock( context );
+
+     if (context->stack) {
+          if ((context->stack->flags & CWSF_ACTIVATED) & flags)
+               dfb_wm_set_active( context->stack, false );
+
+          if ((context->stack->flags & CWSF_INITIALIZED) & flags)
+               dfb_wm_close_stack( context->stack );
+     }
+
+     dfb_layer_context_unlock( context );
+
+     D_DEBUG_AT( Core_WM, "  -> unref context %p...\n", context );
+
+     dfb_layer_context_unref( context );
+
+     return true;
+}
+
 DFBResult
 dfb_wm_deactivate_all_stacks( void *data )
 {
-     CoreLayerContext *context;
-     CoreWindowStack  *stack, *next;
-     DFBWMCore        *local;
-     DFBWMCoreShared  *shared;
+     DFBWMCore       *local;
+     DFBWMCoreShared *shared;
 
      D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, data );
 
      local = data;
-
      D_MAGIC_ASSERT( local, DFBWMCore );
-     D_ASSERT( local->funcs != NULL );
-     D_ASSERT( local->funcs->CloseStack != NULL );
 
      shared = local->shared;
-
      D_MAGIC_ASSERT( shared, DFBWMCoreShared );
 
-     D_DEBUG_AT( Core_WM, "  -> checking %d stacks...\n", direct_list_count_elements_EXPENSIVE(shared->stacks) );
-
-     direct_list_foreach_safe (stack, next, shared->stacks) {
-          D_DEBUG_AT( Core_WM, "  -> checking %p...\n", stack );
-
-          D_MAGIC_ASSERT( stack, CoreWindowStack );
-
-          context = stack->context;
-          D_MAGIC_ASSERT( context, CoreLayerContext );
-
-          D_DEBUG_AT( Core_WM, "  -> ref context %p...\n", context );
-
-          dfb_layer_context_ref( context );
-
-          dfb_layer_context_lock( context );
-
-          if (stack->flags & CWSF_ACTIVATED)
-               dfb_wm_set_active( stack, false );
-
-          dfb_layer_context_unlock( context );
-
-          D_DEBUG_AT( Core_WM, "  -> unref context %p...\n", context );
-
-          dfb_layer_context_unref( context );
-     }
+     dfb_core_enum_layer_contexts( local->core, dfb_wm_layer_context_callback, (void*)(long) CWSF_ACTIVATED );
 
      return DFB_OK;
 }
@@ -451,50 +452,18 @@ dfb_wm_deactivate_all_stacks( void *data )
 DFBResult
 dfb_wm_close_all_stacks( void *data )
 {
-     CoreLayerContext *context;
-     CoreWindowStack  *stack, *next;
-     DFBWMCore        *local;
-     DFBWMCoreShared  *shared;
+     DFBWMCore       *local;
+     DFBWMCoreShared *shared;
 
      D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, data );
 
      local = data;
-
      D_MAGIC_ASSERT( local, DFBWMCore );
-     D_ASSERT( local->funcs != NULL );
-     D_ASSERT( local->funcs->CloseStack != NULL );
 
      shared = local->shared;
-
      D_MAGIC_ASSERT( shared, DFBWMCoreShared );
 
-     D_DEBUG_AT( Core_WM, "  -> checking %d stacks...\n", direct_list_count_elements_EXPENSIVE(shared->stacks) );
-
-     direct_list_foreach_safe (stack, next, shared->stacks) {
-          D_DEBUG_AT( Core_WM, "  -> checking %p...\n", stack );
-
-          D_MAGIC_ASSERT( stack, CoreWindowStack );
-
-          context = stack->context;
-          D_MAGIC_ASSERT( context, CoreLayerContext );
-
-          D_DEBUG_AT( Core_WM, "  -> ref context %p...\n", context );
-
-          dfb_layer_context_ref( context );
-
-          dfb_layer_context_lock( context );
-
-          if (stack->flags & CWSF_INITIALIZED) {
-               D_DEBUG_AT( Core_WM, "  => CLOSING %p\n", stack );
-               dfb_wm_close_stack( stack );
-          }
-
-          dfb_layer_context_unlock( context );
-
-          D_DEBUG_AT( Core_WM, "  -> unref context %p...\n", context );
-
-          dfb_layer_context_unref( context );
-     }
+     dfb_core_enum_layer_contexts( local->core, dfb_wm_layer_context_callback, (void*)(long) CWSF_INITIALIZED );
 
      return DFB_OK;
 }
@@ -652,6 +621,7 @@ convert_state( DFBWindowState        *state,
 typedef struct {
      ReactionFunc        func;
      void               *ctx;
+     Reaction           *reaction;
 } AttachContext;
 
 static DFBEnumerationResult
@@ -677,6 +647,34 @@ wm_window_attach_callback( CoreWindow *window,
      return DFENUM_OK;
 }
 
+/**************************************************************************************************/
+
+static bool
+dfb_wm_layer_context_WINDOW_ADD_callback( FusionObjectPool *pool,
+                                          FusionObject     *object,
+                                          void             *_ctx )
+{
+     DFBResult         ret;
+     AttachContext    *ctx     = _ctx;
+     CoreLayerContext *context = (CoreLayerContext *) object;
+
+     dfb_layer_context_lock( context );
+
+     if (context->stack) {
+          ret = dfb_wm_enum_windows( context->stack, wm_window_attach_callback, ctx );
+          if (ret)
+               D_DERROR( ret, "Core/WM: could not enumerate windows" );
+
+          ret = fusion_reactor_attach_channel( wm_shared->reactor, CORE_WM_WINDOW_ADD, ctx->func, ctx->ctx, ctx->reaction );
+          if (ret)
+               D_DERROR( ret, "Core/WM: could not attach to reactor" );
+     }
+
+     dfb_layer_context_unlock( context );
+
+     return true;
+}
+
 DFBResult
 dfb_wm_attach( CoreDFB            *core,
                int                 channel,
@@ -687,28 +685,15 @@ dfb_wm_attach( CoreDFB            *core,
      D_ASSERT( wm_shared != NULL );
 
      if (channel == CORE_WM_WINDOW_ADD) {
-          CoreWindowStack *stack = (CoreWindowStack *) wm_shared->stacks;
+          AttachContext context = { func, ctx, reaction };
 
-          if (stack) {
-               DFBResult     ret;
-               AttachContext context = { func, ctx };
-
-               dfb_windowstack_lock( stack );
-
-               ret = dfb_wm_enum_windows( stack, wm_window_attach_callback, &context );
-               if (ret)
-                    D_WARN( "could not enumerate windows" );
-
-               ret = fusion_reactor_attach_channel( wm_shared->reactor, channel, func, ctx, reaction );
-
-               dfb_windowstack_unlock( stack );
-
-               return ret;
-          }
+          dfb_core_enum_layer_contexts( core, dfb_wm_layer_context_WINDOW_ADD_callback, &context );
      }
 
      return fusion_reactor_attach_channel( wm_shared->reactor, channel, func, ctx, reaction );
 }
+
+/**************************************************************************************************/
 
 DFBResult
 dfb_wm_detach( CoreDFB            *core,
@@ -891,9 +876,6 @@ dfb_wm_init_stack( CoreWindowStack *stack )
 
      stack->flags |= CWSF_INITIALIZED;
 
-     /* Add window stack to list. */
-     direct_list_append( &wm_shared->stacks, &stack->link );
-
      return DFB_OK;
 }
 
@@ -927,9 +909,6 @@ dfb_wm_close_stack( CoreWindowStack *stack )
       * CloseStack() may cause the stack to be destroyed!
       */
      stack->flags &= ~CWSF_INITIALIZED;
-
-     /* Remove window stack from list. */
-     direct_list_remove( &wm_shared->stacks, &stack->link );
 
      /* Window manager specific deinitialization. */
      return wm_local->funcs->CloseStack( stack, wm_local->data, stack->stack_data );
