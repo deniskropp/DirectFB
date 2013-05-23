@@ -2490,6 +2490,9 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      if(!font_data)
           return DFB_DESTROYED;
 
+     if (core_dfb->shutdown_running)
+          return DFB_OK;
+
      core_font = font_data->font;
 
      if (flags & DSTF_OUTLINE) {
@@ -2605,6 +2608,9 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
 
      if (!font_data)
           return DFB_DESTROYED;
+
+     if (core_dfb->shutdown_running)
+          return DFB_OK;
 
      core_font = font_data->font;
 
