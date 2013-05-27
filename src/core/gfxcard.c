@@ -1125,6 +1125,9 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      if (state->disabled & accel)
           return false;
 
+     if (core_dfb->shutdown_running)
+          return false;
+
      if (fusion_skirmish_prevail_multi( locks, num_locks ))
           return false;
 

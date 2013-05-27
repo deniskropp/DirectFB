@@ -8797,6 +8797,9 @@ gAcquireLockBuffers( CardState *state, DFBAccelerationMask accel )
 
      D_ASSERT( !dfb_config->task_manager );
 
+     if (core_dfb->shutdown_running)
+          return DFB_DEAD;
+
      /*
       * Destination setup
       */
