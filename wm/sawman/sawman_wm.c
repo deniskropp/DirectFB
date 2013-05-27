@@ -4312,9 +4312,9 @@ wm_update_cursor( CoreWindowStack       *stack,
                     }
                     break;
           }
-     }
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+          CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     }
 
      sawman_unlock( sawman );
 
