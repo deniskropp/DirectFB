@@ -102,10 +102,17 @@ region_destructor( FusionObject *object, bool zombie, void *ctx )
           TaskList_Delete( region->display_tasks );
 
      /* Remove the region from the context. */
-     ret = dfb_core_get_layer_context( layer->core, region->context_id, &context );
-     if (ret == DFB_OK) {
-          dfb_layer_context_remove_region( context, region );
-          dfb_layer_context_unref( context );
+     if (core_dfb->shutdown_running) {
+          ret = fusion_object_lookup( core_dfb->shared->layer_context_pool, region->context_id, &context );
+          if (ret == DFB_OK)
+               dfb_layer_context_remove_region( context, region );
+     }
+     else {
+          ret = dfb_core_get_layer_context( layer->core, region->context_id, &context );
+          if (ret == DFB_OK) {
+               dfb_layer_context_remove_region( context, region );
+               dfb_layer_context_unref( context );
+          }
      }
 
      /* Throw away its surface. */
