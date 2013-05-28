@@ -251,11 +251,11 @@ containers_add_input_eventbuffer(CreateEventBuffer_Context * context)
 void
 containers_remove_input_eventbuffer(IDirectFBEventBuffer  *thiz)
 {
-     Event_Buffer_Container  *container = NULL;
+     Event_Buffer_Container  *container, *next = NULL;
 
      pthread_mutex_lock( &containers_lock );
 
-     direct_list_foreach(container, containers) {
+     direct_list_foreach_safe(container, next, containers) {
           if (thiz == container->iface) {
                direct_list_remove(&containers, &container->link);
                D_FREE(container);
