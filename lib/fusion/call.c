@@ -81,7 +81,6 @@ call_tls_destroy( void *arg )
      CallTLS *call_tls = arg;
 
      D_MAGIC_ASSERT( call_tls, CallTLS );
-     D_ASSUME( call_tls->thread == direct_thread_self() );
 
      fusion_world_flush_calls( call_tls->world, 0 );
 
