@@ -477,11 +477,11 @@ dfb_font_cache_init( DFBFontCache           *cache,
 DFBResult
 dfb_font_cache_deinit( DFBFontCache *cache )
 {
-     DFBFontCacheRow *row;
+     DFBFontCacheRow *row, *next;
 
      DFB_FONT_CACHE_ASSERT( cache );
 
-     direct_list_foreach (row, cache->rows)
+     direct_list_foreach_safe (row, next, cache->rows)
           dfb_font_cache_row_destroy( row );
 
      cache->rows = NULL;
