@@ -103,7 +103,7 @@ region_destructor( FusionObject *object, bool zombie, void *ctx )
 
      /* Remove the region from the context. */
      if (core_dfb->shutdown_running) {
-          ret = fusion_object_lookup( core_dfb->shared->layer_context_pool, region->context_id, &context );
+          ret = fusion_object_lookup( core_dfb->shared->layer_context_pool, region->context_id, (FusionObject**)&context );
           if (ret == DFB_OK)
                dfb_layer_context_remove_region( context, region );
      }
