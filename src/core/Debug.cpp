@@ -212,7 +212,7 @@ ToString<CoreSurfaceConfig>::ToString( const CoreSurfaceConfig &config )
 template<>
 ToString<CoreLayerRegionConfig>::ToString( const CoreLayerRegionConfig &config )
 {
-     PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%d",
+     PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%s",
              config.width, config.height,
              *ToString<DFBSurfacePixelFormat>(config.format),
              *ToString<DFBSurfaceCapabilities>(config.surface_caps),
