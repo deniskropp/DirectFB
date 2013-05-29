@@ -934,9 +934,6 @@ static u32* scale_line( const int *weights, int n_x, int n_y,
                         u32 *dst, u32 *dst_end,
                         const u32 **src, int x, int x_step, int sw )
 {
-
-     D_UNUSED_P( sw );
-
      while (dst < dst_end) {
           const int  x_scaled      = x >> SCALE_SHIFT;
           const int *pixel_weights = weights + ((x >> (SCALE_SHIFT -
@@ -957,7 +954,8 @@ static u32* scale_line( const int *weights, int n_x, int n_y,
                     r += ta * (((*q & 0xFF0000) >> 16) + 1);
                     a += ta;
 
-                    q++;
+                    if ((x_scaled + j) < sw-1)
+                        q++;
                }
           }
 
