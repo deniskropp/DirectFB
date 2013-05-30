@@ -1133,8 +1133,6 @@ update_region4( SaWMan          *sawman,
 
      D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
 
-     D_DEBUG_AT( SaWMan_Update, "%s( %p, %d, %d,%d - %d,%d )\n", __FUNCTION__, tier, start, x1, y1, x2, y2 );
-
      if (start < 0) {
           DFBRegion region = { x1, y1, x2, y2 };
 
