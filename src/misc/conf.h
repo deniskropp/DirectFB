@@ -315,6 +315,8 @@ typedef struct
      bool          single_window;
 
      long long     screen_frame_interval;
+
+     unsigned int  gfxcard_stats;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

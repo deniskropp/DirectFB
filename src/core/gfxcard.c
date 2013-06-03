@@ -428,6 +428,8 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
      shared = card->shared;
      funcs  = &card->funcs;
 
+     D_DEBUG_AT( Core_Graphics, "%s()\n", __FUNCTION__ );
+
      ret = fusion_skirmish_prevail( &shared->lock );
      if (ret)
           return ret;
@@ -435,6 +437,8 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
      if ((flags & GDLF_SYNC) && funcs->EngineSync) {
           /* start command processing if not already running */
           if (!dfb_config->gfx_emit_early && card->shared->pending_ops && card->funcs.EmitCommands) {
+               dfb_gfxcard_switch_busy( card );
+
                card->funcs.EmitCommands( card->driver_data, card->device_data );
 
                card->shared->pending_ops = false;
@@ -451,6 +455,8 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
 
                return ret;
           }
+
+          dfb_gfxcard_switch_idle( card );
      }
 
      if ((shared->lock_flags & GDLF_RESET) && funcs->EngineReset)
@@ -506,6 +512,8 @@ dfb_gfxcard_flush()
      /* start command processing if not already running */
      if (card->shared->pending_ops && funcs->EmitCommands) {
           D_DEBUG_AT( Core_Graphics, "  -> pending ops, emitting...\n" );
+
+          dfb_gfxcard_switch_busy( card );
 
           funcs->EmitCommands( card->driver_data, card->device_data );
 
@@ -966,6 +974,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
           /* start command processing if not already running */
           if (!dfb_config->gfx_emit_early && card->shared->pending_ops && card->funcs.EmitCommands) {
+               dfb_gfxcard_switch_busy( card );
+
                card->funcs.EmitCommands( card->driver_data, card->device_data );
                card->shared->pending_ops = false;
           }
@@ -1379,6 +1389,8 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
           /* start command processing if not already running */
           if (!dfb_config->gfx_emit_early && card->shared->pending_ops && card->funcs.EmitCommands) {
+               dfb_gfxcard_switch_busy( card );
+
                card->funcs.EmitCommands( card->driver_data, card->device_data );
                card->shared->pending_ops = false;
           }
@@ -1419,6 +1431,8 @@ dfb_gfxcard_state_release( CardState *state )
 
      if (!dfb_config->software_only) {
           if (dfb_config->gfx_emit_early && card->funcs.EmitCommands) {
+               dfb_gfxcard_switch_busy( card );
+
                card->funcs.EmitCommands( card->driver_data, card->device_data );
                card->shared->pending_ops = false;
           }
@@ -3877,6 +3891,8 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
 
      /* start command processing if not already running */
      if (card->shared->pending_ops && card->funcs.EmitCommands) {
+          dfb_gfxcard_switch_busy( card );
+
           card->funcs.EmitCommands( card->driver_data, card->device_data );
 
           card->shared->pending_ops = false;
@@ -3886,6 +3902,8 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
           ret = card->funcs.WaitSerial( card->driver_data, card->device_data, serial );
      else if (card->funcs.EngineSync)
           ret = card->funcs.EngineSync( card->driver_data, card->device_data );
+
+     dfb_gfxcard_switch_idle( card );
 
      if (ret) {
           if (card->funcs.EngineReset)
@@ -4238,6 +4256,68 @@ CoreGraphicsDevice *
 dfb_gfxcard_get_primary( void )
 {
      return card;
+}
+
+void
+dfb_gfxcard_update_stats( DFBGraphicsCore *card,
+                          long long        now )
+{
+     if (dfb_config->gfxcard_stats) {
+          long long total = now - card->shared->ts_start;
+
+          D_ASSERT( card != NULL );
+          D_ASSERT( card->shared != NULL );
+
+          if (total > dfb_config->gfxcard_stats * 1000LL) {
+               long long promille = (1000 * card->shared->ts_busy_sum / total);
+
+               D_INFO( "busy %lld / %lld => %3lld.%lld%%\n", card->shared->ts_busy_sum, total,
+                       promille / 10LL, promille % 10LL );
+
+               card->shared->ts_start    = now;
+               card->shared->ts_busy_sum = 0;
+          }
+     }
+}
+
+void
+dfb_gfxcard_switch_busy( DFBGraphicsCore *card )
+{
+     if (dfb_config->gfxcard_stats) {
+          long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+          D_ASSERT( card != NULL );
+          D_ASSERT( card->shared != NULL );
+
+          if (card->shared->ts_busy)
+               card->shared->ts_busy_sum += now - card->shared->ts_busy;
+
+          card->shared->ts_busy = now;
+
+          if (!card->shared->ts_start)
+               card->shared->ts_start = card->shared->ts_busy;
+
+          dfb_gfxcard_update_stats( card, now );
+     }
+}
+
+void
+dfb_gfxcard_switch_idle( DFBGraphicsCore *card )
+{
+     if (dfb_config->gfxcard_stats) {
+          long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+          D_ASSERT( card != NULL );
+          D_ASSERT( card->shared != NULL );
+
+          if (card->shared->ts_busy) {
+               card->shared->ts_busy_sum += now - card->shared->ts_busy;
+
+               card->shared->ts_busy = 0;
+          }
+
+          dfb_gfxcard_update_stats( card, now );
+     }
 }
 
 
