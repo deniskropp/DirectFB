@@ -1026,6 +1026,16 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
      locks[num_locks++] = &dst->lock;
 
+     /* find locking flags */
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                      DSBLIT_BLEND_COLORALPHA   |
+                                      DSBLIT_DST_COLORKEY))
+               access |= CSAF_READ;
+     }
+     else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
+          access |= CSAF_READ;
+
      if (DFB_BLITTING_FUNCTION(accel)) {
           D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  blitting %p -> %p\n", __FUNCTION__,
                       state, accel, state->source, state->destination );
@@ -1310,25 +1320,6 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
      D_DEBUG_AT( Core_GfxState, "  => checked 0x%08x, accel 0x%08x, modified 0x%08x, mod_hw 0x%08x\n",
                  state->checked, state->accel, state->modified, state->mod_hw );
-
-     /* find locking flags */
-     if (DFB_BLITTING_FUNCTION( accel )) {
-          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                      DSBLIT_BLEND_COLORALPHA   |
-                                      DSBLIT_DST_COLORKEY))
-               access |= CSAF_READ;
-     }
-     else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
-          access |= CSAF_READ;
-
-     if (DFB_BLITTING_FUNCTION(accel)) {
-          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  blitting %p -> %p\n", __FUNCTION__,
-                      state, accel, state->source, state->destination );
-     }
-     else {
-          D_DEBUG_AT( Core_GfxState, "%s( %p, 0x%08x )  drawing -> %p\n", __FUNCTION__,
-                      state, accel, state->destination );
-     }
 
      /*
       * Make sure that state setting with subsequent command execution
