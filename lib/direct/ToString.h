@@ -60,6 +60,10 @@ inline ToString<int>::ToString( const int &n )
 }
 
 
+#define D_FLAG_PRINTFn( __n, __flags, __FLAGS, __FLAG )          \
+     if ((__flags) & (__FLAGS##__FLAG))                          \
+          PrintF( "%s" #__FLAG, (__n)++ ? "," : "" );
+
 
 #endif // __cplusplus
 
