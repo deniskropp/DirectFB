@@ -426,8 +426,12 @@ voodoo_server_run( VoodooServer *server )
                          break;
                }
           }
-          else
-               usleep( 200000 );
+          else {
+               if (server->connections)
+                    usleep( 200000 );
+               else
+                    return DR_OK;
+          }
      }
 
      return DR_OK;
