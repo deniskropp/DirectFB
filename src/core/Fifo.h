@@ -142,17 +142,27 @@ public:
           direct_mutex_unlock( &lock );
      }
 
-     void
-     waitMost( size_t count )
+     DirectResult
+     waitMost( size_t    count,
+               long long timeout_us = 0 )
      {
           direct_mutex_lock( &lock );
 
 #if DFB_FIFO_WAIT_SUPPORT
-          while (num_items > count)
-               direct_waitqueue_wait( &wq_empty, &lock );
+          while (num_items > count) {
+               if (timeout_us) {
+                    DirectResult ret = direct_waitqueue_wait_timeout( &wq_empty, &lock, timeout_us );
+                    if (ret)
+                         return ret;
+               }
+               else
+                    direct_waitqueue_wait( &wq_empty, &lock );
+          }
 #endif
 
           direct_mutex_unlock( &lock );
+
+          return DR_OK;
      }
 
      size_t
