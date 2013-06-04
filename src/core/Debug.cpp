@@ -233,19 +233,6 @@ ToString<CoreSurfaceAccessFlags>::ToString( const CoreSurfaceAccessFlags &flags 
 template<>
 ToString<CoreLayerRegionConfig>::ToString( const CoreLayerRegionConfig &config )
 {
-     PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%d",
-             config.width, config.height,
-             *ToString<DFBSurfacePixelFormat>(config.format),
-             *ToString<DFBSurfaceCapabilities>(config.surface_caps),
-             *ToString<DFBDisplayLayerBufferMode>(config.buffermode) );
-}
-
-
-// CoreLayer types
-
-template<>
-ToString<CoreLayerRegionConfig>::ToString( const CoreLayerRegionConfig &config )
-{
      PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%s",
              config.width, config.height,
              *ToString<DFBSurfacePixelFormat>(config.format),
