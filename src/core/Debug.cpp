@@ -208,6 +208,25 @@ ToString<CoreSurfaceConfig>::ToString( const CoreSurfaceConfig &config )
              buffers );
 }
 
+template<>
+ToString<CoreSurfaceAccessFlags>::ToString( const CoreSurfaceAccessFlags &flags )
+{
+     #define CORE_SURFACE_ACCESS_FLAG_PRINTF( __F )              \
+          D_FLAG_PRINTFn( n, flags, CSAF_, __F )
+
+     if (flags) {
+          size_t n = 0;
+
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( READ );
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( WRITE );
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( SHARED );
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( CACHE_INVALIDATE );
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( CACHE_FLUSH );
+     }
+     else
+          PrintF( "<NONE>" );
+}
+
 
 // CoreLayer types
 
@@ -303,6 +322,36 @@ ToString<DirectFB::TaskState>::ToString( const DirectFB::TaskState &state )
                PrintF( "invalid 0x%x", state );
                break;
      }
+}
+
+template<>
+ToString<DirectFB::TaskFlags>::ToString( const DirectFB::TaskFlags &flags )
+{
+     #define TASK_FLAG_PRINTF( __F )                   \
+          D_FLAG_PRINTFn( n, flags, DirectFB::TASK_FLAG_, __F )
+
+     if (flags) {
+          size_t n = 0;
+
+          TASK_FLAG_PRINTF( NOSYNC );
+          TASK_FLAG_PRINTF( EMITNOTIFIES );
+          TASK_FLAG_PRINTF( CACHE_FLUSH );
+          TASK_FLAG_PRINTF( CACHE_INVALIDATE );
+          TASK_FLAG_PRINTF( NEED_SLAVE_PUSH );
+          TASK_FLAG_PRINTF( LAST_IN_QUEUE );
+     }
+     else
+          PrintF( "<NONE>" );
+}
+
+template<>
+ToString<DirectFB::SurfaceAllocationAccess>::ToString( const DirectFB::SurfaceAllocationAccess &access )
+{
+     CORE_SURFACE_ALLOCATION_ASSERT( access.allocation );
+
+     PrintF( "allocation:%p task_count:%d access:%s\n",
+             access.allocation, access.allocation->task_count,
+             *ToString<CoreSurfaceAccessFlags>(access.flags) );
 }
 
 /*********************************************************************************************************************/
