@@ -44,6 +44,8 @@ extern "C" {
 #include <core/surface_buffer.h>
 }
 
+#include <core/Task.h>
+
 /*********************************************************************************************************************/
 
 // Core enums
@@ -206,6 +208,38 @@ ToString<CoreSurfaceConfig>::ToString( const CoreSurfaceConfig &config )
              buffers );
 }
 
+template<>
+ToString<CoreSurfaceAccessFlags>::ToString( const CoreSurfaceAccessFlags &flags )
+{
+     #define CORE_SURFACE_ACCESS_FLAG_PRINTF( __F )              \
+          D_FLAG_PRINTFn( n, flags, CSAF_, __F )
+
+     if (flags) {
+          size_t n = 0;
+
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( READ );
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( WRITE );
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( SHARED );
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( CACHE_INVALIDATE );
+          CORE_SURFACE_ACCESS_FLAG_PRINTF( CACHE_FLUSH );
+     }
+     else
+          PrintF( "<NONE>" );
+}
+
+
+// CoreLayer types
+
+template<>
+ToString<CoreLayerRegionConfig>::ToString( const CoreLayerRegionConfig &config )
+{
+     PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%d",
+             config.width, config.height,
+             *ToString<DFBSurfacePixelFormat>(config.format),
+             *ToString<DFBSurfaceCapabilities>(config.surface_caps),
+             *ToString<DFBDisplayLayerBufferMode>(config.buffermode) );
+}
+
 
 // CoreLayer types
 
@@ -253,6 +287,84 @@ ToString<CoreSurface>::ToString( const CoreSurface &surface )
              *ToString<CoreSurfaceTypeFlags>(surface.type),
              surface.resource_id,
              *ToString<CoreSurfaceConfig>(surface.config) );
+}
+
+template<>
+ToString<DirectFB::Task>::ToString( const DirectFB::Task &task )
+{
+     task.Describe( *this );
+}
+
+template<>
+ToString<DirectFB::TaskState>::ToString( const DirectFB::TaskState &state )
+{
+     switch (state) {
+          case DirectFB::TASK_STATE_NONE:
+               PrintF( "<NONE>" );
+               break;
+
+          case DirectFB::TASK_NEW:
+               PrintF( "NEW" );
+               break;
+
+          case DirectFB::TASK_FLUSHED:
+               PrintF( "FLUSHED" );
+               break;
+
+          case DirectFB::TASK_READY:
+               PrintF( "READY" );
+               break;
+
+          case DirectFB::TASK_RUNNING:
+               PrintF( "RUNNING" );
+               break;
+
+          case DirectFB::TASK_DONE:
+               PrintF( "DONE" );
+               break;
+
+          case DirectFB::TASK_INVALID:
+               PrintF( "INVALID" );
+               break;
+
+          case DirectFB::TASK_STATE_ALL:
+               PrintF( "<ALL>" );
+               break;
+
+          default:
+               PrintF( "invalid 0x%x", state );
+               break;
+     }
+}
+
+template<>
+ToString<DirectFB::TaskFlags>::ToString( const DirectFB::TaskFlags &flags )
+{
+     #define TASK_FLAG_PRINTF( __F )                   \
+          D_FLAG_PRINTFn( n, flags, DirectFB::TASK_FLAG_, __F )
+
+     if (flags) {
+          size_t n = 0;
+
+          TASK_FLAG_PRINTF( NOSYNC );
+          TASK_FLAG_PRINTF( EMITNOTIFIES );
+          TASK_FLAG_PRINTF( CACHE_FLUSH );
+          TASK_FLAG_PRINTF( CACHE_INVALIDATE );
+          TASK_FLAG_PRINTF( NEED_SLAVE_PUSH );
+          TASK_FLAG_PRINTF( LAST_IN_QUEUE );
+     }
+     else
+          PrintF( "<NONE>" );
+}
+
+template<>
+ToString<DirectFB::SurfaceAllocationAccess>::ToString( const DirectFB::SurfaceAllocationAccess &access )
+{
+     CORE_SURFACE_ALLOCATION_ASSERT( access.allocation );
+
+     PrintF( "allocation:%p task_count:%d access:%s\n",
+             access.allocation, access.allocation->task_count,
+             *ToString<CoreSurfaceAccessFlags>(access.flags) );
 }
 
 /*********************************************************************************************************************/
@@ -336,6 +448,12 @@ const char *
 ToString_CoreSurface( const CoreSurface *v )
 {
      return ToString<CoreSurface>( *v ).CopyTLS();
+}
+
+const char *
+ToString_Task( const DFB_Task *v )
+{
+     return ToString<DFB_Task>( *v ).CopyTLS();
 }
 
 

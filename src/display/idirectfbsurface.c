@@ -718,27 +718,20 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
      if (surface->config.caps & DSCAPS_FLIPPING) {
-          if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
-              reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
-          {
-               ret = CoreSurface_Flip( data->surface, false );
-               if (ret)
-                   return ret;
-          }
-          else {
-               dfb_gfx_copy_regions_client( data->surface, CSBR_BACK, DSSE_LEFT,
-                                            data->surface, CSBR_FRONT, DSSE_LEFT,
-                                            &reg, 1, 0, 0, &data->state_client );
-          }
+          if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
+                                        reg.x1 == 0 && reg.y1 == 0 &&
+                                        reg.x2 == surface->config.size.w - 1 &&
+                                        reg.y2 == surface->config.size.h - 1))
+               data->local_flip_count++;
      }
 
-     CoreGraphicsStateClient_Flush( &data->state_client, 0 );
-
-     dfb_surface_dispatch_update( data->surface, &reg, &reg );
+     ret = CoreSurface_Flip2( data->surface, DFB_FALSE, &reg, NULL, flags, data->current_frame_time );
+     if (ret)
+          return ret;
 
      IDirectFBSurface_WaitForBackBuffer( data );
 
-     return ret;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -3133,40 +3126,29 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                return DFB_INVAREA;
      }
 
-     D_DEBUG_AT( Surface, "  -> FLIP Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n",
+     D_DEBUG_AT( Surface, "  -> FLIPSTEREO Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n",
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
-
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
      if (data->surface->config.caps & DSCAPS_FLIPPING) {
-          if (!(flags & DSFLIP_BLIT)) {
-               if (l_reg.x1 == 0 && l_reg.y1 == 0 &&
-                   l_reg.x2 == data->surface->config.size.w  - 1 &&
-                   l_reg.y2 == data->surface->config.size.h - 1 &&
-                   r_reg.x1 == 0 && r_reg.y1 == 0 &&
-                   r_reg.x2 == data->surface->config.size.w  - 1 &&
-                   r_reg.y2 == data->surface->config.size.h - 1)
-               {
-                    ret = CoreSurface_Flip( data->surface, false );
-               }
-               else
-                    dfb_gfx_copy_regions_client( data->surface, CSBR_BACK, DSSE_LEFT,
-                                                 data->surface, CSBR_FRONT, DSSE_LEFT,
-                                                 &l_reg, 1, 0, 0, &data->state_client );
-                    dfb_gfx_copy_regions_client( data->surface, CSBR_BACK, DSSE_RIGHT,
-                                                 data->surface, CSBR_FRONT, DSSE_RIGHT,
-                                                 &r_reg, 1, 0, 0, &data->state_client );
-          }
+          if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
+                                        l_reg.x1 == 0 && l_reg.y1 == 0 &&
+                                        l_reg.x2 == data->surface->config.size.w - 1 &&
+                                        l_reg.y2 == data->surface->config.size.h - 1 &&
+                                        r_reg.x1 == 0 && r_reg.y1 == 0 &&
+                                        r_reg.x2 == data->surface->config.size.w - 1 &&
+                                        r_reg.y2 == data->surface->config.size.h - 1))
+               data->local_flip_count++;
      }
 
-     CoreGraphicsStateClient_Flush( &data->state_client, 0 );
-
-     dfb_surface_dispatch_update( data->surface, &l_reg, &r_reg );
+     ret = CoreSurface_Flip2( data->surface, DFB_FALSE, &l_reg, &r_reg, flags, data->current_frame_time );
+     if (ret)
+          return ret;
 
      IDirectFBSurface_WaitForBackBuffer( data );
 
-     return ret;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -3796,6 +3778,14 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
 
           data->frame_ack = notification->flip_count;
 
+          if (data->local_flip_count < notification->flip_count) {
+               D_DEBUG_AT( Surface_Updates, "  -> Local count (%d) lower than frame ack (%d)\n",
+                           data->local_flip_count,
+                           notification->flip_count );
+
+               data->local_flip_count = notification->flip_count;
+          }
+
           direct_waitqueue_broadcast( &data->back_buffer_wq );
 
           direct_mutex_unlock( &data->back_buffer_lock );
@@ -3833,22 +3823,20 @@ IDirectFBSurface_WaitForBackBuffer( IDirectFBSurface_data *data )
      CoreSurface *surface;
 
      D_DEBUG_AT( Surface_Updates, "%s( %p [%u] )\n", __FUNCTION__, data, data->surface->object.id );
+     D_DEBUG_AT( Surface_Updates, "  -> (surface %d, notify %d)\n",
+                 data->local_flip_count, data->frame_ack );
 
      surface = data->surface;
      CORE_SURFACE_ASSERT( surface );
 
      direct_mutex_lock( &data->back_buffer_lock );
 
-     if (data->frame_ack) {
-          while (surface->flips - data->frame_ack >= surface->num_buffers-1) {
-               D_DEBUG_AT( Surface_Updates, "  -> waiting for back buffer... (surface %d, notify %d)\n",
-                           surface->flips, data->frame_ack );
+     while (data->local_flip_count - data->frame_ack >= surface->num_buffers) {
+          D_DEBUG_AT( Surface_Updates, "  -> waiting for back buffer... (surface %d, notify %d)\n",
+                      data->local_flip_count, data->frame_ack );
 
-               direct_waitqueue_wait( &data->back_buffer_wq, &data->back_buffer_lock );
-          }
+          direct_waitqueue_wait( &data->back_buffer_wq, &data->back_buffer_lock );
      }
-     else
-          D_DEBUG_AT( Surface_Updates, "  -> no display notify received yet\n" );
 
      D_DEBUG_AT( Surface_Updates, "  -> OK\n" );
 

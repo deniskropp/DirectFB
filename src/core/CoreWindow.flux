@@ -6,6 +6,7 @@ interface {
 
 	method {
 		name	Repaint
+                async   yes
 
 		arg {
 			name	    left
@@ -27,6 +28,13 @@ interface {
 			type        enum
 			typename    DFBSurfaceFlipFlags
 		}
+
+                arg {
+                        name	    timestamp
+                        direction   input
+                        type        int
+                        typename    s64
+                }
 	}
 
 

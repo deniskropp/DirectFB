@@ -553,6 +553,8 @@ DFBResult
 dfb_surface_notify_frame( CoreSurface  *surface,
                           unsigned int  flip_count )
 {
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+
      CoreSurfaceNotification notification;
 
      D_DEBUG_AT( Core_Surface_Updates, "%s( %p, count %u )\n", __FUNCTION__, surface, flip_count );
@@ -663,6 +665,8 @@ dfb_surface_flip_buffers( CoreSurface *surface, bool swap )
 
      D_DEBUG_AT( Core_Surface, "  -> flips %d\n", surface->flips );
 
+     // FIXME: cleanup, only used by desktop background via primary surface,
+     // make it use surface client
      dfb_surface_notify( surface, CSNF_FLIP );
 
      return DFB_OK;
@@ -687,19 +691,25 @@ dfb_surface_dispatch_event( CoreSurface         *surface,
 DFBResult
 dfb_surface_dispatch_update( CoreSurface     *surface,
                              const DFBRegion *update,
-                             const DFBRegion *update_right )
+                             const DFBRegion *update_right,
+                             long long        timestamp )
 {
+     DFBResult       ret;
      DFBSurfaceEvent event;
 
-     D_DEBUG_AT( Core_Surface_Updates, "%s( %p [%u], %p / %p )\n", __FUNCTION__, surface, surface->object.id, update, update_right );
+     D_DEBUG_AT( Core_Surface_Updates, "%s( %p [%u], %p / %p, timestamp %lld )\n", __FUNCTION__, surface, surface->object.id, update, update_right, timestamp );
 
      D_MAGIC_ASSERT( surface, CoreSurface );
+
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      event.clazz      = DFEC_SURFACE;
      event.type       = DSEVT_UPDATE;
      event.surface_id = surface->object.id;
      event.flip_count = surface->flips;
-     event.time_stamp = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+     event.time_stamp = timestamp ? timestamp : direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+     surface->last_frame_time = event.time_stamp;
 
      D_DEBUG_AT( Core_Surface_Updates, "  -> flip count %d\n", event.flip_count );
 
@@ -727,7 +737,19 @@ dfb_surface_dispatch_update( CoreSurface     *surface,
           event.update_right.y2 = surface->config.size.h - 1;
      }
 
-     return dfb_surface_dispatch_channel( surface, CSCH_EVENT, &event, sizeof(DFBSurfaceEvent), NULL );
+     ret = dfb_surface_dispatch_channel( surface, CSCH_EVENT, &event, sizeof(DFBSurfaceEvent), NULL );
+     if (ret)
+          return ret;
+
+     D_DEBUG_AT( Core_Surface_Updates, "  -> client count %d\n", fusion_vector_size( &surface->clients ) );
+
+     if (fusion_vector_is_empty( &surface->clients )) {
+          surface->flips_acked = surface->flips;
+
+          dfb_surface_notify_frame( surface, surface->flips_acked );
+     }
+
+     return DFB_OK;
 }
 
 DFBResult

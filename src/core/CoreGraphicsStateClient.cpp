@@ -52,9 +52,11 @@ extern "C" {
 #include <core/CoreDFB.h>
 #include <core/CoreGraphicsState.h>
 #include <core/Renderer.h>
+#include <core/Task.h>
 
-D_DEBUG_DOMAIN( Core_GraphicsStateClient,       "Core/GfxState/Client",       "DirectFB Core Graphics State Client" );
-D_DEBUG_DOMAIN( Core_GraphicsStateClient_Flush, "Core/GfxState/Client/Flush", "DirectFB Core Graphics State Client Flush" );
+D_DEBUG_DOMAIN( Core_GraphicsStateClient,          "Core/GfxState/Client",          "DirectFB Core Graphics State Client" );
+D_DEBUG_DOMAIN( Core_GraphicsStateClient_Flush,    "Core/GfxState/Client/Flush",    "DirectFB Core Graphics State Client Flush" );
+D_DEBUG_DOMAIN( Core_GraphicsStateClient_Throttle, "Core/GfxState/Client/Throttle", "DirectFB Core Graphics State Client Throttle" );
 
 /**********************************************************************************************************************/
 
@@ -200,10 +202,13 @@ public:
         Throttle( renderer ),
         blocking( false )
     {
+         D_DEBUG_AT( Core_GraphicsStateClient_Throttle, "%s( %p, gfx_state %p, renderer %p )\n", __FUNCTION__, this, renderer.gfx_state, &renderer );
     }
 
     void WaitNotBlocking()
     {
+         D_DEBUG_AT( Core_GraphicsStateClient_Throttle, "%s( %p, gfx_state %p )\n", __FUNCTION__, this, gfx_state );
+
          Direct::LockWQ::Lock l1( lwq );
 
          while (blocking)
@@ -213,6 +218,8 @@ public:
 protected:
     virtual void AddTask( DirectFB::SurfaceTask *task, u32 cookie )
     {
+         D_DEBUG_AT( Core_GraphicsStateClient_Throttle, "%s( %p, gfx_state %p )\n", __FUNCTION__, this, gfx_state );
+
          Throttle::AddTask( task, cookie );
 
          WaitNotBlocking();
@@ -220,6 +227,8 @@ protected:
 
     virtual void SetThrottle( int percent )
     {
+         D_DEBUG_AT( Core_GraphicsStateClient_Throttle, "%s( %p, gfx_state %p )\n", __FUNCTION__, this, gfx_state );
+
          Direct::LockWQ::Lock l1( lwq );
 
          if (blocking != (percent != 0)) {
@@ -280,7 +289,15 @@ public:
 
           while (last_cookie != cookie) {
                D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> last cookie is %u, waiting...\n", last_cookie );
-               l1.wait();
+
+               DirectResult ret;
+
+               ret = l1.wait( 10000000 );
+               if (ret) {
+                    D_DERROR( ret, "CoreGraphicsStateClient: Error waiting for Done!\n" );
+                    DirectFB::TaskManager::dumpTasks();
+                    return;
+               }
           }
 
           D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> waitDone() done.\n" );

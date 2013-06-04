@@ -47,8 +47,8 @@ extern "C" {
 #include <gfx/util.h>
 }
 
-#include <Debug.h>
-#include <Util.h>
+#include <core/Debug.h>
+#include <core/Util.h>
 
 
 D_DEBUG_DOMAIN( DirectFB_Renderer,          "DirectFB/Renderer",          "DirectFB Renderer" );
@@ -1978,13 +1978,57 @@ Renderer::Throttle::~Throttle()
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
 
+     CHECK_MAGIC();
+
      dfb_graphics_state_unref( gfx_state );
+}
+
+void
+Renderer::Throttle::ref()
+{
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
+
+     CHECK_MAGIC();
+
+     lwq.lock();
+
+     ref_count++;
+
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> %d refs now\n", ref_count );
+
+     lwq.unlock();
+}
+
+void
+Renderer::Throttle::unref()
+{
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
+
+     CHECK_MAGIC();
+
+     lwq.lock();
+
+     D_ASSERT( ref_count > 0 );
+
+     ref_count--;
+
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> %d refs now\n", ref_count );
+
+     if (ref_count == 0) {
+          lwq.unlock();
+
+          delete this;
+     }
+     else
+          lwq.unlock();
 }
 
 void
 Renderer::Throttle::AddTask( SurfaceTask *task, u32 cookie )
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
+
+     CHECK_MAGIC();
 
      ref();
 
@@ -1997,6 +2041,8 @@ Renderer::Throttle::waitDone( unsigned long timeout_us )
      DirectResult ret = DR_OK;
 
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, timeout %lu )\n", __FUNCTION__, this, timeout_us );
+
+     CHECK_MAGIC();
 
      Direct::LockWQ::Lock l1( lwq );
 
@@ -2013,6 +2059,8 @@ DFBResult
 Renderer::Throttle::Hook::setup( SurfaceTask *task )
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
+
+     throttle.CHECK_MAGIC();
 
      throttle.task_count++;
 
@@ -2031,6 +2079,8 @@ void
 Renderer::Throttle::Hook::finalise( SurfaceTask *task )
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
+
+     throttle.CHECK_MAGIC();
 
      D_ASSERT( throttle.task_count > 0 );
 
@@ -2053,11 +2103,13 @@ Renderer::Throttle::Hook::finalise( SurfaceTask *task )
 
 /**********************************************************************************************************************/
 
-Renderer::Renderer( CardState         *state,
-                    CoreGraphicsState *gfx_state )
+Renderer::Renderer( CardState            *state,
+                    CoreGraphicsState    *gfx_state,
+                    const Direct::String &name )
      :
      state( state ),
      gfx_state( gfx_state ),
+     name( name ),
      state_mod( SMF_NONE ),
      transform_type( WTT_IDENTITY ),
      throttle( NULL ),
@@ -2077,6 +2129,11 @@ Renderer::SetThrottle( Throttle *throttle )
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, throttle %p )\n", __FUNCTION__, this, throttle );
 
      CHECK_MAGIC();
+
+     D_ASSUME( this->throttle == NULL );
+
+     if (this->throttle)
+          this->throttle->unref();
 
      throttle->ref();
 

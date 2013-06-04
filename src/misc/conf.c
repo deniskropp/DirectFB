@@ -109,6 +109,7 @@ static const char *config_usage_strings[]  = {
      "  [no-]always-indirect           Use purely indirect Flux calls (for secure master)\n"
      "  [no-]always-flush-callbuffer   Flush call buffer upon commit, effectively disabling it\n"
      "  [no-]layers-fps=[<ms>]         Print FPS of layers being updated, optional interval (default 1000)\n"
+     "  [no-]gfxcard-stats=[<ms>]      Print GPU usage statistics periodically (default 1000)\n"
      "  screen-frame-interval=<us>     Set default value for screen refresh interval if not encoder defined\n"
      "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n",
@@ -1866,6 +1867,26 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-layers-fps" ) == 0) {
           dfb_config->layers_fps = 0;
+     } else
+     if (strcmp (name, "gfxcard-stats" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned long interval;
+
+               interval = strtoul( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->gfxcard_stats = interval;
+          }
+          else
+               dfb_config->gfxcard_stats = 1000;
+     } else
+     if (strcmp (name, "no-gfxcard-stats" ) == 0) {
+          dfb_config->gfxcard_stats = 0;
      } else
      if (strcmp (name, "screen-frame-interval" ) == 0) {
           if (value) {

@@ -1710,7 +1710,8 @@ DFBResult
 dfb_window_repaint( CoreWindow          *window,
                     const DFBRegion     *left_region,
                     const DFBRegion     *right_region,
-                    DFBSurfaceFlipFlags  flags )
+                    DFBSurfaceFlipFlags  flags,
+                    long long            timestamp )
 {
      DFBResult        ret;
      CoreWindowStack *stack = window->stack;
@@ -1721,9 +1722,9 @@ dfb_window_repaint( CoreWindow          *window,
      DFB_REGION_ASSERT_IF( left_region );
      DFB_REGION_ASSERT_IF( right_region );
 
-     D_DEBUG_AT( Core_Windows, "%s( %p, left %d,%d-%dx%d, right %d,%d-%dx%d, flags 0x%08x )\n", __FUNCTION__, window,
+     D_DEBUG_AT( Core_Windows, "%s( %p, left %d,%d-%dx%d, right %d,%d-%dx%d, flags 0x%08x, timestamp %lld )\n", __FUNCTION__, window,
                  DFB_RECTANGLE_VALS_FROM_REGION( left_region ),
-                 DFB_RECTANGLE_VALS_FROM_REGION( right_region ), flags );
+                 DFB_RECTANGLE_VALS_FROM_REGION( right_region ), flags, timestamp );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
@@ -1732,51 +1733,12 @@ dfb_window_repaint( CoreWindow          *window,
      if (window->region && window->region->state & CLRSF_ENABLED) {
           D_DEBUG_AT( Core_Windows, "  -> updating single window region\n" );
 
-          ret = CoreLayerRegion_FlipUpdate2( window->region, left_region, right_region, flags, -1 );
+          ret = CoreLayerRegion_FlipUpdate2( window->region, left_region, right_region, flags, timestamp );
      }
      else {
-          if (window->surface->config.caps & DSCAPS_FLIPPING) {
-               if (!(flags & DSFLIP_BLIT)) {
-                    if ((flags & DSFLIP_SWAP) ||
-                        (left_region->x1 == 0 && left_region->y1 == 0 &&
-                         left_region->x2 == window->surface->config.size.w - 1 &&
-                         left_region->y2 == window->surface->config.size.h - 1 &&
-                         right_region->x1 == 0 && right_region->y1 == 0 &&
-                         right_region->x2 == window->surface->config.size.w - 1 &&
-                         right_region->y2 == window->surface->config.size.h - 1))
-                    {
-                         D_DEBUG_AT( Core_Windows, "  -> flipping surface\n" );
+          D_DEBUG_AT( Core_Windows, "  -> updating composed window region\n" );
 
-                         ret = CoreSurface_Flip( window->surface, false );
-                         if (ret)
-                             return ret;
-                    }
-                    else {
-                         D_DEBUG_AT( Core_Windows, "  -> copy regions\n" );
-
-                         dfb_gfx_copy_regions( window->surface, CSBR_BACK,
-                                               window->surface, CSBR_FRONT,
-                                               left_region, 1, 0, 0 );
-                         if (left_region != right_region)
-                              dfb_gfx_copy_regions( window->surface, CSBR_BACK,
-                                                    window->surface, CSBR_FRONT,
-                                                    right_region, 1, 0, 0 );
-                    }
-               }
-               else {
-                    D_DEBUG_AT( Core_Windows, "  -> copy regions\n" );
-
-                    dfb_gfx_copy_regions( window->surface, CSBR_BACK,
-                                          window->surface, CSBR_FRONT,
-                                          left_region, 1, 0, 0 );
-                    if (left_region != right_region)
-                         dfb_gfx_copy_regions( window->surface, CSBR_BACK,
-                                               window->surface, CSBR_FRONT,
-                                               right_region, 1, 0, 0 );
-               }
-          }
-
-          dfb_surface_dispatch_update( window->surface, left_region, right_region );
+          ret = CoreSurface_Flip2( window->surface, DFB_FALSE, left_region, right_region, flags, timestamp );
      }
 
      /* Never call WM after destroying the window. */

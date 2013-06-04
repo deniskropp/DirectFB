@@ -124,6 +124,10 @@ DirectResult        DIRECT_API  direct_config_get( const char *name, char **valu
 /* Note that 0 is also retuned in case the passed option was not found ot set. */
 long long           DIRECT_API  direct_config_get_int_value( const char *name );
 
+long long           DIRECT_API  direct_config_get_int_value_with_default( const char *name,
+                                                                          long long   def );
+
+
 void __D_conf_init( void );
 void __D_conf_deinit( void );
 

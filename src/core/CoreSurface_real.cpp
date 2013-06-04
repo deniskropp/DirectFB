@@ -809,5 +809,90 @@ ISurface_Real::CreateClient(
 }
 
 
+DFBResult
+ISurface_Real::Flip2(
+                   DFBBoolean                                    swap,
+                   const DFBRegion                              *left,
+                   const DFBRegion                              *right,
+                   DFBSurfaceFlipFlags                           flags,
+                   s64                                           timestamp
+                   )
+{
+     DFBResult ret;
+     DFBRegion l, r;
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( timestamp %lld )\n", __FUNCTION__, (long long) timestamp );
+
+     dfb_surface_lock( obj );
+
+     if (left)
+          l = *left;
+     else {
+          l.x1 = 0;
+          l.y1 = 0;
+          l.x2 = obj->config.size.w - 1;
+          l.y2 = obj->config.size.h - 1;
+     }
+
+     if (right)
+          r = *right;
+     else
+          r = l;
+
+     if (obj->config.caps & DSCAPS_FLIPPING) {
+         if (obj->config.caps & DSCAPS_STEREO) {
+              if ((flags & DSFLIP_SWAP) ||
+                  (!(flags & DSFLIP_BLIT) &&
+                   l.x1 == 0 && l.y1 == 0 &&
+                   l.x2 == obj->config.size.w - 1 &&
+                   l.y2 == obj->config.size.h - 1 &&
+                   r.x1 == 0 && r.y1 == 0 &&
+                   r.x2 == obj->config.size.w - 1 &&
+                   r.y2 == obj->config.size.h - 1))
+              {
+                  ret = dfb_surface_flip_buffers( obj, swap );
+                  if (ret)
+                      goto out;
+              }
+              else {
+                  if (left)
+                      dfb_gfx_copy_regions_client( obj, CSBR_BACK, DSSE_LEFT,
+                                                   obj, CSBR_FRONT, DSSE_LEFT,
+                                                   &l, 1, 0, 0, NULL );
+                  if (right)
+                      dfb_gfx_copy_regions_client( obj, CSBR_BACK, DSSE_RIGHT,
+                                                   obj, CSBR_FRONT, DSSE_RIGHT,
+                                                   &r, 1, 0, 0, NULL );
+              }
+         }
+         else {
+             if ((flags & DSFLIP_SWAP) ||
+                 (!(flags & DSFLIP_BLIT) &&
+                  l.x1 == 0 && l.y1 == 0 &&
+                  l.x2 == obj->config.size.w - 1 &&
+                  l.y2 == obj->config.size.h - 1))
+             {
+                  ret = dfb_surface_flip_buffers( obj, swap );
+                  if (ret)
+                      goto out;
+             }
+             else {
+                  dfb_gfx_copy_regions_client( obj, CSBR_BACK, DSSE_LEFT,
+                                               obj, CSBR_FRONT, DSSE_LEFT,
+                                               &l, 1, 0, 0, NULL );
+             }
+         }
+     }
+
+     // FIXME: this always updates full when a side is empty
+     dfb_surface_dispatch_update( obj, &l, &r, timestamp );
+
+out:
+     dfb_surface_unlock( obj );
+
+     return ret;
+}
+
+
 }
 

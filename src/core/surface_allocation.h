@@ -36,6 +36,7 @@
 
 #include <core/gfxcard.h>
 #include <core/surface.h>
+#include <core/surface_pool.h>
 
 #include <directfb.h>
 

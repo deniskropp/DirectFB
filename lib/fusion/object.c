@@ -188,6 +188,8 @@ fusion_object_pool_create( const char             *name,
      D_ASSERT( destructor != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
 
+     D_DEBUG_AT( Fusion_Object, "%s( '%s' )\n", __FUNCTION__, name );
+
      shared = world->shared;
 
      D_MAGIC_ASSERT( shared, FusionWorldShared );
@@ -239,6 +241,8 @@ fusion_object_pool_destroy( FusionObjectPool *pool,
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
      D_MAGIC_ASSERT( world, FusionWorld );
+
+     D_DEBUG_AT( Fusion_Object, "%s( %p '%s' )\n", __FUNCTION__, pool, pool->name );
 
      shared = world->shared;
 
@@ -350,6 +354,8 @@ fusion_object_pool_enum( FusionObjectPool     *pool,
      D_MAGIC_ASSERT( pool, FusionObjectPool );
      D_ASSERT( callback != NULL );
 
+     D_DEBUG_AT( Fusion_Object, "%s( %p '%s' )\n", __FUNCTION__, pool, pool->name );
+
      /* Lock the pool. */
      if (fusion_skirmish_prevail( &pool->lock ))
           return DR_FUSION;
@@ -376,6 +382,8 @@ fusion_object_create( FusionObjectPool  *pool,
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
      D_MAGIC_ASSERT( world, FusionWorld );
+
+     D_DEBUG_AT( Fusion_Object, "%s( %p '%s', identity %lu )\n", __FUNCTION__, pool, pool->name, identity );
 
      shared = world->shared;
 
@@ -460,27 +468,38 @@ fusion_object_get( FusionObjectPool  *pool,
                    FusionObjectID     object_id,
                    FusionObject     **ret_object )
 {
-     DirectResult  ret = DR_IDNOTFOUND;
-     FusionObject *object;
+     DirectResult  ret    = DR_IDNOTFOUND;
+     FusionObject *object = NULL;
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
      D_ASSERT( ret_object != NULL );
 
+     D_DEBUG_AT( Fusion_Object, "%s( %p '%s', object_id %u )\n", __FUNCTION__, pool, pool->name, object_id );
+
      /* Lock the pool. */
-     if (fusion_skirmish_prevail( &pool->lock ))
-          return DR_FUSION;
+     ret = fusion_skirmish_prevail( &pool->lock );
+     if (ret == DR_OK) {
+          object = fusion_hash_lookup( pool->objects, (void*)(long) object_id );
+          if (object) {
+               int refs;
 
-     object = fusion_hash_lookup( pool->objects, (void*)(long) object_id );
-     if (object) {
-          int refs;
+               D_DEBUG_AT( Fusion_Object, "  -> %s\n", ToString_FusionObject(object) );
 
-          ret = fusion_ref_stat( &object->ref, &refs );
-          if (ret == DR_OK && refs > 0) {
-               ret = fusion_object_ref( object );
-               if (ret == DR_OK)
-                    *ret_object = object;
+               ret = fusion_ref_stat( &object->ref, &refs );
+               if (ret == DR_OK) {
+                    D_DEBUG_AT( Fusion_Object, "  -> refs %d\n", refs );
+
+                    if (refs > 0)
+                         ret = fusion_object_ref( object );
+                    else
+                         ret = DR_DEAD;
+               }
           }
+          else
+               D_DEBUG_AT( Fusion_Object, "  -> NOT FOUND\n" );
      }
+
+     *ret_object = object;
 
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
@@ -493,11 +512,13 @@ fusion_object_lookup( FusionObjectPool  *pool,
                       FusionObjectID     object_id,
                       FusionObject     **ret_object )
 {
-     DirectResult  ret = DR_IDNOTFOUND;
-     FusionObject *object;
+     DirectResult  ret    = DR_IDNOTFOUND;
+     FusionObject *object = NULL;
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
      D_ASSERT( ret_object != NULL );
+
+     D_DEBUG_AT( Fusion_Object, "%s( %p '%s', object_id %u )\n", __FUNCTION__, pool, pool->name, object_id );
 
      /* Lock the pool. */
      if (fusion_skirmish_prevail( &pool->lock ))
@@ -505,10 +526,14 @@ fusion_object_lookup( FusionObjectPool  *pool,
 
      object = fusion_hash_lookup( pool->objects, (void*)(long) object_id );
      if (object) {
-          ret = DR_OK;
+          D_DEBUG_AT( Fusion_Object, "  -> %s\n", ToString_FusionObject(object) );
 
-          *ret_object = object;
+          ret = DR_OK;
      }
+     else
+          D_DEBUG_AT( Fusion_Object, "  -> NOT FOUND\n" );
+
+     *ret_object = object;
 
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
@@ -534,6 +559,8 @@ fusion_object_activate( FusionObject *object )
 {
      D_MAGIC_ASSERT( object, FusionObject );
 
+     D_DEBUG_AT( Fusion_Object, "%s( %s )\n", __FUNCTION__, ToString_FusionObject(object) );
+
      /* Set "active" state. */
      object->state = FOS_ACTIVE;
 
@@ -550,6 +577,8 @@ fusion_object_destroy( FusionObject *object )
 
      D_MAGIC_ASSERT( object, FusionObject );
      D_ASSERT( object->state != FOS_ACTIVE );
+
+     D_DEBUG_AT( Fusion_Object, "%s( %s )\n", __FUNCTION__, ToString_FusionObject(object) );
 
      shared = object->shared;
 

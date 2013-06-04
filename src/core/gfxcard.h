@@ -591,6 +591,10 @@ typedef struct {
      FusionObjectID           last_allocation_id;
      DFBAccelerationMask      last_op;
      bool                     pending_ops;
+
+     long long                ts_start;
+     long long                ts_busy;
+     long long                ts_busy_sum;
 } DFBGraphicsCoreShared;
 
 struct __DFB_DFBGraphicsCore {
@@ -611,6 +615,12 @@ struct __DFB_DFBGraphicsCore {
 
      GraphicsDeviceFuncs        funcs;
 };
+
+
+void dfb_gfxcard_update_stats( DFBGraphicsCore *card,
+                               long long        now );
+void dfb_gfxcard_switch_busy ( DFBGraphicsCore *card );
+void dfb_gfxcard_switch_idle ( DFBGraphicsCore *card );
 
 
 #endif

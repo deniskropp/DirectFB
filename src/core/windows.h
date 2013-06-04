@@ -296,7 +296,8 @@ DFBResult
 dfb_window_repaint( CoreWindow          *window,
                     const DFBRegion     *left_region,
                     const DFBRegion     *right_region,
-                    DFBSurfaceFlipFlags  flags );
+                    DFBSurfaceFlipFlags  flags,
+                    long long            timestamp );
 
 /*
  * request a window to gain focus

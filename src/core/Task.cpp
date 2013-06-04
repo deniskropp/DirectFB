@@ -51,7 +51,8 @@ extern "C" {
 
 #include <direct/Lists.h>
 
-#include "Task.h"
+#include <core/Debug.h>
+#include <core/Task.h>
 
 /*********************************************************************************************************************/
 
@@ -82,6 +83,14 @@ TaskManager_SyncAll()
      D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
 
      TaskManager::SyncAll();
+}
+
+void
+TaskManager_DumpTasks()
+{
+     D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
+
+     TaskManager::dumpTasks();
 }
 
 /*********************************************************************************************************************/
@@ -316,8 +325,8 @@ Task::Task()
      next_slave( NULL ),
      qid( 0 ),
      next( NULL ),
-     follower( NULL ),
-     following( NULL ),
+//     follower( NULL ),
+//     following( NULL ),
      hwid( 0 ),
      ts_emit( 0 ),
      listed( 0 ),
@@ -360,7 +369,7 @@ Task::Release()
 
 #if DFB_TASK_DEBUG_STATE
      if (direct_thread_self() == TaskManager::thread) {
-          DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
+          DFB_TASK_CHECK_STATE( this, TASK_DONE | TASK_RUNNING, return );
      }
      else {
           if (refs == 1)
@@ -401,7 +410,7 @@ Task::~Task()
           DumpLog( DirectFB_Task, DIRECT_LOG_VERBOSE );
 
      state = TASK_INVALID;
-
+#if 0
      if (following) {
           D_MAGIC_ASSERT( following, Task );
 
@@ -413,7 +422,7 @@ Task::~Task()
 
           follower->following = NULL;
      }
-
+#endif
      D_MAGIC_CLEAR( this );
 }
 
@@ -572,6 +581,10 @@ Task::emit( int following )
           }
      }
 
+     notifyAll();
+
+
+#if 0
      if (flags & TASK_FLAG_EMITNOTIFIES) {
           notifyAll();
      }
@@ -607,6 +620,7 @@ Task::emit( int following )
                ++it;
           }
      }
+#endif
 
      return DFB_OK;
 }
@@ -663,6 +677,7 @@ Task::finish()
       * master task shutdown
       */
      if (shutdown) {
+#if 0
           if (shutdown->follower) {
                std::vector<TaskNotify>::iterator it = shutdown->follower->notifies.begin();
 
@@ -684,7 +699,7 @@ Task::finish()
                          ++it;
                }
           }
-
+#endif
           shutdown->notifyAll();
           shutdown->Finalise();
 
@@ -819,11 +834,18 @@ Task::Finalise()
 }
 
 void
-Task::Describe( Direct::String &string )
+Task::Describe( Direct::String &string ) const
 {
-     string.PrintF( "0x%08lx   %-7s  0x%04x   %2zu   %2d   %2d   %s   %s  [%llx]",
-                    (unsigned long) this, dfb_task_state_name(state), flags, notifies.size(), block_count,
-                    slaves, master ? "><" : "  ", finished ? "YES" : "no ", (unsigned long long) qid );
+     string.PrintF( "0x%08lx   %-7s flags:%20s notifies:%2zu block_count:%2d slaves:%2d master:%s finished:%s qid:0x%llx",
+                    (unsigned long) this,
+                    *ToString<DirectFB::TaskState>(state),
+                    *ToString<DirectFB::TaskFlags>(flags),
+                    notifies.size(),
+                    block_count,
+                    slaves,
+                    master ? "YES" : "no ",
+                    finished ? "YES" : "no ",
+                    (unsigned long long) qid );
 }
 
 void
@@ -860,13 +882,25 @@ Task::AddNotify( Task *notified,
           return;
      }
 
+     if (follow && state == TASK_READY && block_count == 0) {
+          D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, ready with zero block count (about to be pushed)!\n" );
+
+          return;
+     }
+
      if (state == TASK_RUNNING && (flags & TASK_FLAG_EMITNOTIFIES)) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, running task notified on emit!\n" );
 
           return;
      }
 
-     notifies.push_back( TaskNotify( notified, follow ) );
+     if (state == TASK_DONE) {
+          D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, done already!\n" );
+
+          return;
+     }
+
+     notifies.push_back( TaskNotify( notified, follow ? TASK_RUNNING : TASK_DONE ) );
 
      notified->block_count++;
 
@@ -882,17 +916,24 @@ Task::notifyAll()
 
      D_MAGIC_ASSERT( this, Task );
 
-     if (flags & TASK_FLAG_EMITNOTIFIES)
+//     if (flags & TASK_FLAG_EMITNOTIFIES)
           DFB_TASK_CHECK_STATE( this, TASK_DONE | TASK_RUNNING, return );
-     else
-          DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
+//     else
+//          DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
 
-     DFB_TASK_LOG( Direct::String::F( "notifyAll(%zu)", notifies.size() ) );
+     DFB_TASK_LOG( Direct::String::F( "notifyAll(%zu, %s)", notifies.size(), *ToString<TaskState>(state) ) );
 
-     for (std::vector<TaskNotify>::const_iterator it = notifies.begin(); it != notifies.end(); ++it)
-          (*it).first->handleNotify( 1 );
+     for (std::vector<TaskNotify>::iterator it = notifies.begin(); it != notifies.end(); ) {
+          if ((*it).second & state) {
+               (*it).first->handleNotify( 0 );
 
-     notifies.clear();
+               it = notifies.erase( it );
+          }
+          else
+               it++;
+     }
+
+//     notifies.clear();
 
 
 }
@@ -1011,7 +1052,8 @@ Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 
 #if DFB_TASK_DEBUG_TIMING
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
-                            "  [ timing: %6lld %6lld %6lld (flushed->ready->running->done) ]\n", ts_ready - ts_flushed, ts_running - ts_ready, ts_done - ts_running );
+                            "  [ timing: %6lld %6lld %6lld %6lld (flushed->ready->running->done->now) ]\n", ts_ready - ts_flushed, ts_running - ts_ready, ts_done - ts_running,
+                            direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ) - ts_done );
 #endif
 
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
@@ -1127,6 +1169,8 @@ TaskManager::pushTask( Task *task )
 {
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s( %p )\n", __FUNCTION__, task );
 
+     D_DEBUG_AT( DirectFB_Task, "  =-> pushTask [%s]\n", task->Description().buffer() );
+
      if (task->state == TASK_FLUSHED) {
           D_SYNC_ADD( &task_count, 1 );
 
@@ -1147,6 +1191,13 @@ Task *
 TaskManager::pullTask()
 {
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
+
+#if 0
+     static int c;
+
+     if (c++ % 1000 == 0)
+          dumpTasks();
+#endif
 
      return fifo.pull();
 }
@@ -1191,7 +1242,7 @@ TaskManager::handleTask( Task *task )
                     t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 #endif
 
-                    ret = task->emit( 1 );
+                    ret = task->emit( 0 );
                     if (ret) {
                          D_DERROR( ret, "DirectFB/TaskManager: Task::Emit() failed!\n" );
                          task->state = TASK_DONE;
@@ -1254,7 +1305,7 @@ TaskManager::managerLoop( DirectThread *thread,
 {
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
 
-     fusion_config->skirmish_warn_on_thread = direct_thread_get_tid( thread );
+     //fusion_config->skirmish_warn_on_thread = direct_thread_get_tid( thread );
 
      while (true) {
           Task *task = TaskManager::pullTask();
@@ -1354,7 +1405,7 @@ SurfaceTask::Setup()
 
      DFB_TASK_LOG( "SurfaceTask::Setup()" );
 
-     D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s( hooks:%zu accesses:%zu )\n", __FUNCTION__, hooks.size(), accesses.size() );
 
      DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return DFB_BUG );
 
@@ -1366,15 +1417,15 @@ SurfaceTask::Setup()
           }
      }
 
-     for (std::vector<SurfaceAllocationAccess>::iterator it = accesses.begin(); it != accesses.end(); ++it) {
-          SurfaceAllocationAccess &access = *it;
+     for (size_t a=0; a<accesses.size(); a++) {
+          SurfaceAllocationAccess &access = accesses[a];
 
           if (!access.allocation->read_tasks)
                access.allocation->read_tasks = new DFB_SurfaceTaskListSimple;
 
           DFB_SurfaceTaskListSimple &read_tasks = *access.allocation->read_tasks;
 
-          D_DEBUG_AT( DirectFB_Task, "  -> allocation %p, task count %d\n", access.allocation, access.allocation->task_count );
+          D_DEBUG_AT( DirectFB_Task, "  [%zu] %s\n", a, *ToString<SurfaceAllocationAccess>(access) );
 
           /* set invalidate flag in case this accessor has not yet invalidated its cache for this allocation */
           if (!(access.allocation->invalidated & (1 << accessor))) {
@@ -1385,27 +1436,38 @@ SurfaceTask::Setup()
           }
 
           if (D_FLAGS_IS_SET( access.flags, CSAF_WRITE )) {
-               D_DEBUG_AT( DirectFB_Task, "  -> WRITE\n" );
-
                /* clear all accessors' invalidated flag except our own */
                access.allocation->invalidated &= (1 << accessor);
                D_ASSUME( access.allocation->invalidated & (1 << accessor) );
 
                if (read_tasks.Length()) {
-                    for (DFB_SurfaceTaskListSimple::const_iterator it=read_tasks.begin(); it != read_tasks.end(); it++)
-                         (*it).second->AddNotify( this, (*it).second->accessor == accessor && (*it).second->qid == qid );
+                    size_t r = 0;
+
+                    D_DEBUG_AT( DirectFB_Task, "    -> read_tasks:%zu (clearing)\n", read_tasks.Length() );
+
+                    for (DFB_SurfaceTaskListSimple::const_iterator it=read_tasks.begin(); it != read_tasks.end(); it++, r++) {
+                         SurfaceTask *read_task = (*it).second;
+
+                         D_DEBUG_AT( DirectFB_Task, "       [%zu] %s\n", r, *ToString<Task>(*read_task) );
+
+                         read_task->AddNotify( this, read_task->accessor == accessor && read_task->qid == qid );
+                    }
 
                     read_tasks.Clear();
                }
                else if (access.allocation->write_task) {
-                    SurfaceTask *write_task = access.allocation->write_task;
+                    SurfaceTask             *write_task   = access.allocation->write_task;
+                    SurfaceAllocationAccess *write_access = (SurfaceAllocationAccess *) access.allocation->write_access;
 
-                    D_ASSERT( access.allocation->write_access != NULL );
+                    D_ASSERT( write_access != NULL );
+
+                    D_DEBUG_AT( DirectFB_Task, "    -> write_task   %s\n", *ToString<Task>(*write_task) );
+                    D_DEBUG_AT( DirectFB_Task, "    -> write_access %s\n", *ToString<SurfaceAllocationAccess>(*write_access) );
 
                     /* if the last write task still exists from same accessor (ready/running), clear its
                        flush flags, hoping the task implementation can avoid the flush (still) */
                     if (write_task->accessor == accessor)
-                         D_FLAGS_CLEAR( ((SurfaceAllocationAccess *)access.allocation->write_access)->flags, CSAF_CACHE_FLUSH );
+                         D_FLAGS_CLEAR( write_access->flags, CSAF_CACHE_FLUSH );
 
                     write_task->AddNotify( this, write_task->accessor == accessor && write_task->qid == qid );
                }
@@ -1419,12 +1481,14 @@ SurfaceTask::Setup()
                access.allocation->write_access = &access;
           }
           else {
-               D_DEBUG_AT( DirectFB_Task, "  -> READ\n" );
-
                if (access.allocation->write_task) {
-                    SurfaceTask *write_task = access.allocation->write_task;
+                    SurfaceTask             *write_task   = access.allocation->write_task;
+                    SurfaceAllocationAccess *write_access = (SurfaceAllocationAccess *) access.allocation->write_access;
 
-                    D_ASSERT( access.allocation->write_access != NULL );
+                    D_ASSERT( write_access != NULL );
+
+                    D_DEBUG_AT( DirectFB_Task, "    -> write_task   %s\n", *ToString<Task>(*write_task) );
+                    D_DEBUG_AT( DirectFB_Task, "    -> write_access %s\n", *ToString<SurfaceAllocationAccess>(*write_access) );
 
                     // TODO: avoid cache flush in write task if accessor equals,
                     // requires special handling to take care about other read tasks
@@ -1544,7 +1608,7 @@ SurfaceTask::Finalise()
 }
 
 void
-SurfaceTask::Describe( Direct::String &string )
+SurfaceTask::Describe( Direct::String &string ) const
 {
      Task::Describe( string );
 

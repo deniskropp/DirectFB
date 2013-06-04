@@ -52,15 +52,16 @@ namespace DirectFB {
 DFBResult
 IWindow_Real::Repaint( const DFBRegion     *left,
                        const DFBRegion     *right,
-                       DFBSurfaceFlipFlags  flags )
+                       DFBSurfaceFlipFlags  flags,
+                       s64                  timestamp )
 {
-     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p, timestamp %lld )\n", __FUNCTION__, obj, (long long) timestamp );
 
      D_MAGIC_ASSERT( obj, CoreWindow );
      D_ASSERT( left != NULL );
      D_ASSERT( right != NULL );
 
-     return dfb_window_repaint( obj, left, right, flags );
+     return dfb_window_repaint( obj, left, right, flags, timestamp );
 }
 
 DFBResult

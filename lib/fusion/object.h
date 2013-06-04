@@ -131,6 +131,10 @@ FusionObject     FUSION_API *fusion_object_create             ( FusionObjectPool
                                                                 const FusionWorld      *world,
                                                                 FusionID                identity );
 
+/*
+ * Must unref object if function returns DR_OK. 
+ * It may also return DR_DEAD with allocated object, but no refs (don't unref).
+ */
 DirectResult     FUSION_API  fusion_object_get                ( FusionObjectPool       *pool,
                                                                 FusionObjectID          object_id,
                                                                 FusionObject          **ret_object );

@@ -56,6 +56,8 @@ const char *ToString_CoreSurfaceAllocation    ( const CoreSurfaceAllocation     
 const char *ToString_CoreSurfaceBuffer        ( const CoreSurfaceBuffer              *buffer );
 const char *ToString_CoreSurface              ( const CoreSurface                    *surface );
 
+const char *ToString_Task                     ( const DFB_Task                       *task );
+
 
 #ifdef __cplusplus
 }
