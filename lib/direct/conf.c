@@ -634,7 +634,7 @@ direct_config_set( const char *name, const char *value )
      return DR_OK;
 }
 
-DirectResult DIRECT_API
+DirectResult
 direct_config_get( const char *name, char **values, const int values_len, int *ret_num )
 {
      ConfigOption      *option;
@@ -662,15 +662,22 @@ direct_config_get( const char *name, char **values, const int values_len, int *r
      return DR_OK;
 }
 
-long long DIRECT_API
+long long
 direct_config_get_int_value( const char *name )
+{
+     return direct_config_get_int_value_with_default( name, 0 );
+}
+
+long long
+direct_config_get_int_value_with_default( const char *name,
+                                          long long   def )
 {
      ConfigOption      *option;
      ConfigOptionValue *value;
 
      option = direct_map_lookup( config_options, name );
      if (!option || !option->values)
-          return 0;
+          return def;
 
      value = direct_list_get_last( option->values );
      D_ASSERT( value != NULL );
