@@ -836,9 +836,16 @@ Task::Finalise()
 void
 Task::Describe( Direct::String &string ) const
 {
-     string.PrintF( "0x%08lx   %-7s  0x%04x   %2zu   %2d   %2d   %s   %s  [%llx]",
-                    (unsigned long) this, *ToString<DirectFB::TaskState>(state), flags, notifies.size(), block_count,
-                    slaves, master ? "><" : "  ", finished ? "YES" : "no ", (unsigned long long) qid );
+     string.PrintF( "0x%08lx   %-7s flags:%20s notifies:%2zu block_count:%2d slaves:%2d master:%s finished:%s qid:0x%llx",
+                    (unsigned long) this,
+                    *ToString<DirectFB::TaskState>(state),
+                    *ToString<DirectFB::TaskFlags>(flags),
+                    notifies.size(),
+                    block_count,
+                    slaves,
+                    master ? "YES" : "no ",
+                    finished ? "YES" : "no ",
+                    (unsigned long long) qid );
 }
 
 void
@@ -1398,7 +1405,7 @@ SurfaceTask::Setup()
 
      DFB_TASK_LOG( "SurfaceTask::Setup()" );
 
-     D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s( hooks:%zu accesses:%zu )\n", __FUNCTION__, hooks.size(), accesses.size() );
 
      DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return DFB_BUG );
 
@@ -1410,15 +1417,15 @@ SurfaceTask::Setup()
           }
      }
 
-     for (std::vector<SurfaceAllocationAccess>::iterator it = accesses.begin(); it != accesses.end(); ++it) {
-          SurfaceAllocationAccess &access = *it;
+     for (size_t a=0; a<accesses.size(); a++) {
+          SurfaceAllocationAccess &access = accesses[a];
 
           if (!access.allocation->read_tasks)
                access.allocation->read_tasks = new DFB_SurfaceTaskListSimple;
 
           DFB_SurfaceTaskListSimple &read_tasks = *access.allocation->read_tasks;
 
-          D_DEBUG_AT( DirectFB_Task, "  -> allocation %p, task count %d\n", access.allocation, access.allocation->task_count );
+          D_DEBUG_AT( DirectFB_Task, "  [%zu] %s\n", a, *ToString<SurfaceAllocationAccess>(access) );
 
           /* set invalidate flag in case this accessor has not yet invalidated its cache for this allocation */
           if (!(access.allocation->invalidated & (1 << accessor))) {
@@ -1429,27 +1436,38 @@ SurfaceTask::Setup()
           }
 
           if (D_FLAGS_IS_SET( access.flags, CSAF_WRITE )) {
-               D_DEBUG_AT( DirectFB_Task, "  -> WRITE\n" );
-
                /* clear all accessors' invalidated flag except our own */
                access.allocation->invalidated &= (1 << accessor);
                D_ASSUME( access.allocation->invalidated & (1 << accessor) );
 
                if (read_tasks.Length()) {
-                    for (DFB_SurfaceTaskListSimple::const_iterator it=read_tasks.begin(); it != read_tasks.end(); it++)
-                         (*it).second->AddNotify( this, (*it).second->accessor == accessor && (*it).second->qid == qid );
+                    size_t r = 0;
+
+                    D_DEBUG_AT( DirectFB_Task, "    -> read_tasks:%zu (clearing)\n", read_tasks.Length() );
+
+                    for (DFB_SurfaceTaskListSimple::const_iterator it=read_tasks.begin(); it != read_tasks.end(); it++, r++) {
+                         SurfaceTask *read_task = (*it).second;
+
+                         D_DEBUG_AT( DirectFB_Task, "       [%zu] %s\n", r, *ToString<Task>(*read_task) );
+
+                         read_task->AddNotify( this, read_task->accessor == accessor && read_task->qid == qid );
+                    }
 
                     read_tasks.Clear();
                }
                else if (access.allocation->write_task) {
-                    SurfaceTask *write_task = access.allocation->write_task;
+                    SurfaceTask             *write_task   = access.allocation->write_task;
+                    SurfaceAllocationAccess *write_access = (SurfaceAllocationAccess *) access.allocation->write_access;
 
-                    D_ASSERT( access.allocation->write_access != NULL );
+                    D_ASSERT( write_access != NULL );
+
+                    D_DEBUG_AT( DirectFB_Task, "    -> write_task   %s\n", *ToString<Task>(*write_task) );
+                    D_DEBUG_AT( DirectFB_Task, "    -> write_access %s\n", *ToString<SurfaceAllocationAccess>(*write_access) );
 
                     /* if the last write task still exists from same accessor (ready/running), clear its
                        flush flags, hoping the task implementation can avoid the flush (still) */
                     if (write_task->accessor == accessor)
-                         D_FLAGS_CLEAR( ((SurfaceAllocationAccess *)access.allocation->write_access)->flags, CSAF_CACHE_FLUSH );
+                         D_FLAGS_CLEAR( write_access->flags, CSAF_CACHE_FLUSH );
 
                     write_task->AddNotify( this, write_task->accessor == accessor && write_task->qid == qid );
                }
@@ -1463,12 +1481,14 @@ SurfaceTask::Setup()
                access.allocation->write_access = &access;
           }
           else {
-               D_DEBUG_AT( DirectFB_Task, "  -> READ\n" );
-
                if (access.allocation->write_task) {
-                    SurfaceTask *write_task = access.allocation->write_task;
+                    SurfaceTask             *write_task   = access.allocation->write_task;
+                    SurfaceAllocationAccess *write_access = (SurfaceAllocationAccess *) access.allocation->write_access;
 
-                    D_ASSERT( access.allocation->write_access != NULL );
+                    D_ASSERT( write_access != NULL );
+
+                    D_DEBUG_AT( DirectFB_Task, "    -> write_task   %s\n", *ToString<Task>(*write_task) );
+                    D_DEBUG_AT( DirectFB_Task, "    -> write_access %s\n", *ToString<SurfaceAllocationAccess>(*write_access) );
 
                     // TODO: avoid cache flush in write task if accessor equals,
                     // requires special handling to take care about other read tasks
