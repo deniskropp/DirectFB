@@ -397,6 +397,8 @@ dummyFlipRegion( CoreLayer             *layer,
                  const DFBRegion       *right_update,
                  CoreSurfaceBufferLock *right_lock )
 {
+     dfb_surface_flip( surface, false );
+
      return dummyDisplayRequest( surface, left_lock );
 }
 
