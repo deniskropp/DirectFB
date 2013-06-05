@@ -504,8 +504,6 @@ dfb_back_to_front_copy_stereo( CoreSurface         *surface,
 void
 dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
 {
-     D_ASSERT( !dfb_config->task_manager );
-
 #if FIXME_SC_3
      SurfaceBuffer *tmp;
      DFBRectangle   rect = { 0, 0, surface->config.size.w - 1, surface->config.size.h - 1 };
