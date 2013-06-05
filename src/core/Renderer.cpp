@@ -2093,7 +2093,8 @@ Renderer::Throttle::Hook::finalise( SurfaceTask *task )
      if (!--throttle.task_count)
           throttle.lwq.notifyAll();
 
-     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count %d\n", throttle.task_count );
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count  %d\n", throttle.task_count );
+     D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> cookie %u\n", cookie );
 
      if (cookie)
           dfb_graphics_state_dispatch_done( throttle.gfx_state, cookie );
@@ -2156,7 +2157,7 @@ Renderer::~Renderer()
 void
 Renderer::Flush( u32 cookie )
 {
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, %u )\n", __FUNCTION__, this, cookie );
+     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, cookie %u )\n", __FUNCTION__, this, cookie );
 
      CHECK_MAGIC();
 
@@ -2171,7 +2172,8 @@ Renderer::Flush( u32 cookie )
      else if (throttle) {
           throttle->waitDone( 10000000 );
 
-          dfb_graphics_state_dispatch_done( gfx_state, cookie );
+          if (cookie)
+               dfb_graphics_state_dispatch_done( gfx_state, cookie );
      }
      else if (cookie)
           D_UNIMPLEMENTED();
@@ -2743,7 +2745,6 @@ Renderer::StretchBlit( const DFBRectangle     *srects,
                return;
           }
      }
-
 
      Primitives::StretchBlits primitives( srects, drects, num, DFXL_STRETCHBLIT );
 
