@@ -292,7 +292,7 @@ public:
 
                DirectResult ret;
 
-               ret = l1.wait( 10000000 );
+               ret = l1.wait( 20000000 );
                if (ret) {
                     D_DERROR( ret, "CoreGraphicsStateClient: Error waiting for Done!\n" );
                     DirectFB::TaskManager::dumpTasks();
