@@ -248,6 +248,13 @@ public:
      virtual void render( Renderer::Setup *setup,
                           Engine          *engine );
 
+     void render( Renderer::Setup    *setup,
+                  Engine             *engine,
+                  SurfaceTask        *task,
+                  const DFBRectangle *srects,
+                  const DFBRectangle *drects,
+                  unsigned int        num );
+
      DFBRectangle *srects;
      DFBRectangle *drects;
      unsigned int  num_rects;
@@ -1179,7 +1186,7 @@ StretchBlits::render( Renderer::Setup *setup,
                continue;
 
           if (engine->caps.clipping & DFXL_STRETCHBLIT) {
-               engine->StretchBlit( setup->tasks[i], srects, drects, num_rects );
+               render( setup, engine, setup->tasks[i], srects, drects, num_rects );
           }
           else {
                Util::TempArray<DFBRectangle> copied_srects( num_rects );
@@ -1203,7 +1210,38 @@ StretchBlits::render( Renderer::Setup *setup,
                }
 
                if (copied_num)
-                    engine->StretchBlit( setup->tasks[i], copied_srects.array, copied_drects.array, copied_num );
+                    render( setup, engine, setup->tasks[i], copied_srects.array, copied_drects.array, copied_num );
+          }
+     }
+}
+
+void
+StretchBlits::render( Renderer::Setup    *setup,
+                      Engine             *engine,
+                      SurfaceTask        *task,
+                      const DFBRectangle *srects,
+                      const DFBRectangle *drects,
+                      unsigned int        num_rects )
+{
+     DFBResult    ret;
+     unsigned int num = num_rects;
+
+     while (num > 0) {
+          ret = engine->StretchBlit( task, srects, drects, num );
+          switch (ret) {
+               case DFB_LIMITEXCEEDED:
+                    if (num != num_rects) {
+                         srects += num;
+                         drects += num;
+
+                         num_rects -= num;
+                    }
+
+               default:
+                    D_DERROR( ret, "Renderer/StretchBlit: Failed with %u operations!\n", num );
+
+               case DFB_OK:
+                    return;
           }
      }
 }
@@ -3071,7 +3109,7 @@ Renderer::DeleteEngines()
 DFBResult
 Engine::DrawRectangles( SurfaceTask        *task,
                         const DFBRectangle *rects,
-                        unsigned int        num_rects )
+                        unsigned int       &num_rects )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3081,7 +3119,7 @@ Engine::DrawRectangles( SurfaceTask        *task,
 DFBResult
 Engine::DrawLines( SurfaceTask     *task,
                    const DFBRegion *lines,
-                   unsigned int     num_lines )
+                   unsigned int    &num_lines )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3091,7 +3129,7 @@ Engine::DrawLines( SurfaceTask     *task,
 DFBResult
 Engine::FillRectangles( SurfaceTask        *task,
                         const DFBRectangle *rects,
-                        unsigned int        num_rects )
+                        unsigned int       &num_rects )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3101,7 +3139,7 @@ Engine::FillRectangles( SurfaceTask        *task,
 DFBResult
 Engine::FillTriangles( SurfaceTask       *task,
                        const DFBTriangle *tris,
-                       unsigned int       num_tris )
+                       unsigned int      &num_tris )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3111,7 +3149,7 @@ Engine::FillTriangles( SurfaceTask       *task,
 DFBResult
 Engine::FillTrapezoids( SurfaceTask        *task,
                         const DFBTrapezoid *traps,
-                        unsigned int        num_traps )
+                        unsigned int       &num_traps )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3122,7 +3160,7 @@ DFBResult
 Engine::FillSpans( SurfaceTask   *task,
                    int            y,
                    const DFBSpan *spans,
-                   unsigned int   num_spans )
+                   unsigned int  &num_spans )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3132,7 +3170,7 @@ Engine::FillSpans( SurfaceTask   *task,
 DFBResult
 Engine::FillQuadrangles( SurfaceTask    *task,
                          const DFBPoint *points,
-                         unsigned int    num_quads )
+                         unsigned int   &num_quads )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3143,7 +3181,7 @@ DFBResult
 Engine::Blit( SurfaceTask        *task,
               const DFBRectangle *rects,
               const DFBPoint     *points,
-              u32                 num )
+              u32                &num )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3155,7 +3193,7 @@ Engine::Blit2( SurfaceTask        *task,
                const DFBRectangle *rects,
                const DFBPoint     *points1,
                const DFBPoint     *points2,
-               u32                 num )
+               u32                &num )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3166,7 +3204,7 @@ DFBResult
 Engine::StretchBlit( SurfaceTask        *task,
                      const DFBRectangle *srects,
                      const DFBRectangle *drects,
-                     u32                 num )
+                     u32                &num )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3178,7 +3216,7 @@ Engine::TileBlit( SurfaceTask        *task,
                   const DFBRectangle *rects,
                   const DFBPoint     *points1,
                   const DFBPoint     *points2,
-                  u32                 num )
+                  u32                &num )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
 
@@ -3188,7 +3226,7 @@ Engine::TileBlit( SurfaceTask        *task,
 DFBResult
 Engine::TextureTriangles( SurfaceTask          *task,
                           const DFBVertex      *vertices,
-                          unsigned int          num,
+                          unsigned int         &num,
                           DFBTriangleFormation  formation )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );
@@ -3199,7 +3237,7 @@ Engine::TextureTriangles( SurfaceTask          *task,
 DFBResult
 Engine::TextureTriangles( SurfaceTask          *task,
                           const DFBVertex1616  *vertices,
-                          unsigned int          num,
+                          unsigned int         &num,
                           DFBTriangleFormation  formation )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Engine::%s()\n", __FUNCTION__ );

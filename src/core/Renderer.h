@@ -464,65 +464,65 @@ public:
 
      virtual DFBResult DrawRectangles  ( SurfaceTask            *task,
                                          const DFBRectangle     *rects,
-                                         unsigned int            num_rects );
+                                         unsigned int           &num_rects );
 
      virtual DFBResult DrawLines       ( SurfaceTask            *task,
                                          const DFBRegion        *lines,
-                                         unsigned int            num_lines );
+                                         unsigned int           &num_lines );
 
      virtual DFBResult FillRectangles  ( SurfaceTask            *task,
                                          const DFBRectangle     *rects,
-                                         unsigned int            num_rects );
+                                         unsigned int           &num_rects );
 
      virtual DFBResult FillTriangles   ( SurfaceTask            *task,
                                          const DFBTriangle      *tris,
-                                         unsigned int            num_tris );
+                                         unsigned int           &num_tris );
 
      virtual DFBResult FillTrapezoids  ( SurfaceTask            *task,
                                          const DFBTrapezoid     *traps,
-                                         unsigned int            num_traps );
+                                         unsigned int           &num_traps );
 
      virtual DFBResult FillSpans       ( SurfaceTask            *task,
                                          int                     y,
                                          const DFBSpan          *spans,
-                                         unsigned int            num_spans );
+                                         unsigned int           &num_spans );
 
      virtual DFBResult FillQuadrangles ( SurfaceTask            *task,
                                          const DFBPoint         *points,
-                                         unsigned int            num_quads );
+                                         unsigned int           &num_quads );
 
 
 
      virtual DFBResult Blit            ( SurfaceTask            *task,
                                          const DFBRectangle     *rects,
                                          const DFBPoint         *points,
-                                         u32                     num );
+                                         u32                    &num );
 
      virtual DFBResult Blit2           ( SurfaceTask            *task,
                                          const DFBRectangle     *rects,
                                          const DFBPoint         *points1,
                                          const DFBPoint         *points2,
-                                         u32                     num );
+                                         u32                    &num );
 
      virtual DFBResult StretchBlit     ( SurfaceTask            *task,
                                          const DFBRectangle     *srects,
                                          const DFBRectangle     *drects,
-                                         u32                     num );
+                                         u32                    &num );
 
      virtual DFBResult TileBlit        ( SurfaceTask            *task,
                                          const DFBRectangle     *rects,
                                          const DFBPoint         *points1,
                                          const DFBPoint         *points2,
-                                         u32                     num );
+                                         u32                    &num );
 
      virtual DFBResult TextureTriangles( SurfaceTask            *task,
                                          const DFBVertex        *vertices,
-                                         unsigned int            num,
+                                         unsigned int           &num,
                                          DFBTriangleFormation    formation );
 
      virtual DFBResult TextureTriangles( SurfaceTask            *task,
                                          const DFBVertex1616    *vertices,
-                                         unsigned int            num,
+                                         unsigned int           &num,
                                          DFBTriangleFormation    formation );
 };
 
