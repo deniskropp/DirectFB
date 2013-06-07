@@ -2,6 +2,7 @@ coretest_blit2
 coretest_task
 coretest_fillrect
 coretest_task_fillrect
+dfbtest_alloc
 dfbtest_blit
 dfbtest_blit_multi
 dfbtest_blit_threads
@@ -16,12 +17,14 @@ dfbtest_gl3
 dfbtest_old_gl2
 dfbtest_init
 dfbtest_input
+dfbtest_layer
 dfbtest_mirror
 dfbtest_prealloc
 dfbtest_reinit
 dfbtest_resize
 dfbtest_scale
 dfbtest_scale_nv21
+dfbtest_stereo
 dfbtest_stereo_window
 dfbtest_surface_compositor
 dfbtest_surface_compositor_threads

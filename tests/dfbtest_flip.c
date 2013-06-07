@@ -224,7 +224,8 @@ main( int argc, char *argv[] )
      t0 = direct_clock_get_abs_millis();
 
      while (num <= 0 || count < num) {
-          long long t1, t2, base, frame_time = 0;
+//          long long t1, t2;
+          long long base, frame_time = 0;
 
           if (use_frame_time) {
                long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );

@@ -24,16 +24,15 @@
    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-
-#include <config.h>
-
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <direct/messages.h>
 #include <direct/thread.h>
-
 #include <directfb.h>
 
+static int                   quit = 0;
 
 static void *
 TestThread( DirectThread *thread,
@@ -42,34 +41,45 @@ TestThread( DirectThread *thread,
      DFBResult         ret;
      IDirectFBSurface *surface = arg;
      DFBRectangle      rect    = { 0, 0, 500, 1 };
-     u32               data[ 500 ];
 
-     while (true) {
+     while (!quit) {
+          void *data;
           int   pitch;
-          void *ptr;
 
-          ret = surface->Lock( surface, DSLF_WRITE, &ptr, &pitch );
+          ret = surface->Lock( surface, DSLF_WRITE, &data, &pitch );
+
           if (ret) {
                D_DERROR( ret, "DFBTest/Resize: Lock() failed!\n" );
                return NULL;
           }
 
-          memset( ptr, 0, pitch * 400 );
+          if (!data) {
+               D_DERROR( ret, "DFBTest/Resize:invalid pointer!\n" );
+               return NULL;
+          }
+
+          memset( data, 0, pitch * 400 );
 
           surface->Unlock( surface );
 
+          data = malloc( pitch );
 
           ret = surface->Read( surface, &rect, data, pitch );
+
           if (ret) {
                D_DERROR( ret, "DFBTest/Resize: Read() failed!\n" );
+               free (data);
                return NULL;
           }
 
           ret = surface->Write( surface, &rect, data, pitch );
           if (ret) {
                D_DERROR( ret, "DFBTest/Resize: Write() failed!\n" );
+               free(data);
                return NULL;
           }
+
+          free(data);
      }
 
      return NULL;
@@ -79,12 +89,30 @@ static void
 TestResize( IDirectFB *dfb )
 {
      DFBResult              ret;
+     DirectThread          *thread;
      DFBWindowDescription   desc;
      IDirectFBDisplayLayer *layer;
      IDirectFBWindow       *window;
      IDirectFBSurface      *surface;
+     DFBInputEvent          evt;
+     IDirectFBEventBuffer  *keybuffer;
 
-     dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer );
+     quit = 0;
+
+     /* Create an input buffer for key events */
+     ret = dfb->CreateInputEventBuffer( dfb, DICAPS_KEYS,
+                                        DFB_FALSE, &keybuffer);
+     if (ret) {
+          D_DERROR( ret, "DFBTest/Resize: CreateInputBuffer() failed!\n" );
+          return;
+     }
+
+     ret = dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer );
+     if (ret) {
+          D_DERROR( ret, "DFBTest/Resize: Failed to get display layer!\n" );
+          keybuffer->Release( keybuffer );
+          return;
+     }
 
      desc.flags       = DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_PIXELFORMAT;
      desc.width       = 500;
@@ -94,18 +122,24 @@ TestResize( IDirectFB *dfb )
      ret = layer->CreateWindow( layer, &desc, &window );
      if (ret) {
           D_DERROR( ret, "DFBTest/Resize: CreateWindow() failed!\n" );
+          keybuffer->Release( keybuffer );
+          layer->Release( layer );
           return;
      }
 
      ret = window->GetSurface( window, &surface );
      if (ret) {
           D_DERROR( ret, "DFBTest/Resize: GetSurface() failed!\n" );
+          keybuffer->Release( keybuffer );
+          window->Release( window );
+          layer->Release( layer );
           return;
      }
 
-     direct_thread_create( DTT_DEFAULT, TestThread, surface, "Test" );
+     thread = direct_thread_create( DTT_DEFAULT, TestThread, surface, "Test" );
 
-     while (true) {
+     while (!quit) {
+
           ret = window->Resize( window, 500, 400 );
           if (ret)
                D_DERROR( ret, "DFBTest/Resize: Resize() failed!\n" );
@@ -113,10 +147,32 @@ TestResize( IDirectFB *dfb )
           ret = window->Resize( window, 500, 500 );
           if (ret)
                D_DERROR( ret, "DFBTest/Resize: Resize() failed!\n" );
+
+          /* Process keybuffer */
+          while (keybuffer->GetEvent( keybuffer, DFB_EVENT(&evt)) == DFB_OK)
+          {
+              if (evt.type == DIET_KEYPRESS) {
+                  switch (DFB_LOWER_CASE(evt.key_symbol)) {
+                      case DIKS_ESCAPE:
+                      case DIKS_SMALL_Q:
+                      case DIKS_BACK:
+                      case DIKS_STOP:
+                      case DIKS_EXIT:
+                          /* Quit main loop & test thread */
+                          quit = 1;
+                          direct_thread_join(thread);
+                          break;
+                      default:
+                          break;
+                  }
+              }
+          }
      }
 
+     keybuffer->Release( keybuffer );
      surface->Release( surface );
      window->Release( window );
+     layer->Release( layer );
 }
 
 
@@ -141,7 +197,8 @@ main( int argc, char *argv[] )
           return ret;
      }
 
-
+     /* Required for keyboard access */
+     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
 
      TestResize( dfb );
 
