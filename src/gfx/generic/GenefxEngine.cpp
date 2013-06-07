@@ -449,7 +449,7 @@ public:
 
      virtual DFBResult FillRectangles( DirectFB::SurfaceTask  *task,
                                        const DFBRectangle     *rects,
-                                       unsigned int            num_rects )
+                                       unsigned int           &num_rects )
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
@@ -493,7 +493,7 @@ public:
 
      virtual DFBResult DrawRectangles( DirectFB::SurfaceTask  *task,
                                        const DFBRectangle     *rects,
-                                       unsigned int            num_rects )
+                                       unsigned int           &num_rects )
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
@@ -541,7 +541,7 @@ public:
 
      virtual DFBResult DrawLines( DirectFB::SurfaceTask *task,
                                   const DFBRegion       *lines,
-                                  unsigned int           num_lines )
+                                  unsigned int          &num_lines )
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
@@ -586,7 +586,7 @@ public:
      virtual DFBResult Blit( DirectFB::SurfaceTask  *task,
                              const DFBRectangle     *rects,
                              const DFBPoint         *points,
-                             u32                     num )
+                             u32                    &num )
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
@@ -643,7 +643,7 @@ public:
      virtual DFBResult StretchBlit( DirectFB::SurfaceTask  *task,
                                     const DFBRectangle     *srects,
                                     const DFBRectangle     *drects,
-                                    u32                     num )
+                                    u32                    &num )
      {
           GenefxTask *mytask = (GenefxTask *)task;
           u32         count  = 0;
@@ -690,7 +690,7 @@ public:
 
      virtual DFBResult TextureTriangles( SurfaceTask            *task,
                                          const DFBVertex1616    *vertices,
-                                         unsigned int            num,
+                                         unsigned int           &num,
                                          DFBTriangleFormation    formation )
      {
           GenefxTask *mytask = (GenefxTask *)task;
