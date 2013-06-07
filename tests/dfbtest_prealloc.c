@@ -154,6 +154,9 @@ main( int argc, char *argv[] )
      DFBSurfacePixelFormat   dest_format   = DSPF_UNKNOWN;
      char                    pixel_buffer[100*100*4];
      IDirectFBSurface       *source        = NULL;
+     IDirectFBEventBuffer   *keybuffer;
+     DFBInputEvent           evt;
+     bool                    quit          = false;
 
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
@@ -206,6 +209,10 @@ main( int argc, char *argv[] )
 
      dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
 
+     /* Create an input buffer for key events */
+     dfb->CreateInputEventBuffer( dfb, DICAPS_KEYS,
+                                  DFB_TRUE, &keybuffer);
+
      /* Create a primary surface. */
      ret = dfb->CreateSurface( dfb, &desc, &dest );
      if (ret) {
@@ -237,7 +244,7 @@ main( int argc, char *argv[] )
      /* Before any other operation the pixel data can be written to without locking */
      gen_pixels( pixel_buffer, 100 * 4, 100 );
 
-     while (true) {
+     while (!quit) {
           void *ptr;
           int   pitch;
 
@@ -278,7 +285,26 @@ main( int argc, char *argv[] )
              to us). */
           source->FillRectangle( source, 0, 0, 10, 10 );
 
-          direct_thread_sleep( 5000000 );
+          /* Process keybuffer */
+          while (keybuffer->GetEvent( keybuffer, DFB_EVENT(&evt)) == DFB_OK)
+          {
+              if (evt.type == DIET_KEYPRESS) {
+                  switch (DFB_LOWER_CASE(evt.key_symbol)) {
+                      case DIKS_ESCAPE:
+                      case DIKS_SMALL_Q:
+                      case DIKS_BACK:
+                      case DIKS_STOP:
+                      case DIKS_EXIT:
+                          /* Quit main loop & test thread */
+                          quit = true;
+                          break;
+                      default:
+                          break;
+                  }
+              }
+          }
+          if (!quit)
+          sleep( 5 );
      }
 
 out:
@@ -287,6 +313,8 @@ out:
 
      if (dest)
           dest->Release( dest );
+
+     keybuffer->Release( keybuffer );
 
      /* Shutdown DirectFB. */
      dfb->Release( dfb );

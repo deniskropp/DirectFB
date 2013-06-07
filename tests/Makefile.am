@@ -125,6 +125,9 @@ bin_PROGRAMS = \
 	dfbtest_windows_watcher	\
 	direct_stream	\
 	direct_test	\
+	dfbtest_alloc	\
+	dfbtest_layer	\
+	dfbtest_stereo	\	
 	$(ONE_PROGS)	\
 	$(VOODOO_PROGS) \
 	$(SAWMAN_PROGS) \
@@ -193,6 +196,16 @@ dfbtest_gl3_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS
 dfbtest_old_gl2_SOURCES = dfbtest_old_gl2.c
 dfbtest_old_gl2_CFLAGS  = $(GLES2_CFLAGS)
 dfbtest_old_gl2_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM)
+
+dfbtest_layer_SOURCES = dfbtest_layer.c
+dfbtest_layer_LDADD   = $(DFB_BASE_LIBS)
+
+dfbtest_stereo_SOURCES = dfbtest_stereo.c
+dfbtest_stereo_LDADD   = $(DFB_BASE_LIBS)
+
+dfbtest_alloc_SOURCES = dfbtest_alloc.c
+dfbtest_alloc_LDADD   = $(DFB_BASE_LIBS)
+
 
 dfbtest_mirror_SOURCES = dfbtest_mirror.c
 dfbtest_mirror_LDADD   = $(DFB_BASE_LIBS)

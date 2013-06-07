@@ -878,8 +878,10 @@ main( int argc, char** argv )
      D_MAGIC_SET( &tm, TestManager );
 
      AddApplication( &tm, "Penguins", "df_andi", "--dfb:mode=640x480,force-windowed" );
+     AddApplication( &tm, "Penguins2","df_andi", "--dfb:mode=640x480,force-windowed" );
+     AddApplication( &tm, "Penguins3","df_andi", "--dfb:mode=640x480,force-windowed" );
+     AddApplication( &tm, "Penguins4","df_andi", "--dfb:mode=640x480,force-windowed" );
      AddApplication( &tm, "Windows", "df_window", NULL );
-
 
      CHECK( DirectFBInit( &argc, &argv ) );
 
