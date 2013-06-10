@@ -211,8 +211,12 @@ public:
 
          Direct::LockWQ::Lock l1( lwq );
 
-         while (blocking)
-              l1.wait();
+         while (blocking) {
+              if (l1.wait( 20000000 ) == DR_TIMEOUT) {
+                   D_ERROR( "CoreGraphicsStateClient/ThrottleBlocking: Timeout waiting for unblock!\n" );
+                   DirectFB::TaskManager::dumpTasks();
+              }
+         }
     }
 
 protected:
