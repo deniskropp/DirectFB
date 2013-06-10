@@ -25,14 +25,7 @@
 #ifndef DFBPP_INTERNAL_H
 #define DFBPP_INTERNAL_H
 
-#define DFBCHECK(...)                                                 \
-     do {                                                             \
-          DFBResult ret = (__VA_ARGS__);                              \
-                                                                      \
-          if (ret)                                                    \
-               throw new DFBException (__FUNCTION__, ret);            \
-     } while (0);
-
+#define DFBCHECK(...) PPDFB_DFBCHECK( __VA_ARGS__ )
 
 #endif
 

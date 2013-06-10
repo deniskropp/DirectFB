@@ -351,6 +351,30 @@ public:
 };
 
 
+class DFBException {
+public:
+     PPDFB_API DFBException (const char *action, DFBResult result_code);
+
+     const char PPDFB_API *GetAction() const;
+     const char PPDFB_API *GetResult() const;
+     DFBResult  PPDFB_API  GetResultCode() const;
+
+     friend std::ostream PPDFB_API &operator << (std::ostream &stream, DFBException *ex);
+
+private:
+     const char *action;
+     DFBResult   result_code;
+};
+
+
+#define PPDFB_DFBCHECK(...)                                           \
+     do {                                                             \
+          DFBResult ret = (DFBResult)(__VA_ARGS__);                   \
+                                                                      \
+          if (ret)                                                    \
+               throw new DFBException (__FUNCTION__, ret);            \
+     } while (0);
+
 
 template <class IMPLEMENTINGCLASS, class IPPAny_C>
 class IPPAny
@@ -390,21 +414,22 @@ class IPPAny
 			return iface != NULL;
 		}
 		inline IMPLEMENTINGCLASS &operator = (const IMPLEMENTINGCLASS &other) {
+			IPPAny_C *old_iface   = iface;
 			IPPAny_C *other_iface = other.iface;
-
 			if (other_iface)
-				other_iface->AddRef( other_iface );
-			if (iface)
-				iface->Release( iface );
+				PPDFB_DFBCHECK( other_iface->AddRef( other_iface ) );
 			iface = other_iface;
+			if (old_iface)
+				PPDFB_DFBCHECK( old_iface->Release( old_iface ) );
 			return dynamic_cast<IMPLEMENTINGCLASS&>(*this);
 		}
 		inline IMPLEMENTINGCLASS &operator = (IPPAny_C *other_iface) {
+               IPPAny_C *old_iface = iface;
 			if (other_iface)
-				other_iface->AddRef( other_iface );
-			if (iface)
-				iface->Release( iface );
+				PPDFB_DFBCHECK( other_iface->AddRef( other_iface ) );
 			iface = other_iface;
+			if (old_iface)
+				PPDFB_DFBCHECK( old_iface->Release( old_iface ) );
 			return dynamic_cast<IMPLEMENTINGCLASS&>(*this);
 		}
 };
@@ -450,22 +475,6 @@ namespace DirectFB {
      void      PPDFB_API Init   (int *argc = NULL, char *(*argv[]) = NULL);
      IDirectFB PPDFB_API Create ();
 }
-
-class DFBException {
-public:
-     PPDFB_API DFBException (const char *action, DFBResult result_code);
-
-     const char PPDFB_API *GetAction() const;
-     const char PPDFB_API *GetResult() const;
-     DFBResult  PPDFB_API  GetResultCode() const;
-
-     friend std::ostream PPDFB_API &operator << (std::ostream &stream, DFBException *ex);
-
-private:
-     const char *action;
-     DFBResult   result_code;
-};
-
 
 
 #endif
