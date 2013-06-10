@@ -406,10 +406,18 @@ Task::~Task()
           dump = true;
 #endif
 
+     if (notifies.size() != 0) {
+          D_BUG( "notifies list not empty (%zu entries)", notifies.size() );
+          dump = true;
+     }
+
      if (dump)
           DumpLog( DirectFB_Task, DIRECT_LOG_VERBOSE );
 
      state = TASK_INVALID;
+
+     D_ASSERT( notifies.size() == 0 );
+
 #if 0
      if (following) {
           D_MAGIC_ASSERT( following, Task );
@@ -581,7 +589,7 @@ Task::emit( int following )
           }
      }
 
-     notifyAll();
+     notifyAll( TASK_RUNNING );
 
 
 #if 0
@@ -700,7 +708,7 @@ Task::finish()
                }
           }
 #endif
-          shutdown->notifyAll();
+          shutdown->notifyAll( TASK_DONE );
           shutdown->Finalise();
 
           Task *next = shutdown->next_slave;
@@ -908,7 +916,7 @@ Task::AddNotify( Task *notified,
 }
 
 void
-Task::notifyAll()
+Task::notifyAll( TaskState state )
 {
      D_ASSERT( direct_thread_self() == TaskManager::thread );
 
@@ -917,7 +925,7 @@ Task::notifyAll()
      D_MAGIC_ASSERT( this, Task );
 
 //     if (flags & TASK_FLAG_EMITNOTIFIES)
-          DFB_TASK_CHECK_STATE( this, TASK_DONE | TASK_RUNNING, return );
+///          DFB_TASK_CHECK_STATE( this, TASK_DONE | TASK_RUNNING, return );
 //     else
 //          DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
 

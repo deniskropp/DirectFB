@@ -261,7 +261,7 @@ protected:
      DFBResult emit( int following );
      DFBResult finish();
 
-     void notifyAll();
+     void notifyAll( TaskState state );
      void handleNotify( int following );
      void enableDump();
      void append( Task *task );
