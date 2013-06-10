@@ -2086,8 +2086,10 @@ Renderer::Throttle::waitDone( unsigned long timeout_us )
 
      if (task_count > 0) {
           ret = l1.wait( timeout_us );
-          if (ret)
+          if (ret) {
                D_DERROR_AT( DirectFB_Renderer_Throttle, ret, "  -> error waiting for %u tasks to be done\n", task_count );
+               DirectFB::TaskManager::dumpTasks();
+          }
      }
 
      return (DFBResult) ret;
@@ -2213,8 +2215,10 @@ Renderer::Flush( u32 cookie )
           if (cookie)
                dfb_graphics_state_dispatch_done( gfx_state, cookie );
      }
-     else if (cookie)
+     else if (cookie) {
+          // TODO: check: actually, this should never be the case
           D_UNIMPLEMENTED();
+     }
 }
 
 void
