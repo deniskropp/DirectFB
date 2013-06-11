@@ -28,6 +28,7 @@ FREETYPE_SOURCES := \
 
 
 LOCAL_CFLAGS = -I.  -I.. -I../.. -I../../.. $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums -DFT2_BUILD_LIBRARY=1
+LOCAL_CXXFLAGS = -frtti
 LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid 
 
 #
@@ -160,6 +161,7 @@ LIB_FUSION_SOURCES = \
 	$(DFB_SOURCE)/lib/fusion/arena.c				\
 	$(DFB_SOURCE)/lib/fusion/call.c				\
 	$(DFB_SOURCE)/lib/fusion/conf.c				\
+	$(DFB_SOURCE)/lib/fusion/Debug.cpp			\
 	$(DFB_SOURCE)/lib/fusion/fusion.c				\
 	$(DFB_SOURCE)/lib/fusion/hash.c				\
 	$(DFB_SOURCE)/lib/fusion/lock.c				\
@@ -204,6 +206,7 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/colorhash.c				\
 	$(DFB_SOURCE)/src/core/core.c				\
 	$(DFB_SOURCE)/src/core/core_parts.c			\
+	$(DFB_SOURCE)/src/core/Debug.cpp			\
 	$(DFB_SOURCE)/src/core/fonts.c				\
 	$(DFB_SOURCE)/src/core/gfxcard.c				\
 	$(DFB_SOURCE)/src/core/graphics_state.c			\
@@ -387,6 +390,7 @@ CPPFLAGS += -DDIVINE_MAJOR_VERSION=1 -DDIVINE_MINOR_VERSION=6
 #
 # SaWMan object files
 SAWMAN_SOURCES = \
+	$(DFB_SOURCE)/lib/sawman/Debug.cpp			\
 	$(DFB_SOURCE)/lib/sawman/isawman.c			\
 	$(DFB_SOURCE)/lib/sawman/isawmanmanager.c		\
 	$(DFB_SOURCE)/lib/sawman/region.c			\
@@ -395,14 +399,13 @@ SAWMAN_SOURCES = \
 	$(DFB_SOURCE)/lib/sawman/sawman_draw.c		\
 	$(DFB_SOURCE)/lib/sawman/sawman_updates.c		\
 	$(DFB_SOURCE)/lib/sawman/sawman_window.c		\
-	$(DFB_SOURCE)/wm/sawman/sawman_wm.c		\
 	$(DFB_SOURCE)/lib/sawman/SaWMan.cpp			\
 	$(DFB_SOURCE)/lib/sawman/SaWMan_real.cpp		\
 	$(DFB_SOURCE)/lib/sawman/SaWManManager.cpp		\
 	$(DFB_SOURCE)/lib/sawman/SaWManManager_real.cpp	\
 	$(DFB_SOURCE)/lib/sawman/SaWManProcess.cpp		\
-	$(DFB_SOURCE)/lib/sawman/SaWManProcess_real.cpp
-
+	$(DFB_SOURCE)/lib/sawman/SaWManProcess_real.cpp		\
+	$(DFB_SOURCE)/wm/sawman/sawman_wm.c
 
 #
 # SaWMan header files
