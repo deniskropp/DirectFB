@@ -1,6 +1,6 @@
 KERNEL = $(LOCAL_PATH)/Kernel
 
-FREETYPE_SRC_PATH:= freetype2-android
+FREETYPE_SRC_PATH:= $(DFB_SOURCE)/build-android/freetype2-android
 FREETYPE_INCLUDES:= -I ../$(FREETYPE_SRC_PATH)/include/freetype -I ../$(FREETYPE_SRC_PATH)/include -I ../$(FREETYPE_SRC_PATH)/src
 
 FREETYPE_SOURCES := \
@@ -299,7 +299,7 @@ DIRECTFB_SOURCES = \
 
 #
 # DirectFB requestor object files
-DIRECTFB_SOURCES += $(DFB_SOURCE)/proxy/requestor/idirectfb_requestor.c \
+LIB_VOODOO_SOURCES += $(DFB_SOURCE)/proxy/requestor/idirectfb_requestor.c \
 	$(DFB_SOURCE)/proxy/requestor/idirectfbdatabuffer_requestor.c \
 	$(DFB_SOURCE)/proxy/requestor/idirectfbdisplaylayer_requestor.c \
 	$(DFB_SOURCE)/proxy/requestor/idirectfbeventbuffer_requestor.c \
@@ -313,7 +313,7 @@ DIRECTFB_SOURCES += $(DFB_SOURCE)/proxy/requestor/idirectfb_requestor.c \
 
 #
 # DirectFB dispatcher object files
-DIRECTFB_SOURCES += $(DFB_SOURCE)/proxy/dispatcher/idirectfb_dispatcher.c \
+LIB_VOODOO_SOURCES += $(DFB_SOURCE)/proxy/dispatcher/idirectfb_dispatcher.c \
 	$(DFB_SOURCE)/proxy/dispatcher/idirectfbdatabuffer_dispatcher.c \
 	$(DFB_SOURCE)/proxy/dispatcher/idirectfbdisplaylayer_dispatcher.c \
 	$(DFB_SOURCE)/proxy/dispatcher/idirectfbeventbuffer_dispatcher.c \
@@ -327,7 +327,11 @@ DIRECTFB_SOURCES += $(DFB_SOURCE)/proxy/dispatcher/idirectfb_dispatcher.c \
 
 #
 # DirectFB Windows extension
+
 DIRECTFB_SOURCES += \
+        $(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_default.c    \
+
+LIB_VOODOO_SOURCES += \
 	$(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_default.c	\
 	$(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_dispatcher.c	\
 	$(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_requestor.c
@@ -337,6 +341,9 @@ WM_SOURCES = \
 
 FONTPROVIDER_SOURCES = \
 	$(DFB_SOURCE)/interfaces/IDirectFBFont/idirectfbfont_ft2.c
+
+IMAGEPROVIDER_SOURCES = \
+	$(DFB_SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_dfiff.c
 
 GFXDRIVER_SOURCES = \
 	$(DFB_SOURCE)/gfxdrivers/gles2/gles2_2d.c	\
@@ -358,6 +365,7 @@ DIRECTFB_SOURCES += \
 #
 # DirectFB header files
 DIRECTFB_INCLUDES += \
+	-I$(DFB_INCLUDE_PATH)/build-android				\
 	-I$(DFB_INCLUDE_PATH)/include					\
 	-I$(DFB_INCLUDE_PATH)/lib					\
 	-I$(DFB_INCLUDE_PATH)/src					\
@@ -447,7 +455,6 @@ FUSIONDALE_SOURCES = \
 LOCAL_SRC_FILES := \
 	$(DIRECTFB_APP_SOURCES)						\
 	$(FREETYPE_SOURCES)						\
-	$(LIB_VOODOO_SOURCES)						\
 	$(LIB_DIRECT_SOURCES)						\
 	$(LIB_FUSION_SOURCES)						\
 	$(LIB_FUSION_SOURCES_SINGLE)					\
@@ -455,9 +462,11 @@ LOCAL_SRC_FILES := \
 	$(WM_SOURCES)							\
 	$(GFXDRIVER_SOURCES)						\
 	$(FONTPROVIDER_SOURCES)						\
-	$(SAWMAN_SOURCES)
+	$(IMAGEPROVIDER_SOURCES)					\
+	$(SAWMAN_SOURCES)						\
+#	$(LIB_VOODOO_SOURCES)
 #	$(DIVINE_SOURCES)						\
-#	$(FUSIONDALE_SOURCES)
+#	$(FUSIONDALE_SOURCES)						\
 
 
 #
