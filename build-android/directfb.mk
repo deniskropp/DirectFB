@@ -366,6 +366,7 @@ DIRECTFB_SOURCES += \
 # DirectFB header files
 DIRECTFB_INCLUDES += \
 	-I$(DFB_INCLUDE_PATH)/build-android				\
+	-I$(DFB_INCLUDE_PATH)/build-android/Android			\
 	-I$(DFB_INCLUDE_PATH)/include					\
 	-I$(DFB_INCLUDE_PATH)/lib					\
 	-I$(DFB_INCLUDE_PATH)/src					\
@@ -373,7 +374,6 @@ DIRECTFB_INCLUDES += \
 	-I$(DFB_INCLUDE_PATH)/proxy/requestor				\
 	-I$(DFB_INCLUDE_PATH)/proxy/dispatcher			\
 	-I$(DFB_INCLUDE_PATH)/systems				\
-	-I../Android				\
 	$(FREETYPE_INCLUDES)
 
 
