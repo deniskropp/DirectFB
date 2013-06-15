@@ -230,7 +230,8 @@ public:
      LockTask()
           :
           SurfaceTask( CSAID_CPU ),
-          pushed( false )
+          pushed( false ),
+          timeout( false )
      {
           direct_mutex_init( &lock );
           direct_waitqueue_init( &wq );
@@ -242,18 +243,31 @@ public:
           direct_waitqueue_deinit( &wq );
      }
 
-     void Wait()
+     bool Wait()
      {
           direct_mutex_lock( &lock );
 
-          while (!pushed)
-               direct_waitqueue_wait( &wq, &lock );
+          while (!pushed) {
+               if (direct_waitqueue_wait_timeout( &wq, &lock, 20000000 ) == DR_TIMEOUT) {
+                    D_ERROR( "CoreSurface/LockTask: Timeout waiting for task!\n" );
+                    DirectFB::TaskManager::dumpTasks();
+                    timeout = true;
+                    break;
+               }
+          }
 
           direct_mutex_unlock( &lock );
+
+          return !timeout;
      }
 
 protected:
      virtual DFBResult Push()
+     {
+          return Run();
+     }
+
+     virtual DFBResult Run()
      {
           direct_mutex_lock( &lock );
 
@@ -261,13 +275,11 @@ protected:
 
           direct_waitqueue_broadcast( &wq );
 
+          if (timeout)
+               Done();
+
           direct_mutex_unlock( &lock );
 
-          return DFB_OK;
-     }
-
-     virtual DFBResult Run()
-     {
           return DFB_OK;
      }
 
@@ -275,6 +287,7 @@ private:
      DirectMutex     lock;
      DirectWaitQueue wq;
      bool            pushed;
+     bool            timeout;
 };
 
 
@@ -347,9 +360,8 @@ ISurface_Real::PreLockBuffer(
 
           task->Flush();
 
-          task->Wait();
-
-          task->Done();
+          if (task->Wait())
+               task->Done();
      }
      else {
           ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
@@ -467,9 +479,8 @@ ISurface_Real::PreLockBuffer2(
 
                task->Flush();
 
-               task->Wait();
-
-               task->Done();
+               if (task->Wait())
+                    task->Done();
           }
           else {
                ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
@@ -559,9 +570,8 @@ ISurface_Real::PreReadBuffer(
 
                task->Flush();
 
-               task->Wait();
-
-               task->Done();
+               if (task->Wait())
+                    task->Done();
           }
           else {
                ret = dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_READ );
@@ -651,9 +661,8 @@ ISurface_Real::PreWriteBuffer(
 
                task->Flush();
 
-               task->Wait();
-
-               task->Done();
+               if (task->Wait())
+                    task->Done();
           }
           else {
                ret = dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_WRITE );
@@ -768,9 +777,8 @@ ISurface_Real::PreLockBuffer3(
 
                task->Flush();
 
-               task->Wait();
-
-               task->Done();
+               if (task->Wait())
+                    task->Done();
           }
           else {
                ret = dfb_surface_pool_prelock( allocation->pool, allocation, accessor, access );
