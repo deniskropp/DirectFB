@@ -258,7 +258,8 @@ protected:
      virtual DFBResult Run();
      virtual void      Finalise();
 public:
-     virtual void      Describe( Direct::String &string ) const;
+     virtual void                  Describe( Direct::String &string ) const;
+     virtual const Direct::String &TypeName() const;
 
 protected:
      TaskState state;
@@ -343,6 +344,9 @@ public:
      void DumpLog( DirectLogDomain &domain, DirectLogLevel level );
      void DumpTree( int indent = 0 );
      Direct::String &Description();
+
+private:
+     static const Direct::String _Type;
 };
 
 
@@ -513,7 +517,8 @@ protected:
      virtual DFBResult Setup();
      virtual void      Finalise();
 public:
-     virtual void      Describe( Direct::String &string ) const;
+     virtual void                  Describe( Direct::String &string ) const;
+     virtual const Direct::String &TypeName() const;
 
 protected:
      virtual DFBResult CacheFlush();
@@ -541,6 +546,9 @@ public://private:
 
           return ret;
      }
+
+private:
+     static const Direct::String _Type;
 };
 
 
@@ -572,7 +580,8 @@ protected:
      virtual DFBResult Run();
      virtual void      Finalise();
 public:
-     virtual void      Describe( Direct::String &string ) const;
+     virtual void                  Describe( Direct::String &string ) const;
+     virtual const Direct::String &TypeName() const;
 
 private:
      CoreLayerRegion       *region;
@@ -593,6 +602,9 @@ public:
      long long GetPTS() const {
           return pts;
      }
+
+private:
+     static const Direct::String _Type;
 };
 
 

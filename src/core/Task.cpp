@@ -846,7 +846,8 @@ Task::Finalise()
 void
 Task::Describe( Direct::String &string ) const
 {
-     string.PrintF( "0x%08lx   %-7s flags:%20s notifies:%2zu block_count:%2d slaves:%2d master:%s finished:%s qid:0x%llx",
+     string.PrintF( "%-12s 0x%08lx   %-7s flags:%-20s notifies:%2zu block_count:%2d slaves:%2d master:%s finished:%s qid:0x%llx",
+                    *TypeName(),
                     (unsigned long) this,
                     *ToString<DirectFB::TaskState>(state),
                     *ToString<DirectFB::TaskFlags>(flags),
@@ -1651,5 +1652,31 @@ SurfaceTask::Describe( Direct::String &string ) const
                     accesses.size() > 0 ? accesses[0].allocation : NULL,
                     accesses.size() > 0 ? accesses[0].allocation->index : -1 );
 }
+
+/**********************************************************************************************************************/
+
+const Direct::String Task::_Type( "Task" );
+const Direct::String SurfaceTask::_Type( "Surface" );
+const Direct::String DisplayTask::_Type( "Display" );
+
+
+const Direct::String &
+Task::TypeName() const
+{
+     return _Type;
+}
+
+const Direct::String &
+SurfaceTask::TypeName() const
+{
+     return _Type;
+}
+
+const Direct::String &
+DisplayTask::TypeName() const
+{
+     return _Type;
+}
+
 
 }

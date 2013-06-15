@@ -106,6 +106,9 @@ protected:
      virtual DFBResult Push();
      virtual DFBResult Run();
      virtual void      Finalise();
+public:
+     virtual void                  Describe( Direct::String &string ) const;
+     virtual const Direct::String &TypeName() const;
 
 private:
      friend class GenefxEngine;
@@ -149,7 +152,26 @@ private:
      inline void addBlittingWeight( unsigned int w ) {
           weight += 10 + (w << weight_shift_blit);
      }
+
+private:
+     static const Direct::String _Type;
 };
+
+void
+GenefxTask::Describe( Direct::String &string ) const
+{
+     SurfaceTask::Describe( string );
+
+     string.PrintF( "  clip %4d,%4d-%4dx%4d", DFB_RECTANGLE_VALS_FROM_REGION(&clip) );
+}
+
+const Direct::String &
+GenefxTask::TypeName() const
+{
+     return _Type;
+}
+
+const Direct::String GenefxTask::_Type( "Genefx" );
 
 
 class GenefxEngine : public DirectFB::Engine {
