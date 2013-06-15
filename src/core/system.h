@@ -63,8 +63,10 @@ typedef enum {
      CSCAPS_SECURE_FUSION     = 0x00000004,  /* Fusion needs to be in secure fusion mode. */
      CSCAPS_ALWAYS_INDIRECT   = 0x00000008,  /* All calls need to be indirect. */
      CSCAPS_SYSMEM_EXTERNAL   = 0x00000010,  /* Makes system memory surface pools have CSTF_EXTERNAL support. */
+     CSCAPS_DISPLAY_TASKS     = 0x00000020,  /* Calls Task_Done() on display tasks. */
+     CSCAPS_NOTIFY_DISPLAY    = 0x00000040,  /* Calls dfb_surface_notify_display2() when appropriate. */
 
-     CSCAPS_ALL               = 0x0000001F   /* All of these. */
+     CSCAPS_ALL               = 0x0000007F   /* All of these. */
 } CoreSystemCapabilities;
 
 /*

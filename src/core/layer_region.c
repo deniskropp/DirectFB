@@ -48,6 +48,7 @@
 #include <core/layers_internal.h>
 #include <core/screen.h>
 #include <core/surface.h>
+#include <core/system.h>
 
 #include <core/CoreLayerRegion.h>
 #include <core/Task.h>
@@ -101,7 +102,7 @@ region_destructor( FusionObject *object, bool zombie, void *ctx )
           TaskList_Delete( region->display_tasks );
 
      /* Remove the region from the context. */
-     ret = fusion_object_lookup( core_dfb->shared->layer_context_pool, region->context_id, &context );
+     ret = fusion_object_lookup( core_dfb->shared->layer_context_pool, region->context_id, (FusionObject**) &context );
      if (ret == DFB_OK)
           dfb_layer_context_remove_region( context, region );
 
@@ -557,6 +558,12 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                                                        update, &left,
                                                        NULL, NULL );
 
+                         if (!(dfb_system_caps() & CSCAPS_NOTIFY_DISPLAY)) {
+                              D_DEBUG_AT( Core_Layers, "  -> system WITHOUT notify_display support, calling it now\n" );
+
+                              dfb_surface_notify_display2( surface, left.allocation->index, NULL );
+                         }
+
                          /* Unlock region buffer since the lock is no longer needed. */
                          region_buffer_unlock(region, &left, NULL);
                     }
@@ -644,6 +651,12 @@ update_only:
                                                &rotated, &left,
                                                NULL, NULL );
 
+                    if (!(dfb_system_caps() & CSCAPS_NOTIFY_DISPLAY)) {
+                         D_DEBUG_AT( Core_Layers, "  -> system WITHOUT notify_display support, calling it now\n" );
+
+                         dfb_surface_notify_display2( surface, left.allocation->index, NULL );
+                    }
+
                     /* Unlock region buffer since the lock is no longer needed. */
                     if (surface)
                          region_buffer_unlock(region, &left, NULL);
@@ -655,9 +668,9 @@ update_only:
                ret = DFB_BUG;
      }
 
-     D_DEBUG_AT( Core_Layers, "  -> done.\n" );
-
      dfb_surface_dispatch_update( surface, update, update, -1 );
+
+     D_DEBUG_AT( Core_Layers, "  -> done.\n" );
 
 out:
      dfb_surface_unlock( surface );

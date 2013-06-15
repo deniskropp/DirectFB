@@ -48,6 +48,7 @@ extern "C" {
 #include <core/core.h>
 #include <core/screen.h>
 #include <core/surface_pool.h>
+#include <core/system.h>
 
 #include <gfx/util.h>
 }
@@ -277,7 +278,7 @@ DisplayTask::Generate( CoreLayerRegion      *region,
 DFBResult
 DisplayTask::Setup()
 {
-     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p ) <- prev %p\n", __FUNCTION__, this, layer->display_task );
 
      if (layer->display_task)
           layer->display_task->AddNotify( this, true );
@@ -322,7 +323,7 @@ CoreLayersFPSHandle( CoreLayer *layer )
 void
 DisplayTask::Finalise()
 {
-     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p ) <- prev %p\n", __FUNCTION__, this, layer->display_task );
 
      D_ASSERT( layer != NULL );
 
@@ -451,6 +452,13 @@ DisplayTask::Run()
                                                   surface, flip_flags,
                                                   left_update, &left,
                                                   stereo ? right_update : NULL, stereo ? &right : NULL );
+
+                    if (!(dfb_system_caps() & CSCAPS_NOTIFY_DISPLAY)) {
+                         D_DEBUG_AT( DirectFB_Task_Display, "  -> system WITHOUT notify_display support, calling it now\n" );
+
+                         dfb_surface_notify_display2( surface, left.allocation->index, this );
+                    }
+
                     break;
                }
 
@@ -486,6 +494,12 @@ DisplayTask::Run()
                                                surface,
                                                &left_rotated, &left,
                                                stereo ? &right_rotated : NULL, stereo ? &right : NULL );
+
+                    if (!(dfb_system_caps() & CSCAPS_NOTIFY_DISPLAY)) {
+                         D_DEBUG_AT( DirectFB_Task_Display, "  -> system WITHOUT notify_display support, calling it now\n" );
+
+                         dfb_surface_notify_display2( surface, left.allocation->index, this );
+                    }
                }
                break;
 
@@ -493,6 +507,7 @@ DisplayTask::Run()
                D_BUG("unknown buffer mode");
                ret = DFB_BUG;
      }
+
 
 out:
      dfb_layer_region_unlock( region );
@@ -511,6 +526,14 @@ out:
 
      if (ret)
           Done( ret );
+     else if (!(dfb_system_caps() & CSCAPS_DISPLAY_TASKS)) {
+          D_DEBUG_AT( DirectFB_Task_Display, "  -> system WITHOUT display task support, calling Task_Done on previous task\n" );
+
+          if (layer->prev_task)
+               layer->prev_task->Done();
+
+          layer->prev_task = this;
+     }
 
      return ret;
 }
