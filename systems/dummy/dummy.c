@@ -431,7 +431,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_ANY;
-     info->caps = CSCAPS_SYSMEM_EXTERNAL;
+     info->caps = CSCAPS_SYSMEM_EXTERNAL | CSCAPS_DISPLAY_TASKS | CSCAPS_NOTIFY_DISPLAY;
 
      direct_snputs( info->name, "Dummy", DFB_CORE_SYSTEM_INFO_NAME_LENGTH );
 }
