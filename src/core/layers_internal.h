@@ -100,6 +100,8 @@ struct __DFB_CoreLayer {
      DFB_SurfaceTask         *display_task_onscreen;
 
      DFB_Util_FPS            *fps;
+
+     DFB_DisplayTask         *prev_task;
 };
 
 typedef enum {
