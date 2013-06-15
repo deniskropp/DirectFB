@@ -286,6 +286,8 @@ dfb_system_lookup( void )
                system_module = module;
                system_funcs  = funcs;
 
+               memset( &system_info, 0, sizeof(system_info) );
+
                funcs->GetSystemInfo( &system_info );
           }
           else
