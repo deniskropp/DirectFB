@@ -591,6 +591,8 @@ Task::emit( int following )
 
      notifyAll( TASK_RUNNING );
 
+     if (flags & TASK_FLAG_EMITNOTIFIES)
+          notifyAll( TASK_DONE );
 
 #if 0
      if (flags & TASK_FLAG_EMITNOTIFIES) {
@@ -902,7 +904,7 @@ Task::AddNotify( Task *notified,
           return;
      }
 
-     if (state == TASK_DONE) {
+     if (state == TASK_DONE && slaves == 0) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, done already!\n" );
 
           return;
