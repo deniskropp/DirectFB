@@ -1116,6 +1116,20 @@ Task::Description()
      return description;
 }
 
+void
+Task::AddFlags( TaskFlags flags )
+{
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p, %s )\n", __FUNCTION__, this, *ToString<TaskFlags>(flags) );
+
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_NEW, return );
+
+     DFB_TASK_LOG( Direct::String::F( "AddFlags( %s )", *ToString<TaskFlags>(flags) ) );
+
+     this->flags = (TaskFlags)(this->flags | flags);
+}
+
 /*********************************************************************************************************************/
 
 DirectThread     *TaskManager::thread;
@@ -1486,7 +1500,8 @@ SurfaceTask::Setup()
 
                          D_DEBUG_AT( DirectFB_Task, "       [%zu] %s\n", r, *ToString<Task>(*read_task) );
 
-                         read_task->AddNotify( this, read_task->accessor == accessor && read_task->qid == qid );
+                         read_task->AddNotify( this, (read_task->accessor == accessor && read_task->qid == qid) ||
+                                                     (flags & TASK_FLAG_FOLLOW_READER) );
                     }
 
                     read_tasks.Clear();
@@ -1505,7 +1520,8 @@ SurfaceTask::Setup()
                     if (write_task->accessor == accessor)
                          D_FLAGS_CLEAR( write_access->flags, CSAF_CACHE_FLUSH );
 
-                    write_task->AddNotify( this, write_task->accessor == accessor && write_task->qid == qid );
+                    write_task->AddNotify( this, (write_task->accessor == accessor && write_task->qid == qid) ||
+                                                 (flags & TASK_FLAG_FOLLOW_WRITER) );
                }
                else
                     D_ASSERT( access.allocation->write_access == NULL );
@@ -1530,7 +1546,8 @@ SurfaceTask::Setup()
                     // requires special handling to take care about other read tasks
                     // and to carry on the flush flag to the read task
 
-                    write_task->AddNotify( this, write_task->accessor == accessor && write_task->qid == qid );
+                    write_task->AddNotify( this, (write_task->accessor == accessor && write_task->qid == qid) ||
+                                                 (flags & TASK_FLAG_FOLLOW_WRITER) );
                }
 
                // TODO: optimise in case we are already added, then just replace the task, maybe use static array with entry per accessor

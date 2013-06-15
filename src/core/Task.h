@@ -216,8 +216,10 @@ typedef enum {
      TASK_FLAG_CACHE_INVALIDATE = 0x00000008,     /*  */
      TASK_FLAG_NEED_SLAVE_PUSH  = 0x00000010,     /* Push() of master does not take care about Push() for slaves */
      TASK_FLAG_LAST_IN_QUEUE    = 0x00000020,     /* Task has been last in queue and no next task was pushed to FIFO */
+     TASK_FLAG_FOLLOW_READER    = 0x00000040,     /* Use 'follow' when depending on read tasks */
+     TASK_FLAG_FOLLOW_WRITER    = 0x00000080,     /* Use 'follow' when depending on write tasks */
 
-     TASK_FLAG_ALL              = 0x0000003F
+     TASK_FLAG_ALL              = 0x000000FF
 } TaskFlags;
 
 
@@ -344,6 +346,7 @@ public:
      void DumpLog( DirectLogDomain &domain, DirectLogLevel level );
      void DumpTree( int indent = 0 );
      Direct::String &Description();
+     void AddFlags( TaskFlags flags );
 
 private:
      static const Direct::String _Type;
