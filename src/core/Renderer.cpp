@@ -2130,8 +2130,12 @@ Renderer::Throttle::Hook::finalise( SurfaceTask *task )
           throttle.SetThrottle( 0 );
      }
 
+     throttle.lwq.lock();
+
      if (!--throttle.task_count)
           throttle.lwq.notifyAll();
+
+     throttle.lwq.unlock();
 
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count  %d\n", throttle.task_count );
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> cookie %u\n", cookie );
