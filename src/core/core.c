@@ -1219,13 +1219,13 @@ dfb_core_wait_all( CoreDFB   *core,
                shared->window_pool
           };
 
+          long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
           for (i=0; i<D_ARRAY_SIZE(pools); i++) {
                if (pools[i]) {
                     unsigned int num = fusion_hash_size( pools[i]->objects );
 
                     if (num > 0) {
-                         long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-
                          if (now - start >= timeout) {
                               D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in pool, timeout!\n", num );
                               return DR_TIMEOUT;
@@ -1685,7 +1685,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
      DFBResult      ret;
      CoreDFBShared *shared;
-     int            loops = 1;
+     int            loops = 3;
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
@@ -1711,7 +1711,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      while (loops--) {
           dfb_gfx_cleanup();
 
-          ret = dfb_core_wait_all( core, 500000 );
+          ret = dfb_core_wait_all( core, 200000 );
           if (ret == DFB_OK)
                break;
      }
