@@ -23,8 +23,8 @@ Quick info
 
 
 	Then go to the df_andi or df_window subfolders located in build-android and type
-		ndk-debug
-
+		./prepare.sh
+		ndk-build
 		ant debug
 
 	to get an .apk in bin/.

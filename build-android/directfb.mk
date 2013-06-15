@@ -1,6 +1,6 @@
 KERNEL = $(LOCAL_PATH)/Kernel
 
-FREETYPE_SRC_PATH:= freetype2-android
+FREETYPE_SRC_PATH:= $(DFB_SOURCE)/build-android/freetype2-android
 FREETYPE_INCLUDES:= -I ../$(FREETYPE_SRC_PATH)/include/freetype -I ../$(FREETYPE_SRC_PATH)/include -I ../$(FREETYPE_SRC_PATH)/src
 
 FREETYPE_SOURCES := \
@@ -28,6 +28,7 @@ FREETYPE_SOURCES := \
 
 
 LOCAL_CFLAGS = -I.  -I.. -I../.. -I../../.. $(INCLUDES) $(CFLAGS) $(CPPFLAGS) -DANDROID_NDK   -fno-short-enums -DFT2_BUILD_LIBRARY=1
+LOCAL_CXXFLAGS = -frtti
 LOCAL_LDFLAGS = -lEGL -lGLESv2 -llog -landroid 
 
 #
@@ -160,6 +161,7 @@ LIB_FUSION_SOURCES = \
 	$(DFB_SOURCE)/lib/fusion/arena.c				\
 	$(DFB_SOURCE)/lib/fusion/call.c				\
 	$(DFB_SOURCE)/lib/fusion/conf.c				\
+	$(DFB_SOURCE)/lib/fusion/Debug.cpp			\
 	$(DFB_SOURCE)/lib/fusion/fusion.c				\
 	$(DFB_SOURCE)/lib/fusion/hash.c				\
 	$(DFB_SOURCE)/lib/fusion/lock.c				\
@@ -204,6 +206,7 @@ DIRECTFB_SOURCES = \
 	$(DFB_SOURCE)/src/core/colorhash.c				\
 	$(DFB_SOURCE)/src/core/core.c				\
 	$(DFB_SOURCE)/src/core/core_parts.c			\
+	$(DFB_SOURCE)/src/core/Debug.cpp			\
 	$(DFB_SOURCE)/src/core/fonts.c				\
 	$(DFB_SOURCE)/src/core/gfxcard.c				\
 	$(DFB_SOURCE)/src/core/graphics_state.c			\
@@ -296,7 +299,7 @@ DIRECTFB_SOURCES = \
 
 #
 # DirectFB requestor object files
-DIRECTFB_SOURCES += $(DFB_SOURCE)/proxy/requestor/idirectfb_requestor.c \
+LIB_VOODOO_SOURCES += $(DFB_SOURCE)/proxy/requestor/idirectfb_requestor.c \
 	$(DFB_SOURCE)/proxy/requestor/idirectfbdatabuffer_requestor.c \
 	$(DFB_SOURCE)/proxy/requestor/idirectfbdisplaylayer_requestor.c \
 	$(DFB_SOURCE)/proxy/requestor/idirectfbeventbuffer_requestor.c \
@@ -310,7 +313,7 @@ DIRECTFB_SOURCES += $(DFB_SOURCE)/proxy/requestor/idirectfb_requestor.c \
 
 #
 # DirectFB dispatcher object files
-DIRECTFB_SOURCES += $(DFB_SOURCE)/proxy/dispatcher/idirectfb_dispatcher.c \
+LIB_VOODOO_SOURCES += $(DFB_SOURCE)/proxy/dispatcher/idirectfb_dispatcher.c \
 	$(DFB_SOURCE)/proxy/dispatcher/idirectfbdatabuffer_dispatcher.c \
 	$(DFB_SOURCE)/proxy/dispatcher/idirectfbdisplaylayer_dispatcher.c \
 	$(DFB_SOURCE)/proxy/dispatcher/idirectfbeventbuffer_dispatcher.c \
@@ -324,7 +327,11 @@ DIRECTFB_SOURCES += $(DFB_SOURCE)/proxy/dispatcher/idirectfb_dispatcher.c \
 
 #
 # DirectFB Windows extension
+
 DIRECTFB_SOURCES += \
+        $(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_default.c    \
+
+LIB_VOODOO_SOURCES += \
 	$(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_default.c	\
 	$(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_dispatcher.c	\
 	$(DFB_SOURCE)/interfaces/IDirectFBWindows/idirectfbwindows_requestor.c
@@ -334,6 +341,9 @@ WM_SOURCES = \
 
 FONTPROVIDER_SOURCES = \
 	$(DFB_SOURCE)/interfaces/IDirectFBFont/idirectfbfont_ft2.c
+
+IMAGEPROVIDER_SOURCES = \
+	$(DFB_SOURCE)/interfaces/IDirectFBImageProvider/idirectfbimageprovider_dfiff.c
 
 GFXDRIVER_SOURCES = \
 	$(DFB_SOURCE)/gfxdrivers/gles2/gles2_2d.c	\
@@ -355,6 +365,8 @@ DIRECTFB_SOURCES += \
 #
 # DirectFB header files
 DIRECTFB_INCLUDES += \
+	-I$(DFB_INCLUDE_PATH)/build-android				\
+	-I$(DFB_INCLUDE_PATH)/build-android/Android			\
 	-I$(DFB_INCLUDE_PATH)/include					\
 	-I$(DFB_INCLUDE_PATH)/lib					\
 	-I$(DFB_INCLUDE_PATH)/src					\
@@ -362,7 +374,6 @@ DIRECTFB_INCLUDES += \
 	-I$(DFB_INCLUDE_PATH)/proxy/requestor				\
 	-I$(DFB_INCLUDE_PATH)/proxy/dispatcher			\
 	-I$(DFB_INCLUDE_PATH)/systems				\
-	-I../Android				\
 	$(FREETYPE_INCLUDES)
 
 
@@ -387,6 +398,7 @@ CPPFLAGS += -DDIVINE_MAJOR_VERSION=1 -DDIVINE_MINOR_VERSION=6
 #
 # SaWMan object files
 SAWMAN_SOURCES = \
+	$(DFB_SOURCE)/lib/sawman/Debug.cpp			\
 	$(DFB_SOURCE)/lib/sawman/isawman.c			\
 	$(DFB_SOURCE)/lib/sawman/isawmanmanager.c		\
 	$(DFB_SOURCE)/lib/sawman/region.c			\
@@ -395,14 +407,13 @@ SAWMAN_SOURCES = \
 	$(DFB_SOURCE)/lib/sawman/sawman_draw.c		\
 	$(DFB_SOURCE)/lib/sawman/sawman_updates.c		\
 	$(DFB_SOURCE)/lib/sawman/sawman_window.c		\
-	$(DFB_SOURCE)/wm/sawman/sawman_wm.c		\
 	$(DFB_SOURCE)/lib/sawman/SaWMan.cpp			\
 	$(DFB_SOURCE)/lib/sawman/SaWMan_real.cpp		\
 	$(DFB_SOURCE)/lib/sawman/SaWManManager.cpp		\
 	$(DFB_SOURCE)/lib/sawman/SaWManManager_real.cpp	\
 	$(DFB_SOURCE)/lib/sawman/SaWManProcess.cpp		\
-	$(DFB_SOURCE)/lib/sawman/SaWManProcess_real.cpp
-
+	$(DFB_SOURCE)/lib/sawman/SaWManProcess_real.cpp		\
+	$(DFB_SOURCE)/wm/sawman/sawman_wm.c
 
 #
 # SaWMan header files
@@ -444,7 +455,6 @@ FUSIONDALE_SOURCES = \
 LOCAL_SRC_FILES := \
 	$(DIRECTFB_APP_SOURCES)						\
 	$(FREETYPE_SOURCES)						\
-	$(LIB_VOODOO_SOURCES)						\
 	$(LIB_DIRECT_SOURCES)						\
 	$(LIB_FUSION_SOURCES)						\
 	$(LIB_FUSION_SOURCES_SINGLE)					\
@@ -452,9 +462,11 @@ LOCAL_SRC_FILES := \
 	$(WM_SOURCES)							\
 	$(GFXDRIVER_SOURCES)						\
 	$(FONTPROVIDER_SOURCES)						\
-	$(SAWMAN_SOURCES)
+	$(IMAGEPROVIDER_SOURCES)					\
+	$(SAWMAN_SOURCES)						\
+#	$(LIB_VOODOO_SOURCES)
 #	$(DIVINE_SOURCES)						\
-#	$(FUSIONDALE_SOURCES)
+#	$(FUSIONDALE_SOURCES)						\
 
 
 #
