@@ -935,6 +935,8 @@ Task::notifyAll( TaskState state )
 
      for (std::vector<TaskNotify>::iterator it = notifies.begin(); it != notifies.end(); ) {
           if ((*it).second & state) {
+               DFB_TASK_LOG( Direct::String::F( "  notifying %p", (*it).first ) );
+
                (*it).first->handleNotify( 0 );
 
                it = notifies.erase( it );
@@ -1083,6 +1085,20 @@ Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
                direct_trace_print_stack( (*it).trace );
      }
 #endif
+}
+
+void
+Task::DumpTree( int indent )
+{
+     D_MAGIC_ASSERT( this, Task );
+
+     direct_log_printf( NULL, "%d%*s%s\n", indent, indent, "", *Description() );
+
+     for (std::vector<TaskNotify>::iterator it = notifies.begin(); it != notifies.end(); it++) {
+          Task *task = (*it).first;
+
+          task->DumpTree( indent + 4 );
+     }
 }
 
 Direct::String &
@@ -1341,7 +1357,16 @@ TaskManager::dumpTasks()
 #if DFB_TASK_DEBUG_TASKS
      direct_mutex_lock( &TaskManager::tasks_lock );
 
-     direct_log_printf( NULL, "task       | state   | flags | no | bl | sl | is | finished\n" );
+     direct_log_printf( NULL, "\ntask tree\n" );
+
+     for (std::list<Task*>::const_iterator it = tasks.begin(); it != tasks.end(); it++) {
+          Task *task = *it;
+
+          task->DumpTree( 5 );
+     }
+
+
+     direct_log_printf( NULL, "\ntask       | state   | flags | no | bl | sl | is | finished\n" );
 
      for (std::list<Task*>::const_iterator it = tasks.begin(); it != tasks.end(); it++) {
           Task *task = *it;

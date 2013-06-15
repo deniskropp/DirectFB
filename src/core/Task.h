@@ -341,6 +341,7 @@ private:
 public:
      void Log( const std::string &action );
      void DumpLog( DirectLogDomain &domain, DirectLogLevel level );
+     void DumpTree( int indent = 0 );
      Direct::String &Description();
 };
 
