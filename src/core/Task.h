@@ -42,10 +42,16 @@ extern "C" {
 
 #include <directfb.h>
 
-
+#if D_DEBUG_ENABLED
+#define DFB_TASK_DEBUG_LOG    (1)  // Task::Log(), DumpLog() enabled
+#define DFB_TASK_DEBUG_STATE  (1)  // DFB_TASK_CHECK_STATE with warning and task log if enabled
+#define DFB_TASK_DEBUG_TASKS  (1)  // TaskManager::dumpTasks() enabled
+#else
 #define DFB_TASK_DEBUG_LOG    (0)  // Task::Log(), DumpLog() enabled
 #define DFB_TASK_DEBUG_STATE  (0)  // DFB_TASK_CHECK_STATE with warning and task log if enabled
 #define DFB_TASK_DEBUG_TASKS  (0)  // TaskManager::dumpTasks() enabled
+#endif
+
 #define DFB_TASK_DEBUG_TIMES  (0)  // print warnings when task operations exceed time limits (set below)
 #define DFB_TASK_DEBUG_TIMING (0)  // measure time it took the task in each state
 
