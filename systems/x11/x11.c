@@ -239,8 +239,9 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 static void
 system_get_info( CoreSystemInfo *info )
 {
-     info->type = CORE_X11;   
-     info->caps = CSCAPS_ACCELERATION | CSCAPS_PREFER_SHM | CSCAPS_SYSMEM_EXTERNAL;
+     info->type = CORE_X11;
+     info->caps = CSCAPS_ACCELERATION  | CSCAPS_PREFER_SHM | CSCAPS_SYSMEM_EXTERNAL |
+                  CSCAPS_DISPLAY_TASKS | CSCAPS_NOTIFY_DISPLAY;
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
