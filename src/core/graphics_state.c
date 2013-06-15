@@ -127,6 +127,9 @@ dfb_graphics_state_create( CoreDFB            *core,
 
      CoreGraphicsState_Init_Dispatch( core, state, &state->call );
 
+     if (dfb_config->graphics_state_call_limit)
+          fusion_call_set_quota( &state->call, state->object.identity, dfb_config->graphics_state_call_limit );
+
      D_MAGIC_SET( state, CoreGraphicsState );
 
      /* activate object */
