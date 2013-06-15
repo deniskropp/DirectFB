@@ -48,7 +48,8 @@ extern "C" {
 #include <gfx/clip.h>
 }
 
-D_DEBUG_DOMAIN( DirectFB_CoreGraphicsState, "DirectFB/CoreGraphicsState", "DirectFB CoreGraphicsState" );
+D_DEBUG_DOMAIN( DirectFB_CoreGraphicsState,          "DirectFB/CoreGraphicsState",          "DirectFB CoreGraphicsState" );
+D_DEBUG_DOMAIN( DirectFB_CoreGraphicsState_Throttle, "DirectFB/CoreGraphicsState/Throttle", "DirectFB CoreGraphicsState Throttle" );
 
 /*********************************************************************************************************************/
 
@@ -372,11 +373,14 @@ public:
         Throttle( renderer ),
         state( state )
     {
+        D_DEBUG_AT( DirectFB_CoreGraphicsState_Throttle, "ThrottleGraphicsState::%s( %p )\n", __FUNCTION__, this );
     }
 
 protected:
     virtual void SetThrottle( int percent )
     {
+        D_DEBUG_AT( DirectFB_CoreGraphicsState_Throttle, "ThrottleGraphicsState::%s( %p, %d )\n", __FUNCTION__, this, percent );
+
         fusion_call_set_quota( &state->call, state->object.identity, percent ? 0 : (dfb_config->graphics_state_call_limit ?: 0xffffffff) );
     }
 };
