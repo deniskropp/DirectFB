@@ -99,6 +99,8 @@ typedef struct {
 
      CardState                     state;
      CoreGraphicsStateClient       client;
+
+     FusionSkirmish                update_skirmish;
 } WMData;
 
 typedef struct {
@@ -152,8 +154,6 @@ typedef struct {
      CoreLayerRegion              *region;
      CoreSurface                  *surface;
      Reaction                      surface_reaction;
-
-     FusionSkirmish                update_skirmish;
 } StackData;
 
 typedef struct {
@@ -1401,7 +1401,8 @@ defaultwm_surface_display_notify( void     *ctx,
      D_ASSERT( data != NULL );
      D_ASSERT( data->region != NULL );
      D_ASSUME( data->region->config.buffermode == DLBM_TRIPLE );
-     fusion_skirmish_prevail( &data->update_skirmish );
+
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
 
      D_ASSUME( data->updated.num_regions > 0 );
 
@@ -1446,7 +1447,9 @@ defaultwm_surface_display_notify( void     *ctx,
 
      CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
 
-     fusion_skirmish_dismiss( &data->update_skirmish );
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
+
+     dfb_layer_region_unref( data->region );
 
      Task_Done( task );
 
@@ -1509,6 +1512,8 @@ flush_updating( StackData *data )
                if (ret)
                     D_DERROR( ret, "WM/Default: Simple Task creation failed!\n" );
                else {
+                    dfb_layer_region_ref( data->region );
+
                     Task_AddNotify( display_task, display_notify_task, true );
 
                     /* Must be flushed before display task, otherwise Task Manager will
@@ -1568,7 +1573,7 @@ repaint_stack( CoreWindowStack     *stack,
 
      D_DEBUG_AT( WM_Default, "repaint_stack( %d region(s), flags %x )\n", num_updates, flags );
 
-     fusion_skirmish_prevail( &data->update_skirmish );
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
 
      /* Set destination. */
      state->destination  = surface;
@@ -1674,7 +1679,7 @@ repaint_stack( CoreWindowStack     *stack,
 
      CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
 
-     fusion_skirmish_dismiss( &data->update_skirmish );
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 }
 
 static DFBResult
@@ -3325,6 +3330,8 @@ local_deinit( WMData *wmdata )
 static DFBResult
 local_ref( WMData *wmdata )
 {
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
+
      if (!wmdata->refs) {
           DFBResult ret;
 
@@ -3335,11 +3342,14 @@ local_ref( WMData *wmdata )
           ret = CoreGraphicsStateClient_Init( &wmdata->client, &wmdata->state );
           if (ret) {
                dfb_state_destroy( &wmdata->state );
+               fusion_skirmish_dismiss( &wmdata->update_skirmish );
                return ret;
           }
      }
 
      wmdata->refs++;
+
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 
      return DFB_OK;
 }
@@ -3349,11 +3359,15 @@ local_unref( WMData *wmdata )
 {
      D_ASSERT( wmdata->refs > 0 );
 
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
+
      if (!--wmdata->refs) {
           CoreGraphicsStateClient_Deinit( &wmdata->client );
 
           dfb_state_destroy( &wmdata->state );
      }
+
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 }
 
 /**************************************************************************************************/
@@ -3376,7 +3390,10 @@ wm_get_info( CoreWMInfo *info )
 static DFBResult
 wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
 {
-     DFBResult ret;
+     DFBResult  ret;
+     WMData    *wmdata = wm_data;
+
+     fusion_skirmish_init2( &wmdata->update_skirmish, "WM/Update", dfb_core_world(wmdata->core), fusion_config->secure_fusion );
 
      ret = local_init( wm_data, core );
      if (ret)
@@ -3400,7 +3417,11 @@ wm_join( CoreDFB *core, void *wm_data, void *shared_data )
 static DFBResult
 wm_shutdown( bool emergency, void *wm_data, void *shared_data )
 {
+     WMData *wmdata = wm_data;
+
      local_deinit( wm_data );
+
+     fusion_skirmish_destroy( &wmdata->update_skirmish );
 
      return DFB_OK;
 }
@@ -3454,7 +3475,8 @@ defaultwm_surface_reaction( const void *msg_data,
 
           switch (data->region->config.buffermode) {
                case DLBM_TRIPLE:
-                    fusion_skirmish_prevail( &data->update_skirmish );
+                    fusion_skirmish_prevail( &wmdata->update_skirmish );
+
                     //ret = dfb_layer_context_lock( data->region->context );
                     //if (ret) {
                     //     D_DERROR( ret, "WM/Default/SurfaceReaction: Could not lock layer context!\n" );
@@ -3502,7 +3524,8 @@ defaultwm_surface_reaction( const void *msg_data,
                          flush_updating( data );
                     }
 
-                    fusion_skirmish_dismiss( &data->update_skirmish );
+                    fusion_skirmish_dismiss( &wmdata->update_skirmish );
+
                     //dfb_layer_context_unlock( data->region->context );
                     break;
 
@@ -3522,7 +3545,6 @@ wm_init_stack( CoreWindowStack *stack,
      DFBResult  ret;
      int        i;
      StackData *data = stack_data;
-     WMData    *wmdata = wm_data;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -3552,8 +3574,6 @@ wm_init_stack( CoreWindowStack *stack,
 
      dfb_layer_region_globalize( data->region );
      dfb_surface_globalize( data->surface );
-
-     fusion_skirmish_init2( &data->update_skirmish, "WM/Update", dfb_core_world(wmdata->core), fusion_config->secure_fusion );
 
      if (!dfb_config->task_manager)
           dfb_surface_attach( data->surface, defaultwm_surface_reaction, data, &data->surface_reaction );
@@ -3602,8 +3622,6 @@ wm_close_stack( CoreWindowStack *stack,
      /* Destroy backing store of software cursor. */
      if (data->cursor_bs)
           dfb_surface_unlink( &data->cursor_bs );
-
-     fusion_skirmish_destroy( &data->update_skirmish );
 
      /* Free grabbed keys. */
      direct_list_foreach_safe (l, next, data->grabbed_keys)
@@ -4450,7 +4468,7 @@ wm_update_cursor( CoreWindowStack       *stack,
      surface = primary->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     fusion_skirmish_prevail( &data->update_skirmish );
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
 
      /* restore region under cursor */
      if (data->cursor_drawn) {
@@ -4599,7 +4617,7 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
 
-     fusion_skirmish_dismiss( &data->update_skirmish );
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 
      return DFB_OK;
 }
