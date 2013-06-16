@@ -120,8 +120,6 @@ public:
 
      Object *Get( void *params = NULL )
      {
-          Mutex::Lock l1( lock );
-
           Object *obj = (Object*) direct_tls_get( tls );
 
           if (!obj) {
@@ -129,7 +127,9 @@ public:
                if (!obj)
                     return NULL;
 
+               lock.lock();
                list.push_back( obj );
+               lock.unlock();
 
                direct_tls_set( tls, obj );
           }
@@ -139,14 +139,14 @@ public:
 
      void Delete()
      {
-          Mutex::Lock l1( lock );
-
           Object *obj = (Object*) direct_tls_get( tls );
 
           if (obj) {
                direct_tls_set( tls, NULL );
 
+               lock.lock();
                list.remove( obj );
+               lock.unlock();
 
                delete obj;
           }
@@ -154,16 +154,19 @@ public:
 
      void DeleteAll()
      {
-          Mutex::Lock l1( lock );
+          lock.lock();
 
-          for (typename std::list<Object*>::iterator it=list.begin(); it!=list.end(); ) {
-               delete *it;
+          std::list<Object*>  list_copy = list;
 
-               it = list.erase( it );
-          }
+          list.clear();
 
           direct_tls_unregister( &tls );
           direct_tls_register( &tls, TLSObject2::destructor );
+
+          lock.unlock();
+
+          for (typename std::list<Object*>::iterator it=list_copy.begin(); it!=list_copy.end(); it++)
+               delete *it;
      }
 
 private:
