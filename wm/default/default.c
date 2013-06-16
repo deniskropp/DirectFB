@@ -154,6 +154,7 @@ typedef struct {
      CoreLayerRegion              *region;
      CoreSurface                  *surface;
      Reaction                      surface_reaction;
+     DFB_Task                     *last_notify_task;
 } StackData;
 
 typedef struct {
@@ -635,7 +636,7 @@ window_at_pointer( CoreWindowStack *stack,
                                         break;
 
                                    case DSPF_RGBA4444:
-                                        pixel = *(u16*)(buf) 
+                                        pixel = *(u16*)(buf)
                                                 & 0xfff0;
                                         break;
 
@@ -1399,57 +1400,65 @@ defaultwm_surface_display_notify( void     *ctx,
      D_ASSERT( ctx != NULL );
 
      D_ASSERT( data != NULL );
-     D_ASSERT( data->region != NULL );
-     D_ASSUME( data->region->config.buffermode == DLBM_TRIPLE );
 
      fusion_skirmish_prevail( &wmdata->update_skirmish );
 
-     D_ASSUME( data->updated.num_regions > 0 );
+     if (data->region != NULL) {
+          D_ASSUME( data->region->config.buffermode == DLBM_TRIPLE );
 
-     if (data->updated.num_regions) {
-          if (data->region->config.options & DLOP_STEREO) {
-               /* Copy back the updated region. */
+          D_ASSUME( data->updated.num_regions > 0 );
+
+          if (wmdata->refs) {
                if (data->updated.num_regions) {
-                    D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+                    if (data->region->config.options & DLOP_STEREO) {
+                         /* Copy back the updated region. */
+                         if (data->updated.num_regions) {
+                              D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
 
-                    for (i=0; i<data->updated.num_regions; i++) {
-                         D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
-                                     DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                              for (i=0; i<data->updated.num_regions; i++) {
+                                   D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                               DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                              }
+
+                              dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
+                                                           data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
+                         }
+                    }
+                    else {
+                         /* Copy back the updated region. */
+                         if (data->updated.num_regions) {
+                              D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+
+                              for (i=0; i<data->updated.num_regions; i++) {
+                                   D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                               DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                              }
+
+                              dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
+                                                           data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
+                         }
                     }
 
-                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                 data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
+                    dfb_updates_reset( &data->updated );
                }
-          }
-          else {
-               /* Copy back the updated region. */
-               if (data->updated.num_regions) {
-                    D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
 
-                    for (i=0; i<data->updated.num_regions; i++) {
-                         D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
-                                     DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
-                    }
+               if (data->updating.num_regions) {
+                    D_DEBUG_AT( WM_Default, "  -> flushing updating regions\n" );
 
-                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                 data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
+                    flush_updating( data );
                }
-          }
 
-          dfb_updates_reset( &data->updated );
+               CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
+          }
      }
 
-     if (data->updating.num_regions) {
-          D_DEBUG_AT( WM_Default, "  -> flushing updating regions\n" );
+     if (data->last_notify_task == task) {
+          data->last_notify_task = NULL;
 
-          flush_updating( data );
+          fusion_skirmish_notify( &wmdata->update_skirmish );
      }
-
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
      fusion_skirmish_dismiss( &wmdata->update_skirmish );
-
-     dfb_layer_region_unref( data->region );
 
      Task_Done( task );
 
@@ -1512,16 +1521,18 @@ flush_updating( StackData *data )
                if (ret)
                     D_DERROR( ret, "WM/Default: Simple Task creation failed!\n" );
                else {
-                    dfb_layer_region_ref( data->region );
+                    if (display_task)
+                         Task_AddNotify( display_task, display_notify_task, true );
 
-                    Task_AddNotify( display_task, display_notify_task, true );
+                    data->last_notify_task = display_notify_task;
 
                     /* Must be flushed before display task, otherwise Task Manager will
                        assert on display_notify_task state when display_task is flushed. */
                     Task_Flush( display_notify_task );
                }
 
-               Task_Flush( display_task );
+               if (display_task)
+                    Task_Flush( display_task );
           }
      }
      else
@@ -3393,7 +3404,7 @@ wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
      DFBResult  ret;
      WMData    *wmdata = wm_data;
 
-     fusion_skirmish_init2( &wmdata->update_skirmish, "WM/Update", dfb_core_world(wmdata->core), fusion_config->secure_fusion );
+     fusion_skirmish_init2( &wmdata->update_skirmish, "WM/Update", dfb_core_world(core), fusion_config->secure_fusion );
 
      ret = local_init( wm_data, core );
      if (ret)
@@ -3473,65 +3484,68 @@ defaultwm_surface_reaction( const void *msg_data,
      if (notification->flags & CSNF_DISPLAY) {
           D_DEBUG_AT( WM_Default, "  -> DISPLAY [%d]\n", notification->index );
 
-          switch (data->region->config.buffermode) {
-               case DLBM_TRIPLE:
-                    fusion_skirmish_prevail( &wmdata->update_skirmish );
+          fusion_skirmish_prevail( &wmdata->update_skirmish );
 
-                    //ret = dfb_layer_context_lock( data->region->context );
-                    //if (ret) {
-                    //     D_DERROR( ret, "WM/Default/SurfaceReaction: Could not lock layer context!\n" );
-                    //     return RS_OK;
-                    //}
+          if (wmdata->refs) {
+               switch (data->region->config.buffermode) {
+                    case DLBM_TRIPLE:
+                         //ret = dfb_layer_context_lock( data->region->context );
+                         //if (ret) {
+                         //     D_DERROR( ret, "WM/Default/SurfaceReaction: Could not lock layer context!\n" );
+                         //     return RS_OK;
+                         //}
 
-                    D_ASSUME( data->updated.num_regions > 0 );
+                         D_ASSUME( data->updated.num_regions > 0 );
 
-                    if (data->updated.num_regions) {
-                         if (data->region->config.options & DLOP_STEREO) {
-                              /* Copy back the updated region. */
-                              if (data->updated.num_regions) {
-                                   D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+                         if (data->updated.num_regions) {
+                              if (data->region->config.options & DLOP_STEREO) {
+                                   /* Copy back the updated region. */
+                                   if (data->updated.num_regions) {
+                                        D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
 
-                                   for (i=0; i<data->updated.num_regions; i++) {
-                                        D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
-                                                    DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                                        for (i=0; i<data->updated.num_regions; i++) {
+                                             D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                                         DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                                        }
+
+                                        dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
+                                                                     data->updated.regions, data->updated.num_regions, 0, 0, NULL );
                                    }
-
-                                   dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                                data->updated.regions, data->updated.num_regions, 0, 0, NULL );
                               }
-                         }
-                         else {
-                              /* Copy back the updated region. */
-                              if (data->updated.num_regions) {
-                                   D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+                              else {
+                                   /* Copy back the updated region. */
+                                   if (data->updated.num_regions) {
+                                        D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
 
-                                   for (i=0; i<data->updated.num_regions; i++) {
-                                        D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
-                                                    DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                                        for (i=0; i<data->updated.num_regions; i++) {
+                                             D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                                         DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                                        }
+
+                                        dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
+                                                                     data->updated.regions, data->updated.num_regions, 0, 0, NULL );
                                    }
-
-                                   dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                                data->updated.regions, data->updated.num_regions, 0, 0, NULL );
                               }
+
+                              dfb_updates_reset( &data->updated );
                          }
 
-                         dfb_updates_reset( &data->updated );
-                    }
+                         if (data->updating.num_regions) {
+                              D_DEBUG_AT( WM_Default, "  -> flushing updating regions\n" );
 
-                    if (data->updating.num_regions) {
-                         D_DEBUG_AT( WM_Default, "  -> flushing updating regions\n" );
+                              flush_updating( data );
+                         }
 
-                         flush_updating( data );
-                    }
+                         //dfb_layer_context_unlock( data->region->context );
+                         break;
 
-                    fusion_skirmish_dismiss( &wmdata->update_skirmish );
+                    default:
+                         break;
 
-                    //dfb_layer_context_unlock( data->region->context );
-                    break;
-
-               default:
-                    break;
+               }
           }
+
+          fusion_skirmish_dismiss( &wmdata->update_skirmish );
      }
 
      return RS_OK;
@@ -3588,8 +3602,10 @@ wm_close_stack( CoreWindowStack *stack,
                 void            *wm_data,
                 void            *stack_data )
 {
+     DFBResult   ret;
      DirectLink *l, *next;
      StackData  *data = stack_data;
+     WMData     *wmdata = wm_data;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -3599,6 +3615,8 @@ wm_close_stack( CoreWindowStack *stack,
      D_MAGIC_CLEAR( data );
 
      D_ASSUME( fusion_vector_is_empty( &data->windows ) );
+
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
 
      if (fusion_vector_has_elements( &data->windows )) {
           int         i;
@@ -3626,6 +3644,16 @@ wm_close_stack( CoreWindowStack *stack,
      /* Free grabbed keys. */
      direct_list_foreach_safe (l, next, data->grabbed_keys)
           SHFREE( stack->shmpool, l );
+
+     while (data->last_notify_task != NULL) {
+          ret = fusion_skirmish_wait( &wmdata->update_skirmish, 2000 );
+          if (ret) {
+               D_DERROR( ret, "WM/Default: Error waiting for display notify task!\n" );
+               break;
+          }
+     }
+
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 
      return DFB_OK;
 }
@@ -4124,24 +4152,24 @@ wm_set_window_config( CoreWindow             *window,
           if (config->key_selection == DWKS_LIST) {
                unsigned int             bytes = sizeof(DFBInputDeviceKeySymbol) * config->num_keys;
                DFBInputDeviceKeySymbol *keys;
-     
+
                D_ASSERT( config->keys != NULL );
                D_ASSERT( config->num_keys > 0 );
-     
+
                keys = SHMALLOC( window->stack->shmpool, bytes );
                if (!keys) {
                     D_ERROR( "WM/Default: Could not allocate %d bytes for list "
                              "of selected keys (%d)!\n", bytes, config->num_keys );
                     return D_OOSHM();
                }
-     
+
                direct_memcpy( keys, config->keys, bytes );
 
                qsort( keys, config->num_keys, sizeof(DFBInputDeviceKeySymbol), keys_compare );
-     
+
                if (window->config.keys)
                     SHFREE( window->stack->shmpool, window->config.keys );
-     
+
                window->config.keys     = keys;
                window->config.num_keys = config->num_keys;
           }
@@ -4444,7 +4472,7 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           /* Create the cursor backing store surface. */
           ret = dfb_surface_create_simple( wmdata->core, size.w, size.h,
-                                           context->config.pixelformat, context->config.colorspace, 
+                                           context->config.pixelformat, context->config.colorspace,
                                            caps, CSTF_SHARED | CSTF_CURSOR,
                                            0, /* FIXME: no shared cursor objects, no cursor id */
                                            NULL, &cursor_bs );

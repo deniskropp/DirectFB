@@ -310,6 +310,10 @@ ToString<DirectFB::TaskState>::ToString( const DirectFB::TaskState &state )
                PrintF( "DONE" );
                break;
 
+          case DirectFB::TASK_DEAD:
+               PrintF( "DEAD" );
+               break;
+
           case DirectFB::TASK_INVALID:
                PrintF( "INVALID" );
                break;

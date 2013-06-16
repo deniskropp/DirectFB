@@ -82,6 +82,7 @@ class GenefxTask : public DirectFB::SurfaceTask
 public:
      GenefxTask( GenefxEngine    *engine,
                  const DFBRegion &clip,
+                 unsigned int     tile_count,
                  unsigned int     tile_number )
           :
           SurfaceTask( CSAID_CPU ),
@@ -91,6 +92,7 @@ public:
           weight( 0 ),
           weight_shift_draw( 0 ),
           weight_shift_blit( 0 ),
+          tile_count( tile_count ),
           tile_number( tile_number ),
           modified( SMF_NONE )
      {
@@ -142,6 +144,7 @@ private:
      unsigned int             weight;
      unsigned int             weight_shift_draw;
      unsigned int             weight_shift_blit;
+     unsigned int             tile_count;
      unsigned int             tile_number;
      StateModificationFlags   modified;
 
@@ -213,7 +216,7 @@ public:
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %p )\n", __FUNCTION__, this );
 
           for (unsigned int i=0; i<setup->tiles; i++) {
-               setup->tasks[i] = new GenefxTask( this, setup->clips[i], i );
+               setup->tasks[i] = new GenefxTask( this, setup->clips[i], setup->tiles, i );
           }
 
           setup->tiles_render = 1;
@@ -839,7 +842,7 @@ GenefxTask::Run()
 
      dest.num_buffers  = 1;
 
-     single_tile = !master && !slaves;
+     single_tile = (tile_count == 1);
 
      D_ASSUME( this->commands.GetLength() > 0 || master != NULL );
 

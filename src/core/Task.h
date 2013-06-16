@@ -202,9 +202,10 @@ typedef enum {
      TASK_READY      = 0x00000004,
      TASK_RUNNING    = 0x00000008,
      TASK_DONE       = 0x00000010,
-     TASK_INVALID    = 0x00000020,
+     TASK_DEAD       = 0x00000020,
+     TASK_INVALID    = 0x00000040,
 
-     TASK_STATE_ALL  = 0x0000003F
+     TASK_STATE_ALL  = 0x0000007F
 } TaskState;
 
 typedef enum {
