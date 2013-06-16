@@ -967,7 +967,7 @@ Task::Log( const std::string &action )
 void
 Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 {
-     D_MAGIC_ASSERT( this, Task );
+     D_MAGIC_ASSUME( this, Task );
 
      DFB_TASK_CHECK_STATE( this, TASK_STATE_ALL & ~TASK_INVALID, return );
 
