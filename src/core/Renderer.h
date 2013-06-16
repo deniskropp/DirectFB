@@ -56,6 +56,7 @@ void Renderer_DeleteEngines( void );
 extern "C" {
 #include <direct/thread.h>
 
+#include <core/CoreGraphicsStateClient.h>
 #include <core/surface.h>
 
 #include <directfb.h>
@@ -256,7 +257,7 @@ public:
 
      void SetThrottle( Throttle *throttle );
 
-     void Flush( u32 cookie = 0 );
+     void Flush( u32 cookie = 0, CoreGraphicsStateClientFlushFlags flags = CGSCFF_NONE );
 
      static void      FlushCurrent( u32 cookie = 0 );
      static Renderer *GetCurrent();
@@ -336,8 +337,10 @@ private:
      DFBResult bindEngine  ( Engine              *engine,
                              DFBAccelerationMask  accel );
      DFBResult rebindEngine( DFBAccelerationMask  accel );
-     void      unbindEngine( u32                  cookie );
-     void      flushTask   ( u32                  cookie );
+     void      unbindEngine( u32                               cookie,
+                             CoreGraphicsStateClientFlushFlags flags );
+     void      flushTask   ( u32                               cookie,
+                             CoreGraphicsStateClientFlushFlags flags );
 
      void      render    ( Primitives::Base       *primitives );
 

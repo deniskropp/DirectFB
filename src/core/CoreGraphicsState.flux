@@ -654,6 +654,13 @@ interface {
                           type      int
                           typename  u32
                 }
+
+                arg {
+                          name      flags
+                          direction input
+                          type      int
+                          typename  u32
+                }
 	}
 
 	method {

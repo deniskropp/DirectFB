@@ -722,14 +722,15 @@ IGraphicsState_Real::TextureTriangles(
 
 DFBResult
 IGraphicsState_Real::Flush(
-                    u32                                         cookie
+                    u32                                         cookie,
+                    u32                                         flags
 )
 {
-    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s( cookie %u )\n", __FUNCTION__, cookie );
+    D_DEBUG_AT( DirectFB_CoreGraphicsState, "IGraphicsState_Real::%s( cookie %u, flags 0x%08x )\n", __FUNCTION__, cookie, flags );
 
     if (dfb_config->task_manager) {
         if (obj->renderer)
-            obj->renderer->Flush( cookie );
+            obj->renderer->Flush( cookie, (CoreGraphicsStateClientFlushFlags) flags );
     }
     else if (cookie) {
         dfb_gfxcard_sync();

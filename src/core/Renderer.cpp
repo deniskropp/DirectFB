@@ -2199,14 +2199,14 @@ Renderer::~Renderer()
 
 
 void
-Renderer::Flush( u32 cookie )
+Renderer::Flush( u32 cookie, CoreGraphicsStateClientFlushFlags flags )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, cookie %u )\n", __FUNCTION__, this, cookie );
 
      CHECK_MAGIC();
 
      if (engine) {
-          unbindEngine( cookie );
+          unbindEngine( cookie, flags );
 
           RendererTLS *tls = Renderer_GetTLS();
 
@@ -3010,7 +3010,8 @@ Renderer::bindEngine( Engine              *engine,
 }
 
 void
-Renderer::unbindEngine( u32 cookie )
+Renderer::unbindEngine( u32                               cookie,
+                        CoreGraphicsStateClientFlushFlags flags )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
 
@@ -3022,7 +3023,7 @@ Renderer::unbindEngine( u32 cookie )
 
      D_ASSUME( thread == direct_thread_self() );
 
-     flushTask( cookie );
+     flushTask( cookie, flags );
 
      delete setup;
      setup = NULL;
@@ -3044,7 +3045,7 @@ Renderer::rebindEngine( DFBAccelerationMask  accel )
 
      D_ASSUME( thread == direct_thread_self() );
 
-     flushTask( 0 );
+     flushTask( 0, CGSCFF_NONE );
 
      memset( setup->tasks, 0, sizeof(SurfaceTask*) * setup->tiles );
 
@@ -3052,7 +3053,8 @@ Renderer::rebindEngine( DFBAccelerationMask  accel )
 }
 
 void
-Renderer::flushTask( u32 cookie )
+Renderer::flushTask( u32                               cookie,
+                     CoreGraphicsStateClientFlushFlags flags )
 {
      D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p )\n", __FUNCTION__, this );
 
@@ -3068,6 +3070,12 @@ Renderer::flushTask( u32 cookie )
 
      if (throttle)
           throttle->AddTask( setup->tasks[0], cookie );
+
+     if (flags & CGSCFF_FOLLOW_READER)
+          setup->tasks[0]->AddFlags( TASK_FLAG_FOLLOW_READER );
+
+     if (flags & CGSCFF_FOLLOW_WRITER)
+          setup->tasks[0]->AddFlags( TASK_FLAG_FOLLOW_WRITER );
 
      /// par flush
      setup->tasks[0]->Flush();

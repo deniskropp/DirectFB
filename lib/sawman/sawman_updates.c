@@ -1203,7 +1203,7 @@ sawman_flush_updating( SaWMan     *sawman,
 
      D_DEBUG_AT( SaWMan_Surface, "  -> flipping the region\n" );
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
      /* Flip the whole layer. */
      if (tier->region->config.options & DLOP_STEREO)
@@ -1372,7 +1372,7 @@ repaint_tier( SaWMan              *sawman,
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 }
 
 static SaWManWindow *
@@ -1745,7 +1745,7 @@ process_single( SaWMan              *sawman,
                                             &src_region, 1, - src_region.x1, - src_region.y1, &wmdata->client );
           }
 
-          CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+          CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
 
           tier->active = true;
@@ -1824,7 +1824,7 @@ process_single( SaWMan              *sawman,
 
      tier->active = true;
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
      if (tier->single_options & DLOP_STEREO) {
           dfb_layer_region_flip_update_stereo( tier->region, NULL, NULL, flags );
@@ -2129,7 +2129,7 @@ process_updates( SaWMan              *sawman,
                break;
      }
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
 #ifdef SAWMAN_DUMP_TIER_FRAMES
      {

@@ -1445,7 +1445,7 @@ defaultwm_surface_display_notify( void     *ctx,
           flush_updating( data );
      }
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
      fusion_skirmish_dismiss( &wmdata->update_skirmish );
 
@@ -1496,7 +1496,7 @@ flush_updating( StackData *data )
 
      D_DEBUG_AT( WM_Default, "  -> flipping the region\n" );
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
      if (dfb_config->task_manager) {
           /* Flip the whole layer. */
@@ -1540,7 +1540,7 @@ flush_updating( StackData *data )
                                        data->updated.regions, left_num_regions, 0, 0, &wmdata->client );
      }
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 }
 
 static void
@@ -1601,7 +1601,7 @@ repaint_stack( CoreWindowStack     *stack,
                          fusion_vector_size( &data->windows ) - 1,
                          DFB_REGION_VALS( update ) );
 
-          CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+          CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
           flips[num_flips++] = dest;
 
@@ -1633,7 +1633,7 @@ repaint_stack( CoreWindowStack     *stack,
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
 
      switch (region->config.buffermode) {
@@ -1677,7 +1677,7 @@ repaint_stack( CoreWindowStack     *stack,
                break;
      }
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
      fusion_skirmish_dismiss( &wmdata->update_skirmish );
 }
@@ -4482,7 +4482,7 @@ wm_update_cursor( CoreWindowStack       *stack,
                dfb_gfx_copy_regions_client( data->cursor_bs, CSBR_BACK, DSSE_LEFT, surface, CSBR_BACK, DSSE_LEFT, &region, 1,
                                             old_dest.x1, old_dest.y1, &wmdata->client );
 
-               CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+               CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
                restored = true;
           }
@@ -4541,7 +4541,7 @@ wm_update_cursor( CoreWindowStack       *stack,
                state->destination  = NULL;
                state->modified    |= SMF_DESTINATION;
 
-               CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+               CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
                data->cursor_drawn = true;
 
@@ -4615,7 +4615,7 @@ wm_update_cursor( CoreWindowStack       *stack,
           }
      }
 
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
      fusion_skirmish_dismiss( &wmdata->update_skirmish );
 

@@ -54,6 +54,15 @@ struct __DFB_CoreGraphicsStateClient {
      DFB_Throttle      *throttle;
 };
 
+typedef enum {
+     CGSCFF_NONE          = 0x00000000,
+
+     CGSCFF_FOLLOW_READER = 0x00000001,
+     CGSCFF_FOLLOW_WRITER = 0x00000002,
+
+     CGSCFF_ALL           = 0x00000003,
+} CoreGraphicsStateClientFlushFlags;
+
 
 DFBResult CoreGraphicsStateClient_Init            ( CoreGraphicsStateClient *client,
                                                     CardState               *state );
@@ -61,7 +70,8 @@ DFBResult CoreGraphicsStateClient_Init            ( CoreGraphicsStateClient *cli
 void      CoreGraphicsStateClient_Deinit          ( CoreGraphicsStateClient *client );
 
 void      CoreGraphicsStateClient_Flush           ( CoreGraphicsStateClient *client,
-                                                    u32                      cookie );
+                                                    u32                      cookie,
+                                                    CoreGraphicsStateClientFlushFlags flags );
 void      CoreGraphicsStateClient_FlushAll        ( void );
 void      CoreGraphicsStateClient_FlushCurrent    ( u32                      cookie );
 

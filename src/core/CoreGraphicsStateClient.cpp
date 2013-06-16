@@ -97,7 +97,7 @@ public:
           direct_mutex_lock( &lock );
 
           for (std::list<CoreGraphicsStateClient*>::const_iterator it = clients.begin(); it != clients.end(); ++it)
-               CoreGraphicsStateClient_Flush( *it, 0 );
+               CoreGraphicsStateClient_Flush( *it, 0, CGSCFF_NONE );
 
           direct_mutex_unlock( &lock );
      }
@@ -108,7 +108,7 @@ public:
 
           for (std::list<CoreGraphicsStateClient*>::const_iterator it = clients.begin(); it != clients.end(); ++it) {
                if ((*it)->state->destination == surface)
-                    CoreGraphicsStateClient_Flush( *it, 0 );
+                    CoreGraphicsStateClient_Flush( *it, 0, CGSCFF_NONE );
           }
 
           direct_mutex_unlock( &lock );
@@ -162,7 +162,7 @@ public:
                if (this->client) {
                     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flushing previous (%p)\n", this->client );
 
-                    CoreGraphicsStateClient_Flush( this->client, 0 );
+                    CoreGraphicsStateClient_Flush( this->client, 0, CGSCFF_NONE );
                }
 
                this->client = client;
@@ -386,7 +386,7 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
 
      D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> deinit, flushing (%p)\n", client );
 
-     CoreGraphicsStateClient_Flush( client, 0 );
+     CoreGraphicsStateClient_Flush( client, 0, CGSCFF_NONE );
 
      if (client->renderer)
           delete client->renderer;
@@ -413,9 +413,11 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
      } while (0)
 
 void
-CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client, u32 cookie )
+CoreGraphicsStateClient_Flush( CoreGraphicsStateClient           *client,
+                               u32                                cookie,
+                               CoreGraphicsStateClientFlushFlags  flags )
 {
-     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( %p, cookie %u )\n", __FUNCTION__, client, cookie );
+     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( %p, cookie %u, flags 0x%08x )\n", __FUNCTION__, client, cookie, flags );
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
@@ -424,7 +426,7 @@ CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client, u32 cookie )
      if (client->renderer) {
           D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush renderer\n" );
 
-          client->renderer->Flush( cookie );
+          client->renderer->Flush( cookie, flags );
 
           if (cookie)
                priv->waitDone( cookie );
@@ -447,7 +449,7 @@ CoreGraphicsStateClient_Flush( CoreGraphicsStateClient *client, u32 cookie )
 
                     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush via requestor\n" );
 
-                    requestor->Flush( cookie );
+                    requestor->Flush( cookie, flags );
 
                     if (cookie)
                          priv->waitDone( cookie );
@@ -475,7 +477,7 @@ CoreGraphicsStateClient_FlushCurrent( u32 cookie )
      if (holder->client) {
           D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> unsetting client %p (secure slave or always-indirect)\n", holder->client );
 
-          CoreGraphicsStateClient_Flush( holder->client, cookie );
+          CoreGraphicsStateClient_Flush( holder->client, cookie, CGSCFF_NONE );
           //holder->set( NULL );
      }
      else if (dfb_config->task_manager) {

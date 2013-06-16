@@ -3547,7 +3547,7 @@ update_single( SaWMan              *sawman,
                     state->modified    |= SMF_DESTINATION;
                }
 
-               CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+               CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
                dfb_layer_region_flip_update( tier->region, &reg, flags );
           }
@@ -4177,7 +4177,7 @@ wm_update_cursor( CoreWindowStack       *stack,
                                                  old_region.x1, old_region.y1, &wmdata->client );
                }
 
-               CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+               CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
                restored = true;
           }
@@ -4256,7 +4256,7 @@ wm_update_cursor( CoreWindowStack       *stack,
           state->destination  = NULL;
           state->modified    |= SMF_DESTINATION;
 
-          CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+          CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
           tier->cursor_drawn = true;
 
@@ -4313,7 +4313,7 @@ wm_update_cursor( CoreWindowStack       *stack,
                     break;
           }
 
-          CoreGraphicsStateClient_Flush( &wmdata->client, 0 );
+          CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
      }
 
      sawman_unlock( sawman );

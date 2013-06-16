@@ -1876,7 +1876,7 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
           dy += srect.y - src_data->area.wanted.y;
      }
 
-     CoreGraphicsStateClient_Flush( &src_data->state_client, 0 );
+     CoreGraphicsStateClient_Flush( &src_data->state_client, 0, CGSCFF_NONE );
 
      if (src_data->surface_client) {
           direct_mutex_lock( &data->surface_client_lock );
@@ -1963,7 +1963,7 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
           dy += srect.y - src_data->area.wanted.y;
      }
 
-     CoreGraphicsStateClient_Flush( &src_data->state_client, 0 );
+     CoreGraphicsStateClient_Flush( &src_data->state_client, 0, CGSCFF_NONE );
 
      dfb_state_set_source( &data->state, src_data->surface );
 
@@ -2058,7 +2058,7 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
                       i, DFB_RECTANGLE_VALS(&source_rects[i]), dest_points[i].x, dest_points[i].y );
      }
 
-     CoreGraphicsStateClient_Flush( &src_data->state_client, 0 );
+     CoreGraphicsStateClient_Flush( &src_data->state_client, 0, CGSCFF_NONE );
 
      dfb_state_set_source( &data->state, src_data->surface );
 
@@ -2173,8 +2173,8 @@ IDirectFBSurface_BatchBlit2( IDirectFBSurface   *thiz,
           }
      }
 
-     CoreGraphicsStateClient_Flush( &src_data->state_client, 0 );
-     CoreGraphicsStateClient_Flush( &src2_data->state_client, 0 );
+     CoreGraphicsStateClient_Flush( &src_data->state_client, 0, CGSCFF_NONE );
+     CoreGraphicsStateClient_Flush( &src2_data->state_client, 0, CGSCFF_NONE );
 
      dfb_state_set_source( &data->state, src_data->surface );
      dfb_state_set_source2( &data->state, src2_data->surface );
@@ -2279,7 +2279,7 @@ IDirectFBSurface_BatchStretchBlit( IDirectFBSurface   *thiz,
                       srects[i].x, srects[i].y, srects[i].w, srects[i].h );
      }
 
-     CoreGraphicsStateClient_Flush( &src_data->state_client, 0 );
+     CoreGraphicsStateClient_Flush( &src_data->state_client, 0, CGSCFF_NONE );
 
      dfb_state_set_source( &data->state, src_data->surface );
 
@@ -2431,7 +2431,7 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
           }
      }
 
-     CoreGraphicsStateClient_Flush( &src_data->state_client, 0 );
+     CoreGraphicsStateClient_Flush( &src_data->state_client, 0, CGSCFF_NONE );
 
      dfb_state_set_source( &data->state, src_data->surface );
 
@@ -3012,7 +3012,7 @@ IDirectFBSurface_SetSourceMask( IDirectFBSurface    *thiz,
      if (!mask_data->surface)
           return DFB_DESTROYED;
 
-     CoreGraphicsStateClient_Flush( &mask_data->state_client, 0 );
+     CoreGraphicsStateClient_Flush( &mask_data->state_client, 0, CGSCFF_NONE );
 
      ret = dfb_state_set_source_mask( &data->state, mask_data->surface );
      if (ret)

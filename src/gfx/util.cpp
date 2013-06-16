@@ -156,7 +156,7 @@ dfb_gfx_copy_stereo( CoreSurface         *source,
           CoreGraphicsStateClient_Blit( &client->client, &sourcerect, &point, 1 );
      }
 
-     CoreGraphicsStateClient_Flush( &client->client, 0 );
+     CoreGraphicsStateClient_Flush( &client->client, 0, CGSCFF_NONE );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &client->state );
@@ -187,7 +187,7 @@ dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role )
 
      CoreGraphicsStateClient_FillRectangles( &client->client, &rect, 1 );
 
-     CoreGraphicsStateClient_Flush( &client->client, 0 );
+     CoreGraphicsStateClient_Flush( &client->client, 0, CGSCFF_NONE );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &client->state );
@@ -242,7 +242,7 @@ void dfb_gfx_stretch_stereo( CoreSurface         *source,
 
      CoreGraphicsStateClient_StretchBlit( &client->client, &sourcerect, &destrect, 1 );
 
-     CoreGraphicsStateClient_Flush( &client->client, 0 );
+     CoreGraphicsStateClient_Flush( &client->client, 0, CGSCFF_NONE );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &client->state );
@@ -314,7 +314,7 @@ dfb_gfx_copy_regions_stereo( CoreSurface           *source,
 
           CoreGraphicsStateClient_Blit( &client->client, rects, points, n );
 
-          CoreGraphicsStateClient_Flush( &client->client, 0 );
+          CoreGraphicsStateClient_Flush( &client->client, 0, CGSCFF_NONE );
 
           /* Signal end of sequence. */
           dfb_state_stop_drawing( &client->state );
@@ -386,7 +386,7 @@ dfb_gfx_copy_regions_client( CoreSurface             *source,
           CoreGraphicsStateClient_Blit( client, rects, points, n );
 
           if (!_client)
-               CoreGraphicsStateClient_Flush( client, 0 );
+               CoreGraphicsStateClient_Flush( client, 0, CGSCFF_NONE );
 
           D_FLAGS_SET( state->modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO | SMF_BLITTING_FLAGS );
 
@@ -464,7 +464,7 @@ back_to_front_copy( CoreSurface             *surface,
 
      CoreGraphicsStateClient_Blit( &client->client, &rect, &point, 1 );
 
-     CoreGraphicsStateClient_Flush( &client->client, 0 );
+     CoreGraphicsStateClient_Flush( &client->client, 0, CGSCFF_FOLLOW_READER );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &client->state );
