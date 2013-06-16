@@ -452,7 +452,8 @@ CoreSurface_Lookup( CoreDFB      *core,
      DFBResult    ret;
      CoreSurface *surface;
 
-     ret = dfb_core_get_surface( core, object_id, &surface );
+//     ret = dfb_core_get_surface( core, object_id, &surface );
+     ret = (DFBResult) fusion_object_lookup( core->shared->surface_pool, object_id, (FusionObject**) &surface );
      if (ret)
           return (DirectResult) ret;
 
@@ -460,7 +461,7 @@ CoreSurface_Lookup( CoreDFB      *core,
          surface->object.identity != caller &&
          fusion_object_check_owner( &surface->object, caller, false ))
      {
-          dfb_surface_unref( surface );
+//          dfb_surface_unref( surface );
           return DR_ACCESSDENIED;
      }
 
@@ -472,7 +473,7 @@ CoreSurface_Lookup( CoreDFB      *core,
 static __inline__ DirectResult
 CoreSurface_Unref( CoreSurface *surface )
 {
-     return (DirectResult) dfb_surface_unref( surface );
+     return DR_OK;//(DirectResult) dfb_surface_unref( surface );
 }
 
 static __inline__ DirectResult
