@@ -154,6 +154,7 @@ typedef struct {
      CoreLayerRegion              *region;
      CoreSurface                  *surface;
      Reaction                      surface_reaction;
+     DFB_Task                     *last_notify_task;
 } StackData;
 
 typedef struct {
@@ -1399,57 +1400,63 @@ defaultwm_surface_display_notify( void     *ctx,
      D_ASSERT( ctx != NULL );
 
      D_ASSERT( data != NULL );
-     D_ASSERT( data->region != NULL );
-     D_ASSUME( data->region->config.buffermode == DLBM_TRIPLE );
 
      fusion_skirmish_prevail( &wmdata->update_skirmish );
 
-     D_ASSUME( data->updated.num_regions > 0 );
+     if (data->region != NULL) {
+          D_ASSUME( data->region->config.buffermode == DLBM_TRIPLE );
 
-     if (data->updated.num_regions) {
-          if (data->region->config.options & DLOP_STEREO) {
-               /* Copy back the updated region. */
-               if (data->updated.num_regions) {
-                    D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+          D_ASSUME( data->updated.num_regions > 0 );
 
-                    for (i=0; i<data->updated.num_regions; i++) {
-                         D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
-                                     DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+          if (data->updated.num_regions) {
+               if (data->region->config.options & DLOP_STEREO) {
+                    /* Copy back the updated region. */
+                    if (data->updated.num_regions) {
+                         D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+
+                         for (i=0; i<data->updated.num_regions; i++) {
+                              D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                          DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                         }
+
+                         dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
+                                                      data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
                     }
-
-                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                 data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
                }
-          }
-          else {
-               /* Copy back the updated region. */
-               if (data->updated.num_regions) {
-                    D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+               else {
+                    /* Copy back the updated region. */
+                    if (data->updated.num_regions) {
+                         D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
 
-                    for (i=0; i<data->updated.num_regions; i++) {
-                         D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
-                                     DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                         for (i=0; i<data->updated.num_regions; i++) {
+                              D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                          DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                         }
+
+                         dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
+                                                      data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
                     }
-
-                    dfb_gfx_copy_regions_client( data->surface, CSBR_FRONT, DSSE_LEFT, data->surface, CSBR_IDLE, DSSE_LEFT,
-                                                 data->updated.regions, data->updated.num_regions, 0, 0, &wmdata->client );
                }
+
+               dfb_updates_reset( &data->updated );
           }
 
-          dfb_updates_reset( &data->updated );
+          if (data->updating.num_regions) {
+               D_DEBUG_AT( WM_Default, "  -> flushing updating regions\n" );
+
+               flush_updating( data );
+          }
+
+          CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
      }
 
-     if (data->updating.num_regions) {
-          D_DEBUG_AT( WM_Default, "  -> flushing updating regions\n" );
+     if (data->last_notify_task == task) {
+          data->last_notify_task = NULL;
 
-          flush_updating( data );
+          fusion_skirmish_notify( &wmdata->update_skirmish );
      }
-
-     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
 
      fusion_skirmish_dismiss( &wmdata->update_skirmish );
-
-     dfb_layer_region_unref( data->region );
 
      Task_Done( task );
 
@@ -1512,9 +1519,9 @@ flush_updating( StackData *data )
                if (ret)
                     D_DERROR( ret, "WM/Default: Simple Task creation failed!\n" );
                else {
-                    dfb_layer_region_ref( data->region );
-
                     Task_AddNotify( display_task, display_notify_task, true );
+
+                    data->last_notify_task = display_notify_task;
 
                     /* Must be flushed before display task, otherwise Task Manager will
                        assert on display_notify_task state when display_task is flushed. */
@@ -3588,8 +3595,10 @@ wm_close_stack( CoreWindowStack *stack,
                 void            *wm_data,
                 void            *stack_data )
 {
+     DFBResult   ret;
      DirectLink *l, *next;
      StackData  *data = stack_data;
+     WMData     *wmdata = wm_data;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -3599,6 +3608,8 @@ wm_close_stack( CoreWindowStack *stack,
      D_MAGIC_CLEAR( data );
 
      D_ASSUME( fusion_vector_is_empty( &data->windows ) );
+
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
 
      if (fusion_vector_has_elements( &data->windows )) {
           int         i;
@@ -3626,6 +3637,16 @@ wm_close_stack( CoreWindowStack *stack,
      /* Free grabbed keys. */
      direct_list_foreach_safe (l, next, data->grabbed_keys)
           SHFREE( stack->shmpool, l );
+
+     while (data->last_notify_task != NULL) {
+          ret = fusion_skirmish_wait( &wmdata->update_skirmish, 2000 );
+          if (ret) {
+               D_DERROR( ret, "WM/Default: Error waiting for display notify task!\n" );
+               break;
+          }
+     }
+
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 
      return DFB_OK;
 }
