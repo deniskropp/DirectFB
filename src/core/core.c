@@ -1680,6 +1680,19 @@ dfb_core_signal_handler( int   num,
 
 /******************************************************************************/
 
+static bool
+region_callback( FusionObjectPool *pool,
+                 FusionObject     *object,
+                 void             *ctx )
+{
+     CoreLayerRegion *region = (CoreLayerRegion *) object;
+
+     if (region->state & CLRSF_ACTIVE)
+          dfb_layer_region_deactivate( region );
+
+     return true;
+}
+
 static int
 dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
@@ -1703,9 +1716,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      if (dfb_wm_core.initialized)
           dfb_wm_deactivate_all_stacks( dfb_wm_core.data_local );
 
-     /* Destroy window objects. */
-     fusion_object_pool_destroy( shared->window_pool, core->world );
-     shared->window_pool = NULL;
+     dfb_core_enum_layer_regions( core, region_callback, core );
 
 
      while (loops--) {
@@ -1725,6 +1736,10 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      }
 
      fusion_stop_dispatcher( core->world, false );
+
+     /* Destroy window objects. */
+     fusion_object_pool_destroy( shared->window_pool, core->world );
+     shared->window_pool = NULL;
 
      /* Close window stacks. */
      if (dfb_wm_core.initialized)
