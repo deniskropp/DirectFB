@@ -731,13 +731,7 @@ Task::Push()
 
 //     return Run();
 
-     static TaskThreads *threads;
-
-     // FIXME: race condition
-     if (!threads)
-          threads = new TaskThreads( "Task", 4 );
-
-     threads->Push( this );
+     TaskManager::threads->Push( this );
 
      return DFB_OK;
 }
@@ -1056,6 +1050,7 @@ DirectThread     *TaskManager::thread;
 FIFO<Task*>       TaskManager::fifo;
 unsigned int      TaskManager::task_count;
 unsigned int      TaskManager::task_count_sync;
+TaskThreads      *TaskManager::threads;
 #if DFB_TASK_DEBUG_TASKS
 std::list<Task*>  TaskManager::tasks;
 DirectMutex       TaskManager::tasks_lock;
@@ -1073,8 +1068,11 @@ TaskManager::Initialise()
      direct_mutex_init( &tasks_lock );
 #endif
 
-     if (dfb_config->task_manager)
+     if (dfb_config->task_manager) {
           thread = direct_thread_create( DTT_CRITICAL, managerLoop, NULL, "Task Manager" );
+
+          threads = new TaskThreads( "Task", 4 );
+     }
 
      return DFB_OK;
 }
@@ -1093,6 +1091,11 @@ TaskManager::Shutdown()
           direct_thread_destroy( thread );
 
           thread = NULL;
+     }
+
+     if (threads != NULL) {
+          delete threads;
+          threads = NULL;
      }
 
 #if DFB_TASK_DEBUG_TASKS

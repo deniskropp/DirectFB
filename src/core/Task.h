@@ -40,6 +40,8 @@ extern "C" {
 
 #include <core/surface.h>
 
+#include <gfx/util.h>
+
 #include <directfb.h>
 
 #if D_DEBUG_ENABLED
@@ -226,6 +228,7 @@ typedef enum {
 
 class Task;
 class TaskManager;
+class TaskThreads;
 
 class DisplayTask;
 
@@ -366,6 +369,8 @@ private:
      static unsigned int       task_count;
      static unsigned int       task_count_sync;
 
+     static TaskThreads       *threads;
+
 #if DFB_TASK_DEBUG_TASKS
      static std::list<Task*>   tasks;
      static DirectMutex        tasks_lock;
@@ -429,6 +434,9 @@ public:
           Task        *task;
 
           D_DEBUG_AT( DirectFB_Task, "TaskThreads::%s()\n", __FUNCTION__ );
+
+          /* Preinitialize state client for possible blits from layer driver (avoids dead lock with region lock) */
+          dfb_gfx_init_tls();
 
           while (true) {
                task = thiz->fifo.pull();
