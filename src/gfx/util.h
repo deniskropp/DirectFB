@@ -34,6 +34,7 @@
 #include <core/CoreGraphicsStateClient.h>
 
 
+void dfb_gfx_init_tls( void );
 void dfb_gfx_cleanup( void );
 
 void dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect );

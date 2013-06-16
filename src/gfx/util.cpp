@@ -92,6 +92,12 @@ extern "C" {
 
 
 void
+dfb_gfx_init_tls()
+{
+     state_client_tls.Get();
+}
+
+void
 dfb_gfx_cleanup()
 {
      state_client_tls.DeleteAll();
