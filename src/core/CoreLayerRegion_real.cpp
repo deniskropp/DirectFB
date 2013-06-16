@@ -348,8 +348,8 @@ DisplayTask::Run()
 
      surface = region->surface;
 
-     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p [%s] )\n", __FUNCTION__,
-                 this, *ToString<DirectFB::Task>(*this) );
+     D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p [%s], region %p )\n", __FUNCTION__,
+                 this, *ToString<DirectFB::Task>(*this), region );
 
      funcs = layer->funcs;
      D_ASSERT( funcs != NULL );
@@ -363,7 +363,12 @@ DisplayTask::Run()
      region->display_tasks->Remove( this );
 
 
-     D_ASSERT( D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ) );
+     D_ASSUME( D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ) );
+
+     if (!D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
+          ret = DFB_SUSPENDED;
+          goto out;
+     }
 
      D_MAGIC_ASSERT( region->surface, CoreSurface );
 
@@ -511,16 +516,18 @@ DisplayTask::Run()
 out:
      dfb_layer_region_unlock( region );
 
-     if (right.allocation) {
-          /* Unlock region buffer since the lock is no longer needed. */
-          dfb_surface_pool_unlock( right.allocation->pool, right.allocation, &right );
-          dfb_surface_buffer_lock_deinit( &right );
-     }
-
-     if (left.allocation) {
-          /* Unlock region buffer since the lock is no longer needed. */
-          dfb_surface_pool_unlock( left.allocation->pool, left.allocation, &left );
-          dfb_surface_buffer_lock_deinit( &left );
+     if (ret != DFB_SUSPENDED) {
+          if (right.allocation) {
+               /* Unlock region buffer since the lock is no longer needed. */
+               dfb_surface_pool_unlock( right.allocation->pool, right.allocation, &right );
+               dfb_surface_buffer_lock_deinit( &right );
+          }
+     
+          if (left.allocation) {
+               /* Unlock region buffer since the lock is no longer needed. */
+               dfb_surface_pool_unlock( left.allocation->pool, left.allocation, &left );
+               dfb_surface_buffer_lock_deinit( &left );
+          }
      }
 
      Release();
@@ -606,6 +613,9 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
 
      if (!(surface->frametime_config.flags & DFTCF_INTERVAL))
           dfb_screen_get_frame_interval( layer->screen, &surface->frametime_config.interval );
+
+     if (ret_task)
+          *ret_task = NULL;
 
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
