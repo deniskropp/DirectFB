@@ -454,6 +454,8 @@ CoreGraphicsStateClient_Flush( CoreGraphicsStateClient           *client,
                     if (cookie)
                          priv->waitDone( cookie );
                }
+
+               holder->client = NULL;
           }
      }
 }
