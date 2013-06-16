@@ -1687,8 +1687,8 @@ region_callback( FusionObjectPool *pool,
 {
      CoreLayerRegion *region = (CoreLayerRegion *) object;
 
-     if (region->state & CLRSF_ACTIVE)
-          dfb_layer_region_deactivate( region );
+     if (region->state & CLRSF_ENABLED)
+          dfb_layer_region_disable( region );
 
      return true;
 }
