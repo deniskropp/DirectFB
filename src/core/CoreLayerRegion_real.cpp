@@ -541,19 +541,22 @@ out:
           dfb_layer_region_unlock( region );
 
           Done( ret );
+
+          return ret;
      }
-     else if (!(dfb_system_caps() & CSCAPS_DISPLAY_TASKS)) {
+
+     if (!(dfb_system_caps() & CSCAPS_DISPLAY_TASKS)) {
           D_DEBUG_AT( DirectFB_Task_Display, "  -> system WITHOUT display task support, calling Task_Done on previous task\n" );
 
           if (layer->prev_task)
                layer->prev_task->Done();
 
           layer->prev_task = this;
-
-          dfb_layer_region_unlock( region );
      }
 
-     return ret;
+     dfb_layer_region_unlock( region );
+
+     return DFB_OK;
 }
 
 void
