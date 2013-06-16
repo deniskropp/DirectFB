@@ -60,7 +60,7 @@ public:
                     size_t len );
      void  commit ( size_t len = 0 );
 
-     DFBResult flush();
+     DFBResult flush( bool leave_tls = true );
 
 protected:
      void   *buffer;

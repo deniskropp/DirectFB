@@ -98,7 +98,7 @@ CallBuffer::prepare( int    method,
                     if (core_tls->call_buffer) {
                          CallBuffer *last_buffer = (CallBuffer *) core_tls->call_buffer;
 
-                         last_buffer->flush();
+                         last_buffer->flush( false );
                     }
 
                     core_tls->call_buffer = this;
@@ -125,7 +125,7 @@ CallBuffer::prepare( int    method,
      if (buffer_len + total > buffer_size) {
           D_DEBUG_AT( DirectFB_CallBuffer, "  -> need %zu > %zu bytes!\n", buffer_len + total, buffer_size );
 
-          flush();
+          flush( false );
 
           if (!buffer) {
                buffer_size = MAX( total, buffer_min );
@@ -181,12 +181,12 @@ CallBuffer::commit( size_t len )
      if (dfb_config->always_flush_callbuffer) {
           D_DEBUG_AT( DirectFB_CallBuffer, "  -> always-flush-callbuffer option is set, flushing...\n" );
 
-          flush();
+          flush( false );
      }
 }
 
 DFBResult
-CallBuffer::flush()
+CallBuffer::flush( bool leave_tls )
 {
      D_DEBUG_AT( DirectFB_CallBuffer, "CallBuffer::%s( %p )\n", __FUNCTION__, this );
 
@@ -214,6 +214,17 @@ CallBuffer::flush()
 
           buffer_len      = 0;
           buffer_prepared = 0;
+     }
+
+     if (leave_tls) {
+          CoreTLS *core_tls = Core_GetTLS();
+     
+          if (core_tls) {
+               if (core_tls->call_buffer == this)
+                    core_tls->call_buffer = NULL;
+          }
+          else
+               D_WARN( "TLS error" );
      }
 
      return DFB_OK;
