@@ -338,13 +338,15 @@ private:
                              DFBAccelerationMask  accel );
      DFBResult rebindEngine( DFBAccelerationMask  accel );
      void      unbindEngine( u32                               cookie,
-                             CoreGraphicsStateClientFlushFlags flags );
+                             CoreGraphicsStateClientFlushFlags flags,
+                             bool                              discard = false );
      void      flushTask   ( u32                               cookie,
-                             CoreGraphicsStateClientFlushFlags flags );
+                             CoreGraphicsStateClientFlushFlags flags,
+                             bool                              discard = false );
 
      void      render    ( Primitives::Base       *primitives );
 
-     void      update    ( DFBAccelerationMask     accel );
+     DFBResult update    ( DFBAccelerationMask     accel );
 
      DFBResult updateLock( CoreSurfaceBufferLock  *lock,
                            CoreSurface            *surface,
