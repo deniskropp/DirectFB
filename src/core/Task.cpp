@@ -1555,6 +1555,7 @@ SurfaceTask::Setup()
                     SurfaceTask             *write_task   = access.allocation->write_task;
                     SurfaceAllocationAccess *write_access = (SurfaceAllocationAccess *) access.allocation->write_access;
 
+                    (void) write_access;
                     D_ASSERT( write_access != NULL );
 
                     D_DEBUG_AT( DirectFB_Task, "    -> write_task   %s\n", *ToString<Task>(*write_task) );
