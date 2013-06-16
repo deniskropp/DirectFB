@@ -3393,7 +3393,7 @@ wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
      DFBResult  ret;
      WMData    *wmdata = wm_data;
 
-     fusion_skirmish_init2( &wmdata->update_skirmish, "WM/Update", dfb_core_world(wmdata->core), fusion_config->secure_fusion );
+     fusion_skirmish_init2( &wmdata->update_skirmish, "WM/Update", dfb_core_world(core), fusion_config->secure_fusion );
 
      ret = local_init( wm_data, core );
      if (ret)
