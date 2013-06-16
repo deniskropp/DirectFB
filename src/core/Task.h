@@ -268,11 +268,11 @@ protected:
      TaskState state;
      TaskFlags flags;
 
-     DFBResult emit( int following );
+     DFBResult emit();
      DFBResult finish();
 
      void notifyAll( TaskState state );
-     void handleNotify( int following );
+     void handleNotify();
      void enableDump();
      void append( Task *task );
 
@@ -297,9 +297,6 @@ protected:
      /* queueing sequential tasks */
      u64                      qid;
      Task                    *next;
-
-//     Task                    *follower;
-//     Task                    *following;
 
      /* allocation on hwid */
      u32                      hwid;

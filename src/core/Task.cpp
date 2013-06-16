@@ -325,8 +325,6 @@ Task::Task()
      next_slave( NULL ),
      qid( 0 ),
      next( NULL ),
-//     follower( NULL ),
-//     following( NULL ),
      hwid( 0 ),
      ts_emit( 0 ),
      listed( 0 ),
@@ -430,19 +428,6 @@ Task::~Task()
 
      D_ASSERT( notifies.size() == 0 );
 
-#if 0
-     if (following) {
-          D_MAGIC_ASSERT( following, Task );
-
-          following->follower = NULL;
-     }
-
-     if (follower) {
-          D_MAGIC_ASSERT( follower, Task );
-
-          follower->following = NULL;
-     }
-#endif
      D_MAGIC_CLEAR( this );
 }
 
@@ -517,8 +502,6 @@ Task::Flush()
 
      DFB_TASK_LOG( "Flush()" );
 
-     //D_INFO("XX FLUSH   %s\n",Description().buffer());
-
      state = TASK_FLUSHED;
 
 #if DFB_TASK_DEBUG_TIMING
@@ -529,7 +512,7 @@ Task::Flush()
 }
 
 DFBResult
-Task::emit( int following )
+Task::emit()
 {
      DFBResult ret;
 
@@ -538,14 +521,12 @@ Task::emit( int following )
      D_MAGIC_ASSERT( this, Task );
 
 #if D_DEBUG_ENABLED
-     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p, %sfollowing ) <- [%s]\n", __FUNCTION__, this, following ? "" : "NOT ", Description().buffer() );
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p ) <- [%s]\n", __FUNCTION__, this, Description().buffer() );
 #endif
 
      DFB_TASK_CHECK_STATE( this, TASK_READY, return DFB_BUG );
 
      DFB_TASK_LOG( "emit()" );
-
-     //D_INFO("XX EMIT    %s\n",Description().buffer());
 
      D_ASSERT( block_count == 0 );
 
@@ -606,44 +587,6 @@ Task::emit( int following )
      if (flags & TASK_FLAG_EMITNOTIFIES)
           notifyAll( TASK_DONE );
 
-#if 0
-     if (flags & TASK_FLAG_EMITNOTIFIES) {
-          notifyAll();
-     }
-     else if (following) {
-          std::vector<TaskNotify>::iterator it = notifies.begin();
-
-          while (it != notifies.end()) {
-               DFB_TASK_CHECK_STATE( (*it).first, TASK_READY, );
-
-               if ((*it).second) {
-                    if (following == 1) {
-                         D_ASSERT( follower == NULL );
-                         D_ASSERT( (*it).first->following == NULL );
-
-                         this->follower         = (*it).first;
-                         (*it).first->following = this;
-                    }
-
-                    (*it).first->handleNotify( following - 1 );
-
-                    it = notifies.erase( it );
-               }
-               else
-                    ++it;
-          }
-     }
-     else {
-          std::vector<TaskNotify>::iterator it = notifies.begin();
-
-          while (it != notifies.end()) {
-               DFB_TASK_CHECK_STATE( (*it).first, TASK_READY, );
-
-               ++it;
-          }
-     }
-#endif
-
      return DFB_OK;
 }
 
@@ -663,8 +606,6 @@ Task::finish()
      DFB_TASK_CHECK_STATE( this, TASK_DONE, return DFB_BUG );
 
      DFB_TASK_LOG( "finish()" );
-
-     //D_INFO("XX FINISH  %s\n",Description().buffer());
 
      finished = true;
 
@@ -699,29 +640,6 @@ Task::finish()
       * master task shutdown
       */
      if (shutdown) {
-#if 0
-          if (shutdown->follower) {
-               std::vector<TaskNotify>::iterator it = shutdown->follower->notifies.begin();
-
-               while (it != shutdown->follower->notifies.end()) {
-                    DFB_TASK_CHECK_STATE( (*it).first, TASK_READY, );
-
-                    if ((*it).second) {
-                         D_ASSERT( shutdown->follower->follower == NULL );
-                         D_ASSERT( (*it).first->following == NULL );
-
-                         shutdown->follower->follower = (*it).first;
-                         (*it).first->following       = shutdown->follower;
-
-                         (*it).first->handleNotify( 0 );
-
-                         it = shutdown->follower->notifies.erase( it );
-                    }
-                    else
-                         ++it;
-               }
-          }
-#endif
           shutdown->notifyAll( TASK_DONE );
           shutdown->Finalise();
 
@@ -773,7 +691,6 @@ Task::Done( DFBResult ret )
 #endif
 
      TaskManager::pushTask( this );
-//     TaskManager::fifo.pushFront( this );
 }
 
 
@@ -899,7 +816,7 @@ Task::AddNotify( Task *notified,
 
      DFB_TASK_LOG( Direct::String::F( "AddNotify( %p, %sfollow )", notified, follow ? "" : "NO " ) );
 
-     if (follow /*&& !slaves*/ && (state == TASK_RUNNING || state == TASK_DONE)) {
+     if (follow && (state == TASK_RUNNING || state == TASK_DONE)) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, following running task!\n" );
 
           return;
@@ -939,44 +856,35 @@ Task::notifyAll( TaskState state )
 
      D_MAGIC_ASSERT( this, Task );
 
-//     if (flags & TASK_FLAG_EMITNOTIFIES)
-///          DFB_TASK_CHECK_STATE( this, TASK_DONE | TASK_RUNNING, return );
-//     else
-//          DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
-
      DFB_TASK_LOG( Direct::String::F( "notifyAll(%zu, %s)", notifies.size(), *ToString<TaskState>(state) ) );
 
      for (std::vector<TaskNotify>::iterator it = notifies.begin(); it != notifies.end(); ) {
           if ((*it).second & state) {
                DFB_TASK_LOG( Direct::String::F( "  notifying %p", (*it).first ) );
 
-               (*it).first->handleNotify( 0 );
+               (*it).first->handleNotify();
 
                it = notifies.erase( it );
           }
           else
                it++;
      }
-
-//     notifies.clear();
-
-
 }
 
 void
-Task::handleNotify( int following )
+Task::handleNotify()
 {
      DFBResult ret;
 
      D_ASSERT( direct_thread_self() == TaskManager::thread );
 
-     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p, %sfollowing )\n", __FUNCTION__, this, following ? "" : "NOT " );
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
      D_MAGIC_ASSERT( this, Task );
 
      DFB_TASK_CHECK_STATE( this, TASK_READY, return );
 
-     DFB_TASK_LOG( Direct::String::F( "handleNotify( %sfollowing )", following ? "" : "NOT " ) );
+     DFB_TASK_LOG( Direct::String::F( "handleNotify()" ) );
 
      D_ASSERT( block_count > 0 );
 
@@ -987,7 +895,7 @@ Task::handleNotify( int following )
           t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 #endif
 
-          ret = emit( following );
+          ret = emit();
           if (ret) {
                D_DERROR( ret, "DirectFB/TaskManager: Task::Emit() failed!\n" );
                state = TASK_DONE;
@@ -1295,7 +1203,7 @@ TaskManager::handleTask( Task *task )
                     t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 #endif
 
-                    ret = task->emit( 0 );
+                    ret = task->emit();
                     if (ret) {
                          D_DERROR( ret, "DirectFB/TaskManager: Task::Emit() failed!\n" );
                          task->state = TASK_DONE;
