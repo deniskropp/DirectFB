@@ -378,6 +378,8 @@ fusion_ref_catch (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_catch( %p [%d] )\n", ref, ref->multi.id );
+
      if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
           D_INFO( "Fusion/Ref: 0x%08x catch, single refs %d\n", ref->multi.id, ref->single.refs );
           direct_trace_print_stack( NULL );
@@ -450,6 +452,8 @@ DirectResult
 fusion_ref_throw (FusionRef *ref, FusionID catcher)
 {
      D_ASSERT( ref != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_throw( %p [%d] )\n", ref, ref->multi.id );
 
      if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
           D_INFO( "Fusion/Ref: 0x%08x throw, single refs %d\n", ref->multi.id, ref->single.refs );
@@ -1230,6 +1234,8 @@ fusion_ref_catch (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_catch( %p [%d] )\n", ref, ref->multi.id );
+
      if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
           D_INFO( "Fusion/Ref: 0x%08x catch, single refs %d\n", ref->multi.id, ref->single.refs );
           direct_trace_print_stack( NULL );
@@ -1287,6 +1293,8 @@ DirectResult
 fusion_ref_throw (FusionRef *ref, FusionID catcher)
 {
      D_ASSERT( ref != NULL );
+
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_throw( %p [%d] )\n", ref, ref->multi.id );
 
      if (fusion_config->trace_ref == -1 || ref->multi.id == fusion_config->trace_ref) {
           D_INFO( "Fusion/Ref: 0x%08x throw, single refs %d\n", ref->multi.id, ref->single.refs );
