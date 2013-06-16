@@ -346,8 +346,6 @@ DisplayTask::Run()
      CoreSurfaceBufferLock    left  = {0};
      CoreSurfaceBufferLock    right = {0};
 
-     surface = region->surface;
-
      D_DEBUG_AT( DirectFB_Task_Display, "DisplayTask::%s( %p [%s], region %p )\n", __FUNCTION__,
                  this, *ToString<DirectFB::Task>(*this), region );
 
@@ -355,7 +353,14 @@ DisplayTask::Run()
      D_ASSERT( funcs != NULL );
      D_ASSERT( funcs->SetRegion != NULL );
 
+     /* Preinitialize state client for possible blits from layer driver (avoids dead lock with region lock) */
+     dfb_gfx_init_tls();
+
      dfb_layer_region_lock( region );
+
+     surface = region->surface;
+
+     dfb_surface_ref( surface );
 
      D_ASSERT( region->display_tasks != NULL );
 
@@ -514,8 +519,6 @@ DisplayTask::Run()
 
 
 out:
-     dfb_layer_region_unlock( region );
-
      if (ret != DFB_SUSPENDED) {
           if (right.allocation) {
                /* Unlock region buffer since the lock is no longer needed. */
@@ -530,10 +533,15 @@ out:
           }
      }
 
+     dfb_surface_unref( surface );
+
      Release();
 
-     if (ret)
+     if (ret) {
+          dfb_layer_region_unlock( region );
+
           Done( ret );
+     }
      else if (!(dfb_system_caps() & CSCAPS_DISPLAY_TASKS)) {
           D_DEBUG_AT( DirectFB_Task_Display, "  -> system WITHOUT display task support, calling Task_Done on previous task\n" );
 
@@ -541,6 +549,8 @@ out:
                layer->prev_task->Done();
 
           layer->prev_task = this;
+
+          dfb_layer_region_unlock( region );
      }
 
      return ret;
