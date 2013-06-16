@@ -2347,6 +2347,11 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
           // FIXME: move to helper class, e.g. to SurfaceTask
           //
 
+          if (surface->num_buffers == 0) {
+               dfb_surface_unlock( surface );
+               return DFB_BUFFEREMPTY;
+          }
+
           buffer = dfb_surface_get_buffer3( surface, role, eye, flips );
 
           allocation = dfb_surface_buffer_find_allocation( buffer, setup->tasks[0]->accessor, flags, true );
