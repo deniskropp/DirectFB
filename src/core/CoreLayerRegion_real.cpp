@@ -361,7 +361,6 @@ DisplayTask::Run()
 
      D_DEBUG_AT( DirectFB_Task_Display_List, "  -> removing from list %p\n", region->display_tasks );
      region->display_tasks->Remove( this );
-     Release();
 
 
      D_ASSERT( D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ) );
@@ -523,6 +522,8 @@ out:
           dfb_surface_pool_unlock( left.allocation->pool, left.allocation, &left );
           dfb_surface_buffer_lock_deinit( &left );
      }
+
+     Release();
 
      if (ret)
           Done( ret );
