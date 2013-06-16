@@ -356,10 +356,12 @@ Task::AddRef()
      if (direct_thread_self() == TaskManager::thread)
           DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return );
      else
-          DFB_TASK_CHECK_STATE( this, TASK_NEW, return );
+          DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING, return );
 #endif
 
-     refs++;
+     D_ASSERT( refs > 0 );
+
+     D_SYNC_ADD( &refs, 1 );
 }
 
 void
@@ -369,18 +371,28 @@ Task::Release()
 
 #if DFB_TASK_DEBUG_STATE
      if (direct_thread_self() == TaskManager::thread) {
-          DFB_TASK_CHECK_STATE( this, TASK_DONE | TASK_RUNNING, return );
+          DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_DONE, return );
      }
      else {
           if (refs == 1)
-               DFB_TASK_CHECK_STATE( this, TASK_NEW, return );
+               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_DONE, return );
           else
-               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING, return );
+               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING | TASK_DONE, return );
      }
 #endif
 
-     if (! --refs)
-          delete this;
+     D_ASSERT( refs > 0 );
+
+     D_SYNC_ADD( &refs, -1 );
+
+     if (refs == 0) {
+          state = TASK_DEAD;
+
+          if (direct_thread_self() == TaskManager::thread)
+               delete this;
+          else
+               TaskManager::pushTask( this );
+     }
 }
 
 Task::~Task()
@@ -389,7 +401,7 @@ Task::~Task()
 
 #if DFB_TASK_DEBUG_STATE
      if (direct_thread_self() == TaskManager::thread)
-          DFB_TASK_CHECK_STATE( this, TASK_DONE, );
+          DFB_TASK_CHECK_STATE( this, TASK_DEAD, );
      else
           DFB_TASK_CHECK_STATE( this, TASK_NEW, );
 #endif
@@ -1326,6 +1338,12 @@ finish:
                     D_WARN( "Task::finish took more than %dus (%lld)  [%p] %s", DFB_TASK_WARN_FINISH, t2 - t1, task, desc.c_str() );
                }
 #endif
+               break;
+
+          case TASK_DEAD:
+               D_DEBUG_AT( DirectFB_Task, "  -> DEAD\n" );
+
+               delete task;
                break;
 
           case TASK_INVALID:
