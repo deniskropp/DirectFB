@@ -482,6 +482,8 @@ typedef struct {
 
      CardState                     state;
      CoreGraphicsStateClient       client;
+
+     FusionSkirmish                update_skirmish;
 } WMData;
 
 /**********************************************************************************************************************/

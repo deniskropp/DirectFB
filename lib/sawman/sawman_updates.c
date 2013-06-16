@@ -2247,6 +2247,8 @@ sawman_process_updates( SaWMan              *sawman,
      if (!data->active)
           return DFB_OK;
 
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
+
      direct_list_foreach (tier, sawman->tiers) {
           bool          none = false;
           bool          border_only;
@@ -2365,6 +2367,8 @@ sawman_process_updates( SaWMan              *sawman,
           if (tier->left.updates.num_regions || tier->right.updates.num_regions)
                process_updates( sawman, tier, flags, wmdata );
      }
+
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 
      return DFB_OK;
 }

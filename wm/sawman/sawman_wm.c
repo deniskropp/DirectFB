@@ -44,6 +44,7 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 #include <fusion/vector.h>
 
@@ -1189,6 +1190,8 @@ local_deinit( WMData *wmdata )
 static DFBResult
 local_ref( WMData *wmdata )
 {
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
+
      if (!wmdata->refs) {
           DFBResult ret;
 
@@ -1199,11 +1202,14 @@ local_ref( WMData *wmdata )
           ret = CoreGraphicsStateClient_Init( &wmdata->client, &wmdata->state );
           if (ret) {
                dfb_state_destroy( &wmdata->state );
+               fusion_skirmish_dismiss( &wmdata->update_skirmish );
                return ret;
           }
      }
 
      wmdata->refs++;
+
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 
      return DFB_OK;
 }
@@ -1213,11 +1219,15 @@ local_unref( WMData *wmdata )
 {
      D_ASSERT( wmdata->refs > 0 );
 
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
+
      if (!--wmdata->refs) {
           CoreGraphicsStateClient_Deinit( &wmdata->client );
 
           dfb_state_destroy( &wmdata->state );
      }
+
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 }
 
 /**************************************************************************************************/
@@ -1244,6 +1254,8 @@ wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
      DFBResult  ret;
      WMData    *data   = wm_data;
      SaWMan    *sawman = shared_data;
+
+     fusion_skirmish_init2( &data->update_skirmish, "WM/Update", dfb_core_world(core), fusion_config->secure_fusion );
 
      ret = local_init( data, sawman, core );
      if (ret)
@@ -1273,6 +1285,8 @@ wm_shutdown( bool emergency, void *wm_data, void *shared_data )
      SaWMan *sawman = shared_data;
 
      local_deinit( data );
+
+     fusion_skirmish_destroy( &data->update_skirmish );
 
      return sawman_shutdown( sawman, data->world );
 }
@@ -1395,6 +1409,10 @@ sawman_surface_reaction( const void *msg_data,
                          return RS_OK;
                     }
 
+                    local_ref( wmdata );
+
+                    fusion_skirmish_prevail( &wmdata->update_skirmish );
+
                     D_ASSUME( tier->left.updated.num_regions > 0 || tier->right.updated.num_regions > 0 );
 
                     if (tier->left.updated.num_regions || tier->right.updated.num_regions) {
@@ -1458,6 +1476,12 @@ sawman_surface_reaction( const void *msg_data,
 
                          sawman_flush_updating( sawman, tier, wmdata );
                     }
+
+                    CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
+
+                    fusion_skirmish_dismiss( &wmdata->update_skirmish );
+
+                    local_unref( wmdata );
 
                     /* Unlock SaWMan. */
                     sawman_unlock( sawman );
@@ -3474,6 +3498,8 @@ update_single( SaWMan              *sawman,
 
      sawman_dispatch_tier_update( sawman, tier, right_eye, regions, num );
 
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
+
      for (i=0; i<num; i++) {
           DFBRectangle tmp = tier->single_src;
 
@@ -3552,6 +3578,8 @@ update_single( SaWMan              *sawman,
                dfb_layer_region_flip_update( tier->region, &reg, flags );
           }
      }
+
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 }
 
 static DFBResult
@@ -4154,6 +4182,8 @@ wm_update_cursor( CoreWindowStack       *stack,
      surface = primary->surface;
      D_ASSERT( surface != NULL );
 
+     fusion_skirmish_prevail( &wmdata->update_skirmish );
+
      /* restore region under cursor */
      if (tier->cursor_drawn) {
           //DFBRectangle rect = { 0, 0,
@@ -4312,9 +4342,11 @@ wm_update_cursor( CoreWindowStack       *stack,
                     }
                     break;
           }
-
-          CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
      }
+
+     CoreGraphicsStateClient_Flush( &wmdata->client, 0, CGSCFF_NONE );
+
+     fusion_skirmish_dismiss( &wmdata->update_skirmish );
 
      sawman_unlock( sawman );
 
