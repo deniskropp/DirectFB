@@ -1570,6 +1570,15 @@ dfb_layer_region_unrealize( CoreLayerRegion *region )
                D_DERROR( ret, "Core/Layers: Could not remove region!\n" );
                return ret;
           }
+
+          if (!(dfb_system_caps() & CSCAPS_DISPLAY_TASKS)) {
+               D_DEBUG_AT( Core_Layers, "  -> system WITHOUT display task support, calling Task_Done on last task\n" );
+
+               if (layer->prev_task)
+                    Task_Done( layer->prev_task );
+
+               layer->prev_task = NULL;
+          }
      }
 
      /* Remove the region from the 'added' list. */
