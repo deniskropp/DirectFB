@@ -1698,13 +1698,15 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
      DFBResult      ret;
      CoreDFBShared *shared;
-     int            loops = 3;
+     int            loops = 10;
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
      shared = core->shared;
 
      D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     dfb_gfx_init_tls();
 
      /* Suspend input core to stop all input threads before shutting down. */
      if (dfb_input_core.initialized)
@@ -1720,11 +1722,11 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
 
      while (loops--) {
-          dfb_gfx_cleanup();
-
-          ret = dfb_core_wait_all( core, 200000 );
+          ret = dfb_core_wait_all( core, 100000 );
           if (ret == DFB_OK)
                break;
+
+          dfb_gfx_cleanup();
      }
 
      if (ret == DFB_TIMEOUT) {
