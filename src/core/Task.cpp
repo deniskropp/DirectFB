@@ -381,9 +381,7 @@ Task::Release()
 
      D_ASSERT( refs > 0 );
 
-     D_SYNC_ADD( &refs, -1 );
-
-     if (refs == 0) {
+     if (D_SYNC_ADD_AND_FETCH( &refs, -1 ) == 0) {
           state = TASK_DEAD;
 
           if (direct_thread_self() == TaskManager::thread)
