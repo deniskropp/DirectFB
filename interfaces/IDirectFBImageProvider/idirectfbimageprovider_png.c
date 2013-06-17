@@ -50,6 +50,7 @@
 #include <core/surface.h>
 
 #include <core/CoreSurface.h>
+#include <core/Debug.h>
 
 #include <misc/gfx_util.h>
 #include <misc/util.h>
@@ -285,17 +286,28 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      if (!dst_surface)
           return DFB_DESTROYED;
 
+     D_DEBUG_AT( imageProviderPNG, "  -> dst_surface %s\n", ToString_CoreSurface(dst_surface) );
+
      dfb_region_from_rectangle( &clip, &dst_data->area.current );
 
      if (dest_rect) {
+          D_DEBUG_AT( imageProviderPNG, "  -> dest_rect %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(dest_rect) );
+
           if (dest_rect->w < 1 || dest_rect->h < 1)
                return DFB_INVARG;
           rect = *dest_rect;
-          rect.x += dst_data->area.wanted.x;
-          rect.y += dst_data->area.wanted.y;
+
+          if (dst_data->area.wanted.x || dst_data->area.wanted.y) {
+               rect.x += dst_data->area.wanted.x;
+               rect.y += dst_data->area.wanted.y;
+
+               D_DEBUG_AT( imageProviderPNG, "  -> dest_rect %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(&rect) );
+          }
      }
      else {
           rect = dst_data->area.wanted;
+
+          D_DEBUG_AT( imageProviderPNG, "  -> dest_rect %4d,%4d-%4dx%4d (from dst)\n", DFB_RECTANGLE_VALS(&rect) );
      }
 
      if (setjmp( png_jmpbuf(data->png_ptr) )) {
@@ -316,8 +328,12 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
      clipped = rect;
 
+     D_DEBUG_AT( imageProviderPNG, "  -> clip      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION(&clip) );
+
      if (!dfb_rectangle_intersect_by_region( &clipped, &clip ))
           return DFB_INVAREA;
+
+     D_DEBUG_AT( imageProviderPNG, "  -> clipped   %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(&clipped) );
 
      /* actual rendering */
      if (0    &&   // FIXME
