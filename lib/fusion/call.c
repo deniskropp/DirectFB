@@ -499,7 +499,7 @@ fusion_call_execute3(FusionCall          *call,
           DirectResult        ret   = DR_OK;
 
           // check whether we can cache this call
-          if (flags & FCEF_QUEUE && fusion_config->call_bin_max_num > 0) {
+          if (flags & FCEF_QUEUE && fusion_config->call_bin_max_num > 0 && length < 10000) {
                D_ASSERT( flags & FCEF_ONEWAY );
 
                if (call_tls->bins_data_len + length > fusion_config->call_bin_max_data) {
