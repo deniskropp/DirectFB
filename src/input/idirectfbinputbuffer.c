@@ -237,6 +237,8 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      }
 #endif
 
+     direct_mutex_unlock( &data->events_mutex );
+
 #if !DIRECTFB_BUILD_PURE_VOODOO
      direct_list_foreach_safe (surface, n, data->surfaces) {
           dfb_surface_detach( surface->surface, &surface->reaction );
@@ -264,6 +266,8 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
           D_FREE( window );
      }
 #endif
+
+     direct_mutex_lock( &data->events_mutex );
 
      direct_list_foreach_safe (item, n, data->events)
           D_FREE( item );
