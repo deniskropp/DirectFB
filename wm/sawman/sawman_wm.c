@@ -1190,6 +1190,8 @@ local_deinit( WMData *wmdata )
 static DFBResult
 local_ref( WMData *wmdata )
 {
+     D_DEBUG_AT( SaWMan_WM, "%s( %p )\n", __FUNCTION__, wmdata );
+
      fusion_skirmish_prevail( &wmdata->update_skirmish );
 
      if (!wmdata->refs) {
@@ -1209,6 +1211,8 @@ local_ref( WMData *wmdata )
 
      wmdata->refs++;
 
+     D_DEBUG_AT( SaWMan_WM, "  -> %d refs\n", wmdata->refs );
+
      fusion_skirmish_dismiss( &wmdata->update_skirmish );
 
      return DFB_OK;
@@ -1217,6 +1221,8 @@ local_ref( WMData *wmdata )
 static void
 local_unref( WMData *wmdata )
 {
+     D_DEBUG_AT( SaWMan_WM, "%s( %p )\n", __FUNCTION__, wmdata );
+
      D_ASSERT( wmdata->refs > 0 );
 
      fusion_skirmish_prevail( &wmdata->update_skirmish );
@@ -1226,6 +1232,8 @@ local_unref( WMData *wmdata )
 
           dfb_state_destroy( &wmdata->state );
      }
+
+     D_DEBUG_AT( SaWMan_WM, "  -> %d refs\n", wmdata->refs );
 
      fusion_skirmish_dismiss( &wmdata->update_skirmish );
 }
@@ -4183,6 +4191,12 @@ wm_update_cursor( CoreWindowStack       *stack,
      D_ASSERT( surface != NULL );
 
      fusion_skirmish_prevail( &wmdata->update_skirmish );
+
+     if (!wmdata->refs) {
+          fusion_skirmish_dismiss( &wmdata->update_skirmish );
+          sawman_unlock( sawman );
+          return DFB_OK;
+     }
 
      /* restore region under cursor */
      if (tier->cursor_drawn) {
