@@ -480,7 +480,11 @@ accept_connection( VoodooServer *server, int fd )
           return DR_NOLOCALMEMORY;
      }
 
-     voodoo_link_init_fd( &connection->vl, fds );
+     ret = voodoo_link_init_fd( &connection->vl, fds );
+     if (ret) {
+          D_PERROR( "Voodoo/Server: accept_connection: failed to init fd!\n" );
+          return ret;
+     }
 
      ret = voodoo_manager_create( &connection->vl, NULL, server, &connection->manager );
      if (ret) {

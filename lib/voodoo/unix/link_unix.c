@@ -568,9 +568,12 @@ voodoo_link_init_fd( VoodooLink *link,
                      int         fd[2] )
 {
      Link *l;
+     int ret;
 
-     if (read( fd[0], &link->code, sizeof(link->code) ) != 4) {
-          D_ERROR( "Voodoo/Link: Coult not read initial four bytes!\n" );
+     ret = read( fd[0], &link->code, sizeof(link->code) );
+     if (ret != 4) {
+          D_ERROR( "Voodoo/Link: Coult not read initial four bytes! (errno=%d ret=%d)\n", errno, ret );
+          close (fd[0] );
           return DR_IO;
      }
 
