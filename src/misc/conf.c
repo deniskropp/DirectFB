@@ -205,7 +205,7 @@ static const char *config_usage_strings[]  = {
      "\n"
      "  max-font-rows=<number>         Maximum number of glyph cache rows (total for all fonts)\n"
      "  max-font-row-width=<pixels>    Maximum width of glyph cache row surface\n"
-     "  graphics-state-call-limit=<n>  Set FusionCall quota for graphics state object\n"
+     "  graphics-state-call-limit=<n>  Set FusionCall quota for graphics state object (default 5000)\n"
      "\n",
      " Window surface swapping policy:\n"
      "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
@@ -515,6 +515,8 @@ static void config_allocate( void )
 
      dfb_config->flip_notify_max_latency = 200;
      dfb_config->screen_frame_interval   = 16666;
+
+     dfb_config->graphics_state_call_limit = 5000;
 }
 
 const char *dfb_config_usage( void )
