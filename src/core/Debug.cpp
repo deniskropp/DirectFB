@@ -44,7 +44,7 @@ extern "C" {
 #include <core/surface_buffer.h>
 }
 
-#include <core/Task.h>
+#include <core/SurfaceTask.h>
 
 /*********************************************************************************************************************/
 

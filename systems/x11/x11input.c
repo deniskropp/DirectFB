@@ -52,7 +52,7 @@
 #include <core/layers_internal.h>
 #include <core/system.h>
 
-#include <core/Task.h>
+#include <core/DisplayTask.h>
 
 #include <direct/mem.h>
 #include <direct/memcpy.h>

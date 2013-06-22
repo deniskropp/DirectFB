@@ -68,7 +68,7 @@ extern "C" {
 
 #include <direct/Lists.h>
 
-#include <core/Task.h>
+#include <core/SurfaceTask.h>
 
 
 D_DEBUG_DOMAIN( Core_SurfAllocation, "Core/SurfAllocation", "DirectFB Core Surface Allocation" );

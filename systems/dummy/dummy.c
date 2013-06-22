@@ -29,6 +29,7 @@
 #include <config.h>
 
 #include <core/Task.h>
+#include <core/DisplayTask.h>
 
 #include <core/layers.h>
 #include <core/screens.h>

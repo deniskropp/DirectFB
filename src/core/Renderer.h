@@ -63,7 +63,7 @@ extern "C" {
 }
 
 
-#include "Task.h"
+#include <core/SurfaceTask.h>
 
 #include <list>
 #include <map>

@@ -65,10 +65,12 @@ internalinclude_HEADERS = \
 	$(builddir)/CoreWindowStack.h		\
 	CoreWindowStack_includes.h	\
 	Debug.h			\
+	DisplayTask.h		\
 	Fifo.h			\
 	Interface.h		\
 	PacketBuffer.h		\
 	Renderer.h		\
+	SurfaceTask.h		\
 	Task.h			\
 	Util.h			\
 	clipboard.h		\
@@ -143,8 +145,10 @@ libdirectfb_core_la_SOURCES = \
 	$(builddir)/CoreWindowStack.cpp		\
 	CoreWindowStack_real.cpp	\
 	Debug.cpp		\
+	DisplayTask.cpp		\
 	Interface.cpp		\
 	Renderer.cpp		\
+	SurfaceTask.cpp		\
 	Task.cpp		\
 	TaskThreadsQ.cpp	\
 	Util.cpp		\

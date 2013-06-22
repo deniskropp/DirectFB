@@ -44,7 +44,7 @@ extern "C" {
 #include <gfx/util.h>
 }
 
-#include <core/Task.h>
+#include <core/SurfaceTask.h>
 
 
 D_DEBUG_DOMAIN( DirectFB_CoreSurface, "DirectFB/CoreSurface", "DirectFB CoreSurface" );
