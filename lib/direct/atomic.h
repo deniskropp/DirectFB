@@ -31,6 +31,12 @@
 
 #include <direct/types.h>
 
+
+
+
+#if !DIRECT_BUILD_GCC_ATOMICS
+
+
 #if defined (__SH4__) || defined (__SH4A__)
 
 /*
@@ -313,6 +319,9 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
 #endif
 
 
+#endif  // !DIRECT_BUILD_GCC_ATOMICS
+
+
 
 #ifdef WIN32
 
@@ -354,6 +363,8 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
 
 #ifndef D_SYNC_ADD_AND_FETCH
 #define D_SYNC_ADD_AND_FETCH( ptr, value )                                      \
+     __sync_add_and_fetch( ptr, value )
+#if 0
      ({                                                                         \
           int           __val;                                                  \
           volatile int *__ptr = (volatile int *)(void*)(ptr);                   \
@@ -364,7 +375,7 @@ static inline int _D__atomic_add_return(int i, volatile int *v)
                                                                                 \
           __val + value;                                                        \
      })
-//     __sync_add_and_fetch( ptr, value )
+#endif
 #endif
 
 #ifndef D_SYNC_ADD
