@@ -371,11 +371,26 @@ static DFBResult
 IDirectFBDisplayLayer_Requestor_SetConfiguration( IDirectFBDisplayLayer       *thiz,
                                                   const DFBDisplayLayerConfig *config )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!config)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDISPLAYLAYER_METHOD_ID_SetConfiguration, VREQ_RESPOND, &response,
+                                   VMBT_DATA, sizeof(DFBDisplayLayerConfig), config,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
 }
 
 static DFBResult

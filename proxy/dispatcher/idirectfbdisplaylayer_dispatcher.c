@@ -535,6 +535,29 @@ Dispatch_TestConfiguration( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *
 }
 
 static DirectResult
+Dispatch_SetConfiguration( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
+                           VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult                 ret;
+     const DFBDisplayLayerConfig *config;
+     VoodooMessageParser          parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, config );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->SetConfiguration( real, config );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, true, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_SetCooperativeLevel( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
                               VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -817,6 +840,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBDISPLAYLAYER_METHOD_ID_TestConfiguration:
                return Dispatch_TestConfiguration( dispatcher, real, manager, msg );
+
+          case IDIRECTFBDISPLAYLAYER_METHOD_ID_SetConfiguration:
+               return Dispatch_SetConfiguration( dispatcher, real, manager, msg );
 
           case IDIRECTFBDISPLAYLAYER_METHOD_ID_CreateWindow:
                return Dispatch_CreateWindow( dispatcher, real, manager, msg );
