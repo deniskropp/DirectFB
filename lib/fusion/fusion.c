@@ -2260,8 +2260,11 @@ retry:
           fchmod( shared_fd, 0660 );
           ftruncate( shared_fd, sizeof(FusionWorldShared) );
           
+          unsigned long  size = direct_page_align(sizeof(FusionWorldShared));
+          unsigned long  base = (unsigned long) 0x20000000 + (size + direct_pagesize()) * world_index;
+
           /* Map shared area. */
-          shared = mmap( (void*) 0x20000000 + 0x2000 * world_index, sizeof(FusionWorldShared),
+          shared = mmap( (void*) base, size,
                          PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, shared_fd, 0 );
           if (shared == MAP_FAILED) {
                D_PERROR( "Fusion/Init: Mapping shared area failed!\n" );
@@ -2284,7 +2287,7 @@ retry:
           shared->world_index = world_index;
 
           /* Set pool allocation base/max. */
-          shared->pool_base = (void*)0x20000000 + 0x2000 * FUSION_MAX_WORLDS + 0x8000000 * world_index;
+          shared->pool_base = (void*)0x20000000 + (size + direct_pagesize()) * FUSION_MAX_WORLDS + 0x8000000 * world_index;
           shared->pool_max  = shared->pool_base + 0x8000000 - 1;
 
           /* Set start time of world clock. */
@@ -2395,8 +2398,11 @@ retry:
                goto error;
           }
           
+          unsigned long  size = direct_page_align(sizeof(FusionWorldShared));
+          unsigned long  base = (unsigned long) 0x20000000 + (size + direct_pagesize()) * world_index;
+
           /* Map shared area. */
-          shared = mmap( (void*) 0x20000000 + 0x2000 * world_index, sizeof(FusionWorldShared),
+          shared = mmap( (void*) base, size,
                          PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, shared_fd, 0 );
           if (shared == MAP_FAILED) {
                D_PERROR( "Fusion/Init: Mapping shared area failed!\n" );
