@@ -40,6 +40,20 @@ protected:
 
      VoodooManager              *manager;
      VoodooLink                 *link;
+     long long                   delay;      // time it takes for a roundtrip
+     long long                   time_diff;  // this is what's added to our monotonic clock to get
+                                             // the corresponding value at the other side of the connection
+
+public:
+     long long GetDelay() const {
+          return delay;
+     }
+
+     long long GetTimeDiff() const {
+          return time_diff;
+     }
+
+     void SetupTime();
 
 public:
      VoodooConnection( VoodooLink *link );

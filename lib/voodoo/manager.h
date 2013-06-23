@@ -73,6 +73,7 @@ public:
      bool                        is_quit;
 
 private:
+     friend class VoodooConnection;
      friend class VoodooDispatcher;
 
      VoodooConnection           *connection;
@@ -97,8 +98,10 @@ private:
      } response;
 
 
-     VoodooDispatcher *dispatcher;
+     VoodooDispatcher           *dispatcher;
 
+     VoodooInstanceID            local_time_service_id;
+     VoodooInstanceID            remote_time_service_id;
 
 
 public:
@@ -125,6 +128,9 @@ public:
      void         handle_request       ( VoodooRequestMessage    *request );
      void         handle_response      ( VoodooResponseMessage   *response );
      void         handle_discover      ( VoodooMessageHeader     *header );
+
+     long long    clock_to_local       ( long long                remote );
+     long long    clock_to_remote      ( long long                local );
 
 
 private:
@@ -270,6 +276,17 @@ DirectResult VOODOO_API voodoo_manager_lookup_remote  ( VoodooManager           
 
 DirectResult VOODOO_API voodoo_manager_check_allocation( VoodooManager           *manager,
                                                          unsigned int             amount );
+
+
+/* Time */
+
+long long    VOODOO_API voodoo_manager_clock_to_local  ( VoodooManager           *manager,
+                                                         long long                remote );
+
+long long    VOODOO_API voodoo_manager_clock_to_remote ( VoodooManager           *manager,
+                                                         long long                local );
+
+long long    VOODOO_API voodoo_manager_connection_delay( VoodooManager           *manager );
 
 #ifdef __cplusplus
 }

@@ -569,3 +569,21 @@ voodoo_manager_check_allocation( VoodooManager *manager,
      return DR_OK;
 }
 
+long long
+voodoo_manager_clock_to_local( VoodooManager *manager,
+                               long long      remote )
+{
+     D_MAGIC_ASSERT( manager, VoodooManager );
+
+     return manager->clock_to_local( remote );
+}
+
+long long
+voodoo_manager_clock_to_remote( VoodooManager *manager,
+                                long long      local )
+{
+     D_MAGIC_ASSERT( manager, VoodooManager );
+
+     return manager->clock_to_remote( local );
+}
+

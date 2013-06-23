@@ -57,6 +57,30 @@ extern "C" {
 
 D_DEBUG_DOMAIN( Voodoo_Dispatch, "Voodoo/Dispatch", "Voodoo Dispatch" );
 D_DEBUG_DOMAIN( Voodoo_Manager,  "Voodoo/Manager",  "Voodoo Manager" );
+D_DEBUG_DOMAIN( Voodoo_Time,     "Voodoo/Time",     "Voodoo Time" );
+
+/**********************************************************************************************************************/
+
+class TimeService : public VoodooInstance
+{
+     virtual DirectResult Dispatch( VoodooManager        *manager,
+                                    VoodooRequestMessage *msg )
+     {
+          long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+          D_DEBUG_AT( Voodoo_Time, "VoodooInstance::%s( %p, manager %p, msg %p )\n", __func__, this, manager, msg );
+
+          D_MAGIC_ASSERT( this, VoodooInstance );
+
+          return voodoo_manager_respond( manager, true, msg->header.serial,
+                                         DR_OK, VOODOO_INSTANCE_NONE,
+                                         VMBT_UINT, (unsigned long long) now >> 32,
+                                         VMBT_UINT, (unsigned long long) now,
+                                         VMBT_NONE );
+     }
+};
+
+static TimeService time_service;
 
 /**********************************************************************************************************************/
 
@@ -68,6 +92,8 @@ VoodooManager::VoodooManager( VoodooConnection *connection,
      msg_count(0),
      msg_serial(0)
 {
+     DirectResult ret;
+
      D_ASSERT( connection != NULL );
      D_ASSERT( context != NULL );
 
@@ -97,7 +123,17 @@ VoodooManager::VoodooManager( VoodooConnection *connection,
      dispatcher = new VoodooDispatcher( this );
 
 
+     register_local( &time_service, &local_time_service_id );
+
+
      connection->Start( this );
+
+
+     ret = do_super( "TimeService", &remote_time_service_id );
+     if (ret)
+          D_DERROR( ret, "Voodoo/Manager: Failed to query for TimeService!\n" );
+     else
+          connection->SetupTime();
 }
 
 static void
@@ -186,6 +222,8 @@ VoodooManager::quit()
      /* Have all threads quit upon this. */
      is_quit = true;
 
+     unregister_local( local_time_service_id );
+
      /* Acquire locks and wake up waiters. */
      direct_mutex_lock( &response.lock );
      direct_waitqueue_broadcast( &response.wait_get );
@@ -210,7 +248,7 @@ VoodooManager::handle_super( VoodooSuperMessage *super )
 {
      D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p )\n", __func__, this );
 
-     DirectResult  ret;
+     DirectResult  ret = DR_OK;
      const char   *name;
 
      D_MAGIC_ASSERT( this, VoodooManager );
@@ -225,7 +263,11 @@ VoodooManager::handle_super( VoodooSuperMessage *super )
 
      VoodooInstanceID instance_id;
 
-     ret = context->HandleSuper( this, name, &instance_id );
+     if (!strcmp( name, "TimeService" ))
+          instance_id = local_time_service_id;
+     else
+          ret = context->HandleSuper( this, name, &instance_id );
+
      if (ret)
           do_respond( true, super->header.serial, ret );
      else
@@ -416,6 +458,34 @@ VoodooManager::handle_discover( VoodooMessageHeader *header )
 
      /* Unlock the output buffer. */
      connection->PutPacket( packet, true );
+}
+
+long long
+VoodooManager::clock_to_local( long long remote )
+{
+     long long local;
+
+     D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p, %lld )\n", __func__, this, remote );
+
+     local = remote - connection->GetTimeDiff();
+
+     D_DEBUG_AT( Voodoo_Manager, "  => %lld (diff %lld)\n", local, connection->GetTimeDiff() );
+
+     return local;
+}
+
+long long
+VoodooManager::clock_to_remote( long long local )
+{
+     long long remote;
+
+     D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p, %lld )\n", __func__, this, local );
+
+     remote = local + connection->GetTimeDiff();
+
+     D_DEBUG_AT( Voodoo_Manager, "  => %lld (diff %lld)\n", remote, connection->GetTimeDiff() );
+
+     return remote;
 }
 
 /**************************************************************************************************/
