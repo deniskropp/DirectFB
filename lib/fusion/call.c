@@ -1166,8 +1166,12 @@ fusion_call_execute_internal (FusionCall          *call,
      if (!call->handler && !call->handler3)
           return DR_DESTROYED;
 
+     world = _fusion_world( call->shared );
+
      //D_INFO_LINE_MSG("call execute %d owner %lu, me %lu\n",call->call_id,call->fusion_id, _fusion_id( call->shared ));
-     if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
+     if (call->fusion_id == fusion_id( world ) &&
+         (!(flags & FCEF_NODIRECT) || (call->handler3 && (direct_thread_self() == world->dispatch_loop))))
+     {
           FusionCallHandlerResult result;
 
           if (call->handler) {
@@ -1185,8 +1189,6 @@ fusion_call_execute_internal (FusionCall          *call,
                
           return DR_OK;
      }
-     
-     world = _fusion_world( call->shared );
      
      msg->type        = FMT_CALL;
      msg->caller      = world->fusion_id;
