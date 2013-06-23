@@ -38,6 +38,7 @@ extern "C" {
 #include <direct/debug.h>
 #include <direct/messages.h>
 
+#include <core/core.h>
 #include <core/graphics_state.h>
 #include <core/surface_allocation.h>
 #include <core/surface_pool.h>
@@ -2339,6 +2340,10 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
      if (it != allocations.end()) {
           allocation = (*it).second;
 
+          /*
+           * Push our own identity for buffer locking calls (locality of accessor)
+           */
+          Core_PushIdentity( 0 );
      }
      else {
           ret = (DFBResult) dfb_surface_lock( surface );
@@ -2355,12 +2360,18 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
 
           buffer = dfb_surface_get_buffer3( surface, role, eye, flips );
 
+          /*
+           * Push our own identity for buffer locking calls (locality of accessor)
+           */
+          Core_PushIdentity( 0 );
+
           allocation = dfb_surface_buffer_find_allocation( buffer, setup->tasks[0]->accessor, flags, true );
           if (!allocation) {
                /* If no allocation exists, create one. */
                ret = dfb_surface_pools_allocate( buffer, setup->tasks[0]->accessor, flags, &allocation );
                if (ret) {
                     D_DERROR( ret, "DirectFB/Renderer: Buffer allocation failed (%s)!\n", ToString<CoreSurfaceBuffer>(*buffer).buffer() );
+                    Core_PopIdentity();
                     dfb_surface_unlock( surface );
                     return ret;
                }
@@ -2381,6 +2392,8 @@ Renderer::updateLock( CoreSurfaceBufferLock  *lock,
      ret = enterLock( lock, allocation, flags );
      if (ret)
           return ret;
+
+     Core_PopIdentity();
 
      D_DEBUG_AT( DirectFB_Renderer, "  => lock %s\n", *ToString<CoreSurfaceBufferLock>(*lock) );
 
