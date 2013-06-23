@@ -259,8 +259,10 @@ dfb_layer_region_deactivate( CoreLayerRegion *region )
      /* Unrealize the region? */
      if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
           ret = dfb_layer_region_unrealize( region );
-          if (ret)
+          if (ret) {
+               dfb_layer_region_unlock( region );
                return ret;
+          }
      }
 
      /* Update the region's state. */
@@ -1566,10 +1568,8 @@ dfb_layer_region_unrealize( CoreLayerRegion *region )
      if (funcs->RemoveRegion) {
           ret = funcs->RemoveRegion( layer, layer->driver_data,
                                      layer->layer_data, region->region_data );
-          if (ret) {
-               D_DERROR( ret, "Core/Layers: Could not remove region!\n" );
-               return ret;
-          }
+          if (ret)
+               D_DERROR( ret, "Core/Layers: RemoveRegion failed!\n" );
 
           if (!(dfb_system_caps() & CSCAPS_DISPLAY_TASKS)) {
                D_DEBUG_AT( Core_Layers, "  -> system WITHOUT display task support, calling Task_Done on last task\n" );
