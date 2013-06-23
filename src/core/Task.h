@@ -24,7 +24,36 @@
    License along with this library; if not, write to the
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
-*/
+
+.     0x7f1cf4041950 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:2 bl: 0 sl:0 m:(nil) qid:0 hw:0 emit:381723688617) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5400, index 1  Display buffer index 1 (mono)
+.     0x7f1cf401ac20 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:2 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723705283) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5800, index 0  Display buffer index 0 (mono)
+.     0x7f1cf4041f70 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:1 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723721949) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5400, index 1  Display buffer index 1 (mono)
+.     0x7f1cf4041b20 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:0 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723738615) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5800, index 0  Display buffer index 0 (mono)
+
+.     0x7f1cf403f780 Genefx       [DONE     NEED_SLAVE_PUSH,LAST_IN_QUEUE] 1 refs (n:1 bl: 0 sl:0 m:(nil) qid:17179869184 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5800, index 0  clip    0,   0- 640x 480
+.     0x7f1cf403efa0 Genefx       [READY    NEED_SLAVE_PUSH     ] 1 refs (n:1 bl: 1 sl:0 m:(nil) qid:21474836480 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5400, index 1  clip    0,   0- 640x 480
+.     0x7f1cf4041700 Genefx       [READY    NEED_SLAVE_PUSH     ] 1 refs (n:1 bl: 1 sl:0 m:(nil) qid:17179869184 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5800, index 0  clip    0,   0- 640x 480
+.     0x7f1cf403f5b0 Genefx       [FLUSHED  NEED_SLAVE_PUSH     ] 1 refs (n:0 bl: 0 sl:0 m:(nil) qid:0 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5400, index 1  clip    0,   0- 640x 480
+
+
+.     0x7f1cf4041950 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:2 bl: 0 sl:0 m:(nil) qid:0 hw:0 emit:381723688617) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5400, index 1  Display buffer index 1 (mono)
+.         0x7f1cf401ac20 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:2 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723705283) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5800, index 0  Display buffer index 0 (mono)
+.         0x7f1cf403efa0 Genefx       [READY    NEED_SLAVE_PUSH     ] 1 refs (n:1 bl: 1 sl:0 m:(nil) qid:21474836480 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5400, index 1  clip    0,   0- 640x 480
+.     0x7f1cf403f780 Genefx       [DONE     NEED_SLAVE_PUSH,LAST_IN_QUEUE] 1 refs (n:1 bl: 0 sl:0 m:(nil) qid:17179869184 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5800, index 0  clip    0,   0- 640x 480
+.         0x7f1cf401ac20 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:2 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723705283) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5800, index 0  Display buffer index 0 (mono)
+.     0x7f1cf401ac20 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:2 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723705283) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5800, index 0  Display buffer index 0 (mono)
+.         0x7f1cf4041f70 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:1 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723721949) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5400, index 1  Display buffer index 1 (mono)
+.         0x7f1cf4041700 Genefx       [READY    NEED_SLAVE_PUSH     ] 1 refs (n:1 bl: 1 sl:0 m:(nil) qid:17179869184 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5800, index 0  clip    0,   0- 640x 480
+.     0x7f1cf403efa0 Genefx       [READY    NEED_SLAVE_PUSH     ] 1 refs (n:1 bl: 1 sl:0 m:(nil) qid:21474836480 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5400, index 1  clip    0,   0- 640x 480
+.         0x7f1cf4041f70 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:1 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723721949) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5400, index 1  Display buffer index 1 (mono)
+.     0x7f1cf4041f70 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:1 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723721949) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5400, index 1  Display buffer index 1 (mono)
+.         0x7f1cf4041b20 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:0 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723738615) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5800, index 0  Display buffer index 0 (mono)
+.     0x7f1cf4041700 Genefx       [READY    NEED_SLAVE_PUSH     ] 1 refs (n:1 bl: 1 sl:0 m:(nil) qid:17179869184 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5800, index 0  clip    0,   0- 640x 480
+.         0x7f1cf4041b20 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:0 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723738615) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5800, index 0  Display buffer index 0 (mono)
+.     0x7f1cf4041b20 Display      [READY    NOSYNC,WAITING_TIMED_EMIT] 2 refs (n:0 bl: 2 sl:0 m:(nil) qid:0 hw:0 emit:381723738615) : next (nil)  accessor 0x01, accesses 1, allocation 0x5230000a5800, index 0  Display buffer index 0 (mono)
+.     0x7f1cf403f5b0 Genefx       [FLUSHED  NEED_SLAVE_PUSH     ] 1 refs (n:0 bl: 0 sl:0 m:(nil) qid:0 hw:0 emit:0) : next (nil)  accessor 0x01, accesses 2, allocation 0x5230000a5400, index 1  clip    0,   0- 640x 480
+
+*/ 
 
 #ifndef ___DirectFB__Task__H___
 #define ___DirectFB__Task__H___

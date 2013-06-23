@@ -110,7 +110,9 @@ static const char *config_usage_strings[]  = {
      "  [no-]always-flush-callbuffer   Flush call buffer upon commit, effectively disabling it\n"
      "  [no-]layers-fps=[<ms>]         Print FPS of layers being updated, optional interval (default 1000)\n"
      "  [no-]gfxcard-stats=[<ms>]      Print GPU usage statistics periodically (default 1000)\n"
-     "  screen-frame-interval=<us>     Set default value for screen refresh interval if not encoder defined\n"
+     "  screen-frame-interval=<us>     Set default value for screen refresh interval if not encoder defined (default 16666)\n"
+     "  max-frame-advance=<us>         Set default value for maximum time ahead for rendering frames (default 100000)\n"
+     "  max-render-tasks=<num>         Set maximum number of rendering tasks per Renderer (gfx context) before blocking client\n"
      "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n",
 #ifdef USE_MMX
@@ -517,6 +519,9 @@ static void config_allocate( void )
      dfb_config->screen_frame_interval   = 16666;
 
      dfb_config->graphics_state_call_limit = 5000;
+
+     dfb_config->max_render_tasks          = 10;
+     dfb_config->max_frame_advance         = 100000;
 }
 
 const char *dfb_config_usage( void )
@@ -1903,6 +1908,44 @@ DFBResult dfb_config_set( const char *name, const char *value )
                }
 
                dfb_config->screen_frame_interval = interval;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "max-frame-advance" ) == 0) {
+          if (value) {
+               char *error;
+               long long advance;
+
+               advance = strtoll( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->max_frame_advance = advance;
+          }
+          else {
+               D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "max-render-tasks" ) == 0) {
+          if (value) {
+               char *error;
+               unsigned int max;
+
+               max = strtoll( value, &error, 10 );
+
+               if (*error) {
+                    D_ERROR( "DirectFB/Config '%s': Error in value '%s'!\n", name, error );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->max_render_tasks = max;
           }
           else {
                D_ERROR( "DirectFB/Config '%s': No value specified!\n", name );

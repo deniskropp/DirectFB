@@ -3458,7 +3458,7 @@ IDirectFBSurface_GetFrameTime( IDirectFBSurface *thiz,
      }
 
      if (!max)
-          max = interval * 5;
+          max = dfb_config->max_frame_advance;
 
      data->current_frame_time += interval;
 

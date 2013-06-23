@@ -2108,7 +2108,7 @@ Renderer::Throttle::Hook::setup( SurfaceTask *task )
 
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> count %d\n", throttle.task_count );
 
-     if (throttle.task_count == 5) {
+     if (throttle.task_count == dfb_config->max_render_tasks) {
           D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> throttling at 100%% (blocked) from now\n" );
 
           throttle.SetThrottle( 100 );
@@ -2126,7 +2126,7 @@ Renderer::Throttle::Hook::finalise( SurfaceTask *task )
 
      D_ASSERT( throttle.task_count > 0 );
 
-     if (throttle.task_count == 5) {
+     if (throttle.task_count == dfb_config->max_render_tasks) {
           D_DEBUG_AT( DirectFB_Renderer_Throttle, "  -> throttling at 0%% (full speed) from now\n" );
 
           throttle.SetThrottle( 0 );

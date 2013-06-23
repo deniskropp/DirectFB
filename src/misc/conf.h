@@ -317,6 +317,9 @@ typedef struct
      long long     screen_frame_interval;
 
      unsigned int  gfxcard_stats;
+
+     unsigned int  max_render_tasks;
+     long long     max_frame_advance;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;
