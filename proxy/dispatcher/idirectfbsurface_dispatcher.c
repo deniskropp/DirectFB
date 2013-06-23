@@ -2025,6 +2025,26 @@ Dispatch_SetRemoteInstance( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_GetFrameTime( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                       VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult ret;
+     long long micros;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     ret = real->GetFrameTime( real, &micros );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, true, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_UINT, (unsigned long long) micros >> 32,
+                                    VMBT_UINT, (unsigned long long) micros,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBSurface/Dispatcher: "
@@ -2165,6 +2185,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBSURFACE_METHOD_ID_SetRemoteInstance:
                return Dispatch_SetRemoteInstance( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_GetFrameTime:
+               return Dispatch_GetFrameTime( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;

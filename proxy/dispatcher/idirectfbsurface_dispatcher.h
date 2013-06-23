@@ -90,5 +90,6 @@
 #define IDIRECTFBSURFACE_METHOD_ID_SetRemoteInstance         59
 #define IDIRECTFBSURFACE_METHOD_ID_FillTrapezoids            60
 #define IDIRECTFBSURFACE_METHOD_ID_BatchStretchBlit          61
+#define IDIRECTFBSURFACE_METHOD_ID_GetFrameTime              62
 
 #endif

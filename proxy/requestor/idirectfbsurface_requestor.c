@@ -1724,6 +1724,42 @@ IDirectFBSurface_Requestor_Read( IDirectFBSurface   *thiz,
      return ret;
 }
 
+static DFBResult
+IDirectFBSurface_Requestor_GetFrameTime( IDirectFBSurface *thiz,
+                                         long long        *ret_micros )
+{
+     DFBResult              ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     unsigned int           high, low;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBSURFACE_METHOD_ID_GetFrameTime, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_UINT( parser, high );
+     VOODOO_PARSER_GET_UINT( parser, low );
+     VOODOO_PARSER_END( parser );
+
+     if (ret_micros)
+          *ret_micros = (long long) (((unsigned long long) high << 32) | low);
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return DFB_OK;
+}
+
 
 /**************************************************************************************************/
 
@@ -1946,6 +1982,8 @@ Construct( IDirectFBSurface *thiz,
 
      thiz->Read  = IDirectFBSurface_Requestor_Read;
      thiz->Write = IDirectFBSurface_Requestor_Write;
+
+     thiz->GetFrameTime = IDirectFBSurface_Requestor_GetFrameTime;
 
      return DFB_OK;
 }
