@@ -278,6 +278,10 @@ protected:
 
           if (timeout)
                Done();
+          else
+               /* Call SurfaceTask::CacheInvalidate() for cache invalidation,
+                  FIXME: flush does not take place at the moment */
+               CacheInvalidate();
 
           direct_mutex_unlock( &lock );
 
