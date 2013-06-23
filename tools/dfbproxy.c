@@ -45,6 +45,10 @@
 #include <voodoo/play.h>
 #include <voodoo/server.h>
 
+
+static const char *m_addr;
+static int         m_port;
+
 /*****************************************************************************/
 
 static DFBBoolean parse_command_line( int argc, char *argv[] );
@@ -110,9 +114,87 @@ ConstructDispatcher( VoodooServer     *server,
 
 /*****************************************************************************/
 
+static void
+print_usage (const char *prg_name)
+{
+     fprintf (stderr, "\nDirectFB Proxy (version %s)\n\n", DIRECTFB_VERSION);
+     fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
+     fprintf (stderr, "Options:\n");
+     fprintf (stderr, "   -a,  --addr      <address>        Listen on specified address\n");
+     fprintf (stderr, "   -p,  --port      <port>           Listen on specified port\n");
+     fprintf (stderr, "   -h,  --help                       Show this help message\n");
+     fprintf (stderr, "   -v,  --version                    Print version information\n");
+     fprintf (stderr, "\n");
+     fprintf (stderr, "Followed by '--dfb:'  - %s\n", voodoo_config_usage());
+}
+
+static DFBBoolean
+parse_addr( const char *arg )
+{
+     m_addr = arg;
+
+     return DFB_TRUE;
+}
+
+static DFBBoolean
+parse_port( const char *arg )
+{
+     if (sscanf( arg, "%d", &m_port ) != 1 || m_port < 0 || m_port > 65535) {
+          fprintf (stderr, "\nInvalid port specified!\n\n");
+
+          return DFB_FALSE;
+     }
+
+     return DFB_TRUE;
+}
+
 static DFBBoolean
 parse_command_line( int argc, char *argv[] )
 {
+     int n;
+
+     for (n = 1; n < argc; n++) {
+          const char *arg = argv[n];
+
+          if (strcmp (arg, "-h") == 0 || strcmp (arg, "--help") == 0) {
+               print_usage (argv[0]);
+               return DFB_FALSE;
+          }
+
+          if (strcmp (arg, "-v") == 0 || strcmp (arg, "--version") == 0) {
+               fprintf (stderr, "dfbdump version %s\n", DIRECTFB_VERSION);
+               return DFB_FALSE;
+          }
+
+          if (strcmp (arg, "-a") == 0 || strcmp (arg, "--addr") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (!parse_addr( argv[n] ))
+                    return DFB_FALSE;
+
+               continue;
+          }
+
+          if (strcmp (arg, "-p") == 0 || strcmp (arg, "--port") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (!parse_port( argv[n] ))
+                    return DFB_FALSE;
+
+               continue;
+          }
+
+          print_usage (argv[0]);
+
+          return DFB_FALSE;
+     }
+
      return DFB_TRUE;
 }
 
@@ -137,7 +219,7 @@ server_run()
           goto out;
      }
 
-     ret = voodoo_server_create( NULL, 0, voodoo_config->server_fork, &server );
+     ret = voodoo_server_create( m_addr, m_port, voodoo_config->server_fork, &server );
      if (ret) {
           D_ERROR( "Voodoo/Proxy: Could not create the server (%s)!\n", DirectFBErrorString(ret) );
           goto out;
@@ -157,7 +239,7 @@ server_run()
 
 out:
      if (server)
-     voodoo_server_destroy( server );
+          voodoo_server_destroy( server );
 
      if (player)
           voodoo_player_destroy( player );
