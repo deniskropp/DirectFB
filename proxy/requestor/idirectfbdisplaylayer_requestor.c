@@ -148,13 +148,33 @@ IDirectFBDisplayLayer_Requestor_GetDescription( IDirectFBDisplayLayer      *thiz
 
 static DFBResult
 IDirectFBDisplayLayer_Requestor_GetSurface( IDirectFBDisplayLayer  *thiz,
-                                            IDirectFBSurface      **interface_ptr )
+                                            IDirectFBSurface      **ret_interface )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     void                  *interface_ptr = NULL;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!ret_interface)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDISPLAYLAYER_METHOD_ID_GetSurface, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret == DR_OK)
+          ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
+                                            response->instance, data->idirectfb, &interface_ptr );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_interface = interface_ptr;
+
+     return ret;
 }
 
 static DFBResult

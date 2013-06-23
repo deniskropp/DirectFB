@@ -467,6 +467,32 @@ Dispatch_GetID( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
 }
 
 static DirectResult
+Dispatch_GetSurface( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
+                     VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult      ret;
+     IDirectFBSurface *surface;
+     VoodooInstanceID  instance;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer_Dispatcher)
+
+     ret = real->GetSurface( real, &surface );
+     if (ret)
+          return ret;
+
+     ret = voodoo_construct_dispatcher( manager, "IDirectFBSurface",
+                                        surface, data->super, NULL, &instance, NULL );
+     if (ret) {
+          surface->Release( surface );
+          return ret;
+     }
+
+     return voodoo_manager_respond( manager, true, msg->header.serial,
+                                    DFB_OK, instance,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_GetScreen( IDirectFBDisplayLayer *thiz, IDirectFBDisplayLayer *real,
                     VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -828,6 +854,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBDISPLAYLAYER_METHOD_ID_GetID:
                return Dispatch_GetID( dispatcher, real, manager, msg );
+
+          case IDIRECTFBDISPLAYLAYER_METHOD_ID_GetSurface:
+               return Dispatch_GetSurface( dispatcher, real, manager, msg );
 
           case IDIRECTFBDISPLAYLAYER_METHOD_ID_GetScreen:
                return Dispatch_GetScreen( dispatcher, real, manager, msg );
