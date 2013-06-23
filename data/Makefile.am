@@ -2,6 +2,6 @@
 
 miscdatadir = $(DATADIR)
 
-miscdata_DATA = cursor.dat cursor.png decker.dgiff
+miscdata_DATA = cursor.dat cursor.png decker.dgiff decker.ttf
 
 EXTRA_DIST = $(miscdata_DATA)
