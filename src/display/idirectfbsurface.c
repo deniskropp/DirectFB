@@ -150,16 +150,19 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      D_ASSERT( data != NULL );
      D_ASSERT( data->children_data == NULL );
 
-     CoreGraphicsStateClient_FlushCurrent( 0 );
-
-     if (data->surface_client)
-          dfb_surface_client_unref( data->surface_client );
-
      if (data->memory_permissions_count) {
+          // FIXME: currently just enough for df_dok
+          CoreGraphicsStateClient_FlushCurrent( 1 );
+
           CoreDFB_Roundtrip( data->core );
 
           unregister_prealloc( data );
      }
+     else
+          CoreGraphicsStateClient_FlushCurrent( 0 );
+
+     if (data->surface_client)
+          dfb_surface_client_unref( data->surface_client );
 
      parent = data->parent;
      if (parent) {
