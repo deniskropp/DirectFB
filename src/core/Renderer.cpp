@@ -48,6 +48,7 @@ extern "C" {
 }
 
 #include <core/Debug.h>
+#include <core/TaskManager.h>
 #include <core/Util.h>
 
 

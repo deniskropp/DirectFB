@@ -115,6 +115,45 @@ public:
           return e;
      }
 
+     DirectResult
+     pull( T         *ret_item,
+           long long  timeout_us,  // timeout target timestamp (monotic clock) in micro seconds
+           long long  now = 0 )
+     {
+          DirectResult ret;
+          T            e;
+
+          direct_mutex_lock( &lock );
+
+          while (list.empty()) {
+               if (now == 0)
+                    now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+
+               ret = direct_waitqueue_wait_timeout( &wq, &lock, timeout_us - now );
+               if (ret) {
+                    direct_mutex_unlock( &lock );
+                    return ret;
+               }
+
+               now = 0;
+          }
+
+          e = list.front();
+          list.pop();
+          num_items--;
+
+#if DFB_FIFO_WAIT_SUPPORT
+//          if (list.empty())
+               direct_waitqueue_broadcast( &wq_empty );
+#endif
+
+          direct_mutex_unlock( &lock );
+
+          *ret_item = e;
+
+          return DR_OK;
+     }
+
      bool
      empty()
      {

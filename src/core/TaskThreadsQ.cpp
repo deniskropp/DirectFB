@@ -30,13 +30,11 @@
 
 #include <config.h>
 
-#include "Task.h"
-#include "Util.h"
-
-extern "C" {
 #include <directfb.h>
 #include <directfb_util.h>
 
+
+extern "C" {
 #include <direct/debug.h>
 #include <direct/messages.h>
 
@@ -50,6 +48,9 @@ extern "C" {
 
 #include <direct/String.h>
 
+#include <core/TaskManager.h>
+#include <core/TaskThreadsQ.h>
+#include <core/Util.h>
 
 D_DEBUG_DOMAIN( DirectFB_TaskThreadsQ, "DirectFB/TaskThreadsQ", "DirectFB TaskThreadsQ" );
 

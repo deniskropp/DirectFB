@@ -67,6 +67,7 @@
 #include <core/Renderer.h>
 
 #include <core/Task.h>
+#include <core/TaskManager.h>
 
 #include <gfx/util.h>
 

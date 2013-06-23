@@ -285,6 +285,12 @@ DisplayTask::Flush()
      D_DEBUG_AT( DirectFB_Task_Display_List, "  -> adding to list %p\n", region->display_tasks );
      region->display_tasks->Append( this );
 
+     if (pts > 0 && !(dfb_system_caps() & CSCAPS_DISPLAY_PTS)) {
+          D_DEBUG_AT( DirectFB_Task_Display, "  -> system WITHOUT display task PTS support, setting emit time stamp to %lld us\n", pts );
+
+          ts_emit = pts;
+     }
+
      SurfaceTask::Flush();
 }
 

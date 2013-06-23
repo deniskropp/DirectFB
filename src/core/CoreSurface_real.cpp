@@ -28,11 +28,10 @@
 
 #include <config.h>
 
-#include "CoreSurface.h"
-
-extern "C" {
 #include <directfb_util.h>
 
+
+extern "C" {
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
@@ -44,7 +43,9 @@ extern "C" {
 #include <gfx/util.h>
 }
 
+#include <core/CoreSurface.h>
 #include <core/SurfaceTask.h>
+#include <core/TaskManager.h>
 
 
 D_DEBUG_DOMAIN( DirectFB_CoreSurface, "DirectFB/CoreSurface", "DirectFB CoreSurface" );

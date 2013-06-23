@@ -30,13 +30,10 @@
 
 #include <config.h>
 
-#include <core/PacketBuffer.h>
-#include <core/Renderer.h>
-#include <core/Util.h>
-
-extern "C" {
 #include <directfb.h>
 
+
+extern "C" {
 #include <direct/debug.h>
 #include <direct/messages.h>
 
@@ -52,7 +49,11 @@ extern "C" {
 }
 
 #include <core/Debug.h>
+#include <core/PacketBuffer.h>
+#include <core/Renderer.h>
+#include <core/TaskThreadsQ.h>
 #include <core/Util.h>
+
 
 
 // FIXME: find better auto detection, runtime options or dynamic adjustment for the following values
@@ -804,7 +805,7 @@ GenefxTask::Finalise()
 
      D_MAGIC_ASSERT( this, Task );
 
-     DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
+     DFB_TASK_CHECK_STATE( this, TASK_FINISH, return );
 
      DFB_TASK_LOG( "Genefx::Finalise()" );
 

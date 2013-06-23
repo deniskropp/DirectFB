@@ -325,6 +325,10 @@ ToString<DirectFB::TaskState>::ToString( const DirectFB::TaskState &state )
                PrintF( "DONE" );
                break;
 
+          case DirectFB::TASK_FINISH:
+               PrintF( "FINISH" );
+               break;
+
           case DirectFB::TASK_DEAD:
                PrintF( "DEAD" );
                break;
@@ -358,6 +362,9 @@ ToString<DirectFB::TaskFlags>::ToString( const DirectFB::TaskFlags &flags )
           TASK_FLAG_PRINTF( CACHE_INVALIDATE );
           TASK_FLAG_PRINTF( NEED_SLAVE_PUSH );
           TASK_FLAG_PRINTF( LAST_IN_QUEUE );
+          TASK_FLAG_PRINTF( FOLLOW_READER );
+          TASK_FLAG_PRINTF( FOLLOW_WRITER );
+          TASK_FLAG_PRINTF( WAITING_TIMED_EMIT );
      }
      else
           PrintF( "<NONE>" );

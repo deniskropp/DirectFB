@@ -63,12 +63,6 @@ extern "C" {
 #define DFB_TASK_WARN_FINISH  3000
 
 
-DFBResult    TaskManager_Initialise( void );
-void         TaskManager_Shutdown( void );
-void         TaskManager_SyncAll( void );
-void         TaskManager_DumpTasks( void );
-
-
 DFB_TaskList *TaskList_New( bool locked );
 bool          TaskList_IsEmpty( DFB_TaskList *list );
 DFBResult     TaskList_WaitEmpty( DFB_TaskList *list );
@@ -189,25 +183,27 @@ typedef enum {
      TASK_READY      = 0x00000004,
      TASK_RUNNING    = 0x00000008,
      TASK_DONE       = 0x00000010,
-     TASK_DEAD       = 0x00000020,
-     TASK_INVALID    = 0x00000040,
+     TASK_FINISH     = 0x00000020,
+     TASK_DEAD       = 0x00000040,
+     TASK_INVALID    = 0x00000080,
 
-     TASK_STATE_ALL  = 0x0000007F
+     TASK_STATE_ALL  = 0x000000FF
 } TaskState;
 
 typedef enum {
-     TASK_FLAG_NONE             = 0x00000000,
+     TASK_FLAG_NONE               = 0x00000000,
 
-     TASK_FLAG_NOSYNC           = 0x00000001,     /* Task is not accounted when TaskManager::Sync() is called */
-     TASK_FLAG_EMITNOTIFIES     = 0x00000002,     /* Task runs notifyAll(0 already on emit(), not on finish() */
-     TASK_FLAG_CACHE_FLUSH      = 0x00000004,     /*  */
-     TASK_FLAG_CACHE_INVALIDATE = 0x00000008,     /*  */
-     TASK_FLAG_NEED_SLAVE_PUSH  = 0x00000010,     /* Push() of master does not take care about Push() for slaves */
-     TASK_FLAG_LAST_IN_QUEUE    = 0x00000020,     /* Task has been last in queue and no next task was pushed to FIFO */
-     TASK_FLAG_FOLLOW_READER    = 0x00000040,     /* Use 'follow' when depending on read tasks */
-     TASK_FLAG_FOLLOW_WRITER    = 0x00000080,     /* Use 'follow' when depending on write tasks */
+     TASK_FLAG_NOSYNC             = 0x00000001,     /* Task is not accounted when TaskManager::Sync() is called */
+     TASK_FLAG_EMITNOTIFIES       = 0x00000002,     /* Task runs notifyAll(0 already on emit(), not on finish() */
+     TASK_FLAG_CACHE_FLUSH        = 0x00000004,     /*  */
+     TASK_FLAG_CACHE_INVALIDATE   = 0x00000008,     /*  */
+     TASK_FLAG_NEED_SLAVE_PUSH    = 0x00000010,     /* Push() of master does not take care about Push() for slaves */
+     TASK_FLAG_LAST_IN_QUEUE      = 0x00000020,     /* Task has been last in queue and no next task was pushed to FIFO */
+     TASK_FLAG_FOLLOW_READER      = 0x00000040,     /* Use 'follow' when depending on read tasks */
+     TASK_FLAG_FOLLOW_WRITER      = 0x00000080,     /* Use 'follow' when depending on write tasks */
+     TASK_FLAG_WAITING_TIMED_EMIT = 0x00000100,     /* Waiting on timed_emits list */
 
-     TASK_FLAG_ALL              = 0x000000FF
+     TASK_FLAG_ALL                = 0x000001FF
 } TaskFlags;
 
 
@@ -260,6 +256,9 @@ protected:
      DFBResult finish();
 
      void notifyAll( TaskState state );
+     void checkEmit();
+     void handleFlushed();
+     void handleDone();
      void handleNotify();
      void enableDump();
      void append( Task *task );
@@ -300,9 +299,7 @@ protected:
 #endif
 
 private:
-     unsigned int             listed;
-     bool                     finished;
-     bool                     dump;
+     bool                     dump;     // TODO: OPTIMISE: only buid with bool if needed
 
 #if DFB_TASK_DEBUG_LOG
      class LogEntry {
@@ -330,46 +327,12 @@ private:
 public:
      void Log( const std::string &action );
      void DumpLog( DirectLogDomain &domain, DirectLogLevel level );
-     void DumpTree( int indent = 0 );
+     void DumpTree( int indent = 0, int max = 50 );
      Direct::String &Description();
      void AddFlags( TaskFlags flags );
 
 private:
      static const Direct::String _Type;
-};
-
-
-class TaskManager
-{
-public:
-     static DFBResult Initialise();
-     static void      Shutdown();
-     static void      SyncAll();
-
-private:
-     friend class Task;
-
-     static DirectThread      *thread;
-     static FIFO<Task*>        fifo;
-     static unsigned int       task_count;
-     static unsigned int       task_count_sync;
-
-     static TaskThreads       *threads;
-
-#if DFB_TASK_DEBUG_TASKS
-     static std::list<Task*>   tasks;
-     static DirectMutex        tasks_lock;
-#endif
-
-     static void       pushTask  ( Task *task );
-     static Task      *pullTask  ();
-     static DFBResult  handleTask( Task *task );
-
-     static void      *managerLoop( DirectThread *thread,
-                                    void         *arg );
-
-public:
-     static void       dumpTasks();
 };
 
 
@@ -437,43 +400,6 @@ public:
 
           return NULL;
      }
-};
-
-class TaskThreadsQ : public Direct::Magic<TaskThreadsQ> {
-private:
-     class Runner : public Direct::Magic<Runner> {
-     public:
-          TaskThreadsQ *threads;
-          unsigned int  index;
-          DirectThread *thread;
-
-          Runner( TaskThreadsQ         *threads,
-                  unsigned int          index,
-                  DirectThreadType      type,
-                  const Direct::String &name );
-
-          ~Runner();
-     };
-
-public:
-     DirectFB::FIFO<Task*>              fifo;   // TODO: try to find better structure without lock, maybe futex
-     std::vector<Runner*>               runners;
-     std::map<u64,Task*>                queues;
-     std::map<u64,Direct::PerfCounter>  perfs;
-
-public:
-     TaskThreadsQ( const std::string &name, size_t num, DirectThreadType type = DTT_DEFAULT );
-
-     ~TaskThreadsQ();
-
-     void Push( Task *task );
-
-     void Finalise( Task *task );
-
-private:
-     static void *
-     taskLoop( DirectThread *thread,
-               void         *arg );
 };
 
 

@@ -53,6 +53,7 @@ extern "C" {
 #include <core/CoreGraphicsState.h>
 #include <core/Renderer.h>
 #include <core/Task.h>
+#include <core/TaskManager.h>
 
 D_DEBUG_DOMAIN( Core_GraphicsStateClient,          "Core/GfxState/Client",          "DirectFB Core Graphics State Client" );
 D_DEBUG_DOMAIN( Core_GraphicsStateClient_Flush,    "Core/GfxState/Client/Flush",    "DirectFB Core Graphics State Client Flush" );

@@ -31,13 +31,10 @@
 #include <config.h>
 
 #include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
-
-#include "Task.h"
-#include "Util.h"
-
-extern "C" {
 #include <directfb_util.h>
 
+
+extern "C" {
 #include <direct/debug.h>
 #include <direct/messages.h>
 
@@ -53,6 +50,8 @@ extern "C" {
 
 #include <core/Debug.h>
 #include <core/Task.h>
+#include <core/TaskManager.h>
+#include <core/Util.h>
 
 /*********************************************************************************************************************/
 
@@ -60,40 +59,6 @@ namespace DirectFB {
 
 
 extern "C" {
-
-DFBResult
-TaskManager_Initialise()
-{
-     D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
-
-     return TaskManager::Initialise();
-}
-
-void
-TaskManager_Shutdown()
-{
-     D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
-
-     TaskManager::Shutdown();
-}
-
-void
-TaskManager_SyncAll()
-{
-     D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
-
-     TaskManager::SyncAll();
-}
-
-void
-TaskManager_DumpTasks()
-{
-     D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
-
-     TaskManager::dumpTasks();
-}
-
-/*********************************************************************************************************************/
 
 DFB_TaskList *
 TaskList_New( bool locked )
@@ -277,11 +242,9 @@ Task::Task()
      next( NULL ),
      hwid( 0 ),
      ts_emit( 0 ),
-     listed( 0 ),
-     finished( false ),
      dump( false )
 {
-     D_DEBUG_AT( DirectFB_Task, "Task::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
      DFB_TASK_LOG( "Task()" );
 
@@ -292,53 +255,11 @@ Task::Task()
      ts_done    = 0;
 #endif
 
-     D_DEBUG_AT( DirectFB_Task, "  <- %p\n", this );
-}
-
-void
-Task::AddRef()
-{
-     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
-
-#if DFB_TASK_DEBUG_STATE
-     if (direct_thread_self() == TaskManager::thread)
-          DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return );
-     else
-          DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING, return );
+#if DFB_TASK_DEBUG_TASKS
+     direct_mutex_lock( &TaskManager::tasks_lock );
+     TaskManager::tasks.push_back( this );
+     direct_mutex_unlock( &TaskManager::tasks_lock );
 #endif
-
-     D_ASSERT( refs > 0 );
-
-     D_SYNC_ADD( &refs, 1 );
-}
-
-void
-Task::Release()
-{
-     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
-
-#if DFB_TASK_DEBUG_STATE
-     if (direct_thread_self() == TaskManager::thread) {
-          DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_DONE, return );
-     }
-     else {
-          if (refs == 1)
-               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_DONE, return );
-          else
-               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING | TASK_DONE, return );
-     }
-#endif
-
-     D_ASSERT( refs > 0 );
-
-     if (D_SYNC_ADD_AND_FETCH( &refs, -1 ) == 0) {
-          state = TASK_DEAD;
-
-          if (direct_thread_self() == TaskManager::thread)
-               delete this;
-          else
-               TaskManager::pushTask( this );
-     }
 }
 
 Task::~Task()
@@ -372,11 +293,75 @@ Task::~Task()
      if (dump)
           DumpLog( DirectFB_Task, DIRECT_LOG_VERBOSE );
 
+#if DFB_TASK_DEBUG_TASKS
+     direct_mutex_lock( &TaskManager::tasks_lock );
+     TaskManager::tasks.remove( this );
+     direct_mutex_unlock( &TaskManager::tasks_lock );
+#endif
+
      state = TASK_INVALID;
 
      D_ASSERT( notifies.size() == 0 );
 
      D_MAGIC_CLEAR( this );
+}
+
+void
+Task::AddRef()
+{
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p ) <- refs:%u\n", __FUNCTION__, this, refs );
+
+#if DFB_TASK_DEBUG_STATE
+     if (direct_thread_self() == TaskManager::thread)
+          DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return );
+     else
+          DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING, return );
+#endif
+
+     D_ASSERT( refs > 0 );
+
+     unsigned int refs_now = D_SYNC_ADD_AND_FETCH( &refs, 1 );
+
+     (void) refs_now;
+
+     D_DEBUG_AT( DirectFB_Task, "  -> %u refs now\n", refs_now );
+}
+
+void
+Task::Release()
+{
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p ) <- refs:%u\n", __FUNCTION__, this, refs );
+
+#if DFB_TASK_DEBUG_STATE
+     if (direct_thread_self() == TaskManager::thread) {
+          DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_FINISH, return );
+     }
+     else {
+          if (refs == 1)
+               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_FINISH, return );
+          else
+               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING | TASK_DONE | TASK_FINISH, return );
+     }
+#endif
+
+     D_ASSERT( refs > 0 );
+
+     unsigned int refs_now = D_SYNC_ADD_AND_FETCH( &refs, -1 );
+
+     D_DEBUG_AT( DirectFB_Task, "  -> %u refs left\n", refs_now );
+
+     if (refs_now == 0) {
+          state = TASK_DEAD;
+
+          if (direct_thread_self() == TaskManager::thread) {
+               D_DEBUG_AT( DirectFB_Task, "  -> in manager thread, deleting Task\n" );
+               delete this;
+          }
+          else {
+               D_DEBUG_AT( DirectFB_Task, "  -> NOT in manager thread, pushing Task\n" );
+               TaskManager::pushTask( this );
+          }
+     }
 }
 
 void
@@ -400,44 +385,6 @@ Task::AddSlave( Task *slave )
 
      next_slave = slave;
 }
-
-
-void
-Task::AddToList( DFB_TaskList *list )
-{
-     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
-
-     D_MAGIC_ASSERT( this, Task );
-
-     DFB_TASK_CHECK_STATE( this, TASK_NEW, );
-
-     DFB_TASK_LOG( Direct::String::F( "AddToList(%p)", list ) );
-
-     D_ASSERT( list != NULL );
-
-     listed++;
-
-     list->Append( this );
-}
-
-void
-Task::RemoveFromList( DFB_TaskList *list )
-{
-     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
-
-     D_MAGIC_ASSERT( this, Task );
-
-     DFB_TASK_CHECK_STATE( this, TASK_NEW, );
-
-     DFB_TASK_LOG( Direct::String::F( "AddToList(%p)", list ) );
-
-     D_ASSERT( list != NULL );
-
-     list->Remove( this );
-
-     listed--;
-}
-
 
 void
 Task::Flush()
@@ -533,7 +480,7 @@ Task::emit()
      notifyAll( TASK_RUNNING );
 
      if (flags & TASK_FLAG_EMITNOTIFIES)
-          notifyAll( TASK_DONE );
+          notifyAll( TASK_FINISH );
 
      return DFB_OK;
 }
@@ -555,14 +502,14 @@ Task::finish()
 
      DFB_TASK_LOG( "finish()" );
 
-     finished = true;
+     state = TASK_FINISH;
 
      if (master) { /* has master? */
           D_ASSERT( slaves == 0 );
           D_ASSERT( master->slaves > 0 );
 
           if (!--(master->slaves)) {
-               if (master->finished) {
+               if (master->state == TASK_FINISH) {
                     D_DEBUG_AT( DirectFB_Task, "  -> I am the last slave, shutting down master\n" );
 
                     shutdown = master;
@@ -588,7 +535,7 @@ Task::finish()
       * master task shutdown
       */
      if (shutdown) {
-          shutdown->notifyAll( TASK_DONE );
+          shutdown->notifyAll( TASK_FINISH );
           shutdown->Finalise();
 
           Task *next = shutdown->next_slave;
@@ -598,22 +545,10 @@ Task::finish()
 
                next = slave->next_slave;
 
-               slave->Finalise();
+               slave->Finalise();  // TODO: OPTIMISE: have extra Finalize?
                slave->Release();
           }
 
-
-          D_SYNC_ADD( &TaskManager::task_count, -1 );
-
-          if (!(shutdown->flags & TASK_FLAG_NOSYNC))
-               D_SYNC_ADD( &TaskManager::task_count_sync, -1 );
-
-
-#if DFB_TASK_DEBUG_TASKS
-          direct_mutex_lock( &TaskManager::tasks_lock );
-          TaskManager::tasks.remove( shutdown );
-          direct_mutex_unlock( &TaskManager::tasks_lock );
-#endif
 
           shutdown->Release();
      }
@@ -624,19 +559,22 @@ Task::finish()
 void
 Task::Done( DFBResult ret )
 {
-     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p, ret %u )\n", __FUNCTION__, this, ret );
 
      DFB_TASK_ASSERT( this, );
 
      DFB_TASK_CHECK_STATE( this, TASK_RUNNING, );
 
-     DFB_TASK_LOG( "Done()" );
+     DFB_TASK_LOG( Direct::String::F( "Done( %u )", ret ) );
 
      state = TASK_DONE;
 
 #if DFB_TASK_DEBUG_TIMING
      ts_done = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 #endif
+
+     if (ret)
+          enableDump();
 
      TaskManager::pushTask( this );
 }
@@ -709,7 +647,7 @@ Task::Finalise()
 
      D_MAGIC_ASSERT( this, Task );
 
-     DFB_TASK_CHECK_STATE( this, TASK_DONE, );
+     DFB_TASK_CHECK_STATE( this, TASK_FINISH, );
 
      DFB_TASK_LOG( "Finalise()" );
 }
@@ -717,17 +655,20 @@ Task::Finalise()
 void
 Task::Describe( Direct::String &string ) const
 {
-     string.PrintF( "%-12s 0x%08lx   %-7s flags:%-20s notifies:%2zu block_count:%2d slaves:%2d master:%s finished:%s qid:0x%llx",
-                    *TypeName(),
+     string.PrintF( "0x%08lx %-12s [%-7s  %-20s] %u refs (n:%zu bl:%2d sl:%d m:%p qid:%lld hw:%u emit:%lld) : next %p",
                     (unsigned long) this,
+                    *TypeName(),
                     *ToString<DirectFB::TaskState>(state),
                     *ToString<DirectFB::TaskFlags>(flags),
+                    refs,
                     notifies.size(),
                     block_count,
                     slaves,
-                    master ? "YES" : "no ",
-                    finished ? "YES" : "no ",
-                    (unsigned long long) qid );
+                    master,
+                    (unsigned long long) qid,
+                    hwid,
+                    ts_emit,
+                    next );
 }
 
 void
@@ -758,31 +699,33 @@ Task::AddNotify( Task *notified,
 
      DFB_TASK_LOG( Direct::String::F( "AddNotify( %p, %sfollow )", notified, follow ? "" : "NO " ) );
 
-     if (follow && (state == TASK_RUNNING || state == TASK_DONE)) {
+     if (follow && D_FLAGS_IS_SET( state, TASK_RUNNING | TASK_DONE | TASK_FINISH )) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, following running task!\n" );
 
           return;
      }
 
+#if FIXME_ORDERING_VS_OPTIMISE
      if (follow && state == TASK_READY && block_count == 0) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, ready with zero block count (about to be pushed)!\n" );
 
           return;
      }
+#endif
 
-     if (state == TASK_RUNNING && (flags & TASK_FLAG_EMITNOTIFIES)) {
+     if (D_FLAGS_IS_SET( state, TASK_RUNNING | TASK_DONE ) && (flags & TASK_FLAG_EMITNOTIFIES)) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, running task notified on emit!\n" );
 
           return;
      }
 
-     if (state == TASK_DONE && slaves == 0) {
+     if (D_FLAGS_IS_SET( state, TASK_FINISH ) && slaves == 0) {
           D_DEBUG_AT( DirectFB_Task, "  -> avoiding notify, done already!\n" );
 
           return;
      }
 
-     notifies.push_back( TaskNotify( notified, follow ? TASK_RUNNING : TASK_DONE ) );
+     notifies.push_back( TaskNotify( notified, follow ? TASK_RUNNING : TASK_FINISH ) );
 
      notified->block_count++;
 
@@ -814,10 +757,44 @@ Task::notifyAll( TaskState state )
 }
 
 void
-Task::handleNotify()
+Task::checkEmit()
 {
      DFBResult ret;
 
+     D_ASSERT( direct_thread_self() == TaskManager::thread );
+
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
+
+     D_MAGIC_ASSERT( this, Task );
+
+     DFB_TASK_CHECK_STATE( this, TASK_READY, return );
+
+     if (block_count == 0 && !D_FLAGS_IS_SET( flags, TASK_FLAG_WAITING_TIMED_EMIT )) {
+#if DFB_TASK_DEBUG_TIMES
+          long long t1, t2;
+
+          t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
+
+          ret = emit();
+          if (ret) {
+               D_DERROR( ret, "DirectFB/TaskManager: Task::Emit() failed!\n" );
+               Done( ret );
+          }
+
+#if DFB_TASK_DEBUG_TIMES
+          t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+          if (t2 - t1 > DFB_TASK_WARN_EMIT) {
+               D_WARN( "Task::Emit took more than %dus (%lld) [%s]", DFB_TASK_WARN_EMIT, t2 - t1, Description().buffer() );
+               enableDump();
+          }
+#endif
+     }
+}
+
+void
+Task::handleNotify()
+{
      D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
@@ -830,29 +807,8 @@ Task::handleNotify()
 
      D_ASSERT( block_count > 0 );
 
-     if (--block_count == 0) {
-#if DFB_TASK_DEBUG_TIMES
-          long long t1, t2;
-
-          t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-#endif
-
-          ret = emit();
-          if (ret) {
-               D_DERROR( ret, "DirectFB/TaskManager: Task::Emit() failed!\n" );
-               state = TASK_DONE;
-               enableDump();
-               TaskManager::pushTask( this );
-          }
-
-#if DFB_TASK_DEBUG_TIMES
-          t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-          if (t2 - t1 > DFB_TASK_WARN_EMIT) {
-               D_WARN( "Task::Emit took more than %dus (%lld) [%s]", DFB_TASK_WARN_EMIT, t2 - t1, Description().buffer() );
-               enableDump();
-          }
-#endif
-     }
+     if (--block_count == 0)
+          checkEmit();
 }
 
 void
@@ -876,7 +832,7 @@ Task::append( Task *task )
 
      D_MAGIC_ASSERT( this, Task );
 
-     DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_DONE, return );
+     DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_DONE | TASK_FINISH, return );
      DFB_TASK_CHECK_STATE( task, TASK_RUNNING, return );
 
      DFB_TASK_LOG( Direct::String::F( "append( %p )", task ) );
@@ -951,16 +907,21 @@ Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 }
 
 void
-Task::DumpTree( int indent )
+Task::DumpTree( int indent, int max )
 {
      D_MAGIC_ASSERT( this, Task );
 
-     direct_log_printf( NULL, "%d%*s%s\n", indent, indent, "", *Description() );
+     if (indent > max) {
+          direct_log_printf( NULL, ".%*s[...]\n", indent, "" );
+     }
+     else {
+          direct_log_printf( NULL, ".%*s%s\n", indent, "", *Description() );
 
-     for (std::vector<TaskNotify>::iterator it = notifies.begin(); it != notifies.end(); it++) {
-          Task *task = (*it).first;
+          for (std::vector<TaskNotify>::iterator it = notifies.begin(); it != notifies.end(); it++) {
+               Task *task = (*it).first;
 
-          task->DumpTree( indent + 4 );
+               task->DumpTree( indent + 4, max );
+          }
      }
 }
 
@@ -990,294 +951,6 @@ Task::AddFlags( TaskFlags flags )
      DFB_TASK_LOG( Direct::String::F( "AddFlags( %s )", *ToString<TaskFlags>(flags) ) );
 
      this->flags = (TaskFlags)(this->flags | flags);
-}
-
-/*********************************************************************************************************************/
-
-DirectThread     *TaskManager::thread;
-FIFO<Task*>       TaskManager::fifo;
-unsigned int      TaskManager::task_count;
-unsigned int      TaskManager::task_count_sync;
-TaskThreads      *TaskManager::threads;
-#if DFB_TASK_DEBUG_TASKS
-std::list<Task*>  TaskManager::tasks;
-DirectMutex       TaskManager::tasks_lock;
-#endif
-
-
-DFBResult
-TaskManager::Initialise()
-{
-     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
-
-     D_ASSERT( thread == NULL );
-
-#if DFB_TASK_DEBUG_TASKS
-     direct_mutex_init( &tasks_lock );
-#endif
-
-     if (dfb_config->task_manager) {
-          thread = direct_thread_create( DTT_CRITICAL, managerLoop, NULL, "Task Manager" );
-
-          threads = new TaskThreads( "Task", 4 );
-     }
-
-     return DFB_OK;
-}
-
-void
-TaskManager::Shutdown()
-{
-     D_ASSERT( direct_thread_self() != TaskManager::thread );
-
-     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
-
-     if (thread != NULL) {
-          fifo.push( NULL );
-
-          direct_thread_join( thread );
-          direct_thread_destroy( thread );
-
-          thread = NULL;
-     }
-
-     if (threads != NULL) {
-          delete threads;
-          threads = NULL;
-     }
-
-#if DFB_TASK_DEBUG_TASKS
-     direct_mutex_deinit( &tasks_lock );
-#endif
-}
-
-void
-TaskManager::SyncAll()
-{
-     D_ASSERT( direct_thread_self() != TaskManager::thread );
-
-     int timeout = 10000;
-
-     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
-
-     // FIXME: this is a hack, will avoid Sync() at all
-     while (*(volatile unsigned int*)&task_count) {
-          if (!--timeout) {
-#if DFB_TASK_DEBUG_TASKS
-               D_ERROR( "TaskManager: Timeout while syncing for all (task count %d, nosync %d, tasks %zu)!\n", task_count_sync, task_count, tasks.size() );
-#else
-               D_ERROR( "TaskManager: Timeout while syncing for all (task count %d, nosync %d)!\n", task_count_sync, task_count );
-#endif
-               dumpTasks();
-               return;
-          }
-
-          usleep( 1000 );
-     }
-}
-
-void
-TaskManager::pushTask( Task *task )
-{
-     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s( %p )\n", __FUNCTION__, task );
-
-     D_DEBUG_AT( DirectFB_Task, "  =-> pushTask [%s]\n", task->Description().buffer() );
-
-     if (task->state == TASK_FLUSHED) {
-          D_SYNC_ADD( &task_count, 1 );
-
-          if (!(task->flags & TASK_FLAG_NOSYNC))
-               D_SYNC_ADD( &task_count_sync, 1 );
-
-#if DFB_TASK_DEBUG_TASKS
-          direct_mutex_lock( &TaskManager::tasks_lock );
-          TaskManager::tasks.push_back( task );
-          direct_mutex_unlock( &TaskManager::tasks_lock );
-#endif
-     }
-
-     fifo.push( task );
-}
-
-Task *
-TaskManager::pullTask()
-{
-     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
-
-#if 0
-     static int c;
-
-     if (c++ % 1000 == 0)
-          dumpTasks();
-#endif
-
-     return fifo.pull();
-}
-
-DFBResult
-TaskManager::handleTask( Task *task )
-{
-     DFBResult ret;
-#if DFB_TASK_DEBUG_TIMES
-     long long t1, t2;
-#endif
-
-     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s( %p )\n", __FUNCTION__, task );
-
-     switch (task->state) {
-          case TASK_FLUSHED:
-               D_DEBUG_AT( DirectFB_Task, "  -> FLUSHED\n" );
-
-#if DFB_TASK_DEBUG_TIMES
-               t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-#endif
-
-               ret = task->Setup();
-               if (ret) {
-                    D_DERROR( ret, "DirectFB/TaskManager: Task::Setup() failed!\n" );
-                    task->state = TASK_DONE;
-                    task->enableDump();
-                    goto finish;
-               }
-
-#if DFB_TASK_DEBUG_TIMES
-               t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-               if (t2 - t1 > DFB_TASK_WARN_SETUP) {
-                    D_WARN( "Task::Setup took more than %dus (%lld)  [%s]", DFB_TASK_WARN_SETUP, t2 - t1, task->Description().buffer() );
-                    task->enableDump();
-               }
-#endif
-
-
-               if (task->block_count == 0) {
-#if DFB_TASK_DEBUG_TIMES
-                    t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-#endif
-
-                    ret = task->emit();
-                    if (ret) {
-                         D_DERROR( ret, "DirectFB/TaskManager: Task::Emit() failed!\n" );
-                         task->state = TASK_DONE;
-                         task->enableDump();
-                         goto finish;
-                    }
-
-#if DFB_TASK_DEBUG_TIMES
-                    t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-                    if (t2 - t1 > DFB_TASK_WARN_EMIT) {
-                         D_WARN( "Task::Emit took more than %dus (%lld)  [%s]", DFB_TASK_WARN_EMIT, t2 - t1, task->Description().buffer() );
-                         task->enableDump();
-                    }
-#endif
-               }
-               break;
-
-          case TASK_DONE:
-               D_DEBUG_AT( DirectFB_Task, "  -> DONE\n" );
-
-finish:
-#if DFB_TASK_DEBUG_TIMES
-               {
-               std::string desc = task->Description();
-
-               t1 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-#endif
-
-               ret = task->finish();
-               if (ret) {
-                    D_DERROR( ret, "DirectFB/TaskManager: Task::finish() failed, leaking memory!\n" );
-                    task->DumpLog( DirectFB_Task, DIRECT_LOG_VERBOSE );
-                    task->state = TASK_INVALID;
-                    break;
-               }
-
-#if DFB_TASK_DEBUG_TIMES
-               t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-               if (t2 - t1 > DFB_TASK_WARN_FINISH)
-                    D_WARN( "Task::finish took more than %dus (%lld)  [%p] %s", DFB_TASK_WARN_FINISH, t2 - t1, task, desc.c_str() );
-               }
-#endif
-               break;
-
-          case TASK_DEAD:
-               D_DEBUG_AT( DirectFB_Task, "  -> DEAD\n" );
-
-               delete task;
-               break;
-
-          case TASK_INVALID:
-               D_BUG( "invalid task state %d (task %p)", task->state, task );
-               task->DumpLog( DirectFB_Task, DIRECT_LOG_VERBOSE );
-               break;
-
-          default:
-               D_BUG( "invalid task state %d (task %p)", task->state, task );
-     }
-
-     return DFB_OK;
-}
-
-void *
-TaskManager::managerLoop( DirectThread *thread,
-                          void         *arg )
-{
-     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
-
-     //fusion_config->skirmish_warn_on_thread = direct_thread_get_tid( thread );
-
-     while (true) {
-          Task *task = TaskManager::pullTask();
-
-          if (!task) {
-               D_DEBUG_AT( DirectFB_Task, "  =-> SHUTDOWN\n" );
-               return NULL;
-          }
-
-          D_DEBUG_AT( DirectFB_Task, "  =-> pulled a Task [%s]\n", task->Description().buffer() );
-
-          TaskManager::handleTask( task );
-     }
-
-     return NULL;
-}
-
-void
-TaskManager::dumpTasks()
-{
-     D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
-
-#if DFB_TASK_DEBUG_TASKS
-     direct_mutex_lock( &TaskManager::tasks_lock );
-
-     direct_log_printf( NULL, "\ntask tree\n" );
-
-     for (std::list<Task*>::const_iterator it = tasks.begin(); it != tasks.end(); it++) {
-          Task *task = *it;
-
-          task->DumpTree( 5 );
-     }
-
-
-     direct_log_printf( NULL, "\ntask       | state   | flags | no | bl | sl | is | finished\n" );
-
-     for (std::list<Task*>::const_iterator it = tasks.begin(); it != tasks.end(); it++) {
-          Task *task = *it;
-
-          direct_log_printf( NULL, "%s\n", task->Description().buffer() );
-
-          for (std::vector<TaskNotify>::const_iterator it = task->notifies.begin(); it != task->notifies.end(); it++)
-               direct_log_printf( NULL, "   ->  %p\n", (*it).first );
-
-          task->DumpLog( DirectFB_Task, DIRECT_LOG_VERBOSE );
-
-          while ((task = task->next_slave) != NULL)
-               direct_log_printf( NULL, "%s\n", task->Description().buffer() );
-
-          direct_log_printf( NULL, "\n" );
-     }
-
-     direct_mutex_unlock( &TaskManager::tasks_lock );
-#endif
 }
 
 /*********************************************************************************************************************/

@@ -72,6 +72,8 @@ internalinclude_HEADERS = \
 	Renderer.h		\
 	SurfaceTask.h		\
 	Task.h			\
+	TaskManager.h		\
+	TaskThreadsQ.h		\
 	Util.h			\
 	clipboard.h		\
 	colorhash.h		\
@@ -150,6 +152,7 @@ libdirectfb_core_la_SOURCES = \
 	Renderer.cpp		\
 	SurfaceTask.cpp		\
 	Task.cpp		\
+	TaskManager.cpp		\
 	TaskThreadsQ.cpp	\
 	Util.cpp		\
 	clipboard.c		\

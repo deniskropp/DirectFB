@@ -65,8 +65,9 @@ typedef enum {
      CSCAPS_SYSMEM_EXTERNAL   = 0x00000010,  /* Makes system memory surface pools have CSTF_EXTERNAL support. */
      CSCAPS_DISPLAY_TASKS     = 0x00000020,  /* Calls Task_Done() on display tasks. */
      CSCAPS_NOTIFY_DISPLAY    = 0x00000040,  /* Calls dfb_surface_notify_display2() when appropriate. */
+     CSCAPS_DISPLAY_PTS       = 0x00000080,  /* Supports PTS on display tasks */
 
-     CSCAPS_ALL               = 0x0000007F   /* All of these. */
+     CSCAPS_ALL               = 0x000000FF   /* All of these. */
 } CoreSystemCapabilities;
 
 /*

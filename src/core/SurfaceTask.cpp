@@ -255,7 +255,7 @@ SurfaceTask::CacheInvalidate()
      D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s()\n", __FUNCTION__ );
 
      if (slaves)
-          DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_DONE, return DFB_BUG );
+          DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_DONE | TASK_FINISH, return DFB_BUG );
      else
           DFB_TASK_CHECK_STATE( this, TASK_RUNNING, return DFB_BUG );
 
@@ -287,7 +287,7 @@ SurfaceTask::CacheFlush()
      D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s()\n", __FUNCTION__ );
 
      if (slaves)
-          DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_DONE, return DFB_BUG );
+          DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_DONE | TASK_FINISH, return DFB_BUG );
      else
           DFB_TASK_CHECK_STATE( this, TASK_RUNNING, return DFB_BUG );
 
@@ -316,7 +316,7 @@ SurfaceTask::Finalise()
 
      D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s()\n", __FUNCTION__ );
 
-     DFB_TASK_CHECK_STATE( this, TASK_DONE, return );
+     DFB_TASK_CHECK_STATE( this, TASK_FINISH, return );
 
      for (std::vector<Hook*>::const_iterator it = hooks.begin(); it != hooks.end(); ++it)
           (*it)->finalise( this );
