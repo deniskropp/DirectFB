@@ -1732,6 +1732,7 @@ IDirectFBSurface_Requestor_GetFrameTime( IDirectFBSurface *thiz,
      VoodooResponseMessage *response;
      VoodooMessageParser    parser;
      unsigned int           high, low;
+     long long              micros;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
@@ -1752,8 +1753,10 @@ IDirectFBSurface_Requestor_GetFrameTime( IDirectFBSurface *thiz,
      VOODOO_PARSER_GET_UINT( parser, low );
      VOODOO_PARSER_END( parser );
 
+     micros = (long long) (((unsigned long long) high << 32) | low);
+
      if (ret_micros)
-          *ret_micros = (long long) (((unsigned long long) high << 32) | low);
+          *ret_micros = voodoo_manager_clock_to_local( data->manager, micros );
 
      voodoo_manager_finish_request( data->manager, response );
 

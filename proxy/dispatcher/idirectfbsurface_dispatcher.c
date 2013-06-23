@@ -2028,14 +2028,18 @@ static DirectResult
 Dispatch_GetFrameTime( IDirectFBSurface *thiz, IDirectFBSurface *real,
                        VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DFBResult ret;
-     long long micros;
+     DFBResult           ret;
+     long long           micros;
+     VoodooMessageParser parser;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
      ret = real->GetFrameTime( real, &micros );
      if (ret)
           return ret;
+
+     /* Compensate to achieve same behaviour as with a local app calling GetFrameTime+Flip */
+     micros += voodoo_manager_connection_delay( data->manager );
 
      return voodoo_manager_respond( manager, true, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
