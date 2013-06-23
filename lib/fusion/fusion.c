@@ -2478,7 +2478,7 @@ retry:
      else {
           direct_map_create( 37, refs_map_slave_compare, refs_map_slave_hash, world, &world->refs_map );
 
-          fusion_hash_create( shared->main_pool, HASH_INT, HASH_PTR, 109, &shared->call_hash );
+//          fusion_hash_create( shared->main_pool, HASH_INT, HASH_PTR, 109, &shared->call_hash );
      }
 
      /* Add ourselves to the list of fusionees. */
@@ -2645,11 +2645,11 @@ fusion_exit( FusionWorld *world,
      direct_mutex_deinit( &world->refs_lock );
      direct_map_destroy( world->refs_map );
 
-     fusion_hash_destroy( shared->call_hash );
-
      /* Master has to deinitialize shared data. */
      if (fusion_master( world )) {
           fusion_call_destroy( &shared->refs_call );
+
+          fusion_hash_destroy( shared->call_hash );
 
           shared->refs--;
           if (shared->refs == 0) {
