@@ -461,6 +461,14 @@ VoodooManager::handle_discover( VoodooMessageHeader *header )
 }
 
 long long
+VoodooManager::connection_delay()
+{
+     D_DEBUG_AT( Voodoo_Manager, "VoodooManager::%s( %p ) <- %lld\n", __func__, this, connection->GetDelay() );
+
+     return connection->GetDelay();
+}
+
+long long
 VoodooManager::clock_to_local( long long remote )
 {
      long long local;

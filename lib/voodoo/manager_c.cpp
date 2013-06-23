@@ -570,6 +570,14 @@ voodoo_manager_check_allocation( VoodooManager *manager,
 }
 
 long long
+voodoo_manager_connection_delay( VoodooManager *manager )
+{
+     D_MAGIC_ASSERT( manager, VoodooManager );
+
+     return manager->connection_delay();
+}
+
+long long
 voodoo_manager_clock_to_local( VoodooManager *manager,
                                long long      remote )
 {
