@@ -217,20 +217,27 @@ main( int argc, char *argv[] )
      ret = dfb->CreateFont( dfb, DATADIR "/decker.dgiff", &fdesc, &font );
      if (ret) {
           D_DERROR( ret, "DFBTest/Flip: IDirectFB::CreateFont( " DATADIR "/decker.dgiff ) failed!\n" );
-          goto out;
+
+          ret = dfb->CreateFont( dfb, DATADIR "/decker.ttf", &fdesc, &font );
+          if (ret) {
+               D_DERROR( ret, "DFBTest/Flip: IDirectFB::CreateFont( " DATADIR "/decker.ttf ) failed!\n" );
+               goto out;
+          }
      }
      dest->SetFont( dest, font );
 
      t0 = direct_clock_get_abs_millis();
 
+     long long prev = 0;
+
      while (num <= 0 || count < num) {
 //          long long t1, t2;
           long long base, frame_time = 0;
+          long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
           if (use_frame_time) {
-               long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
-
-               dest->GetFrameTime( dest, &frame_time );
+               if (dest->GetFrameTime( dest, &frame_time ))
+                    break;
 
                D_INFO( "Got frame time %lld (now %lld) with advance %lld (us in future)\n", frame_time, now, frame_time - now );
 
@@ -248,7 +255,15 @@ main( int argc, char *argv[] )
           dest->SetColor( dest, 0xff, 0xff, 0xff, 0xff );
           dest->FillRectangle( dest, base % (desc.width - 100), 100, 100, 100 );
 
-          dest->DrawString( dest, D_String_PrintTLS( "base %9lld,   frame time %9lld,   frame %4lld", base, frame_time, count ), -1, desc.width - 10, 10, DSTF_TOPRIGHT );
+          dest->DrawString( dest, D_String_PrintTLS( "Frame Time: %lld (%lld from now)",
+                                                     frame_time, frame_time - now ),
+                            -1, 10, 10, DSTF_TOPLEFT );
+
+          dest->DrawString( dest, D_String_PrintTLS( "Frame Diff: %lld (count %lld)",
+                                                     frame_time - prev, count ),
+                            -1, 10, 40, DSTF_TOPLEFT );
+
+          prev = frame_time;
 
           //t1 = direct_clock_get_abs_millis();
           dest->Flip( dest, NULL, triple ? DSFLIP_ONSYNC : DSFLIP_WAITFORSYNC );
