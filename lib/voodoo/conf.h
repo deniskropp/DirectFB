@@ -53,6 +53,8 @@ extern VoodooConfig VOODOO_API *voodoo_config;
 
 DirectResult        VOODOO_API  voodoo_config_set( const char *name, const char *value );
 
+const char          VOODOO_API *voodoo_config_usage( void );
+
 
 
 void __Voodoo_conf_init( void );

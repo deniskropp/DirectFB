@@ -41,7 +41,8 @@
 static VoodooConfig config;
 
 VoodooConfig *voodoo_config = &config;
-const char   *voodoo_config_usage =
+
+static const char *config_usage =
      "libvoodoo options:\n"
      "  player-name=<name>             Set player name\n"
      "  player-vendor=<name>           Set player vendor\n"
@@ -259,5 +260,11 @@ voodoo_config_set( const char *name, const char *value )
           return DR_UNSUPPORTED;
 
      return DR_OK;
+}
+
+const char *
+voodoo_config_usage()
+{
+     return config_usage;
 }
 
