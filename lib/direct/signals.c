@@ -43,6 +43,7 @@
 D_LOG_DOMAIN( Direct_Signals, "Direct/Signals", "Signal handling" );
 
 #define SIG_CLOSE_SIGHANDLER SIGUNUSED
+#define SIG_DUMP_STACK       (SIGUNUSED-1)
 
 struct __D_DirectSignalHandler {
      DirectLink               link;
@@ -66,7 +67,7 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
                                 SIGTERM, /*SIGUSR1, SIGUSR2,*/ /*SIGVTALRM,*/
                                 /*SIGSTKFLT,*/ SIGABRT, SIGFPE, SIGILL, SIGQUIT,
                                 SIGSEGV, SIGTRAP, /*SIGSYS, SIGEMT,*/ SIGBUS,
-                                SIGXCPU, SIGXFSZ, SIG_CLOSE_SIGHANDLER };
+                                SIGXCPU, SIGXFSZ, SIG_CLOSE_SIGHANDLER, SIG_DUMP_STACK };
 
 #define NUM_SIGS_TO_HANDLE ((int)D_ARRAY_SIZE( sigs_to_handle ))
 
@@ -479,6 +480,7 @@ handle_signals( DirectThread *thread,
      }
 
      sigaddset( &mask, SIG_CLOSE_SIGHANDLER );
+     sigaddset( &mask, SIG_DUMP_STACK );
 
      direct_sigprocmask( SIG_BLOCK, &mask, NULL );
 
@@ -500,6 +502,11 @@ handle_signals( DirectThread *thread,
                          break;
 
                     D_DEBUG_AT( Direct_Signals, "  -> not stopping signal handler from other process' signal\n" );
+               }
+               else if (SIG_DUMP_STACK == info.si_signo) {
+                    D_DEBUG_AT( Direct_Signals, "  -> got dump signal %d (me %d, from %d)\n", SIG_DUMP_STACK, direct_getpid(), info.si_pid );
+
+                    direct_trace_print_stacks();
                }
                else {
 #ifdef SA_SIGINFO
