@@ -782,6 +782,9 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
                ix = fx * ((orect.x + orect.w - 1) - (drect->x + drect->w - 1));
                iy = fy * ((orect.y + orect.h - 1) - (drect->y + drect->h - 1));
                break;
+          default:
+              ix = 0;
+              iy = 0;
      }
 
 

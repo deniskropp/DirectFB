@@ -1238,15 +1238,14 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           return false;
      }
 
-     ret = dfb_surface_buffer_lock( dst_buffer, CSAID_GPU, access, &state->dst );
-     if (ret) {
+     if (!(state->accel & accel)) {
           Core_PopIdentity();
           fusion_skirmish_dismiss_multi( locks, num_locks );
           return false;
      }
 
-     if (!(state->accel & accel)) {
-          dfb_surface_unlock_buffer( dst, &state->dst );
+     ret = dfb_surface_buffer_lock( dst_buffer, CSAID_GPU, access, &state->dst );
+     if (ret) {
           Core_PopIdentity();
           fusion_skirmish_dismiss_multi( locks, num_locks );
           return false;
