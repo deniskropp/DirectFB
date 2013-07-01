@@ -164,6 +164,10 @@ public:
           return buffer();
      }
 
+     inline bool operator ==(const _CharT *buf) const {
+          return !strcmp( buffer(), buf );
+     }
+
 
      /*
       * Assign
@@ -226,6 +230,21 @@ public:
 template <class _CharT = char>
 class StringsBase : public std::vector<StringBase<_CharT> >
 {
+public:
+     Direct::String
+     Concatenated( const Direct::String &space ) const
+     {
+          Direct::String  result;
+          const char     *s = "";
+
+          for (typename StringsBase::const_iterator it = this->begin(); it != this->end(); it++) {
+               result.PrintF( "%s%s", s, **it );
+
+               s = *space;
+          }
+
+          return result;
+     }
 };
 
 
