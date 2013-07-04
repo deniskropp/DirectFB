@@ -58,16 +58,18 @@ extern const DisplayLayerFuncs *drmkmsPlaneLayerFuncs;
 
 
 typedef struct {
-     int                  index;
-     int                  layer_index;
-     int                  plane_index;
+     int                    index;
+     int                    layer_index;
+     int                    plane_index;
 
-     drmModePlane        *plane;
-     uint32_t             colorkey_propid;
-     uint32_t             zpos_propid;
-     uint32_t             alpha_propid;
+     drmModePlane          *plane;
+     uint32_t               colorkey_propid;
+     uint32_t               zpos_propid;
+     uint32_t               alpha_propid;
 
-     int                  level;
+     int                    level;
+
+     CoreLayerRegionConfig *config;
 } DRMKMSLayerData;
 
 typedef struct {
