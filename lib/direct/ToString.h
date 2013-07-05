@@ -59,6 +59,12 @@ inline ToString<int>::ToString( const int &n )
      PrintF( "%d", n );
 }
 
+template <typename _Entity>
+bool FromString( _Entity &entity, const Direct::String &string )
+{
+     return false;
+}
+
 
 #define D_FLAG_PRINTFn( __n, __flags, __FLAGS, __FLAG )          \
      if ((__flags) & (__FLAGS##__FLAG))                          \
