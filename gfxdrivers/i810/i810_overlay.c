@@ -2,7 +2,8 @@
    i810_overlay.c -- Video Overlay Support (based partly from
                      XFree86 i810_video.c)
 
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2012-2013  DirectFB integrated media GmbH
+   (c) Copyright 2001-2013  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.

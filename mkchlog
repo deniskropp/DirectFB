@@ -9,7 +9,7 @@
 $skipme = 0;
 
 $names{"dok"} = 'Denis Oliver Kropp <dok@directfb.org>';
-$names{"andi"} = 'Andreas Hundt <andi@fischlustig.de>';
+$names{"andi"} = 'Andreas Shimokawa <andi@directfb.org>';
 $names{"neo"} = 'Sven Neumann <sven@gimp.org>';
 $names{"mitch"} = 'Michael Natterer <mitch@convergence.de>';
 $names{"holger"} = 'Holger Waechtler <holger@convergence.de>';
