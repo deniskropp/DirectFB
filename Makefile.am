@@ -52,8 +52,10 @@ SUBDIRS = \
 	data			\
 	docs			\
 	include 		\
+	include/++dfb		\
 	lib			\
 	src 			\
+	lib/++dfb		\
 	$(SAWMAN_DIR)		\
 	$(DIVINE_DIR)		\
 	$(DVC_DIR)		\
@@ -63,6 +65,7 @@ SUBDIRS = \
 	$(TESTS_DIR)		\
 	$(FUSIONDALE_EXAMPLES_DIR) \
 	$(FUSIONSOUND_EXAMPLES_DIR) \
+	examples/++dfb		\
 	patches			\
 	rules			\
 	build-android
