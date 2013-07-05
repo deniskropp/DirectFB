@@ -313,10 +313,8 @@ IDirectFBWindows_Requestor_RegisterWatcher( IDirectFBWindows        *thiz,
                                    VMBT_ID, registered->instance,
                                    VMBT_UINT, mask,
                                    VMBT_NONE );
-     if (ret) {
-          voodoo_manager_finish_request( data->manager, response );
+     if (ret)
           goto error;
-     }
 
      ret = response->result;
 
