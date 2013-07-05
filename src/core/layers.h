@@ -123,9 +123,9 @@ typedef enum {
      CLRCF_SURFACE      = 0x10000000,
      CLRCF_PALETTE      = 0x20000000,
 
-     CLRCF_FREEZE       = 0x80000000,
+     CLRCF_FREEZE       = 0x40000000,
 
-     CLRCF_ALL          = 0xB01337FF
+     CLRCF_ALL          = 0x701337FF
 } CoreLayerRegionConfigFlags;
 
 typedef struct {
@@ -250,7 +250,7 @@ typedef struct {
                                  CoreLayerRegionConfigFlags  updated,
                                  CoreSurface                *surface,
                                  CorePalette                *palette,
-                                 CoreSurfaceBufferLock      *left_lock, 
+                                 CoreSurfaceBufferLock      *left_lock,
                                  CoreSurfaceBufferLock      *right_lock );
 
      /*
@@ -284,7 +284,7 @@ typedef struct {
                                  void                       *region_data,
                                  CoreSurface                *surface,
                                  const DFBRegion            *left_update,
-                                 CoreSurfaceBufferLock      *left_lock, 
+                                 CoreSurfaceBufferLock      *left_lock,
                                  const DFBRegion            *right_update,
                                  CoreSurfaceBufferLock      *right_lock );
 
