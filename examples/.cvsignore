@@ -1,0 +1,10 @@
+Makefile
+Makefile.in
+.deps
+.libs
+*.lo
+*.la
+simple
+dfbshow
+dfbswitch
+dfbplay
