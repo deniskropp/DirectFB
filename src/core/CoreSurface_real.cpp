@@ -831,7 +831,7 @@ ISurface_Real::Flip2(
                    s64                                           timestamp
                    )
 {
-     DFBResult ret;
+     DFBResult ret = DFB_OK;
      DFBRegion l, r;
 
      D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( timestamp %lld )\n", __FUNCTION__, (long long) timestamp );
