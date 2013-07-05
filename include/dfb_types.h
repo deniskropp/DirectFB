@@ -117,6 +117,7 @@ typedef enum {
      DFB_MISSINGFONT,    /* No font has been set. */
      DFB_MISSINGIMAGE,   /* No image has been set. */
      DFB_NOALLOCATION,   /* No allocation. */
+     DFB_NOBUFFER,       /* No buffer. */
 
      DFB__RESULT_END
 } DFBResult;
