@@ -48,6 +48,14 @@ extern "C" {
 
 /*********************************************************************************************************************/
 
+
+template<>
+ToString<DFBResult>::ToString( const DFBResult &result )
+{
+     PrintF( "%s", DirectResultString( (DirectResult) result ) );
+}
+
+
 // Core enums
 
 template<>
