@@ -42,9 +42,11 @@ extern "C" {
 
 #include <direct/String.h>
 
+
 /*
  * In global namespace to allow universal usage without Direct::
  */
+
 template <typename _Entity>
 class ToString : public Direct::String
 {
@@ -53,16 +55,36 @@ public:
 };
 
 
+class FromStringBase
+{
+public:
+     FromStringBase()
+          :
+          success( false )
+     {
+     }
+
+     operator bool() const {
+          return success;
+     }
+
+protected:
+     bool success;
+};
+
+template <typename _Entity>
+class FromString : public FromStringBase
+{
+public:
+     FromString( _Entity &entity, const Direct::String &string );
+};
+
+
+
 template<>
 inline ToString<int>::ToString( const int &n )
 {
      PrintF( "%d", n );
-}
-
-template <typename _Entity>
-bool FromString( _Entity &entity, const Direct::String &string )
-{
-     return false;
 }
 
 
