@@ -895,8 +895,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                                     DLCONF_WIDTH | DLCONF_HEIGHT;
 
                     /* Source compatibility with older programs */
-                    if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
-                         caps &= ~DSCAPS_TRIPLE;
+                    //if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
+                    //     caps &= ~DSCAPS_TRIPLE;
 
                     config.surface_caps = DSCAPS_NONE;
 
@@ -935,8 +935,22 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                     ret = CoreLayerContext_SetConfiguration( context, &config );
                     if (ret) {
-                         if (!(caps & (DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY)) &&
-                             config.buffermode == DLBM_BACKVIDEO) {
+                         if (caps & (DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY))
+                              return ret;
+
+                         if (config.buffermode == DLBM_TRIPLE) {
+                              config.buffermode = DLBM_BACKVIDEO;
+
+                              ret = CoreLayerContext_SetConfiguration( context, &config );
+                              if (ret) {
+                                   config.buffermode = DLBM_BACKSYSTEM;
+
+                                   ret = CoreLayerContext_SetConfiguration( context, &config );
+                                   if (ret)
+                                        return ret;
+                              }
+                         }
+                         else if (config.buffermode == DLBM_BACKVIDEO) {
                               config.buffermode = DLBM_BACKSYSTEM;
 
                               ret = CoreLayerContext_SetConfiguration( context, &config );
@@ -945,6 +959,13 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          }
                          else
                               return ret;
+                    }
+
+                    if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING) {
+                         if (config.buffermode == DLBM_TRIPLE)
+                              caps &= ~DSCAPS_DOUBLE;
+                         else
+                              caps &= ~DSCAPS_TRIPLE;
                     }
 
                     ret = CoreLayerContext_GetPrimaryRegion( context, true, &region );
