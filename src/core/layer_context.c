@@ -1966,7 +1966,9 @@ dfb_layer_context_reallocate_surface( CoreLayer             *layer,
      if (ret)
           return ret;
 
-     if (config->buffermode != DLBM_BACKSYSTEM && !(surface->config.caps & DSCAPS_FLIPPING))
+     if (config->buffermode == DLBM_BACKSYSTEM)
+          surface->flips = 0;
+     else if (!(surface->config.caps & DSCAPS_FLIPPING))
           surface->flips++;
 
      ret = dfb_surface_reconfig( surface, &sconfig );
