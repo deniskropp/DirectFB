@@ -67,10 +67,10 @@ struct __D_DirectModuleDir {
 
 #define DEFINE_MODULE_DIRECTORY(d,p,n)                 \
      DirectModuleDir d = {                             \
-          .path        = p,                            \
-          .abi_version = n,                            \
-          .entries     = NULL,                         \
-          .loading     = NULL,                         \
+          /*.path        =*/ p,                            \
+          /*.abi_version =*/ n,                            \
+          /*.entries     =*/ NULL,                         \
+          /*.loading     =*/ NULL,                         \
      }
 
 int  DIRECT_API  direct_modules_explore_directory( DirectModuleDir *directory );
