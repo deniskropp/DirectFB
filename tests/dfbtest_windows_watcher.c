@@ -79,7 +79,7 @@ Test_Watcher_WindowAdd( void                *context,
      D_INFO( "  -> resource id  0x%016llx\n", (unsigned long long) info->resource_id );
      D_INFO( "  -> process id   %d\n", info->process_id );
      D_INFO( "  -> instance id  %d\n", info->instance_id );
-     D_INFO( "  -> state        0x%08x\n", info->state );
+     D_INFO( "  -> state        0x%08x\n", info->state.flags );
 
      dump_config( &info->config );
 }
