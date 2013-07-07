@@ -43,6 +43,8 @@
 #include <core/surface_pool.h>
 #include <core/system.h>
 
+#include <core/Debug.h>
+
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
@@ -491,15 +493,13 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
           pool = pool_array[pool_order[i]];
           D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
-          D_DEBUG_AT( Core_SurfacePool, "  ->     0x%02x 0x%03x (%s)\n", pool->desc.access[accessor], pool->desc.types, pool->desc.name );
+          D_DEBUG_AT( Core_SurfacePool, "  -> [%d] 0x%02x 0x%03x  prio %d  name '%s'  caps 0x%02x\n", pool->pool_id,
+                      pool->desc.access[accessor], pool->desc.types, pool->desc.priority, pool->desc.name, pool->desc.caps );
 
           if (D_FLAGS_ARE_SET( pool->desc.access[accessor], access ) &&
               D_FLAGS_ARE_SET( pool->desc.types, type & ~CSTF_PREALLOCATED ))
           {
                const SurfacePoolFuncs *funcs;
-
-               D_DEBUG_AT( Core_SurfacePool, "  -> [%d] 0x%02x 0x%03x (%d) [%s]\n", pool->pool_id,
-                           pool->desc.caps, pool->desc.types, pool->desc.priority, pool->desc.name );
 
                funcs = get_funcs( pool );
 
@@ -517,6 +517,7 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
                          break;
 
                     default:
+                         D_DEBUG_AT( Core_SurfacePool, "    => %s\n", DirectResultString(ret) );
                          continue;
                }
           }

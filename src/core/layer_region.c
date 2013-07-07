@@ -618,22 +618,6 @@ update_only:
 
                          allocation = left.allocation;
                          D_ASSERT( allocation != NULL );
-#if 0     // FIXME1.7
-                         /* If hardware has written or is writing... */
-                         if (allocation->accessed[CSAID_GPU] & CSAF_WRITE) {
-                              D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
-
-                              /* ...wait for the operation to finish. */
-                              if (!(flags & DSFLIP_PIPELINE))
-                                   dfb_gfxcard_sync(); /* TODO: wait for serial instead */
-
-                              allocation->accessed[CSAID_GPU] &= ~CSAF_WRITE;
-                         }
-
-                         dfb_surface_lock( surface );
-                         dfb_surface_allocation_update( allocation, CSAF_READ );
-                         dfb_surface_unlock( surface );
-#endif
                     }
 
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );

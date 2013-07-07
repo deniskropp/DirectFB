@@ -663,7 +663,7 @@ dfb_surface_flip_buffers( CoreSurface *surface, bool swap )
      else
           surface->flips++;
 
-     D_DEBUG_AT( Core_Surface, "  -> flips %d\n", surface->flips );
+     D_DEBUG_AT( Core_Surface, "  -> flips %d <-----------------\n", surface->flips );
 
      // FIXME: cleanup, only used by desktop background via primary surface,
      // make it use surface client
