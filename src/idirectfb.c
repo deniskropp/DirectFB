@@ -2046,25 +2046,36 @@ InitIDirectFB_Async( void *ctx,
  * Fills in function pointers and intializes data structure.
  */
 DFBResult
-IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
+IDirectFB_Construct( IDirectFB *thiz )
 {
+     DFBResult ret;
+
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFB)
 
-     D_DEBUG_AT( IDFB, "%s( %p, %p )\n", __FUNCTION__, thiz, core );
+     D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
      data->ref   = 1;
-     data->core  = core;
-     data->level = DFSCL_NORMAL;
-
-     if (dfb_layer_num() < 1) {
-          D_ERROR( "%s: No layers available! Missing driver?\n", __FUNCTION__ );
-          return DFB_UNSUPPORTED;
-     }
-
-     data->layer = dfb_layer_at_translated( DLID_PRIMARY );
 
      thiz->AddRef = IDirectFB_AddRef;
      thiz->Release = IDirectFB_Release;
+
+     ret = dfb_core_create( &core_dfb );
+     if (ret) {
+          DIRECT_DEALLOCATE_INTERFACE(thiz);
+          return ret;
+     }
+
+     if (dfb_layer_num() < 1) {
+          D_ERROR( "%s: No layers available! Missing driver?\n", __FUNCTION__ );
+          dfb_core_destroy( core_dfb, false );
+          DIRECT_DEALLOCATE_INTERFACE(thiz);
+          return DFB_UNSUPPORTED;
+     }
+
+     data->core  = core_dfb;
+     data->level = DFSCL_NORMAL;
+     data->layer = dfb_layer_at_translated( DLID_PRIMARY );
+
      thiz->SetCooperativeLevel = IDirectFB_SetCooperativeLevel;
      thiz->GetDeviceDescription = IDirectFB_GetDeviceDescription;
      thiz->EnumVideoModes = IDirectFB_EnumVideoModes;
@@ -2096,7 +2107,7 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      direct_mutex_init( &data->init_lock );
      direct_waitqueue_init( &data->init_wq );
 
-     if (dfb_config->call_nodirect && dfb_core_is_master( core ))
+     if (dfb_config->call_nodirect && dfb_core_is_master( data->core ))
           Core_AsyncCall( InitIDirectFB_Async, thiz, data );
      else
           InitIDirectFB_Async( thiz, data );

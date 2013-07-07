@@ -201,7 +201,7 @@ DirectFBCreate( IDirectFB **interface_ptr )
      if (dfb_config->remote.host)
           return CreateRemote( dfb_config->remote.host, dfb_config->remote.port, interface_ptr );
 
-     static DirectMutex lock = DIRECT_MUTEX_INITIALIZER(lock);
+     static DirectMutex lock = DIRECT_RECURSIVE_MUTEX_INITIALIZER(lock);
 
      direct_mutex_lock( &lock );
 
@@ -214,23 +214,19 @@ DirectFBCreate( IDirectFB **interface_ptr )
           return DFB_OK;
      }
 
-     ret = dfb_core_create( &core_dfb );
-     if (ret) {
-          direct_mutex_unlock( &lock );
-          return ret;
-     }
-
      DIRECT_ALLOCATE_INTERFACE( dfb, IDirectFB );
-
-     ret = IDirectFB_Construct( dfb, core_dfb );
-     if (ret) {
-          dfb_core_destroy( core_dfb, false );
-          direct_mutex_unlock( &lock );
-          return ret;
-     }
 
      if (!dfb_config->no_singleton)
           idirectfb_singleton = dfb;
+
+     ret = IDirectFB_Construct( dfb );
+     if (ret) {
+          if (!dfb_config->no_singleton)
+               idirectfb_singleton = NULL;
+
+          direct_mutex_unlock( &lock );
+          return ret;
+     }
 
      direct_mutex_unlock( &lock );
 

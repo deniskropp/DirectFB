@@ -83,8 +83,7 @@ typedef struct {
 /*
  * IDirectFB constructor/destructor
  */
-DFBResult IDirectFB_Construct  ( IDirectFB  *thiz,
-                                 CoreDFB    *core );
+DFBResult IDirectFB_Construct  ( IDirectFB  *thiz );
 
 DFBResult IDirectFB_Destruct   ( IDirectFB  *thiz );
 
