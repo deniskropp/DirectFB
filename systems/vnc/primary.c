@@ -404,10 +404,7 @@ UpdateScreen( DFBVNC                *vnc,
 
      dfb_gfxcard_sync();
 
-     DirectResult             ret;
-     DFBVNCMarkRectAsModified mark;
-
-     mark.region = clip;
+     DirectResult ret;
 
      ret = fusion_call_execute( &shared->call, FCEF_ONEWAY,
                                 (int)((clip.x1 << 16) | clip.x2),
