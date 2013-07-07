@@ -423,8 +423,10 @@ public:
                }
 
                ret = task->Run();
-               if (ret)
+               if (ret) {
                     D_DERROR( ret, "TaskThreads: Task::Run() failed! [%s]\n", task->Description().buffer() );
+                    task->Done( ret );
+               }
           }
 
           return NULL;

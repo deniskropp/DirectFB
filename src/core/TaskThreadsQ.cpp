@@ -226,8 +226,10 @@ next:
           D_PERF_COUNT_N( thiz->perfs[task->qid].counter, -1 );  // not fully thread safe
 
           ret = task->Run();
-          if (ret)
+          if (ret) {
                D_DERROR( ret, "TaskThreadsQ: Task::Run() failed! [%s]\n", task->Description().buffer() );
+               task->Done( ret );
+          }
 
           if (next) {
                if (0) {
