@@ -56,8 +56,9 @@ typedef enum {
      DMT_UNIMPLEMENTED  = 0x00000010, /* Messages notifying unimplemented functionality. */
      DMT_ONCE           = 0x00000020, /* One-shot messages .*/
      DMT_UNTESTED       = 0x00000040, /* Messages notifying unimplemented functionality. */
+     DMT_BUG            = 0x00000080, /* A bug occurred. */
 
-     DMT_ALL            = 0x0000007F  /* All types. */
+     DMT_ALL            = 0x000000FF  /* All types. */
 } DirectMessageType;
 
 
@@ -105,6 +106,8 @@ struct __D_DirectConfig {
      int                           log_delay_rand_us;
      int                           log_delay_min_loops;
      int                           log_delay_min_us;
+
+     DirectMessageType             fatal_messages;
 };
 
 extern DirectConfig DIRECT_API *direct_config;

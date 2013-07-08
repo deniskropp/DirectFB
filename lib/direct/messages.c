@@ -33,6 +33,7 @@
 #include <direct/messages.h>
 #include <direct/print.h>
 #include <direct/result.h>
+#include <direct/system.h>
 #include <direct/trace.h>
 #include <direct/util.h>
 
@@ -55,6 +56,9 @@ direct_messages_info( const char *format, ... )
      va_end( ap );
 
      direct_log_printf( NULL, "(*) %s", buf );
+
+     if (direct_config->fatal_messages & DMT_INFO)
+          direct_trap( "Info", SIGABRT );
 }
 
 __dfb_no_instrument_function__
@@ -74,6 +78,9 @@ direct_messages_error( const char *format, ... )
      direct_log_printf( NULL, "(!) %s", buf );
 
      direct_trace_print_stack( NULL );
+
+     if (direct_config->fatal_messages & DMT_ERROR)
+          direct_trap( "Error", SIGABRT );
 }
 
 __dfb_no_instrument_function__
@@ -93,6 +100,9 @@ direct_messages_derror( DirectResult result, const char *format, ... )
      direct_log_printf( NULL, "(!) %s    --> %s\n", buf, DirectResultString( result ) );
 
      direct_trace_print_stack( NULL );
+
+     if (direct_config->fatal_messages & DMT_ERROR)
+          direct_trap( "DError", SIGABRT );
 }
 
 __dfb_no_instrument_function__
@@ -112,6 +122,9 @@ direct_messages_perror( int erno, const char *format, ... )
      direct_log_printf( NULL, "(!) %s    --> %s\n", buf, direct_strerror( erno ) );
 
      direct_trace_print_stack( NULL );
+
+     if (direct_config->fatal_messages & DMT_ERROR)
+          direct_trap( "PError", SIGABRT );
 }
 
 __dfb_no_instrument_function__
@@ -131,6 +144,9 @@ direct_messages_dlerror( const char *dlerr, const char *format, ... )
      direct_log_printf( NULL, "(!) %s    --> %s\n", buf, dlerr );
 
      direct_trace_print_stack( NULL );
+
+     if (direct_config->fatal_messages & DMT_ERROR)
+          direct_trap( "DlError", SIGABRT );
 }
 
 __dfb_no_instrument_function__
@@ -153,6 +169,9 @@ direct_messages_once( const char *func,
      direct_log_printf( NULL, " (!!!)  *** ONCE [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      direct_trace_print_stack( NULL );
+
+     if (direct_config->fatal_messages & DMT_ONCE)
+          direct_trap( "Once", SIGABRT );
 }
 
 __dfb_no_instrument_function__
@@ -164,6 +183,9 @@ direct_messages_unimplemented( const char *func,
      direct_log_printf( NULL, " (!!!)  *** UNIMPLEMENTED [%s] *** [%s:%d]\n", func, file, line );
 
      direct_trace_print_stack( NULL );
+
+     if (direct_config->fatal_messages & DMT_UNIMPLEMENTED)
+          direct_trap( "Unimplemented", SIGABRT );
 }
 
 __dfb_no_instrument_function__
@@ -186,6 +208,9 @@ direct_messages_bug( const char *func,
      direct_log_printf( NULL, " (!?!)  *** BUG [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      direct_trace_print_stack( NULL );
+
+     if (direct_config->fatal_messages & DMT_BUG)
+          direct_trap( "Bug", SIGABRT );
 }
 
 __dfb_no_instrument_function__
@@ -208,6 +233,9 @@ direct_messages_warn( const char *func,
      direct_log_printf( NULL, " (!!!)  *** WARNING [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      direct_trace_print_stack( NULL );
+
+     if (direct_config->fatal_messages & DMT_WARNING)
+          direct_trap( "Warning", SIGABRT );
 }
 
 #endif

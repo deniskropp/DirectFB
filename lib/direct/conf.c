@@ -47,7 +47,10 @@ const char   *direct_config_usage =
      "  memcpy=<method>                Skip memcpy() probing (help = show list)\n"
      "  [no-]quiet                     Disable text output except debug messages or direct logs\n"
      "  [no-]quiet=<type>              Only quiet certain types (cumulative with 'quiet')\n"
-     "                                 [ info | warning | error | once | unimplemented ]\n"
+     "                                 [ info | warning | error | once | unimplemented | banner | bug ]\n"
+     "  [no-]fatal-messages            Enable trap for all message types except banner and info\n"
+     "  [no-]fatal-messages=<type>     Enable trap for certain message types (cumulative with 'fatal-messages')\n"
+     "                                 [ info | warning | error | once | unimplemented | banner | bug ]\n"
      "  [no-]debug=<domain>            Configure debug domain (if no domain, sets default for unconfigured domains)\n"
      "  debug-all                      Enable all debug output (regardless of domain configuration)\n"
      "  debug-none                     Disable all debug output (regardless of all other debug options)\n"
@@ -250,7 +253,7 @@ direct_config_set( const char *name, const char *value )
           }
      }
      else
-          if (direct_strcmp (name, "quiet" ) == 0 || strcmp (name, "no-quiet" ) == 0) {
+     if (direct_strcmp (name, "quiet" ) == 0 || strcmp (name, "no-quiet" ) == 0) {
           /* Enable/disable all at once by default. */
           DirectMessageType type = DMT_ALL;
 
@@ -260,6 +263,7 @@ direct_config_set( const char *name, const char *value )
                if (!strcmp( value, "warning" ))        type = DMT_WARNING;           else
                if (!strcmp( value, "error" ))          type = DMT_ERROR;             else
                if (!strcmp( value, "once" ))           type = DMT_ONCE;              else
+               if (!strcmp( value, "bug" ))            type = DMT_BUG;               else
                if (!strcmp( value, "untested" ))       type = DMT_UNTESTED;          else
                if (!strcmp( value, "unimplemented" ))  type = DMT_UNIMPLEMENTED; 
                else {
@@ -277,6 +281,36 @@ direct_config_set( const char *name, const char *value )
      else
           if (direct_strcmp (name, "no-quiet" ) == 0) {
           direct_config->quiet = DMT_NONE;
+     }
+     else
+     if (direct_strcmp (name, "fatal-messages" ) == 0 || strcmp (name, "no-fatal-messages" ) == 0) {
+          /* Enable/disable all at once by default. */
+          DirectMessageType type = DMT_ALL & ~(DMT_BANNER | DMT_INFO);
+
+          /* Find out the specific message type being configured. */
+          if (value) {
+               if (!strcmp( value, "info" ))           type = DMT_INFO;              else
+               if (!strcmp( value, "warning" ))        type = DMT_WARNING;           else
+               if (!strcmp( value, "error" ))          type = DMT_ERROR;             else
+               if (!strcmp( value, "once" ))           type = DMT_ONCE;              else
+               if (!strcmp( value, "bug" ))            type = DMT_BUG;               else
+               if (!strcmp( value, "untested" ))       type = DMT_UNTESTED;          else
+               if (!strcmp( value, "unimplemented" ))  type = DMT_UNIMPLEMENTED; 
+               else {
+                    D_ERROR( "DirectFB/Config '%s': Unknown message type '%s'!\n", name, value );
+                    return DR_INVARG;
+               }
+          }
+
+          /* Set/clear the corresponding flag in the configuration. */
+          if (name[0] == 'f')
+               D_FLAGS_SET( direct_config->fatal_messages, type );
+          else
+               D_FLAGS_CLEAR( direct_config->fatal_messages, type );
+     }
+     else
+          if (direct_strcmp (name, "no-fatal-messages" ) == 0) {
+          direct_config->fatal_messages = DMT_NONE;
      }
      else
           if (direct_strcmp (name, "debug" ) == 0) {
