@@ -1,11 +1,12 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2012-2013  DirectFB integrated media GmbH
+   (c) Copyright 2001-2013  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
 
    Written by Nikita Egorov <nikego@gmail.com>
-   
+
    Calibration utility for PenMount's touchscreen panel. Run the program 
    and touch to center of left/top cross ( active cross is blinked ). 
    Then touch to right/bottom cross. The program will create four values for 

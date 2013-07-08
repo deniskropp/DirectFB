@@ -1,11 +1,13 @@
 /*
-   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2012-2013  DirectFB integrated media GmbH
+   (c) Copyright 2001-2013  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de>,
+              Andreas Shimokawa <andi@directfb.org>,
+              Marek Pikarski <mass@directfb.org>,
               Sven Neumann <neo@directfb.org>,
               Ville Syrjälä <syrjala@sci.fi> and
               Claudio Ciccani <klan@users.sf.net>.
@@ -25,6 +27,8 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+
+
 
 #ifndef __CORE__LAYERS_H__
 #define __CORE__LAYERS_H__
@@ -119,9 +123,9 @@ typedef enum {
      CLRCF_SURFACE      = 0x10000000,
      CLRCF_PALETTE      = 0x20000000,
 
-     CLRCF_FREEZE       = 0x80000000,
+     CLRCF_FREEZE       = 0x40000000,
 
-     CLRCF_ALL          = 0xB01337FF
+     CLRCF_ALL          = 0x701337FF
 } CoreLayerRegionConfigFlags;
 
 typedef struct {
@@ -246,7 +250,7 @@ typedef struct {
                                  CoreLayerRegionConfigFlags  updated,
                                  CoreSurface                *surface,
                                  CorePalette                *palette,
-                                 CoreSurfaceBufferLock      *left_lock, 
+                                 CoreSurfaceBufferLock      *left_lock,
                                  CoreSurfaceBufferLock      *right_lock );
 
      /*
@@ -280,7 +284,7 @@ typedef struct {
                                  void                       *region_data,
                                  CoreSurface                *surface,
                                  const DFBRegion            *left_update,
-                                 CoreSurfaceBufferLock      *left_lock, 
+                                 CoreSurfaceBufferLock      *left_lock,
                                  const DFBRegion            *right_update,
                                  CoreSurfaceBufferLock      *right_lock );
 

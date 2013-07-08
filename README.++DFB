@@ -1,0 +1,98 @@
+++DFB is an advanced version of DFB++
+
+It's an incompatible fork with fundamental changes.
+
+Applications no longer deal with interface pointers. The classes
+wrapping around interfaces are used a container for an interface
+pointer, providing garbage collection the "direct" way 8-)
+
+By overwriting certain operators, e.g. '=', the need to care
+about AddRef() and Release() has been eliminated. These methods
+aren't even available anymore.
+
+All interfaces are released automatically now, either caused by
+finalization of an object having interface members, or by leaving
+a stack frame with an interface hold in a local variable.
+
+This also eliminates duplication of code caused by the lack of
+a C++ equivalent to Java's "finally" block.
+
+The following code is using DFB++:
+
+void DFBImage::Load( std::string filename )
+{
+	IDirectFB              *dfb      = NULL;
+	IDirectFBImageProvider *provider = NULL;
+	IDirectFBSurface       *surface  = NULL;
+
+	try {
+		DFBSurfaceDescription desc;
+
+		dfb = DirectFB::Create();
+
+		provider = dfb->CreateImageProvider( filename.data() );
+
+		provider->GetSurfaceDescription( &desc );
+
+		surface = dfb->CreateSurface( desc );
+
+		provider->RenderTo( surface, NULL );
+	}
+	/* Work around missing "finally". */
+	catch (...) {
+		if (surface)
+			surface->Release();
+
+		if (provider)
+			provider->Release();
+
+		if (dfb)
+			dfb->Release();
+
+		throw;
+	}
+
+	m_surface = surface;	/* Keep pointer to interface object. */
+
+	provider->Release();
+	dfb->Release();
+}
+
+This is how it's looking using ++DFB:
+
+void DFBImage::Load( std::string filename )
+{
+	IDirectFB              dfb;
+	IDirectFBImageProvider provider;
+	IDirectFBSurface       surface;
+	DFBSurfaceDescription  desc;
+
+	dfb = DirectFB::Create();
+
+	provider = dfb.CreateImageProvider( filename.data() );
+
+	provider.GetSurfaceDescription( &desc );
+
+	surface = dfb.CreateSurface( desc );
+
+	provider.RenderTo( surface, NULL );
+
+	m_surface = surface;
+}
+
+The last line instructs the container object 'm_surface' (member)
+to take the interface pointer from 'surface' after calling AddRef().
+
+Leaving the stack frame due to an exception or a return causes
+finalization of the local container objects 'dfb', 'provider'
+and 'surface' calling Release() if they've already been assigned
+an interface pointer.
+
+The suggested way of passing interfaces via parameters
+is to use C++ references as in this declaration:
+
+	void PrepareTarget( IDirectFBSurface &target );
+
+Explicitly releasing an interface is as simple as this:
+
+	m_surface = NULL;

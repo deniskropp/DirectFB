@@ -1,10 +1,11 @@
 /*
-   (c) Copyright 2001-2008  The DirectFB Organization (directfb.org)
+   (c) Copyright 2012-2013  DirectFB integrated media GmbH
+   (c) Copyright 2001-2013  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
 
-   Written by Claudio Ciccani <klan@users.sf.net>.
+   Written by Claudio Ciccani <klan@users.sf.net>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public

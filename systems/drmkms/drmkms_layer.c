@@ -1,11 +1,13 @@
 /*
-   (c) Copyright 2001-2010  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2012-2013  DirectFB integrated media GmbH
+   (c) Copyright 2001-2013  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de>,
+              Andreas Shimokawa <andi@directfb.org>,
+              Marek Pikarski <mass@directfb.org>,
               Sven Neumann <neo@directfb.org>,
               Ville Syrjälä <syrjala@sci.fi> and
               Claudio Ciccani <klan@users.sf.net>.
@@ -25,6 +27,8 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+
+
 
 
 //#define DIRECT_ENABLE_DEBUG
@@ -435,6 +439,8 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
                return DFB_FAILURE;
           }
 
+          data->config = config;
+
      }
 
      if ((updated & (CLRCF_SRCKEY | CLRCF_OPTIONS)) && data->alpha_propid) {
@@ -489,6 +495,38 @@ drmkmsPlaneRemoveRegion( CoreLayer             *layer,
 }
 
 
+static DFBResult
+drmkmsPlaneFlipRegion( CoreLayer             *layer,
+                       void                  *driver_data,
+                       void                  *layer_data,
+                       void                  *region_data,
+                       CoreSurface           *surface,
+                       DFBSurfaceFlipFlags    flags,
+                       const DFBRegion       *left_update,
+                       CoreSurfaceBufferLock *left_lock,
+                       const DFBRegion       *right_update,
+                       CoreSurfaceBufferLock *right_lock )
+{
+     int               ret;
+     DRMKMSData       *drmkms = driver_data;
+     DRMKMSLayerData  *data   = layer_data;
+
+
+     D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
+
+     ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
+                           /* plane_flags */ 0, data->config->dest.x, data->config->dest.y, data->config->dest.w, data->config->dest.h,
+                           data->config->source.x << 16, data->config->source.y <<16, data->config->source.w << 16, data->config->source.h << 16);
+     if (ret) {
+          D_PERROR( "DRMKMS/Layer/FlipRegion: Failed setting plane configuration!\n" );
+          return ret;
+     }
+     dfb_surface_flip( surface, false );
+
+     return DFB_OK;
+}
+
+
 static const DisplayLayerFuncs _drmkmsLayerFuncs = {
      .LayerDataSize = drmkmsLayerDataSize,
      .InitLayer     = drmkmsInitLayer,
@@ -505,7 +543,7 @@ static const DisplayLayerFuncs _drmkmsPlaneLayerFuncs = {
      .TestRegion    = drmkmsPlaneTestRegion,
      .SetRegion     = drmkmsPlaneSetRegion,
      .RemoveRegion  = drmkmsPlaneRemoveRegion,
-     .FlipRegion    = drmkmsFlipRegion
+     .FlipRegion    = drmkmsPlaneFlipRegion
 };
 
 const DisplayLayerFuncs *drmkmsLayerFuncs = &_drmkmsLayerFuncs;

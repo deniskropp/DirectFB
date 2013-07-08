@@ -2780,6 +2780,8 @@ include/Makefile
 include/directfb_build.h
 include/directfb_version.h
 
+include/++dfb/Makefile
+
 lib/Makefile
 
 lib/direct/Makefile
@@ -2827,6 +2829,9 @@ lib/divine/Makefile
 lib/divine/divine.pc
 
 lib/dvc/Makefile
+
+lib/++dfb/Makefile
+lib/++dfb/++dfb.pc
 
 patches/Makefile
 
@@ -2943,6 +2948,9 @@ tests/voodoo/Makefile
 tools/Makefile
 examples/fusiondale/Makefile
 examples/fusionsound/Makefile
+examples/++dfb/Makefile
+examples/++dfb/tests/Makefile
+examples/++dfb/tests/data/Makefile
 docs/Makefile
 docs/dfbg.1
 docs/directfb-csource.1
