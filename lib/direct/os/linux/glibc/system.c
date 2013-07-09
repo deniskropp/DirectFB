@@ -210,7 +210,9 @@ direct_getenv( const char *name )
 DirectResult
 direct_futex( int *uaddr, int op, int val, const struct timespec *timeout, int *uaddr2, int val3 )
 {
-     int          ret;
+     int ret;
+
+#if D_DEBUG_ENABLED
      unsigned int count;
 
      (void)count;
@@ -229,6 +231,7 @@ direct_futex( int *uaddr, int op, int val, const struct timespec *timeout, int *
           default:
                D_DEBUG_AT( Direct_Futex, "# #  UNKNOWN FUTEX OP  # #\n" );
      }
+#endif
 
      ret = syscall( __NR_futex, uaddr, op, val, timeout, uaddr2, val3 );
      if (ret < 0)
