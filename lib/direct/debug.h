@@ -131,6 +131,7 @@ void DIRECT_API direct_assumption( const char *exp,
      } while (0)
 
 
+// TODO: OPT: check domain etc here to avoid probably expensive parameter generation
 #define D_DEBUG_AT(d,...)                                                            \
      do {                                                                            \
           direct_debug_at( &d, __VA_ARGS__ );                                        \
