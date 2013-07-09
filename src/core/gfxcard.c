@@ -29,6 +29,8 @@
 */
 
 
+//#define DIRECT_ENABLE_DEBUG
+
 
 #include <config.h>
 
@@ -1233,6 +1235,8 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
                                                  ( !(card->caps.flags & CCF_RENDEROPTS) &&
                                                     (state->render_options & DSRO_MATRIX) ))
      {
+          D_DEBUG_AT( Core_Graphics, "  -> cannot read sysmem / use matrix\n" );
+
           /* Clear 'accelerated functions'. */
           state->accel   = DFXL_NONE;
           state->checked = DFXL_ALL;
@@ -1243,6 +1247,7 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      }
 
      if (!(state->accel & accel)) {
+          D_DEBUG_AT( Core_Graphics, "  -> not accelerated\n" );
           Core_PopIdentity();
           fusion_skirmish_dismiss_multi( locks, num_locks );
           return false;
@@ -1250,6 +1255,7 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
      ret = dfb_surface_buffer_lock( dst_buffer, CSAID_GPU, access, &state->dst );
      if (ret) {
+          D_DEBUG_AT( Core_Graphics, "  -> Could not lock destination for GPU access!\n" );
           Core_PopIdentity();
           fusion_skirmish_dismiss_multi( locks, num_locks );
           return false;
@@ -1266,20 +1272,16 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
 
           if (src_buffer->policy == CSP_SYSTEMONLY && !(card->caps.flags & CCF_READSYSMEM)) {
+               D_DEBUG_AT( Core_Graphics, "  -> cannot read source sysmem\n" );
+
                /* Clear 'accelerated blitting functions'. */
                state->accel   &= ~DFXL_ALL_BLIT;
                state->checked |=  DFXL_ALL_BLIT;
           }
 
-          if (!(state->accel & accel)) {
-               dfb_surface_unlock_buffer( dst, &state->dst );
-               Core_PopIdentity();
-               fusion_skirmish_dismiss_multi( locks, num_locks );
-               return false;
-          }
-
           ret = dfb_surface_buffer_lock( src_buffer, CSAID_GPU, CSAF_READ, &state->src );
           if (ret) {
+               D_DEBUG_AT( Core_Graphics, "  -> Could not lock source for GPU access!\n" );
                dfb_surface_unlock_buffer( dst, &state->dst );
                Core_PopIdentity();
                fusion_skirmish_dismiss_multi( locks, num_locks );
@@ -1293,7 +1295,7 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
                                                state->from_eye,
                                                CSAID_GPU, CSAF_READ, &state->src_mask );
                if (ret) {
-                    D_DEBUG_AT( Core_Graphics, "Could not lock source mask for GPU access!\n" );
+                    D_DEBUG_AT( Core_Graphics, "  -> Could not lock source mask for GPU access!\n" );
                     dfb_surface_unlock_buffer( src, &state->src );
                     dfb_surface_unlock_buffer( dst, &state->dst );
                     Core_PopIdentity();
@@ -1311,7 +1313,7 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
                                                state->from_eye,
                                                CSAID_GPU, CSAF_READ, &state->src2 );
                if (ret) {
-                    D_DEBUG_AT( Core_Graphics, "Could not lock source2 for GPU access!\n" );
+                    D_DEBUG_AT( Core_Graphics, "  -> Could not lock source2 for GPU access!\n" );
                     if (state->flags & CSF_SOURCE_MASK_LOCKED) {
                          dfb_surface_unlock_buffer( state->source_mask, &state->src_mask );
                          state->flags &= ~CSF_SOURCE_MASK_LOCKED;
@@ -1433,6 +1435,10 @@ dfb_gfxcard_state_release( CardState *state )
           return;
 
      if (!dfb_config->software_only) {
+          /* Store the serial of the operation. */
+          if (card->funcs.GetSerial)
+               card->funcs.GetSerial( card->driver_data, card->device_data, &state->dst.allocation->gfx_serial );
+
           if (dfb_config->gfx_emit_early && card->funcs.EmitCommands) {
                dfb_gfxcard_switch_busy( card );
 
@@ -1441,10 +1447,6 @@ dfb_gfxcard_state_release( CardState *state )
           }
           else
                card->shared->pending_ops = true;
-
-          /* Store the serial of the operation. */
-          if (card->funcs.GetSerial)
-               card->funcs.GetSerial( card->driver_data, card->device_data, &state->dst.allocation->gfx_serial );
      }
 
      /* allow others to use the hardware */
@@ -4335,31 +4337,47 @@ static void dfb_gfxcard_find_driver( CoreDFB *core )
      DirectLink          *link;
      FusionSHMPoolShared *pool = dfb_core_shmpool( core );
 
+     D_DEBUG_AT( Core_Graphics, "%s( %p )\n", __FUNCTION__, core );
+
      link = dfb_graphics_drivers.entries;
 
      while (direct_list_check_link( link )) {
-
           DirectModuleEntry *module = (DirectModuleEntry*) link;
+
+          D_DEBUG_AT( Core_Graphics, "  -> module %p\n", module );
 
           link = link->next;
 
           const GraphicsDriverFuncs *funcs = direct_module_ref( module );
 
-          if (!funcs)
+          if (!funcs) {
+               D_DEBUG_AT( Core_Graphics, "  -> REF FAILED!\n" );
                continue;
-
-          if (!card->module && funcs->Probe( card )) {
-               funcs->GetDriverInfo( card, &card->shared->driver_info );
-
-               card->module       = module;
-               card->driver_funcs = funcs;
-
-               card->shared->module_name = SHSTRDUP( pool, module->name );
           }
-          else {
-               /* can result in immediate removal, so "link" must already be on next */
-               direct_module_unref( module );
+
+          if (!card->module) {
+               D_DEBUG_AT( Core_Graphics, "  -> probing '%s'...\n", module->name );
+
+               if (funcs->Probe( card )) {
+                    D_DEBUG_AT( Core_Graphics, "  -> success\n" );
+
+                    funcs->GetDriverInfo( card, &card->shared->driver_info );
+                    
+                    card->module       = module;
+                    card->driver_funcs = funcs;
+                    
+                    card->shared->module_name = SHSTRDUP( pool, module->name );
+
+                    continue;
+               }
+               else
+                    D_DEBUG_AT( Core_Graphics, "  -> FAILED\n" );
           }
+          else
+               D_DEBUG_AT( Core_Graphics, "  -> having driver, unloading...\n" );
+
+          /* can result in immediate removal, so "link" must already be on next */
+          direct_module_unref( module );
      }
 }
 
