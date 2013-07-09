@@ -441,9 +441,12 @@ vmwareGetSerial( void *drv, void *dev,
 {
      VMWareDriverData *vdrv = (VMWareDriverData*) drv;
 
-     *serial = vdrv->next;
+     if (vdrv->last.serial == vdrv->next.serial) {
+          if (!++(vdrv->next.serial))
+               vdrv->next.generation++;
+     }
 
-     //D_DEBUG_AT( VMWare_2D, "%s() -> %d, %d\n", __FUNCTION__, serial->generation, serial->serial );
+     *serial = vdrv->next;
 }
 
 /*
@@ -474,9 +477,6 @@ vmwareEmitCommands( void *drv, void *dev )
      virtual2D_postPacket( vdrv, packet );
 
      vdrv->last = vdrv->next;
-
-     if (!++(vdrv->next.serial))
-          vdrv->next.generation++;
 }
 
 /*********************************************************************************************************************/

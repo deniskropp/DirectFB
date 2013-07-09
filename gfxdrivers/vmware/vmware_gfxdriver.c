@@ -127,7 +127,7 @@ driver_init_device( CoreGraphicsDevice *device,
      device_info->limits.surface_byteoffset_alignment = 8;
      device_info->limits.surface_bytepitch_alignment  = 8;
 
-     device_info->caps.flags    = 0;
+     device_info->caps.flags    = CCF_READSYSMEM | CCF_WRITESYSMEM;
      device_info->caps.accel    = VMWARE_SUPPORTED_DRAWINGFUNCTIONS |
                                   VMWARE_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = VMWARE_SUPPORTED_DRAWINGFLAGS;
@@ -149,5 +149,9 @@ static void
 driver_close_driver( CoreGraphicsDevice *device,
                      void               *driver_data )
 {
+     VMWareDriverData *drv = driver_data;
+
+     if (!fusion_config->secure_fusion || dfb_core_is_master(core_dfb))
+          direct_processor_destroy( &drv->processor );
 }
 
