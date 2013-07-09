@@ -7,6 +7,7 @@ libsawman = $(top_builddir)/lib/sawman/libsawman.la
 libdivine = $(top_builddir)/lib/divine/libdivine.la
 libfusiondale = $(top_builddir)/lib/fusiondale/libfusiondale.la
 libfusionsound = $(top_builddir)/lib/fusionsound/libfusionsound.la
+libppdfb = $(top_builddir)/lib/++dfb/lib++dfb.la
 
 
 if DIRECTFB_BUILD_VOODOO

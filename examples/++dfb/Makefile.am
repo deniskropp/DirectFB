@@ -8,11 +8,12 @@ INCLUDES = \
 	-I$(top_srcdir)/include/++dfb \
 	-I$(top_srcdir)/lib
 
-LIBADDS = \
-	$(top_builddir)/src/libdirectfb.la \
-	$(top_builddir)/lib/direct/libdirect.la \
-	$(top_builddir)/lib/fusion/libfusion.la \
-	$(top_builddir)/lib/++dfb/lib++dfb.la
+
+# for DFB_BASE_LIBS etc...
+include $(top_srcdir)/rules/libs_deps.make
+
+
+LIBADDS = $(DFB_BASE_LIBS) $(libppdfb)
 
 
 noinst_PROGRAMS = simple
