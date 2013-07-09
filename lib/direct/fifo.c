@@ -117,7 +117,7 @@ direct_fifo_push( DirectFifo *fifo, DirectFifoItem *item )
           }
           else
 #endif
-          if (fifo->waiting && fifo->in /* && fifo->count*/) {
+          if (*(volatile int*) &fifo->waiting && *(volatile DirectFifoItem**) &fifo->in /* && fifo->count*/) {
                direct_futex_wake( &fifo->waiting, 1 );
 
                //D_DEBUG_AT__( Direct_Fifo, "  -> index %d, waiting %d, count %d\n", index, fifo->waiting, fifo->count );
@@ -240,7 +240,7 @@ direct_fifo_wait( DirectFifo *fifo )
 
      D_SYNC_ADD( &fifo->waiting, 1 );
 
-     while (!fifo->in) {//          count) {
+     while (! *(volatile DirectFifoItem**) &fifo->in) {//          count) {
           if (fifo->wake) {
                D_DEBUG_AT( Direct_Fifo, "    ### ### WAKE UP ### ###\n" );
                fifo->wake = false;
