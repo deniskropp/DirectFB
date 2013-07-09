@@ -221,8 +221,13 @@ dfb_surface_allocation_decouple( CoreSurfaceAllocation *allocation )
      fusion_vector_remove( &buffer->allocs, fusion_vector_index_of( &buffer->allocs, allocation ) );
 
      locks = dfb_surface_allocation_locks( allocation );
-     if (!locks)
+     if (!locks) {
+          if (allocation->accessed[CSAID_GPU] & (CSAF_READ | CSAF_WRITE))
+               /* ...wait for the operation to finish. */
+               dfb_gfxcard_wait_serial( &allocation->gfx_serial );
+
           dfb_surface_pool_deallocate( allocation->pool, allocation );
+     }
 
      /* Reset 'read' allocation pointer of buffer */
      if (buffer->read == allocation)
@@ -376,6 +381,15 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
 
      dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_WRITE );
 
+     /*
+      * Track that the CPU wrote to the destination buffer allocation and that it read
+      * from the source buffer allocation so that proper cache flushing will occur.
+      */
+     if (!dfb_config->task_manager) {
+          allocation->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_CPU] | CSAF_WRITE);
+          source->accessed[CSAID_CPU]     = (CoreSurfaceAccessFlags)(source->accessed[CSAID_CPU]     | CSAF_READ);
+     }
+
      ret = dfb_surface_pool_lock( allocation->pool, allocation, &dst );
      if (ret) {
           D_DERROR( ret, "Core/SurfBuffer: Could not lock destination for transfer!\n" );
@@ -386,13 +400,6 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
      }
 
      transfer_buffer( buffer, (char*) src.addr, (char*) dst.addr, src.pitch, dst.pitch );
-
-     /*
-      * Track that the CPU wrote to the destination buffer allocation and that it read
-      * from the source buffer allocation so that proper cache flushing will occur.
-      */
-     allocation->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_CPU] | CSAF_WRITE);
-     source->accessed[CSAID_CPU]     = (CoreSurfaceAccessFlags)(source->accessed[CSAID_CPU]     | CSAF_READ);
 
      dfb_surface_pool_unlock( allocation->pool, allocation, &dst );
      dfb_surface_pool_unlock( source->pool, source, &src );
@@ -429,6 +436,13 @@ allocation_update_write( CoreSurfaceAllocation *allocation,
      dfb_surface_buffer_lock_init( &src, CSAID_CPU, CSAF_READ );
 
      dfb_surface_pool_prelock( source->pool, source, CSAID_CPU, CSAF_READ );
+
+     /*
+      * Track that the CPU wrote to the destination buffer allocation and that it read
+      * from the source buffer allocation so that proper cache flushing will occur.
+      */
+     if (!dfb_config->task_manager)
+          source->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(source->accessed[CSAID_CPU] | CSAF_READ);
 
      ret = dfb_surface_pool_lock( source->pool, source, &src );
      if (ret) {
@@ -475,6 +489,13 @@ allocation_update_read( CoreSurfaceAllocation *allocation,
      dfb_surface_buffer_lock_init( &dst, CSAID_CPU, CSAF_WRITE );
 
      dfb_surface_pool_prelock( allocation->pool, allocation, CSAID_CPU, CSAF_WRITE );
+
+     /*
+      * Track that the CPU wrote to the destination buffer allocation and that it read
+      * from the source buffer allocation so that proper cache flushing will occur.
+      */
+     if (!dfb_config->task_manager)
+          allocation->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_CPU] | CSAF_READ);
 
      ret = dfb_surface_pool_lock( allocation->pool, allocation, &dst );
      if (ret) {
