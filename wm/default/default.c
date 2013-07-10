@@ -3507,7 +3507,7 @@ defaultwm_surface_reaction( const void *msg_data,
                          //     return RS_OK;
                          //}
 
-                         D_ASSUME( data->updated.num_regions > 0 );
+//                         D_ASSUME( data->updated.num_regions > 0 );
 
                          if (data->updated.num_regions) {
                               if (data->region->config.options & DLOP_STEREO) {

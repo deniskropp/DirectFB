@@ -1425,7 +1425,7 @@ sawman_surface_reaction( const void *msg_data,
 
                     fusion_skirmish_prevail( &wmdata->update_skirmish );
 
-                    D_ASSUME( tier->left.updated.num_regions > 0 || tier->right.updated.num_regions > 0 );
+//                    D_ASSUME( tier->left.updated.num_regions > 0 || tier->right.updated.num_regions > 0 );
 
                     if (tier->left.updated.num_regions || tier->right.updated.num_regions) {
                          switch (tier->region->config.buffermode) {
