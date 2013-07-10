@@ -7,13 +7,6 @@ df_andi/AndroidManifest.xml \
 df_andi/prepare.sh \
 df_andi/res/drawable/icon.png \
 df_andi/res/values/strings.xml \
-df_input/src/README \
-df_input/jni/Android.mk \
-df_input/jni/Application.mk \
-df_input/AndroidManifest.xml \
-df_input/prepare.sh \
-df_input/res/drawable/icon.png \
-df_input/res/values/strings.xml \
 df_matrix/src/README \
 df_matrix/jni/Android.mk \
 df_matrix/jni/Application.mk \
