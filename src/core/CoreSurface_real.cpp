@@ -786,7 +786,7 @@ ISurface_Real::PreLockBuffer3(
 
                task->Flush();
 
-               if (task->Wait())
+               if (task->Wait())   // FIXME: make async, signal from Push()
                     task->Done();
           }
           else {
