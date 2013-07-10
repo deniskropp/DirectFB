@@ -26,8 +26,9 @@ New APIs
 New System Module
 - drm/kms
 
-New ImageProvider
+New ImageProviders
 - WebP
+- tiff
 
 Tons of bugfixes and performance improvements...
 
