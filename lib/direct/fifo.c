@@ -50,6 +50,9 @@ direct_fifo_init( DirectFifo *fifo )
 
      memset( fifo, 0, sizeof(DirectFifo) );
 
+     direct_mutex_init( &fifo->lock );
+     direct_waitqueue_init( &fifo->wq );
+
      D_MAGIC_SET( fifo, DirectFifo );
 }
 
@@ -59,6 +62,9 @@ direct_fifo_destroy( DirectFifo *fifo )
      D_DEBUG_AT( Direct_Fifo, "%s( %p )\n", __FUNCTION__, fifo );
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
+
+     direct_mutex_deinit( &fifo->lock );
+     direct_waitqueue_deinit( &fifo->wq );
 
      D_MAGIC_CLEAR( fifo );
 }
@@ -87,61 +93,38 @@ d_sync_fetch_and_clear( void **p )
 int
 direct_fifo_push( DirectFifo *fifo, DirectFifoItem *item )
 {
-     int index;
-
      D_DEBUG_AT( Direct_Fifo, "%s( %p, %p )\n", __FUNCTION__, fifo, item );
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
 
      D_MAGIC_SET( item, DirectFifoItem );
 
-     index = 0;//d_sync_add_and_fetch( &fifo->count, 1 ) - 1;
-     D_ASSERT( index >= 0 );
+     direct_mutex_lock( &fifo->lock );
 
-     d_sync_push( &fifo->in, item );
+     D_DEBUG_AT( Direct_Fifo, "  * * * %p <--= %p\n", fifo, item );
 
-     D_DEBUG_AT( Direct_Fifo, "  * * * %p [%d] <--= %p\n", fifo, index, item );
+     direct_list_append( &fifo->items, &item->link );
 
+     direct_mutex_unlock( &fifo->lock );
 
-     if (index == 0) {
-#if 0
-          if (fifo->up) {
-               DirectFifo *down = D_SYNC_FETCH_AND_CLEAR( &fifo->down );
-               
-               if (down) {
-                    D_MAGIC_ASSERT( down, DirectFifo );
-                    D_ASSERT( down == fifo->up );
-     
-                    direct_fifo_push( down, &fifo->item );
-               }
-          }
-          else
-#endif
-          if (*(volatile int*) &fifo->waiting && *(volatile DirectFifoItem**) &fifo->in /* && fifo->count*/) {
-               direct_futex_wake( &fifo->waiting, 1 );
+     direct_waitqueue_broadcast( &fifo->waiting );
 
-               //D_DEBUG_AT__( Direct_Fifo, "  -> index %d, waiting %d, count %d\n", index, fifo->waiting, fifo->count );
-          }
-          else {
-               //D_DEBUG_AT__( Direct_Fifo, "  -> index %d, none waiting (%d), count %d\n", index, fifo->waiting, fifo->count );
-          }
-     }
-
-     return index;
+     return 0;
 }
 
 void *
 direct_fifo_pull( DirectFifo *fifo )
 {
-     int             index;
      DirectFifoItem *tmp, *out;
-
-     (void)index;
 
      D_DEBUG_AT( Direct_Fifo, "%s( %p )\n", __FUNCTION__, fifo );
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
 
+     direct_mutex_lock( &fifo->lock );
+
+     while (!fifo->items)
+          diret_
      tmp = fifo->out;
      if (tmp) {
           D_MAGIC_ASSERT( tmp, DirectFifoItem );

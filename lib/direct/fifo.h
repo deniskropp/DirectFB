@@ -38,24 +38,18 @@
 
 
 struct __D_DirectFifoItem {
-     DirectFifoItem     *next;     /* MUST BE FIRST for D_SYNC_PUSH!!! */
+     DirectLink          link;
 
      int                 magic;
 };
 
 struct __D_DirectFifo {
-//     DirectFifoItem      item;
-
      int                 magic;
 
-//     int                 count;
-     int                 waiting;
+     DirectMutex         lock;
+     DirectWaitQueue     wq;
 
-     DirectFifoItem     *in;
-     DirectFifoItem     *out;
-
-//     DirectFifo         *up;
-//     DirectFifo         *down;
+     DirectFifoItem     *items;
 
      bool                wake;
 };
