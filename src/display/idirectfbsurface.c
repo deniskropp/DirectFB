@@ -3842,13 +3842,14 @@ IDirectFBSurface_WaitForBackBuffer( IDirectFBSurface_data *data )
 
      direct_mutex_lock( &data->back_buffer_lock );
 
-     if (data->local_flip_buffers > 1) {
-          while (data->local_flip_count - data->frame_ack >= data->local_flip_buffers-1) {
-               D_DEBUG_AT( Surface_Updates, "  -> waiting for back buffer... (surface %d, notify %d)\n",
-                           data->local_flip_count, data->frame_ack );
+     while (data->local_flip_count - data->frame_ack >= data->local_flip_buffers-1) {
+          D_DEBUG_AT( Surface_Updates, "  -> waiting for back buffer... (surface %d, notify %d)\n",
+                      data->local_flip_count, data->frame_ack );
 
-               direct_waitqueue_wait( &data->back_buffer_wq, &data->back_buffer_lock );
-          }
+          if (data->local_flip_buffers <= 1)
+               break;
+
+          direct_waitqueue_wait( &data->back_buffer_wq, &data->back_buffer_lock );
      }
 
      D_DEBUG_AT( Surface_Updates, "  -> OK\n" );
