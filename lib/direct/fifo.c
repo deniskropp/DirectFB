@@ -50,6 +50,9 @@ direct_fifo_init( DirectFifo *fifo )
 
      memset( fifo, 0, sizeof(DirectFifo) );
 
+     direct_mutex_init( &fifo->lock );
+     direct_waitqueue_init( &fifo->wq );
+
      D_MAGIC_SET( fifo, DirectFifo );
 }
 
@@ -60,127 +63,60 @@ direct_fifo_destroy( DirectFifo *fifo )
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
 
+     direct_mutex_deinit( &fifo->lock );
+     direct_waitqueue_deinit( &fifo->wq );
+
      D_MAGIC_CLEAR( fifo );
 }
 
 /**********************************************************************************************************************/
 
-D_UNUSED
-static int
-d_sync_add_and_fetch( int *p, int v )
-{
-      return D_SYNC_ADD_AND_FETCH( p, v );
-}
-
-static void
-d_sync_push( void *f, void *i )
-{
-      D_SYNC_PUSH( f, i );
-}
-
-static void *
-d_sync_fetch_and_clear( void **p )
-{
-      return D_SYNC_FETCH_AND_CLEAR( p );
-}
-
 int
 direct_fifo_push( DirectFifo *fifo, DirectFifoItem *item )
 {
-     int index;
-
      D_DEBUG_AT( Direct_Fifo, "%s( %p, %p )\n", __FUNCTION__, fifo, item );
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
 
      D_MAGIC_SET( item, DirectFifoItem );
 
-     index = 0;//d_sync_add_and_fetch( &fifo->count, 1 ) - 1;
-     D_ASSERT( index >= 0 );
+     direct_mutex_lock( &fifo->lock );
 
-     d_sync_push( &fifo->in, item );
+     D_DEBUG_AT( Direct_Fifo, "  * * * %p <--= %p\n", fifo, item );
 
-     D_DEBUG_AT( Direct_Fifo, "  * * * %p [%d] <--= %p\n", fifo, index, item );
+     direct_list_append( &fifo->items, &item->link );
 
+     direct_mutex_unlock( &fifo->lock );
 
-     if (index == 0) {
-#if 0
-          if (fifo->up) {
-               DirectFifo *down = D_SYNC_FETCH_AND_CLEAR( &fifo->down );
-               
-               if (down) {
-                    D_MAGIC_ASSERT( down, DirectFifo );
-                    D_ASSERT( down == fifo->up );
-     
-                    direct_fifo_push( down, &fifo->item );
-               }
-          }
-          else
-#endif
-          if (*(volatile int*) &fifo->waiting && *(volatile DirectFifoItem**) &fifo->in /* && fifo->count*/) {
-               direct_futex_wake( &fifo->waiting, 1 );
+     direct_waitqueue_broadcast( &fifo->wq );
 
-               //D_DEBUG_AT__( Direct_Fifo, "  -> index %d, waiting %d, count %d\n", index, fifo->waiting, fifo->count );
-          }
-          else {
-               //D_DEBUG_AT__( Direct_Fifo, "  -> index %d, none waiting (%d), count %d\n", index, fifo->waiting, fifo->count );
-          }
-     }
-
-     return index;
+     return 0;
 }
 
 void *
 direct_fifo_pull( DirectFifo *fifo )
 {
-     int             index;
-     DirectFifoItem *tmp, *out;
-
-     (void)index;
+     DirectFifoItem *tmp;
 
      D_DEBUG_AT( Direct_Fifo, "%s( %p )\n", __FUNCTION__, fifo );
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
 
-     tmp = fifo->out;
-     if (tmp) {
-          D_MAGIC_ASSERT( tmp, DirectFifoItem );
+     direct_mutex_lock( &fifo->lock );
 
-          fifo->out = tmp->next;
-     }
-     else {
-          tmp = d_sync_fetch_and_clear( (void**) &fifo->in );
-          if (!tmp)
-               return NULL;
-               
-          D_MAGIC_ASSERT( tmp, DirectFifoItem );
+     while (!fifo->items)
+          direct_waitqueue_wait( &fifo->wq, &fifo->lock );
 
-          out = NULL;
+     tmp = (DirectFifoItem*) fifo->items;
 
-          while (tmp->next) {
-               DirectFifoItem *next;
+     direct_list_remove( &fifo->items, &tmp->link );
+     D_MAGIC_ASSERT( tmp, DirectFifoItem );
 
-               next = tmp->next;
-
-               D_MAGIC_ASSERT( next, DirectFifoItem );
-
-               tmp->next = out;
-
-               out = tmp;
-
-               tmp = next;
-          }
-
-          fifo->out = out;
-     }
+     direct_mutex_unlock( &fifo->lock );
 
      D_MAGIC_CLEAR( tmp );
 
-     index = 0;//d_sync_add_and_fetch( &fifo->count, -1 );
-
-     D_DEBUG_AT( Direct_Fifo, "  : : : %p [%d] =--> %p\n", fifo, index, tmp );
-
-     D_ASSERT( index >= 0 );
+     D_DEBUG_AT( Direct_Fifo, "  : : : %p [%d] =--> %p\n", fifo, 0, tmp );
 
      return tmp;
 }
@@ -197,32 +133,19 @@ direct_fifo_pop( DirectFifo *fifo )
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
 
-//     D_ASSUME( fifo->up == NULL );
-
-     if (!fifo->in) {
-          D_DEBUG_AT( Direct_Fifo, "  -> fifo->in = NULL\n" );
+     if (!fifo->items) {
+          D_DEBUG_AT( Direct_Fifo, "  -> fifo->items = NULL\n" );
           return NULL;
      }
 
-     item = D_SYNC_POP( &fifo->in );
-     if (!item) {
-          D_DEBUG_AT( Direct_Fifo, "  -> item NULL\n" );
-          return NULL;
-     }
-
-     D_DEBUG_AT( Direct_Fifo, "  -> item %p\n", item );
+     item = (DirectFifoItem*) fifo->items;
 
      D_MAGIC_ASSERT( item, DirectFifoItem );
 
-     item->next = NULL;
 
      D_MAGIC_CLEAR( item );
 
-     index = 0;//D_SYNC_ADD_AND_FETCH( &fifo->count, -1 );
-
-     D_DEBUG_AT( Direct_Fifo, "  # # # %p [%d] =--> %p\n", fifo, index, item );
-
-     D_ASSERT( index >= 0 );
+     D_DEBUG_AT( Direct_Fifo, "  # # # %p [%d] =--> %p\n", fifo, 0, item );
 
      return item;
 }
@@ -236,11 +159,11 @@ direct_fifo_wait( DirectFifo *fifo )
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
 
-     D_DEBUG_AT( Direct_Fifo, "%s( %p ) ## ## %p # %p\n", __FUNCTION__, fifo, fifo->in, fifo->out );
+     D_DEBUG_AT( Direct_Fifo, "%s( %p ) ## ## %p\n", __FUNCTION__, fifo, fifo->items );
 
      D_SYNC_ADD( &fifo->waiting, 1 );
 
-     while (! *(volatile DirectFifoItem**) &fifo->in) {//          count) {
+     while (!fifo->items) {
           if (fifo->wake) {
                D_DEBUG_AT( Direct_Fifo, "    ### ### WAKE UP ### ###\n" );
                fifo->wake = false;
@@ -265,11 +188,11 @@ direct_fifo_wait_timed( DirectFifo *fifo, int timeout_ms )
 
      D_MAGIC_ASSERT( fifo, DirectFifo );
 
-     D_DEBUG_AT( Direct_Fifo, "%s( %p ) ## ## %p # %p\n", __FUNCTION__, fifo, fifo->in, fifo->out );
+     D_DEBUG_AT( Direct_Fifo, "%s( %p ) ## ## %p\n", __FUNCTION__, fifo, fifo->items );
 
      D_SYNC_ADD( &fifo->waiting, 1 );
 
-     while (!fifo->in) {
+     while (!fifo->items) {
           if (fifo->wake) {
                D_DEBUG_AT( Direct_Fifo, "    ### ### WAKE UP ### ###\n" );
                fifo->wake = false;

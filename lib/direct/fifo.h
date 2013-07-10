@@ -34,29 +34,24 @@
 #define __DIRECT__FIFO_H__
 
 #include <direct/debug.h>
-#include <direct/types.h>
+#include <direct/list.h>
 
 
 struct __D_DirectFifoItem {
-     DirectFifoItem     *next;     /* MUST BE FIRST for D_SYNC_PUSH!!! */
+     DirectLink          link;
 
      int                 magic;
 };
 
 struct __D_DirectFifo {
-//     DirectFifoItem      item;
-
      int                 magic;
 
-//     int                 count;
+     DirectMutex         lock;
+     DirectWaitQueue     wq;
+
+     DirectLink         *items;
+
      int                 waiting;
-
-     DirectFifoItem     *in;
-     DirectFifoItem     *out;
-
-//     DirectFifo         *up;
-//     DirectFifo         *down;
-
      bool                wake;
 };
 
