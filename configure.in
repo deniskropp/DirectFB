@@ -1432,6 +1432,18 @@ AC_ARG_ENABLE(gif,
 
 AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
 
+tiff="no"
+AC_ARG_ENABLE(tiff,
+              AC_HELP_STRING([--enable-tiff],
+                             [build TIFF image provider, @<:@default=auto@:>@]),
+              [], [enable_tiff=yes])
+if test "$enable_tiff" = "yes"; then
+  PKG_CHECK_MODULES([LIBTIFF], [libtiff-4], [tiff=yes], [tiff=no
+    AC_MSG_WARN([*** TIFF library not found. TIFF image provider will not be built.])])
+fi
+
+AM_CONDITIONAL(TIFF_PROVIDER, test "$tiff" = "yes")
+
 
 
 dnl Imlib2 check
@@ -3040,6 +3052,8 @@ Building Image Provider Modules:
   WEBP                      $webp                 $LIBWEBP_CFLAGS $LIBWEBP_LIBS
   JPEG2000                  $enable_jpeg2000             $JASPER_LIBS
   MPEG2                     $enable_mpeg2
+  TIFF                      $tiff                 $LIBTIFF_CFLAGS $LIBTIFF_LIBS
+
 
 
 Building Video Provider Modules:
