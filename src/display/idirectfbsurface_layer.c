@@ -151,6 +151,8 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
+     data->base.local_flip_buffers = surface->num_buffers;
+
      switch (data->region->config.buffermode) {
           case DLBM_TRIPLE:
           case DLBM_BACKVIDEO:
@@ -243,6 +245,8 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
+
+     data->base.local_flip_buffers = surface->num_buffers;
 
      if (surface->config.caps & DSCAPS_FLIPPING) {
           if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&

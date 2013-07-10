@@ -724,6 +724,8 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
+     data->local_flip_buffers = surface->num_buffers;
+
      if (surface->config.caps & DSCAPS_FLIPPING) {
           if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
                                         reg.x1 == 0 && reg.y1 == 0 &&
@@ -3138,6 +3140,8 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0 );
 
+     data->local_flip_buffers = data->surface->num_buffers;
+
      if (data->surface->config.caps & DSCAPS_FLIPPING) {
           if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
                                         l_reg.x1 == 0 && l_reg.y1 == 0 &&
@@ -3838,8 +3842,8 @@ IDirectFBSurface_WaitForBackBuffer( IDirectFBSurface_data *data )
 
      direct_mutex_lock( &data->back_buffer_lock );
 
-     if (surface->num_buffers > 1) {
-          while (data->local_flip_count - data->frame_ack >= surface->num_buffers-1) {
+     if (data->local_flip_buffers > 1) {
+          while (data->local_flip_count - data->frame_ack >= data->local_flip_buffers-1) {
                D_DEBUG_AT( Surface_Updates, "  -> waiting for back buffer... (surface %d, notify %d)\n",
                            data->local_flip_count, data->frame_ack );
 
