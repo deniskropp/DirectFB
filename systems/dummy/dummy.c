@@ -436,7 +436,11 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_ANY;
-     info->caps = CSCAPS_SYSMEM_EXTERNAL | CSCAPS_DISPLAY_TASKS | CSCAPS_NOTIFY_DISPLAY;
+     info->caps = CSCAPS_ACCELERATION |
+                  CSCAPS_SYSMEM_EXTERNAL |
+                  CSCAPS_DISPLAY_TASKS |
+                  CSCAPS_NOTIFY_DISPLAY |
+                  CSCAPS_DISPLAY_PTS;
 
      direct_snputs( info->name, "Dummy", DFB_CORE_SYSTEM_INFO_NAME_LENGTH );
 }
@@ -509,7 +513,7 @@ system_unmap_mmio( volatile void  *addr,
 static int
 system_get_accelerator( void )
 {
-     return 0;
+     return dfb_config->accelerator;
 }
 
 static VideoMode *
