@@ -1,3 +1,36 @@
+1.7.0
+-----
+Major new feature:
+
+- task-manager (must be enabled explicitly)
+
+  The task manager allows to automatically distribute rendering tasks over
+  multiple cpu and/or gpu cores. There is an implementation for the generic
+  (software) driver which can be configured with by setting software-cores=<n>
+  and task-manager options in the directfbrc.
+
+Merged Projects:
+- DirectFB-extra (missing bits)
+- SaWMan
+- FusionDale
+- FusionSound
+- DiVine
+- ++dfb
+
+New APIs
+- Add IDirectFBSurface::DumpRaw() to dump raw pixel data of a surface to a file
+- Add IDirectFBSurface::GetFrameTime() to receive the timestamp for the next frame to be rendered
+- Add IDirectFBSurface::SetFrameTimeConfig() to configure GetFrameTime()
+- Add IDirectFBVideoProvider::SetDestination() to change the destination surface and/or destination rectangle during playback
+
+New System Module
+- drm/kms
+
+New ImageProvider
+- WebP
+
+Tons of bugfixes and performance improvements...
+
 1.6.0
 -----
 

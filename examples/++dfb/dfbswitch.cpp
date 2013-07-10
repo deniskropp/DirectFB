@@ -57,6 +57,8 @@ public:
                                                     void *callbackdata )
      {
           printf( "  - %dx%d\n", width, height );
+
+          return DFENUM_OK;
      }
 
      bool Init( int argc, char *argv[] ) {

@@ -1,3 +1,9 @@
+directfb (1.7.0-final1) precise; urgency=low
+
+  * new upstream version
+
+ -- Andreas Shimokawa <andi@directfb.org>  Wed, 10 Jul 2013 20:19:33 +0100
+
 directfb (1.7.0-20121011) precise; urgency=low
 
   * new upstream version, merged in a lot of packages
