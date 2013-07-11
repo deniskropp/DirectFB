@@ -85,6 +85,11 @@ drmkmsInitLayer( CoreLayer                  *layer,
      config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
      config->buffermode  = DLBM_FRONTONLY;
 
+     direct_mutex_init( &data->lock );  
+     direct_mutex_init( &data->task_lock );
+
+     direct_waitqueue_init( &data->wq_event );      
+
      return DFB_OK;
 }
 
@@ -186,40 +191,36 @@ drmkmsFlipRegion( CoreLayer             *layer,
      DRMKMSData       *drmkms = driver_data;
      DRMKMSDataShared *shared = drmkms->shared;
      DRMKMSLayerData  *data   = layer_data;
-     unsigned int      plane_mask;
-     unsigned int      buffer_index  = data->index;
-
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
-     direct_mutex_lock( &drmkms->lock );
+     direct_mutex_lock( &data->lock );
 
-     plane_mask = 1 << buffer_index;
 
-     while (drmkms->flip_pending & plane_mask) {
+     while (data->flip_pending) {
           D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (previous)\n" );
 
-          direct_waitqueue_wait( &drmkms->wq_event, &drmkms->lock );
+          direct_waitqueue_wait( &data->wq_event, &data->lock );
      }
 
-     direct_mutex_unlock( &drmkms->lock );
+     direct_mutex_unlock( &data->lock );
 
 
      dfb_surface_ref( surface );
-     drmkms->surface[buffer_index] = surface;
-     drmkms->surfacebuffer_index[buffer_index] = left_lock->buffer->index;
+     data->surface = surface;
+     data->surfacebuffer_index = left_lock->buffer->index;
 
      /* Task */
-     direct_mutex_lock( &drmkms->task_lock );
+     direct_mutex_lock( &data->task_lock );
 
-     drmkms->pending_tasks[buffer_index] = left_lock->task;
+     data->pending_task = left_lock->task;
 
-     direct_mutex_unlock( &drmkms->task_lock );
+     direct_mutex_unlock( &data->task_lock );
 
 
      D_DEBUG_AT( DRMKMS_Layer, "  -> calling drmModePageFlip()\n" );
 
-     ret = drmModePageFlip( drmkms->fd, drmkms->encoder[data->layer_index]->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, driver_data );
+     ret = drmModePageFlip( drmkms->fd, drmkms->encoder[data->layer_index]->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, layer_data );
      if (ret) {
           D_PERROR( "DirectFB/DRMKMS: drmModePageFlip() failed on layer %d!\n", data->index );
           return DFB_FAILURE;
@@ -238,21 +239,19 @@ drmkmsFlipRegion( CoreLayer             *layer,
      dfb_surface_flip( surface, false );
 
 
-     direct_mutex_lock( &drmkms->lock );
+     direct_mutex_lock( &data->lock );
 
-     drmkms->flip_pending |= plane_mask;
-
-     direct_waitqueue_broadcast( &drmkms->wq_flip );
+     data->flip_pending = true;
 
      if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
-          while (drmkms->flip_pending & plane_mask) {
+          while (data->flip_pending) {
                D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (WAITFORSYNC)\n" );
 
-               direct_waitqueue_wait( &drmkms->wq_event, &drmkms->lock );
+               direct_waitqueue_wait( &data->wq_event, &data->lock );
           }
      }
 
-     direct_mutex_unlock( &drmkms->lock );
+     direct_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }

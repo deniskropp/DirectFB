@@ -68,36 +68,39 @@ DRMKMSData *m_data;    /* FIXME: Fix Core System API to pass data in all functio
 
 void
 drmkms_page_flip_handler(int fd, unsigned int frame,
-                         unsigned int sec, unsigned int usec, void *driver_data);
+                         unsigned int sec, unsigned int usec, void *layer_data);
 
 void
 drmkms_page_flip_handler(int fd, unsigned int frame,
-                         unsigned int sec, unsigned int usec, void *driver_data)
+                         unsigned int sec, unsigned int usec, void *layer_data)
 {
-     DRMKMSData         *drmkms        = driver_data;
-     CoreSurface       **surface       = drmkms->surface;
-     DFB_DisplayTask   **prev_tasks    = drmkms->prev_tasks;
-     DFB_DisplayTask   **pending_tasks = drmkms->pending_tasks;
+     DRMKMSLayerData    *data          = layer_data;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
-     for (int i=0; i<16;i++) {
-          if (drmkms->flip_pending & (1 << i)) {
-               dfb_surface_notify_display2( surface[i], drmkms->surfacebuffer_index[i], pending_tasks[i] );
-               dfb_surface_unref( surface[i] );
+     if (data->flip_pending) {
+          dfb_surface_notify_display2( data->surface, data->surfacebuffer_index, data->pending_task );
+          dfb_surface_unref( data->surface );
 
-               direct_mutex_lock( &drmkms->task_lock );
+          direct_mutex_lock( &data->task_lock );
 
-               if (prev_tasks[i])
-                    Task_Done( prev_tasks[i] );
+          if (data->prev_task)
+               Task_Done( data->prev_task );
 
-               prev_tasks[i] = pending_tasks[i];
+          data->prev_task = data->pending_task;
 
-               direct_mutex_unlock( &drmkms->task_lock );
-          }
+          direct_mutex_unlock( &data->task_lock );
      }
 
-     drmkms->flip_pending = 0;
+     direct_mutex_lock( &data->lock );
+
+     data->flip_pending = false;
+
+     direct_waitqueue_broadcast( &data->wq_event );
+
+     direct_mutex_unlock( &data->lock );
+
+     D_DEBUG_AT( DRMKMS_Layer, "%s() done.\n", __FUNCTION__ );
 }
 
 static void *
@@ -107,31 +110,8 @@ DRMKMS_BufferThread_Main( DirectThread *thread, void *arg )
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
-     while (true) {
-          direct_mutex_lock( &data->lock );
-
-          while (!data->flip_pending) {
-               D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for flip to be issued\n" );
-
-               direct_waitqueue_wait( &data->wq_flip, &data->lock );
-          }
-
-          direct_mutex_unlock( &data->lock );
-
-
-          D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for flip to be done\n" );
-
-          drmHandleEvent( data->fd, &data->drmeventcontext );
-
-
-          direct_mutex_lock( &data->lock );
-
-          data->flip_pending = false;
-
-          direct_waitqueue_broadcast( &data->wq_event );
-
-          direct_mutex_unlock( &data->lock );
-     }
+     while (true)
+        drmHandleEvent( data->fd, &data->drmeventcontext );
 
      return NULL;
 }
@@ -302,12 +282,6 @@ system_initialize( CoreDFB *core, void **ret_data )
      drmkms->drmeventcontext.version = DRM_EVENT_CONTEXT_VERSION;
      drmkms->drmeventcontext.vblank_handler = NULL;
      drmkms->drmeventcontext.page_flip_handler = drmkms_page_flip_handler;
-
-     direct_mutex_init( &drmkms->lock );
-     direct_mutex_init( &drmkms->task_lock );
-
-     direct_waitqueue_init( &drmkms->wq_event );
-     direct_waitqueue_init( &drmkms->wq_flip );
 
      drmkms->thread = direct_thread_create( DTT_CRITICAL, DRMKMS_BufferThread_Main, drmkms, "DRMKMS/Buffer" );
 

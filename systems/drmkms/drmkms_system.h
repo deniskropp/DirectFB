@@ -74,6 +74,16 @@ typedef struct {
      int                    level;
 
      CoreLayerRegionConfig *config;
+
+     int                  surfacebuffer_index;
+     CoreSurface         *surface;
+     DFB_DisplayTask     *prev_task;
+     DFB_DisplayTask     *pending_task;
+     DirectMutex          task_lock;
+     bool                 flip_pending;
+
+     DirectMutex          lock;
+     DirectWaitQueue      wq_event;
 } DRMKMSLayerData;
 
 typedef struct {
@@ -135,19 +145,7 @@ typedef struct {
 
      VirtualTerminal     *vt;
 
-     unsigned int         flip_pending;
-     unsigned int         plane_flip_pending_mask;
-     CoreSurface         *surface[16];
-     int                  surfacebuffer_index[16];
-
-     DFB_DisplayTask     *prev_tasks[16];
-     DFB_DisplayTask     *pending_tasks[16];
-     DirectMutex          task_lock;
-
      DirectThread        *thread;
-     DirectMutex          lock;
-     DirectWaitQueue      wq_event;
-     DirectWaitQueue      wq_flip;
 } DRMKMSData;
 
 
