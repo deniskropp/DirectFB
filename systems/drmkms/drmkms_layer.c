@@ -220,6 +220,10 @@ drmkmsFlipRegion( CoreLayer             *layer,
 
      D_DEBUG_AT( DRMKMS_Layer, "  -> calling drmModePageFlip()\n" );
 
+     direct_mutex_lock( &data->lock );
+
+     data->flip_pending = true;
+
      ret = drmModePageFlip( drmkms->fd, drmkms->encoder[data->layer_index]->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, layer_data );
      if (ret) {
           D_PERROR( "DirectFB/DRMKMS: drmModePageFlip() failed on layer %d!\n", data->index );
@@ -238,10 +242,6 @@ drmkmsFlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
-
-     direct_mutex_lock( &data->lock );
-
-     data->flip_pending = true;
 
      if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
           while (data->flip_pending) {
@@ -546,16 +546,16 @@ drmkmsPlaneFlipRegion( CoreLayer             *layer,
 
      dfb_surface_flip( surface, false );
 
+     direct_mutex_lock( &data->lock );
+
+     data->flip_pending = true;
+
      drmVBlank vbl;
      vbl.request.type = DRM_VBLANK_EVENT | DRM_VBLANK_RELATIVE;
      vbl.request.signal = (unsigned long)data;
      vbl.request.sequence = 1;
 
      drmWaitVBlank( drmkms->fd, &vbl );
-
-     direct_mutex_lock( &data->lock );
-
-     data->flip_pending = true;
 
      if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
           while (data->flip_pending) {
