@@ -185,7 +185,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_DRMKMS;
-     info->caps = CSCAPS_ACCELERATION;
+     info->caps = CSCAPS_ACCELERATION | CSCAPS_DISPLAY_TASKS | CSCAPS_NOTIFY_DISPLAY;
 
      snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "DRM/KMS" );
 }
