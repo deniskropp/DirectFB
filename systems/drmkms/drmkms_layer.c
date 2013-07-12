@@ -86,7 +86,6 @@ drmkmsInitLayer( CoreLayer                  *layer,
      config->buffermode  = DLBM_FRONTONLY;
 
      direct_mutex_init( &data->lock );  
-     direct_mutex_init( &data->task_lock );
 
      direct_waitqueue_init( &data->wq_event );      
 
@@ -203,30 +202,24 @@ drmkmsFlipRegion( CoreLayer             *layer,
           direct_waitqueue_wait( &data->wq_event, &data->lock );
      }
 
-     direct_mutex_unlock( &data->lock );
-
 
      dfb_surface_ref( surface );
      data->surface = surface;
      data->surfacebuffer_index = left_lock->buffer->index;
 
      /* Task */
-     direct_mutex_lock( &data->task_lock );
-
      data->pending_task = left_lock->task;
 
-     direct_mutex_unlock( &data->task_lock );
-
-
      D_DEBUG_AT( DRMKMS_Layer, "  -> calling drmModePageFlip()\n" );
-
-     direct_mutex_lock( &data->lock );
 
      data->flip_pending = true;
 
      ret = drmModePageFlip( drmkms->fd, drmkms->encoder[data->layer_index]->crtc_id, (u32)(long)left_lock->handle, DRM_MODE_PAGE_FLIP_EVENT, layer_data );
      if (ret) {
           D_PERROR( "DirectFB/DRMKMS: drmModePageFlip() failed on layer %d!\n", data->index );
+
+          direct_mutex_unlock( &data->lock );
+
           return DFB_FAILURE;
      }
 
@@ -241,7 +234,6 @@ drmkmsFlipRegion( CoreLayer             *layer,
      shared->primary_fb = (u32)(long)left_lock->handle;
 
      dfb_surface_flip( surface, false );
-
 
      if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
           while (data->flip_pending) {
@@ -521,19 +513,13 @@ drmkmsPlaneFlipRegion( CoreLayer             *layer,
           direct_waitqueue_wait( &data->wq_event, &data->lock );
      }
 
-     direct_mutex_unlock( &data->lock );
-
 
      dfb_surface_ref( surface );
      data->surface = surface;
      data->surfacebuffer_index = left_lock->buffer->index;
 
      /* Task */
-     direct_mutex_lock( &data->task_lock );
-
      data->pending_task = left_lock->task;
-
-     direct_mutex_unlock( &data->task_lock );
 
      ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
                            /* plane_flags */ 0, data->config->dest.x, data->config->dest.y, data->config->dest.w, data->config->dest.h,
@@ -541,12 +527,13 @@ drmkmsPlaneFlipRegion( CoreLayer             *layer,
 
      if (ret) {
           D_PERROR( "DRMKMS/Layer/FlipRegion: Failed setting plane configuration!\n" );
+
+          direct_mutex_unlock( &data->lock );
+
           return ret;
      }
 
      dfb_surface_flip( surface, false );
-
-     direct_mutex_lock( &data->lock );
 
      data->flip_pending = true;
 

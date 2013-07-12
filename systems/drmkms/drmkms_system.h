@@ -79,7 +79,6 @@ typedef struct {
      CoreSurface         *surface;
      DFB_DisplayTask     *prev_task;
      DFB_DisplayTask     *pending_task;
-     DirectMutex          task_lock;
      bool                 flip_pending;
 
      DirectMutex          lock;
