@@ -510,17 +510,62 @@ drmkmsPlaneFlipRegion( CoreLayer             *layer,
      DRMKMSData       *drmkms = driver_data;
      DRMKMSLayerData  *data   = layer_data;
 
-
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
+
+     direct_mutex_lock( &data->lock );
+
+
+     while (data->flip_pending) {
+          D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (previous)\n" );
+
+          direct_waitqueue_wait( &data->wq_event, &data->lock );
+     }
+
+     direct_mutex_unlock( &data->lock );
+
+
+     dfb_surface_ref( surface );
+     data->surface = surface;
+     data->surfacebuffer_index = left_lock->buffer->index;
+
+     /* Task */
+     direct_mutex_lock( &data->task_lock );
+
+     data->pending_task = left_lock->task;
+
+     direct_mutex_unlock( &data->task_lock );
 
      ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
                            /* plane_flags */ 0, data->config->dest.x, data->config->dest.y, data->config->dest.w, data->config->dest.h,
                            data->config->source.x << 16, data->config->source.y <<16, data->config->source.w << 16, data->config->source.h << 16);
+
      if (ret) {
           D_PERROR( "DRMKMS/Layer/FlipRegion: Failed setting plane configuration!\n" );
           return ret;
      }
+
      dfb_surface_flip( surface, false );
+
+     drmVBlank vbl;
+     vbl.request.type = DRM_VBLANK_EVENT | DRM_VBLANK_RELATIVE;
+     vbl.request.signal = (unsigned long)data;
+     vbl.request.sequence = 1;
+
+     drmWaitVBlank( drmkms->fd, &vbl );
+
+     direct_mutex_lock( &data->lock );
+
+     data->flip_pending = true;
+
+     if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
+          while (data->flip_pending) {
+               D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (WAITFORSYNC)\n" );
+
+               direct_waitqueue_wait( &data->wq_event, &data->lock );
+          }
+     }
+
+     direct_mutex_unlock( &data->lock );
 
      return DFB_OK;
 }

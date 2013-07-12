@@ -280,7 +280,7 @@ system_initialize( CoreDFB *core, void **ret_data )
      core_arena_add_shared_field( core, "drmkms", shared );
 
      drmkms->drmeventcontext.version = DRM_EVENT_CONTEXT_VERSION;
-     drmkms->drmeventcontext.vblank_handler = NULL;
+     drmkms->drmeventcontext.vblank_handler = drmkms_page_flip_handler;
      drmkms->drmeventcontext.page_flip_handler = drmkms_page_flip_handler;
 
      drmkms->thread = direct_thread_create( DTT_CRITICAL, DRMKMS_BufferThread_Main, drmkms, "DRMKMS/Buffer" );
