@@ -78,21 +78,18 @@ drmkms_page_flip_handler(int fd, unsigned int frame,
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
+     direct_mutex_lock( &data->lock );
+
      if (data->flip_pending) {
           dfb_surface_notify_display2( data->surface, data->surfacebuffer_index, data->pending_task );
-          dfb_surface_unref( data->surface );
 
-          direct_mutex_lock( &data->task_lock );
+          dfb_surface_unref( data->surface );
 
           if (data->prev_task)
                Task_Done( data->prev_task );
 
           data->prev_task = data->pending_task;
-
-          direct_mutex_unlock( &data->task_lock );
      }
-
-     direct_mutex_lock( &data->lock );
 
      data->flip_pending = false;
 
@@ -185,7 +182,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_DRMKMS;
-     info->caps = CSCAPS_ACCELERATION | CSCAPS_DISPLAY_TASKS | CSCAPS_NOTIFY_DISPLAY;
+     info->caps = CSCAPS_ACCELERATION | CSCAPS_NOTIFY_DISPLAY | CSCAPS_DISPLAY_TASKS;
 
      snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "DRM/KMS" );
 }
