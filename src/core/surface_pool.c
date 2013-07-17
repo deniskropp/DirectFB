@@ -500,6 +500,11 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
           D_DEBUG_AT( Core_SurfacePool, "  -> [%d] 0x%02x 0x%03x  prio %d  name '%s'  caps 0x%02x\n", pool->pool_id,
                       pool->desc.access[accessor], pool->desc.types, pool->desc.priority, pool->desc.name, pool->desc.caps );
 
+          if (Core_GetIdentity() != FUSION_ID_MASTER && !(pool->desc.access[accessor] & CSAF_SHARED)) {
+               D_DEBUG_AT( Core_SurfacePool, "    -> REFUSING ALLOCATION FOR SLAVE IN NON-SHARED POOL!!!\n" );
+               continue;
+          }
+
           if (D_FLAGS_ARE_SET( pool->desc.access[accessor], access ) &&
               D_FLAGS_ARE_SET( pool->desc.types, type & ~CSTF_PREALLOCATED ))
           {
@@ -814,6 +819,10 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
      remove_allocation( pool, allocation );
 
      allocation->flags |= CSALF_DEALLOCATED;
+
+     CoreSurfaceAllocationNotification notification;
+     notification.flags = CSANF_DEALLOCATED;
+     dfb_surface_allocation_dispatch( allocation, &notification, NULL );
 
      fusion_skirmish_dismiss( &pool->lock );
 
