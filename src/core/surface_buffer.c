@@ -295,6 +295,11 @@ dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,
                }
           }
 
+          if (Core_GetIdentity() != FUSION_ID_MASTER && !(alloc->access[accessor] & CSAF_SHARED)) {
+               D_DEBUG_AT( Core_SurfBuffer, "    -> REFUSING ALLOCATION FOR SLAVE FROM NON-SHARED POOL!!!\n" );
+               continue;
+          }
+
           if (direct_serial_check( &alloc->serial, &buffer->serial )) {
                /* Return immediately if up to date allocation has required flags. */
                if (D_FLAGS_ARE_SET( alloc->access[accessor], flags ))

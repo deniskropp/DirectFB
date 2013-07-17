@@ -64,7 +64,11 @@ typedef enum {
 } CoreSurfaceAllocationFlags;
 
 typedef enum {
-     CSANF_NONE     = 0x00000000
+     CSANF_NONE        = 0x00000000,
+
+     CSANF_DEALLOCATED = 0x00000001,
+
+     CSANF_ALL         = 0x00000001
 } CoreSurfaceAllocationNotificationFlags;
 
 typedef struct {
