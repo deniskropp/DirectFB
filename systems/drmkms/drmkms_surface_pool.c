@@ -34,6 +34,7 @@
 #include <config.h>
 
 #include <direct/debug.h>
+#include <direct/hash.h>
 #include <direct/mem.h>
 
 #include <core/Debug.h>
@@ -56,6 +57,17 @@ D_DEBUG_DOMAIN( DRMKMS_SurfLock, "DRMKMS/SurfLock", "DRMKMS Framebuffer Surface 
 
 /**********************************************************************************************************************/
 
+struct kms_bo
+{
+	struct kms_driver *kms;
+	void *ptr;
+	size_t size;
+	size_t offset;
+	size_t pitch;
+	unsigned handle;
+};
+
+
 typedef struct {
      int             magic;
 } DRMKMSPoolData;
@@ -64,6 +76,9 @@ typedef struct {
      int             magic;
 
      DRMKMSData     *drmkms;
+
+     DirectHash     *hash;
+     DirectMutex     lock;
 } DRMKMSPoolLocalData;
 
 typedef struct {
@@ -75,6 +90,7 @@ typedef struct {
 
      unsigned int        handle;
      int                 prime_fd;
+     u32                 name;
 
 #ifdef USE_GBM
      struct gbm_bo      *bo;
@@ -86,6 +102,32 @@ typedef struct {
      uint32_t    fb_id;
      void       *addr;
 } DRMKMSAllocationData;
+
+typedef struct {
+     int                   magic;
+
+     DRMKMSPoolLocalData  *pool_local;
+     DRMKMSAllocationData *alloc;
+
+     FusionObjectID        alloc_id;
+
+     unsigned int          pitch;
+     int                   size;
+     int                   offset;
+
+     unsigned int          handle;
+
+     void                 *addr;
+
+     Reaction              reaction;
+
+#ifdef USE_GBM
+     struct gbm_bo        *bo;
+     struct gbm_surface   *gs;
+#else
+     struct kms_bo         bo;
+#endif
+} DRMKMSAllocationLocalData;
 
 /**********************************************************************************************************************/
 
@@ -105,6 +147,23 @@ static int
 drmkmsAllocationDataSize( void )
 {
      return sizeof(DRMKMSAllocationData);
+}
+
+static DFBResult
+InitLocal( DRMKMSPoolLocalData *local,
+           CoreDFB             *core )
+{
+     direct_hash_create( 17, &local->hash );
+     direct_mutex_init( &local->lock );
+
+     return DFB_OK;
+}
+
+static void
+DeinitLocal( DRMKMSPoolLocalData *local )
+{
+     direct_mutex_init( &local->lock );
+     direct_hash_destroy( local->hash );
 }
 
 static DFBResult
@@ -133,7 +192,7 @@ drmkmsInitPool( CoreDFB                    *core,
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->access[CSAID_GPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL;
-     ret_desc->priority          = CSPP_DEFAULT;
+     ret_desc->priority          = CSPP_ULTIMATE;
      ret_desc->size              = dfb_config->video_length;
 
      /* For hardware layers */
@@ -157,6 +216,10 @@ drmkmsInitPool( CoreDFB                    *core,
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "DRMKMS" );
 
      local->drmkms = drmkms;
+
+
+     InitLocal( local, core );
+
 
      D_MAGIC_SET( data, DRMKMSPoolData );
      D_MAGIC_SET( local, DRMKMSPoolLocalData );
@@ -188,6 +251,8 @@ drmkmsJoinPool( CoreDFB                    *core,
 
      local->drmkms = drmkms;
 
+     InitLocal( local, core );
+
      D_MAGIC_SET( local, DRMKMSPoolLocalData );
 
      return DFB_OK;
@@ -206,6 +271,8 @@ drmkmsDestroyPool( CoreSurfacePool *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, DRMKMSPoolData );
      D_MAGIC_ASSERT( local, DRMKMSPoolLocalData );
+
+     DeinitLocal( local );
 
      D_MAGIC_CLEAR( data );
      D_MAGIC_CLEAR( local );
@@ -227,7 +294,7 @@ drmkmsLeavePool( CoreSurfacePool *pool,
      D_MAGIC_ASSERT( data, DRMKMSPoolData );
      D_MAGIC_ASSERT( local, DRMKMSPoolLocalData );
 
-     (void) data;
+     DeinitLocal( local );
 
      D_MAGIC_CLEAR( local );
 
@@ -417,6 +484,25 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
           D_DEBUG_AT( DRMKMS_Surfaces, "  -> prime_fd  %d\n", alloc->prime_fd );
      }
 
+
+     struct drm_gem_flink fl;
+
+     fl.handle = alloc->handle;
+     fl.name   = 0;
+
+     ret = drmIoctl( drmkms->fd, DRM_IOCTL_GEM_FLINK, &fl );
+     if (ret) {
+          ret = errno2result( errno );
+          D_ERROR( "DirectFB/DRMKMS: DRM_IOCTL_GEM_FLINK( %u '%s' ) failed (%s)!\n",
+                   alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
+          goto error;
+     }
+
+     alloc->name = fl.handle;
+
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> name      %d\n", alloc->name );
+
+
      allocation->size   = alloc->size;
      allocation->offset = (unsigned long) alloc->prime_fd;
 
@@ -555,6 +641,47 @@ drmkmsDeallocateBuffer( CoreSurfacePool       *pool,
      return DFB_OK;
 }
 
+static ReactionResult
+drmkmsAllocationReaction( const void *msg_data,
+                          void       *ctx )
+{
+     const CoreSurfaceAllocationNotification *notification = msg_data;
+     DRMKMSAllocationLocalData               *local        = ctx;
+
+     D_DEBUG_AT( DRMKMS_Surfaces, "%s( local %p )\n", __FUNCTION__, local );
+
+     D_MAGIC_ASSERT( local, DRMKMSAllocationLocalData );
+
+     if (notification->flags & CSANF_DEALLOCATED) {
+          D_DEBUG_AT( DRMKMS_Surfaces, "  -> DEALLOCATED\n" );
+
+          struct drm_gem_close cl;
+
+          cl.handle = local->handle;
+
+          drmIoctl( local->pool_local->drmkms->fd, DRM_IOCTL_GEM_CLOSE, &cl );
+
+
+#ifdef USE_GBM
+          // FIXME: unmap in GBM case
+#else
+          if (local->addr)
+               kms_bo_unmap( &local->bo );
+#endif
+
+          direct_mutex_lock( &local->pool_local->lock );
+          direct_hash_remove( local->pool_local->hash, (unsigned long) local->alloc_id );
+          direct_mutex_unlock( &local->pool_local->lock );
+
+          D_MAGIC_CLEAR( local );
+          D_FREE( local );
+
+          return RS_REMOVE;
+     }
+
+     return RS_OK;
+}
+
 static DFBResult
 drmkmsLock( CoreSurfacePool       *pool,
             void                  *pool_data,
@@ -584,6 +711,7 @@ drmkmsLock( CoreSurfacePool       *pool,
      lock->addr   = dfb_core_is_master( core_dfb ) ? alloc->addr : NULL;
      lock->phys   = 0;
 
+     D_DEBUG_AT( DRMKMS_SurfLock, "%s( allocation %p )\n", __FUNCTION__, allocation );
      switch (lock->accessor) {
           case CSAID_LAYER0:
                lock->handle = (void*) (long) alloc->fb_id;
@@ -607,13 +735,69 @@ drmkmsLock( CoreSurfacePool       *pool,
                     drmCommandWriteRead( local->drmkms->fd, DRM_I915_GEM_MMAP_GTT, &arg, sizeof( arg ) );
                     lock->addr = mmap( 0, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, local->drmkms->fd, arg.offset );
 #else
-                    ret = kms_bo_map( alloc->bo, &lock->addr );
-                    if (ret) {
-                         ret = errno2result( errno );
-                         D_ERROR( "DirectFB/DRMKMS: kms_bo_map( %u '%s' ) failed (%s)!\n",
-                                  alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
-                         return ret;
+                    DRMKMSAllocationLocalData *alloc_local;
+
+                    alloc_local = direct_hash_lookup( local->hash, (unsigned long) allocation->object.id );
+                    if (!alloc_local) {
+                         alloc_local = D_CALLOC( 1, sizeof(DRMKMSAllocationLocalData) + 1024 /* for kms driver private data */ );
+                         if (!alloc_local)
+                              return D_OOM();
+
+                         alloc_local->bo.kms    = drmkms->kms;
+                         alloc_local->bo.size   = alloc->size;
+                         alloc_local->bo.offset = alloc->offset;
+                         alloc_local->bo.pitch  = alloc->pitch;
+
+                         alloc_local->pool_local = local;
+                         alloc_local->alloc      = alloc;
+                         alloc_local->alloc_id   = allocation->object.id;
+                         alloc_local->pitch      = alloc->pitch;
+                         alloc_local->size       = alloc->size;
+                         alloc_local->offset     = alloc->offset;
+
+
+                         struct drm_gem_open op;
+
+                         op.name   = alloc->name;
+                         op.handle = 0;
+
+                         ret = drmIoctl( drmkms->fd, DRM_IOCTL_GEM_OPEN, &op );
+                         if (ret) {
+                              ret = errno2result( errno );
+                              D_ERROR( "DirectFB/DRMKMS: DRM_IOCTL_GEM_OPEN( %u '%s' ) failed (%s)!\n",
+                                       alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
+                              D_FREE( alloc_local );
+                              return ret;
+                         }
+
+                         alloc_local->bo.handle = op.handle;
+
+                         D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.handle %u\n", alloc_local->bo.handle );
+
+                         ret = kms_bo_map( &alloc_local->bo, &alloc_local->addr );
+                         if (ret) {
+                              ret = errno2result( errno );
+                              D_ERROR( "DirectFB/DRMKMS: kms_bo_map( %u '%s' ) failed (%s)!\n",
+                                       alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
+                              struct drm_gem_close cl;
+                              cl.handle = alloc_local->bo.handle;
+                              drmIoctl( drmkms->fd, DRM_IOCTL_GEM_CLOSE, &cl );
+                              D_FREE( alloc_local );
+                              return ret;
+                         }
+
+                         D_DEBUG_AT( DRMKMS_Surfaces, "  -> mapped to %p\n", alloc_local->addr );
+
+                         D_MAGIC_SET( alloc_local, DRMKMSAllocationLocalData );
+
+                         direct_hash_insert( local->hash, (unsigned long) allocation->object.id, alloc_local );
+
+                         dfb_surface_allocation_attach( allocation, drmkmsAllocationReaction, alloc_local, &alloc_local->reaction );
                     }
+                    else
+                         D_MAGIC_ASSERT( alloc_local, DRMKMSAllocationLocalData );
+
+                    lock->addr = alloc_local->addr;
 #endif
                }
                break;
@@ -657,7 +841,6 @@ drmkmsUnlock( CoreSurfacePool       *pool,
 #ifdef USE_GBM
                     // FIXME: unmap in GBM case
 #else
-                    kms_bo_unmap( alloc->bo );
 #endif
                }
                break;
