@@ -1292,6 +1292,8 @@ region_buffer_lock( CoreLayerRegion       *region,
 
      D_DEBUG_AT( Core_LayersLock, "%s( role %d )\n", __FUNCTION__, role );
 
+     Core_PushIdentity( FUSION_ID_MASTER );
+
      /* Save current buffer focus. */
      buffer = dfb_surface_get_buffer2( surface, role, DSSE_LEFT );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -1300,6 +1302,7 @@ region_buffer_lock( CoreLayerRegion       *region,
      ret = dfb_surface_buffer_lock( buffer, region->surface_accessor, CSAF_READ, left_buffer_lock );
      if (ret) {
           D_DERROR( ret, "Core/LayerRegion: Could not lock region surface for SetRegion()!\n" );
+          Core_PopIdentity();
           return ret;
      }
 
@@ -1326,6 +1329,7 @@ region_buffer_lock( CoreLayerRegion       *region,
           ret = dfb_surface_buffer_lock( buffer, region->surface_accessor, CSAF_READ, right_buffer_lock );
           if (ret) {
                D_DERROR( ret, "Core/LayerRegion: Could not lock region surface for SetRegion()!\n" );
+               Core_PopIdentity();
                return ret;
           }
      
@@ -1348,6 +1352,8 @@ region_buffer_lock( CoreLayerRegion       *region,
           right_buffer_lock->buffer = NULL;
 
      /* surface is unlocked by caller */
+
+     Core_PopIdentity();
 
      return ret;
 }
