@@ -39,6 +39,7 @@ extern "C" {
 
 #include <direct/compiler.h>
 #include <direct/log.h>
+#include <direct/log_domain.h>
 
 
 // C Wrapper
