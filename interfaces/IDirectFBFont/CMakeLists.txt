@@ -7,12 +7,12 @@ if (ENABLE_FONTPROVIDER_FREETYPE)
 	include_directories ("${FREETYPE_INCLUDE_DIRS}")
 
 	set (FONTPROVIDER_FREETYPE_LIBS
-		directfb
 		${FREETYPE_LIBRARIES}
+		directfb
 	)
 
 	DEFINE_DIRECTFB_MODULE (fontprovider_freetype
-		 idirectfbfont_ft2 idirectfbfont_ft2.c ${FONTPROVIDER_FREETYPE_LIBS} ${FONTPROVIDER_DIR}
+		 idirectfbfont_ft2 idirectfbfont_ft2.c "${FONTPROVIDER_FREETYPE_LIBS}" ${FONTPROVIDER_DIR}
 	)
 endif()
 
