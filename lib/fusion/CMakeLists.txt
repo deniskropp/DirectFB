@@ -1,11 +1,11 @@
-include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}")
+include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 
 configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/build.h.in"
                 "${CMAKE_CURRENT_BINARY_DIR}/build.h" )
 
 configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/fusion.pc.in"
-                "${CMAKE_CURRENT_BINARY_DIR}/fusion.pc" )
+                "${CMAKE_CURRENT_BINARY_DIR}/fusion.pc" @ONLY)
 
 set (LIBFUSION_SRC
 	conf.c

@@ -30,6 +30,7 @@ option (ENABLE_DEBUG "enable debug support" OFF)
 option (ENABLE_TRACE "enable trace support" OFF)
 option (ENABLE_MULTI "enable multi application support" OFF)
 option (ENABLE_VOODOO "enable voodoo support" OFF)
+option (ENABLE_ONE "enable One support" OFF)
 
 option (ENABLE_FONTPROVIDER_DGIFF "enable dgiff font support" ON)
 
@@ -61,9 +62,9 @@ else()
 	message ("Warning: libjpeg could not be found. Building without jpeg support")
 endif() 
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     SET(ARCH_X86_64 1)
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86|i686")
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86|i686")
     SET(ARCH_X86 1)
 endif()
 
@@ -74,7 +75,7 @@ set (FLUXCOMP_OPTIONS -i --call-mode --object-ptrs --static-args-bytes=1024 --di
 
 add_definitions (-DFLUXED_ARGS_BYTES=1024)
 
-EXECUTE_PROCESS(COMMAND date -u "+%Y-%m-%d %H:%M" OUTPUT_VARIABLE BUILDTIME OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process (COMMAND date -u "+%Y-%m-%d %H:%M" OUTPUT_VARIABLE BUILDTIME OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 add_definitions (-DBUILDTIME="${BUILDTIME}")
 add_definitions (-DDATADIR="${CMAKE_INSTALL_PREFIX}/share/directfb-${DIRECTFB_VERSION}")
@@ -96,7 +97,9 @@ endif(isusr)
 add_definitions (-DSYSCONFDIR="${SYSCONFDIR}")
 add_definitions (-D_GNU_SOURCE=1)
 
-set (DIRECTFB_BUILD_ONE 0)
+if (ENABLE_ONE)
+	set (DIRECTFB_BUILD_ONE 0)
+endif()
 
 if (ENABLE_VOODOO)
 	set (DIRECTFB_BUILD_VOODOO 1)
@@ -146,16 +149,20 @@ CHECK_PTHREADS()
 
 set (THREADFLAGS ${PTHREAD_CFLAGS})
 set (THREADLIB ${PTHREAD_LDFLAGS})
-
+set (DYNLIB "-ldl")
+set (LIBM "-lm")
 set (prefix ${CMAKE_INSTALL_PREFIX})
-set (exec_prefix "\${prefix}")
 set (libdir "\${exec_prefix}/lib")
+set (exec_prefix "\${prefix}")
 set (includedir "\${prefix}/include")
 set (INCLUDEDIR "\${prefix}/include/directfb")
+set (GENERIC_INCLUDEDIR "\${prefix}/include")
 set (VERSION "${DIRECTFB_VERSION}")
+set (MODULEDIR "\${exec_prefix}/lib/directfb-${LIBVER}-0")
+set (MODULEDIRNAME "directfb-${LIBVER}-0")
 
 configure_file ("${PROJECT_SOURCE_DIR}/directfb.pc.in"
-                "${PROJECT_BINARY_DIR}/directfb.pc" )
+                "${PROJECT_BINARY_DIR}/directfb.pc" @ONLY )
 
 configure_file ("${PROJECT_SOURCE_DIR}/cmake/config.h.in"
                 "${PROJECT_BINARY_DIR}/config.h" )
@@ -166,15 +173,14 @@ configure_file ("${PROJECT_SOURCE_DIR}/include/directfb_build.h.in"
 configure_file ("${PROJECT_SOURCE_DIR}/include/directfb_version.h.in"
                 "${PROJECT_BINARY_DIR}/include/directfb_version.h" )
 
-
-include_directories ("${PROJECT_SOURCE_DIR}")
-include_directories ("${PROJECT_SOURCE_DIR}/include")
-include_directories ("${PROJECT_SOURCE_DIR}/lib")
-include_directories ("${PROJECT_SOURCE_DIR}/src")
 include_directories ("${PROJECT_BINARY_DIR}")
 include_directories ("${PROJECT_BINARY_DIR}/include")
 include_directories ("${PROJECT_BINARY_DIR}/lib")
 include_directories ("${PROJECT_BINARY_DIR}/src")
+include_directories ("${PROJECT_SOURCE_DIR}")
+include_directories ("${PROJECT_SOURCE_DIR}/include")
+include_directories ("${PROJECT_SOURCE_DIR}/lib")
+include_directories ("${PROJECT_SOURCE_DIR}/src")
 
 set (CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} ${THREADFLAGS}")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${THREADFLAGS}")
@@ -185,6 +191,9 @@ add_subdirectory (lib/fusion)
 
 if (ENABLE_VOODOO)
 	add_subdirectory (lib/voodoo)
+endif()
+if (ENABLE_ONE)
+	add_subdirectory (lib/One)
 endif()
 
 add_subdirectory (src)

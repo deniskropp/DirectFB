@@ -1,11 +1,11 @@
-include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}")
+include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 
 configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/build.h.in"
                 "${CMAKE_CURRENT_BINARY_DIR}/build.h" )
 
 configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/voodoo.pc.in"
-                "${CMAKE_CURRENT_BINARY_DIR}/voodoo.pc" )
+                "${CMAKE_CURRENT_BINARY_DIR}/voodoo.pc" @ONLY )
 
 set (LIBVOODOO_SRC
 	client.c

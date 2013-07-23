@@ -1,11 +1,11 @@
-include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}")
+include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
 
 configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/build.h.in"
                 "${CMAKE_CURRENT_BINARY_DIR}/build.h" )
 
 configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/direct.pc.in"
-                "${CMAKE_CURRENT_BINARY_DIR}/direct.pc" )
+                "${CMAKE_CURRENT_BINARY_DIR}/direct.pc" @ONLY)
 
 add_custom_command(
 	OUTPUT  direct_result.c
