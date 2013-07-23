@@ -16,9 +16,7 @@ set (SYSTEM_X11_SRC
 )
 
 
-add_library (system_x11 MODULE ${SYSTEM_X11_SRC})
-
-target_link_libraries (system_x11
+set (SYSTEM_X11_LIBS
 	pthread
 	dl
 	rt
@@ -26,6 +24,4 @@ target_link_libraries (system_x11
 	directfb
 )
 
-set_target_properties(system_x11 PROPERTIES OUTPUT_NAME directfb_x11)
-
-install (TARGETS system_x11 LIBRARY DESTINATION ${SYSTEMS_DIR})
+DEFINE_DIRECTFB_MODULE( system_x11 directfb_x11 "${SYSTEM_X11_SRC}" "${SYSTEM_X11_LIBS}" ${SYSTEMS_DIR} )

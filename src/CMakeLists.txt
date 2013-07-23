@@ -176,14 +176,14 @@ set (LIBDIRECTFB_NON_PURE_VOODOO_SRC
 
 add_library (directfb SHARED ${LIBDIRECTFB_SRC} ${LIBDIRECTFB_NON_PURE_VOODOO_SRC})
 
-
-
 target_link_libraries ( directfb
-	direct
-	fusion
 	pthread
 	dl
 	rt
+	direct
+	fusion
+	${DEP_ONE}
+	${DEP_VOODOO}
 )
 
 INSTALL_DIRECTFB_LIB (directfb)

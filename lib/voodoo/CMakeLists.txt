@@ -69,7 +69,7 @@ target_link_libraries (voodoo
 	pthread
 	dl
 	rt
-	directfb
+	direct
 )
 
 INSTALL_DIRECTFB_LIB (voodoo)

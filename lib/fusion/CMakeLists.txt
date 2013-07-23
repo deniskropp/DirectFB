@@ -69,6 +69,7 @@ target_link_libraries (fusion
         pthread
         dl
         rt
+	direct
 )
 
 INSTALL_DIRECTFB_LIB (fusion)

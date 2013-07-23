@@ -29,9 +29,11 @@ set (LIBVER "${DIRECTFB_MAJOR_VERSION}.${DIRECTFB_MINOR_VERSION}")
 option (ENABLE_DEBUG "enable debug support" OFF)
 option (ENABLE_TRACE "enable trace support" OFF)
 option (ENABLE_MULTI "enable multi application support" OFF)
+
 option (ENABLE_VOODOO "enable voodoo support" OFF)
 option (ENABLE_ONE "enable One support" OFF)
 option (ENABLE_SAWMAN "enable SaWMan support" OFF)
+option (ENABLE_FUSIONDALE "enable Fusiondale support" OFF)
 
 option (ENABLE_FONTPROVIDER_DGIFF "enable dgiff font support" ON)
 
@@ -82,10 +84,11 @@ add_definitions (-DBUILDTIME="${BUILDTIME}")
 add_definitions (-DDATADIR="${CMAKE_INSTALL_PREFIX}/share/directfb-${DIRECTFB_VERSION}")
 add_definitions (-DMODULEDIR="${CMAKE_INSTALL_PREFIX}/lib/directfb-${LIBVER}-0")
 
-set( SYSTEMS_DIR "${CMAKE_INSTALL_PREFIX}/lib/directfb-${LIBVER}-0/systems" )
-set( WM_DIR "${CMAKE_INSTALL_PREFIX}/lib/directfb-${LIBVER}-0/wm" )
-set( FONTPROVIDER_DIR "${CMAKE_INSTALL_PREFIX}/lib/directfb-${LIBVER}-0/interfaces/IDirectFBFont" )
-set( IMAGEPROVIDER_DIR "${CMAKE_INSTALL_PREFIX}/lib/directfb-${LIBVER}-0/interfaces/IDirectFBImageProvider" )
+set (SYSTEMS_DIR "${CMAKE_INSTALL_PREFIX}/lib/directfb-${LIBVER}-0/systems" )
+set (WM_DIR "${CMAKE_INSTALL_PREFIX}/lib/directfb-${LIBVER}-0/wm" )
+set (INTERFACES_DIR "${CMAKE_INSTALL_PREFIX}/lib/directfb-${LIBVER}-0/interfaces" )
+set (FONTPROVIDER_DIR "${INTERFACES_DIR}/IDirectFBFont" )
+set (IMAGEPROVIDER_DIR "${INTERFACES_DIR}/IDirectFBImageProvider" )
 
 # Special exception if prefix is /usr so we don't make a /usr/etc.
 string(COMPARE EQUAL ${CMAKE_INSTALL_PREFIX} "/usr" isusr)
@@ -99,6 +102,9 @@ add_definitions (-DSYSCONFDIR="${SYSCONFDIR}")
 add_definitions (-D_GNU_SOURCE=1)
 
 if (ENABLE_ONE)
+	set (DIRECTFB_BUILD_ONE 1)
+	set (DEP_ONE one)
+else()
 	set (DIRECTFB_BUILD_ONE 0)
 endif()
 
@@ -198,6 +204,9 @@ if (ENABLE_ONE)
 endif()
 if (ENABLE_SAWMAN)
 	add_subdirectory (lib/sawman)
+endif()
+if (ENABLE_FUSIONDALE)
+	add_subdirectory (lib/fusiondale)
 endif()
 
 add_subdirectory (src)

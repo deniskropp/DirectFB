@@ -25,22 +25,29 @@ function(INSTALL_DIRECTFB_LIB target)
 	endif(LINUX)
 endfunction(INSTALL_DIRECTFB_LIB)
 
-function (FLUX_FILE inputdir inputfile)
+macro (DEFINE_DIRECTFB_MODULE target installname sources libs destination)
+	add_library (${target} MODULE ${sources})
+	target_link_libraries (${target} ${libs})
+	set_target_properties (${target} PROPERTIES OUTPUT_NAME ${installname})
+	install (TARGETS ${target} LIBRARY DESTINATION ${destination})
+endmacro()
+
+macro (FLUX_FILE inputdir inputfile)
 	add_custom_command(
 		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}/${inputfile}.cpp ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}/${inputfile}.h
 		COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}
 		COMMAND ${FLUXCOMP} ${FLUXCOMP_OPTIONS} --object-ptrs --include-prefix=${inputdir} -o=${inputdir} ${CMAKE_CURRENT_SOURCE_DIR}/${inputdir}/${inputfile}.flux
 		DEPENDS ${inputdir}/${inputfile}.flux
 	)
-endfunction ()
+endmacro()
 
-function (FLUX_FILE_SAWMAN inputfile)
+macro (FLUX_FILE_SAWMAN inputfile)
 	add_custom_command(
 		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${inputfile}.cpp ${CMAKE_CURRENT_BINARY_DIR}/${inputfile}.h
 		COMMAND ${FLUXCOMP} ${FLUXCOMP_OPTIONS} --include-prefix=${inputdir} ${CMAKE_CURRENT_SOURCE_DIR}/${inputfile}.flux
 		DEPENDS ${inputfile}.flux
 	)
-endfunction ()
+endmacro()
 
 
 

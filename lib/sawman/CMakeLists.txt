@@ -55,8 +55,6 @@ target_link_libraries (sawman
 	pthread
 	dl
 	rt
-	fusion
-	direct
 	directfb
 )
 
