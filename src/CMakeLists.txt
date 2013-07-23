@@ -1,19 +1,31 @@
-include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
-include_directories ("${CMAKE_CURRENT_SOURCE_DIR}/core")
-include_directories ("${CMAKE_CURRENT_SOURCE_DIR}/media")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}/core")
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}/media")
+include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
+include_directories ("${CMAKE_CURRENT_SOURCE_DIR}/core")
+include_directories ("${CMAKE_CURRENT_SOURCE_DIR}/media")
 
 add_custom_command(
-        OUTPUT  core/core_strings.h
+	OUTPUT  core/core_strings.h
 	COMMAND mkdir -p core
-        COMMAND echo "\\#ifndef __CORE__CORE_STRINGS_H__" >  core/core_strings.h
-        COMMAND echo "\\#define __CORE__CORE_STRINGS_H__" >> core/core_strings.h
-        COMMAND echo "\\#include \\<core/surface.h\\>"    >> core/core_strings.h
-        COMMAND ${MKNAMES} CoreSurfaceTypeFlags CSTF NONE CoreSurfaceTypeFlags flag ${CMAKE_CURRENT_SOURCE_DIR}/core/surface.h | grep -v CSTF_ALL >> core/core_strings.h
-        COMMAND echo "\\#endif"    >> core/core_strings.h
+	COMMAND echo "\\#ifndef __CORE__CORE_STRINGS_H__" >  core/core_strings.h
+	COMMAND echo "\\#define __CORE__CORE_STRINGS_H__" >> core/core_strings.h
+	COMMAND echo "\\#include \\<core/surface.h\\>"    >> core/core_strings.h
+	COMMAND ${MKNAMES} CoreSurfaceTypeFlags CSTF NONE CoreSurfaceTypeFlags flag ${CMAKE_CURRENT_SOURCE_DIR}/core/surface.h | grep -v CSTF_ALL >> core/core_strings.h
+	COMMAND echo "\\#endif"    >> core/core_strings.h
 	DEPENDS core/surface.h
+)
+
+add_custom_command(
+	OUTPUT  directfb_result.c
+	COMMAND echo "\\#include \\<config.h\\>"        > directfb_result.c
+	COMMAND echo                                   >> directfb_result.c
+	COMMAND echo "\\#include \\<directfb.h\\>"     >> directfb_result.c
+	COMMAND echo                                   >> directfb_result.c
+        COMMAND echo                                   >> directfb_result.c
+	COMMAND ${MKRESULT} DFBResult DFB ${PROJECT_SOURCE_DIR}/include/dfb_types.h >> directfb_result.c
+	COMMAND echo                                   >> directfb_result.c
+	DEPENDS ${PROJECT_SOURCE_DIR}/include/dfb_types.h
 )
 
 FLUX_FILE (core CoreDFB)
@@ -35,7 +47,7 @@ FLUX_FILE (media ImageProvider)
 
 set (LIBDIRECTFB_SRC
 	directfb.c
-	directfb_result.c
+	${CMAKE_CURRENT_BINARY_DIR}/directfb_result.c
 	dummy.cpp
 	init.c
 
@@ -169,9 +181,9 @@ add_library (directfb SHARED ${LIBDIRECTFB_SRC} ${LIBDIRECTFB_NON_PURE_VOODOO_SR
 target_link_libraries ( directfb
 	direct
 	fusion
-        pthread
-        dl
-        rt
+	pthread
+	dl
+	rt
 )
 
 INSTALL_DIRECTFB_LIB (directfb)
