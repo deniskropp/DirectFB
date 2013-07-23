@@ -31,6 +31,7 @@ option (ENABLE_TRACE "enable trace support" OFF)
 option (ENABLE_MULTI "enable multi application support" OFF)
 option (ENABLE_VOODOO "enable voodoo support" OFF)
 option (ENABLE_ONE "enable One support" OFF)
+option (ENABLE_SAWMAN "enable SaWMan support" OFF)
 
 option (ENABLE_FONTPROVIDER_DGIFF "enable dgiff font support" ON)
 
@@ -71,7 +72,7 @@ endif()
 set (MKNAMES  "${PROJECT_SOURCE_DIR}/tools/mknames.sh")
 set (MKRESULT "${PROJECT_SOURCE_DIR}/tools/mkresult.sh")
 set (FLUXCOMP "fluxcomp")
-set (FLUXCOMP_OPTIONS -i --call-mode --object-ptrs --static-args-bytes=1024 --dispatch-error-abort)
+set (FLUXCOMP_OPTIONS -i --call-mode --static-args-bytes=1024 --dispatch-error-abort)
 
 add_definitions (-DFLUXED_ARGS_BYTES=1024)
 
@@ -195,9 +196,15 @@ endif()
 if (ENABLE_ONE)
 	add_subdirectory (lib/One)
 endif()
+if (ENABLE_SAWMAN)
+	add_subdirectory (lib/sawman)
+endif()
 
 add_subdirectory (src)
 add_subdirectory (wm/default)
+if (ENABLE_SAWMAN)
+	add_subdirectory (wm/sawman)
+endif()
 add_subdirectory (interfaces/IDirectFBImageProvider)
 add_subdirectory (interfaces/IDirectFBFont)
 

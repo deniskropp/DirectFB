@@ -29,8 +29,16 @@ function (FLUX_FILE inputdir inputfile)
 	add_custom_command(
 		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}/${inputfile}.cpp ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}/${inputfile}.h
 		COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}
-		COMMAND ${FLUXCOMP} ${FLUXCOMP_OPTIONS} --include-prefix=${inputdir} -o=${inputdir} ${CMAKE_CURRENT_SOURCE_DIR}/${inputdir}/${inputfile}.flux
+		COMMAND ${FLUXCOMP} ${FLUXCOMP_OPTIONS} --object-ptrs --include-prefix=${inputdir} -o=${inputdir} ${CMAKE_CURRENT_SOURCE_DIR}/${inputdir}/${inputfile}.flux
 		DEPENDS ${inputdir}/${inputfile}.flux
+	)
+endfunction ()
+
+function (FLUX_FILE_SAWMAN inputfile)
+	add_custom_command(
+		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${inputfile}.cpp ${CMAKE_CURRENT_BINARY_DIR}/${inputfile}.h
+		COMMAND ${FLUXCOMP} ${FLUXCOMP_OPTIONS} --include-prefix=${inputdir} ${CMAKE_CURRENT_SOURCE_DIR}/${inputfile}.flux
+		DEPENDS ${inputfile}.flux
 	)
 endfunction ()
 
@@ -39,7 +47,7 @@ endfunction ()
 macro(CHECK_PTHREADS)
 	if(LINUX)
 		set(PTHREAD_CFLAGS "-D_REENTRANT")
-		set(PTHREAD_LDFLAGS "-lpthread")
+		set(PTHREAD_LDFLAGS "-pthread")
 	elseif(BSDI)
 		set(PTHREAD_CFLAGS "-D_REENTRANT -D_THREAD_SAFE")
 		set(PTHREAD_LDFLAGS "")
@@ -50,25 +58,25 @@ macro(CHECK_PTHREADS)
 		set(PTHREAD_LDFLAGS "")
 	elseif(FREEBSD)
 		set(PTHREAD_CFLAGS "-D_REENTRANT -D_THREAD_SAFE")
-		set(PTHREAD_LDFLAGS "-lpthread")
+		set(PTHREAD_LDFLAGS "-pthread")
 	elseif(NETBSD)
 		set(PTHREAD_CFLAGS "-D_REENTRANT -D_THREAD_SAFE")
 		set(PTHREAD_LDFLAGS "-lpthread")
 	elseif(OPENBSD)
 		set(PTHREAD_CFLAGS "-D_REENTRANT")
-		set(PTHREAD_LDFLAGS "-lpthread")
+		set(PTHREAD_LDFLAGS "-pthread")
 	elseif(SOLARIS)
 		set(PTHREAD_CFLAGS "-D_REENTRANT")
-		set(PTHREAD_LDFLAGS "-lpthread -lposix4")
+		set(PTHREAD_LDFLAGS "-pthread -lposix4")
 	elseif(SYSV5)
 		set(PTHREAD_CFLAGS "-D_REENTRANT -Kthread")
 		set(PTHREAD_LDFLAGS "")
 	elseif(AIX)
 		set(PTHREAD_CFLAGS "-D_REENTRANT -mthreads")
-		set(PTHREAD_LDFLAGS "-lpthread")
+		set(PTHREAD_LDFLAGS "-pthread")
 	elseif(HPUX)
 		set(PTHREAD_CFLAGS "-D_REENTRANT")
-		set(PTHREAD_LDFLAGS "-L/usr/lib -lpthread")
+		set(PTHREAD_LDFLAGS "-L/usr/lib -pthread")
 	else()
 		set(PTHREAD_CFLAGS "-D_REENTRANT")
 		set(PTHREAD_LDFLAGS "-lpthread")
