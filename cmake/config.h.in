@@ -1,0 +1,218 @@
+/* Define if building universal (internal helper macro) */
+#cmakedefine AC_APPLE_UNIVERSAL_BUILD
+
+/* Define to 1 if you are compiling for ARM. */
+#cmakedefine ARCH_ARM
+
+/* Define to 1 if you are compiling for ARMv7. */
+#cmakedefine ARCH_ARMv7
+
+/* Define to 1 if you are compiling for MIPS. */
+#cmakedefine ARCH_MIPS
+
+/* Define to 1 if you are compiling for PowerPC. */
+#cmakedefine ARCH_PPC
+
+/* Define to 1 if you are compiling for SuperH. */
+#cmakedefine ARCH_SH
+
+/* Define to 1 if you are compiling for SH3. */
+#cmakedefine ARCH_SH3
+
+/* Define to 1 if you are compiling for SH4. */
+#cmakedefine ARCH_SH4
+
+/* Define to 1 if you are compiling for ix86. */
+#cmakedefine ARCH_X86
+
+/* Define to 1 if you are compiling for AMD64. */
+#cmakedefine ARCH_X86_64
+
+/* Dithering to use when rendering to non-RGB16 surfaces */
+#cmakedefine DFB_DITHER
+
+/* Dithering to use when rendering to RGB16 surfaces */
+#cmakedefine DFB_DITHER565
+
+/* Advanced dithering, uses large dither table */
+#cmakedefine DFB_DITHER_ADVANCED
+
+/* Simple dithering, uses small dither table */
+#cmakedefine DFB_DITHER_SIMPLE
+
+/* Define to 1 if Video4Linux 2 is supported. */
+#cmakedefine DFB_HAVE_V4L2 1
+
+/* Define to 1 if smooth scaling code should be built. */
+#cmakedefine DFB_SMOOTH_SCALING 1
+
+/* The DirectFB version */
+#define DIRECTFB_VERSION "@DIRECTFB_VERSION@"
+
+/* Vendor specific version */
+#cmakedefine DIRECTFB_VERSION_VENDOR
+
+/* Define to 1 to enable linear filter. */
+#cmakedefine FS_ENABLE_LINEAR_FILTER 1
+
+/* Define to 1 to enable precision. */
+#cmakedefine FS_ENABLE_PRECISION 1
+
+/* Define to 1 to enable IEEE floats for mixing routines. */
+#cmakedefine FS_USE_IEEE_FLOATS 1
+
+/* Define to 1 if you have the <asm/page.h> header file. */
+#cmakedefine HAVE_ASM_PAGE_H 1
+
+/* Define to 1 if you have libcddb. */
+#cmakedefine HAVE_CDDB 1
+
+/* Define to 1 if you have the declaration of `PTHREAD_MUTEX_RECURSIVE', and
+   to 0 if you don't. */
+#cmakedefine HAVE_DECL_PTHREAD_MUTEX_RECURSIVE 1
+
+/* Define to 1 if you have the declaration of
+   `PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP', and to 0 if you don't. */
+#cmakedefine HAVE_DECL_PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP 1
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#cmakedefine HAVE_DLFCN_H 1
+
+/* Define to 1 if you have the `fork' function. */
+#cmakedefine HAVE_FORK 1
+
+/* Define to 1 if you want FusionSound support. */
+#cmakedefine HAVE_FUSIONSOUND 1
+
+/* Define to 1 if sh772x */
+#cmakedefine HAVE_GFX_SH772X 1
+
+/* Define to 1 if inb, outb and iopl are available. */
+#cmakedefine HAVE_INB_OUTB_IOPL 1
+
+/* Define to 1 if struct input_absinfo is defined in linux/input.h. */
+#cmakedefine HAVE_INPUT_ABSINFO 1
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#cmakedefine HAVE_INTTYPES_H 1
+
+/* Define to 1 if you have the `c_r' library (-lc_r). */
+#cmakedefine HAVE_LIBC_R 1
+
+/* Define to 1 if you have the `dl' library (-ldl). */
+#cmakedefine HAVE_LIBDL 1
+
+/* Define to 1 if you have the `pthread' library (-lpthread). */
+#cmakedefine HAVE_LIBPTHREAD 1
+
+/* Define to 1 if you have the `rt' library (-lrt). */
+#cmakedefine HAVE_LIBRT 1
+
+/* Define to 1 if you have the <linux/compiler.h> header file. */
+#cmakedefine HAVE_LINUX_COMPILER_H 1
+
+/* Define to 1 if you have the <linux/unistd.h> header file. */
+#cmakedefine HAVE_LINUX_UNISTD_H 1
+
+/* Define to 1 if you have the <memory.h> header file. */
+#cmakedefine HAVE_MEMORY_H 1
+
+/* Define to 1 if you have the <signal.h> header file. */
+#cmakedefine HAVE_SIGNAL_H 1
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#cmakedefine HAVE_STDINT_H 1
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#cmakedefine HAVE_STDLIB_H 1
+
+/* Define to 1 if you have the <strings.h> header file. */
+#cmakedefine HAVE_STRINGS_H 1
+
+/* Define to 1 if you have the <string.h> header file. */
+#cmakedefine HAVE_STRING_H 1
+
+/* Define to 1 if you have the <sys/io.h> header file. */
+#cmakedefine HAVE_SYSIO 1
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#cmakedefine HAVE_SYS_STAT_H 1
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#cmakedefine HAVE_SYS_TYPES_H 1
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#cmakedefine HAVE_UNISTD_H 1
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#cmakedefine LT_OBJDIR
+
+/* Define to 1 if your C compiler doesn't accept -c and -o together. */
+#cmakedefine NO_MINUS_C_MINUS_O 1
+
+/* Define to the address where bug reports for this package should be sent. */
+#cmakedefine PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#cmakedefine PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#cmakedefine PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#cmakedefine PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#cmakedefine PACKAGE_URL
+
+/* Define to the version of this package. */
+#cmakedefine PACKAGE_VERSION
+
+/* The size of `int', as computed by sizeof. */
+#cmakedefine SIZEOF_INT
+
+/* The size of `long', as computed by sizeof. */
+#cmakedefine SIZEOF_LONG
+
+/* The size of `long long', as computed by sizeof. */
+#cmakedefine SIZEOF_LONG_LONG
+
+/* Define to 1 if you have the ANSI C header files. */
+#cmakedefine STDC_HEADERS
+
+/* Define to 1 if arm assembly is available. */
+#cmakedefine USE_ARMASM
+
+/* Define to 1 if GLX has been selected or detected */
+#cmakedefine USE_GLX
+
+/* Define to 1 if compiling on KallistiOS. */
+#cmakedefine USE_KOS
+
+/* Define to 1 if MMX assembly is available. */
+#cmakedefine USE_MMX
+
+/* Define to 1 if ppc assembly is available. */
+#cmakedefine USE_PPCASM
+
+/* Define to 1 if SSE assembly is available. */
+#cmakedefine USE_SSE
+
+/* Define to 1 to use Tremor Ogg/Vorbis decoder. */
+#cmakedefine USE_TREMOR
+
+/* Define to 1 to build with zlib compression. */
+#cmakedefine USE_ZLIB
+
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
