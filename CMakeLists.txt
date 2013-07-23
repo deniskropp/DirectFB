@@ -37,6 +37,10 @@ option (ENABLE_FUSIONDALE "enable Fusiondale support" OFF)
 
 option (ENABLE_FONTPROVIDER_DGIFF "enable dgiff font support" ON)
 
+if (LINUX)
+	option (ENABLE_SYSTEM_FBDEV "enable fbdev support" ON)
+endif()
+
 find_package (X11)
 if (X11_FOUND)
 	option (ENABLE_SYSTEM_X11 "enable X11 system" ON)
@@ -214,8 +218,13 @@ add_subdirectory (wm/default)
 if (ENABLE_SAWMAN)
 	add_subdirectory (wm/sawman)
 endif()
+
 add_subdirectory (interfaces/IDirectFBImageProvider)
 add_subdirectory (interfaces/IDirectFBFont)
+
+if (ENABLE_SYSTEM_FBDEV)
+	add_subdirectory (systems/fbdev)
+endif()
 
 if (ENABLE_SYSTEM_X11)
 	add_subdirectory (systems/x11)

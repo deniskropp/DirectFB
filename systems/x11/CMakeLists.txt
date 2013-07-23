@@ -17,9 +17,6 @@ set (SYSTEM_X11_SRC
 
 
 set (SYSTEM_X11_LIBS
-	pthread
-	dl
-	rt
 	${X11_LIBRARIES}
 	directfb
 )
