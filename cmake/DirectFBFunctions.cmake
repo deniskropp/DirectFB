@@ -47,6 +47,20 @@ macro (DEFINE_REQUESTOR_MODULE interface)
 	install (TARGETS ${INTERFACE_LOWERCASE}_requestor LIBRARY DESTINATION ${INTERFACES_DIR}/${interface})
 endmacro()
 
+macro (DEFINE_DISPATCHER_MODULE_DEP interface deplibs)
+	string (TOLOWER ${interface} INTERFACE_LOWERCASE)
+	add_library (${INTERFACE_LOWERCASE}_dispatcher MODULE ${INTERFACE_LOWERCASE}_dispatcher.c)
+	target_link_libraries (${INTERFACE_LOWERCASE}_dispatcher voodoo ${deplibs})
+	install (TARGETS ${INTERFACE_LOWERCASE}_dispatcher LIBRARY DESTINATION ${INTERFACES_DIR}/${interface})
+endmacro()
+
+macro (DEFINE_REQUESTOR_MODULE_DEP interface deplibs)
+	string (TOLOWER ${interface} INTERFACE_LOWERCASE)
+	add_library (${INTERFACE_LOWERCASE}_requestor MODULE ${INTERFACE_LOWERCASE}_requestor.c)
+	target_link_libraries (${INTERFACE_LOWERCASE}_requestor voodoo ${deplibs})
+	install (TARGETS ${INTERFACE_LOWERCASE}_requestor LIBRARY DESTINATION ${INTERFACES_DIR}/${interface})
+endmacro()
+
 macro (FLUX_FILE inputdir inputfile)
 	add_custom_command(
 		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}/${inputfile}.cpp ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}/${inputfile}.h

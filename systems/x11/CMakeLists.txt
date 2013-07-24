@@ -4,14 +4,14 @@ include_directories ("${PROJECT_SOURCE_DIR}/gfxdrivers")
 include_directories ("${X11_INCLUDE_DIR}")
 
 set (SYSTEM_X11_SRC
-        idirectfbgl.c
-        primary.c
-        surfacemanager.c
-        vpsmem_surface_pool.c
-        x11.c
-        x11image.c
-        x11input.c
-        x11_surface_pool.c
+	idirectfbgl.c
+	primary.c
+	surfacemanager.c
+	vpsmem_surface_pool.c
+	x11.c
+	x11image.c
+	x11input.c
+	x11_surface_pool.c
 	xwindow.c
 )
 

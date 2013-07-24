@@ -21,9 +21,6 @@ install (FILES
 add_library (one SHARED ${LIBONE_SRC} ${LIBONE_NON_PURE_VOODOO_SRC} ${LIBONE_SHM_SOURCES})
 
 target_link_libraries (one
-        pthread
-        dl
-        rt
 	direct
 )
 

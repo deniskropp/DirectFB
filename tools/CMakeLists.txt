@@ -111,6 +111,9 @@ if (ENABLE_FUSIONDALE)
 endif()
 
 if (ENABLE_FUSIONSOUND)
+	include_directories ("${PROJECT_BINARY_DIR}/lib/fusionsound")
+	include_directories ("${PROJECT_SOURCE_DIR}/lib/fusionsound")
+
 	add_executable (fsdump fsdump.c)
 	target_link_libraries (fsdump fusionsound)
 

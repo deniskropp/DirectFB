@@ -66,9 +66,6 @@ install (FILES
 add_library (fusion SHARED ${LIBFUSION_SRC} ${LIBFUSION_NON_PURE_VOODOO_SRC} ${LIBFUSION_SHM_SOURCES})
 
 target_link_libraries (fusion
-        pthread
-        dl
-        rt
 	direct
 )
 

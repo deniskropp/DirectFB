@@ -32,7 +32,7 @@ install (FILES
 	fusiondale_util.h
 	${CMAKE_CURRENT_BINARY_DIR}/fusiondale_version.h
 	
-	DESTINATION include/directfb/fusiondale
+	DESTINATION include/fusiondale
 )
 
 install (FILES
@@ -44,7 +44,7 @@ install (FILES
 	coma/policy.h
 	coma/thread.h
 
-	DESTINATION include/directfb/fusiondale/coma
+	DESTINATION include/fusiondale/coma
 )
 
 install (FILES
@@ -53,16 +53,12 @@ install (FILES
 	core/messenger.h
 	core/messenger_port.h
 
-	DESTINATION include/directfb/fusiondale/core
+	DESTINATION include/fusiondale/core
 )
 
 add_library (fusiondale SHARED ${LIBFUSIONDALE_SRC} ${LIBFUSIONDALE_NON_PURE_VOODOO_SRC} ${LIBFUSIONDALE_SHM_SOURCES})
 
 target_link_libraries (fusiondale
-        pthread
-        dl
-        rt
-	m
 	direct
 	fusion
 )
