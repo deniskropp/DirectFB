@@ -34,8 +34,11 @@ option (ENABLE_VOODOO "enable voodoo support" OFF)
 option (ENABLE_ONE "enable One support" OFF)
 option (ENABLE_SAWMAN "enable SaWMan support" OFF)
 option (ENABLE_FUSIONDALE "enable Fusiondale support" OFF)
+option (ENABLE_DIVINE "enable DiVine support" OFF)
 
 option (ENABLE_FONTPROVIDER_DGIFF "enable dgiff font support" ON)
+
+option (WITH_TOOLS "build tools" ON)
 
 if (LINUX)
 	option (ENABLE_SYSTEM_FBDEV "enable fbdev support" ON)
@@ -199,6 +202,7 @@ set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${THREADFLAGS}")
 add_subdirectory (include)
 add_subdirectory (lib/direct)
 add_subdirectory (lib/fusion)
+add_subdirectory (lib/++dfb)
 
 if (ENABLE_VOODOO)
 	add_subdirectory (lib/voodoo)
@@ -211,6 +215,9 @@ if (ENABLE_SAWMAN)
 endif()
 if (ENABLE_FUSIONDALE)
 	add_subdirectory (lib/fusiondale)
+endif()
+if (ENABLE_FUSIONDALE)
+	add_subdirectory (lib/divine)
 endif()
 
 add_subdirectory (src)
@@ -230,6 +237,9 @@ if (ENABLE_SYSTEM_X11)
 	add_subdirectory (systems/x11)
 endif()
 
+if (WITH_TOOLS)
+	add_subdirectory (tools)
+endif()
 
 install(
 	FILES ${CMAKE_CURRENT_BINARY_DIR}/directfb.pc

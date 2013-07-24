@@ -52,9 +52,6 @@ install (FILES
 add_library (sawman SHARED ${LIBSAWMAN_SRC})
 
 target_link_libraries (sawman
-	pthread
-	dl
-	rt
 	directfb
 )
 

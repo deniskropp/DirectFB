@@ -95,3 +95,21 @@ install (FILES
 	DESTINATION include/directfb
 )
 
+
+install (FILES
+	++dfb/++dfb.h
+	++dfb/idirectfbdatabuffer.h
+	++dfb/idirectfbdisplaylayer.h
+	++dfb/idirectfbeventbuffer.h
+	++dfb/idirectfbfont.h
+	++dfb/idirectfb.h
+	++dfb/idirectfbimageprovider.h
+	++dfb/idirectfbinputdevice.h
+	++dfb/idirectfbpalette.h
+	++dfb/idirectfbscreen.h
+	++dfb/idirectfbsurface.h
+	++dfb/idirectfbvideoprovider.h
+	++dfb/idirectfbwindow.h
+
+        DESTINATION include/++dfb
+)

@@ -19,7 +19,7 @@ if (ENABLE_IMAGEPROVIDER_JPEG)
 	include_directories ("${JPEG_INCLUDE_DIR}")
 
 	set (IMAGEPROVIDER_JPEG_LIBS
-		${PNG_LIBRARIES}
+		${JPEG_LIBRARIES}
 		directfb
 	)
 
