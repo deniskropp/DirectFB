@@ -32,6 +32,21 @@ macro (DEFINE_DIRECTFB_MODULE target installname sources libs destination)
 	install (TARGETS ${target} LIBRARY DESTINATION ${destination})
 endmacro()
 
+
+macro (DEFINE_DISPATCHER_MODULE interface)
+	string (TOLOWER ${interface} INTERFACE_LOWERCASE)
+	add_library (${INTERFACE_LOWERCASE}_dispatcher MODULE ${INTERFACE_LOWERCASE}_dispatcher.c)
+	target_link_libraries (${INTERFACE_LOWERCASE}_dispatcher voodoo)
+	install (TARGETS ${INTERFACE_LOWERCASE}_dispatcher LIBRARY DESTINATION ${INTERFACES_DIR}/${interface})
+endmacro()
+
+macro (DEFINE_REQUESTOR_MODULE interface)
+	string (TOLOWER ${interface} INTERFACE_LOWERCASE)
+	add_library (${INTERFACE_LOWERCASE}_requestor MODULE ${INTERFACE_LOWERCASE}_requestor.c)
+	target_link_libraries (${INTERFACE_LOWERCASE}_requestor voodoo)
+	install (TARGETS ${INTERFACE_LOWERCASE}_requestor LIBRARY DESTINATION ${INTERFACES_DIR}/${interface})
+endmacro()
+
 macro (FLUX_FILE inputdir inputfile)
 	add_custom_command(
 		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}/${inputfile}.cpp ${CMAKE_CURRENT_BINARY_DIR}/${inputdir}/${inputfile}.h
