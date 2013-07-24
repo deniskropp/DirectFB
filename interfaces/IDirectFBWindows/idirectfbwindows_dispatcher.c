@@ -113,7 +113,7 @@ Dispatch_Release( IDirectFBWindows *thiz, IDirectFBWindows *real,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindows_Dispatcher)
 
-     return thiz->Release( thiz );
+     return voodoo_manager_unregister_local( manager, data->self );
 }
 
 /**********************************************************************************************************************/
