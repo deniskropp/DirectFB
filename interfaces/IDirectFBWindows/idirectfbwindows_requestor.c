@@ -62,12 +62,27 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBWindows, Requestor )
 
 /**********************************************************************************************************************/
 
+typedef struct {
+     DirectLink           link;
+
+     DFBWindowsWatcher    watcher;
+     void                *context;
+
+     VoodooInstanceID     instance;
+} RegisteredWatcher;
+
 static void
 IDirectFBWindows_Requestor_Destruct( IDirectFBWindows *thiz )
 {
+     DirectLink *link;
      IDirectFBWindows_Requestor_data *data = thiz->priv;
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     direct_list_foreach( link, data->watchers ) {
+          RegisteredWatcher *registered = (RegisteredWatcher *)link;
+          voodoo_manager_unregister_local( data->manager, registered->instance );
+     }
 
      voodoo_manager_request( data->manager, data->instance,
                              IDIRECTFBWINDOWS_METHOD_ID_Release, VREQ_NONE, NULL,
@@ -100,15 +115,6 @@ IDirectFBWindows_Requestor_Release( IDirectFBWindows *thiz )
 }
 
 /**********************************************************************************************************************/
-
-typedef struct {
-     DirectLink           link;
-
-     DFBWindowsWatcher    watcher;
-     void                *context;
-
-     VoodooInstanceID     instance;
-} RegisteredWatcher;
 
 static DirectResult
 IDirectFBWindows_Requestor_DispatchWatcher_WindowAdd( IDirectFBWindows *thiz, RegisteredWatcher *registered,
