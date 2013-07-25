@@ -95,3 +95,6 @@ install(
 )
 
 
+if (ENABLE_WAYLAND)
+	add_subdirectory (EGLCoreWayland)
+endif()
