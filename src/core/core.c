@@ -1735,11 +1735,13 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      }
 
      if (ret == DFB_TIMEOUT) {
-          D_ERROR( "DirectFB/Core: Some objects remain alive, application or internal ref counting issue!\n" );
+          if (direct_config_get_int_value( "shutdown-info" )) {
+               D_ERROR( "DirectFB/Core: Some objects remain alive, application or internal ref counting issue!\n" );
 
-          dfb_core_dump_all( core, &DirectFB_Core, DIRECT_LOG_VERBOSE );
+               dfb_core_dump_all( core, &DirectFB_Core, DIRECT_LOG_VERBOSE );
 
-          direct_print_interface_leaks();
+               direct_print_interface_leaks();
+          }
      }
 
      fusion_stop_dispatcher( core->world, false );
