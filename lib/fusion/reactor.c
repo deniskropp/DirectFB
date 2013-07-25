@@ -605,7 +605,7 @@ _fusion_reactor_process_message( FusionWorld *world,
 
 #if D_DEBUG_ENABLED
           if (direct_log_domain_check( &Fusion_Reactor )) // avoid call to direct_trace_lookup_symbol_at
-               D_DEBUG_AT( Fusion_Reactor, "  -> %s (%p)\n", direct_trace_lookup_symbol_at( reaction->func ), reaction->func );
+               D_DEBUG_AT( Fusion_Reactor, "  =-> %s (%p)\n", direct_trace_lookup_symbol_at( reaction->func ), reaction->func );
 #endif
 
           if (reaction->func( msg_data, reaction->ctx ) == RS_REMOVE) {

@@ -102,7 +102,7 @@ VoodooConnectionLink::VoodooConnectionLink( VoodooLink *link )
 
      input.buffer = (u8*) D_MALLOC( input_buffer_size );
 
-     D_INFO( "VoodooConnection/Link: Allocated "_ZU" kB input buffer at %p\n", input_buffer_size/1024, input.buffer );
+     D_INFO( "VoodooConnection/Link: Allocated " _ZU " kB input buffer at %p\n", input_buffer_size/1024, input.buffer );
 
      direct_tls_register( &output.tls, OutputTLS_Destructor );
 }
@@ -135,7 +135,7 @@ VoodooConnectionLink::~VoodooConnectionLink()
 VoodooPacket *
 VoodooConnectionLink::GetPacket( size_t length )
 {
-     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::%s( %p, length "_ZU" )\n", __func__, this, length );
+     D_DEBUG_AT( Voodoo_Connection, "VoodooConnectionLink::%s( %p, length " _ZU " )\n", __func__, this, length );
 
      D_MAGIC_ASSERT( this, VoodooConnection );
      D_ASSERT( length >= (int) sizeof(VoodooMessageHeader) );
@@ -294,7 +294,7 @@ VoodooConnectionLink::Packets::~Packets()
 
      for (size_t i=0; i<num; i++) {
           if (packets[i]) {
-               D_DEBUG_AT( Voodoo_Connection, "  -> destroying output packet "_ZU" (%p)\n", i, packets[i] );
+               D_DEBUG_AT( Voodoo_Connection, "  -> destroying output packet " _ZU " (%p)\n", i, packets[i] );
 
                if (packets[i]->sending) {
                     direct_mutex_lock( &connection->output.lock );
@@ -325,7 +325,7 @@ VoodooConnectionLink::Packets::Get()
      if (num < VOODOO_CONNECTION_PACKET_NUM_OUTPUT) {
           packet = packets[num] = VoodooPacket::New( 0 );
 
-          D_DEBUG_AT( Voodoo_Connection, "  -> new ["_ZU"] %p\n", num, packet );
+          D_DEBUG_AT( Voodoo_Connection, "  -> new [" _ZU "] %p\n", num, packet );
 
           num++;
      }

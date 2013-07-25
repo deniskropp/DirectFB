@@ -136,7 +136,7 @@ void
 VoodooDispatcher::ProcessMessages( VoodooMessageHeader *first,
                                    size_t               total_length )
 {
-     D_DEBUG_AT( Voodoo_Dispatcher, "VoodooDispatcher::%s( %p, first %p, total_length "_ZU" )\n",
+     D_DEBUG_AT( Voodoo_Dispatcher, "VoodooDispatcher::%s( %p, first %p, total_length " _ZU " )\n",
                  __func__, this, first, total_length );
 
      D_MAGIC_ASSERT( this, VoodooDispatcher );
@@ -150,7 +150,7 @@ VoodooDispatcher::ProcessMessages( VoodooMessageHeader *first,
           header  = (VoodooMessageHeader *)((char*) first + offset);
           aligned = VOODOO_MSG_ALIGN( header->size );
 
-          D_DEBUG_AT( Voodoo_Dispatcher, "  -> Next message has %d ("_ZU") bytes and is of type %d... (offset "_ZU"/"_ZU")\n",
+          D_DEBUG_AT( Voodoo_Dispatcher, "  -> Next message has %d (" _ZU ") bytes and is of type %d... (offset " _ZU "/" _ZU ")\n",
                       header->size, aligned, header->type, offset, total_length );
 
           D_ASSERT( header->size >= (int) sizeof(VoodooMessageHeader) );

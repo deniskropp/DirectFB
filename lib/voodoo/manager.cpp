@@ -728,7 +728,7 @@ VoodooManager::do_request( VoodooInstanceID         instance,
      /* Calculate the total message size. */
      size = sizeof(VoodooRequestMessage) + data_size;
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: "_ZU"\n", size );
+     D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: " _ZU "\n", size );
 
      /* Lock the output buffer for direct writing. */
      packet = connection->GetPacket( size );
@@ -753,7 +753,7 @@ VoodooManager::do_request( VoodooInstanceID         instance,
      write_blocks( msg + 1, blocks, num_blocks );
 
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> Sending REQUEST message %llu to %u::%u %s("_ZU" bytes).\n",
+     D_DEBUG_AT( Voodoo_Manager, "  -> Sending REQUEST message %llu to %u::%u %s(" _ZU " bytes).\n",
                  (unsigned long long)serial, instance, method, (flags & VREQ_RESPOND) ? "[RESPONDING] " : "", size );
 
      /* Unlock the output buffer. */
@@ -853,7 +853,7 @@ VoodooManager::do_respond( bool                 flush,
      /* Calculate the total message size. */
      size = sizeof(VoodooResponseMessage) + data_size;
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: "_ZU"\n", size );
+     D_DEBUG_AT( Voodoo_Manager, "  -> complete message size: " _ZU "\n", size );
 
 
      /* Lock the output buffer for direct writing. */
@@ -879,7 +879,7 @@ VoodooManager::do_respond( bool                 flush,
      write_blocks( msg + 1, blocks, num_blocks );
 
 
-     D_DEBUG_AT( Voodoo_Manager, "  -> Sending RESPONSE message %llu (%s) with instance %u for request %llu ("_ZU" bytes).\n",
+     D_DEBUG_AT( Voodoo_Manager, "  -> Sending RESPONSE message %llu (%s) with instance %u for request %llu (" _ZU " bytes).\n",
                  (unsigned long long)serial, DirectResultString( result ), instance, (unsigned long long)request, size );
 
      /* Unlock the output buffer. */

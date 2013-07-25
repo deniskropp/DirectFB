@@ -223,7 +223,7 @@ VoodooConnectionRaw::io_loop()
                switch (ret) {
                     case DR_OK:
                          if (chunk_write && chunk_write->done) {
-                              D_DEBUG_AT( Voodoo_Output, "  -> Sent "_ZD"/"_ZD" bytes...\n", chunk_write->done, chunk_write->length );
+                              D_DEBUG_AT( Voodoo_Output, "  -> Sent " _ZD "/" _ZD " bytes...\n", chunk_write->done, chunk_write->length );
 
 #ifdef VOODOO_CONNECTION_RAW_DUMP
                               write( dump_fd, chunk_write->ptr, chunk_write->done );
@@ -270,7 +270,7 @@ VoodooConnectionRaw::io_loop()
 
 
                if (chunk_read && chunk_read->done) {
-                    D_DEBUG_AT( Voodoo_Input, "  -> Received "_ZD" bytes...\n", chunk_read->done );
+                    D_DEBUG_AT( Voodoo_Input, "  -> Received " _ZD " bytes...\n", chunk_read->done );
 
 #ifdef VOODOO_CONNECTION_RAW_DUMP
                     write( dump_read_fd, chunk_read->ptr, chunk_read->done );
@@ -282,10 +282,10 @@ VoodooConnectionRaw::io_loop()
                          VoodooMessageHeader *header;
                          size_t               aligned;
 
-                         D_DEBUG_AT( Voodoo_Input, "  { LAST "_ZD", INPUT LAST "_ZD" }\n", last, input.last );
+                         D_DEBUG_AT( Voodoo_Input, "  { LAST " _ZD ", INPUT LAST " _ZD " }\n", last, input.last );
 
                          if (input.end - last < 4) {
-                              D_DEBUG_AT( Voodoo_Input, "  -> ...only "_ZU" bytes left\n", input.end - last );
+                              D_DEBUG_AT( Voodoo_Input, "  -> ...only " _ZU " bytes left\n", input.end - last );
                               break;
                          }
 
@@ -293,7 +293,7 @@ VoodooConnectionRaw::io_loop()
                          header  = (VoodooMessageHeader *)(input.buffer + last);
                          aligned = VOODOO_MSG_ALIGN( header->size );
 
-                         D_DEBUG_AT( Voodoo_Input, "  -> Next message has %d ("_ZD") bytes and is of type %d...\n",
+                         D_DEBUG_AT( Voodoo_Input, "  -> Next message has %d (" _ZD ") bytes and is of type %d...\n",
                                      header->size, aligned, header->type );
 
                          D_ASSERT( header->size >= (int) sizeof(VoodooMessageHeader) );
@@ -315,7 +315,7 @@ VoodooConnectionRaw::io_loop()
                     if (last != input.last) {
                          input.last = last;
 
-                         D_DEBUG_AT( Voodoo_Input, "  { START "_ZD", LAST "_ZD", END "_ZD", MAX "_ZD" }\n",
+                         D_DEBUG_AT( Voodoo_Input, "  { START " _ZD ", LAST " _ZD ", END " _ZD ", MAX " _ZD " }\n",
                                      input.start, input.last, input.end, input.max );
 
                          // FIXME: don't copy, but read into packet directly, maybe call manager->GetPacket() at the top of this loop

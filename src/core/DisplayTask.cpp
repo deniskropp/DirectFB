@@ -79,7 +79,7 @@ DisplayTask_Generate( CoreLayerRegion      *region,
                       long long             pts,
                       DisplayTask         **ret_task )
 {
-     D_DEBUG_AT( DirectFB_Task, "%s( region %p, "DFB_RECT_FORMAT", "DFB_RECT_FORMAT", flags 0x%04x, ret_task %p )\n", __FUNCTION__,
+     D_DEBUG_AT( DirectFB_Task, "%s( region %p, " DFB_RECT_FORMAT ", " DFB_RECT_FORMAT ", flags 0x%04x, ret_task %p )\n", __FUNCTION__,
                  region, DFB_RECTANGLE_VALS_FROM_REGION( left_update ), DFB_RECTANGLE_VALS_FROM_REGION( right_update ), flags, ret_task );
 
      return DisplayTask::Generate( region, left_update, right_update, flags, pts, ret_task );
