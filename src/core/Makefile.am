@@ -58,6 +58,8 @@ internalinclude_HEADERS = \
 	CoreScreen_includes.h	\
 	$(builddir)/CoreSurface.h		\
 	CoreSurface_includes.h	\
+	$(builddir)/CoreSurfaceAllocation.h		\
+	CoreSurfaceAllocation_includes.h	\
 	$(builddir)/CoreSurfaceClient.h		\
 	CoreSurfaceClient_includes.h	\
 	$(builddir)/CoreWindow.h		\
@@ -67,6 +69,7 @@ internalinclude_HEADERS = \
 	Debug.h			\
 	DisplayTask.h		\
 	Fifo.h			\
+	Graphics.h		\
 	Interface.h		\
 	PacketBuffer.h		\
 	Renderer.h		\
@@ -140,6 +143,8 @@ libdirectfb_core_la_SOURCES = \
 	CoreScreen_real.cpp	\
 	$(builddir)/CoreSurface.cpp		\
 	CoreSurface_real.cpp	\
+	$(builddir)/CoreSurfaceAllocation.cpp		\
+	CoreSurfaceAllocation_real.cpp	\
 	$(builddir)/CoreSurfaceClient.cpp		\
 	CoreSurfaceClient_real.cpp	\
 	$(builddir)/CoreWindow.cpp		\
@@ -148,6 +153,7 @@ libdirectfb_core_la_SOURCES = \
 	CoreWindowStack_real.cpp	\
 	Debug.cpp		\
 	DisplayTask.cpp		\
+	Graphics.cpp		\
 	Interface.cpp		\
 	Renderer.cpp		\
 	SurfaceTask.cpp		\
@@ -241,6 +247,7 @@ $(srcdir)/CorePalette_real.cpp: CorePalette.h
 $(srcdir)/CoreScreen_real.cpp: CoreScreen.h
 $(srcdir)/CoreSlave_real.cpp: CoreSlave.h
 $(srcdir)/CoreSurface_real.cpp: CoreSurface.h
+$(srcdir)/CoreSurfaceAllocation_real.cpp: CoreSurfaceAllocation.h
 $(srcdir)/CoreSurfaceClient_real.cpp: CoreSurfaceClient.h
 $(srcdir)/CoreWindow_real.cpp: CoreWindow.h
 $(srcdir)/CoreWindowStack_real.cpp: CoreWindowStack.h
