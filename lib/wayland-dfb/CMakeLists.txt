@@ -1,6 +1,7 @@
 include_directories ("${CMAKE_CURRENT_BINARY_DIR}")
 include_directories ("${CMAKE_CURRENT_SOURCE_DIR}")
-include_directories ("${WAYLAND_INCLUDE_DIR}")
+include_directories ("${WAYLAND_SERVER_INCLUDE_DIR}")
+include_directories ("${WAYLAND_CLIENT_INCLUDE_DIR}")
 
 configure_file ("${CMAKE_CURRENT_SOURCE_DIR}/wayland-dfb.pc.in"
                 "${CMAKE_CURRENT_BINARY_DIR}/wayland-dfb.pc" @ONLY)
@@ -20,9 +21,9 @@ install (FILES
 add_library (wayland-dfb SHARED ${LIBWAYLANDDFB_SRC})
 
 target_link_libraries (wayland-dfb
-	${WAYLAND_LIBRARIES}
+	${WAYLAND_SERVER_LIBRARIES}
+	${WAYLAND_CLIENT_LIBRARIES}
 )
-
 
 set_target_properties (wayland-dfb PROPERTIES SOVERSION 1 VERSION 1.0.0)
 install (TARGETS wayland-dfb LIBRARY DESTINATION lib)
