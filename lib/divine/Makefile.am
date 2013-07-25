@@ -31,9 +31,7 @@ libdivine_la_SOURCES = \
 	idivine.c
 
 libdivine_la_LIBADD = \
-	$(top_builddir)/lib/direct/libdirect.la \
-	$(top_builddir)/lib/fusion/libfusion.la \
-	$(top_builddir)/src/libdirectfb.la                        
+	$(DFB_BASE_LIBS)
 
 libdivine_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
@@ -69,4 +67,4 @@ endif
 
 
 include $(top_srcdir)/rules/nmfile.make
-
+include $(top_srcdir)/rules/libs_deps.make
