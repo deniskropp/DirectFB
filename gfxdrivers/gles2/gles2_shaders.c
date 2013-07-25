@@ -135,6 +135,8 @@ init_program(GLuint prog_obj,
      }
 
      glUseProgram( prog_obj );
+
+     return DFB_TRUE;
 }
 
 #define GET_UNIFORM_LOCATION(dev, index, name)				\
