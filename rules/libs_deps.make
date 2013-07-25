@@ -5,9 +5,12 @@ libdirectfb = $(top_builddir)/src/libdirectfb.la
 
 libsawman = $(top_builddir)/lib/sawman/libsawman.la
 libdivine = $(top_builddir)/lib/divine/libdivine.la
+libdfbegl = $(top_builddir)/lib/egl/libDFBEGL.la
+libegl = $(top_builddir)/lib/egl/libEGL.la
 libfusiondale = $(top_builddir)/lib/fusiondale/libfusiondale.la
 libfusionsound = $(top_builddir)/lib/fusionsound/libfusionsound.la
 libppdfb = $(top_builddir)/lib/++dfb/lib++dfb.la
+libwayland_dfb = $(top_builddir)/lib/wayland-dfb/libwayland-dfb.la
 
 
 if DIRECTFB_BUILD_VOODOO

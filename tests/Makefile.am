@@ -47,19 +47,26 @@ INCLUDES = \
 	-I$(top_builddir)/lib \
 	-I$(top_builddir)/lib/One \
 	-I$(top_builddir)/lib/divine \
+	-I$(top_builddir)/lib/egl \
 	-I$(top_builddir)/lib/fusiondale \
 	-I$(top_builddir)/lib/sawman \
 	-I$(top_builddir)/src	\
 	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/include/++dfb	\
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/lib/One	\
 	-I$(top_srcdir)/lib/divine	\
+	-I$(top_srcdir)/lib/egl \
 	-I$(top_srcdir)/lib/fusiondale	\
 	-I$(top_srcdir)/lib/sawman	\
 	-I$(top_srcdir)/src	\
+	-I$(top_srcdir)/examples/++dfb	\
 	-DLINUX_2_6
 
 GL_PROGS_ = \
+	dfbtest_egl	\
+	dfbtest_eglimage	\
+	dfbtest_gears	\
 	dfbtest_gl1	\
 	dfbtest_gl2	\
 	dfbtest_gl3	\
@@ -180,6 +187,18 @@ dfbtest_input_LDADD   = $(DFB_BASE_LIBS)
 
 dfbtest_layers_SOURCES = dfbtest_layers.c
 dfbtest_layers_LDADD   = $(DFB_BASE_LIBS)
+
+dfbtest_egl_SOURCES = dfbtest_egl.c
+dfbtest_egl_CFLAGS  = $(GLES2_CFLAGS)
+dfbtest_egl_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl)
+
+dfbtest_eglimage_SOURCES = dfbtest_eglimage.cpp ../examples/++dfb/dfbapp.cpp
+dfbtest_eglimage_CFLAGS  = $(GLES2_CFLAGS)
+dfbtest_eglimage_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl) $(libppdfb)
+
+dfbtest_gears_SOURCES = dfbtest_gears.c
+dfbtest_gears_CFLAGS  = $(GLES2_CFLAGS)
+dfbtest_gears_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl)
 
 dfbtest_gl1_SOURCES = dfbtest_gl1.c
 dfbtest_gl1_CFLAGS  = $(GLES2_CFLAGS)

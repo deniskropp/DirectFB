@@ -17,6 +17,7 @@ dfbtest_gl3
 dfbtest_old_gl2
 dfbtest_init
 dfbtest_input
+dfbtest_gears
 dfbtest_layer
 dfbtest_mirror
 dfbtest_prealloc

@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: wayland-dfb
+Description: DirectFB wayland interface library
+Version: @VERSION@
+Libs: -L${libdir} -lwayland-dfb
+Cflags: -I${includedir}

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="dfb">
+
+  <copyright>
+   (c) Copyright 2012-2013  DirectFB integrated media GmbH
+   (c) Copyright 2001-2013  The world wide DirectFB Open Source Community (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
+
+   All rights reserved.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+  </copyright>
+
+  <!-- DirectFB support. This object is created by the server and published
+       using the display's global event. -->
+  <interface name="wl_dfb" version="1">
+    <enum name="error">
+      <entry name="authenticate_fail" value="0"/>
+      <entry name="invalid_format" value="1"/>
+      <entry name="invalid_name" value="2"/>
+    </enum>
+
+    <!-- Create a wayland buffer for the surface buffer -->
+    <request name="create_buffer">
+      <arg name="id" type="new_id" interface="wl_dfb_buffer"/>
+      <arg name="surface_id" type="uint"/>
+      <arg name="buffer_id" type="uint"/>
+      <arg name="allocation_id" type="uint"/>
+    </request>
+  </interface>
+
+
+  <!-- DirectFB buffers. -->
+  <interface name="wl_dfb_buffer" version="1">
+
+    <request name="destroy" type="destructor">
+      <description summary="destroy a buffer">
+      Destroy a buffer. If and how you need to release the backing
+      storage is defined by the buffer factory interface.
+
+      For possible side-effects to a surface, see wl_surface.attach.
+      </description>
+    </request>
+
+    <!-- Set the timestamp at which the DirectFB buffer should be made visible -->
+    <request name="set_display_timestamp">
+      <arg name="ts_low" type="uint"/>
+      <arg name="ts_high" type="uint"/>
+    </request>
+  </interface>
+
+</protocol>
