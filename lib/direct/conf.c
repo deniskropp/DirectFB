@@ -60,6 +60,7 @@ const char   *direct_config_usage =
      "  debug-none                     Disable all debug output (regardless of all other debug options)\n"
      "  [no-]debugmem                  Enable memory allocation tracking\n"
      "  [no-]trace                     Enable stack trace support\n"
+     "  [no-]nm-for-trace              Enable running nm in a child process to retrieve symbols\n"
      "  log-file=<name>                Write all messages to a file\n"
      "  log-udp=<host>:<port>          Send all messages via UDP to host:port\n"
      "  fatal-level=<level>            Abort on NONE, ASSERT (default) or ASSUME (incl. assert)\n"
@@ -97,6 +98,30 @@ __D_conf_init()
      direct_config->fatal_break           = true;
      direct_config->thread_block_signals  = true;
      direct_config->thread_priority_scale = 100;
+
+     char *args = getenv( "D_ARGS" );
+
+     if (args) {
+          args = direct_strdup( args );
+
+          char *p = NULL, *r, *s = args;
+
+          while ((r = direct_strtok_r( s, ",", &p ))) {
+               char *v;
+
+               direct_trim( &r );
+
+               v = strchr( r, '=' );
+               if (v)
+                    *v++ = 0;
+
+               direct_config_set( r, v );
+
+               s = NULL;
+          }
+
+          direct_free( args );
+     }
 }
 
 void
@@ -369,6 +394,14 @@ direct_config_set( const char *name, const char *value )
      else
           if (direct_strcmp (name, "no-trace" ) == 0) {
           direct_config->trace = false;
+     }
+     else
+          if (direct_strcmp (name, "nm-for-trace" ) == 0) {
+          direct_config->nm_for_trace = true;
+     }
+     else
+          if (direct_strcmp (name, "no-nm-for-trace" ) == 0) {
+          direct_config->nm_for_trace = false;
      }
      else
           if (direct_strcmp (name, "log-file" ) == 0 || strcmp (name, "log-udp" ) == 0) {
