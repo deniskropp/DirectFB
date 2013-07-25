@@ -84,8 +84,10 @@ template <class _CharT = char>
 class StringBase
 {
 private:
-     std::basic_string<_CharT>  _str;
-     std::basic_string<_CharT> &str;
+     typedef typename std::basic_string<_CharT> std_string_type;
+
+     std_string_type  _str;
+     std_string_type &str;
 
 public:
      StringBase()
@@ -101,7 +103,7 @@ public:
      {
      }
 
-     StringBase( std::string &str )
+     StringBase( std_string_type &str )
           :
           str( str )
      {
@@ -137,7 +139,7 @@ public:
 
 
 
-     inline std::string &
+     inline std_string_type &
      string()
      {
           return str;
@@ -160,8 +162,12 @@ public:
       * Use
       */
 
-     inline operator const std::string& () const {
+     inline operator const std_string_type& () const {
           return str;
+     }
+
+     inline operator bool () const {
+          return !str.empty();
      }
 
      inline const _CharT * operator *() const {
@@ -170,6 +176,10 @@ public:
 
      inline bool operator ==(const _CharT *buf) const {
           return !strcmp( buffer(), buf );
+     }
+
+     inline bool operator ==(const StringBase<_CharT> &other) const {
+          return str == other.str;
      }
 
 
@@ -188,25 +198,61 @@ public:
           return *this;
      }
 
+     inline StringBase& operator= (const std_string_type &string) {
+          _str = string;
+          str = _str;
+          return *this;
+     }
+
+     inline void Set( const _CharT *buf ) {
+          str = buf;
+     }
+
+     inline void Set( const StringBase &other ) {
+          _str = other.str;
+          str = _str;
+     }
+
+     inline void Set( const std_string_type &string ) {
+          _str = string;
+          str = _str;
+     }
+
 
      /*
       * Append
       */
 
-     inline StringBase& operator+= (const StringBase &other) {
-          str.append( other.str );
-          return *this;
+     inline StringBase operator+ (const _CharT *buf) {
+          StringBase result = *this;
+          result.str.append( buf );
+          return result;
      }
+
+//     inline StringBase operator/ (const _CharT *buf) const {
+//          StringBase result = *this;
+//          result.str.append( "/" );
+//          result.str.append( buf );
+//          return result;
+//     }
+
+
+     inline StringBase operator/ (const StringBase &other) const {
+          StringBase result = *this;
+          result.str.append( "/" );
+          result.str.append( other.str );
+          return result;
+     }
+
 
      inline StringBase& operator+= (const _CharT *buf) {
           str.append( buf );
           return *this;
      }
 
-     inline StringBase operator+ (const _CharT *buf) {
-          StringBase<_CharT> result = *this;
-          result.str.append( buf );
-          return result;
+     inline StringBase& operator+= (const StringBase &other) {
+          str.append( other.str );
+          return *this;
      }
 
 
@@ -235,6 +281,19 @@ template <class _CharT = char>
 class StringsBase : public std::vector<StringBase<_CharT> >
 {
 public:
+     StringsBase() {
+     }
+
+     StringsBase( const _CharT *string )
+     {
+          this->push_back( string );
+     }
+
+     StringsBase( const StringBase<_CharT> &string )
+     {
+          push_back( string );
+     }
+
      Direct::String
      Concatenated( const Direct::String &space ) const
      {
@@ -248,6 +307,12 @@ public:
           }
 
           return result;
+     }
+
+     static Direct::Strings
+     FromTokens( const StringBase<_CharT> &string, const StringBase<_CharT> &delimiter )
+     {
+          return string.GetTokens( delimiter );
      }
 };
 

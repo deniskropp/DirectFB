@@ -85,9 +85,15 @@ public:
 
 
 template<>
-inline ToString<int>::ToString( const int &n )
+inline ToString<bool>::ToString( const bool &v )
 {
-     PrintF( "%d", n );
+     PrintF( "%s", v ? "true" : "false" );
+}
+
+template<>
+inline ToString<int>::ToString( const int &v )
+{
+     PrintF( "%d", v );
 }
 
 
