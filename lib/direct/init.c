@@ -32,6 +32,7 @@
 
 #include <config.h>
 
+#include <direct/Base.h>
 #include <direct/direct.h>
 #include <direct/log.h>
 #include <direct/log_domain.h>
@@ -67,9 +68,11 @@ static Func init_funcs[] = {
      __D_perf_init,
      __D_interface_init,
      __D_interface_dbg_init,
+     __D_base_init,
 };
 
 static Func deinit_funcs[] = {
+     __D_base_deinit,
      __D_interface_dbg_deinit,
      __D_interface_deinit,
      __D_log_domain_deinit,
