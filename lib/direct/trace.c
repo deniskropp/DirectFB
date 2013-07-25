@@ -266,6 +266,11 @@ load_symbols( const char *filename )
           if (ret) {
                direct_snprintf( command, command_len, "nm -nC %s", full_path );
 
+               if (!direct_config->nm_for_trace) {
+                    D_DEBUG_AT( Direct_Trace, "not running '%s', enable via 'nm-for-trace' option\n", command );
+                    return NULL;
+               }
+
                D_DEBUG_AT( Direct_Trace, "running '%s'...\n", command );
 
                ret = direct_popen( &fp, command, O_RDONLY );
