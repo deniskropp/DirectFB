@@ -219,7 +219,7 @@ VoodooConnectionPacket::io_loop()
                switch (ret) {
                     case DR_OK:
                          if (chunk_write && chunk_write->done) {
-                              D_DEBUG_AT( Voodoo_Output, "  -> Sent "_ZD"/"_ZD" bytes... (packet %p)\n", chunk_write->done, chunk_write->length, packet );
+                              D_DEBUG_AT( Voodoo_Output, "  -> Sent " _ZD "/" _ZD " bytes... (packet %p)\n", chunk_write->done, chunk_write->length, packet );
 
                               output.sent += chunk_write->done;
 
@@ -265,7 +265,7 @@ VoodooConnectionPacket::io_loop()
 
 
                if (chunk_read && chunk_read->done) {
-                    D_DEBUG_AT( Voodoo_Input, "  -> Received "_ZD" bytes...\n", chunk_read->done );
+                    D_DEBUG_AT( Voodoo_Input, "  -> Received " _ZD " bytes...\n", chunk_read->done );
 
                     input.end += (size_t) chunk_read->done;
 
@@ -281,7 +281,7 @@ VoodooConnectionPacket::io_loop()
                          D_DEBUG_AT( Voodoo_Input, "  -> header->size = %u\n", header->size );
                          aligned = VOODOO_MSG_ALIGN( header->size );
 
-                         D_DEBUG_AT( Voodoo_Input, "  -> Next packet has %u ("_ZU") -> %u bytes (flags 0x%04x)...\n",
+                         D_DEBUG_AT( Voodoo_Input, "  -> Next packet has %u (" _ZU ") -> %u bytes (flags 0x%04x)...\n",
                                      header->size, aligned, header->uncompressed, header->flags );
 
                          if (input.end - last >= sizeof(VoodooPacketHeader)) {
@@ -314,7 +314,7 @@ VoodooConnectionPacket::io_loop()
                     if (last != input.last) {
                          input.last = last;
 
-                         D_DEBUG_AT( Voodoo_Input, "  { START "_ZD", LAST "_ZD", END "_ZD", MAX "_ZD" }\n",
+                         D_DEBUG_AT( Voodoo_Input, "  { START " _ZD ", LAST " _ZD ", END " _ZD ", MAX " _ZD " }\n",
                                      input.start, input.last, input.end, input.max );
 
                          while (input.start < input.last) {
@@ -328,7 +328,7 @@ VoodooConnectionPacket::io_loop()
                               if (header->flags & VPHF_COMPRESSED) {
                                    size_t uncompressed = direct_fastlz_decompress( header + 1, header->size, tmp, header->uncompressed );
 
-                                   D_DEBUG_AT( Voodoo_Input, "  -> Uncompressed "_ZU" bytes (%u compressed)\n", uncompressed, header->size );
+                                   D_DEBUG_AT( Voodoo_Input, "  -> Uncompressed " _ZU " bytes (%u compressed)\n", uncompressed, header->size );
 
                                    (void) uncompressed;
 
