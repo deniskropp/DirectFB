@@ -91,6 +91,14 @@ public:
                delete[] array;
      }
 
+     inline T * operator *() const {
+          return array;
+     }
+
+     inline operator T * () const {
+          return array;
+     }
+
      size_t  size;
      T       fixed[DIRECTFB_UTIL_MAX_STACK / sizeof(T)];
      T      *array;
