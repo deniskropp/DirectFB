@@ -360,6 +360,11 @@ static __inline__ long long direct_clock_diff( DirectClock *clock ) {
      ((n) / direct_clock_diff( clock )), ((long)(((n) * 1000LL / direct_clock_diff( clock ) % 1000)))
 
 
+
+bool DIRECT_API direct_pointer_is_accessible( void *p );
+
+
+
 void __D_util_init( void );
 void __D_util_deinit( void );
 

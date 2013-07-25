@@ -39,6 +39,8 @@
 #include <direct/util.h>
 
 
+D_DEBUG_DOMAIN( Direct_Util, "Direct/Util", "Direct Util" );
+
 /**********************************************************************************************************************/
 
 static const char *strings_base[150];
@@ -530,5 +532,29 @@ direct_bsearch( const void *key,
 #else
      return bsearch( key, base, nmemb, size, func );
 #endif
+}
+
+
+bool
+direct_pointer_is_accessible( void *p )
+{
+     D_DEBUG_AT( Direct_Util, "%s( %p )\n", __FUNCTION__, p );
+
+     if (p == NULL)
+          return false;
+
+#ifdef HAVE_MINCORE
+     unsigned char c = 0;
+
+     if (mincore( (void *) direct_page_align( (unsigned long) p ), direct_pagesize(), &c ) < 0) {
+          D_DEBUG_AT( Direct_Util, "  -> mincore failed! (%s)\n", strerror(errno) );
+          return false;
+     }
+
+     if (!(c & 0x01))
+          return false;
+#endif
+
+     return true;
 }
 
