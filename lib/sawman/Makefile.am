@@ -80,9 +80,7 @@ libsawman_la_SOURCES = \
 	sawman_window.h
 
 libsawman_la_LIBADD = \
-	$(top_builddir)/lib/direct/libdirect.la \
-	$(top_builddir)/lib/fusion/libfusion.la \
-	$(top_builddir)/src/libdirectfb.la
+	$(DFB_BASE_LIBS)
 
 libsawman_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
@@ -131,4 +129,4 @@ $(srcdir)/Debug.cpp: sawman_strings.h
 
 include $(top_srcdir)/rules/flux_comp_sawman.make
 include $(top_srcdir)/rules/nmfile.make
-
+include $(top_srcdir)/rules/libs_deps.make
