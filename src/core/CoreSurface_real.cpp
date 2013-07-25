@@ -911,5 +911,125 @@ out:
 }
 
 
+DFBResult
+ISurface_Real::Allocate( CoreSurfaceBufferRole   role,
+                         DFBSurfaceStereoEye     eye,
+                         const char             *key,
+                         u32                     key_len,
+                         u64                     handle,
+                         CoreSurfaceAllocation **ret_allocation )
+{
+     DFBResult              ret;
+     CoreSurfaceBuffer     *buffer;
+     CoreSurfaceAllocation *allocation;
+
+     D_ASSERT( key != NULL );
+     D_ASSERT( key_len > 0 );
+     D_ASSERT( key[key_len-1] == 0 );
+     D_ASSERT( ret_allocation != NULL );
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( role %d, eye %d, key '%s', handle 0x%08llx )\n",
+                 __FUNCTION__, role, eye, key, (unsigned long long) handle );
+
+     ret = (DFBResult) dfb_surface_lock( obj );
+     if (ret)
+          return ret;
+
+     if (obj->num_buffers == 0) {
+          ret = DFB_NOBUFFER;
+          goto out;
+     }
+
+     buffer = dfb_surface_get_buffer3( obj, role, eye, obj->flips );
+     CORE_SURFACE_BUFFER_ASSERT( buffer );
+
+     ret = dfb_surface_pools_allocate_key( buffer, key, handle, &allocation );
+     if (ret)
+          goto out;
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     ret = (DFBResult) dfb_surface_allocation_ref( allocation );
+     if (ret)
+          goto out;
+
+     *ret_allocation = allocation;
+
+out:
+     dfb_surface_unlock( obj );
+
+     return ret;
+}
+
+DFBResult
+ISurface_Real::GetAllocation( CoreSurfaceBufferRole   role,
+                              DFBSurfaceStereoEye     eye,
+                              const char             *key,
+                              u32                     key_len,
+                              CoreSurfaceAllocation **ret_allocation )
+{
+     DFBResult              ret;
+     CoreSurfaceBuffer     *buffer;
+     CoreSurfaceAllocation *allocation;
+
+     D_ASSERT( key != NULL );
+     D_ASSERT( key_len > 0 );
+     D_ASSERT( key[key_len-1] == 0 );
+     D_ASSERT( ret_allocation != NULL );
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( role %d, eye %d, key '%s' )\n", __FUNCTION__, role, eye, key );
+
+     if (eye != DSSE_LEFT && eye != DSSE_RIGHT)
+          return DFB_INVARG;
+
+     ret = (DFBResult) dfb_surface_lock( obj );
+     if (ret)
+          return ret;
+
+     if (obj->num_buffers == 0) {
+          ret = DFB_NOBUFFER;
+          goto out;
+     }
+
+     if (role > obj->num_buffers - 1) {
+          ret = DFB_LIMITEXCEEDED;
+          goto out;
+     }
+
+     if (eye == DSSE_RIGHT && !(obj->config.caps & DSCAPS_STEREO)) {
+          ret = DFB_INVAREA;
+          goto out;
+     }
+
+     buffer = dfb_surface_get_buffer3( obj, role, eye, obj->flips );  // FIXME: with or without flips? or let app decide?
+     CORE_SURFACE_BUFFER_ASSERT( buffer );
+
+     allocation = dfb_surface_buffer_find_allocation_key( buffer, key );
+     if (!allocation) {
+          if (!0) {
+               ret = DFB_ITEMNOTFOUND;
+               goto out;
+          }
+
+          ret = dfb_surface_pools_allocate_key( buffer, key, 0, &allocation );
+          if (ret)
+               goto out;
+     }
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     ret = (DFBResult) dfb_surface_allocation_ref( allocation );
+     if (ret)
+          goto out;
+
+     *ret_allocation = allocation;
+
+out:
+     dfb_surface_unlock( obj );
+
+     return ret;
+}
+
+
 }
 

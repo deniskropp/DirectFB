@@ -113,6 +113,10 @@ struct __DFB_CoreSurfaceAllocation {
      DFB_SurfaceTaskListSimple     *read_tasks;
 
      unsigned int                   invalidated;  /* bit mask of accessors which have already invalidated their cache for this allocation */
+
+     FusionCall                     call;
+
+     FusionObjectID                 buffer_id;
 };
 
 #define CORE_SURFACE_ALLOCATION_ASSERT(alloc)                                                  \

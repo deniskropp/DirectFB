@@ -17,6 +17,8 @@ CoreSlave.cpp
 CoreSlave.h
 CoreSurface.cpp
 CoreSurface.h
+CoreSurfaceAllocation.cpp
+CoreSurfaceAllocation.h
 CoreSurfaceClient.cpp
 CoreSurfaceClient.h
 CoreScreen.cpp

@@ -565,7 +565,7 @@ CoreSurfaceAllocation_Throw( CoreSurfaceAllocation *allocation,
                                      (FusionReactorPermissions)(FUSION_REACTOR_PERMIT_ATTACH_DETACH) );
      fusion_ref_add_permissions( &allocation->object.ref, catcher,
                                  (FusionRefPermissions)(FUSION_REF_PERMIT_REF_UNREF_LOCAL | FUSION_REF_PERMIT_CATCH) );
-     //fusion_call_add_permissions( &allocation->call, catcher, FUSION_CALL_PERMIT_EXECUTE );
+     fusion_call_add_permissions( &allocation->call, catcher, FUSION_CALL_PERMIT_EXECUTE );
 
      fusion_object_add_owner( &allocation->object, catcher );
 

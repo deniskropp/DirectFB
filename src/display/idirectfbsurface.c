@@ -62,6 +62,7 @@
 #include <media/idirectfbfont.h>
 
 #include <display/idirectfbsurface.h>
+#include <display/idirectfbsurfaceallocation.h>
 #include <display/idirectfbpalette.h>
 
 #include <input/idirectfbinputbuffer.h>
@@ -3515,6 +3516,146 @@ IDirectFBSurface_SetFrameTimeConfig( IDirectFBSurface         *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_Allocate( IDirectFBSurface            *thiz,
+                           DFBSurfaceBufferRole         role,
+                           DFBSurfaceStereoEye          eye,
+                           const char                  *key,
+                           u64                          handle,
+                           IDirectFBSurfaceAllocation **ret_allocation )
+{
+     DFBResult                   ret;
+     CoreSurfaceAllocation      *allocation;
+     IDirectFBSurfaceAllocation *interface_ptr;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, role %d, eye %d, key '%s', handle 0x%08llx )\n",
+                 __FUNCTION__, thiz, role, eye, key, (unsigned long long) handle );
+
+     ret = CoreSurface_Allocate( data->surface, role, eye, key, strlen(key)+1, handle, &allocation );
+     if (ret) {
+          //D_DERROR( ret, "IDirectFBSurface/Allocate: CoreSurface_Allocate( role %d, eye %d, key '%s', handle 0x%08llx ) failed!\n",
+          //          role, eye, key, (unsigned long long) handle );
+          return ret;
+     }
+
+     DIRECT_ALLOCATE_INTERFACE( interface_ptr, IDirectFBSurfaceAllocation );
+
+     if (interface_ptr)
+          ret = IDirectFBSurfaceAllocation_Construct( interface_ptr, allocation, thiz );
+     else
+          ret = DFB_NOSYSTEMMEMORY;
+
+     dfb_surface_allocation_unref( allocation );
+
+     *ret_allocation = interface_ptr;
+
+     return ret;
+}
+
+static DFBResult
+IDirectFBSurface_GetAllocation( IDirectFBSurface            *thiz,
+                                DFBSurfaceBufferRole         role,
+                                DFBSurfaceStereoEye          eye,
+                                const char                  *key,
+                                IDirectFBSurfaceAllocation **ret_allocation )
+{
+     DFBResult                   ret;
+     CoreSurfaceAllocation      *allocation;
+     IDirectFBSurfaceAllocation *interface_ptr;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, role %d, eye %d, key '%s' )\n", __FUNCTION__, thiz, role, eye, key );
+
+     ret = CoreSurface_GetAllocation( data->surface, role, eye, key, strlen(key)+1, &allocation );
+     if (ret) {
+          //D_DERROR( ret, "IDirectFBSurface/GetAllocation: CoreSurface_GetAllocation( role %d, eye %d, key '%s' ) failed!\n", role, eye, key );
+          return ret;
+     }
+
+     DIRECT_ALLOCATE_INTERFACE( interface_ptr, IDirectFBSurfaceAllocation );
+
+     if (interface_ptr)
+          ret = IDirectFBSurfaceAllocation_Construct( interface_ptr, allocation, thiz );
+     else
+          ret = DFB_NOSYSTEMMEMORY;
+
+     dfb_surface_allocation_unref( allocation );
+
+     *ret_allocation = interface_ptr;
+
+     return ret;
+}
+
+static DFBResult
+IDirectFBSurface_GetAllocations( IDirectFBSurface            *thiz,
+                                 const char                  *key,
+                                 unsigned int                 max_num,
+                                 unsigned int                *ret_num,
+                                 IDirectFBSurfaceAllocation **ret_left,
+                                 IDirectFBSurfaceAllocation **ret_right )
+{
+     DFBResult                   ret;
+     int                         i;
+     unsigned int                num;
+     IDirectFBSurfaceAllocation *left[MAX_SURFACE_BUFFERS];
+     IDirectFBSurfaceAllocation *right[MAX_SURFACE_BUFFERS];
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, key '%s', max %u )\n", __FUNCTION__, thiz, key, max_num );
+
+     if (!key || max_num < 1 || !ret_num || (!ret_left && !ret_right))
+          return DFB_INVARG;
+
+     num = data->surface->num_buffers;
+     if (num > max_num)
+          num = max_num;
+
+     memset( left, 0, num * sizeof(left[0]) );
+     memset( right, 0, num * sizeof(right[0]) );
+
+     for (i=0; i<num; i++) {
+          if (ret_left) {
+               ret = thiz->GetAllocation( thiz, i, DSSE_LEFT, key, &left[i] );
+               if (ret)
+                    goto error;
+          }
+
+          if (ret_right) {
+               ret = thiz->GetAllocation( thiz, i, DSSE_RIGHT, key, &right[i] );
+               if (ret)
+                    goto error;
+          }
+     }
+
+     for (i=0; i<num; i++) {
+          if (ret_left)
+               ret_left[i] = left[i];
+
+          if (ret_right)
+               ret_right[i] = right[i];
+     }
+
+     *ret_num = num;
+
+     return DFB_OK;
+
+
+error:
+     for (i=num-1; i>=0; i--) {
+          if (right[i])
+               right[i]->Release( right[i] );
+
+          if (left[i])
+               left[i]->Release( left[i] );
+     }
+
+     return ret;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -3734,6 +3875,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->GetFrameTime       = IDirectFBSurface_GetFrameTime;
      thiz->SetFrameTimeConfig = IDirectFBSurface_SetFrameTimeConfig;
+
+     thiz->Allocate       = IDirectFBSurface_Allocate;
+     thiz->GetAllocation  = IDirectFBSurface_GetAllocation;
+     thiz->GetAllocations = IDirectFBSurface_GetAllocations;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

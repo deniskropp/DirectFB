@@ -188,7 +188,7 @@ dfb_surface_buffer_create( CoreDFB                 *core,
                return ret;
           }
 
-          ret = dfb_surface_pool_allocate( pool, buffer, &alloc );
+          ret = dfb_surface_pool_allocate( pool, buffer, NULL, 0, &alloc );
           if (ret) {
                fusion_object_destroy( &buffer->object );
                return ret;
@@ -320,6 +320,26 @@ dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,
 
      /* ...otherwise we can still prefer the up to date allocation for Read/Write()! */
      return uptodate ?: outdated;
+}
+
+CoreSurfaceAllocation *
+dfb_surface_buffer_find_allocation_key( CoreSurfaceBuffer *buffer,
+                                        const char        *key )
+{
+     int                    i;
+     CoreSurfaceAllocation *alloc;
+
+     D_DEBUG_AT( Core_SurfBuffer, "%s( %p )\n", __FUNCTION__, buffer );
+
+     D_MAGIC_ASSERT( buffer->surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
+
+     fusion_vector_foreach (alloc, i, buffer->allocs) {
+          if (dfb_surface_pool_check_key( alloc->pool, buffer, key, 0 ) == DFB_OK)
+               return alloc;
+     }
+
+     return NULL;
 }
 
 DFBResult

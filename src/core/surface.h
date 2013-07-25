@@ -165,7 +165,7 @@ typedef enum {
      CSAF_CACHE_FLUSH      = 0x00000200,  /* accessor should flush its cache after writing */
 
      CSAF_ALL              = 0x00000313
-} CoreSurfaceAccessFlags;
+} CoreSurfaceAccessFlags;     // FIXME: replace by DFBSurfaceAccessFlags
 
 typedef enum {
      CSAID_NONE          = 0x00000000,  /* none or unknown accessor */
@@ -207,7 +207,7 @@ typedef enum {
      CSBR_FRONT          = 0,
      CSBR_BACK           = 1,
      CSBR_IDLE           = 2
-} CoreSurfaceBufferRole;
+} CoreSurfaceBufferRole;     // FIXME: replace by DFBSurfaceBufferRole
 
 typedef enum {
      CSSF_NONE           = 0x00000000,

@@ -224,6 +224,10 @@ dfb_surface_buffer_find_allocation( CoreSurfaceBuffer       *buffer,
                                     CoreSurfaceAccessFlags   flags,
                                     bool                     lock );
 
+CoreSurfaceAllocation *
+dfb_surface_buffer_find_allocation_key( CoreSurfaceBuffer       *buffer,
+                                        const char              *key );
+
 static inline int
 dfb_surface_buffer_index( CoreSurfaceBuffer *buffer )
 {

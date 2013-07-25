@@ -336,5 +336,94 @@ interface {
                        typename    s64
                }
         }
+
+
+        method {
+               name    Allocate
+
+               arg {
+                       name        role
+                       direction   input
+                       type        enum
+                       typename    CoreSurfaceBufferRole
+               }
+
+               arg {
+                       name        eye
+                       direction   input
+                       type        enum
+                       typename    DFBSurfaceStereoEye
+               }
+
+               arg {
+                       name        key
+                       direction   input
+                       type        int
+                       typename    char
+                       count       key_len
+               }
+
+               arg {
+                       name        key_len
+                       direction   input
+                       type        int
+                       typename    u32
+               }
+
+               arg {
+                       name        handle
+                       direction   input
+                       type        int
+                       typename    u64
+               }
+
+               arg {
+                       name        allocation
+                       direction   output
+                       type        object
+                       typename    CoreSurfaceAllocation
+               }
+       }
+
+
+       method {
+              name    GetAllocation
+
+              arg {
+                      name        role
+                      direction   input
+                      type        enum
+                      typename    CoreSurfaceBufferRole
+              }
+
+              arg {
+                      name        eye
+                      direction   input
+                      type        enum
+                      typename    DFBSurfaceStereoEye
+              }
+
+              arg {
+                      name        key
+                      direction   input
+                      type        int
+                      typename    char
+                      count       key_len
+              }
+
+              arg {
+                      name        key_len
+                      direction   input
+                      type        int
+                      typename    u32
+              }
+
+              arg {
+                      name        allocation
+                      direction   output
+                      type        object
+                      typename    CoreSurfaceAllocation
+              }
+      }
 }
 

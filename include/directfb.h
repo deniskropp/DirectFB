@@ -80,6 +80,16 @@ D_DECLARE_INTERFACE( IDirectFB )
 D_DECLARE_INTERFACE( IDirectFBSurface )
 
 /*
+ * Interface to a surface buffer object, being the surface contents at a specific moment.
+ */
+D_DECLARE_INTERFACE( IDirectFBSurfaceBuffer )
+
+/*
+ * Interface to a surface allocation object, being an actual buffer being allocated for a surface.
+ */
+D_DECLARE_INTERFACE( IDirectFBSurfaceAllocation )
+
+/*
  * Interface for read/write access to the colors of a palette object and for cloning it.
  */
 D_DECLARE_INTERFACE( IDirectFBPalette )
@@ -399,6 +409,8 @@ typedef unsigned int DFBScreenID;
 typedef unsigned int DFBDisplayLayerID;
 typedef unsigned int DFBDisplayLayerSourceID;
 typedef unsigned int DFBSurfaceID;
+typedef unsigned int DFBSurfaceBufferID;
+typedef unsigned int DFBSurfaceAllocationID;
 typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
 typedef unsigned int DFBTextEncodingID;
@@ -2195,9 +2207,27 @@ D_DEFINE_INTERFACE(   IDirectFB,
       * Get a surface by ID.
       */
      DFBResult (*GetSurface) (
-          IDirectFB                *thiz,
-          DFBSurfaceID              surface_id,
-          IDirectFBSurface        **ret_interface
+          IDirectFB                    *thiz,
+          DFBSurfaceID                  surface_id,
+          IDirectFBSurface            **ret_interface
+     );
+
+     /*
+      * Get a surface buffer by ID.
+      */
+     DFBResult (*GetSurfaceBuffer) (
+          IDirectFB                    *thiz,
+          DFBSurfaceBufferID            buffer_id,
+          IDirectFBSurfaceBuffer      **ret_interface
+     );
+
+     /*
+      * Get a surface allocation by ID.
+      */
+     DFBResult (*GetSurfaceAllocation) (
+          IDirectFB                    *thiz,
+          DFBSurfaceAllocationID        allocation_id,
+          IDirectFBSurfaceAllocation  **ret_interface
      );
 )
 
@@ -3720,6 +3750,26 @@ typedef struct {
      long long                max_advance;
 } DFBFrameTimeConfig;
 
+typedef enum {
+     DSBR_FRONT          = 0,
+     DSBR_BACK           = 1,
+     DSBR_IDLE           = 2
+} DFBSurfaceBufferRole;
+
+typedef enum {
+     DSAF_NONE             = 0x00000000,
+
+     DSAF_READ             = 0x00000001,  /* accessor may read */
+     DSAF_WRITE            = 0x00000002,  /* accessor may write */
+
+     DSAF_SHARED           = 0x00000010,  /* other processes can read/write at the same time (shared mapping) */
+
+     DSAF_CACHE_INVALIDATE = 0x00000100,  /* accessor should invalidate its cache before reading/writing */
+     DSAF_CACHE_FLUSH      = 0x00000200,  /* accessor should flush its cache after writing */
+
+     DSAF_ALL              = 0x00000313
+} DFBSurfaceAccessFlags;
+
 /********************
  * IDirectFBSurface *
  ********************/
@@ -4864,6 +4914,212 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*SetFrameTimeConfig) (
           IDirectFBSurface              *thiz,
           const DFBFrameTimeConfig      *config
+     );
+
+
+  /** Allocations **/
+
+     /*
+      * Add implementation specific handle as buffer allocation.
+      */
+     DFBResult (*Allocate) (
+          IDirectFBSurface            *thiz,
+          DFBSurfaceBufferRole         role,
+          DFBSurfaceStereoEye          eye,
+          const char                  *key,
+          u64                          handle,
+          IDirectFBSurfaceAllocation **ret_allocation
+     );
+
+     /*
+      * Acquire implementation specific handle from surface.
+      */
+     DFBResult (*GetAllocation) (
+          IDirectFBSurface            *thiz,
+          DFBSurfaceBufferRole         role,
+          DFBSurfaceStereoEye          eye,
+          const char                  *key,
+          IDirectFBSurfaceAllocation **ret_allocation
+     );
+
+     /*
+      * Acquire implementation specific handles from surface.
+      */
+     DFBResult (*GetAllocations) (
+          IDirectFBSurface            *thiz,
+          const char                  *key,
+          unsigned int                 max_num,
+          unsigned int                *ret_num,
+          IDirectFBSurfaceAllocation **ret_left,
+          IDirectFBSurfaceAllocation **ret_right
+     );
+)
+
+/**************************
+ * IDirectFBSurfaceBuffer *
+ **************************/
+
+/*
+ * <i>No summary yet...</i>
+ */
+D_DEFINE_INTERFACE(   IDirectFBSurfaceBuffer,
+
+   /** Information **/
+
+     /*
+      * Get the unique surface allocation ID.
+      */
+     DFBResult (*GetID) (
+          IDirectFBSurfaceBuffer        *thiz,
+          DFBSurfaceBufferID            *ret_id
+     );
+
+     /*
+      * Get a description of the allocation's surface.
+      */
+     DFBResult (*GetDescription) (
+          IDirectFBSurfaceBuffer        *thiz,
+          DFBSurfaceDescription         *ret_desc
+     );
+
+
+   /** Security **/
+
+     /*
+      * Allow access.
+      */
+     DFBResult (*AllowAccess) (
+          IDirectFBSurfaceBuffer        *thiz,
+          const char                    *executable
+     );
+
+
+  /** Allocations **/
+
+     /*
+      * Add implementation specific handle as buffer allocation.
+      */
+     DFBResult (*Allocate) (
+          IDirectFBSurfaceBuffer      *thiz,
+          const char                  *key,
+          u64                          handle,
+          IDirectFBSurfaceAllocation **ret_allocation
+     );
+
+     /*
+      * Acquire implementation specific handle from surface.
+      */
+     DFBResult (*GetAllocation) (
+          IDirectFBSurfaceBuffer      *thiz,
+          const char                  *key,
+          IDirectFBSurfaceAllocation **ret_allocation
+     );
+)
+
+/******************************
+ * IDirectFBSurfaceAllocation *
+ ******************************/
+
+/*
+ * <i>No summary yet...</i>
+ */
+D_DEFINE_INTERFACE(   IDirectFBSurfaceAllocation,
+
+   /** Information **/
+
+     /*
+      * Get the unique surface allocation ID.
+      */
+     DFBResult (*GetID) (
+          IDirectFBSurfaceAllocation    *thiz,
+          DFBSurfaceAllocationID        *ret_id
+     );
+
+     /*
+      * Get a description of the allocation's surface.
+      */
+     DFBResult (*GetDescription) (
+          IDirectFBSurfaceAllocation    *thiz,
+          DFBSurfaceDescription         *ret_desc
+     );
+
+     /*
+      * 
+      */
+     DFBResult (*GetKey) (
+          IDirectFBSurfaceAllocation    *thiz,
+          unsigned int                   max_len,
+          unsigned int                  *ret_len,
+          char                          *ret_key
+     );
+
+
+   /** Security **/
+
+     /*
+      * Allow access.
+      */
+     DFBResult (*AllowAccess) (
+          IDirectFBSurfaceAllocation    *thiz,
+          const char                    *executable
+     );
+
+
+   /** Access **/
+
+     /*
+      * Get the surface allocation data.
+      */
+     DFBResult (*GetHandle) (
+          IDirectFBSurfaceAllocation    *thiz,
+          u64                           *ret_handle
+     );
+
+     /*
+      * Update the surface allocation if outdated.
+      */
+     DFBResult (*Update) (
+          IDirectFBSurfaceAllocation    *thiz
+     );
+
+     /*
+      * Update other surface allocations.
+      */
+     DFBResult (*Updated) (
+          IDirectFBSurfaceAllocation    *thiz,
+          const DFBBox                  *updates,
+          unsigned int                   num_updates
+     );
+
+
+   /** Write/Read **/
+
+     /*
+      * Write to the surface without the need for (Un)Lock.
+      *
+      * <b>rect</b> defines the area inside the surface.
+      * <br><b>ptr</b> and <b>pitch</b> specify the source.
+      * <br>The format of the surface and the source data must be the same.
+      */
+     DFBResult (*Write) (
+          IDirectFBSurfaceAllocation    *thiz,
+          const DFBRectangle            *rect,
+          const void                    *ptr,
+          int                            pitch
+     );
+
+     /*
+      * Read from the surface without the need for (Un)Lock.
+      *
+      * <b>rect</b> defines the area inside the surface to be read.
+      * <br><b>ptr</b> and <b>pitch</b> specify the destination.
+      * <br>The destination data will have the same format as the surface.
+      */
+     DFBResult (*Read) (
+          IDirectFBSurfaceAllocation    *thiz,
+          const DFBRectangle            *rect,
+          void                          *ptr,
+          int                            pitch
      );
 )
 

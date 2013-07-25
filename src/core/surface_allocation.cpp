@@ -56,6 +56,7 @@ extern "C" {
 #include <fusion/shmalloc.h>
 
 #include <core/CoreSurface.h>
+#include <core/CoreSurfaceAllocation.h>
 
 #include <core/gfxcard.h>
 #include <core/palette.h>
@@ -69,9 +70,9 @@ extern "C" {
 #include <gfx/convert.h>
 }
 
-
 #include <direct/Lists.h>
 
+#include <core/Debug.h>
 #include <core/SurfaceTask.h>
 
 
@@ -87,6 +88,8 @@ surface_allocation_destructor( FusionObject *object, bool zombie, void *ctx )
      D_DEBUG_AT( Core_SurfAllocation, "destroying %p (size %d)\n", allocation, allocation->size );
 
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     CoreSurfaceAllocation_Deinit_Dispatch( &allocation->call );
 
      if (!D_FLAGS_IS_SET(allocation->flags, CSALF_INITIALIZING)) {
           if (allocation->surface)
@@ -161,6 +164,7 @@ dfb_surface_allocation_create( CoreDFB                *core,
      allocation->resource_id = buffer->resource_id;
      allocation->flags       = CSALF_INITIALIZING;
      allocation->index       = buffer->index;
+     allocation->buffer_id   = buffer->object.id;
 
      if (pool->alloc_data_size) {
           allocation->data = SHCALLOC( pool->shmpool, 1, pool->alloc_data_size );
@@ -173,6 +177,8 @@ dfb_surface_allocation_create( CoreDFB                *core,
      direct_serial_init( &allocation->serial );
 
      fusion_ref_add_permissions( &allocation->object.ref, 0, FUSION_REF_PERMIT_REF_UNREF_LOCAL );
+
+     CoreSurfaceAllocation_Init_Dispatch( core, allocation, &allocation->call );
 
      D_MAGIC_SET( allocation, CoreSurfaceAllocation );
 
@@ -613,6 +619,8 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_FLAGS_ASSERT( access, CSAF_ALL );
 
+     D_DEBUG_AT( Core_SurfAllocation, "  -> alloc:   %s\n", ToString_CoreSurfaceAllocation( allocation ) );
+
      buffer = allocation->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
@@ -622,7 +630,11 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
      if (direct_serial_update( &allocation->serial, &buffer->serial ) && buffer->written) {
           CoreSurfaceAllocation *source = buffer->written;
 
+          D_DEBUG_AT( Core_SurfAllocation, "  -> written: %s\n", ToString_CoreSurfaceAllocation( source ) );
+
           D_ASSUME( allocation != source );
+
+          D_DEBUG_AT( Core_SurfAllocation, "  -> alloc/written buffer: %p/%p\n", allocation->buffer, source->buffer );
 
           D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
           D_ASSERT( source->buffer == allocation->buffer );

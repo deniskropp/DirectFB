@@ -211,6 +211,25 @@ typedef struct {
                             CoreSurfaceAccessorID   accessor,
                             bool                    flush,
                             bool                    invalidate );
+
+     /*
+      * Keys
+      */
+     DFBResult (*CheckKey)( CoreSurfacePool        *pool,
+                            void                   *pool_data,
+                            void                   *pool_local,
+                            CoreSurfaceBuffer      *buffer,
+                            const char             *key,
+                            u64                     handle );
+
+     DFBResult (*AllocateKey)( CoreSurfacePool        *pool,
+                            void                   *pool_data,
+                            void                   *pool_local,
+                            CoreSurfaceBuffer      *buffer,
+                            const char             *key,
+                            u64                     handle,
+                            CoreSurfaceAllocation *allocation,
+                            void                  *alloc_data );
 } SurfacePoolFuncs;
 
 
@@ -266,6 +285,11 @@ DFBResult dfb_surface_pools_allocate ( CoreSurfaceBuffer       *buffer,
                                        CoreSurfaceAccessFlags   access,
                                        CoreSurfaceAllocation  **ret_allocation );
 
+DFBResult dfb_surface_pools_allocate_key( CoreSurfaceBuffer       *buffer,
+                                          const char              *key,
+                                          u64                      handle,
+                                          CoreSurfaceAllocation  **ret_allocation );
+
 
 DFBResult dfb_surface_pool_initialize( CoreDFB                 *core,
                                        const SurfacePoolFuncs  *funcs,
@@ -291,8 +315,15 @@ DFBResult dfb_surface_pool_leave     ( CoreSurfacePool         *pool );
 
 
 
+DFBResult dfb_surface_pool_check_key ( CoreSurfacePool         *pool,
+                                       CoreSurfaceBuffer       *buffer,
+                                       const char              *key,
+                                       u64                      handle );
+
 DFBResult dfb_surface_pool_allocate  ( CoreSurfacePool         *pool,
                                        CoreSurfaceBuffer       *buffer,
+                                       const char              *key,
+                                       u64                      handle,
                                        CoreSurfaceAllocation  **ret_allocation );
 
 DFBResult dfb_surface_pool_deallocate( CoreSurfacePool         *pool,
