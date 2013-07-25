@@ -19,8 +19,10 @@ add_custom_command(
 	DEPENDS result.h
 )
 
-set (LIBDIRECT_SRC       
+set (LIBDIRECT_SRC
+	Base.cpp
 	String.cpp
+	ToString.cpp
 	clock.c
 	conf.c
 	debug.c
@@ -70,6 +72,7 @@ set (LIBDIRECT_GLIBC_SRC
 )
 
 install (FILES
+	Base.h
 	Lists.h
 	LockWQ.h
 	Magic.h

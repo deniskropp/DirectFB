@@ -38,6 +38,7 @@ FLUX_FILE (core CoreLayerRegion)
 FLUX_FILE (core CorePalette)
 FLUX_FILE (core CoreScreen)
 FLUX_FILE (core CoreSurface)
+FLUX_FILE (core CoreSurfaceAllocation)
 FLUX_FILE (core CoreSurfaceClient)
 FLUX_FILE (core CoreWindow)
 FLUX_FILE (core CoreWindowStack)
@@ -71,6 +72,7 @@ set (LIBDIRECTFB_NON_PURE_VOODOO_SRC
 
 	display/idirectfbpalette.c
 	display/idirectfbsurface.c
+	display/idirectfbsurfaceallocation.c
 	display/idirectfbsurface_layer.c
 	display/idirectfbsurface_window.c
 	display/idirectfbdisplaylayer.c
@@ -96,6 +98,8 @@ set (LIBDIRECTFB_NON_PURE_VOODOO_SRC
 	core/CoreScreen_real.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/core/CoreSurface.cpp
 	core/CoreSurface_real.cpp
+	${CMAKE_CURRENT_BINARY_DIR}/core/CoreSurfaceAllocation.cpp
+	core/CoreSurfaceAllocation_real.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/core/CoreSurfaceClient.cpp
 	core/CoreSurfaceClient_real.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/core/CoreWindow.cpp
@@ -104,6 +108,7 @@ set (LIBDIRECTFB_NON_PURE_VOODOO_SRC
 	core/CoreWindowStack_real.cpp
 	core/Debug.cpp
 	core/DisplayTask.cpp
+	core/Graphics.cpp
 	core/Interface.cpp
 	core/Renderer.cpp
 	core/SurfaceTask.cpp
