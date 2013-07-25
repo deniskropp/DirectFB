@@ -78,7 +78,7 @@ DFBApp::Init( int argc, char *argv[] )
      dsc.caps  = DSCAPS_PRIMARY;
 
      if (m_flipping)
-          DFB_ADD_SURFACE_CAPS( dsc.caps, DSCAPS_DOUBLE );
+          DFB_ADD_SURFACE_CAPS( dsc.caps, DSCAPS_FLIPPING );
 
      if (m_width) {
           DFB_ADD_SURFACE_DESC( dsc.flags, DSDESC_WIDTH );

@@ -70,6 +70,7 @@ private:
      int                  m_height;
      bool                 m_flipping;
 
+public:
      /* DirectFB interfaces */
      IDirectFB            m_dfb;
      IDirectFBSurface     m_primary;
