@@ -217,7 +217,7 @@ include_directories ("${PROJECT_SOURCE_DIR}/lib")
 include_directories ("${PROJECT_SOURCE_DIR}/src")
 
 set (CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} ${THREADFLAGS}")
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${THREADFLAGS}")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${THREADFLAGS} -std=c++11")
 
 add_subdirectory (include)
 add_subdirectory (lib/direct)
