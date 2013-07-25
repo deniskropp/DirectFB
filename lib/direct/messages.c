@@ -34,6 +34,7 @@
 
 #include <direct/build.h>
 #include <direct/log.h>
+#include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/print.h>
 #include <direct/result.h>
@@ -49,20 +50,40 @@ __dfb_no_instrument_function__
 void
 direct_messages_info( const char *format, ... )
 {
-     char buf[512];
+     char  buf[512];
+     char *ptr = buf;
+     int   len;
 
      va_list ap;
 
      va_start( ap, format );
-
-     direct_vsnprintf( buf, sizeof(buf), format, ap );
-
+     len = direct_vsnprintf( buf, sizeof(buf), format, ap );
      va_end( ap );
 
-     direct_log_printf( NULL, "(*) %s", buf );
+     if (len < 0)
+          return;
+
+     if (len >= sizeof(buf)) {
+          ptr = direct_malloc( len+1 );
+          if (!ptr)
+               return;
+
+          va_start( ap, format );
+          len = direct_vsnprintf( ptr, len+1, format, ap );
+          va_end( ap );
+          if (len < 0) {
+               direct_free( ptr );
+               return;
+          }
+     }
+
+     direct_log_printf( NULL, "(*) %s", ptr );
 
      if (direct_config->fatal_messages & DMT_INFO)
           direct_trap( "Info", SIGABRT );
+
+     if (ptr != buf)
+          direct_free( ptr );
 }
 
 __dfb_no_instrument_function__
