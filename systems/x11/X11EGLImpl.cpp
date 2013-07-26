@@ -237,8 +237,11 @@ X11EGLImpl::Init( DFBX11 *x11 )
      this->x11 = x11;
 
      ret = lib.Init( "/usr/lib/x86_64-linux-gnu/mesa-egl/libEGL.so.1", true, false );
-     if (ret)
-          return ret;
+     if (ret) {
+          ret = lib.Init( "/usr/lib/i386-linux-gnu/mesa-egl/libEGL.so.1", true, false );
+          if (ret)
+               return ret;
+     }
 
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglGetDisplay( %p )\n", x11->display );
 
