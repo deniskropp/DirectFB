@@ -164,14 +164,16 @@ GLeglImage::GLeglImage( DirectFB::EGL::KHR::Image &egl_image,
           }
      }
 
-     Pixmap pixmap;
+     u64 handle;
 
-     ret = allocation->GetHandle( allocation, &pixmap );
+     ret = allocation->GetHandle( allocation, &handle );
      if (ret) {
           D_DERROR_AT( DFBX11_EGLImpl, ret, "  -> IDirectFBSurface::GetAllocation( FRONT, LEFT, 'Pixmap/X11' ) failed!\n" );
           allocation->Release( allocation );
           return;
      }
+
+     Pixmap pixmap = handle;
 
      D_LOG( DFBX11_EGLImpl, DEBUG_1, "  -> creating new EGLImage from Pixmap 0x%08lx\n", pixmap );
 
@@ -823,7 +825,7 @@ X11EGLSurfacePeer::getEGLSurface()
                                                               (EGLNativeWindowType) handle, NULL );// FIXME: Add Options ToAttribs
 
           if (egl_surface == EGL_NO_SURFACE) {
-               D_ERROR( "X11/EGLImpl: eglCreate%sSurface( EGLConfig %p, %s 0x%08lx ) failed (%s)\n",
+               D_ERROR( "X11/EGLImpl: eglCreate%sSurface( EGLConfig %p, %s 0x%08llx ) failed (%s)\n",
                         is_pixmap ? "Pixmap" : "Window", config->egl_config, is_pixmap ? "Pixmap" : "Window",
                         handle, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
                return EGL_NO_SURFACE;
