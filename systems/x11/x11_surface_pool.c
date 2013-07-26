@@ -102,7 +102,7 @@ x11InitPool( CoreDFB                    *core,
      ret_desc->caps              = CSPCAPS_VIRTUAL;
      ret_desc->access[CSAID_CPU] = CSAF_READ | CSAF_WRITE | CSAF_SHARED;
      ret_desc->types             = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_EXTERNAL | CSTF_INTERNAL;
-     ret_desc->priority          = CSPP_ULTIMATE;
+     ret_desc->priority          = CSPP_PREFERED;
 
      /* For showing our X11 window */
      ret_desc->access[CSAID_LAYER0] = CSAF_READ;
@@ -195,14 +195,67 @@ x11TestConfig( CoreSurfacePool         *pool,
 {
      x11PoolLocalData *local  = pool_local;
      DFBX11           *x11    = local->x11;
-     DFBX11Shared     *shared = x11->shared;
+     //DFBX11Shared     *shared = x11->shared;
 
      /* Provide a fallback only if no virtual physical pool is allocated... */
      //if (!shared->vpsmem_length)
      //     return DFB_OK;
-          
+
      /* Pass NULL image for probing */
      return x11ImageInit( x11, NULL, config->size.w, config->size.h, config->format );
+}
+
+static DFBResult
+x11PreAlloc( CoreSurfacePool             *pool,
+             void                        *pool_data,
+             void                        *pool_local,
+             const DFBSurfaceDescription *description,
+             CoreSurfaceConfig           *config )
+{
+     unsigned int i, num = 1;
+
+     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     if (!(config->caps & DSCAPS_VIDEOONLY))
+          return DFB_UNSUPPORTED;
+
+     if (config->caps & DSCAPS_DOUBLE)
+          num = 2;
+     else if (config->caps & DSCAPS_TRIPLE)
+          num = 3;
+
+     for (i=0; i<num; i++) {
+          if (!config->preallocated[i].handle)
+               return DFB_UNSUPPORTED;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+x11CheckKey( CoreSurfacePool   *pool,
+             void              *pool_data,
+             void              *pool_local,
+             CoreSurfaceBuffer *buffer,
+             const char        *key,
+             u64                handle )
+{
+     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     return DFB_UNSUPPORTED;
+
+     if (!strcmp( key, "Pixmap/X11" ))
+          return DFB_OK;
+
+     if (!strcmp( key, "Window/X11" ))
+          return DFB_OK;
+
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult
@@ -226,14 +279,67 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (x11ImageInit( x11, &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format ) == DFB_OK) {
-          alloc->real  = true;
-          alloc->pitch = alloc->image.pitch;
+     dfb_surface_calc_buffer_size( surface, 8, 8, &alloc->pitch, &allocation->size );
 
-          allocation->size = surface->config.size.h * alloc->image.pitch;
+     if (buffer->type & CSTF_PREALLOCATED) {
+          D_DEBUG_AT( X11_Surfaces, "  -> preallocated from %p\n", buffer->config.preallocated[0].handle );
+
+          alloc->type = X11_ALLOC_PIXMAP;
+          alloc->xid  = (unsigned long) buffer->config.preallocated[0].handle;
      }
-     else
-          dfb_surface_calc_buffer_size( surface, 8, 2, &alloc->pitch, &allocation->size );
+     else {
+          if (x11ImageInit( x11, &alloc->image, surface->config.size.w, surface->config.size.h, surface->config.format ) == DFB_OK) {
+               alloc->type  = X11_ALLOC_IMAGE;
+               alloc->pitch = alloc->image.pitch;
+
+               allocation->size = surface->config.size.h * alloc->image.pitch;
+          }
+          else
+               alloc->type = X11_ALLOC_SHM;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+x11AllocateKey( CoreSurfacePool       *pool,
+                void                  *pool_data,
+                void                  *pool_local,
+                CoreSurfaceBuffer     *buffer,
+                const char            *key,
+                u64                    handle,
+                CoreSurfaceAllocation *allocation,
+                void                  *alloc_data )
+{
+     CoreSurface       *surface;
+     x11AllocationData *alloc = alloc_data;
+
+     D_DEBUG_AT( X11_Surfaces, "%s( %s, 0x%08llx )\n", __FUNCTION__, key, (unsigned long long) handle );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (!strcmp( key, "Pixmap/X11" )) {
+          D_DEBUG_AT( X11_Surfaces, "  -> Pixmap/X11\n" );
+
+          alloc->type = X11_ALLOC_PIXMAP;
+     }
+     else if (!strcmp( key, "Window/X11" )) {
+          D_DEBUG_AT( X11_Surfaces, "  -> Window/X11\n" );
+
+          alloc->type = X11_ALLOC_WINDOW;
+     }
+     else {
+          D_BUG( "unexpected key '%s'", key );
+          return DFB_BUG;
+     }
+
+     dfb_surface_calc_buffer_size( surface, 8, 8, &alloc->pitch, &allocation->size );
+
+     alloc->xid = (unsigned long) handle;
 
      return DFB_OK;
 }
@@ -258,19 +364,37 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
-     // FIXME: also detach in other processes! (e.g. via reactor)
-     addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
-     if (addr) {
-          x11ImageDetach( &alloc->image, addr );
+     switch (alloc->type) {
+          case X11_ALLOC_PIXMAP:
+          case X11_ALLOC_WINDOW:
+               if (allocation->type & CSTF_PREALLOCATED) {
+                    // don't delete
+               }
+               else
+                    XFreePixmap( x11->display, alloc->xid );
+               break;
 
-          direct_hash_remove( local->hash, alloc->image.seginfo.shmid );
+          case X11_ALLOC_IMAGE:
+               x11ImageDestroy( x11, &alloc->image );
+
+               // FIXME: also detach in other processes! (e.g. via reactor)
+               addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
+               if (addr) {
+                    x11ImageDetach( &alloc->image, addr );
+
+                    direct_hash_remove( local->hash, alloc->image.seginfo.shmid );
+               }
+               break;
+
+          case X11_ALLOC_SHM:
+               if (alloc->ptr)
+                    SHFREE( shared->data_shmpool, alloc->ptr );
+               break;
+
+          default:
+               D_BUG( "unexpected allocation type %d\n", alloc->type );
+               return DFB_BUG;
      }
-
-     if (alloc->real)
-          return x11ImageDestroy( x11, &alloc->image );
-
-     if (alloc->ptr)
-          SHFREE( shared->data_shmpool, alloc->ptr );
 
      return DFB_OK;
 }
@@ -288,6 +412,7 @@ x11Lock( CoreSurfacePool       *pool,
      x11AllocationData *alloc  = alloc_data;
      DFBX11            *x11    = local->x11;
      DFBX11Shared      *shared = x11->shared;
+     void              *addr;
 
      D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
 
@@ -299,37 +424,50 @@ x11Lock( CoreSurfacePool       *pool,
 
      pthread_mutex_lock( &local->lock );
 
-     if (alloc->real) {
-          void *addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
+     switch (alloc->type) {
+          case X11_ALLOC_PIXMAP:
+          case X11_ALLOC_WINDOW:
+               lock->handle = (void*)(long) alloc->xid;
+               break;
 
-          if (!addr) {
-               ret = x11ImageAttach( &alloc->image, &addr );
-               if (ret) {
-                    D_DERROR( ret, "X11/Surfaces: x11ImageAttach() failed!\n" );
-                    pthread_mutex_unlock( &local->lock );
-                    return ret;
+          case X11_ALLOC_IMAGE:
+               addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
+
+               if (!addr) {
+                    ret = x11ImageAttach( &alloc->image, &addr );
+                    if (ret) {
+                         D_DERROR( ret, "X11/Surfaces: x11ImageAttach() failed!\n" );
+                         pthread_mutex_unlock( &local->lock );
+                         return ret;
+                    }
+
+                    direct_hash_insert( local->hash, alloc->image.seginfo.shmid, addr );
+
+                    /* FIXME: When to remove/detach? */
                }
 
-               direct_hash_insert( local->hash, alloc->image.seginfo.shmid, addr );
+               lock->addr   = addr;
+               lock->handle = &alloc->image;
+               break;
 
-               /* FIXME: When to remove/detach? */
-          }
-
-          lock->addr   = addr;
-          lock->handle = &alloc->image;
-     }
-     else {
-          if (!alloc->ptr) {
-               D_DEBUG_AT( X11_Surfaces, "  -> allocating memory in data_shmpool (%d bytes)\n", allocation->size );
-
-               alloc->ptr = SHCALLOC( shared->data_shmpool, 1, allocation->size );
+          case X11_ALLOC_SHM:
                if (!alloc->ptr) {
-                    pthread_mutex_unlock( &local->lock );
-                    return D_OOSHM();
-               }
-          }
+                    D_DEBUG_AT( X11_Surfaces, "  -> allocating memory in data_shmpool (%d bytes)\n", allocation->size );
 
-          lock->addr = alloc->ptr;
+                    alloc->ptr = SHCALLOC( shared->data_shmpool, 1, allocation->size );
+                    if (!alloc->ptr) {
+                         pthread_mutex_unlock( &local->lock );
+                         return D_OOSHM();
+                    }
+               }
+
+               lock->addr = alloc->ptr;
+               break;
+
+          default:
+               D_BUG( "unexpected allocation type %d\n", alloc->type );
+               pthread_mutex_unlock( &local->lock );
+               return DFB_BUG;
      }
 
      lock->pitch = alloc->pitch;
@@ -370,7 +508,10 @@ const SurfacePoolFuncs x11SurfacePoolFuncs = {
 
      .TestConfig         = x11TestConfig,
 
+     .PreAlloc           = x11PreAlloc,
+     .CheckKey           = x11CheckKey,
      .AllocateBuffer     = x11AllocateBuffer,
+     .AllocateKey        = x11AllocateKey,
      .DeallocateBuffer   = x11DeallocateBuffer,
 
      .Lock               = x11Lock,

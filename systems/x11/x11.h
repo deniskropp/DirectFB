@@ -71,6 +71,7 @@ typedef struct {
      FusionSHMPoolShared *data_shmpool;
  
      CoreSurfacePool     *x11image_pool;
+     CoreSurfacePool     *x11window_pool;
 
      CoreSurfacePool     *glx_pool; /* only used for GL */
 
@@ -106,6 +107,9 @@ struct __DFB_X11 {
      Visual              *visuals[DFB_NUM_PIXELFORMATS];
      
      void               (*Sync)( DFBX11 *x11 );
+
+     Window               showing;
+     int                  showing_w, showing_h;
 };
 
 typedef enum {

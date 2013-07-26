@@ -38,11 +38,31 @@
 #include "x11image.h"
 
 extern const SurfacePoolFuncs x11SurfacePoolFuncs;
+extern const SurfacePoolFuncs x11WindowPoolFuncs;
+
+typedef enum {
+     X11_ALLOC_PIXMAP,
+     X11_ALLOC_WINDOW,
+     X11_ALLOC_IMAGE,
+     X11_ALLOC_SHM
+} x11AllocationType;
 
 typedef struct {
+     x11AllocationType   type;
+
+     // PIXMAP | WINDOW
+     XID                 xid;
+     Visual             *visual;
+     int                 depth;
+     // WINDOW
+     Window              window;
+     bool                created;
+
+     // IMAGE
      bool      real;
      x11Image  image;
 
+     // SHM
      void     *ptr;
      int       pitch;
 } x11AllocationData;

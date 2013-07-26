@@ -59,6 +59,8 @@
 #include <direct/messages.h>
 
 
+#include "X11EGLImpl.h"
+
 #include "primary.h"
 #include "xwindow.h"
 #include "x11.h"
@@ -153,7 +155,7 @@ error_handler( Display *display, XErrorEvent *event )
 static DFBResult
 InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 {
-     int i, n, d;
+     int i, n;
 
      XInitThreads();
 
@@ -173,10 +175,13 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 
      x11->screenptr = DefaultScreenOfDisplay(x11->display);
      x11->screennum = DefaultScreen(x11->display);
-     d              = DefaultDepthOfScreen(x11->screenptr);
+
+     D_DEBUG_AT( X11_Core, "  -> ndepths %d\n", x11->screenptr->ndepths);
 
      for (i=0; i<x11->screenptr->ndepths; i++) {
           const Depth *depth = &x11->screenptr->depths[i];
+
+          D_DEBUG_AT( X11_Core, "  -> [%d] depth %d, nvisuals %d\n", i, depth->depth, depth->nvisuals );
 
           for (n=0; n<depth->nvisuals; n++) {
                Visual *visual = &depth->visuals[n];
@@ -186,8 +191,13 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
                         visual->red_mask, visual->green_mask, visual->blue_mask,
                         visual->bits_per_rgb, visual->map_entries );
 
-               if (depth->depth != d)
-                    continue;
+               //if (depth->depth != d)
+               //     continue;
+
+               //if (visual->visualid == 0x24) {
+               //     x11->visuals[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = visual;
+               //     continue;
+               //}
 
                switch (depth->depth) {
                     case 32:
@@ -225,6 +235,22 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
           }
      }
 
+
+     DFBSurfacePixelFormat formats[] = { DSPF_ARGB, DSPF_RGB32, DSPF_RGB16, DSPF_RGB555 };
+
+     for (i=0; i<D_ARRAY_SIZE(formats); i++) {
+          Visual *visual = x11->visuals[DFB_PIXELFORMAT_INDEX(formats[i])];
+
+          if (visual) {
+               D_DEBUG_AT( X11_Core, "  %-20s [Visual ID 0x%02lx] RGB 0x%06lx/0x%06lx/0x%06lx, %d bpRGB, %d entr.\n",
+                           dfb_pixelformat_name(formats[i]), visual->visualid, visual->red_mask, visual->green_mask, visual->blue_mask,
+                           visual->bits_per_rgb, visual->map_entries );
+          }
+          else
+               D_DEBUG_AT( X11_Core, "  %-20s [NO VISUAL]\n", dfb_pixelformat_name(formats[i]) );
+     }
+
+
      if (XShmQueryExtension( x11->display ))
           XShmQueryVersion( x11->display, &x11->xshm_major, &x11->xshm_minor, &x11->use_shm );
 
@@ -234,6 +260,8 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
      dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
      dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
      dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
+
+     dfb_x11_eglimpl_register( x11 );
 
      return DFB_OK;
 }
@@ -308,6 +336,7 @@ system_initialize( CoreDFB *core, void **data )
       * Master init
       */
      dfb_surface_pool_initialize( core, &x11SurfacePoolFuncs, &shared->x11image_pool );
+     dfb_surface_pool_initialize( core, &x11WindowPoolFuncs, &shared->x11window_pool );
 
 #ifdef USE_GLX
      dfb_surface_pool_initialize( core, &glxSurfacePoolFuncs, &shared->glx_pool );
@@ -368,6 +397,9 @@ system_join( CoreDFB *core, void **data )
      if (shared->x11image_pool)
           dfb_surface_pool_join( core, shared->x11image_pool, &x11SurfacePoolFuncs );
 
+     if (shared->x11window_pool)
+          dfb_surface_pool_join( core, shared->x11window_pool, &x11WindowPoolFuncs );
+
 #ifdef USE_GLX
      if (shared->glx_pool)
           dfb_surface_pool_join( core, shared->glx_pool, &glxSurfacePoolFuncs );
@@ -394,6 +426,8 @@ system_shutdown( bool emergency )
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
+     dfb_x11_eglimpl_unregister();
+
      /*
       * Master deinit
       */
@@ -405,6 +439,9 @@ system_shutdown( bool emergency )
 
      if (shared->glx_pool)
           dfb_surface_pool_destroy( shared->glx_pool );
+
+     if (shared->x11window_pool)
+          dfb_surface_pool_destroy( shared->x11window_pool );
 
      if (shared->x11image_pool)
           dfb_surface_pool_destroy( shared->x11image_pool );
@@ -452,6 +489,8 @@ system_leave( bool emergency )
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
+     dfb_x11_eglimpl_unregister();
+
      /*
       * Slave deinit
       */
@@ -463,6 +502,9 @@ system_leave( bool emergency )
 
      if (shared->glx_pool)
           dfb_surface_pool_leave( shared->glx_pool );
+
+     if (shared->x11window_pool)
+          dfb_surface_pool_leave( shared->x11window_pool );
 
      if (shared->x11image_pool)
           dfb_surface_pool_leave( shared->x11image_pool );
