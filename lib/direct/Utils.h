@@ -106,6 +106,7 @@ class Demangle : public Direct::String
 public:
      Demangle( const char *symbol )
      {
+#ifdef __x86_64__
           int   status;
           char *realname;
 
@@ -113,10 +114,13 @@ public:
 
           if (status)
                     PrintF( "DEMANGLE-ERROR-(%d) <- [%s]", status, symbol );
-          else
+          else {
                     PrintF( "%s", realname );
-
-          free(realname);
+                    free(realname);
+          }
+#else
+          PrintF( "%s", symbol );
+#endif
      }
 };
 

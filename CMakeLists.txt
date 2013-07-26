@@ -9,6 +9,8 @@ endif()
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
+
 include (CheckSymbolExists)
 include (CheckTypeSize)
 include (CheckIncludeFiles)
@@ -39,6 +41,9 @@ option (ENABLE_VOODOO "enable voodoo support" OFF)
 option (ENABLE_ONE "enable One support" OFF)
 option (ENABLE_SAWMAN "enable SaWMan support" OFF)
 option (ENABLE_FUSIONDALE "enable FusionDale support" OFF)
+
+option (ENABLE_EGL "enable DirectFB's libEGL implementation" OFF)
+option (ENABLE_WAYLAND "enable Wayland support" OFF)
 
 option (ENABLE_FUSIONSOUND "enable FusionSound support" OFF)
 option (ENABLE_FUSIONSOUND_MULTICHANNEL "enable FusionSound multichannel support" ON)
@@ -92,6 +97,9 @@ if (ENABLE_IMAGEPROVIDER_PNG)
 	find_package (PNG REQUIRED)
 endif()
 
+if (ENABLE_WAYLAND)
+	find_package(Wayland REQUIRED)
+endif()
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     SET(ARCH_X86_64 1)
@@ -246,6 +254,14 @@ if (ENABLE_FUSIONSOUND)
 endif()
 if (ENABLE_DIVINE)
 	add_subdirectory (lib/divine)
+endif()
+
+if (ENABLE_EGL)
+	add_subdirectory (lib/egl)
+endif()
+if (ENABLE_WAYLAND)
+	add_subdirectory (lib/wayland-dfb)
+	add_subdirectory (lib/wayland-egl)
 endif()
 
 add_subdirectory (src)

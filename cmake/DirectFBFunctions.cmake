@@ -12,7 +12,7 @@ function(INSTALL_DIRECTFB_LIB target)
 			POST_BUILD
 			COMMAND ${CMAKE_COMMAND} -E create_symlink ${target_name} ${CMAKE_CURRENT_BINARY_DIR}/lib${target}.so
 			COMMAND ${CMAKE_COMMAND} -E create_symlink ${target_name} ${CMAKE_CURRENT_BINARY_DIR}/lib${target}-${LIBVER}.so.0
-			COMMAND ${CMAKE_COMMAND} -E touch ${target_name}
+#			COMMAND ${CMAKE_COMMAND} -E touch ${target_name}
 		)
 
 		install(
