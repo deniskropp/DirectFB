@@ -240,6 +240,8 @@ Display::Image_Initialise( DirectFB::EGL::KHR::Image &image )
 
      D_INFO( "DFBEGL/Image: New EGLImage from IDirectFBSurface (%dx%d)\n", w, h );
 
+     image.surface = surface;
+
      return DFB_OK;
 }
 

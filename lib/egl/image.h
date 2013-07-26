@@ -134,12 +134,7 @@ public:
 
      typedef std::function<DFBResult (KHR::Image &image)> Initialise;
 
-//     typedef std::function<GL::OES::eglImage & (KHR::Image &image)> Convert;
 
-
-
-
-protected:
 public:
      Display               *display;
      Context               *context;
@@ -147,6 +142,8 @@ public:
      EGLClientBuffer        buffer;
 
      Graphics::Options      gfx_options;
+
+     IDirectFBSurface      *surface;
 };
 
 
