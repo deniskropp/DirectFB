@@ -47,6 +47,7 @@ extern "C" {
 
 #include <fusion/conf.h>
 
+#include <core/core.h>
 #include <core/layers_internal.h>
 #include <core/surface_allocation.h>
 #include <core/surface_pool.h>
@@ -208,6 +209,8 @@ DisplayTask::Generate( CoreLayerRegion      *region,
      // FIXME: use helper class
      //
 
+     Core_PushIdentity( FUSION_ID_MASTER );
+
      left_buffer = dfb_surface_get_buffer3( surface, CSBR_FRONT, DSSE_LEFT, surface->flips );
 
      left_allocation = dfb_surface_buffer_find_allocation( left_buffer, region->surface_accessor, CSAF_READ, true );
@@ -216,6 +219,7 @@ DisplayTask::Generate( CoreLayerRegion      *region,
           ret = dfb_surface_pools_allocate( left_buffer, region->surface_accessor, CSAF_READ, &left_allocation );
           if (ret) {
                D_DERROR( ret, "Core/LayerRegion: Buffer allocation failed!\n" );
+               Core_PopIdentity();
                return ret;
           }
      }
@@ -233,6 +237,7 @@ DisplayTask::Generate( CoreLayerRegion      *region,
                ret = dfb_surface_pools_allocate( right_buffer, region->surface_accessor, CSAF_READ, &right_allocation );
                if (ret) {
                     D_DERROR( ret, "Core/LayerRegion: Buffer allocation (right) failed!\n" );
+                    Core_PopIdentity();
                     return ret;
                }
           }
@@ -241,6 +246,8 @@ DisplayTask::Generate( CoreLayerRegion      *region,
 
           dfb_surface_allocation_update( right_allocation, CSAF_READ );
      }
+
+     Core_PopIdentity();
 
 
      DisplayTask *task = new DisplayTask( region, left_update, right_update, flags, pts, left_allocation, right_allocation, stereo );
