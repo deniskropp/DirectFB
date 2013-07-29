@@ -86,6 +86,35 @@ wl_dfb_create_buffer(struct wl_dfb *wl_dfb, uint32_t surface_id, uint32_t buffer
 	return (struct wl_dfb_buffer *) id;
 }
 
+struct wl_dfb_buffer_listener {
+	/**
+	 * release - compositor releases buffer
+	 *
+	 * Sent when this wl_buffer is no longer used by the compositor.
+	 * The client is now free to re-use or destroy this buffer and its
+	 * backing storage.
+	 *
+	 * If a client receives a release event before the frame callback
+	 * requested in the same wl_surface.commit that attaches this
+	 * wl_buffer to a surface, then the client is immediately free to
+	 * re-use the buffer and its backing storage, and does not need a
+	 * second buffer for the next surface content update. Typically
+	 * this is possible, when the compositor maintains a copy of the
+	 * wl_surface contents, e.g. as a GL texture. This is an important
+	 * optimization for GL(ES) compositors with wl_shm clients.
+	 */
+	void (*release)(void *data,
+			struct wl_dfb_buffer *wl_dfb_buffer);
+};
+
+static inline int
+wl_dfb_buffer_add_listener(struct wl_dfb_buffer *wl_dfb_buffer,
+			   const struct wl_dfb_buffer_listener *listener, void *data)
+{
+	return wl_proxy_add_listener((struct wl_proxy *) wl_dfb_buffer,
+				     (void (**)(void)) listener, data);
+}
+
 #define WL_DFB_BUFFER_DESTROY	0
 #define WL_DFB_BUFFER_SET_DISPLAY_TIMESTAMP	1
 

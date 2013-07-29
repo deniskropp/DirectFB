@@ -51,9 +51,13 @@ static const struct wl_message wl_dfb_buffer_requests[] = {
 	{ "set_display_timestamp", "uu", types + 0 },
 };
 
+static const struct wl_message wl_dfb_buffer_events[] = {
+	{ "release", "", types + 0 },
+};
+
 WL_EXPORT const struct wl_interface wl_dfb_buffer_interface = {
 	"wl_dfb_buffer", 1,
 	2, wl_dfb_buffer_requests,
-	0, NULL,
+	1, wl_dfb_buffer_events,
 };
 

@@ -88,6 +88,14 @@ struct wl_dfb_buffer_interface {
 				      uint32_t ts_high);
 };
 
+#define WL_DFB_BUFFER_RELEASE	0
+
+static inline void
+wl_dfb_buffer_send_release(struct wl_resource *resource_)
+{
+	wl_resource_post_event(resource_, WL_DFB_BUFFER_RELEASE);
+}
+
 #ifdef  __cplusplus
 }
 #endif
