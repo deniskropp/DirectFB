@@ -39,6 +39,7 @@
 
 
 D_LOG_DOMAIN( DFBWayland_wl_dfb,      "DFBWayland/wl_dfb",      "DirectFB Wayland extension" );
+D_LOG_DOMAIN( DFBWayland_Buffer,      "DFBWayland/Buffer",      "DirectFB Wayland Buffer" );
 
 
 struct wl_dfb {
@@ -55,12 +56,12 @@ namespace WL {
 
 Buffer::Buffer()
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "Buffer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_Buffer, "Buffer::%s( %p )\n", __FUNCTION__, this );
 }
 
 Buffer::~Buffer()
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "Buffer::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_Buffer, "Buffer::%s( %p )\n", __FUNCTION__, this );
 
      surface->Release( surface );
 }
@@ -69,7 +70,7 @@ Buffer::~Buffer()
 static void
 destroy_buffer( struct wl_resource *resource )
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_Buffer, "%s( resource %p )\n", __FUNCTION__, resource );
 
      Buffer        *buffer = (Buffer *) resource->data;
 
@@ -79,7 +80,7 @@ destroy_buffer( struct wl_resource *resource )
 static void
 buffer_destroy( struct wl_client *client, struct wl_resource *resource )
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_Buffer, "%s( client %p, resource %p )\n", __FUNCTION__, client, resource );
 
      wl_resource_destroy( resource );
 }
@@ -98,7 +99,8 @@ dfb_create_buffer(struct wl_client   *client,
                   uint32_t            buffer_id,
                   uint32_t            allocation_id)
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_Buffer, "%s( client %p, resource %p, id %u, surface_id %u, buffer_id %u, allocation_id %u )\n",
+                 __FUNCTION__, client, resource, id, surface_id, buffer_id, allocation_id );
 
      struct wl_dfb *wl_dfb = (struct wl_dfb*) resource->data;
 
@@ -112,13 +114,13 @@ dfb_create_buffer(struct wl_client   *client,
 
      ret = wl_dfb->dfb->GetSurface( wl_dfb->dfb, surface_id, &buffer->surface );
      if (ret) {
-          D_DERROR( ret, "DFBWayland/wl_dfb: IDirectFB::GetSurface( %u ) failed!\n", surface_id );
+          D_DERROR( ret, "DFBWayland/Buffer: IDirectFB::GetSurface( %u ) failed!\n", surface_id );
           return;
      }
 
      ret = buffer->surface->GetSize( buffer->surface, &buffer->size.w, &buffer->size.h );
      if (ret) {
-          D_DERROR( ret, "DFBWayland/wl_dfb: IDirectFBSurface::GetSize( surface_id %u ) failed!\n", surface_id );
+          D_DERROR( ret, "DFBWayland/Buffer: IDirectFBSurface::GetSize( surface_id %u ) failed!\n", surface_id );
           return;
      }
 
@@ -142,7 +144,7 @@ const static struct wl_dfb_interface dfb_interface = {
 static void
 destroy_dfb( struct wl_resource *resource )
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_wl_dfb, "%s( resource %p )\n", __FUNCTION__, resource );
 
      struct wl_dfb *wl_dfb = (struct wl_dfb *) resource->data;
 
@@ -152,7 +154,7 @@ destroy_dfb( struct wl_resource *resource )
 static void
 bind_dfb(struct wl_client *client, void *data, uint32_t version, uint32_t id)
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_wl_dfb, "%s( client %p, data %p, version %u, id %u )\n", __FUNCTION__, client, data, version, id );
 
      struct wl_dfb      *wl_dfb = (struct wl_dfb *) data;
      struct wl_resource *resource;
@@ -174,7 +176,7 @@ struct wl_dfb *
 wayland_dfb_init(struct wl_display *display,
                  IDirectFB         *directfb)
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_wl_dfb, "%s( display %p, directfb %p )\n", __FUNCTION__, display, directfb );
 
      struct wl_dfb *wl_dfb;
 
@@ -195,7 +197,7 @@ wayland_dfb_init(struct wl_display *display,
 void
 wayland_dfb_uninit(struct wl_dfb *wl_dfb)
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_wl_dfb, "%s( wl_dfb %p )\n", __FUNCTION__, wl_dfb );
 
      wl_global_destroy( wl_dfb->global );
 
@@ -205,7 +207,7 @@ wayland_dfb_uninit(struct wl_dfb *wl_dfb)
 int
 wayland_is_dfb_buffer(struct wl_resource *resource)
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DFBWayland_wl_dfb, "%s( resource %p )\n", __FUNCTION__, resource );
 
      return resource->object.implementation == (void (**)(void)) &dfb_buffer_interface;
 }
