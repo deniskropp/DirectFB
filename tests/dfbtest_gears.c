@@ -522,7 +522,7 @@ gears_draw(void)
      GLfloat transform[16];
      identity(transform);
 
-     glClearColor(0.0, 0.5, 1.0, 0.0);
+     glClearColor(0.0, 0.7, 1.0, 1.0);
      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
      /* Translate and rotate the view */
@@ -867,7 +867,6 @@ InitGL( Test *test )
           goto quit;                                        \
      }
 
-     sleep(4);
      // get display
      EGL_CHECK((display = eglGetDisplay(disp)) == EGL_NO_DISPLAY)
 
@@ -894,10 +893,9 @@ InitGL( Test *test )
      //eglQuerySurface(display, surface, EGL_WIDTH, &width);
      //eglQuerySurface(display, surface, EGL_HEIGHT, &height);
 
-     EGLint render_buffer = 0;
-     EGL_CHECK(!eglQuerySurface(display, surface, EGL_RENDER_BUFFER, &render_buffer));
+//     EGLint render_buffer = 0;
+//     EGL_CHECK(!eglQuerySurface(display, surface, EGL_RENDER_BUFFER, &render_buffer));
 //     fprintf(stderr,"RENDER_BUFFER = 0x%04x\n", render_buffer );
-
 
 
      eglSwapInterval( display, 1 );
@@ -906,25 +904,9 @@ InitGL( Test *test )
      /* Setup the viewport */
      glViewport( 0, 0, (GLint) test->size.w, (GLint) test->size.h );
 
-
-     glClearColor( 0.0, 0.7, 0.9, 1.0 );
-     glClear( GL_COLOR_BUFFER_BIT );
-
-     eglSwapBuffers( display, surface );
-
-     glClearColor( 1.0, 0.0, 0.0, 1.0 );
-     glClear( GL_COLOR_BUFFER_BIT );
-
-     eglSwapBuffers( display, surface );
-
-
-//     sleep(10);
-
-
      return DFB_OK;
 
-     quit:
-
+quit:
      return DFB_FAILURE;
 }
 

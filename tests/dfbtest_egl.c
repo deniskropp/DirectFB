@@ -268,12 +268,10 @@ InitGL( Test *test )
 {
      EGLint major, minor, nconfigs;
      EGLint attribs[] = {
-          EGL_BUFFER_SIZE,    EGL_DONT_CARE,
-          EGL_DEPTH_SIZE,          16,
-          EGL_RED_SIZE,       5,
-          EGL_GREEN_SIZE,          6,
-          EGL_RED_SIZE,       5,
-          //EGL_STENCIL_SIZE,        8,
+          EGL_SURFACE_TYPE,        EGL_WINDOW_BIT,
+          EGL_RED_SIZE,            1,
+          EGL_GREEN_SIZE,          1,
+          EGL_BLUE_SIZE,           1,
           EGL_RENDERABLE_TYPE,     EGL_OPENGL_ES2_BIT,
           EGL_NONE
      };
@@ -314,14 +312,6 @@ InitGL( Test *test )
      EGL_CHECK((context = eglCreateContext(display, configs[0], EGL_NO_CONTEXT, context_attrs)) == EGL_NO_CONTEXT)
 
      EGL_CHECK(eglMakeCurrent(display, surface, surface, context) != EGL_TRUE)
-
-     //eglQuerySurface(display, surface, EGL_WIDTH, &width);
-     //eglQuerySurface(display, surface, EGL_HEIGHT, &height);
-
-//     EGLint render_buffer = 0;
-//     EGL_CHECK(!eglQuerySurface(display, surface, EGL_RENDER_BUFFER, &render_buffer));
-//     fprintf(stderr,"RENDER_BUFFER = 0x%04x\n", render_buffer );
-
 
 
      eglSwapInterval( display, 1 );
@@ -366,19 +356,22 @@ main( int argc, char *argv[] )
      while (!quit) {
           DFBInputEvent evt;
 
-          const static GLfloat v[6] = { -1.0, -1.0,  1.0, -1.0,  0.5, 1.0 };
+          const static GLfloat v[6] = { -1.0, -1.0,  1.0, 0.0,  -1.0, 1.0 };
 
           glClearColor(1.0, 1.0, 1.0, 1.0);
-          glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+          glClear(GL_COLOR_BUFFER_BIT);
 
+          glDisable( GL_CULL_FACE );
+          glDisable( GL_DEPTH_TEST );
 
           glEnableVertexAttribArray( 0 );
-          glVertexAttribPointer( 0, 2, GL_FLOAT, GL_TRUE, 2, v );
+          glVertexAttribPointer( 0, 2, GL_FLOAT, GL_TRUE, 0, v );
 
           glDrawArrays( GL_TRIANGLE_FAN, 0, 3 );
 
-
           eglSwapBuffers( display, surface );
+
+          sleep(3);
 
           /*
            * Process events
