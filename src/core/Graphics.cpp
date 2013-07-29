@@ -226,11 +226,31 @@ SurfacePeer::GetOption( const Direct::String &name,
 /**********************************************************************************************************************/
 
 Implementation::Implementation()
-     :
-     name( "unnamed" )
 {
-     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p )\n",
-                 __FUNCTION__, this );
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p )\n", __FUNCTION__, this );
+}
+
+Implementation::~Implementation()
+{
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p )\n", __FUNCTION__, this );
+}
+
+DFBResult
+Implementation::Init()
+{
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p ) <- init %d\n", __FUNCTION__, this, init );
+
+     if (!init) {
+          DFBResult ret;
+
+          ret = Initialise();
+          if (ret)
+               return ret;
+
+          init = true;
+     }
+
+     return DFB_OK;
 }
 
 /**********************************************************************************************************************/
@@ -241,11 +261,11 @@ Core::RegisterImplementation( Implementation *implementation )
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::Core::%s( implementation %p )\n",
                  __FUNCTION__, implementation );
 
-     D_DEBUG_AT( DirectFB_Graphics, "  -> name '%s'\n",
-                 *implementation->GetName() );
+//     D_DEBUG_AT( DirectFB_Graphics, "  -> name '%s'\n",
+//                 *implementation->GetName() );
 
-     D_DEBUG_AT( DirectFB_Graphics, "  -> APIS '%s'\n",
-                 *implementation->GetAPIs().Concatenated(" ") );
+//     D_DEBUG_AT( DirectFB_Graphics, "  -> APIS '%s'\n",
+//                 *implementation->GetAPIs().Concatenated(" ") );
 
      implementations.push_back( implementation );
 }

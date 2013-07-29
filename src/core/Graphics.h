@@ -237,19 +237,28 @@ class Implementation
 {
 protected:
      Implementation();
-     virtual ~Implementation() {};
+     virtual ~Implementation();
 
 public:
-     const Direct::String  &GetName() const { return name; }
-     const Direct::Strings &GetAPIs() const { return apis; }
-     const Direct::Strings &GetExtensions() const { return extensions; }
+     const Direct::String  &GetName() { Init(); return name; }
+     const Direct::Strings &GetAPIs() { Init(); return apis; }
+     const Direct::Strings &GetExtensions() { Init(); return extensions; }
 
-     virtual Configs   &GetConfigs() = 0;
+     const Configs         &GetConfigs() { Init(); return configs; }
+
 
 protected:
-     Direct::String  name;
-     Direct::Strings apis;
-     Direct::Strings extensions;
+     virtual DFBResult  Initialise() = 0;
+
+     Direct::String      name = "unnamed";
+     Direct::Strings     apis;
+     Direct::Strings     extensions;
+     Graphics::Configs   configs;
+
+private:
+     DFBResult Init();
+
+     bool init = false;
 };
 
 
