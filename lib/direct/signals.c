@@ -35,6 +35,7 @@
 #include <direct/clock.h>
 #include <direct/conf.h>
 #include <direct/debug.h>
+#include <direct/interface.h>
 #include <direct/list.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
@@ -509,6 +510,9 @@ handle_signals( DirectThread *thread,
                }
                else if (SIG_DUMP_STACK == info.si_signo) {
                     D_DEBUG_AT( Direct_Signals, "  -> got dump signal %d (me %d, from %d)\n", SIG_DUMP_STACK, direct_getpid(), info.si_pid );
+
+                    direct_print_memleaks();
+                    direct_print_interface_leaks();
 
                     direct_trace_print_stacks();
                }
