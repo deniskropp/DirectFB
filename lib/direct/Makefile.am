@@ -53,11 +53,14 @@ include_HEADERS = \
 	Lists.h				\
 	LockWQ.h			\
 	Magic.h				\
+	Map.h				\
 	Mutex.h				\
 	Performer.h			\
 	String.h			\
 	TLSObject.h			\
 	ToString.h			\
+	Type.h				\
+	Utils.h				\
 	atomic.h			\
 	build.h				\
 	clock.h				\
