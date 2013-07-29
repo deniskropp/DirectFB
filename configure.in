@@ -2839,6 +2839,7 @@ lib/egl/build.h
 lib/egl/dfbegl.pc
 lib/egl/egl.pc
 lib/egl/EGL/Makefile
+lib/egl/GLES2/Makefile
 lib/egl/KHR/Makefile
 lib/egl/EGLCoreWayland/Makefile
 
