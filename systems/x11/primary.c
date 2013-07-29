@@ -807,14 +807,35 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           Window window = alloc->window;
 
+          static GC gc;
+
+          if (!gc)
+               gc = DefaultGC( x11->display, DefaultScreen(x11->display));
+
           if (!window) {
                D_ASSUME( alloc->type == X11_ALLOC_PIXMAP );
 
                static Window w;
+               static int ww, wh;
 
-               if (!w) {
+               if (!w
+                   || ww != allocation->config.size.w
+                   || wh != allocation->config.size.h)
+               {
                     XSync( x11->display, False );
-                    D_DEBUG_AT( X11_Update, "  -> creating window...\n" );
+
+                    D_LOG( X11_Update, VERBOSE, "  -> Creating window %dx%d...\n", allocation->config.size.w, allocation->config.size.h );
+
+                    if (w) {
+                         D_LOG( X11_Update, VERBOSE, "     -> Destroying old window 0x%08lx (%dx%d)...\n", w, ww, wh );
+                         XFreeGC( x11->display, gc );
+                         XDestroyWindow( x11->display, w );
+                         w = 0;
+                    }
+
+                    ww = allocation->config.size.w;
+                    wh = allocation->config.size.h;
+
 
                     XSetWindowAttributes attr;
 
@@ -828,14 +849,17 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                          | StructureNotifyMask;
 
                     attr.background_pixmap = 0;
+//                    attr.override_redirect = True;
 
                     w = XCreateWindow( x11->display,
                                        DefaultRootWindow(x11->display),
-                                       600, 200, allocation->config.size.w, allocation->config.size.h, 0,
+                                       600, 200, ww, wh, 0,
                                        alloc->depth, InputOutput,
-                                       alloc->visual, CWEventMask, &attr );
+                                       alloc->visual, CWEventMask /*| CWOverrideRedirect*/, &attr );
                     XSync( x11->display, False );
                     D_DEBUG_AT( X11_Update, "  -> window 0x%08lx\n", (long) w );
+
+                    gc = XCreateGC(x11->display, w, 0, NULL);
 
                     XMapRaised( x11->display, w );
                     XSync( x11->display, False );
@@ -875,8 +899,9 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
           if (!alloc->window) {
                D_DEBUG_AT( X11_Update, "  -> Copying from Pixmap...\n" );
 
-               XCopyArea( x11->display, alloc->xid, window, DefaultGC( x11->display, DefaultScreen(x11->display)),
-                          rect.x, rect.y, rect.w, rect.h, rect.x, rect.y );
+               XCopyArea( x11->display, alloc->xid, window, gc,
+                          0, 0, x11->showing_w, x11->showing_h, 0, 0 );
+               XFlush( x11->display );
           }
 
           XUnlockDisplay( x11->display );

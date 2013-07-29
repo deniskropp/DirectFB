@@ -58,9 +58,6 @@ namespace DirectFB {
 namespace X11 {
 
 
-using namespace DirectFB::EGL;
-
-
 class Types : public Direct::Types<Types,EGL::Types>
 {
 };
@@ -70,7 +67,21 @@ class EGLDisplayX11;
 class SurfaceXWindow;
 
 
-class EGLCoreModuleX11 : public EGL::CoreModule, public Types::Type<EGLCoreModuleX11,EGL::Core>
+namespace EGL {
+
+class Image : public Types::Type<Image,DirectFB::EGL::KHR::Image> {
+public:
+     Pixmap                      pixmap;
+     IDirectFBSurfaceAllocation *allocation;
+
+     Image( DirectFB::EGL::KHR::Image &egl_image,
+            EGLDisplayX11             &impl );
+};
+
+}
+
+
+class EGLCoreModuleX11 : public DirectFB::EGL::CoreModule, public Types::Type<EGLCoreModuleX11,DirectFB::EGL::Core>
 {
 protected:
      virtual Direct::String GetName() const
@@ -78,29 +89,30 @@ protected:
           return "X11";
      }
 
-     virtual DFBResult Initialise   ( EGL::Core             &core );
+     virtual DFBResult Initialise   ( DirectFB::EGL::Core             &core );
 
 
-     DFBResult Display_Probe     ( const EGL::Display    &display,
+     DFBResult Display_Probe     ( const DirectFB::EGL::Display    &display,
                                    unsigned int          &ret_score );
 
      DFBResult Display_Initialise( EGLDisplayX11         &display );
 };
 
 
-class EGLDisplayX11 : public Types::Type<EGLDisplayX11,EGL::Display>
+class EGLDisplayX11 : public Types::Type<EGLDisplayX11,DirectFB::EGL::Display>
 {
      friend class EGLCoreModuleX11;
+     friend class EGL::Image;
 
 public:
-     EGLDisplayX11( EGL::Display     &display,
+     EGLDisplayX11( DirectFB::EGL::Display     &display,
                     EGLCoreModuleX11 &module );
      virtual ~EGLDisplayX11();
 
 public:
      DFBResult Surface_Initialise( SurfaceXWindow        &surface );
 
-     DFBResult Image_Initialise( EGL::KHR::Image &image );
+     DFBResult Image_Initialise( DirectFB::EGL::KHR::Image &image );
 
 
 private:
@@ -108,12 +120,12 @@ private:
 };
 
 
-class SurfaceXWindow : public Types::Type<SurfaceXWindow,EGL::Surface>
+class SurfaceXWindow : public Types::Type<SurfaceXWindow,DirectFB::EGL::Surface>
 {
      friend class EGLDisplayX11;
 
 public:
-     SurfaceXWindow( EGL::Surface  &surface,
+     SurfaceXWindow( DirectFB::EGL::Surface  &surface,
                      EGLDisplayX11 &display );
 
      virtual ~SurfaceXWindow();

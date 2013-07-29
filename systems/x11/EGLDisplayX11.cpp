@@ -71,7 +71,7 @@ dfb_x11_egl_core_register()
 {
      static EGLCoreModuleX11 egl_core_module;
 
-     direct_modules_register( &EGL::core_modules,
+     direct_modules_register( &DirectFB::EGL::core_modules,
                               DFBEGL_CORE_ABI_VERSION,
                               "dfbegl_core_x11", &egl_core_module );
 }
@@ -79,8 +79,52 @@ dfb_x11_egl_core_register()
 
 /**********************************************************************************************************************/
 
+namespace EGL {
+
+Image::Image( DirectFB::EGL::KHR::Image &egl_image,
+              EGLDisplayX11             &display )
+     :
+     pixmap( 0 ),
+     allocation( NULL )
+{
+     D_LOG( DFBX11_EGLDisplay, DEBUG_1, "X11::Image::%s( %p, KHR::Image %p )\n", __FUNCTION__, this, &egl_image );
+
+     D_LOG( DFBX11_EGLDisplay, VERBOSE, "  -> Initialising EGLImageKHR from Pixmap (image %p, Pixmap %p)\n", &egl_image, egl_image.buffer );
+
+     pixmap = (Pixmap) egl_image.buffer;
+
+
+     XWindowAttributes  attrs;
+
+     XGetWindowAttributes( display.x11_display, pixmap, &attrs );
+
+
+     DFBResult             ret;
+     DFBSurfaceDescription desc;
+
+     desc.flags  = (DFBSurfaceDescriptionFlags)( DSDESC_WIDTH | DSDESC_HEIGHT );
+     desc.width  = attrs.width;//egl_image.gfx_options.GetValue( "WIDTH",  );
+     desc.height = attrs.height;//egl_image.gfx_options.Get( "HEIGHT" );
+
+     ret = idirectfb_singleton->CreateSurface( idirectfb_singleton, &desc, &egl_image.surface );
+     if (ret) {
+          D_DERROR_AT( DFBX11_EGLDisplay, ret, "  -> IDirectFB::CreateSurface( %dx%d ) failed!\n", desc.width, desc.height );
+          return;
+     }
+
+     ret = egl_image.surface->Allocate( egl_image.surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", pixmap, &allocation );
+     if (ret) {
+          D_DERROR_AT( DFBX11_EGLDisplay, ret, "  -> IDirectFBSurface::Allocate( FRONT, LEFT, 'Pixmap/X11' ) failed!\n" );
+          return;
+     }
+}
+
+}
+
+/**********************************************************************************************************************/
+
 DFBResult
-EGLCoreModuleX11::Display_Probe( const EGL::Display &display,
+EGLCoreModuleX11::Display_Probe( const DirectFB::EGL::Display &display,
                                  unsigned int       &ret_score )
 {
      D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p, display %p, native_display 0x%08lx )\n",
@@ -112,13 +156,15 @@ EGLCoreModuleX11::Display_Initialise( EGLDisplayX11 &display )
      D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p, display %p, x11_display %p )\n",
                  __FUNCTION__, this, &display, display.x11_display );
 
-     KHR::Image::Register< KHR::Image::Initialise >( display.GetName() / EGLInt(EGL_NATIVE_PIXMAP_KHR),
+     DirectFB::EGL::KHR::Image::Register< DirectFB::EGL::KHR::Image::Initialise >( display.GetName() / DirectFB::EGL::EGLInt(EGL_NATIVE_PIXMAP_KHR),
                                                      std::bind( &EGLDisplayX11::Image_Initialise, &display, _1 ) );
 
-     EGL::Surface::Register< EGL::Surface::Initialise >( display.GetName(),
+     DirectFB::EGL::Surface::Register< DirectFB::EGL::Surface::Initialise >( display.GetName(),
                                                          std::bind( &EGLDisplayX11::Surface_Initialise, &display, _1 ) );
 
-     SurfaceXWindow::RegisterConversion< EGL::Surface, EGLDisplayX11& >( display );
+     SurfaceXWindow::RegisterConversion< DirectFB::EGL::Surface, EGLDisplayX11& >( display );
+
+     X11::EGL::Image::RegisterConversion< DirectFB::EGL::KHR::Image, EGLDisplayX11& >( display );
 
      return DFB_OK;
 }
@@ -180,7 +226,7 @@ EGLDisplayX11::Surface_Initialise( SurfaceXWindow &surface )
      desc.resource_id = window;
      desc.hints       = DSHF_NONE;
 
-     if (surface.parent.native_handle.clazz == NativeHandle::CLASS_WINDOW) {
+     if (surface.parent.native_handle.clazz == DirectFB::EGL::NativeHandle::CLASS_WINDOW) {
           D_FLAGS_SET( desc.caps, DSCAPS_PRIMARY );
           D_FLAGS_SET( desc.hints, DSHF_WINDOW );
      }
@@ -218,19 +264,19 @@ EGLCoreModuleX11::Initialise( DirectFB::EGL::Core &core )
      D_DEBUG_AT( DFBX11_EGLCoreModule, "EGLCoreModuleX11::%s( %p, core %p )\n",
                  __FUNCTION__, this, &core );
 
-     Core::Register< Display::Probe >     ( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Probe, this, _1, _2 ) );
-     Core::Register< Display::Initialise >( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Initialise, this, _1 ) );
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Probe >     ( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Probe, this, _1, _2 ) );
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Initialise >( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Initialise, this, _1 ) );
 
-     EGLDisplayX11::RegisterConversion< EGL::Display, EGLCoreModuleX11& >( *this );
+     EGLDisplayX11::RegisterConversion< DirectFB::EGL::Display, EGLCoreModuleX11& >( *this );
 
-     Display::Register< EGLExtension::GetNames >( GetName(), [](){ return "DIRECTFB_display_x11"; } );
+     DirectFB::EGL::Display::Register< DirectFB::EGL::EGLExtension::GetNames >( GetName(), [](){ return "DIRECTFB_display_x11"; } );
 
      return DFB_OK;
 }
 
 /**********************************************************************************************************************/
 
-EGLDisplayX11::EGLDisplayX11( EGL::Display     &display,
+EGLDisplayX11::EGLDisplayX11( DirectFB::EGL::Display     &display,
                               EGLCoreModuleX11 &module )
      :
      Type( display ),
@@ -246,7 +292,7 @@ EGLDisplayX11::~EGLDisplayX11()
 
 /**********************************************************************************************************************/
 
-SurfaceXWindow::SurfaceXWindow( EGL::Surface  &surface,
+SurfaceXWindow::SurfaceXWindow( DirectFB::EGL::Surface  &surface,
                                 EGLDisplayX11 &display )
      :
      Type( surface ),

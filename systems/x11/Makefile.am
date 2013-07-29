@@ -72,7 +72,8 @@ endif
 
 libdirectfb_x11_la_LIBADD = \
 	$(DFB_BASE_LIBS)	\
-	$(libegl)
+	$(libegl)		\
+	$(libdfbegl)
 
 
 

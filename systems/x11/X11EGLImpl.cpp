@@ -45,7 +45,8 @@ extern "C" {
 #include "X11EGLImpl.h"
 
 
-D_LOG_DOMAIN( DFBX11_EGLImpl, "DFBX11/EGLImpl", "DirectFB X11 EGL Implementation" );
+D_LOG_DOMAIN( DFBX11_EGLImpl,   "DFBX11/EGL/Impl",   "DirectFB X11 EGL Implementation" );
+D_LOG_DOMAIN( DFBX11_EGLConfig, "DFBX11/EGL/Config", "DirectFB X11 EGL Config" );
 
 
 namespace X11 {
@@ -63,18 +64,9 @@ static X11EGLImpl *x11_egl_impl;
 DFBResult
 dfb_x11_eglimpl_register( DFBX11 *x11 )
 {
-     DFBResult ret;
-
      D_ASSERT( x11_egl_impl == NULL );
 
-     x11_egl_impl = new X11EGLImpl();
-
-     ret = x11_egl_impl->Init( x11 );
-     if (ret) {
-          delete x11_egl_impl;
-          x11_egl_impl = NULL;
-          return ret;
-     }
+     x11_egl_impl = new X11EGLImpl( x11 );
 
      Graphics::Core::RegisterImplementation( x11_egl_impl );
 
@@ -96,56 +88,12 @@ dfb_x11_eglimpl_unregister()
 
 /**********************************************************************************************************************/
 
-namespace EGL {
-
-Image::Image( DirectFB::EGL::KHR::Image &egl_image,
-              X11EGLImpl                &impl )
-     :
-     pixmap( 0 ),
-     allocation( NULL )
-{
-     D_LOG( DFBX11_EGLImpl, DEBUG_1, "X11::Image::%s( %p, KHR::Image %p )\n", __FUNCTION__, this, &egl_image );
-
-     D_LOG( DFBX11_EGLImpl, VERBOSE, "  -> Initialising EGLImageKHR from Pixmap (image %p, Pixmap %p)\n", &egl_image, egl_image.buffer );
-
-     pixmap = (Pixmap) egl_image.buffer;
-
-
-     XWindowAttributes  attrs;
-
-     XGetWindowAttributes( impl.x11->display, pixmap, &attrs );
-
-
-     DFBResult             ret;
-     DFBSurfaceDescription desc;
-
-     desc.flags  = (DFBSurfaceDescriptionFlags)( DSDESC_WIDTH | DSDESC_HEIGHT );
-     desc.width  = attrs.width;//egl_image.gfx_options.GetValue( "WIDTH",  );
-     desc.height = attrs.height;//egl_image.gfx_options.Get( "HEIGHT" );
-
-     ret = idirectfb_singleton->CreateSurface( idirectfb_singleton, &desc, &egl_image.surface );
-     if (ret) {
-          D_DERROR_AT( DFBX11_EGLImpl, ret, "  -> IDirectFB::CreateSurface( %dx%d ) failed!\n", desc.width, desc.height );
-          return;
-     }
-
-     ret = egl_image.surface->Allocate( egl_image.surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", pixmap, &allocation );
-     if (ret) {
-          D_DERROR_AT( DFBX11_EGLImpl, ret, "  -> IDirectFBSurface::Allocate( FRONT, LEFT, 'Pixmap/X11' ) failed!\n" );
-          return;
-     }
-}
-
-}
-
-/**********************************************************************************************************************/
-
-GLeglImage::GLeglImage( DirectFB::EGL::KHR::Image &egl_image,
-                        X11EGLImpl                &impl )
+GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
+                        X11EGLImpl      &impl )
      :
      glEGLImage( 0 )
 {
-     D_LOG( DFBX11_EGLImpl, DEBUG_1, "X11::GLeglImage::%s( %p, KHR::Image %p )\n", __FUNCTION__, this, &egl_image );
+     D_LOG( DFBX11_EGLImpl, DEBUG_1, "X11::GLeglImage::%s( %p, KHR::Image %p, impl %p )\n", __FUNCTION__, this, &egl_image, &impl );
 
      D_LOG( DFBX11_EGLImpl, VERBOSE, "  -> Deriving GLeglImage for X11 GL Context from generic EGLImageKHR (image %p, surface %p)\n", &egl_image, egl_image.surface );
 
@@ -193,8 +141,8 @@ GLeglImage::GLeglImage( DirectFB::EGL::KHR::Image &egl_image,
 /**********************************************************************************************************************/
 
 void
-X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_       &target,
-                                               X11::GLeglImage &image )
+X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_  &target,
+                                               GLeglImage &image )
 {
      D_LOG( DFBX11_EGLImpl, DEBUG_1, "X11EGLImpl::Context_glEGLImageTargetTexture2D::%s( %p, target 0x%04x, X11::GLeglImage %p, EGLImage %p )\n",
             __FUNCTION__, this, target, &image, image.glEGLImage );
@@ -205,25 +153,41 @@ X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_       &target,
 
 /**********************************************************************************************************************/
 
-X11EGLImpl::X11EGLImpl()
+X11EGLImpl::X11EGLImpl( DFBX11 *x11 )
      :
-     x11( NULL ),
+     x11( x11 ),
      egl_display( EGL_NO_DISPLAY ),
      egl_major( 0 ),
      egl_minor( 0 )
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p )\n", __FUNCTION__, this );
 
-     X11::GLeglImage::RegisterConversion< DirectFB::EGL::KHR::Image, X11EGLImpl& >( *this );
+     //X11::GLeglImage::Register<
+     //     std::function< X11::GLeglImage * ( Types::TypeBase *source ) >
+     //     >( DirectFB::EGL::KHR::Image::GetTypeInstance().GetInfo().name,
+     //        std::bind( []( Types::TypeBase *source,
+     //                       X11EGLImpl      &impl )
+     //                    {
+     //                         return new X11::GLeglImage( (DirectFB::EGL::KHR::Image&) *source, impl );
+     //                    },
+     //std::placeholders::_1, std::ref(*this) ) );
 
-     X11::EGL::Image::RegisterConversion< DirectFB::EGL::KHR::Image, X11EGLImpl& >( *this );
+     X11::GLeglImage::RegisterConversion< DirectFB::EGL::KHR::Image, X11EGLImpl& >( *this );
 
      Graphics::Context::Register< GL::OES::glEGLImageTargetTexture2D >( "",
                                                                         std::bind( &X11EGLImpl::Context_glEGLImageTargetTexture2D, this, _1, _2 ) );
 }
 
+X11EGLImpl::~X11EGLImpl()
+{
+     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p )\n", __FUNCTION__, this );
+
+     if (egl_display)
+          lib.eglTerminate( egl_display );
+}
+
 DFBResult
-X11EGLImpl::Init( DFBX11 *x11 )
+X11EGLImpl::Initialise()
 {
      DFBResult   ret;
      const char *client_apis;
@@ -233,8 +197,6 @@ X11EGLImpl::Init( DFBX11 *x11 )
      EGLint      num_configs = 0;
 
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p, x11 %p )\n", __FUNCTION__, this, x11 );
-
-     this->x11 = x11;
 
      ret = lib.Init( "/usr/lib/x86_64-linux-gnu/mesa-egl/libEGL.so.1", true, false );
      if (ret) {
@@ -339,24 +301,9 @@ X11EGLImpl::Init( DFBX11 *x11 )
 
 failure:
      lib.eglTerminate( egl_display );
+     lib.Unload();
      egl_display = NULL;
      return DFB_FAILURE;
-}
-
-X11EGLImpl::~X11EGLImpl()
-{
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p )\n", __FUNCTION__, this );
-
-     if (egl_display)
-          lib.eglTerminate( egl_display );
-}
-
-Graphics::Configs &
-X11EGLImpl::GetConfigs()
-{
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p )\n", __FUNCTION__, this );
-
-     return configs;
 }
 
 /**********************************************************************************************************************/
@@ -368,13 +315,13 @@ X11EGLConfig::X11EGLConfig( X11EGLImpl &impl,
      impl( impl ),
      egl_config( egl_config )
 {
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLConfig::%s( %p, egl_config 0x%08lx )\n", __FUNCTION__, this, (long) egl_config );
+     D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, egl_config 0x%08lx )\n", __FUNCTION__, this, (long) egl_config );
 
 }
 
 X11EGLConfig::~X11EGLConfig()
 {
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLConfig::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p )\n", __FUNCTION__, this );
 
 }
 
@@ -382,12 +329,12 @@ DFBResult
 X11EGLConfig::GetOption( const Direct::String &name,
                          long                 &value )
 {
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLConfig::%s( %p, '%s' ) <- egl_config 0x%08lx\n", __FUNCTION__, this, *name, (long) egl_config );
+     D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, '%s' ) <- egl_config 0x%08lx\n", __FUNCTION__, this, *name, (long) egl_config );
 
      DirectFB::EGL::EGLInt option;
 
      if (FromString<DirectFB::EGL::EGLInt>( option, name )) {
-          D_DEBUG_AT( DFBX11_EGLImpl, "  => 0x%04x\n", option.value );
+          D_DEBUG_AT( DFBX11_EGLConfig, "  => 0x%04x\n", option.value );
 
           EGLint v;
 
@@ -397,7 +344,7 @@ X11EGLConfig::GetOption( const Direct::String &name,
                return DFB_FAILURE;
           }
 
-          D_DEBUG_AT( DFBX11_EGLImpl, "  => 0x%x\n", v );
+          D_DEBUG_AT( DFBX11_EGLConfig, "  => 0x%x\n", v );
 
           value = v;
 
@@ -412,7 +359,7 @@ X11EGLConfig::CheckOptions( const Graphics::Options &options )
 {
      DFBResult ret = DFB_OK;
 
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLConfig::%s( %p, options %p )\n", __FUNCTION__, this, &options );
+     D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, options %p )\n", __FUNCTION__, this, &options );
 
      for (Graphics::Options::const_iterator it = options.begin();
           it != options.end();
@@ -422,7 +369,7 @@ X11EGLConfig::CheckOptions( const Graphics::Options &options )
           long                  check = 0;
           Graphics::OptionBase *base = (*it).second;
 
-          D_DEBUG_AT( DFBX11_EGLImpl, "  ---> '%s'\n", *base->GetName() );
+          D_DEBUG_AT( DFBX11_EGLConfig, "  ---> '%s'\n", *base->GetName() );
 
           GetOption( base->GetName(), val );
 
@@ -430,20 +377,20 @@ X11EGLConfig::CheckOptions( const Graphics::Options &options )
 
           if (base->GetName() == "RENDERABLE_TYPE") {
                if ((val & check) == check)
-                    D_DEBUG_AT( DFBX11_EGLImpl, "  =    local '0x%08lx' contains '0x%08lx'\n", val, check );
+                    D_DEBUG_AT( DFBX11_EGLConfig, "  =    local '0x%08lx' contains '0x%08lx'\n", val, check );
                else {
-                    D_DEBUG_AT( DFBX11_EGLImpl, "  X    local '0x%08lx' misses '0x%08lx'\n", val, check );
+                    D_DEBUG_AT( DFBX11_EGLConfig, "  X    local '0x%08lx' misses '0x%08lx'\n", val, check );
 
                     ret = DFB_UNSUPPORTED;
                }
           }
           else {
                if (val > check)
-                    D_DEBUG_AT( DFBX11_EGLImpl, "  >    local '%ld' greater than '%ld'\n", val, check );
+                    D_DEBUG_AT( DFBX11_EGLConfig, "  >    local '%ld' greater than '%ld'\n", val, check );
                else if (val == check)
-                    D_DEBUG_AT( DFBX11_EGLImpl, "  =    local '%ld' equals\n", val );
+                    D_DEBUG_AT( DFBX11_EGLConfig, "  =    local '%ld' equals\n", val );
                else {
-                    D_DEBUG_AT( DFBX11_EGLImpl, "  X    local '%ld' < '%ld'\n", val, check );
+                    D_DEBUG_AT( DFBX11_EGLConfig, "  X    local '%ld' < '%ld'\n", val, check );
 
                     ret = DFB_UNSUPPORTED;
                }
@@ -465,7 +412,7 @@ X11EGLConfig::CreateContext( const Direct::String  &api,
      DFBResult          ret;
      Graphics::Context *context;
 
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLConfig::%s( %p, api '%s', share %p, options %p )\n",
+     D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, api '%s', share %p, options %p )\n",
                  __FUNCTION__, this, *api, share, options );
 
      context = new X11EGLContext( impl, api, this, share, options );
@@ -489,7 +436,7 @@ X11EGLConfig::CreateSurfacePeer( IDirectFBSurface       *surface,
      DFBResult              ret;
      Graphics::SurfacePeer *peer;
 
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLConfig::%s( %p, surface %p )\n",
+     D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, surface %p )\n",
                  __FUNCTION__, this, surface );
 
      peer = new X11EGLSurfacePeer( impl, this, options, surface );
@@ -828,9 +775,9 @@ X11EGLSurfacePeer::getEGLSurface()
                                                               (EGLNativeWindowType) handle, NULL );// FIXME: Add Options ToAttribs
 
           if (egl_surface == EGL_NO_SURFACE) {
-               D_ERROR( "X11/EGLImpl: eglCreate%sSurface( EGLConfig %p, %s 0x%08llx ) failed (%s)\n",
+               D_ERROR( "X11/EGLImpl: eglCreate%sSurface( EGLConfig %p, %s 0x%08lx ) failed (%s)\n",
                         is_pixmap ? "Pixmap" : "Window", config->egl_config, is_pixmap ? "Pixmap" : "Window",
-                        handle, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
+                        (long) handle, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
                return EGL_NO_SURFACE;
           }
 

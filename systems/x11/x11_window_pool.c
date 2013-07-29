@@ -420,7 +420,7 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
                    CoreSurfaceAllocation *allocation,
                    void                  *alloc_data )
 {
-     return x11AllocateKey( pool, pool_data, pool_local, buffer, "Window/X11", 0, allocation, alloc_data );
+     return x11AllocateKey( pool, pool_data, pool_local, buffer, "Pixmap/X11", 0, allocation, alloc_data );
 }
 
 static DFBResult

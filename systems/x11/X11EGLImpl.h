@@ -68,21 +68,7 @@ class Types : public Direct::Types<Types>
 class X11EGLImpl;
 
 
-namespace EGL {
-
-class Image : public Types::Type<Image,DirectFB::EGL::KHR::Image> {
-public:
-     Pixmap                      pixmap;
-     IDirectFBSurfaceAllocation *allocation;
-
-     Image( DirectFB::EGL::KHR::Image &egl_image,
-            X11EGLImpl                &impl );
-};
-
-}
-
-
-class GLeglImage : public Types::Type<GLeglImage,DirectFB::EGL::KHR::Image> {
+class GLeglImage : public Types::Type<GLeglImage,EGL::KHR::Image> {
 public:
      GLeglImageOES glEGLImage;
 
@@ -93,33 +79,34 @@ public:
 
 class X11EGLImpl : public Graphics::Implementation
 {
-     friend class EGL::Image;
      friend class GLeglImage;
      friend class X11EGLConfig;
      friend class X11EGLContext;
      friend class X11EGLSurfacePeer;
 
+     // no copy
+     X11EGLImpl( const X11EGLImpl& ) = delete;
+
+     // no assign
+     X11EGLImpl& operator=( const X11EGLImpl& ) = delete;
+
 public:
-     X11EGLImpl();
+     X11EGLImpl( DFBX11 *x11 );
      virtual ~X11EGLImpl();
 
-     DFBResult Init( DFBX11 *x11 );
-
-public:
-     virtual Graphics::Configs &GetConfigs();
+protected:
+     virtual DFBResult Initialise() override;
 
 public:
      DirectFB::EGL::Library              lib;
      PFNEGLCREATEIMAGEKHRPROC            eglCreateImageKHR;
      PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
 
-     void Context_glEGLImageTargetTexture2D( GL::enum_       &target,
-                                             X11::GLeglImage &image );
-
+     void Context_glEGLImageTargetTexture2D( GL::enum_  &target,
+                                             GLeglImage &image );
 
 private:
      DFBX11            *x11;
-     Graphics::Configs  configs;
 
      EGLDisplay         egl_display;
      EGLint             egl_major, egl_minor;
