@@ -20,7 +20,7 @@ FUSIONSOUND_DIRS = fusionsound fusionsound/drivers
 endif
 
 if ENABLE_WAYLAND
-WAYLAND_DIRS = wayland-dfb wayland-egl
+WAYLAND_DIRS = wayland-egl
 endif
 
 SUBDIRS = direct fusion $(ONE_DIR) $(VOODOO_DIR) $(FUSIONDALE_DIRS) $(FUSIONSOUND_DIRS) $(WAYLAND_DIRS)

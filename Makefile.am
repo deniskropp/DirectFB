@@ -49,6 +49,10 @@ if ENABLE_FUSIONSOUND
 FUSIONSOUND_EXAMPLES_DIR = examples/fusionsound
 endif
 
+if ENABLE_WAYLAND
+WAYLAND_DIRS = lib/wayland-dfb
+endif
+
 SUBDIRS = \
 	data			\
 	docs			\
@@ -57,6 +61,7 @@ SUBDIRS = \
 	lib			\
 	src 			\
 	lib/++dfb		\
+	$(WAYLAND_DIRS)		\
 	$(SAWMAN_DIR)		\
 	$(DIVINE_DIR)		\
 	$(DVC_DIR)		\
