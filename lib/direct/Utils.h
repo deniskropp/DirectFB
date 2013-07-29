@@ -106,7 +106,7 @@ class Demangle : public Direct::String
 public:
      Demangle( const char *symbol )
      {
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(__arm__)
           int   status;
           char *realname;
 
