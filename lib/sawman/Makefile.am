@@ -8,8 +8,7 @@ INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_srcdir)/src		\
 	-I$(top_srcdir)/lib             \
-	-I$(top_srcdir)/lib/sawman      \
-	$(DIRECTFB_CFLAGS)
+	-I$(top_srcdir)/lib/sawman
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"	\
