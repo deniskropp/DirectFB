@@ -206,22 +206,22 @@ public:
                     const std::type_info &parent_type_info,
                     const std::type_info &parent_real_info )
                :
-               base_name(          base_name ),        
-                                                     
-               ns(                 ns ),               
-                                                     
-               type(               type ),             
-               name(               name ),             
-               real_name(          real_name ),        
-                                                     
-               type_info(          type_info ),        
-               real_info(          real_info ),        
-                                                     
-               //parent_type(        parent_type ),      
-               parent_name(        parent_name ),      
-               parent_real_name(   parent_real_name ), 
-                                                     
-               parent_type_info(   parent_type_info ), 
+               base_name(          base_name ),
+
+               ns(                 ns ),
+
+               type(               type ),
+               name(               name ),
+               real_name(          real_name ),
+
+               type_info(          type_info ),
+               real_info(          real_info ),
+
+               //parent_type(        parent_type ),
+               parent_name(        parent_name ),
+               parent_real_name(   parent_real_name ),
+
+               parent_type_info(   parent_type_info ),
                parent_real_info(   parent_real_info )
           {
                D_DEBUG_AT( Direct_Type, "InfoBase::%s()\n", __FUNCTION__ );
@@ -253,6 +253,56 @@ public:
           virtual void      TypeInit() = 0;
 
           virtual const Direct::String &GetName() = 0;
+
+     protected:
+          std::vector<TypeHandle> all_handles;
+
+          template <typename _Target>
+          _Target &Convert()
+          {
+               //D_INFO( "Direct/Type/Map: Converting %p [ %s ] [%s] -> [%s]\n",
+               //        this, *TypeID<Type>(), *TypeID<_T>(), *TypeID<_Target>() );
+
+               InfoBase &source_info = GetInfo();
+               InfoBase &target_info = _Target::GetTypeInstance().GetInfo();
+
+               D_INFO( "Direct/Type/Map:    => [  %s  --->  %s  ] <=\n",
+                       *source_info.real_name, *target_info.real_name );
+
+
+               std::map<std::type_index,TypeHandle> &handles = GetHandleMap<_Target>();
+
+               TypeHandle &handle = handles[ target_info.real_info ];
+
+               if (!handle) {
+                    _Target *t = _Target::template Call< std::function<_Target *(TypeBase *)> >( *source_info.name )( this );
+
+                    D_INFO( "Direct/Type/Map:    => NEW %p <=\n", t );
+
+                    handle.reset( t );
+
+                    all_handles.push_back( handle );
+               }
+               else
+                    D_INFO( "Direct/Type/Map:    => CACHED %p <=\n", & (_Target&) *handle );
+
+               return (_Target&) *handle;
+          }
+
+          template <typename _Target>
+          std::map<std::type_index,TypeHandle> &GetHandleMap()
+          {
+               static std::map<std::type_index,TypeHandle> handles;
+
+               return handles;
+          }
+
+     public:
+          template <typename _Target>
+          operator _Target &()
+          {
+               return Convert<_Target>();
+          }
      };
 
 

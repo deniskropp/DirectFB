@@ -60,28 +60,6 @@ extern "C" {
 
 
 
-/*
-
-  Attrib (EGLInt)
-  Attrib (String)
-
-    -> lookup in cached table
-       -> lookup in dynamic table (with update call)
-          -> resolve
-
-
- Type
-
-   - std::functions
-     - static or per instance
-     - extensions (overrides and adding functions) can be made after instantiation
-     -
-
-
-*/
-
-
-
 namespace Direct {
 
 
@@ -123,6 +101,12 @@ public:
                            __FUNCTION__, this, *TypeID<_NS>(), *TypeID<_P>(), *TypeID<_T>() );
           }
 
+          // no copy
+          Type( const Type& ) = delete;
+
+          // no assign
+          Type& operator=( const Type& ) = delete;
+
           virtual ~Type() {
                D_DEBUG_AT( Direct_Type, "Type::%s( %p )\n", __FUNCTION__, this );
           }
@@ -160,13 +144,6 @@ public:
 
 
      public:
-          template <typename _Target>
-          operator _Target &()
-          {
-               return Convert<_Target>();
-          }
-
-
           virtual InfoBase &GetInfo() {
                static InfoHandle info = Info::New( *this );
 
@@ -174,8 +151,8 @@ public:
           }
 
           virtual const Direct::String &GetName() {
-               if (!all_handles.empty()) {
-                    return all_handles[0]->GetName();
+               if (!this->all_handles.empty()) {
+                    return this->all_handles[0]->GetName();
                }
 
                return GetTypeInstance().GetInfo().real_name;
@@ -204,62 +181,18 @@ public:
           }
 
 
-     private:
-          std::vector<Types::TypeHandle> all_handles;
-
-          template <typename _Target>
-          _Target &Convert()
-          {
-               D_INFO( "Direct/Type/Map: Converting %p [ %s ] [%s] -> [%s]\n",
-                       this, *TypeID<Type>(), *TypeID<_T>(), *TypeID<_Target>() );
-
-               InfoBase &source_info = GetInfo();
-               InfoBase &target_info = _Target::GetTypeInstance().GetInfo();
-
-               D_INFO( "Direct/Type/Map:    => [  %s  --->  %s  ] <=\n",
-                       *source_info.real_name, *target_info.real_name );
-
-
-               std::map<std::type_index,Types::TypeHandle> &handles = GetHandleMap<_Target>();
-
-               Types::TypeHandle &handle = handles[ target_info.real_info ];
-
-               if (!handle) {
-                    _Target *t = _Target::template Call< std::function<_Target *(TypeBase *)> >( *source_info.name )( this );
-
-                    D_INFO( "Direct/Type/Map:    => NEW %p <=\n", t );
-
-                    handle.reset( t );
-
-                    all_handles.push_back( handle );
-               }
-               else
-                    D_INFO( "Direct/Type/Map:    => CACHED %p <=\n", & (_Target&) *handle );
-
-               return (_Target&) *handle;
-          }
-
-          template <typename _Target>
-          std::map<std::type_index,Types::TypeHandle> &GetHandleMap()
-          {
-               static std::map<std::type_index,Types::TypeHandle> handles;
-
-               return handles;
-          }
-
-     public:
           template <typename _Source, typename... _ArgTypes>
           static void RegisterConversion( _ArgTypes&&... __args )
           {
                RealType::template Register<
-                    std::function< RealType * ( Types::TypeBase *source ) >
+                    std::function< RealType * ( TypeBase *source ) >
                     >( _Source::GetTypeInstance().GetInfo().name,
-                       std::bind( []( Types::TypeBase *source,
-                                      _ArgTypes&&...   __args )
+                       std::bind( []( TypeBase       *source,
+                                      _ArgTypes&&...  __args )
                                    {
                                         return new RealType( (_Source&) *source, std::forward<_ArgTypes>(__args)... );
                                    },
-               std::placeholders::_1, std::forward<_ArgTypes>(__args)... ) );
+               std::placeholders::_1, std::ref(__args)... ) );
           }
      };
 };
