@@ -6,5 +6,6 @@ includedir=@includedir@
 Name: wayland-dfb
 Description: DirectFB wayland interface library
 Version: @VERSION@
+Requires: directfb wayland-client wayland-server
 Libs: -L${libdir} -lwayland-dfb
 Cflags: -I${includedir}

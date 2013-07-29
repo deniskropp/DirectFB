@@ -28,7 +28,6 @@ wayland_is_dfb_buffer(struct wl_resource *resource);
 
 #ifdef  __cplusplus
 }
-#endif
 
 
 #include <direct/Type.h>
@@ -66,6 +65,9 @@ public:
 
 }
 
+
+
+#endif
 
 
 #endif
