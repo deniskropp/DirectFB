@@ -57,11 +57,21 @@ namespace DirectFB {
 
 namespace GL {
 
+/*
 OES::eglImage::eglImage()
+     :
+     glEGLImage( NULL )
 {
      D_LOG( DFBEGL_Api, DEBUG_1, "OES::eglImage::%s( %p )\n", __FUNCTION__, this );
 }
 
+OES::eglImage::eglImage( EGL::KHR::Image &egl_image )
+     :
+     glEGLImage( NULL )
+{
+     D_LOG( DFBEGL_Api, DEBUG_1, "OES::eglImage::%s( %p, egl_image %p )\n", __FUNCTION__, this, &egl_image );
+}
+*/
 }
 
 
@@ -212,7 +222,8 @@ EGLImage::glEGLImageTargetRenderBufferStorageOES( GLenum      target,
 
      Types::TypeHandle *handle = (Types::TypeHandle *) img;
 
-     KHR::Image &image = (KHR::Image&) **handle;
+     //KHR::Image &image = (KHR::Image&) **handle;
+     Direct::Base::TypeBase &image = (Direct::Base::TypeBase&) **handle;
 
      context.Call<GL::OES::glEGLImageTargetRenderBufferStorage>()( target, image );
 }
@@ -345,7 +356,8 @@ KHR::Image::Image()
      display( NULL ),
      context( NULL ),
      target( 0 ),
-     buffer( NULL )
+     buffer( NULL ),
+     surface( NULL )
 {
      D_DEBUG_AT( DFBEGL_Image, "KHR::Image::%s( %p )\n", __FUNCTION__, this );
 }
@@ -353,6 +365,9 @@ KHR::Image::Image()
 KHR::Image::~Image()
 {
      D_DEBUG_AT( DFBEGL_Image, "KHR::Image::%s( %p )\n", __FUNCTION__, this );
+
+     if (surface)
+          surface->Release( surface );
 }
 
 

@@ -99,8 +99,8 @@ libEGL_la_LIBADD = \
 
 libEGL_la_LDFLAGS = \
 	-version-number 1:0	\
-	$(DFB_LDFLAGS)
-
+	$(DFB_LDFLAGS)		\
+	$(libdfbegl)
 
 
 LIBS_TO_NMFILE = libDFBEGL.la

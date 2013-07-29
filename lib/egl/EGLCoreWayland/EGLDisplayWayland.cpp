@@ -57,12 +57,12 @@ D_LOG_DOMAIN( DFBWayland_EGLDisplay,       "DFBWayland/EGLDisplay",       "Direc
 D_LOG_DOMAIN( DFBWayland_BindDisplay,      "DFBWayland/BindDisplay",      "DirectFB Wayland EGL BindDisplay extension" );
 
 
+using namespace std::placeholders;
+
 
 namespace DirectFB {
 
 namespace Wayland {
-
-using namespace std::placeholders;
 
 
 __attribute__((constructor))
@@ -80,6 +80,11 @@ dfb_wayland_egl_core_register()
 }
 
 /**********************************************************************************************************************/
+
+EGLCoreModuleWayland::EGLCoreModuleWayland()
+{
+     D_DEBUG_AT( DFBWayland_EGLCoreModule, "EGLCoreModuleWayland::%s( %p )\n", __FUNCTION__, this );
+}
 
 DFBResult
 EGLCoreModuleWayland::Initialise( DirectFB::EGL::Core &core )
@@ -202,6 +207,10 @@ EGLCoreModuleWayland::Display_Initialise( EGLDisplayWayland &display )
      if (display.roundtrip() < 0 || display.wl_dfb == NULL)
           goto error;
 
+     D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_dfb %p\n",  display.wl_dfb );
+     D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_queue %p\n",  display.wl_queue );
+     D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_registry %p\n",  display.wl_registry );
+
      return DFB_OK;
 
 
@@ -217,12 +226,17 @@ error:
 EGLDisplayWayland::EGLDisplayWayland( EGL::Display         &display,
                                       EGLCoreModuleWayland &module )
      :
-     Type( display )
+     Type( display ),
+     wl_display( NULL ),
+     wl_queue( NULL ),
+     wl_registry( NULL ),
+     wl_server_dfb( NULL ),
+     wl_dfb( NULL )
 {
      D_DEBUG_AT( DFBWayland_EGLDisplay, "EGLDisplayWayland::%s( %p, native_display 0x%08lx )\n", __FUNCTION__, this, (unsigned long) display.native_display );
 
      KHR::Image::Register< KHR::Image::Initialise >( EGLInt(EGL_WAYLAND_BUFFER_WL),
-                                                     std::bind( &EGLDisplayWayland::Image_Initialise, *this, _1 ) );
+                                                     std::bind( &EGLDisplayWayland::Image_Initialise, this, _1 ) );
 }
 
 EGLDisplayWayland::~EGLDisplayWayland()
@@ -290,7 +304,23 @@ EGLDisplayWayland::Image_Initialise( DirectFB::EGL::KHR::Image &image )
 
      D_ASSERT( image.target == EGL_WAYLAND_BUFFER_WL );
 
-//     image.buffer = (WL::Buffer*) image.;
+     DFBResult         ret;
+     WL::Buffer       *buffer  = (WL::Buffer *) wl_resource_get_user_data( (struct wl_resource*) image.buffer );
+     IDirectFBSurface *surface = buffer->surface;
+
+     ret = (DFBResult) surface->AddRef( surface );
+     if (ret) {
+          D_DERROR_AT( DFBWayland_EGLDisplay, ret, "  -> IDirectFBSurface::AddRef() failed!\n" );
+          return ret;
+     }
+
+     int w, h;
+
+     surface->GetSize( surface, &w, &h );
+
+     D_INFO( "DFBEGL/Image: New EGLImage from WL::Buffer (%dx%d)\n", w, h );
+
+     image.surface = surface;
 
      return DFB_OK;
 }
@@ -366,6 +396,8 @@ SurfaceWLEGLWindow::SwapBuffers()
      wl_surface_damage( window->surface, 0, 0, window->width, window->height );
      wl_surface_commit( window->surface );
 
+     wl_dfb_buffer_destroy( buffer );
+
      return EGL_SUCCESS;
 }
 
@@ -401,6 +433,9 @@ BindWaylandDisplay::BindWaylandDisplay()
      DirectFB::EGL::Core::Register<
      DirectFB::EGL::Core::GetProcAddress
      >( "eglQueryWaylandBufferWL", [](const char *){ return (void*) eglQueryWaylandBufferWL;} );
+
+     DirectFB::EGL::Display::Register< BindWaylandDisplayWL >( "", std::bind( &BindWaylandDisplay::eglBindWaylandDisplay, this, _1, _2 ) );
+//     DirectFB::EGL::Display::Register< UnbindWaylandDisplayWL >( "", std::bind( &BindWaylandDisplay::eglUnbindWaylandDisplay, this, _1, _2 ) );
 }
 
 BindWaylandDisplay::~BindWaylandDisplay()
@@ -507,7 +542,7 @@ BindWaylandDisplay::eglBindWaylandDisplay( DirectFB::Wayland::EGLDisplayWayland 
      }
 
      display.wl_display    = wl_display;
-     display.wl_server_dfb = wayland_dfb_init( wl_display, display.parent.dfb );
+     //display.wl_server_dfb = wayland_dfb_init( wl_display, display.parent.dfb );
 
      return DFB_OK;
 }

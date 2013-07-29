@@ -79,6 +79,12 @@ class SurfaceWLEGLWindow;
 
 class EGLCoreModuleWayland : public EGL::CoreModule, public Types::Type<EGLCoreModuleWayland,EGL::Core>
 {
+     // no copy
+     EGLCoreModuleWayland( const EGLCoreModuleWayland& ) = delete;
+
+     // no assign
+     EGLCoreModuleWayland& operator=( const EGLCoreModuleWayland& ) = delete;
+
 protected:
      virtual Direct::String GetName() const
      {
@@ -95,6 +101,8 @@ protected:
 
 
 public:
+     EGLCoreModuleWayland();
+
      static void
      registry_handle_global(void *data, struct wl_registry *registry, uint32_t name,
                             const char *interface, uint32_t version);

@@ -684,19 +684,18 @@ private:
 };
 
 
-class Library
+
+
+class Symbols
 {
-private:
-     void *handle;
-
 public:
-     Library();
-     virtual ~Library();
+     Symbols() {
+          ClearTable();
+     }
 
-     DFBResult  Init( const Direct::String &filename, bool global = false, bool now = false );
-     DFBResult  Load();
-     void      *Lookup( const Direct::String &symbol );
-
+     void ClearTable() {
+          memset( this, 0, sizeof(Symbols) );
+     }
 
      EGLint (*eglGetError)(void);
 
@@ -774,6 +773,28 @@ public:
 
      /* Now, define eglGetProcAddress using the generic function ptr. type */
      __eglMustCastToProperFunctionPointerType (*eglGetProcAddress)(const char *procname);
+};
+
+class Library : public Symbols
+{
+private:
+     Direct::String  filename;
+     bool            global = false;
+     bool            now    = false;
+
+     void           *handle = NULL;
+
+public:
+     Library();
+     ~Library();
+
+     DFBResult  Init( const Direct::String &filename, bool global = false, bool now = false );
+     DFBResult  Load();
+     DFBResult  Unload();
+     void      *Lookup( const Direct::String &symbol );
+
+private:
+     DFBResult  Open();
 };
 
 

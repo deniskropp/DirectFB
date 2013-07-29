@@ -61,8 +61,6 @@ Library::Library()
 {
      D_DEBUG_AT( DFBEGL_Library, "EGL::Library::%s( %p )\n",
                  __FUNCTION__, this );
-
-     memset( this, 0, sizeof(*this) );
 }
 
 Library::~Library()
@@ -71,7 +69,7 @@ Library::~Library()
                  __FUNCTION__, this );
 
      if (handle)
-          dlclose( handle );
+          Unload();
 }
 
 DFBResult
@@ -80,11 +78,23 @@ Library::Init( const Direct::String &filename, bool global, bool now )
      D_DEBUG_AT( DFBEGL_Library, "EGL::Library::%s( %p, '%s', global %s, now %s )\n",
                  __FUNCTION__, this, *filename, *ToString<bool>(global), *ToString<bool>(now) );
 
-     if (handle) {
-          dlclose( handle );
+     if (handle)
+          Unload();
 
-          memset( this, 0, sizeof(*this) );
-     }
+     this->filename = filename;
+     this->global   = global;
+     this->now      = now;
+
+     return Open();
+}
+
+DFBResult
+Library::Open()
+{
+     D_DEBUG_AT( DFBEGL_Library, "EGL::Library::%s( %p )\n", __FUNCTION__, this );
+
+     D_ASSERT( !handle );
+     D_ASSERT( filename.length() > 0 );
 
      handle = dlopen( *filename, (global ? RTLD_GLOBAL : RTLD_LOCAL) | (now ? RTLD_NOW : RTLD_LAZY) );
      if (!handle) {
@@ -109,10 +119,16 @@ Library::Init( const Direct::String &filename, bool global, bool now )
 DFBResult
 Library::Load()
 {
+     DFBResult ret;
+
      D_DEBUG_AT( DFBEGL_Library, "EGL::Library::%s( %p )\n", __FUNCTION__, this );
 
-     if (!handle)
-          return DFB_IO;
+     if (!handle) {
+          ret = Open();
+          if (ret)
+               return ret;
+     }
+
 
      this->eglGetProcAddress = (void (* (*)(const char*))()) dlsym( handle, "eglGetProcAddress" );
 
@@ -170,6 +186,21 @@ Library::Load()
 
      EGL_LOOKUP_SYMBOL( eglCreateImageKHR );
      EGL_LOOKUP_SYMBOL( eglDestroyImageKHR );
+
+     return DFB_OK;
+}
+
+DFBResult
+Library::Unload()
+{
+     D_DEBUG_AT( DFBEGL_Library, "EGL::Library::%s( %p )\n", __FUNCTION__, this );
+
+     if (handle) {
+          dlclose( handle );
+          handle = NULL;
+
+          ClearTable();
+     }
 
      return DFB_OK;
 }

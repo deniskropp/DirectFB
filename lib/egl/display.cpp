@@ -267,11 +267,11 @@ Display::ChooseConfig( const EGLint *attrib_list, Config **confs, EGLint config_
      {
           D_DEBUG_AT( DFBEGL_Display, "  -> Implementation '%s'\n", *(*it)->GetName() );
 
-          Graphics::Configs &gfx_confs = (*it)->GetConfigs();
+          const Graphics::Configs &gfx_confs = (*it)->GetConfigs();
 
           D_DEBUG_AT( DFBEGL_Display, "  -> %zu configs\n", gfx_confs.size() );
 
-          for (Graphics::Configs::iterator it2 = gfx_confs.begin();
+          for (Graphics::Configs::const_iterator it2 = gfx_confs.begin();
                 it2 != gfx_confs.end();
                 it2++)
           {

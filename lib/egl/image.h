@@ -48,52 +48,6 @@ extern "C" {
 namespace DirectFB {
 
 
-
-
-namespace GL {
-
-
-class Core : public Direct::Types<Core>
-{
-public:
-
-};
-
-
-typedef unsigned int enum_;
-
-
-
-namespace OES {
-
-class Core : public Direct::Types<Core,GL::Core>
-{
-public:
-
-};
-
-
-class eglImage : public Core::Type<eglImage>
-{
-public:
-     ::GLeglImageOES image;
-
-     eglImage();
-};
-
-typedef std::function<void ( GL::enum_     &target,
-                             OES::eglImage &image )> glEGLImageTargetTexture2D;
-
-typedef std::function<void ( GL::enum_     &target,
-                             OES::eglImage &image )> glEGLImageTargetRenderBufferStorage;
-
-}
-
-}
-
-
-
-
 namespace EGL {
 
 
@@ -159,6 +113,13 @@ public:
      virtual ~EGLImage();
 
 
+     // no copy
+     EGLImage( const EGLImage& ) = delete;
+
+     // no assign
+     EGLImage& operator=( const EGLImage& ) = delete;
+
+
      static EGLImageKHR eglCreateImageKHR ( EGLDisplay       dpy,
                                             EGLContext       ctx,
                                             EGLenum          target,
@@ -177,6 +138,54 @@ public:
 
 
 }
+
+
+
+
+namespace GL {
+
+
+class Core : public Direct::Types<Core>
+{
+public:
+
+};
+
+
+typedef unsigned int enum_;
+
+
+
+namespace OES {
+
+class Core : public Direct::Types<Core,GL::Core>
+{
+public:
+
+};
+
+/*
+class eglImage : public Core::Type<eglImage,EGL::KHR::Image>
+{
+public:
+     ::GLeglImageOES glEGLImage;
+
+     eglImage();
+     eglImage( DirectFB::EGL::KHR::Image &egl_image );
+};
+*/
+
+typedef std::function<void ( GL::enum_     &target,
+                             EGL::KHR::Image &image )> glEGLImageTargetTexture2D;
+
+typedef std::function<void ( GL::enum_     &target,
+                             EGL::KHR::Image &image )> glEGLImageTargetRenderBufferStorage;
+
+}
+
+}
+
+
 
 }
 
