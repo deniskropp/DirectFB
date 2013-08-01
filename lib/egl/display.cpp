@@ -58,6 +58,7 @@ Display::Display()
      :
      dfb( NULL ),
      native_display( NULL ),
+     native_pixmap_target( 0 ),
      refs( 1 )
 {
      D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, dfb %p, native_display %p )\n",
