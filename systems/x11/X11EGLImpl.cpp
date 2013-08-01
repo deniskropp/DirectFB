@@ -675,7 +675,7 @@ X11EGLSurfacePeer::Flip( const DFBRegion     *region,
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglSwapBuffers( %p )\n", egl_surface );
 
      if (!impl.lib.eglSwapBuffers( impl.egl_display, egl_surface )) {
-          D_ERROR( "X11/EGLImpl: eglSwapBuffers( %p ) failed\n", egl_surface );
+          D_ERROR( "X11/EGLImpl: eglSwapBuffers( %p ) failed ('%s')\n", egl_surface, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ));
           return DFB_FAILURE;
      }
 
