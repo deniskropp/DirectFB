@@ -25,13 +25,19 @@ function(INSTALL_DIRECTFB_LIB target)
 	endif(LINUX)
 endfunction(INSTALL_DIRECTFB_LIB)
 
+macro (DEFINE_DIRECTFB_EXECUTABLE source libs)
+        get_filename_component (NAME_WE ${source} NAME_WE)
+	add_executable (${NAME_WE} ${source})
+	target_link_libraries (${NAME_WE} ${libs})
+	install (TARGETS ${NAME_WE} DESTINATION bin)
+endmacro()
+
 macro (DEFINE_DIRECTFB_MODULE target installname sources libs destination)
 	add_library (${target} MODULE ${sources})
 	target_link_libraries (${target} ${libs})
 	set_target_properties (${target} PROPERTIES OUTPUT_NAME ${installname})
 	install (TARGETS ${target} LIBRARY DESTINATION ${destination})
 endmacro()
-
 
 macro (DEFINE_DISPATCHER_MODULE interface)
 	string (TOLOWER ${interface} INTERFACE_LOWERCASE)
