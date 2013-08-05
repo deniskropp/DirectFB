@@ -22,6 +22,8 @@ set (SYSTEM_X11_LIBS
 	${X11_LIBRARIES}
 	${X11_Xcomposite_LIB}
 	directfb
+	EGL
+	DFBEGL
 )
 
 DEFINE_DIRECTFB_MODULE (system_x11 directfb_x11 "${SYSTEM_X11_SRC}" "${SYSTEM_X11_LIBS}" ${SYSTEMS_DIR})
