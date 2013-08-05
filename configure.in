@@ -149,7 +149,7 @@ fi
 
 AC_PATH_TOOL(WAYLAND_SCANNER, wayland-scanner)
 AC_SUBST(WAYLAND_SCANNER)
-if test -z "$WAYLAND_SCANNER"; then
+if test "$enable_wayland" = "yes" && test -z "$WAYLAND_SCANNER"; then
   if ! test -e lib/wayland-dfb/wayland-dfb-server-protocol.h; then
     AC_MSG_ERROR([
 *** DirectFB compilation requires wayland-scanner ***
