@@ -128,7 +128,7 @@ AM_CONDITIONAL(HAVE_MAN2HTML, test "$MAN2HTML" != "no")
 AC_PATH_TOOL(FLUXCOMP, fluxcomp)
 AC_SUBST(FLUXCOMP)
 if test -z "$FLUXCOMP"; then
-  if ! test -e src/core/CoreDFB.cpp; then
+  if ! test -e $srcdir/src/core/CoreDFB.cpp; then
     AC_MSG_ERROR([
 *** DirectFB compilation requires fluxcomp ***
 
