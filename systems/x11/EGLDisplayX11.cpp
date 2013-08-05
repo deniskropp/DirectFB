@@ -130,7 +130,7 @@ EGLCoreModuleX11::Display_Probe( const DirectFB::EGL::Display &display,
      D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p, display %p, native_display 0x%08lx )\n",
                  __FUNCTION__, this, &display, (unsigned long) display.native_display );
 
-     if (display.native_display == idirectfb_singleton) {
+     if ((IDirectFB*)display.native_display == idirectfb_singleton) {
           D_DEBUG_AT( DFBX11_EGLDisplay, "  -> is IDirectFB singleton = %p!\n", idirectfb_singleton );
           return DFB_UNSUPPORTED;
      }
