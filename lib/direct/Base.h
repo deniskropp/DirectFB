@@ -256,6 +256,7 @@ public:
 
      protected:
           std::vector<TypeHandle> all_handles;
+          std::map<std::type_index,TypeHandle> handles;
 
           template <typename _Target>
           _Target &Convert()
@@ -266,11 +267,11 @@ public:
                InfoBase &source_info = GetInfo();
                InfoBase &target_info = _Target::GetTypeInstance().GetInfo();
 
-               D_INFO( "Direct/Type/Map:    => [  %s  --->  %s  ] <=\n",
-                       *source_info.real_name, *target_info.real_name );
+               D_INFO( "Direct/Type/Map:    => [  %s  (%p) --->  %s  ] <=\n",
+                       *source_info.real_name, this, *target_info.real_name );
 
 
-               std::map<std::type_index,TypeHandle> &handles = GetHandleMap<_Target>();
+//               std::map<std::type_index,TypeHandle> &handles = GetHandleMap<_Target>();
 
                TypeHandle &handle = handles[ target_info.real_info ];
 
@@ -289,13 +290,13 @@ public:
                return (_Target&) *handle;
           }
 
-          template <typename _Target>
-          std::map<std::type_index,TypeHandle> &GetHandleMap()
-          {
-               static std::map<std::type_index,TypeHandle> handles;
-
-               return handles;
-          }
+//          template <typename _Target>
+//          std::map<std::type_index,TypeHandle> &GetHandleMap()
+//          {
+//               static std::map<std::type_index,TypeHandle> handles;
+//
+//               return handles;
+//          }
 
      public:
           template <typename _Target>
