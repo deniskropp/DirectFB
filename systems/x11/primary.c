@@ -177,9 +177,10 @@ primaryInitScreen( CoreScreen           *screen,
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      /* Set the screen capabilities. */
-     description->caps     = DSCCAPS_ENCODERS | DSCCAPS_OUTPUTS;
-     description->encoders = 1;
-     description->outputs  = 1;
+     description->caps     = DSCCAPS_MIXERS | DSCCAPS_ENCODERS | DSCCAPS_OUTPUTS;
+     description->mixers   = 3;
+     description->encoders = 3;
+     description->outputs  = 3;
 
      /* Set the screen name. */
      snprintf( description->name,
@@ -202,6 +203,62 @@ primaryGetScreenSize( CoreScreen *screen,
 
      *ret_width  = shared->screen_size.w;
      *ret_height = shared->screen_size.h;
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryInitMixer( CoreScreen                *screen,
+                  void                      *driver_data,
+                  void                      *screen_data,
+                  int                        mixer,
+                  DFBScreenMixerDescription *description,
+                  DFBScreenMixerConfig      *config )
+{
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
+     (void) shared;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     direct_snputs( description->name, "X11 Mixer", DFB_SCREEN_ENCODER_DESC_NAME_LENGTH );
+
+     description->caps   = DSMCAPS_FULL;
+     description->layers = (1 << mixer);
+
+     config->flags       = DSMCONF_LAYERS;
+     config->layers      = description->layers;
+
+     return DFB_OK;
+}
+
+static DFBResult
+primaryTestMixerConfig( CoreScreen                 *screen,
+                        void                       *driver_data,
+                        void                       *screen_data,
+                        int                         mixer,
+                        const DFBScreenMixerConfig *config,
+                        DFBScreenMixerConfigFlags  *failed )
+{
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
+     (void) shared;
+
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
+
+     return DFB_OK;
+}
+
+static DFBResult
+primarySetMixerConfig( CoreScreen                 *screen,
+                       void                       *driver_data,
+                       void                       *screen_data,
+                       int                         mixer,
+                       const DFBScreenMixerConfig *config )
+{
+     D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      return DFB_OK;
 }
@@ -371,6 +428,9 @@ primarySetOutputConfig( CoreScreen                  *screen,
 static ScreenFuncs primaryScreenFuncs = {
      .InitScreen        = primaryInitScreen,
      .GetScreenSize     = primaryGetScreenSize,
+     .InitMixer         = primaryInitMixer,
+     .TestMixerConfig   = primaryTestMixerConfig,
+     .SetMixerConfig    = primarySetMixerConfig,
      .InitEncoder       = primaryInitEncoder,
      .TestEncoderConfig = primaryTestEncoderConfig,
      .SetEncoderConfig  = primarySetEncoderConfig,
@@ -793,7 +853,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
      D_DEBUG_AT( X11_Update, "%s( %4d,%4d-%4dx%4d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( clip ) );
 
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
-
+return DFB_OK;
      shared = x11->shared;
      D_ASSERT( shared != NULL );
 
@@ -933,6 +993,8 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           D_DEBUG_AT( X11_Update, "  -> Copying from Pixmap...\n" );
 
+          //XCopyArea( x11->display, pixmap, xw->window, xw->gc,
+          //           rect.x, rect.y, rect.w, rect.h, rect.x, rect.y );
           XCopyArea( x11->display, pixmap, xw->window, xw->gc,
                      rect.x, rect.y, rect.w, rect.h, rect.x, rect.y );
 

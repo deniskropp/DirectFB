@@ -273,8 +273,13 @@ x11AllocateKey( CoreSurfacePool       *pool,
 
      dfb_surface_calc_buffer_size( surface, 8, 8, &alloc->pitch, &allocation->size );
 
+//     alloc->depth  = DefaultDepthOfScreen( x11->screenptr );
+//     alloc->visual = DefaultVisualOfScreen( x11->screenptr );
      alloc->visual = x11->visuals[DFB_PIXELFORMAT_INDEX(buffer->format)];
      alloc->depth  = DFB_COLOR_BITS_PER_PIXEL( buffer->format ) + DFB_ALPHA_BITS_PER_PIXEL( buffer->format );
+
+     if (alloc->depth == 24)
+          alloc->visual = DefaultVisualOfScreen( x11->screenptr );
 
      D_DEBUG_AT( X11_Surfaces, "  -> visual %p (id %lu), depth %d\n", alloc->visual, alloc->visual->visualid, alloc->depth );
 
@@ -303,12 +308,12 @@ x11AllocateKey( CoreSurfacePool       *pool,
                     XSync( x11->display, False );
                     D_DEBUG_AT( X11_Surfaces, "  -> redirected\n" );
 
-//                    alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
-                    alloc->xid = alloc->window;
+                    alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
+//                    alloc->xid = alloc->window;
                     XSync( x11->display, False );
                     D_DEBUG_AT( X11_Surfaces, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
 
-                    XUnmapWindow( x11->display, alloc->window );
+//                    XUnmapWindow( x11->display, alloc->window );
                     XSync( x11->display, False );
                     D_DEBUG_AT( X11_Surfaces, "  -> unmapped\n" );
 
@@ -324,7 +329,7 @@ x11AllocateKey( CoreSurfacePool       *pool,
           }
      }
      else {
-          alloc->type = X11_ALLOC_PIXMAP;
+//          alloc->type = X11_ALLOC_PIXMAP;
 
           switch (alloc->type) {
                case X11_ALLOC_PIXMAP:
@@ -374,13 +379,13 @@ x11AllocateKey( CoreSurfacePool       *pool,
                                                    alloc->visual, CWEventMask, &attr );
                     XSync( x11->display, False );
                     D_DEBUG_AT( X11_Surfaces, "  -> window 0x%08lx\n", (long) alloc->window );
-//                    buffer->surface->data = (void*) (long) alloc->window;
+                    buffer->surface->data = (void*) (long) alloc->window;
 
 //                    XCompositeRedirectWindow( x11->display, alloc->window, CompositeRedirectManual );
                     XSync( x11->display, False );
                     D_DEBUG_AT( X11_Surfaces, "  -> redirected\n" );
 
-                    XMapRaised( x11->display, alloc->window );
+//                    XMapRaised( x11->display, alloc->window );
                     XSync( x11->display, False );
                     D_DEBUG_AT( X11_Surfaces, "  -> raised\n" );
 
@@ -420,7 +425,10 @@ x11AllocateBuffer( CoreSurfacePool       *pool,
                    CoreSurfaceAllocation *allocation,
                    void                  *alloc_data )
 {
-     return x11AllocateKey( pool, pool_data, pool_local, buffer, "Pixmap/X11", 0, allocation, alloc_data );
+     if (allocation->config.format == DSPF_ARGB || (allocation->type & CSTF_LAYER))
+          return x11AllocateKey( pool, pool_data, pool_local, buffer, "Pixmap/X11", 0, allocation, alloc_data );
+
+     return x11AllocateKey( pool, pool_data, pool_local, buffer, "Window/X11", 0, allocation, alloc_data );
 }
 
 static DFBResult

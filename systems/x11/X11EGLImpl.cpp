@@ -91,6 +91,7 @@ dfb_x11_eglimpl_unregister()
 GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
                         X11EGLImpl      &impl )
      :
+     Type( egl_image ),
      glEGLImage( 0 )
 {
      D_LOG( DFBX11_EGLImpl, DEBUG_1, "X11::GLeglImage::%s( %p, KHR::Image %p, impl %p )\n", __FUNCTION__, this, &egl_image, &impl );
@@ -147,7 +148,33 @@ X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_  &target,
      D_LOG( DFBX11_EGLImpl, DEBUG_1, "X11EGLImpl::Context_glEGLImageTargetTexture2D::%s( %p, target 0x%04x, X11::GLeglImage %p, EGLImage %p )\n",
             __FUNCTION__, this, target, &image, image.glEGLImage );
 
-     glEGLImageTargetTexture2DOES( target, image.glEGLImage );
+     if (0) {
+          void                  *data;
+          int                    pitch;
+          int                    width;
+          int                    height;
+          DFBSurfacePixelFormat  format;
+
+          image.parent.surface->GetPixelFormat( image.parent.surface, &format );
+
+          image.parent.surface->GetSize( image.parent.surface, &width, &height );
+
+          image.parent.surface->Lock( image.parent.surface, DSLF_READ, &data, &pitch );
+
+          D_LOG( DFBX11_EGLImpl, DEBUG_1, "  -> calling glTexImage2D( target 0x%04x, data %p )...\n", target, data );
+          D_INFO( "  -> calling glTexImage2D( target 0x%04x, data %p )...\n", target, data );
+
+          if (format == DSPF_ABGR) {
+               glTexImage2D( target, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
+          }
+          else {
+               glTexImage2D( target, 0, GL_BGRA_EXT, width, height, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, data );
+          }
+
+          image.parent.surface->Unlock( image.parent.surface );
+     }
+     else
+          glEGLImageTargetTexture2DOES( target, image.glEGLImage );
 }
 
 
