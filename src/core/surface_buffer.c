@@ -907,7 +907,13 @@ dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
           int n3;
 
           /* Prepare one row. */
-          u8 *src8 = dfb_surface_data_offset( surface, lock->addr, lock->pitch, 0, i );
+          u8 *srces[3];
+          int pitches[3];
+          u8 *src8;
+
+          dfb_surface_get_data_offsets( &surface->config, lock->addr, lock->pitch, 0, i,
+                                        3, srces, pitches );
+          src8 = srces[0];
 
           /* Write color buffer to pixmap file. */
           if (rgb) {
@@ -923,7 +929,10 @@ dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
                         }
                    }
                    else
-                        dfb_convert_to_argb( buffer->format, src8, lock->pitch, surface->config.size.h,
+                        dfb_convert_to_argb( buffer->format,
+                                             srces[0], pitches[0],
+                                             srces[1], pitches[1], srces[2], pitches[2],
+                                             surface->config.size.h,
                                              (u32 *)(&buf_p[0]), surface->config.size.w * 4, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                    gzwrite( gz_p, buf_p, surface->config.size.w * 4 );
@@ -943,7 +952,10 @@ dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
                     }
                }
                else
-                    dfb_convert_to_rgb24( buffer->format, src8, lock->pitch, surface->config.size.h,
+                    dfb_convert_to_rgb24( buffer->format,
+                                          srces[0], pitches[0],
+                                          srces[1], pitches[1], srces[2], pitches[2],
+                                          surface->config.size.h,
                                           buf_p, surface->config.size.w * 3, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                gzwrite( gz_p, buf_p, surface->config.size.w * 3 );
@@ -963,7 +975,7 @@ dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
                          buf_g[n] = palette->entries[src8[n]].a;
                }
                else
-                    dfb_convert_to_a8( buffer->format, src8, lock->pitch, surface->config.size.h,
+                    dfb_convert_to_a8( buffer->format, srces[0], pitches[0], surface->config.size.h,
                                        buf_g, surface->config.size.w, surface->config.size.w, 1 );
 #ifdef USE_ZLIB
                gzwrite( gz_g, buf_g, surface->config.size.w );

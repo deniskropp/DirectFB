@@ -341,7 +341,8 @@ update_screen( int x, int y, int w, int h )
 #if 0
      int                    i, n;
      void                  *dst;
-     void                  *src;
+     u8                    *srces[3];
+     int                    pitches[3];
      DFBResult              ret;
      CoreSurface           *surface;
      CoreSurfaceBuffer     *buffer;
@@ -392,23 +393,25 @@ update_screen( int x, int y, int w, int h )
           return ret;
      }
 
-     src = lock.addr;
      dst = screen->pixels;
-
-     src += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * lock.pitch;
      dst += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * screen->pitch;
+
+     dfb_surface_get_data_offsets( surface->data, lock.addr, lock.pitch, x, y,
+                                   3, srces, pitches );
 
      D_DEBUG_AT( SDL_Updates, "  -> copying pixels...\n" );
 
      switch (screen->format->BitsPerPixel) {
           case 16:
                dfb_convert_to_rgb16( surface->config.format,
-                                     src, lock.pitch, surface->config.size.h,
+                                     srces[0], pitches[0],
+                                     srces[1], pitches[1], srces[2], pitches[2],
+                                     surface->config.size.h,
                                      dst, screen->pitch, w, h );
                break;
 
           default:
-               direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );
+               direct_memcpy( dst, srces[0], DFB_BYTES_PER_LINE( surface->config.format, w ) );
      }
 
      D_DEBUG_AT( SDL_Updates, "  -> unlocking dfb surface...\n" );

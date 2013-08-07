@@ -128,7 +128,7 @@ AM_CONDITIONAL(HAVE_MAN2HTML, test "$MAN2HTML" != "no")
 AC_PATH_TOOL(FLUXCOMP, fluxcomp)
 AC_SUBST(FLUXCOMP)
 if test -z "$FLUXCOMP"; then
-  if ! test -e src/core/CoreDFB.cpp; then
+  if ! test -e $srcdir/src/core/CoreDFB.cpp; then
     AC_MSG_ERROR([
 *** DirectFB compilation requires fluxcomp ***
 
@@ -149,8 +149,8 @@ fi
 
 AC_PATH_TOOL(WAYLAND_SCANNER, wayland-scanner)
 AC_SUBST(WAYLAND_SCANNER)
-if test -z "$WAYLAND_SCANNER"; then
-  if ! test -e lib/wayland-dfb/wayland-dfb-server-protocol.h; then
+if test "$enable_wayland" = "yes" && test -z "$WAYLAND_SCANNER"; then
+  if ! test -e $srcdir/lib/wayland-dfb/wayland-dfb-server-protocol.h; then
     AC_MSG_ERROR([
 *** DirectFB compilation requires wayland-scanner ***
 
