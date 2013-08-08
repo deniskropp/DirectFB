@@ -914,7 +914,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
                     w = XCreateWindow( x11->display,
                                        DefaultRootWindow(x11->display),
-                                       600, 200, ww, wh, 0,
+                                       0, 0, ww, wh, 0,
                                        alloc->depth, InputOutput,
                                        alloc->visual, CWEventMask /*| CWOverrideRedirect*/, &attr );
                     XSync( x11->display, False );
