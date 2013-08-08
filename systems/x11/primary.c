@@ -853,7 +853,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
      D_DEBUG_AT( X11_Update, "%s( %4d,%4d-%4dx%4d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( clip ) );
 
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
-return DFB_OK;
+
      shared = x11->shared;
      D_ASSERT( shared != NULL );
 
