@@ -15,17 +15,19 @@ set (LIBFUSION_SRC
 	vector.c
 )
 
-set (LIBFUSION_NON_PURE_VOODOO_SRC
-	Debug.cpp
-	arena.c
-	call.c
-	fusion.c
-	lock.c
-	object.c
-	property.c
-	reactor.c
-	ref.c
-)
+if (NOT ENABLE_PURE_VOODOO)
+	set (LIBFUSION_NON_PURE_VOODOO_SRC
+		Debug.cpp
+		arena.c
+		call.c
+		fusion.c
+		lock.c
+		object.c
+		property.c
+		reactor.c
+		ref.c
+	)
+endif()
 
 if (ENABLE_MULTI)
 	set (LIBFUSION_SHM_SOURCES 

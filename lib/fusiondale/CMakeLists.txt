@@ -56,7 +56,7 @@ install (FILES
 	DESTINATION include/fusiondale/core
 )
 
-add_library (fusiondale SHARED ${LIBFUSIONDALE_SRC} ${LIBFUSIONDALE_NON_PURE_VOODOO_SRC} ${LIBFUSIONDALE_SHM_SOURCES})
+add_library (fusiondale SHARED ${LIBFUSIONDALE_SRC})
 
 target_link_libraries (fusiondale
 	direct

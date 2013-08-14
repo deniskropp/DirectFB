@@ -18,7 +18,7 @@ install (FILES
 	DESTINATION include/One
 )
 
-add_library (one SHARED ${LIBONE_SRC} ${LIBONE_NON_PURE_VOODOO_SRC} ${LIBONE_SHM_SOURCES})
+add_library (one SHARED ${LIBONE_SRC})
 
 target_link_libraries (one
 	direct
