@@ -2669,6 +2669,14 @@ if test "$enable_unique" = "yes"; then
 fi
 
 
+AC_ARG_WITH(cxxstd,
+            AC_HELP_STRING([--with-cxxstd],
+                           [select C++ standard for compiler @<:@default=c++11@:>@]),
+            [cxxstd="$withval"], [cxxstd="c++11"])
+test x"$cxxstd" = x"no" && cxxstd="c++11"
+CXXSTD="$cxxstd"
+AC_SUBST(CXXSTD)
+
 
 AM_CONDITIONAL(GFX_ATI128, test "$ati128" = "yes")
 AM_CONDITIONAL(GFX_CLE266, test "$cle266" = "yes")
@@ -2804,7 +2812,7 @@ fi
 
 if test "$GCC" = "yes"; then
   CFLAGS="-Wall -Wstrict-prototypes -Wmissing-prototypes -Wno-strict-aliasing -Werror-implicit-function-declaration $CFLAGS"
-  CXXFLAGS="-Wall -Wno-strict-aliasing -std=c++11 $CXXFLAGS"
+  CXXFLAGS="-Wall -Wno-strict-aliasing -std=$CXXSTD $CXXFLAGS"
 fi
 
 AM_CONDITIONAL(BUILD_DVC, test "x$ffmpeg" = "xyes")
@@ -3066,6 +3074,7 @@ Misc options:
   Dithering 565             $with_dither_rgb16
   zlib compression          $use_zlib                 $ZLIB_LIBS
   Using setsockopt          $with_setsockopt
+  c++ compiler standard     $cxxstd
 
 Building Tests              $with_tests
 Building Tools              $with_tools
