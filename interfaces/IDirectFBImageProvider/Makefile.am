@@ -71,7 +71,11 @@ else
 TIFF_PROVIDER =
 endif
 
-
+if FFMPEG_PROVIDER
+FFMPEG_PROVIDER_LTLIB = libidirectfbimageprovider_ffmpeg.la
+else
+FFMPEG_PROVIDER_LTLIB =
+endif
 
 INCLUDES = \
 	-I$(top_builddir)/include	\
@@ -81,7 +85,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
-AM_CPPFLAGS = -DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\" $(LIBJPEG_CFLAGS) $(LIBPNG_CFLAGS)
+AM_CPPFLAGS = -DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\" $(LIBJPEG_CFLAGS) $(LIBPNG_CFLAGS) $(FFMPEG_CFLAGS)
 
 idirectfbimageprovider_LTLIBRARIES = \
 	libidirectfbimageprovider_dfiff.la	\
@@ -95,9 +99,9 @@ idirectfbimageprovider_LTLIBRARIES = \
 	$(JPEG2000_PROVIDER)			\
 	$(MPEG2_PROVIDER)			\
 	$(TIFF_PROVIDER)			\
-	$(WEBP_PROVIDER)
+	$(WEBP_PROVIDER) 		        \
+	$(FFMPEG_PROVIDER_LTLIB)
 
-	
 if BUILD_STATIC
 idirectfbimageprovider_DATA = $(idirectfbimageprovider_LTLIBRARIES:.la=.o)
 endif
@@ -154,5 +158,8 @@ libidirectfbimageprovider_mpeg2_la_SOURCES = idirectfbimageprovider_mpeg2.c
 libidirectfbimageprovider_mpeg2_la_LIBADD = $(libdirect) $(libdirectfb) mpeg2/libmpeg2decode.la
 libidirectfbimageprovider_mpeg2_la_LDFLAGS = -avoid-version -module
 
+libidirectfbimageprovider_ffmpeg_la_SOURCES = idirectfbimageprovider_ffmpeg.c
+libidirectfbimageprovider_ffmpeg_la_LIBADD = $(libdirect) $(libdirectfb) $(FFMPEG_LIBS)
+libidirectfbimageprovider_ffmpeg_la_LDFLAGS = -avoid-version -module -lavformat -lavutil -lavcodec -lswscale
 
 include $(top_srcdir)/rules/libobject.make

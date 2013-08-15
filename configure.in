@@ -1818,12 +1818,12 @@ AC_ARG_ENABLE(ffmpeg,
                              [build FFmpeg video provider @<:@default=no@:>@]),
               [], [enable_ffmpeg=no])
 if test "x$enable_ffmpeg" = "xyes"; then
-    AC_MSG_CHECKING([for libavcodec/libavformat/libavutil])
-    if $PKG_CONFIG libavcodec libavformat libavutil; then
+    AC_MSG_CHECKING([for libavcodec/libavformat/libavutil/libswscale])
+    if $PKG_CONFIG libavcodec libavformat libavutil libswscale; then
         AC_MSG_RESULT(yes)
         ffmpeg="yes"
-        FFMPEG_CFLAGS=`$PKG_CONFIG --cflags libavcodec libavformat libavutil`
-        FFMPEG_LIBS=`$PKG_CONFIG --libs libavcodec libavformat libavutil`
+        FFMPEG_CFLAGS=`$PKG_CONFIG --cflags libavcodec libavformat libavutil libswscale`
+        FFMPEG_LIBS=`$PKG_CONFIG --libs libavcodec libavformat libavutil libswscale`
     else
         AC_MSG_RESULT(no)
         AC_MSG_WARN([
