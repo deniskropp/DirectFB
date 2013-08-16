@@ -93,7 +93,10 @@ Base::__HandleLists()
 
      D_INFO( "Direct/Type/Base: Registering types..........................\n" );
 
-     for (auto info : __list) {
+//     for (auto info : __list) {
+     for (InfoList::iterator it = __list.begin(); it != __list.end(); it++) {
+          InfoBase* info = *it;
+
           D_INFO( "Direct/Type/Base: [%2zu] %s\n", num_types, *ToString<InfoBase>( *info ) );
 
           num_types++;
@@ -112,20 +115,23 @@ Base::__HandleLists()
 
      __list.clear();
 
-     for (auto map : maps) {
+//     for (auto map : maps) {
+     for (TypeMaps::iterator it = maps.begin(); it != maps.end(); it++) {
           num_maps++;
-          num_mapped_types += map.first.size();
+          num_mapped_types += (*it).first.size();
      }
 
      D_INFO( "Direct/Type/Base: Got %zu new/updated types (total %zu maps with %zu types)\n", num_types, num_maps, num_mapped_types );
 
-     for (auto map : maps) {
-          D_INFO( "Direct/Type/Base: .============ [%s] ============.\n", map.first.c_str() );
+//     for (auto map : maps) {
+     for (TypeMaps::iterator it = maps.begin(); it != maps.end(); it++) {
+          D_INFO( "Direct/Type/Base: .============ [%s] ============.\n", (*it).first.c_str() );
 
           num_types = 0;
 
-          for (auto info : map.second) {
-               D_INFO( "Direct/Type/Base: [%2zu] %s\n", num_types, *ToString<InfoBase>( *info.second ) );
+//          for (auto info : (*it).second) {
+          for (TypeMap::iterator it2 = (*it).second.begin(); it2 != (*it).second.end(); it2++) {
+               D_INFO( "Direct/Type/Base: [%2zu] %s\n", num_types, *ToString<InfoBase>( *(*it2).second ) );
 
                num_types++;
           }

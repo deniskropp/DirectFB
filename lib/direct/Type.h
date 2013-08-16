@@ -188,12 +188,27 @@ public:
                     std::function< RealType * ( TypeBase *source ) >
                     >( _Source::GetTypeInstance().GetInfo().name,
                        std::bind( []( TypeBase       *source,
-                                      _ArgTypes&&...  __args )
+                                      _ArgTypes&&...  __args... )
                                    {
-                                        return new RealType( (_Source&) *source, std::forward<_ArgTypes>(__args)... );
+                                        return new RealType( (_Source&) *source, std::forward<_ArgTypes...>(__args...) );
                                    },
                std::placeholders::_1, std::ref(__args)... ) );
           }
+
+
+//          template <typename _Source, typename... _ArgTypes>
+//          static void RegisterConversion( _ArgTypes&&... __args )
+//          {
+//               RealType::template Register<
+//                    std::function< RealType * ( TypeBase *source ) >
+//                    >( _Source::GetTypeInstance().GetInfo().name,
+//                       std::bind( []( TypeBase       *source,
+//                                      _ArgTypes&&...  __args )
+//                                   {
+//                                        return new RealType( (_Source&) *source, std::forward<_ArgTypes>(__args)... );
+//                                   },
+//               std::placeholders::_1, std::ref(__args)... ) );
+//          }
      };
 };
 

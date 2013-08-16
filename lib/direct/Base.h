@@ -57,7 +57,7 @@ extern "C" {
 
 #include <stdexcept>
 
-#include <typeindex>
+//#include <typeindex>
 #include <typeinfo>
 
 
@@ -71,13 +71,13 @@ namespace Direct {
 class Mapping
 {
 public:
-     template <typename _Function>
-     using FunctionMap = std::map<std::string,_Function>;
+     //template <typename _Function>
+     //using FunctionMap = std::map<std::string,_Function>;
 
      template<typename _Function>
      static _Function &Call( const std::string &index = "" )
      {
-          FunctionMap<_Function> &map = Map<_Function>();
+          std::map<std::string,_Function> &map = Map<_Function>();
 
           _Function &entry = map[ index ];
 
@@ -90,7 +90,7 @@ public:
      template <typename _Function, typename _Object>
      static void Register( const std::string &index, _Object &f )
      {
-          FunctionMap<_Function> &map = Map<_Function>();
+          std::map<std::string,_Function> &map = Map<_Function>();
 
           _Function &entry = map[ index ];
 
@@ -106,7 +106,7 @@ public:
      template <typename _Function>
      static void Register( const std::string &index, _Function &f )
      {
-          FunctionMap<_Function> &map = Map<_Function>();
+          std::map<std::string,_Function> &map = Map<_Function>();
 
           _Function &entry = map[ index ];
 
@@ -122,7 +122,7 @@ public:
      template <typename _Function>
      static void Register( const std::string &index, _Function f )
      {
-          FunctionMap<_Function> &map = Map<_Function>();
+          std::map<std::string,_Function> &map = Map<_Function>();
 
           _Function &entry = map[ index ];
 
@@ -138,7 +138,7 @@ public:
      template <typename _Function>
      static _Function &GetEntry( const std::string &index = "" )
      {
-          FunctionMap<_Function> &map = Map<_Function>();
+          std::map<std::string,_Function> &map = Map<_Function>();
 
           _Function &entry = map[ index ];
 
@@ -146,9 +146,9 @@ public:
      }
 
      template <typename _Function>
-     static FunctionMap<_Function> &Map()
+     static std::map<std::string,_Function> &Map()
      {
-          static FunctionMap<_Function> map;
+          static std::map<std::string,_Function> map;
 
           return map;
      }
@@ -160,11 +160,11 @@ public:
      class InfoBase;
      class TypeBase;
 
-     template <typename _Item>
-     using Handle = std::shared_ptr<_Item>;
+//     template <typename _Item>
+//     using Handle = std::shared_ptr<_Item>;
 
-     typedef Handle<InfoBase> InfoHandle;
-     typedef Handle<TypeBase> TypeHandle;
+     typedef std::shared_ptr<InfoBase> InfoHandle;
+     typedef std::shared_ptr<TypeBase> TypeHandle;
 
 
      class InfoBase {
@@ -256,7 +256,7 @@ public:
 
      protected:
           std::vector<TypeHandle> all_handles;
-          std::map<std::type_index,TypeHandle> handles;
+          std::map<std::string/*type_index*/,TypeHandle> handles;
 
           template <typename _Target>
           _Target &Convert()
@@ -273,7 +273,7 @@ public:
 
 //               std::map<std::type_index,TypeHandle> &handles = GetHandleMap<_Target>();
 
-               TypeHandle &handle = handles[ target_info.real_info ];
+               TypeHandle &handle = handles[ ToString<std::type_info>(target_info.real_info) ];
 
                if (!handle) {
                     _Target *t = _Target::template Call< std::function<_Target *(TypeBase *)> >( *source_info.name )( this );
