@@ -779,10 +779,10 @@ class Library : public Symbols
 {
 private:
      Direct::String  filename;
-     bool            global = false;
-     bool            now    = false;
+     bool            global;
+     bool            now;
 
-     void           *handle = NULL;
+     void           *handle;
 
 public:
      Library();

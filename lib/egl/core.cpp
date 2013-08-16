@@ -247,19 +247,21 @@ Core::GetDisplay( EGLNativeDisplayType   native_display,
 
      D_DEBUG_AT( DFBEGL_Core, "  -> probing modules...\n" );
 
-     for (auto f : Map< Display::Probe >()) {
-          D_DEBUG_AT( DFBEGL_Core, "  -> probing %s...\n", f.first.c_str() );
+//     for (auto f : Map< Display::Probe >()) {
+     std::map<std::string,Display::Probe> &map = Map< Display::Probe >();
+     for (std::map<std::string,Display::Probe>::iterator f = map.begin(); f != map.end(); f++) {
+          D_DEBUG_AT( DFBEGL_Core, "  -> probing %s...\n", (*f).first.c_str() );
 
           unsigned int score = 0;
 
-          ret = f.second( *display, score );
+          ret = (*f).second( *display, score );
           if (ret) {
                D_DEBUG_AT( DFBEGL_Core, "  => %s\n", *ToString<DFBResult>( ret ) );
           }
           else if (score > scored_value) {
                D_DEBUG_AT( DFBEGL_Core, "  => KEEPING AS BEST %u > %u\n", score, scored_value );
 
-               scored_impl  = f.first;
+               scored_impl  = (*f).first;
                scored_value = score;
 
                continue;

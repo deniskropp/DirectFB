@@ -225,13 +225,15 @@ Surface::SwapBuffers()
           }
      }
 
-     for (auto f : Map< Surface::SwapBuffersFunc >()) {
-          D_DEBUG_AT( DFBEGL_Surface, "  -> calling SwapBuffers from %s...\n", f.first.c_str() );
+//     for (auto f : Map< Surface::SwapBuffersFunc >()) {
+     std::map<std::string,Surface::SwapBuffersFunc> &map = Map< Surface::SwapBuffersFunc >();
+     for (std::map<std::string,Surface::SwapBuffersFunc>::iterator f = map.begin(); f != map.end(); f++) {
+          D_DEBUG_AT( DFBEGL_Surface, "  -> calling SwapBuffers from %s...\n", (*f).first.c_str() );
 
-          EGLint result = f.second();
+          EGLint result = (*f).second();
 
           D_DEBUG_AT( DFBEGL_Surface, "  -> SwapBuffers from %s returned 0x%04x '%s'\n",
-                      f.first.c_str(), result, *ToString<EGLInt>( result ) );
+                      (*f).first.c_str(), result, *ToString<EGLInt>( result ) );
      }
 
      return EGL_SUCCESS;

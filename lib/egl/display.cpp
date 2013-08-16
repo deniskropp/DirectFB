@@ -112,8 +112,10 @@ Display::Init()
 
      comma = "";
 
-     for (auto f : Map< EGLExtension::GetNames >()) {
-          extensions.PrintF( "%s%s", comma, *f.second().Concatenated( " " ) );
+//     for (auto f : Map< EGLExtension::GetNames >()) {
+     std::map<std::string,EGLExtension::GetNames> &map = Map< EGLExtension::GetNames >();
+     for (std::map<std::string,EGLExtension::GetNames>::iterator f = map.begin(); f != map.end(); f++) {
+          extensions.PrintF( "%s%s", comma, *(*f).second().Concatenated( " " ) );
 
           comma = " ";
      }

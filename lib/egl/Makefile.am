@@ -86,18 +86,18 @@ libDFBEGL_la_LDFLAGS = \
 
 
 
-libegldir = $(libdir)/dfb-egl
+libegldir = $(libdir)
 
-libegl_LTLIBRARIES = libEGL.la
+libegl_LTLIBRARIES = libEGLdfb.la
 
-libEGL_la_SOURCES = \
+libEGLdfb_la_SOURCES = \
 	api.cpp
 
-libEGL_la_LIBADD = \
+libEGLdfb_la_LIBADD = \
 	libDFBEGL.la		\
 	$(DFB_BASE_LIBS)
 
-libEGL_la_LDFLAGS = \
+libEGLdfb_la_LDFLAGS = \
 	-version-number 1:0	\
 	$(DFB_LDFLAGS)		\
 	$(libdfbegl)

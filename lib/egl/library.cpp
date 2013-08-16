@@ -58,6 +58,10 @@ namespace EGL {
 
 
 Library::Library()
+     :
+     global( false ),
+     now( false ),
+     handle( NULL )
 {
      D_DEBUG_AT( DFBEGL_Library, "EGL::Library::%s( %p )\n",
                  __FUNCTION__, this );
