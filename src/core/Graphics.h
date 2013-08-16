@@ -250,7 +250,7 @@ public:
 protected:
      virtual DFBResult  Initialise() = 0;
 
-     Direct::String      name = "unnamed";
+     Direct::String      name;
      Direct::Strings     apis;
      Direct::Strings     extensions;
      Graphics::Configs   configs;
@@ -258,7 +258,7 @@ protected:
 private:
      DFBResult Init();
 
-     bool init = false;
+     bool init;
 };
 
 

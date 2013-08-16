@@ -226,6 +226,9 @@ SurfacePeer::GetOption( const Direct::String &name,
 /**********************************************************************************************************************/
 
 Implementation::Implementation()
+     :
+     name( "unnamed" ),
+     init( false )
 {
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p )\n", __FUNCTION__, this );
 }
