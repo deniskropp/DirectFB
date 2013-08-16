@@ -95,7 +95,7 @@ public:
      virtual ~X11EGLImpl();
 
 protected:
-     virtual DFBResult Initialise() override;
+     virtual DFBResult Initialise();// override;
 
 public:
      DirectFB::EGL::Library              lib;
