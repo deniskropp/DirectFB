@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <string.h>
 
+//#define DFBEGL_ENABLE_MANGLE
+
 extern "C" {
 #include <direct/messages.h>
 }
@@ -143,6 +145,8 @@ const char* eglQueryString (EGLDisplay dpy, EGLint name)
 EGLBoolean eglGetConfigs (EGLDisplay dpy,
                           EGLConfig *configs, EGLint config_size, EGLint *num_configs)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -159,6 +163,8 @@ EGLBoolean eglGetConfigs (EGLDisplay dpy,
 EGLBoolean eglChooseConfig (EGLDisplay dpy, const EGLint *attrib_list,
                             EGLConfig *configs, EGLint config_size, EGLint *num_config)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -175,6 +181,8 @@ EGLBoolean eglChooseConfig (EGLDisplay dpy, const EGLint *attrib_list,
 EGLBoolean eglGetConfigAttrib (EGLDisplay dpy, EGLConfig conf,
                                EGLint attribute, EGLint *value)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -191,6 +199,8 @@ EGLBoolean eglGetConfigAttrib (EGLDisplay dpy, EGLConfig conf,
 EGLSurface eglCreatePixmapSurface (EGLDisplay dpy, EGLConfig conf,
                                    EGLNativePixmapType pixmap, const EGLint *attrib)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -216,6 +226,8 @@ EGLSurface eglCreatePixmapSurface (EGLDisplay dpy, EGLConfig conf,
 EGLSurface eglCreateWindowSurface (EGLDisplay dpy, EGLConfig conf,
                                    EGLNativeWindowType win, const EGLint *attrib)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -237,6 +249,8 @@ EGLSurface eglCreateWindowSurface (EGLDisplay dpy, EGLConfig conf,
 
 EGLSurface eglCreatePbufferSurface (EGLDisplay dpy, EGLConfig conf, const EGLint *attrib)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -260,6 +274,8 @@ EGLSurface eglCreatePbufferFromClientBuffer (EGLDisplay dpy,
                                              EGLenum buftype, EGLClientBuffer buffer,
                                              EGLConfig conf, const EGLint *attrib)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -285,6 +301,8 @@ EGLSurface eglCreatePbufferFromClientBuffer (EGLDisplay dpy,
 
 EGLBoolean eglDestroySurface (EGLDisplay dpy, EGLSurface surf)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -304,6 +322,8 @@ EGLBoolean eglDestroySurface (EGLDisplay dpy, EGLSurface surf)
 EGLBoolean eglSurfaceAttrib (EGLDisplay dpy, EGLSurface surf,
                              EGLint attribute, EGLint value)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -323,6 +343,8 @@ EGLBoolean eglSurfaceAttrib (EGLDisplay dpy, EGLSurface surf,
 EGLBoolean eglQuerySurface (EGLDisplay dpy, EGLSurface surf,
                             EGLint attribute, EGLint *value)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -344,6 +366,8 @@ EGLBoolean eglQuerySurface (EGLDisplay dpy, EGLSurface surf,
 
 EGLBoolean eglBindTexImage (EGLDisplay dpy, EGLSurface surface, EGLint buffer)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      DFB_EGL_RETURN (EGL_BAD_PARAMETER, EGL_FALSE);
@@ -351,6 +375,8 @@ EGLBoolean eglBindTexImage (EGLDisplay dpy, EGLSurface surface, EGLint buffer)
 
 EGLBoolean eglReleaseTexImage(EGLDisplay dpy, EGLSurface surface, EGLint buffer)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      DFB_EGL_RETURN (EGL_BAD_PARAMETER, EGL_FALSE);
@@ -359,6 +385,8 @@ EGLBoolean eglReleaseTexImage(EGLDisplay dpy, EGLSurface surface, EGLint buffer)
 
 EGLBoolean eglBindAPI (EGLenum api)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      tls->SetAPI( api );
@@ -368,6 +396,8 @@ EGLBoolean eglBindAPI (EGLenum api)
 
 EGLenum eglQueryAPI (void)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      return tls->GetAPI();
@@ -377,6 +407,8 @@ EGLContext eglCreateContext (EGLDisplay dpy,
                              EGLConfig config, EGLContext share_context,
                              const EGLint *attrib_list)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -395,6 +427,8 @@ EGLContext eglCreateContext (EGLDisplay dpy,
 
 EGLBoolean eglDestroyContext (EGLDisplay dpy, EGLContext ctx)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      EGL::Context *context = (EGL::Context*) ctx;
@@ -413,6 +447,8 @@ EGLBoolean eglDestroyContext (EGLDisplay dpy, EGLContext ctx)
 EGLBoolean eglMakeCurrent (EGLDisplay dpy,
                            EGLSurface draw, EGLSurface read, EGLContext ctx)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s( display %p, draw %p, read %p, ctx %p )\n", __FUNCTION__, dpy, draw, read, ctx );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      EGL::Context *context = (EGL::Context*) ctx;
@@ -456,6 +492,8 @@ EGLBoolean eglMakeCurrent (EGLDisplay dpy,
 
 EGLContext eglGetCurrentContext (void)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      DFB_EGL_RETURN (EGL_SUCCESS, tls->GetContext());
@@ -463,6 +501,8 @@ EGLContext eglGetCurrentContext (void)
 
 EGLSurface eglGetCurrentSurface (EGLint which)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      EGL::Context *context;
@@ -479,6 +519,8 @@ EGLSurface eglGetCurrentSurface (EGLint which)
 
 EGLDisplay eglGetCurrentDisplay (void)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      EGL::Context *context;
@@ -493,6 +535,8 @@ EGLDisplay eglGetCurrentDisplay (void)
 EGLBoolean eglQueryContext (EGLDisplay dpy,
                             EGLContext ctx, EGLint attribute, EGLint *value)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -514,6 +558,8 @@ EGLBoolean eglQueryContext (EGLDisplay dpy,
 
 EGLBoolean eglWaitClient (void)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      DFB_EGL_RETURN (EGL_SUCCESS, EGL_TRUE);
@@ -521,6 +567,8 @@ EGLBoolean eglWaitClient (void)
 
 EGLBoolean eglWaitGL (void)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      DFB_EGL_RETURN (EGL_SUCCESS, EGL_TRUE);
@@ -528,6 +576,8 @@ EGLBoolean eglWaitGL (void)
 
 EGLBoolean eglWaitNative (EGLint engine)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      DFB_EGL_RETURN (EGL_SUCCESS, EGL_TRUE);
@@ -535,6 +585,8 @@ EGLBoolean eglWaitNative (EGLint engine)
 
 EGLBoolean eglSwapBuffers (EGLDisplay dpy, EGLSurface surf)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -555,6 +607,8 @@ EGLBoolean eglSwapBuffers (EGLDisplay dpy, EGLSurface surf)
 EGLBoolean eglCopyBuffers (EGLDisplay dpy,
                            EGLSurface src, EGLNativePixmapType dst)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -579,6 +633,8 @@ EGLBoolean eglCopyBuffers (EGLDisplay dpy,
 
 EGLBoolean eglSwapInterval (EGLDisplay dpy, EGLint interval)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      if (!dpy)
@@ -589,6 +645,8 @@ EGLBoolean eglSwapInterval (EGLDisplay dpy, EGLint interval)
 
 EGLBoolean eglReleaseThread (void)
 {
+     D_LOG( DFBEGL_Api, DEBUG_1, "%s()\n", __FUNCTION__ );
+
      EGL::TLS *tls = EGLTLS.Get();
 
      DFB_EGL_RETURN (EGL_SUCCESS, EGL_TRUE);
