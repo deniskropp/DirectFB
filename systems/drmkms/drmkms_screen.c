@@ -207,6 +207,7 @@ drmkmsInitScreen( CoreScreen           *screen,
      drmkms->resources = resources;
      drmkms->saved_crtc = drmModeGetCrtc( drmkms->fd, drmkms->encoder[0]->crtc_id );
 
+     description->mixers    = shared->enabled_crtcs;
      description->outputs   = shared->enabled_crtcs;
      description->encoders  = shared->enabled_crtcs;
 
@@ -225,6 +226,61 @@ drmkmsGetScreenSize( CoreScreen *screen,
 
      *ret_width  = shared->mode[0].hdisplay;
      *ret_height = shared->mode[0].vdisplay;
+
+     return DFB_OK;
+}
+
+static DFBResult
+drmkmsInitMixer( CoreScreen                  *screen,
+                 void                        *driver_data,
+                 void                        *screen_data,
+                 int                          encoder,
+                 DFBScreenMixerDescription *description,
+                 DFBScreenMixerConfig      *config )
+{
+     DRMKMSData       *drmkms = driver_data;
+     DRMKMSDataShared *shared = drmkms->shared;
+
+     D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
+
+     direct_snputs( description->name, "DRMKMS Mixer", DFB_SCREEN_ENCODER_DESC_NAME_LENGTH );
+
+     description->caps       = DSMCAPS_FULL | DSMCAPS_SUB_LAYERS;
+     description->layers     = (1 << encoder);
+     description->sub_layers = description->layers;
+
+     config->flags           = DSMCONF_LAYERS;
+     config->layers          = description->layers;
+
+     return DFB_OK;
+}
+
+static DFBResult
+drmkmsSetMixerConfig( CoreScreen                   *screen,
+                      void                         *driver_data,
+                      void                         *screen_data,
+                      int                           encoder,
+                      const DFBScreenMixerConfig *config )
+{
+     D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
+
+     if (config->flags & DSMCONF_LAYERS) {
+          D_DEBUG_AT( DRMKMS_Screen, "   -> requested layers 0x%04x\n", config->layers );
+     }
+
+     return DFB_OK;
+}
+
+
+static DFBResult
+drmkmsTestMixerConfig( CoreScreen                   *screen,
+                       void                         *driver_data,
+                       void                         *screen_data,
+                       int                           encoder,
+                       const DFBScreenMixerConfig *config,
+                       DFBScreenMixerConfigFlags  *failed )
+{
+     D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
 
      return DFB_OK;
 }
@@ -532,6 +588,9 @@ drmkmsTestOutputConfig( CoreScreen                  *screen,
 static const ScreenFuncs _drmkmsScreenFuncs = {
      .InitScreen        = drmkmsInitScreen,
      .GetScreenSize     = drmkmsGetScreenSize,
+     .InitMixer         = drmkmsInitMixer,
+     .SetMixerConfig    = drmkmsSetMixerConfig,
+     .TestMixerConfig   = drmkmsTestMixerConfig,
      .InitEncoder       = drmkmsInitEncoder,
      .SetEncoderConfig  = drmkmsSetEncoderConfig,
      .TestEncoderConfig = drmkmsTestEncoderConfig,
