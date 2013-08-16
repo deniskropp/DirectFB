@@ -2671,9 +2671,9 @@ fi
 
 AC_ARG_WITH(cxxstd,
             AC_HELP_STRING([--with-cxxstd],
-                           [select C++ standard for compiler @<:@default=c++11@:>@]),
-            [cxxstd="$withval"], [cxxstd="c++11"])
-test x"$cxxstd" = x"no" && cxxstd="c++11"
+                           [select C++ standard for compiler @<:@default=c++0x@:>@]),
+            [cxxstd="$withval"], [cxxstd="c++0x"])
+test x"$cxxstd" = x"no" && cxxstd="c++0x"
 CXXSTD="$cxxstd"
 AC_SUBST(CXXSTD)
 
