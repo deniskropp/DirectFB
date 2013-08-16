@@ -2105,6 +2105,8 @@ direct_stream_create( const char    *filename,
      D_ASSERT( filename != NULL );
      D_ASSERT( ret_stream != NULL );
 
+     D_DEBUG_AT( Direct_Stream, "%s( '%s' )\n", __FUNCTION__, filename );
+
      stream = D_CALLOC( 1, sizeof(DirectStream) );
      if (!stream)
           return D_OOM();
