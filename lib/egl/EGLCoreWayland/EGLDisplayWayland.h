@@ -116,13 +116,16 @@ public:
 class EGLDisplayWayland : public Types::Type<EGLDisplayWayland,EGL::Display>
 {
      friend class EGLCoreModuleWayland;
-     friend class WLBindWaylandDisplay;
      friend class SurfaceWLEGLWindow;
 
 public:
      EGLDisplayWayland( EGL::Display         &display,
                         EGLCoreModuleWayland &module );
      virtual ~EGLDisplayWayland();
+
+
+     EGLDisplayWayland( EGLDisplayWayland &display ) = delete;
+
 
 
 public:

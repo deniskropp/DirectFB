@@ -374,6 +374,8 @@ SurfaceWLEGLWindow::SurfaceWLEGLWindow( EGL::Surface      &surface,
                  __FUNCTION__, this, window, &display );
 
      EGL::Surface::Register< EGL::Surface::SwapBuffersFunc >( GetName(), std::bind( &SurfaceWLEGLWindow::SwapBuffers, this ) );
+
+     surface.surface->AllowAccess( surface.surface, "*" );
 }
 
 SurfaceWLEGLWindow::~SurfaceWLEGLWindow()
