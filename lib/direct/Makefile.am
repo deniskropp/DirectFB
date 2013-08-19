@@ -109,6 +109,7 @@ libdirect_la_SOURCES = \
 	Base.cpp		\
 	String.cpp		\
 	ToString.cpp		\
+	Utils.cpp		\
 	clock.c			\
 	conf.c			\
 	debug.c			\

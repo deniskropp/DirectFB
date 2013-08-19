@@ -37,6 +37,7 @@ extern "C" {
 #include <direct/os/waitqueue.h>
 
 #include <direct/debug.h>
+#include <direct/modules.h>
 
 
 #ifdef __cplusplus
@@ -52,9 +53,6 @@ extern "C" {
 #include <typeinfo>
 
 #include <cxxabi.h>
-
-
-D_DEBUG_DOMAIN( Direct_Utils, "Direct/Utils", "Direct Utils" );
 
 
 namespace Direct {
@@ -123,6 +121,77 @@ public:
 #endif
      }
 };
+
+
+template<class singleType>
+class Singleton
+{
+public:
+    static std::shared_ptr<singleType> GetInstance()
+    {
+         static std::weak_ptr<singleType> singleObject;
+
+         std::shared_ptr<singleType> shareObject = singleObject.lock();
+
+         if (!shareObject) {
+              shareObject.reset( new singleType );
+              singleObject = shareObject;
+         }
+
+         return shareObject;
+    }
+};
+
+
+
+class Modules;
+
+class Module
+{
+public:
+     Module( Modules &modules );
+     virtual ~Module();
+
+     virtual const Direct::String &GetName() const = 0;
+
+     virtual DirectResult Initialise() { return DR_OK; };
+     virtual DirectResult Finalise() { return DR_OK; };
+
+protected:
+     void Register();
+
+private:
+     Modules &modules;
+};
+
+
+typedef std::map<DirectModuleEntry*,Module*> ModuleMap;
+
+class Modules
+{
+public:
+     Modules( const Direct::String &directory )
+          :
+          directory( directory )
+     {
+          memset( &modules, 0, sizeof(modules) );
+
+          modules.path = directory.buffer();
+     }
+
+     DirectResult Load();
+
+private:
+     friend class Module;
+
+     DirectModuleDir     modules;
+     Direct::String      directory;
+     ModuleMap           map;
+
+     void Register( Module *module );
+     void Unregister( Module *module );
+};
+
 
 
 }
