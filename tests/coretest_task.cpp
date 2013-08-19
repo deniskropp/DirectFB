@@ -211,7 +211,7 @@ main( int argc, char *argv[] )
 
           for (int i=0; i<5; i++) {
                DFBColor color = {
-                    rand()%256, rand()%256, rand()%256, rand()%256
+                    (u8)rand(), (u8)rand(), (u8)rand(), (u8)rand()
                };
 
                dfb_state_set_color( &state, &color );
