@@ -460,6 +460,8 @@ private:
      Direct::String           vendor;
      Direct::String           version;
 
+     std::shared_ptr<Graphics::Core>    gfx_core;
+
 
 protected:
 

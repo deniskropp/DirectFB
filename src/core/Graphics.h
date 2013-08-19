@@ -215,13 +215,24 @@ typedef std::vector<Config*> Configs;
 typedef std::list<Implementation*> Implementations;
 
 
-class Core : public Direct::Types<Core>
+
+class Core : public Direct::Types<Core>, public Direct::Singleton<Core>
 {
 public:
-     static Implementations implementations;
+     Core();
+     virtual ~Core();
 
-     static void RegisterImplementation( Implementation *implementation );
-     static void UnregisterImplementation( Implementation *implementation );
+     Direct::Modules modules;
+
+     Implementations implementations;
+
+     void RegisterImplementation( Implementation *implementation );
+     void UnregisterImplementation( Implementation *implementation );
+
+     void LoadModules()
+     {
+          modules.Load();
+     }
 };
 
 
@@ -233,32 +244,33 @@ public:
 
 
 
-class Implementation
+class Implementation : public Direct::Module
 {
 protected:
-     Implementation();
+     Implementation( std::shared_ptr<Core> core = Graphics::Core::GetInstance() );
      virtual ~Implementation();
 
 public:
-     const Direct::String  &GetName() { Init(); return name; }
-     const Direct::Strings &GetAPIs() { Init(); return apis; }
-     const Direct::Strings &GetExtensions() { Init(); return extensions; }
+     virtual const Direct::String &GetName() const = 0;
 
-     const Configs         &GetConfigs() { Init(); return configs; }
+     const Direct::String  &GetName() { /*Init();*/ return name; }
+     const Direct::Strings &GetAPIs() { /*Init();*/ return apis; }
+     const Direct::Strings &GetExtensions() { /*Init();*/ return extensions; }
+
+     const Configs         &GetConfigs() { /*Init();*/ return configs; }
 
 
 protected:
-     virtual DFBResult  Initialise() = 0;
-
-     Direct::String      name;
-     Direct::Strings     apis;
-     Direct::Strings     extensions;
-     Graphics::Configs   configs;
+     std::shared_ptr<Core>    core;
+     Direct::String           name;
+     Direct::Strings          apis;
+     Direct::Strings          extensions;
+     Graphics::Configs        configs;
 
 private:
-     DFBResult Init();
+     //DFBResult /*Init();*/
 
-     bool init;
+     //bool init;
 };
 
 

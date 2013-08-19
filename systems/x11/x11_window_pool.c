@@ -38,6 +38,8 @@
 
 #include <fusion/shmalloc.h>
 
+#include <core/Debug.h>
+
 #include <core/surface_pool.h>
 
 #include <X11/extensions/Xcomposite.h>
@@ -500,6 +502,7 @@ x11Lock( CoreSurfacePool       *pool,
      x11AllocationData *alloc = alloc_data;
 
      D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( X11_Surfaces, "  -> %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );

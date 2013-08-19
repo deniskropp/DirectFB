@@ -870,8 +870,8 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           static GC gc;
 
-          if (!gc)
-               gc = DefaultGC( x11->display, DefaultScreen(x11->display));
+//          if (!gc)
+//               gc = DefaultGC( x11->display, DefaultScreen(x11->display));
 
           if (!window) {
                D_ASSUME( alloc->type == X11_ALLOC_PIXMAP );
@@ -920,7 +920,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                     XSync( x11->display, False );
                     D_DEBUG_AT( X11_Update, "  -> window 0x%08lx\n", (long) w );
 
-                    gc = XCreateGC(x11->display, w, 0, NULL);
+//                    gc = XCreateGC(x11->display, w, 0, NULL);
 
                     XMapRaised( x11->display, w );
                     XSync( x11->display, False );
@@ -929,6 +929,8 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
                window = w;
           }
+
+          gc = XCreateGC( x11->display, window, 0, NULL );
 
           if (x11->showing != window) {
                if (x11->showing) {
@@ -964,7 +966,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                           0, 0, x11->showing_w, x11->showing_h, 0, 0 );
                XFlush( x11->display );
           }
-
+XFreeGC( x11->display, gc );
           XUnlockDisplay( x11->display );
 
           return DFB_OK;

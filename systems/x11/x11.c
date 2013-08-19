@@ -59,8 +59,6 @@
 #include <direct/messages.h>
 
 
-#include "X11EGLImpl.h"
-
 #include "primary.h"
 #include "xwindow.h"
 #include "x11.h"
@@ -261,7 +259,7 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
      dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
      dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
 
-     dfb_x11_eglimpl_register( x11 );
+     //dfb_x11_eglimpl_register( x11 );
 
      return DFB_OK;
 }
@@ -426,7 +424,7 @@ system_shutdown( bool emergency )
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
-     dfb_x11_eglimpl_unregister();
+     //dfb_x11_eglimpl_unregister();
 
      /*
       * Master deinit
@@ -489,7 +487,7 @@ system_leave( bool emergency )
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
 
-     dfb_x11_eglimpl_unregister();
+     //dfb_x11_eglimpl_unregister();
 
      /*
       * Slave deinit

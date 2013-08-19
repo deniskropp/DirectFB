@@ -225,10 +225,12 @@ SurfacePeer::GetOption( const Direct::String &name,
 
 /**********************************************************************************************************************/
 
-Implementation::Implementation()
+Implementation::Implementation( std::shared_ptr<Core> core )
      :
-     name( "unnamed" ),
-     init( false )
+     Direct::Module( core->modules ),
+     core( core ),
+     name( "unnamed" )//,
+     //init( false )
 {
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p )\n", __FUNCTION__, this );
 }
@@ -238,25 +240,35 @@ Implementation::~Implementation()
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p )\n", __FUNCTION__, this );
 }
 
-DFBResult
-Implementation::Init()
-{
-     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p ) <- init %d\n", __FUNCTION__, this, init );
-
-     if (!init) {
-          DFBResult ret;
-
-          ret = Initialise();
-          if (ret)
-               return ret;
-
-          init = true;
-     }
-
-     return DFB_OK;
-}
+//DFBResult
+//Implementation::Init()
+//{
+//     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p ) <- init %d\n", __FUNCTION__, this, init );
+//
+//     if (!init) {
+//          DirectResult ret;
+//
+//          ret = Initialise();
+//          if (ret)
+//               return (DFBResult) ret;
+//
+//          init = true;
+//     }
+//
+//     return DFB_OK;
+//}
 
 /**********************************************************************************************************************/
+
+Core::Core()
+     :
+     modules( "graphics" )
+{
+}
+
+Core::~Core()
+{
+}
 
 void
 Core::RegisterImplementation( Implementation *implementation )
@@ -281,8 +293,6 @@ Core::UnregisterImplementation( Implementation *implementation )
 
      implementations.remove( implementation );
 }
-
-Implementations Core::implementations;
 
 
 }

@@ -59,10 +59,13 @@ Display::Display()
      dfb( NULL ),
      native_display( NULL ),
      native_pixmap_target( 0 ),
-     refs( 1 )
+     refs( 1 ),
+     gfx_core( Graphics::Core::GetInstance() )
 {
      D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, dfb %p, native_display %p )\n",
                  __FUNCTION__, this, dfb, (void*) (long) native_display );
+
+     gfx_core->LoadModules();
 }
 
 Display::~Display()
@@ -98,8 +101,8 @@ Display::Init()
 
      const char *comma = "";
 
-     for (Graphics::Implementations::const_iterator it = Graphics::Core::implementations.begin();
-           it != Graphics::Core::implementations.end();
+     for (Graphics::Implementations::const_iterator it = gfx_core->implementations.begin();
+           it != gfx_core->implementations.end();
            it++)
      {
           apis.PrintF( "%s%s (%s)", comma, *(*it)->GetAPIs().Concatenated( " " ), *(*it)->GetName()  );
@@ -125,8 +128,8 @@ Display::Init()
      comma = "   ";
 
      // FIXME: filter extensions / provide/bridge them
-     for (Graphics::Implementations::const_iterator it = Graphics::Core::implementations.begin();
-           it != Graphics::Core::implementations.end();
+     for (Graphics::Implementations::const_iterator it = gfx_core->implementations.begin();
+           it != gfx_core->implementations.end();
            it++)
      {
           extensions.PrintF( "%s%s (%s)", comma, *(*it)->GetExtensions().Concatenated( " " ), *(*it)->GetName()  );
@@ -139,8 +142,8 @@ Display::Init()
 
      comma = "";
 
-     for (Graphics::Implementations::const_iterator it = Graphics::Core::implementations.begin();
-           it != Graphics::Core::implementations.end();
+     for (Graphics::Implementations::const_iterator it = gfx_core->implementations.begin();
+           it != gfx_core->implementations.end();
            it++)
      {
           vendor.PrintF( "%s%s", comma, *(*it)->GetName() );
@@ -264,8 +267,8 @@ Display::ChooseConfig( const EGLint *attrib_list, Config **confs, EGLint config_
                D_DERROR( ret, "DFBEGL/Display: Failed to get Options from attrib_list!\n" );
      }
 
-     for (Graphics::Implementations::const_iterator it = Graphics::Core::implementations.begin();
-           it != Graphics::Core::implementations.end();
+     for (Graphics::Implementations::const_iterator it = gfx_core->implementations.begin();
+           it != gfx_core->implementations.end();
            it++)
      {
           D_DEBUG_AT( DFBEGL_Display, "  -> Implementation '%s'\n", *(*it)->GetName() );

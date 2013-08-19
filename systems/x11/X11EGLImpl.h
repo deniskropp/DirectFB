@@ -31,19 +31,6 @@
 #define ___DirectFB__X11__X11EGLIMPL__H___
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "x11.h"
-
-DFBResult dfb_x11_eglimpl_register( DFBX11 *x11 );
-void      dfb_x11_eglimpl_unregister( void );
-
-#ifdef __cplusplus
-}
-
-
 #include <direct/String.h>
 
 #include <core/CoreSurface.h>
@@ -54,6 +41,9 @@ void      dfb_x11_eglimpl_unregister( void );
 
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+
+
+#include <X11/Xlib.h>    /* fundamentals X datas structures */
 
 
 namespace X11 {
@@ -91,11 +81,13 @@ class X11EGLImpl : public Graphics::Implementation
      X11EGLImpl& operator=( const X11EGLImpl& ) = delete;
 
 public:
-     X11EGLImpl( DFBX11 *x11 );
+     X11EGLImpl();
      virtual ~X11EGLImpl();
 
-protected:
-     virtual DFBResult Initialise();// override;
+     virtual const Direct::String &GetName() const;
+
+     virtual DirectResult Initialise();// override;
+     virtual DirectResult Finalise();// override;
 
 public:
      DirectFB::EGL::Library              lib;
@@ -106,8 +98,7 @@ public:
                                              GLeglImage &image );
 
 private:
-     DFBX11            *x11;
-
+     ::Display         *x11_display;
      EGLDisplay         egl_display;
      EGLint             egl_major, egl_minor;
 };
@@ -214,9 +205,5 @@ protected:
 }
 
 
-#endif // __cplusplus
-
-
 #endif
-
 
