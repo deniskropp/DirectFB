@@ -96,12 +96,12 @@ libEGL_la_SOURCES = \
 
 libEGL_la_LIBADD = \
 	libDFBEGL.la		\
+	$(libdfbegl)		\
 	$(DFB_BASE_LIBS)
 
 libEGL_la_LDFLAGS = \
 	-version-number 1:0	\
-	$(DFB_LDFLAGS)		\
-	$(libdfbegl)
+	$(DFB_LDFLAGS)
 
 
 LIBS_TO_NMFILE = libDFBEGL.la
