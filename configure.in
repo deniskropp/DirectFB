@@ -1272,6 +1272,14 @@ AC_SUBST(DRMKMS_LIBS)
 AC_SUBST(DRMKMS_CFLAGS)
 
 
+dnl Test for EGL
+AC_ARG_ENABLE(egl,
+              AC_HELP_STRING([--enable-egl-united],
+                             [build with EGL United support @<:@default=no@:>@]),
+              [], [enable_egl_united=yes])
+
+AM_CONDITIONAL(EGL_UNITED, test "$enable_egl_united" = "yes")
+
 
 dnl Test for Wayland
 AC_ARG_ENABLE(wayland,
@@ -1281,7 +1289,7 @@ AC_ARG_ENABLE(wayland,
 if test "$enable_wayland" = "yes"; then
   PKG_CHECK_MODULES(WAYLAND, [wayland-client wayland-server], [enable_wayland=yes], [enable_wayland=no
     AC_MSG_WARN([
-*** wayland-client packages not found -- Building without Wayland support.])
+*** wayland-client wayland-server packages not found -- Building without Wayland support.])
     ])
 fi
 
@@ -3156,7 +3164,8 @@ AC_MSG_RESULT([
 fi
 
 AC_MSG_RESULT([
-Building EGL Core Modules:
+Building EGL United:        $enable_egl_united
+Building EGL United Modules:
   Wayland                   $enable_wayland                 $WAYLAND_CFLAGS $WAYLAND_LIBS
   X11                       $enable_x11                 $X11_CFLAGS $X11_LIBS
 ]);

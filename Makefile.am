@@ -18,6 +18,10 @@ if ENABLE_VOODOO
 PROXY_DIR = proxy
 endif
 
+if EGL_UNITED
+EGL_UNITED_DIR = lib/egl
+endif
+
 if BUILD_DVC
 DVC_DIR = lib/dvc
 endif
@@ -26,7 +30,7 @@ if DIRECTFB_BUILD_PURE_VOODOO
 NON_PURE_VOODOO_SUBDIRS = 
 else
 NON_PURE_VOODOO_SUBDIRS = \
-	lib/egl			\
+	$(EGL_UNITED_DIR)	\
 	systems			\
 	wm			\
 	interfaces 		\
