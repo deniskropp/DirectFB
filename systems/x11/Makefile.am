@@ -11,6 +11,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib/egl
 
 
+
 systemsdir = $(MODULEDIR)/systems
 
 if BUILD_STATIC
@@ -20,20 +21,10 @@ endif
 systems_LTLIBRARIES = libdirectfb_x11.la
 
 
-dfbegl_coredir = $(MODULEDIR)/dfbegl_core
-
-if BUILD_STATIC
-dfbegl_core_DATA = libdfbegl_core_x11.o
-endif
-
-dfbegl_core_LTLIBRARIES = libdfbegl_core_x11.la
-
-
 libdirectfb_x11_la_LDFLAGS = \
 	$(X11_LIBS) -lXcomposite	\
 	-avoid-version	\
 	-module
-
 
 if GFX_GLX
 libdirectfb_x11_la_LDFLAGS += -lGL
@@ -58,9 +49,7 @@ libdirectfb_x11_la_SOURCES = \
 	x11_window_pool.h	\
 	x11types.h		\
 	xwindow.h		\
-	xwindow.c		\
-	X11EGLImpl.cpp		\
-	X11EGLImpl.h
+	xwindow.c
 
 if GFX_GLX
 libdirectfb_x11_la_SOURCES += \
@@ -72,10 +61,17 @@ endif
 
 libdirectfb_x11_la_LIBADD = \
 	$(DFB_BASE_LIBS)	\
-	$(GLES2_DFB_BASE_LIBS)	\
-	$(libegl)		\
-	$(libdfbegl)
+	$(GLES2_DFB_BASE_LIBS)
 
+
+
+dfbegl_coredir = $(MODULEDIR)/dfbegl_core
+
+if BUILD_STATIC
+dfbegl_core_DATA = libdfbegl_core_x11.o
+endif
+
+dfbegl_core_LTLIBRARIES = libdfbegl_core_x11.la
 
 
 libdfbegl_core_x11_la_LDFLAGS = \
@@ -89,7 +85,32 @@ libdfbegl_core_x11_la_SOURCES = \
 
 libdfbegl_core_x11_la_LIBADD = \
 	$(DFB_BASE_LIBS)	\
-	$(libegl) -lxcb
+	$(libdfbegl) -lxcb
+
+
+
+
+graphicsdir = $(MODULEDIR)/graphics
+
+if BUILD_STATIC
+graphics_DATA = libdfbx11_egl.o
+endif
+
+graphics_LTLIBRARIES = libdfbx11_egl.la
+
+
+libdfbx11_egl_la_LIBADD = \
+	$(DFB_BASE_LIBS)	\
+	$(libdfbegl)
+
+libdfbx11_egl_la_SOURCES = \
+	X11EGLImpl.cpp		\
+	X11EGLImpl.h
+
+libdfbx11_egl_la_LDFLAGS = \
+	$(X11_LIBS)	\
+	-avoid-version	\
+	-module
 
 
 include $(top_srcdir)/rules/libobject.make
