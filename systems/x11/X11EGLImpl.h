@@ -73,7 +73,7 @@ public:
      ::Display *x11_display;
 
      X11Display( Display *x11_display );
-     ~X11Display();
+     virtual ~X11Display();
 
      virtual void Sync( bool always = false );
 };
