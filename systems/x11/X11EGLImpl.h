@@ -67,18 +67,31 @@ public:
 };
 
 
+class X11Display
+{
+public:
+     ::Display *x11_display;
+
+     X11Display( Display *x11_display );
+     ~X11Display();
+
+     virtual void Sync( bool always = false );
+};
+
+class X11DisplaySync : public X11Display
+{
+public:
+     X11DisplaySync( Display *x11_display ) : X11Display( x11_display ) {};
+
+     virtual void Sync( bool always );
+};
+
 class X11EGLImpl : public Graphics::Implementation
 {
      friend class GLeglImage;
      friend class X11EGLConfig;
      friend class X11EGLContext;
      friend class X11EGLSurfacePeer;
-
-     // no copy
-     X11EGLImpl( const X11EGLImpl& ) = delete;
-
-     // no assign
-     X11EGLImpl& operator=( const X11EGLImpl& ) = delete;
 
 public:
      X11EGLImpl();
@@ -99,6 +112,7 @@ public:
 
 private:
      ::Display         *x11_display;
+     X11Display        *display;
      EGLDisplay         egl_display;
      EGLint             egl_major, egl_minor;
 };

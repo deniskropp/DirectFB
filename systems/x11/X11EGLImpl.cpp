@@ -115,6 +115,41 @@ GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
 
 /**********************************************************************************************************************/
 
+X11Display::X11Display( ::Display *x11_display )
+     :
+     x11_display( x11_display )
+{
+     D_DEBUG_AT( DFBX11_EGLImpl, "X11Display::%s( %p )\n", __FUNCTION__, this );
+
+}
+
+X11Display::~X11Display()
+{
+     D_DEBUG_AT( DFBX11_EGLImpl, "X11Display::%s( %p )\n", __FUNCTION__, this );
+}
+
+void
+X11Display::Sync( bool always )
+{
+     D_DEBUG_AT( DFBX11_EGLImpl, "X11Display::%s( %p )\n", __FUNCTION__, this );
+
+     if (always) {
+          XLockDisplay( x11_display );
+          XSync( x11_display, False );
+          XUnlockDisplay( x11_display );
+     }
+}
+
+void
+X11DisplaySync::Sync( bool always )
+{
+     D_DEBUG_AT( DFBX11_EGLImpl, "X11DisplaySync::%s( %p )\n", __FUNCTION__, this );
+
+     X11Display::Sync( true );
+}
+
+/**********************************************************************************************************************/
+
 void
 X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_  &target,
                                                GLeglImage &image )
@@ -176,14 +211,13 @@ X11EGLImpl::X11EGLImpl()
 
      Graphics::Context::Register< GL::OES::glEGLImageTargetTexture2D >( "",
                                                                         std::bind( &X11EGLImpl::Context_glEGLImageTargetTexture2D, this, _1, _2 ) );
+
+     Register();
 }
 
 X11EGLImpl::~X11EGLImpl()
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p )\n", __FUNCTION__, this );
-
-     if (egl_display)
-          lib.eglTerminate( egl_display );
 }
 
 const Direct::String &
@@ -205,6 +239,13 @@ X11EGLImpl::Initialise()
      EGLint      num_configs = 0;
 
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p )\n", __FUNCTION__, this );
+
+     x11_display = XOpenDisplay( getenv("DISPLAY") );
+
+     if (direct_config_get_int_value( "x11-sync" ))
+          display = new X11DisplaySync( x11_display );
+     else
+          display = new X11Display( x11_display );
 
      ret = lib.Init( "/usr/lib/x86_64-linux-gnu/mesa-egl/libEGL.so.1", true, false );
      if (ret) {
@@ -245,8 +286,8 @@ X11EGLImpl::Initialise()
 
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> version %d.%d\n", egl_major, egl_minor );
 
-     D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglQueryString:%p (%p)\n",
-                 lib.eglQueryString, eglQueryString );
+     D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglQueryString:%p\n",
+                 lib.eglQueryString );
 
 
      egl_vendor = lib.eglQueryString( egl_display, EGL_VENDOR );
@@ -319,6 +360,13 @@ DirectResult
 X11EGLImpl::Finalise()
 {
      core->UnregisterImplementation( this );
+
+     if (egl_display)
+          lib.eglTerminate( egl_display );
+
+     delete display;
+
+     XCloseDisplay( x11_display );
 
      return DR_OK;
 }
@@ -509,6 +557,8 @@ X11EGLContext::Init()
           return DFB_INVARG;
      }
 
+     impl.display->Sync();
+
      impl.lib.eglBindAPI( egl_api );
 
      EGLint attribs[] = {
@@ -526,6 +576,8 @@ X11EGLContext::Init()
      }
 
      D_DEBUG_AT( DFBX11_EGLImpl, "  => EGLContext %p\n", egl_context );
+
+     impl.display->Sync();
 
      return DFB_OK;
 }
@@ -545,18 +597,14 @@ X11EGLContext::Bind( Graphics::SurfacePeer *draw,
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglMakeCurrent( draw/read 0x%08lx/0x%08lx, context 0x%08lx )...\n",
                  (unsigned long) surf_draw, (unsigned long) surf_read, (unsigned long) egl_context );
 
-     //XLockDisplay( x11_egl_impl->x11_display );
-     //XSync( x11_egl_impl->x11_display, False );
-     //XUnlockDisplay( x11_egl_impl->x11_display );
+     impl.display->Sync();
 
      if (!impl.lib.eglMakeCurrent( impl.egl_display, surf_draw, surf_read, egl_context )) {
           D_ERROR( "X11/EGLImpl: eglMakeCurrent( %p, %p, %p ) failed\n", surf_draw, surf_read, (void*) (long) egl_context );
           return DFB_FAILURE;
      }
 
-     //XLockDisplay( x11_egl_impl->x11_display );
-     //XSync( x11_egl_impl->x11_display, False );
-     //XUnlockDisplay( x11_egl_impl->x11_display );
+     impl.display->Sync();
 
      return DFB_OK;
 }
@@ -688,9 +736,7 @@ X11EGLSurfacePeer::Flip( const DFBRegion     *region,
 
      EGLSurface egl_surface = getEGLSurface();
 
-     //XLockDisplay( x11_egl_impl->x11_display );
-     //XSync( x11_egl_impl->x11_display, False );
-     //XUnlockDisplay( x11_egl_impl->x11_display );
+     impl.display->Sync();
 
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglSwapBuffers( %p )\n", egl_surface );
 
@@ -705,9 +751,7 @@ X11EGLSurfacePeer::Flip( const DFBRegion     *region,
 //     }
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglSwapBuffers( %p ) done\n", egl_surface );
 
-     //XLockDisplay( x11_egl_impl->x11_display );
-     //XSync( x11_egl_impl->x11_display, False );
-     //XUnlockDisplay( x11_egl_impl->x11_display );
+     impl.display->Sync();
 
      ret = alloc_left[index]->Updated( alloc_left[index], NULL, 0 );
      if (ret) {
@@ -715,17 +759,13 @@ X11EGLSurfacePeer::Flip( const DFBRegion     *region,
           return ret;
      }
 
-     //XLockDisplay( x11_egl_impl->x11_display );
-     //XSync( x11_egl_impl->x11_display, False );
-     //XUnlockDisplay( x11_egl_impl->x11_display );
+     impl.display->Sync();
 
      ret = SurfacePeer::Flip( region, flags );
      if (ret)
           return ret;
 
-     //XLockDisplay( x11_egl_impl->x11_display );
-     //XSync( x11_egl_impl->x11_display, False );
-     //XUnlockDisplay( x11_egl_impl->x11_display );
+     impl.display->Sync();
 
      D_ASSERT( alloc_num > 0 );
      if (++index == alloc_num)
@@ -762,6 +802,8 @@ X11EGLSurfacePeer::Flip( const DFBRegion     *region,
 
      }
 
+     impl.display->Sync();
+
      return DFB_OK;
 }
 
@@ -792,9 +834,7 @@ X11EGLSurfacePeer::getEGLSurface()
           D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglCreate%sSurface( EGLConfig %p, %p )\n", is_pixmap ? "Pixmap" : "Window",
                       config->egl_config, (EGLNativePixmapType) handle );
 
-          //XLockDisplay( x11_egl_impl->x11_display );
-          //XSync( x11_egl_impl->x11_display, False );
-          //XUnlockDisplay( x11_egl_impl->x11_display );
+          impl.display->Sync();
 
           if (is_pixmap)
                egl_surface = impl.lib.eglCreatePixmapSurface( impl.egl_display, config->egl_config,
@@ -810,9 +850,7 @@ X11EGLSurfacePeer::getEGLSurface()
                return EGL_NO_SURFACE;
           }
 
-          //XLockDisplay( x11_egl_impl->x11_display );
-          //XSync( x11_egl_impl->x11_display, False );
-          //XUnlockDisplay( x11_egl_impl->x11_display );
+          impl.display->Sync();
 
           surface_map[ handle ] = egl_surface;
 

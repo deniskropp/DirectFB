@@ -122,6 +122,25 @@ Image::Image( DirectFB::EGL::KHR::Image &egl_image,
 }
 
 /**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+DFBResult
+EGLCoreModuleX11::Initialise( DirectFB::EGL::Core &core )
+{
+     D_DEBUG_AT( DFBX11_EGLCoreModule, "EGLCoreModuleX11::%s( %p, core %p )\n",
+                 __FUNCTION__, this, &core );
+
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Probe >     ( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Probe, this, _1, _2 ) );
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Initialise >( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Initialise, this, _1 ) );
+
+     EGLDisplayX11::RegisterConversion< DirectFB::EGL::Display, EGLCoreModuleX11& >( *this );
+
+     DirectFB::EGL::Display::Register< DirectFB::EGL::EGLExtension::GetNames >( GetName(), [](){ return "DIRECTFB_display_x11"; } );
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
 
 DFBResult
 EGLCoreModuleX11::Display_Probe( const DirectFB::EGL::Display &display,
@@ -167,6 +186,23 @@ EGLCoreModuleX11::Display_Initialise( EGLDisplayX11 &display )
      X11::EGL::Image::RegisterConversion< DirectFB::EGL::KHR::Image, EGLDisplayX11& >( display );
 
      return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+EGLDisplayX11::EGLDisplayX11( DirectFB::EGL::Display     &display,
+                              EGLCoreModuleX11 &module )
+     :
+     Type( display ),
+     x11_display( (::Display*) display.native_display )
+{
+     D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p, native_display 0x%08lx )\n", __FUNCTION__, this, (unsigned long) display.native_display );
+}
+
+EGLDisplayX11::~EGLDisplayX11()
+{
+     D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p )\n", __FUNCTION__, this );
 }
 
 /**********************************************************************************************************************/
@@ -256,40 +292,6 @@ EGLDisplayX11::Surface_Initialise( SurfaceXWindow &surface )
 }
 
 /**********************************************************************************************************************/
-/**********************************************************************************************************************/
-
-DFBResult
-EGLCoreModuleX11::Initialise( DirectFB::EGL::Core &core )
-{
-     D_DEBUG_AT( DFBX11_EGLCoreModule, "EGLCoreModuleX11::%s( %p, core %p )\n",
-                 __FUNCTION__, this, &core );
-
-     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Probe >     ( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Probe, this, _1, _2 ) );
-     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Initialise >( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Initialise, this, _1 ) );
-
-     EGLDisplayX11::RegisterConversion< DirectFB::EGL::Display, EGLCoreModuleX11& >( *this );
-
-     DirectFB::EGL::Display::Register< DirectFB::EGL::EGLExtension::GetNames >( GetName(), [](){ return "DIRECTFB_display_x11"; } );
-
-     return DFB_OK;
-}
-
-/**********************************************************************************************************************/
-
-EGLDisplayX11::EGLDisplayX11( DirectFB::EGL::Display     &display,
-                              EGLCoreModuleX11 &module )
-     :
-     Type( display ),
-     x11_display( (::Display*) display.native_display )
-{
-     D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p, native_display 0x%08lx )\n", __FUNCTION__, this, (unsigned long) display.native_display );
-}
-
-EGLDisplayX11::~EGLDisplayX11()
-{
-     D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p )\n", __FUNCTION__, this );
-}
-
 /**********************************************************************************************************************/
 
 SurfaceXWindow::SurfaceXWindow( DirectFB::EGL::Surface  &surface,

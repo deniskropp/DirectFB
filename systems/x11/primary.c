@@ -631,6 +631,7 @@ primarySetRegion( CoreLayer                  *layer,
 
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
+     x11->Sync( x11 );
 //     if (x11->shared->x_error)
 //          return DFB_FAILURE;
 
@@ -663,6 +664,9 @@ primarySetRegion( CoreLayer                  *layer,
 
      if (palette)
           dfb_x11_set_palette( x11, lds, palette );
+
+
+     x11->Sync( x11 );
 
      return DFB_OK;
 }
@@ -768,8 +772,11 @@ primaryFlipUpdate( CoreLayer             *layer,
      if (lds->lock_right.allocation)
           dfb_surface_allocation_ref( lds->lock_right.allocation );
 
+     x11->Sync( x11 );
 
      dfb_x11_update_screen( x11, lds, &left_region, &right_region, left_lock, right_lock );
+
+     x11->Sync( x11 );
 
 
      dfb_surface_notify_display2( surface, lds->lock_left.allocation->index, lds->lock_left.task );
@@ -783,6 +790,8 @@ primaryFlipUpdate( CoreLayer             *layer,
 
      if (lds->lock_right.task)
           Task_Done( lds->lock_right.task );
+
+     x11->Sync( x11 );
 
      return DFB_OK;
 }
@@ -850,6 +859,10 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
      D_ASSERT( x11 != NULL );
      DFB_RECTANGLE_ASSERT( clip );
 
+     XLockDisplay( x11->display );
+
+     x11->Sync( x11 );
+
      D_DEBUG_AT( X11_Update, "%s( %4d,%4d-%4dx%4d )\n", __FUNCTION__, DFB_RECTANGLE_VALS( clip ) );
 
      CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
@@ -860,7 +873,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
      allocation = lock->allocation;
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
-     XLockDisplay( x11->display );
+     x11->Sync( x11 );
 
      /* Check for Window allocation... */
      if (allocation->pool == shared->x11window_pool && lock->handle) {
@@ -883,7 +896,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                    || ww != allocation->config.size.w
                    || wh != allocation->config.size.h)
                {
-                    XSync( x11->display, False );
+                    x11->Sync( x11 );
 
                     D_LOG( X11_Update, VERBOSE, "  -> Creating window %dx%d...\n", allocation->config.size.w, allocation->config.size.h );
 
@@ -916,14 +929,14 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                                        DefaultRootWindow(x11->display),
                                        0, 0, ww, wh, 0,
                                        alloc->depth, InputOutput,
-                                       alloc->visual, CWEventMask /*| CWOverrideRedirect*/, &attr );
-                    XSync( x11->display, False );
+                                       DefaultVisualOfScreen( DefaultScreenOfDisplay( x11->display ) ), CWEventMask /*| CWOverrideRedirect*/, &attr );
+                    x11->Sync( x11 );
                     D_DEBUG_AT( X11_Update, "  -> window 0x%08lx\n", (long) w );
 
 //                    gc = XCreateGC(x11->display, w, 0, NULL);
 
                     XMapRaised( x11->display, w );
-                    XSync( x11->display, False );
+                    x11->Sync( x11 );
                     D_DEBUG_AT( X11_Update, "  -> raised\n" );
                }
 
@@ -940,12 +953,12 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                }
 
 
-               XSync( x11->display, False );
+               x11->Sync( x11 );
 
                D_LOG( X11_Update, VERBOSE, "  -> Showing window 0x%08lx...\n", window );
                shared->x_error = 0;
                XMapRaised( x11->display, window );
-               XSync( x11->display, False );
+               x11->Sync( x11 );
 
                if (shared->x_error)
                     shared->x_error = 0;
@@ -960,11 +973,36 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                D_LOG( X11_Update, DEBUG, "  -> Already showing window 0x%08lx\n", window );
 
           if (!alloc->window) {
+               x11->Sync( x11 );
                D_DEBUG_AT( X11_Update, "  -> Copying from Pixmap...\n" );
 
-               XCopyArea( x11->display, alloc->xid, window, gc,
-                          0, 0, x11->showing_w, x11->showing_h, 0, 0 );
-               XFlush( x11->display );
+               XImage            *image;
+               XImage            *image2;
+               image = XGetImage( x11->display, alloc->window ? alloc->window : alloc->xid,
+                                  0, 0, x11->showing_w, x11->showing_h, ~0, ZPixmap );
+
+
+               image2 = XCreateImage( x11->display, DefaultVisualOfScreen( DefaultScreenOfDisplay( x11->display ) ), 24, ZPixmap, 0,
+                                      (void*) image->data, x11->showing_w, x11->showing_h, 32, x11->showing_w * 4 );
+               if (!image2) {
+                    D_ERROR( "X11/Surfaces: XCreateImage( %dx%d, depth %d ) failed!\n", x11->showing_w, x11->showing_h, 24 );
+                    XUnlockDisplay( x11->display );
+                    return DFB_FAILURE;
+               }
+
+
+               XPutImage( x11->display, window,
+                          DefaultGC( x11->display, DefaultScreen( x11->display ) ), image2, 0, 0, 0, 0, x11->showing_w, x11->showing_h );
+
+
+               XDestroyImage( image );
+
+               image2->data = NULL;
+               XDestroyImage( image2 );
+
+//               XCopyArea( x11->display, alloc->xid, window, gc,
+//                          0, 0, x11->showing_w, x11->showing_h, 0, 0 );
+               x11->Sync( x11 );
           }
 XFreeGC( x11->display, gc );
           XUnlockDisplay( x11->display );
@@ -1073,7 +1111,7 @@ XFreeGC( x11->display, gc );
           }
 
           dst = xw->virtualscreen + rect.x * xw->bpp + (rect.y + offset) * ximage->bytes_per_line;
-          dfb_surface_get_data_offsets( allocation->surface, lock->addr, lock->pitch, rect.x, rect.y,
+          dfb_surface_get_data_offsets( &allocation->config, lock->addr, lock->pitch, rect.x, rect.y,
                                         3, srces, pitches );
 
           switch (xw->depth) {
@@ -1133,7 +1171,7 @@ XFreeGC( x11->display, gc );
 
 
      /* Wait for previous data to be processed... */
-     XSync( x11->display, False );
+     x11->Sync( x11 );
 
      /* ...and immediately queue or send the next! */
      if (x11->use_shm) {
@@ -1151,7 +1189,7 @@ XFreeGC( x11->display, gc );
 
      /* Wait for display if single buffered and not converted... */
      if (direct && !(allocation->config.caps & DSCAPS_FLIPPING))
-          XSync( x11->display, False );
+          x11->Sync( x11 );
 
      XUnlockDisplay( x11->display );
 
@@ -1304,7 +1342,7 @@ update_stereo( DFBX11 *x11, const DFBRectangle *left_clip, const DFBRectangle *r
 
 
      /* Wait for previous data to be processed... */
-     XSync( x11->display, False );
+     x11->Sync( x11 );
 
      /* ...and immediately queue or send the next! */
      if (x11->use_shm) {
@@ -1401,7 +1439,7 @@ dfb_x11_destroy_window_handler( DFBX11 *x11, DestroyData *destroy )
           shared->window_count--;
      }
 
-     XSync( x11->display, False );
+     x11->Sync( x11 );
 
      XUnlockDisplay( x11->display );
 
