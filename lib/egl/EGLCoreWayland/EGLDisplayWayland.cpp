@@ -247,6 +247,35 @@ EGLDisplayWayland::~EGLDisplayWayland()
 /**********************************************************************************************************************/
 
 DFBResult
+EGLDisplayWayland::Image_Initialise( DirectFB::EGL::KHR::Image &image )
+{
+
+     D_DEBUG_AT( DFBWayland_EGLDisplay, "EGLDisplayWayland::%s( %p, image %p )\n", __FUNCTION__, this, &image );
+
+     D_ASSERT( image.target == EGL_WAYLAND_BUFFER_WL );
+
+     DFBResult         ret;
+     WL::Buffer       *buffer  = (WL::Buffer *) wl_resource_get_user_data( (struct wl_resource*) image.buffer );
+     IDirectFBSurface *surface = buffer->surface;
+
+     ret = (DFBResult) surface->AddRef( surface );
+     if (ret) {
+          D_DERROR_AT( DFBWayland_EGLDisplay, ret, "  -> IDirectFBSurface::AddRef() failed!\n" );
+          return ret;
+     }
+
+     int w, h;
+
+     surface->GetSize( surface, &w, &h );
+
+     D_INFO( "DFBEGL/Image: New EGLImage from WL::Buffer (%dx%d)\n", w, h );
+
+     image.surface = surface;
+
+     return DFB_OK;
+}
+
+DFBResult
 EGLDisplayWayland::Surface_Initialise( SurfaceWLEGLWindow &surface )
 {
      D_DEBUG_AT( DFBWayland_EGLDisplay, "EGLDisplayWayland::%s( %p ) <- window %p\n",
@@ -292,35 +321,6 @@ EGLDisplayWayland::Surface_Initialise( SurfaceWLEGLWindow &surface )
      }
 
      surface.parent.surface->AllowAccess( surface.parent.surface, "*" );
-
-     return DFB_OK;
-}
-
-DFBResult
-EGLDisplayWayland::Image_Initialise( DirectFB::EGL::KHR::Image &image )
-{
-
-     D_DEBUG_AT( DFBWayland_EGLDisplay, "EGLDisplayWayland::%s( %p, image %p )\n", __FUNCTION__, this, &image );
-
-     D_ASSERT( image.target == EGL_WAYLAND_BUFFER_WL );
-
-     DFBResult         ret;
-     WL::Buffer       *buffer  = (WL::Buffer *) wl_resource_get_user_data( (struct wl_resource*) image.buffer );
-     IDirectFBSurface *surface = buffer->surface;
-
-     ret = (DFBResult) surface->AddRef( surface );
-     if (ret) {
-          D_DERROR_AT( DFBWayland_EGLDisplay, ret, "  -> IDirectFBSurface::AddRef() failed!\n" );
-          return ret;
-     }
-
-     int w, h;
-
-     surface->GetSize( surface, &w, &h );
-
-     D_INFO( "DFBEGL/Image: New EGLImage from WL::Buffer (%dx%d)\n", w, h );
-
-     image.surface = surface;
 
      return DFB_OK;
 }
