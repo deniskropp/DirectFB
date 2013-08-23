@@ -974,37 +974,41 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           if (!alloc->window) {
                x11->Sync( x11 );
-               D_DEBUG_AT( X11_Update, "  -> Copying from Pixmap...\n" );
+               D_DEBUG_AT( X11_Update, "  -> Copying from Window/Pixmap...\n" );
 
-               XImage            *image;
-               XImage            *image2;
-               image = XGetImage( x11->display, alloc->window ? alloc->window : alloc->xid,
-                                  0, 0, x11->showing_w, x11->showing_h, ~0, ZPixmap );
+               if (alloc->depth == 32) {
+                    XImage            *image;
+                    XImage            *image2;
+                    image = XGetImage( x11->display, alloc->window ? alloc->window : alloc->xid,
+                                       0, 0, x11->showing_w, x11->showing_h, ~0, ZPixmap );
 
 
-               image2 = XCreateImage( x11->display, DefaultVisualOfScreen( DefaultScreenOfDisplay( x11->display ) ), 24, ZPixmap, 0,
-                                      (void*) image->data, x11->showing_w, x11->showing_h, 32, x11->showing_w * 4 );
-               if (!image2) {
-                    D_ERROR( "X11/Surfaces: XCreateImage( %dx%d, depth %d ) failed!\n", x11->showing_w, x11->showing_h, 24 );
-                    XUnlockDisplay( x11->display );
-                    return DFB_FAILURE;
+                    image2 = XCreateImage( x11->display, DefaultVisualOfScreen( DefaultScreenOfDisplay( x11->display ) ), 24, ZPixmap, 0,
+                                           (void*) image->data, x11->showing_w, x11->showing_h, 32, x11->showing_w * 4 );
+                    if (!image2) {
+                         D_ERROR( "X11/Surfaces: XCreateImage( %dx%d, depth %d ) failed!\n", x11->showing_w, x11->showing_h, 24 );
+                         XUnlockDisplay( x11->display );
+                         return DFB_FAILURE;
+                    }
+
+
+                    XPutImage( x11->display, window, gc, image2, 0, 0, 0, 0, x11->showing_w, x11->showing_h );
+
+
+                    XDestroyImage( image );
+
+                    image2->data = NULL;
+                    XDestroyImage( image2 );
                }
+               else
+                    XCopyArea( x11->display, alloc->xid, window, gc,
+                               0, 0, x11->showing_w, x11->showing_h, 0, 0 );
 
-
-               XPutImage( x11->display, window,
-                          DefaultGC( x11->display, DefaultScreen( x11->display ) ), image2, 0, 0, 0, 0, x11->showing_w, x11->showing_h );
-
-
-               XDestroyImage( image );
-
-               image2->data = NULL;
-               XDestroyImage( image2 );
-
-//               XCopyArea( x11->display, alloc->xid, window, gc,
-//                          0, 0, x11->showing_w, x11->showing_h, 0, 0 );
                x11->Sync( x11 );
           }
-XFreeGC( x11->display, gc );
+
+          XFreeGC( x11->display, gc );
+
           XUnlockDisplay( x11->display );
 
           return DFB_OK;
