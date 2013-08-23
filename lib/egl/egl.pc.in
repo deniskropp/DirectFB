@@ -8,4 +8,4 @@ Description: DirectFB EGL library (public API)
 Version: 7.10
 Requires: dfbegl
 Libs: -L${libdir}/dfb-egl -lEGL
-Cflags: -I@INCLUDEDIR@
+Cflags: -I@INCLUDEDIR@/egl
