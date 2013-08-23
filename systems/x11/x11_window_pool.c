@@ -652,7 +652,7 @@ x11Write( CoreSurfacePool       *pool,
      x11->Sync( x11 );
      D_DEBUG_AT( X11_Surfaces, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
 
-//     XPutImage( x11->display, alloc->xid, DefaultGC( x11->display, DefaultScreen( x11->display ) ), image, 0, 0, rect->x, rect->y, rect->w, rect->h );
+     XPutImage( x11->display, alloc->xid, DefaultGC( x11->display, DefaultScreen( x11->display ) ), image, 0, 0, rect->x, rect->y, rect->w, rect->h );
 
      x11->Sync( x11 );
      D_DEBUG_AT( X11_Surfaces, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
