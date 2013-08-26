@@ -81,6 +81,9 @@
 #endif
 
 
+D_DEBUG_DOMAIN( DirectFB_Main, "DirectFB/Main", "DirectFB Main Functions" );
+
+
 static DFBResult CreateRemote( const char *host, int session, IDirectFB **ret_interface );
 
 
@@ -128,6 +131,8 @@ DirectFBInit( int *argc, char *(*argv[]) )
 {
      DFBResult ret;
 
+     D_DEBUG_AT( DirectFB_Main, "%s( %p, %p )\n", __FUNCTION__, argc, argv );
+
      ret = dfb_config_init( argc, argv );
      if (ret)
           return ret;
@@ -139,6 +144,8 @@ DFBResult
 DirectFBSetOption( const char *name, const char *value )
 {
      DFBResult ret;
+
+     D_DEBUG_AT( DirectFB_Main, "%s( '%s', '%s' )\n", __FUNCTION__, name, value );
 
      if (dfb_config == NULL) {
           D_ERROR( "DirectFBSetOption: DirectFBInit has to be "
@@ -169,6 +176,8 @@ DirectFBCreate( IDirectFB **interface_ptr )
      CoreDFB   *core_dfb;
 #endif
 
+     D_DEBUG_AT( DirectFB_Main, "%s( %p )\n", __FUNCTION__, interface_ptr );
+
      if (!dfb_config) {
           /*  don't use D_ERROR() here, it uses dfb_config  */
           direct_log_printf( NULL, "(!) DirectFBCreate: DirectFBInit "
@@ -181,6 +190,8 @@ DirectFBCreate( IDirectFB **interface_ptr )
 
 
      if (!dfb_config->no_singleton && idirectfb_singleton) {
+          D_DEBUG_AT( DirectFB_Main, "  -> using singleton %p\n", idirectfb_singleton );
+
           idirectfb_singleton->AddRef( idirectfb_singleton );
 
           *interface_ptr = idirectfb_singleton;
@@ -210,6 +221,8 @@ DirectFBCreate( IDirectFB **interface_ptr )
      direct_mutex_lock( &lock );
 
      if (!dfb_config->no_singleton && idirectfb_singleton) {
+          D_DEBUG_AT( DirectFB_Main, "  -> using (new) singleton %p\n", idirectfb_singleton );
+
           idirectfb_singleton->AddRef( idirectfb_singleton );
 
           *interface_ptr = idirectfb_singleton;
@@ -220,13 +233,18 @@ DirectFBCreate( IDirectFB **interface_ptr )
 
      DIRECT_ALLOCATE_INTERFACE( dfb, IDirectFB );
 
-     if (!dfb_config->no_singleton)
+     if (!dfb_config->no_singleton) {
+          D_DEBUG_AT( DirectFB_Main, "  -> setting singleton to %p (was %p)\n", dfb, idirectfb_singleton );
+
           idirectfb_singleton = dfb;
+     }
 
      ret = IDirectFB_Construct( dfb );
      if (ret) {
-          if (!dfb_config->no_singleton)
+          if (!dfb_config->no_singleton) {
+               D_DEBUG_AT( DirectFB_Main, "  -> ERROR, resetting singleton to NULL\n" );
                idirectfb_singleton = NULL;
+          }
 
           direct_mutex_unlock( &lock );
           return ret;
@@ -241,6 +259,8 @@ DirectFBCreate( IDirectFB **interface_ptr )
           dfb->Release( dfb );
           return ret;
      }
+
+     D_DEBUG_AT( DirectFB_Main, "  -> Done\n" );
 
      *interface_ptr = dfb;
 
