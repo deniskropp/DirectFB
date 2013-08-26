@@ -887,7 +887,7 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg, v
      call_handler = msg->handler;
 
      if (direct_log_domain_check( &Fusion_Call )) // avoid call to direct_trace_lookup_symbol_at
-          D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
+          D_DEBUG_AT( Fusion_Call, "  =-> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
 
      result = call_handler( msg->caller, msg->call_arg, ptr ? ptr : msg->call_ptr, msg->ctx, msg->serial, &call_ret.val );
 
