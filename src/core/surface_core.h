@@ -50,6 +50,8 @@ typedef struct {
      CoreDFB               *core;
 
      DFBSurfaceCoreShared  *shared;
+
+     DirectSignalHandler   *dump_signal_handler;
 } DFBSurfaceCore;
 
 #endif
