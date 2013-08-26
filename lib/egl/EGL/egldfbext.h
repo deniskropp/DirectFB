@@ -36,12 +36,30 @@ extern "C" {
 #include <EGL/eglplatform.h>
 
 
+/*
+ * DirectFB extensions
+ */
+
 #ifndef EGL_DIRECTFB_image_idirectfbsurface
 #define EGL_DIRECTFB_image_idirectfbsurface 1
 #define EGL_IMAGE_IDIRECTFBSURFACE_DIRECTFB			0x3456	/* eglCreateImageKHR target */
 #endif
 
 
+#ifndef EGL_DIRECTFB_get_config_attribs
+#define EGL_DIRECTFB_get_config_attribs 1
+
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigAttribsDIRECTFB( EGLDisplay dpy, EGLNativePixmapType native, EGLint *attribs, EGLint max );
+#endif
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLGETCONFIGATTRIBSDIRECTFB)( EGLDisplay dpy, EGLNativePixmapType native, EGLint *attribs, EGLint max );
+
+#endif
+
+
+/*
+ * Wayland extensions
+ */
 
 #ifndef EGL_WL_bind_wayland_display
 #define EGL_WL_bind_wayland_display 1
@@ -64,6 +82,24 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLBINDWAYLANDDISPLAYWL) (EGLDisplay dpy, st
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLUNBINDWAYLANDDISPLAYWL) (EGLDisplay dpy, struct wl_display *display);
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLQUERYWAYLANDBUFFERWL) (EGLDisplay dpy, struct wl_buffer *buffer, EGLint attribute, EGLint *value);
 
+#endif
+
+#ifndef EGL_TEXTURE_EXTERNAL_WL
+#define EGL_TEXTURE_EXTERNAL_WL         0x31DA
+#endif
+
+#ifndef EGL_BUFFER_AGE_EXT
+#define EGL_BUFFER_AGE_EXT              0x313D
+#endif
+
+/* Mesas gl2ext.h and probably Khronos upstream defined
+ * GL_EXT_unpack_subimage with non _EXT suffixed GL_UNPACK_* tokens.
+ * In case we're using that mess, manually define the _EXT versions
+ * of the tokens here.*/
+#if defined(GL_EXT_unpack_subimage) && !defined(GL_UNPACK_ROW_LENGTH_EXT)
+#define GL_UNPACK_ROW_LENGTH_EXT                                0x0CF2
+#define GL_UNPACK_SKIP_ROWS_EXT                                 0x0CF3
+#define GL_UNPACK_SKIP_PIXELS_EXT                               0x0CF4
 #endif
 
 
