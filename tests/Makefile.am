@@ -190,7 +190,7 @@ dfbtest_layers_LDADD   = $(DFB_BASE_LIBS)
 
 dfbtest_egl_SOURCES = dfbtest_egl.c
 dfbtest_egl_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_egl_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl)
+dfbtest_egl_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libdfbegl)
 
 dfbtest_eglimage_SOURCES = dfbtest_eglimage.cpp ../examples/++dfb/dfbapp.cpp
 dfbtest_eglimage_CFLAGS  = $(GLES2_CFLAGS)
@@ -198,7 +198,7 @@ dfbtest_eglimage_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE
 
 dfbtest_gears_SOURCES = dfbtest_gears.c
 dfbtest_gears_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_gears_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl)
+dfbtest_gears_LDADD   = $(DFB_BASE_LIBS) $(libegl) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libdfbegl)
 
 dfbtest_gl1_SOURCES = dfbtest_gl1.c
 dfbtest_gl1_CFLAGS  = $(GLES2_CFLAGS)
