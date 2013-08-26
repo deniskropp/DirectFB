@@ -670,6 +670,65 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
      return DFB_OK;
 }
 
+DFBResult
+dfb_surface_allocation_dump( CoreSurfaceAllocation *allocation,
+                             const char            *directory,
+                             const char            *prefix,
+                             bool                   raw )
+{
+     DFBResult        ret = DFB_OK;
+     CoreSurfacePool *pool;
+
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     pool = allocation->pool;
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     D_ASSERT( directory != NULL );
+
+     D_DEBUG_AT( Core_SurfAllocation, "%s( %p, '%s', '%s' )\n", __FUNCTION__, (void *)allocation, directory, prefix );
+
+     if (D_FLAGS_IS_SET( pool->desc.caps, CSPCAPS_READ )) {
+          int   pitch;
+          int   size;
+          void *buf;
+
+          dfb_surface_calc_buffer_size( allocation->surface, 4, 1, &pitch, &size );
+
+          buf = D_MALLOC( size );
+          if (!buf)
+               return (DFBResult) D_OOM();
+
+          ret = dfb_surface_pool_read( pool, allocation, buf, pitch, NULL );
+          if (ret == DFB_OK)
+               ret = dfb_surface_buffer_dump_type_locked2( allocation->buffer, directory, prefix, raw, buf, pitch );
+
+          D_FREE( buf );
+     }
+     else {
+          CoreSurfaceBufferLock lock;
+
+          dfb_surface_buffer_lock_init( &lock, CSAID_CPU, CSAF_READ );
+
+          /* Lock the surface buffer, get the data pointer and pitch. */
+          ret = dfb_surface_pool_lock( pool, allocation, &lock );
+          if (ret) {
+               dfb_surface_buffer_lock_deinit( &lock );
+               return ret;
+          }
+
+          ret = dfb_surface_buffer_dump_type_locked( allocation->buffer, directory, prefix, raw, &lock );
+
+          /* Unlock the surface buffer. */
+          dfb_surface_pool_unlock( allocation->pool, allocation, &lock );
+
+          dfb_surface_buffer_lock_deinit( &lock );
+     }
+
+     return ret;
+}
+
+
 }
 
 
