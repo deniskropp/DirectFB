@@ -36,14 +36,12 @@
  */
 
 
-//#define DFBEGL_ENABLE_MANGLE
+#define DFBEGL_ENABLE_MANGLE
 
 #include <egl/dfbegl.h>
 
-#include <directfb.h>
 
-#define GL_GLEXT_PROTOTYPES
-#define EGL_EGLEXT_PROTOTYPES
+#include <directfb.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -51,9 +49,12 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+
+
+#define GL_GLEXT_PROTOTYPES
+
 #include <GLES2/gl2.h>
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
+
 
 #define STRIPS_PER_TOOTH 7
 #define VERTICES_PER_TOOTH 34
@@ -806,8 +807,8 @@ Initialize( Test   *test,
       */
      test->primary->GetSize( test->primary, &test->size.w, &test->size.h );
 
-     test->primary->Clear( test->primary, 0, 0, 0, 0 );
-     test->primary->Flip( test->primary, NULL, 0 );
+//     test->primary->Clear( test->primary, 0, 0, 0, 0 );
+//     test->primary->Flip( test->primary, NULL, 0 );
 
 
      return DFB_OK;
@@ -843,13 +844,14 @@ InitGL( Test *test )
 {
      EGLint major, minor, nconfigs;
      EGLint attribs[] = {
-          EGL_BUFFER_SIZE,    EGL_DONT_CARE,
-          EGL_DEPTH_SIZE,          16,
-          EGL_RED_SIZE,       5,
-          EGL_GREEN_SIZE,          6,
-          EGL_RED_SIZE,       5,
-          //EGL_STENCIL_SIZE,        8,
-          EGL_RENDERABLE_TYPE,     EGL_OPENGL_ES2_BIT,
+          EGL_BUFFER_SIZE,     EGL_DONT_CARE,
+          EGL_ALPHA_SIZE,      0,
+          EGL_RED_SIZE,        0,
+          EGL_GREEN_SIZE,      0,
+          EGL_RED_SIZE,        0,
+          //EGL_SURFACE_TYPE,    0,
+          EGL_DEPTH_SIZE,      16,
+          EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
           EGL_NONE
      };
      EGLint context_attrs[] = {
@@ -859,6 +861,7 @@ InitGL( Test *test )
           EGL_RENDER_BUFFER, EGL_BACK_BUFFER, EGL_NONE
      };
      EGLNativeDisplayType     disp = EGL_DEFAULT_DISPLAY;
+
 
 #define EGL_CHECK(cmd)                                      \
      /*fprintf(stderr, "CALLING %s...\n", #cmd);*/              \
@@ -872,6 +875,10 @@ InitGL( Test *test )
 
      // init
      EGL_CHECK(!eglInitialize(display, &major, &minor))
+
+
+     eglGetConfigAttribsDIRECTFB( display, test->primary, attribs, 0 );
+
 
      // get configs
      EGL_CHECK(!eglGetConfigs(display, configs, 2, &nconfigs))
