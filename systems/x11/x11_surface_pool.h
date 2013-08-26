@@ -54,6 +54,7 @@ typedef struct {
      XID                 xid;
      Visual             *visual;
      int                 depth;
+     GC                  gc;
      // WINDOW
      Window              window;
      bool                created;

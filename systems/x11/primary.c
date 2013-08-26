@@ -928,7 +928,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
                     w = XCreateWindow( x11->display,
                                        DefaultRootWindow(x11->display),
                                        0, 0, ww, wh, 0,
-                                       alloc->depth, InputOutput,
+                                       DefaultDepthOfScreen( DefaultScreenOfDisplay( x11->display ) ), InputOutput,
                                        DefaultVisualOfScreen( DefaultScreenOfDisplay( x11->display ) ), CWEventMask /*| CWOverrideRedirect*/, &attr );
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Update, "  -> window 0x%08lx\n", (long) w );
@@ -974,16 +974,21 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           if (!alloc->window) {
                x11->Sync( x11 );
-               D_DEBUG_AT( X11_Update, "  -> Copying from Window/Pixmap...\n" );
 
                if (alloc->depth == 32) {
+                    D_DEBUG_AT( X11_Update, "  -> Copying via Image from Window/Pixmap...\n" );
+
                     XImage            *image;
                     XImage            *image2;
+
                     image = XGetImage( x11->display, alloc->window ? alloc->window : alloc->xid,
                                        0, 0, x11->showing_w, x11->showing_h, ~0, ZPixmap );
 
 
-                    image2 = XCreateImage( x11->display, DefaultVisualOfScreen( DefaultScreenOfDisplay( x11->display ) ), 24, ZPixmap, 0,
+                    image2 = XCreateImage( x11->display,
+                                           DefaultVisualOfScreen( DefaultScreenOfDisplay( x11->display ) ),
+                                           DefaultDepthOfScreen( DefaultScreenOfDisplay( x11->display ) ),
+                                           ZPixmap, 0,
                                            (void*) image->data, x11->showing_w, x11->showing_h, 32, x11->showing_w * 4 );
                     if (!image2) {
                          D_ERROR( "X11/Surfaces: XCreateImage( %dx%d, depth %d ) failed!\n", x11->showing_w, x11->showing_h, 24 );
@@ -994,15 +999,20 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
                     XPutImage( x11->display, window, gc, image2, 0, 0, 0, 0, x11->showing_w, x11->showing_h );
 
+                    XFlush( x11->display );
 
                     XDestroyImage( image );
 
                     image2->data = NULL;
                     XDestroyImage( image2 );
                }
-               else
+               else {
+                    D_DEBUG_AT( X11_Update, "  -> Copying from Window/Pixmap...\n" );
+
                     XCopyArea( x11->display, alloc->xid, window, gc,
                                0, 0, x11->showing_w, x11->showing_h, 0, 0 );
+                    XFlush( x11->display );
+               }
 
                x11->Sync( x11 );
           }

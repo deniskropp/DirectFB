@@ -106,13 +106,13 @@ Image::Image( DirectFB::EGL::KHR::Image &egl_image,
      desc.width  = attrs.width;//egl_image.gfx_options.GetValue( "WIDTH",  );
      desc.height = attrs.height;//egl_image.gfx_options.Get( "HEIGHT" );
 
-     ret = idirectfb_singleton->CreateSurface( idirectfb_singleton, &desc, &egl_image.surface );
+     ret = idirectfb_singleton->CreateSurface( idirectfb_singleton, &desc, &egl_image.dfb_surface );
      if (ret) {
           D_DERROR_AT( DFBX11_EGLDisplay, ret, "  -> IDirectFB::CreateSurface( %dx%d ) failed!\n", desc.width, desc.height );
           return;
      }
 
-     ret = egl_image.surface->Allocate( egl_image.surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", pixmap, &allocation );
+     ret = egl_image.dfb_surface->Allocate( egl_image.dfb_surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", pixmap, &allocation );
      if (ret) {
           D_DERROR_AT( DFBX11_EGLDisplay, ret, "  -> IDirectFBSurface::Allocate( FRONT, LEFT, 'Pixmap/X11' ) failed!\n" );
           return;
@@ -220,8 +220,8 @@ EGLDisplayX11::Image_Initialise( DirectFB::EGL::KHR::Image &image )
 DFBResult
 EGLDisplayX11::Surface_Initialise( SurfaceXWindow &surface )
 {
-     D_DEBUG_AT( DFBX11_EGLDisplay, "EGL::SurfaceXWindow::%s( %p ) <- window 0x%08lx\n",
-                 __FUNCTION__, this, surface.window );
+     D_DEBUG_AT( DFBX11_EGLDisplay, "EGL::SurfaceXWindow::%s( %p ) <- window 0x%08lx, handle 0x%08lx (class %d)\n",
+                 __FUNCTION__, this, surface.window, surface.parent.native_handle.value, surface.parent.native_handle.clazz );
 
      DFBResult ret;
 
@@ -245,7 +245,7 @@ EGLDisplayX11::Surface_Initialise( SurfaceXWindow &surface )
      //          return DFB_FAILURE;
      //     }
 
-     XMapWindow( x11_display, window );
+//     XMapWindow( x11_display, window );
      XSync( x11_display, False );
      XGetWindowAttributes( x11_display, window, &attrs );
 
@@ -255,40 +255,52 @@ EGLDisplayX11::Surface_Initialise( SurfaceXWindow &surface )
      D_DEBUG_AT( DFBX11_EGLDisplay, "  -> size %dx%d\n", desc.width, desc.height );
 
      desc.flags       = (DFBSurfaceDescriptionFlags)(DSDESC_WIDTH       | DSDESC_HEIGHT |
-                                                     /*DSDESC_PIXELFORMAT |*/ DSDESC_CAPS   |
+                                                     DSDESC_PIXELFORMAT | DSDESC_CAPS   |
                                                      DSDESC_RESOURCE_ID | DSDESC_HINTS);
-     desc.pixelformat = DSPF_ARGB;
+     desc.pixelformat = (attrs.depth == 24) ? DSPF_RGB32 : DSPF_ARGB;
      desc.caps        = DSCAPS_SHARED;
      desc.resource_id = window;
      desc.hints       = DSHF_NONE;
 
      if (surface.parent.native_handle.clazz == DirectFB::EGL::NativeHandle::CLASS_WINDOW) {
           D_FLAGS_SET( desc.caps, DSCAPS_PRIMARY );
+//          D_FLAGS_SET( desc.caps, DSCAPS_DOUBLE );
           D_FLAGS_SET( desc.hints, DSHF_WINDOW );
      }
      else {
           is_pixmap = true;
      }
 
+     D_DEBUG_AT( DFBX11_EGLDisplay, "  -> caps %s\n", *ToString<DFBSurfaceCapabilities>( desc.caps ) );
+
      IDirectFB *dfb = parent.GetDFB();
 
-     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
+//     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
 
      ret = dfb->CreateSurface( dfb, &desc, &surface.parent.surface );
      if (ret) {
           D_DERROR( ret, "DFBEGL/SurfaceXWindow: IDirectFB::CreateSurface() failed!\n" );
+          goto error;
      }
 
-     ret = surface.parent.surface->Allocate( surface.parent.surface, DSBR_BACK, DSSE_LEFT,
-                                             is_pixmap ? "Pixmap/X11" : "Window/X11", window, &surface.allocation );
+     ret = surface.parent.surface->Allocate( surface.parent.surface, DSBR_FRONT, DSSE_LEFT,
+                                             is_pixmap ? "Pixmap/X11" : "Window/X11", window,
+                                             &surface.allocation );
      if (ret) {
           D_DERROR( ret, "DFBEGL/SurfaceXWindow: IDirectFBSurface::Allocate() failed!\n" );
-          surface.parent.surface->Release( surface.parent.surface );
-          surface.parent.surface = NULL;
-          return ret;
+          goto error;
      }
 
-     return surface.parent.Init();
+     surface.parent.surface->AllowAccess( surface.parent.surface, "*" );
+
+     return DFB_OK;
+
+error:
+     if (surface.parent.surface) {
+          surface.parent.surface->Release( surface.parent.surface );
+          surface.parent.surface = NULL;
+     }
+     return ret;
 }
 
 /**********************************************************************************************************************/

@@ -70,17 +70,17 @@ GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
 {
      D_LOG( DFBX11_EGLImpl, DEBUG_1, "X11::GLeglImage::%s( %p, KHR::Image %p, impl %p )\n", __FUNCTION__, this, &egl_image, &impl );
 
-     D_LOG( DFBX11_EGLImpl, VERBOSE, "  -> Deriving GLeglImage for X11 GL Context from generic EGLImageKHR (image %p, surface %p)\n", &egl_image, egl_image.surface );
+     D_LOG( DFBX11_EGLImpl, VERBOSE, "  -> Deriving GLeglImage for X11 GL Context from generic EGLImageKHR (image %p, surface %p)\n", &egl_image, egl_image.dfb_surface );
 
 
      DFBResult                   ret;
      IDirectFBSurfaceAllocation *allocation;
 
-     ret = egl_image.surface->GetAllocation( egl_image.surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", &allocation );
+     ret = egl_image.dfb_surface->GetAllocation( egl_image.dfb_surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", &allocation );
      if (ret) {
           D_DEBUG_AT( DFBX11_EGLImpl, "  -> IDirectFBSurface::GetAllocation( FRONT, LEFT, 'Pixmap/X11' ) failed! (%s)\n", DirectResultString((DirectResult)ret) );
 
-          ret = egl_image.surface->Allocate( egl_image.surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", 0, &allocation );
+          ret = egl_image.dfb_surface->Allocate( egl_image.dfb_surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", 0, &allocation );
           if (ret) {
                D_DERROR_AT( DFBX11_EGLImpl, ret, "  -> IDirectFBSurface::Allocate( FRONT, LEFT, 'Pixmap/X11' ) failed!\n" );
                return;
@@ -164,11 +164,11 @@ X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_  &target,
           int                    height;
           DFBSurfacePixelFormat  format;
 
-          image.parent.surface->GetPixelFormat( image.parent.surface, &format );
+          image.parent.dfb_surface->GetPixelFormat( image.parent.dfb_surface, &format );
 
-          image.parent.surface->GetSize( image.parent.surface, &width, &height );
+          image.parent.dfb_surface->GetSize( image.parent.dfb_surface, &width, &height );
 
-          image.parent.surface->Lock( image.parent.surface, DSLF_READ, &data, &pitch );
+          image.parent.dfb_surface->Lock( image.parent.dfb_surface, DSLF_READ, &data, &pitch );
 
           D_LOG( DFBX11_EGLImpl, DEBUG_1, "  -> calling glTexImage2D( target 0x%04x, data %p )...\n", target, data );
           D_INFO( "  -> calling glTexImage2D( target 0x%04x, data %p )...\n", target, data );
@@ -180,7 +180,7 @@ X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_  &target,
                glTexImage2D( target, 0, GL_BGRA_EXT, width, height, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, data );
           }
 
-          image.parent.surface->Unlock( image.parent.surface );
+          image.parent.dfb_surface->Unlock( image.parent.dfb_surface );
      }
      else
           glEGLImageTargetTexture2DOES( target, image.glEGLImage );
@@ -322,7 +322,7 @@ X11EGLImpl::Initialise()
 
      name       = Direct::String::F( "X11 EGL (on %s)", egl_vendor );
      apis       = Direct::String( client_apis ).GetTokens( " " );
-     extensions = Direct::String( egl_extensions ).GetTokens( " " );
+     //extensions = Direct::String( egl_extensions ).GetTokens( " " );
 
 
      if (!lib.eglGetConfigs( egl_display, egl_configs, D_ARRAY_SIZE(egl_configs), &num_configs )) {
@@ -440,7 +440,7 @@ X11EGLConfig::CheckOptions( const Graphics::Options &options )
 
           check = dynamic_cast<Graphics::Option<long> *>(base)->GetValue();
 
-          if (base->GetName() == "RENDERABLE_TYPE") {
+          if (base->GetName() == "RENDERABLE_TYPE" || base->GetName() == "SURFACE_TYPE") {
                if ((val & check) == check)
                     D_DEBUG_AT( DFBX11_EGLConfig, "  =    local '0x%08lx' contains '0x%08lx'\n", val, check );
                else {
@@ -450,7 +450,7 @@ X11EGLConfig::CheckOptions( const Graphics::Options &options )
                }
           }
           else {
-               if (val > check)
+               if (val > check && check != 0)
                     D_DEBUG_AT( DFBX11_EGLConfig, "  >    local '%ld' greater than '%ld'\n", val, check );
                else if (val == check)
                     D_DEBUG_AT( DFBX11_EGLConfig, "  =    local '%ld' equals\n", val );
@@ -740,15 +740,17 @@ X11EGLSurfacePeer::Flip( const DFBRegion     *region,
 
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglSwapBuffers( %p )\n", egl_surface );
 
-//     if (is_pixmap) {
-//          glFinish();
-//     }
-//     else {
+     if (is_pixmap) {
+          glFinish();
+     }
+     else {
           if (!impl.lib.eglSwapBuffers( impl.egl_display, egl_surface )) {
                D_ERROR( "X11/EGLImpl: eglSwapBuffers( %p ) failed ('%s')\n", egl_surface, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ));
                return DFB_FAILURE;
           }
-//     }
+
+          XFlush( impl.x11_display );
+     }
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglSwapBuffers( %p ) done\n", egl_surface );
 
      impl.display->Sync();
