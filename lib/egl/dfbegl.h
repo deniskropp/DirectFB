@@ -40,6 +40,9 @@
 #endif
 
 
+#define EGL_EGLEXT_PROTOTYPES
+
+
 #include <directfb.h>    // MUST INCLUDE BEFORE <EGL/egl.h>
 
 #include <EGL/egl.h>
@@ -51,7 +54,17 @@
 
 
 #ifdef __cplusplus
+extern "C" {
+#endif
 
+
+// C wrappers
+
+//char *ToString_EGLInts( const EGLint *ints, EGLint num );
+
+
+#ifdef __cplusplus
+}
 
 #include <direct/Map.h>
 #include <direct/String.h>
@@ -206,6 +219,7 @@ class CoreModule;
 class DisplayImplementation;
 
 class Display;
+class DisplayDFB;
 class Config;
 class Context;
 class Surface;
@@ -243,7 +257,7 @@ public:
      DFBResult Display_Probe     ( Display      &display,
                                    unsigned int &ret_score );
 
-     DFBResult Display_Initialise( Display      &display );
+     DFBResult Display_Initialise( DisplayDFB   &display );
 
 
 private:
@@ -289,7 +303,7 @@ class EGLInt {
 public:
      EGLint value;
 
-     EGLInt( const EGLint &value = 0 )
+     EGLInt( EGLint value = 0 )
           :
           value( value )
      {
@@ -381,7 +395,6 @@ public:
      typedef std::function<DFBResult (Display               &display)>     Initialise;
 
 
-     DFBResult Image_Initialise  ( DirectFB::EGL::KHR::Image &image );
      DFBResult Surface_Initialise( DirectFB::EGL::Surface    &surface );
 
 
@@ -471,6 +484,16 @@ protected:
      }
 };
 
+
+class DisplayDFB : public Types::Type<DisplayDFB,EGL::Display>
+{
+public:
+     DisplayDFB( EGL::Display &display,
+                 Core         &core );
+     virtual ~DisplayDFB();
+
+     DFBResult Image_Initialise  ( DirectFB::EGL::KHR::Image &image );
+};
 
 /*
  * EGL::Surface for wrapping client's native handles

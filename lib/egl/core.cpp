@@ -108,18 +108,18 @@ Core::Display_Probe( DirectFB::EGL::Display &display,
 }
 
 DFBResult
-Core::Display_Initialise( DirectFB::EGL::Display &display )
+Core::Display_Initialise( DirectFB::EGL::DisplayDFB &display )
 {
      D_DEBUG_AT( DFBEGL_Core, "Core::%s( %p, display %p, native_display 0x%08lx )\n",
-                 __FUNCTION__, this, &display, (unsigned long) display.native_display );
+                 __FUNCTION__, this, &display, (unsigned long) display.parent.native_display );
 
      DFBResult  ret;
      IDirectFB *dfb;
 
-     if (display.native_display) {
-          D_DEBUG_AT( DFBEGL_Core, "  ===> Creating native DirectFB display (%p)\n", display.native_display );
+     if (display.parent.native_display) {
+          D_DEBUG_AT( DFBEGL_Core, "  ===> Creating native DirectFB display (%p)\n", display.parent.native_display );
 
-          dfb = (IDirectFB*) display.native_display;
+          dfb = (IDirectFB*) display.parent.native_display;
 
           ret = (DFBResult) dfb->AddRef( dfb );
           if (ret) {
@@ -127,16 +127,13 @@ Core::Display_Initialise( DirectFB::EGL::Display &display )
                return ret;
           }
 
-          display.dfb = (IDirectFB*) display.native_display;
+          display.parent.dfb = (IDirectFB*) display.parent.native_display;
      }
      else
           D_DEBUG_AT( DFBEGL_Core, "  ===> Creating native DirectFB display (new)\n" );
 
      KHR::Image::Register< KHR::Image::Initialise >( (Direct::String) EGLInt(EGL_IMAGE_IDIRECTFBSURFACE_DIRECTFB),
-                                                     std::bind( &Display::Image_Initialise, &display, _1 ) );
-
-     Surface::Register< Surface::Initialise >( Display::GetTypeInstance().GetName(),
-                                               std::bind( &Display::Surface_Initialise, &display, _1 ) );
+                                                     std::bind( &DisplayDFB::Image_Initialise, &display, _1 ) );
 
      return DFB_OK;
 }
@@ -150,6 +147,8 @@ Core::Core()
 
      Register< Display::Probe >     ( Display::GetTypeInstance().GetName(), std::bind( &Core::Display_Probe, this, _1, _2 ) );
      Register< Display::Initialise >( Display::GetTypeInstance().GetName(), std::bind( &Core::Display_Initialise, this, _1 ) );
+
+     DisplayDFB::RegisterConversion< EGL::Display, Core& >( *this );
 }
 
 Core::~Core()

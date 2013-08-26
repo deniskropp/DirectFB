@@ -157,6 +157,8 @@ EGLCoreModuleWayland::registry_handle_global(void *data, struct wl_registry *reg
      if (version > 1)
           version = 2;
 
+     D_INFO( "EGLCoreModuleWayland/registry_handle_global: '%s' (name 0x%08x)\n", interface, name );
+
      if (strcmp(interface, "wl_dfb") == 0) {
           display->wl_dfb = (struct wl_dfb*) wl_registry_bind(registry, name, &wl_dfb_interface, version);
 
@@ -204,8 +206,15 @@ EGLCoreModuleWayland::Display_Initialise( EGLDisplayWayland &display )
 
      wl_registry_add_listener( display.wl_registry, &registry_listener, &display );
 
-     if (display.roundtrip() < 0 || display.wl_dfb == NULL)
+     if (display.roundtrip() < 0) {
+          D_ERROR( "Wayland/Module: roundtrip() failed!\n" );
           goto error;
+     }
+
+     if (display.wl_dfb == NULL) {
+          D_ERROR( "Wayland/Module: wl_dfb == NULL! Compositor without wayland_dfb integration?\n" );
+          goto error;
+     }
 
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_dfb %p\n",  display.wl_dfb );
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_queue %p\n",  display.wl_queue );
@@ -270,7 +279,7 @@ EGLDisplayWayland::Image_Initialise( DirectFB::EGL::KHR::Image &image )
 
      D_INFO( "DFBEGL/Image: New EGLImage from WL::Buffer (%dx%d)\n", w, h );
 
-     image.surface = surface;
+     image.dfb_surface = surface;
 
      return DFB_OK;
 }
@@ -368,19 +377,21 @@ SurfaceWLEGLWindow::SurfaceWLEGLWindow( EGL::Surface      &surface,
      :
      Type( surface ),
      display( display ),
-     window( (wl_egl_window*) surface.native_handle.value )
+     window( (wl_egl_window*) surface.native_handle.value ),
+     buffer( NULL )
 {
      D_DEBUG_AT( DFBWayland_EGLDisplay, "SurfaceWLEGLWindow::%s( %p, window %p, display %p )\n",
                  __FUNCTION__, this, window, &display );
 
      EGL::Surface::Register< EGL::Surface::SwapBuffersFunc >( GetName(), std::bind( &SurfaceWLEGLWindow::SwapBuffers, this ) );
-
-     surface.surface->AllowAccess( surface.surface, "*" );
 }
 
 SurfaceWLEGLWindow::~SurfaceWLEGLWindow()
 {
      D_DEBUG_AT( DFBWayland_EGLDisplay, "SurfaceWLEGLWindow::%s( %p )\n",  __FUNCTION__, this );
+
+     if (buffer)
+          wl_dfb_buffer_destroy( buffer );
 }
 
 EGLint
@@ -388,17 +399,22 @@ SurfaceWLEGLWindow::SwapBuffers()
 {
      D_DEBUG_AT( DFBWayland_EGLDisplay, "SurfaceWLEGLWindow::%s( %p, display %p )\n",  __FUNCTION__, this, &display );
 
+     D_ASSERT( window != NULL );
+
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_dfb %p\n",  display.wl_dfb );
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_queue %p\n",  display.wl_queue );
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_registry %p\n",  display.wl_registry );
+
+     if (buffer) {
+          wl_dfb_buffer_destroy( buffer );
+          buffer = NULL;
+     }
 
      buffer = wl_dfb_create_buffer( display.wl_dfb, parent.GetID(), 0, 0 );
 
      wl_surface_attach( window->surface, (struct wl_buffer*) buffer, 0, 0 );
      wl_surface_damage( window->surface, 0, 0, window->width, window->height );
      wl_surface_commit( window->surface );
-
-     wl_dfb_buffer_destroy( buffer );
 
      return EGL_SUCCESS;
 }
@@ -542,8 +558,9 @@ BindWaylandDisplay::eglBindWaylandDisplay( DirectFB::Wayland::EGLDisplayWayland 
           D_ERROR( "WL/EGL/BindWaylandDisplay: display.wl_display (%p) != wl_display (%p)\n",
                    display.wl_display, wl_display );
      }
+     else
+          display.wl_display    = wl_display;
 
-     display.wl_display    = wl_display;
      //display.wl_server_dfb = wayland_dfb_init( wl_display, display.parent.dfb );
 
      return DFB_OK;

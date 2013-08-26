@@ -42,6 +42,7 @@ extern "C" {
 #include <direct/Utils.h>
 
 #include <egl/dfbegl.h>
+#include <egl/image.h>
 
 
 D_LOG_DOMAIN( DFBEGL_Display, "DFBEGL/Display", "DirectFB EGL Display" );
@@ -64,8 +65,6 @@ Display::Display()
 {
      D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, dfb %p, native_display %p )\n",
                  __FUNCTION__, this, dfb, (void*) (long) native_display );
-
-     gfx_core->LoadModules();
 }
 
 Display::~Display()
@@ -97,6 +96,9 @@ Display::Init()
                return ret;
           }
      }
+
+
+     gfx_core->LoadModules();
 
 
      const char *comma = "";
@@ -160,6 +162,9 @@ Display::Init()
 
      version.PrintF( "%d.%d", major, minor );
 
+
+     Surface::Register< Surface::Initialise >( DisplayDFB::GetTypeInstance().GetName(),
+                                               std::bind( &Display::Surface_Initialise, this, _1 ) );
 
      return DFB_OK;
 }
@@ -361,12 +366,18 @@ Display::CreateSurface( Config        *config,
      if (attrib)
           Util::GetOptions( surface->gfx_options, attrib );
 
-     auto init = Surface::Call< Surface::Initialise >( GetName() );
+     Direct::String name = (native_handle.clazz == NativeHandle::CLASS_NONE) ? DisplayDFB::GetTypeInstance().GetName() : GetName();
+
+     D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, config %p, handle 0x%08lx (class %d), attrib %p )\n",
+                 __FUNCTION__, this, config, native_handle.value, native_handle.clazz, attrib );
+     auto init = Surface::Call< Surface::Initialise >( name );
      if (!init) {
-          D_ERROR( "DFBEGL/Display: No Surface::Call< Surface::Initialise >( %s )!\n", *GetName() );
+          D_ERROR( "DFBEGL/Display: No Surface::Call< Surface::Initialise >( %s )!\n", *name );
           return DFB_NOIMPL;
      }
 
+     D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, config %p, handle 0x%08lx (class %d), attrib %p )\n",
+                 __FUNCTION__, this, config, native_handle.value, native_handle.clazz, attrib );
      ret = init( *surface );
      if (ret) {
           D_DERROR( ret, "DFBEGL/Display: Surface::Call< Surface::Initialise > failed!\n" );
@@ -374,6 +385,8 @@ Display::CreateSurface( Config        *config,
           return ret;
      }
 
+     D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, config %p, handle 0x%08lx (class %d), attrib %p )\n",
+                 __FUNCTION__, this, config, native_handle.value, native_handle.clazz, attrib );
      *ret_surface = surface;
 
      return DFB_OK;
@@ -527,25 +540,115 @@ Display::CopyBuffers( Surface             *source,
      D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, source %p, destination %p )\n",
                  __FUNCTION__, this, source, destination );
 
-     EGL::Config  *config = source->GetConfig();
-     EGL::Surface *dest;
+//     EGL::Config  *config = source->GetConfig();
+//     EGL::Surface *dest;
+//
+//     EGLint error = CreatePixmapSurface( config, destination,
+//                                         NULL,     // TODO: Copy: take attribs from source?
+//                                         &dest );
+//     if (error != EGL_SUCCESS)
+//          return error;
+//
+//     DFBResult ret = dest->Copy( source );
+//
+//     if (ret)
+//          error = EGL_BAD_SURFACE;
+//
+//     delete dest;
+//
+//     return error;
 
-     EGLint error = CreatePixmapSurface( config, destination,
-                                         NULL,     // TODO: Copy: take attribs from source?
-                                         &dest );
-     if (error != EGL_SUCCESS)
-          return error;
+     IDirectFBSurface *src = source->GetSurface();
+     IDirectFBSurface *dst = (IDirectFBSurface *) destination;
 
-     DFBResult ret = dest->Copy( source );
+     dst->Blit( dst, src, NULL, 0, 0 );
 
-     if (ret)
-          error = EGL_BAD_SURFACE;
+     dst->Flip( dst, NULL, DSFLIP_NONE );
 
-     delete dest;
-
-     return error;
+     return EGL_SUCCESS;
 }
 
+/**********************************************************************************************************************/
+
+DisplayDFB::DisplayDFB( EGL::Display &display,
+                        Core         &core )
+     :
+     Type( display )
+{
+     D_DEBUG_AT( DFBEGL_Display, "DisplayDFB::%s( %p )\n", __FUNCTION__, this );
+}
+
+DisplayDFB::~DisplayDFB()
+{
+     D_DEBUG_AT( DFBEGL_Display, "DisplayDFB::%s( %p )\n", __FUNCTION__, this );
+}
+
+/**********************************************************************************************************************/
+
+DFBResult
+DisplayDFB::Image_Initialise( DirectFB::EGL::KHR::Image &image )
+{
+     D_DEBUG_AT( DFBEGL_Display, "EGLDisplayDFB::%s( %p )\n", __FUNCTION__, this );
+
+     DFBResult         ret;
+     IDirectFBSurface *surface = (IDirectFBSurface *) image.buffer;
+
+     ret = (DFBResult) surface->AddRef( surface );
+     if (ret) {
+          D_DERROR_AT( DFBEGL_Display, ret, "  -> IDirectFBSurface::AddRef() failed!\n" );
+          return ret;
+     }
+
+     int w, h;
+
+     surface->GetSize( surface, &w, &h );
+
+     D_INFO( "DFBEGL/Image: New EGLImage from IDirectFBSurface (%dx%d)\n", w, h );
+
+     image.dfb_surface = surface;
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
+DFBResult
+Display::Surface_Initialise( DirectFB::EGL::Surface &surface )
+{
+     D_DEBUG_AT( DFBEGL_Display, "EGLDisplay::%s( %p )\n", __FUNCTION__, this );
+
+     DFBResult ret;
+
+     if (surface.native_handle.value) {
+          surface.surface = (IDirectFBSurface*) surface.native_handle.ptr;
+     }
+     else {
+          DFBSurfaceDescription desc;
+
+          Util::GetSurfaceDescription( surface.gfx_options, desc );
+
+          if (surface.native_handle.clazz == NativeHandle::CLASS_WINDOW) {
+               D_FLAGS_SET( desc.caps, DSCAPS_PRIMARY );
+
+               dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
+          }
+
+          ret = dfb->CreateSurface( dfb, &desc, &surface.surface );
+          if (ret) {
+               D_DERROR( ret, "DFBEGL/Display: IDirectFB::CreateSurface() failed!\n" );
+               return ret;
+          }
+     }
+
+     int w, h;
+
+     surface.surface->GetSize( surface.surface, &w, &h );
+
+     D_INFO( "DFBEGL/Surface: New EGLSurface from %s IDirectFBSurface (%dx%d) with ID %u\n",
+             surface.native_handle.value ? "existing" : "new", w, h, surface.GetID() );
+
+     return DFB_OK;
+}
 
 }
 

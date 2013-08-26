@@ -90,14 +90,18 @@ public:
 
 
 public:
-     Display               *display;
-     Context               *context;
-     EGLenum                target;
-     EGLClientBuffer        buffer;
+     Display                *display;
 
-     Graphics::Options      gfx_options;
+     Context                *context;
+     EGLenum                 target;
+     EGLClientBuffer         buffer;
 
-     IDirectFBSurface      *surface;
+     Graphics::Options       gfx_options;
+
+     IDirectFBSurface       *dfb_surface;
+
+     IDirectFBSurfaceBuffer *dfb_buffer;
+     DFBDimension            size;
 };
 
 
@@ -111,13 +115,6 @@ class EGLImage : public Types::Type<EGLImage,EGLExtension>
 public:
      EGLImage();
      virtual ~EGLImage();
-
-
-     // no copy
-     EGLImage( const EGLImage& ) = delete;
-
-     // no assign
-     EGLImage& operator=( const EGLImage& ) = delete;
 
 
      static EGLImageKHR eglCreateImageKHR ( EGLDisplay       dpy,

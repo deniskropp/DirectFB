@@ -49,45 +49,6 @@ namespace DirectFB {
 namespace EGL {
 
 
-DFBResult
-Display::Surface_Initialise( DirectFB::EGL::Surface &surface )
-{
-     D_DEBUG_AT( DFBEGL_Surface, "EGLImage::InitImage::%s( %p, image %p )\n", __FUNCTION__, this, &surface );
-
-     DFBResult ret;
-
-     if (surface.native_handle.value) {
-          surface.surface = (IDirectFBSurface*) surface.native_handle.ptr;
-     }
-     else {
-          DFBSurfaceDescription desc;
-
-          Util::GetSurfaceDescription( surface.gfx_options, desc );
-
-          if (surface.native_handle.clazz == NativeHandle::CLASS_WINDOW) {
-               D_FLAGS_SET( desc.caps, DSCAPS_PRIMARY );
-
-               dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
-          }
-
-          ret = dfb->CreateSurface( dfb, &desc, &surface.surface );
-          if (ret) {
-               D_DERROR( ret, "DFBEGL/Display: IDirectFB::CreateSurface() failed!\n" );
-               return ret;
-          }
-     }
-
-     int w, h;
-
-     surface.surface->GetSize( surface.surface, &w, &h );
-
-     D_INFO( "DFBEGL/Surface: New EGLSurface from %s IDirectFBSurface (%dx%d) with ID %u\n",
-             surface.native_handle.value ? "existing" : "new", w, h, surface.GetID() );
-
-     return DFB_OK;
-}
-
-
 Surface::Surface()
      :
      config( NULL ),
@@ -97,40 +58,7 @@ Surface::Surface()
 {
      D_DEBUG_AT( DFBEGL_Surface, "EGL::Surface::%s( %p )\n", __FUNCTION__, this );
 }
-#if 0
-Surface::Surface( Config           *config,
-                  const EGLint     *attrib_list,
-                  IDirectFBSurface *surface )
-     :
-     config( config ),
-     surface( surface ),
-     gfx_config( NULL ),
-     gfx_peer( NULL )
-{
-     DFBResult ret;
 
-     D_DEBUG_AT( DFBEGL_Surface, "EGL::Surface::%s( %p, config %p )\n",
-                 __FUNCTION__, this, config );
-
-     D_ASSERT( config != NULL );
-
-     gfx_config = config->gfx_config;
-
-     if (attrib_list) {
-          ret = EGL::Util::GetOptions( gfx_options, attrib_list );
-          if (ret)
-               D_DERROR( ret, "DFBEGL/Surface: Failed to get Options from attrib_list!\n" );
-     }
-
-     if (surface) {
-          ret = (DFBResult) surface->AddRef( surface );
-          if (ret) {
-               D_DERROR( ret, "DFBEGL/Surface: IDirectFBSurface::AddRef() failed!\n" );
-               this->surface = NULL;
-          }
-     }
-}
-#endif
 Surface::~Surface()
 {
      D_DEBUG_AT( DFBEGL_Surface, "EGL::Surface::%s( %p )\n",

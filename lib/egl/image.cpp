@@ -199,7 +199,13 @@ EGLImage::glEGLImageTargetTexture2DOES( GLenum      target,
 
      KHR::Image &image = (KHR::Image&) **handle;
 
-     context.Call<GL::OES::glEGLImageTargetTexture2D>()( target, image );
+     auto call = context.Call<GL::OES::glEGLImageTargetTexture2D>();
+
+     if (call)
+          call( target, image );
+     else
+          D_ERROR( "DFBEGL/Image: No implementation for display '%s', context '%p'\n",
+                   *image.display->GetName(), image.context );
 }
 
 void
@@ -229,33 +235,6 @@ EGLImage::glEGLImageTargetRenderBufferStorageOES( GLenum      target,
 }
 
 /**********************************************************************************************************************/
-/**********************************************************************************************************************/
-
-DFBResult
-Display::Image_Initialise( DirectFB::EGL::KHR::Image &image )
-{
-     D_DEBUG_AT( DFBEGL_Image, "EGLImage::InitImage::%s( %p, image %p )\n", __FUNCTION__, this, &image );
-
-     DFBResult         ret;
-     IDirectFBSurface *surface = (IDirectFBSurface *) image.buffer;
-
-     ret = (DFBResult) surface->AddRef( surface );
-     if (ret) {
-          D_DERROR_AT( DFBEGL_Image, ret, "  -> IDirectFBSurface::AddRef() failed!\n" );
-          return ret;
-     }
-
-     int w, h;
-
-     surface->GetSize( surface, &w, &h );
-
-     D_INFO( "DFBEGL/Image: New EGLImage from IDirectFBSurface (%dx%d)\n", w, h );
-
-     image.surface = surface;
-
-     return DFB_OK;
-}
-
 /**********************************************************************************************************************/
 
 DFBResult
@@ -357,7 +336,8 @@ KHR::Image::Image()
      context( NULL ),
      target( 0 ),
      buffer( NULL ),
-     surface( NULL )
+     dfb_surface( NULL ),
+     dfb_buffer( NULL )
 {
      D_DEBUG_AT( DFBEGL_Image, "KHR::Image::%s( %p )\n", __FUNCTION__, this );
 }
@@ -366,8 +346,8 @@ KHR::Image::~Image()
 {
      D_DEBUG_AT( DFBEGL_Image, "KHR::Image::%s( %p )\n", __FUNCTION__, this );
 
-     if (surface)
-          surface->Release( surface );
+     if (dfb_surface)
+          dfb_surface->Release( dfb_surface );
 }
 
 

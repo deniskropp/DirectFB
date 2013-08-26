@@ -29,8 +29,10 @@ pkgconfig_DATA = dfbegl.pc egl.pc
 includedir = @INCLUDEDIR@/egl
 
 include_HEADERS = \
-	dfbegl.h	\
-	dfbegl_int_names.h
+	dfbegl.h		\
+	dfbegl_int_names.h	\
+	egl_result.h		\
+	image.h
 
 DISTCLEANFILES = dfbegl_int_names.h
 
@@ -75,7 +77,8 @@ libDFBEGL_la_SOURCES = \
 	option.cpp		\
 	surface.cpp		\
 	tls.cpp			\
-	util.cpp
+	util.cpp		\
+	DIRECTFB_GetConfigAttribs.cpp
 
 libDFBEGL_la_LIBADD = \
 	$(DFB_BASE_LIBS)

@@ -239,5 +239,26 @@ eglGetProcAddress( const char *procname )
 
 
 
+
+EGLBoolean
+eglGetConfigAttribsDIRECTFB( EGLDisplay           dpy,
+                             EGLNativePixmapType  native,
+                             EGLint              *attribs,
+                             EGLint               max )
+{
+     static PFNEGLGETCONFIGATTRIBSDIRECTFB GetConfigAttribsDIRECTFB;
+
+     if (!GetConfigAttribsDIRECTFB)
+          GetConfigAttribsDIRECTFB = (PFNEGLGETCONFIGATTRIBSDIRECTFB) dfbeglGetProcAddress( "eglGetConfigAttribsDIRECTFB" );
+
+     if (!GetConfigAttribsDIRECTFB) {
+          D_ERROR( "DFBEGL/API: dfbeglGetProcAddress( 'eglGetConfigAttribsDIRECTFB' ) failed!\n" );
+          return EGL_FALSE;
+     }
+
+     return GetConfigAttribsDIRECTFB( dpy, native, attribs, max );
+}
+
+
 }
 

@@ -79,12 +79,6 @@ class SurfaceWLEGLWindow;
 
 class EGLCoreModuleWayland : public EGL::CoreModule, public Types::Type<EGLCoreModuleWayland,EGL::Core>
 {
-     // no copy
-     EGLCoreModuleWayland( const EGLCoreModuleWayland& ) = delete;
-
-     // no assign
-     EGLCoreModuleWayland& operator=( const EGLCoreModuleWayland& ) = delete;
-
 protected:
      virtual Direct::String GetName() const
      {
