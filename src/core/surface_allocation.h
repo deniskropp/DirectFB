@@ -145,6 +145,12 @@ DFBResult dfb_surface_allocation_update  ( CoreSurfaceAllocation       *allocati
                                            CoreSurfaceAccessFlags       access );
 
 
+DFBResult dfb_surface_allocation_dump    ( CoreSurfaceAllocation       *allocation,
+                                           const char                  *directory,
+                                           const char                  *prefix,
+                                           bool                         raw );
+
+
 static inline int
 dfb_surface_allocation_locks( CoreSurfaceAllocation *allocation )
 {

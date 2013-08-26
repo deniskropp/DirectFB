@@ -700,11 +700,12 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
 }
 
 DFBResult
-dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
-                                     const char            *directory,
-                                     const char            *prefix,
-                                     bool                   raw,
-                                     CoreSurfaceBufferLock *lock )
+dfb_surface_buffer_dump_type_locked2( CoreSurfaceBuffer     *buffer,
+                                      const char            *directory,
+                                      const char            *prefix,
+                                      bool                   raw,
+                                      void                  *addr,
+                                      int                    pitch )
 {
      int                num  = -1;
      int                fd_p = -1;
@@ -730,9 +731,6 @@ dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_ASSERT( directory != NULL );
-
-     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
-     CORE_SURFACE_ALLOCATION_ASSERT( lock->allocation );
 
      surface = buffer->surface;
      CORE_SURFACE_ASSERT( surface );
@@ -911,7 +909,7 @@ dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
           int pitches[3];
           u8 *src8;
 
-          dfb_surface_get_data_offsets( &surface->config, lock->addr, lock->pitch, 0, i,
+          dfb_surface_get_data_offsets( &surface->config, addr, pitch, 0, i,
                                         3, srces, pitches );
           src8 = srces[0];
 
@@ -1007,6 +1005,19 @@ dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
           close( fd_g );
 
      return DFB_OK;
+}
+
+DFBResult
+dfb_surface_buffer_dump_type_locked( CoreSurfaceBuffer     *buffer,
+                                     const char            *directory,
+                                     const char            *prefix,
+                                     bool                   raw,
+                                     CoreSurfaceBufferLock *lock )
+{
+     CORE_SURFACE_BUFFER_LOCK_ASSERT( lock );
+     CORE_SURFACE_ALLOCATION_ASSERT( lock->allocation );
+
+     return dfb_surface_buffer_dump_type_locked2( buffer, directory, prefix, raw, lock->addr, lock->pitch );
 }
 
 static DFBResult
