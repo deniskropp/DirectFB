@@ -353,6 +353,57 @@ show_any( const siginfo_t *info, ucontext_t *uctx )
 
 #endif
 
+
+static void
+call_handlers( int   num,
+               void *addr )
+{
+     DirectLink   *l, *n;
+
+     if (num == SIG_DUMP_STACK)
+          num = DIRECT_SIGNAL_DUMP_STACK;
+
+     /* Loop through all handlers. */
+     direct_mutex_lock( &handlers_lock );
+
+     direct_list_foreach_safe (l, n, handlers) {
+          DirectSignalHandler *handler = (DirectSignalHandler*) l;
+
+          D_LOG( Direct_Signals, FATAL, "    --> %d\n", handler->num );
+
+          if (handler->num != num && handler->num != DIRECT_SIGNAL_ANY)
+               continue;
+
+          if (handler->num == DIRECT_SIGNAL_ANY && num == DIRECT_SIGNAL_DUMP_STACK)
+               continue;
+
+          switch (handler->func( num, addr, handler->ctx )) {
+               case DSHR_OK:
+                    break;
+
+               case DSHR_REMOVE:
+                    direct_list_remove( &handlers, &handler->link );
+                    D_MAGIC_CLEAR( handler );
+                    D_FREE( handler );
+                    break;
+
+               case DSHR_RESUME:
+                    D_LOG( Direct_Signals, FATAL, "    '-> cured!\n" );
+
+                    direct_mutex_unlock( &handlers_lock );
+
+                    return;
+
+               default:
+                    D_BUG( "unknown result" );
+                    break;
+          }
+     }
+
+     direct_mutex_unlock( &handlers_lock );
+}
+
+
 #ifdef SA_SIGINFO
 static void
 signal_handler( int num, siginfo_t *info, void *foo )
@@ -363,7 +414,6 @@ static void
 signal_handler( int num )
 {
 #endif
-     DirectLink   *l, *n;
      void         *addr = NULL;
      sigset_t      mask;
 
@@ -413,39 +463,8 @@ signal_handler( int num )
 
      direct_trace_print_stacks();
 
-     /* Loop through all handlers. */
-     direct_mutex_lock( &handlers_lock );
+     call_handlers( num, addr );
 
-     direct_list_foreach_safe (l, n, handlers) {
-          DirectSignalHandler *handler = (DirectSignalHandler*) l;
-
-          if (handler->num != num && handler->num != DIRECT_SIGNAL_ANY)
-               continue;
-
-          switch (handler->func( num, addr, handler->ctx )) {
-               case DSHR_OK:
-                    break;
-
-               case DSHR_REMOVE:
-                    direct_list_remove( &handlers, &handler->link );
-                    D_MAGIC_CLEAR( handler );
-                    D_FREE( handler );
-                    break;
-
-               case DSHR_RESUME:
-                    D_LOG( Direct_Signals, FATAL, "    '-> cured!\n" );
-
-                    direct_mutex_unlock( &handlers_lock );
-
-                    return;
-
-               default:
-                    D_BUG( "unknown result" );
-                    break;
-          }
-     }
-
-     direct_mutex_unlock( &handlers_lock );
 #ifdef ANDROID_NDK
      remove_handlers();
 
@@ -510,6 +529,8 @@ handle_signals( DirectThread *thread,
                }
                else if (SIG_DUMP_STACK == info.si_signo) {
                     D_DEBUG_AT( Direct_Signals, "  -> got dump signal %d (me %d, from %d)\n", SIG_DUMP_STACK, direct_getpid(), info.si_pid );
+
+                    call_handlers( info.si_signo, NULL );
 
                     direct_print_memleaks();
                     direct_print_interface_leaks();

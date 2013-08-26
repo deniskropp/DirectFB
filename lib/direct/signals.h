@@ -60,7 +60,9 @@ void DIRECT_API direct_signals_block_all( void );
 /*
  * Signal number to use when registering a handler for any interrupt.
  */
-#define DIRECT_SIGNAL_ANY     -1
+#define DIRECT_SIGNAL_ANY          -1
+
+#define DIRECT_SIGNAL_DUMP_STACK   -2
 
 
 DirectResult DIRECT_API direct_signal_handler_add   ( int                       num,
