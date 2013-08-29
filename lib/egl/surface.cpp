@@ -64,6 +64,9 @@ Surface::~Surface()
      D_DEBUG_AT( DFBEGL_Surface, "EGL::Surface::%s( %p )\n",
                  __FUNCTION__, this );
 
+     if (gfx_peer)
+          delete gfx_peer;
+
      if (surface)
           surface->Release( surface );
 }
