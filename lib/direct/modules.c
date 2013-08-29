@@ -214,7 +214,7 @@ direct_modules_explore_directory( DirectModuleDir *directory )
 
      dir = opendir( buf );
      if (!dir) {
-          D_DEBUG_AT( Direct_Modules, "  -> ERROR opening directory: %s!\n", strerror(errno) );
+          D_DEBUG_AT( Direct_Modules, "  -> ERROR opening directory '%s': %s!\n", buf, strerror(errno) );
           return 0;
      }
 
