@@ -346,6 +346,9 @@ KHR::Image::~Image()
 {
      D_DEBUG_AT( DFBEGL_Image, "KHR::Image::%s( %p )\n", __FUNCTION__, this );
 
+     if (dfb_buffer)
+          dfb_buffer->Release( dfb_buffer );
+
      if (dfb_surface)
           dfb_surface->Release( dfb_surface );
 }
