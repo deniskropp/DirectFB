@@ -54,11 +54,9 @@ ISurfaceAllocation_Real::Update(
                    const DFBRegion                              *region
                    )
 {
-     D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "ISurfaceAllocation_Real::%s( region %p )\n", __FUNCTION__, region );
+     D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "ISurfaceAllocation_Real::%s( obj %p, region %p )\n", __FUNCTION__, obj, region );
 
-     D_UNIMPLEMENTED();
-
-     return DFB_UNIMPLEMENTED;
+     return dfb_surface_allocation_update( obj, CSAF_WRITE );
 }
 
 DFBResult
@@ -80,19 +78,19 @@ ISurfaceAllocation_Real::Updated( const DFBBox *updates,
      else {
           if (obj->buffer) {
                D_ASSERT( obj->buffer == buffer );
-          
+
                D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- buffer  %s\n", *ToString<CoreSurfaceBuffer>( *buffer ) );
                D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- written %p\n", buffer->written );
                D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- read    %p\n", buffer->read );
                D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- serial  %lu (this %lu)\n", buffer->serial.value, obj->serial.value );
-               
+
                direct_serial_increase( &buffer->serial );
-               
+
                direct_serial_copy( &obj->serial, &buffer->serial );
-               
+
                buffer->written = obj;
                buffer->read    = NULL;
-               
+
                D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  -> serial  %lu\n", buffer->serial.value );
           }
           else {
