@@ -949,6 +949,8 @@ ISurface_Real::Allocate( CoreSurfaceBufferRole   role,
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
 
+     dfb_surface_allocation_update( allocation, CSAF_WRITE );
+
      ret = (DFBResult) dfb_surface_allocation_ref( allocation );
      if (ret)
           goto out;
@@ -1017,6 +1019,8 @@ ISurface_Real::GetAllocation( CoreSurfaceBufferRole   role,
      }
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     dfb_surface_allocation_update( allocation, CSAF_WRITE );
 
      ret = (DFBResult) dfb_surface_allocation_ref( allocation );
      if (ret)
