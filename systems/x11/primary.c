@@ -881,10 +881,7 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
           Window window = alloc->window;
 
-          static GC gc;
-
-//          if (!gc)
-//               gc = DefaultGC( x11->display, DefaultScreen(x11->display));
+          GC gc;
 
           if (!window) {
                D_ASSUME( alloc->type == X11_ALLOC_PIXMAP );
@@ -902,8 +899,9 @@ update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *loc
 
                     if (w) {
                          D_LOG( X11_Update, VERBOSE, "     -> Destroying old window 0x%08lx (%dx%d)...\n", w, ww, wh );
-                         XFreeGC( x11->display, gc );
                          XDestroyWindow( x11->display, w );
+                         if (x11->showing == w)
+                              x11->showing = 0;
                          w = 0;
                     }
 
