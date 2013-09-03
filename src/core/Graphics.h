@@ -110,8 +110,9 @@ namespace Graphics {
 class OptionBase
 {
 protected:
-     OptionBase() {};
-     virtual ~OptionBase() {};
+     OptionBase() {}
+public:
+     virtual ~OptionBase() {}
 
 public:
      virtual Direct::String GetName() const = 0;
@@ -131,6 +132,12 @@ class Options : public std::map<std::string,OptionBase*>
 {
 public:
      Options() {}
+
+     ~Options()
+     {
+          for (auto it=begin(); it!=end(); it++)
+               delete (*it).second;
+     }
 
      void Add( OptionBase *option )
      {
@@ -278,6 +285,7 @@ class Config
 {
 protected:
      Config( Implementation *implementation ) : implementation( implementation ) {};
+public:
      virtual ~Config() {};
 
 public:
