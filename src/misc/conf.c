@@ -104,7 +104,7 @@ static const char *config_usage_strings[]  = {
      "  resource-id=<id>               Use resource id for surfaces if not specified by application\n"
      "  [no-]banner                    Show DirectFB Banner on startup\n"
      "  [no-]surface-sentinel          Enable surface sentinels at the end of chunks in video memory\n"
-     "  force-windowed                 Primary surface always is a window\n"
+     "  [no-]force-windowed            Primary surface always is a window\n"
      "  force-desktop                  Primary surface is the desktop background\n"
      "  [no-]hardware                  Enable/disable hardware acceleration\n"
      "  [no-]software                  Enable/disable software fallbacks\n"
@@ -855,6 +855,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "force-windowed" ) == 0) {
           dfb_config->force_windowed = true;
+     } else
+     if (strcmp (name, "no-force-windowed" ) == 0) {
+          dfb_config->force_windowed = false;
      } else
      if (strcmp (name, "force-desktop" ) == 0) {
           dfb_config->force_desktop = true;
