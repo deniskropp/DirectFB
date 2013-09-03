@@ -306,7 +306,8 @@ ILayerContext_Real::FindWindow(
 
     caller = Core_GetIdentity();
 
-    if (caller != FUSION_ID_MASTER &&
+    if (dfb_config->ownership_check &&
+        caller != FUSION_ID_MASTER &&
         window->object.identity != caller &&
         fusion_object_check_owner( &window->object, caller, false ))
     {

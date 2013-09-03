@@ -102,6 +102,7 @@ static const char *config_usage_strings[]  = {
      "  primary-layer=<id>             Select an alternative primary layer\n"
      "  primary-only                   Tell application only about the primary layer\n"
      "  resource-id=<id>               Use resource id for surfaces if not specified by application\n"
+     "  [no-]ownership-check           Do not check for privileges when calling GetSurface() or GetWindow() by ID\n"
      "  [no-]banner                    Show DirectFB Banner on startup\n"
      "  [no-]surface-sentinel          Enable surface sentinels at the end of chunks in video memory\n"
      "  [no-]force-windowed            Primary surface always is a window\n"
@@ -526,6 +527,8 @@ static void config_allocate( void )
 
      dfb_config->max_render_tasks          = 10;
      dfb_config->max_frame_advance         = 100000;
+
+     dfb_config->ownership_check           = true;
 }
 
 const char *dfb_config_usage( void )
@@ -840,6 +843,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR("DirectFB/Config '%s': No value specified!\n", name);
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "ownership-check" ) == 0) {
+          dfb_config->ownership_check = true;
+     } else
+     if (strcmp (name, "no-ownership-check" ) == 0) {
+          dfb_config->ownership_check = false;
      } else
      if (strcmp (name, "banner" ) == 0) {
           dfb_config->banner = true;
