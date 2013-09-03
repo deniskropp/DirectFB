@@ -6,6 +6,8 @@ dfbppincludedir = $(includedir)/++dfb
 
 dfbppinclude_HEADERS = \
 	++dfb.h				\
+	++dfb_mangle.h			\
+	++dfb_unmangle.h		\
 	idirectfb.h			\
 	idirectfbdatabuffer.h		\
 	idirectfbdisplaylayer.h		\
