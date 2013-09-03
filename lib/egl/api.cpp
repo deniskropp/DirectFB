@@ -667,7 +667,7 @@ dfbeglGetProcAddress( const char *procname )
      __eglMustCastToProperFunctionPointerType addr = NULL;
 
      if (procname) {
-          D_LOG( DFBEGL_Api, DEBUG_1, "%s( '%s' )\n", __FUNCTION__, procname );
+          D_DEBUG_AT( DFBEGL_Api, "%s( '%s' )\n", __FUNCTION__, procname );
 
           static Symbols symbols;
 
@@ -677,14 +677,14 @@ dfbeglGetProcAddress( const char *procname )
 
           context = tls->GetContext();
           if (context) {
-               D_LOG( DFBEGL_Api, DEBUG_1, "  -> checking context at %p\n", context );
+               D_DEBUG_AT( DFBEGL_Api, "  -> checking context at %p\n", context );
 
                DFBResult ret = context->GetProcAddress( procname, (void**) &addr );
                if (ret == DFB_OK)
                     return addr;
           }
           else
-               D_LOG( DFBEGL_Api, DEBUG_1, "  -> no context bound\n" );
+               D_DEBUG_AT( DFBEGL_Api, "  -> no context bound\n" );
 #endif
 
           try {
