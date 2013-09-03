@@ -2451,7 +2451,8 @@ Renderer::update( DFBAccelerationMask accel )
           D_ASSERT( state->source != NULL );
 
           if (state_mod & SMF_SOURCE) {
-               ret = updateLock( &state->src, state->source, state->from, state->from_eye, state->source->flips, CSAF_READ );
+               ret = updateLock( &state->src, state->source, state->from, state->from_eye,
+                                 state->source_flip_count_used ? state->source_flip_count : state->source->flips, CSAF_READ );
                if (ret)
                     return ret;
 
