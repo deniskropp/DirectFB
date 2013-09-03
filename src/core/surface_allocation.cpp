@@ -264,53 +264,47 @@ dfb_surface_allocation_decouple( CoreSurfaceAllocation *allocation )
 /**********************************************************************************************************************/
 
 static void
-transfer_buffer( CoreSurfaceBuffer *buffer,
-                 const char        *src,
-                 char              *dst,
-                 int                srcpitch,
-                 int                dstpitch )
+transfer_buffer( const CoreSurfaceConfig *config,
+                 const char              *src,
+                 char                    *dst,
+                 int                      srcpitch,
+                 int                      dstpitch )
 {
-     int          i;
-     CoreSurface *surface;
-
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     surface = buffer->surface;
-     D_MAGIC_ASSERT( surface, CoreSurface );
+     int i;
 
      D_DEBUG_AT( Core_SurfAllocation, "%s( %p, %p [%d] -> %p [%d] ) * %d\n",
-                 __FUNCTION__, buffer, src, srcpitch, dst, dstpitch, surface->config.size.h );
+                 __FUNCTION__, config, src, srcpitch, dst, dstpitch, config->size.h );
 
      D_ASSERT( src != NULL );
      D_ASSERT( dst != NULL );
      D_ASSERT( srcpitch > 0 );
      D_ASSERT( dstpitch > 0 );
 
-     D_ASSERT( srcpitch >= DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
-     D_ASSERT( dstpitch >= DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
+     D_ASSERT( srcpitch >= DFB_BYTES_PER_LINE( config->format, config->size.w ) );
+     D_ASSERT( dstpitch >= DFB_BYTES_PER_LINE( config->format, config->size.w ) );
 
-     for (i=0; i<surface->config.size.h; i++) {
-          direct_memcpy( dst, src, DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
+     for (i=0; i<config->size.h; i++) {
+          direct_memcpy( dst, src, DFB_BYTES_PER_LINE( config->format, config->size.w ) );
 
           src += srcpitch;
           dst += dstpitch;
      }
 
-     switch (buffer->format) {
+     switch (config->format) {
           case DSPF_YV12:
           case DSPF_I420:
-               for (i=0; i<surface->config.size.h; i++) {
+               for (i=0; i<config->size.h; i++) {
                     direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w / 2 ) );
+                                   DFB_BYTES_PER_LINE( config->format, config->size.w / 2 ) );
                     src += srcpitch / 2;
                     dst += dstpitch / 2;
                }
                break;
 
           case DSPF_YV16:
-               for (i=0; i<surface->config.size.h*2; i++) {
+               for (i=0; i<config->size.h*2; i++) {
                     direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w / 2 ) );
+                                   DFB_BYTES_PER_LINE( config->format, config->size.w / 2 ) );
                     src += srcpitch / 2;
                     dst += dstpitch / 2;
                }
@@ -318,27 +312,27 @@ transfer_buffer( CoreSurfaceBuffer *buffer,
 
           case DSPF_NV12:
           case DSPF_NV21:
-               for (i=0; i<surface->config.size.h/2; i++) {
+               for (i=0; i<config->size.h/2; i++) {
                     direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
+                                   DFB_BYTES_PER_LINE( config->format, config->size.w ) );
                     src += srcpitch;
                     dst += dstpitch;
                }
                break;
 
           case DSPF_NV16:
-               for (i=0; i<surface->config.size.h; i++) {
+               for (i=0; i<config->size.h; i++) {
                     direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
+                                   DFB_BYTES_PER_LINE( config->format, config->size.w ) );
                     src += srcpitch;
                     dst += dstpitch;
                }
                break;
 
           case DSPF_YUV444P:
-               for (i=0; i<surface->config.size.h*2; i++) {
+               for (i=0; i<config->size.h*2; i++) {
                     direct_memcpy( dst, src,
-                                   DFB_BYTES_PER_LINE( buffer->format, surface->config.size.w ) );
+                                   DFB_BYTES_PER_LINE( config->format, config->size.w ) );
                     src += srcpitch;
                     dst += dstpitch;
                }
@@ -356,7 +350,6 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
      DFBResult              ret;
      CoreSurfaceBufferLock  src;
      CoreSurfaceBufferLock  dst;
-     CoreSurfaceBuffer     *buffer;
 
      D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, (void *)allocation);
 
@@ -364,11 +357,6 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
 
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
-
-     D_ASSERT( source->buffer == allocation->buffer );
-
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      /* Lock the source allocation. */
      dfb_surface_buffer_lock_init( &src, CSAID_CPU, CSAF_READ );
@@ -405,7 +393,7 @@ allocation_update_copy( CoreSurfaceAllocation *allocation,
           return ret;
      }
 
-     transfer_buffer( buffer, (char*) src.addr, (char*) dst.addr, src.pitch, dst.pitch );
+     transfer_buffer( &allocation->config, (char*) src.addr, (char*) dst.addr, src.pitch, dst.pitch );
 
      dfb_surface_pool_unlock( allocation->pool, allocation, &dst );
      dfb_surface_pool_unlock( source->pool, source, &src );
@@ -422,9 +410,6 @@ allocation_update_write( CoreSurfaceAllocation *allocation,
 {
      DFBResult              ret;
      CoreSurfaceBufferLock  src;
-     CoreSurfaceBuffer     *buffer;
-
-     (void)buffer;
 
      D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, (void *)allocation );
 
@@ -432,11 +417,6 @@ allocation_update_write( CoreSurfaceAllocation *allocation,
 
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
-
-     D_ASSERT( source->buffer == allocation->buffer );
-
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      /* Lock the source allocation. */
      dfb_surface_buffer_lock_init( &src, CSAID_CPU, CSAF_READ );
@@ -475,9 +455,6 @@ allocation_update_read( CoreSurfaceAllocation *allocation,
 {
      DFBResult              ret;
      CoreSurfaceBufferLock  dst;
-     CoreSurfaceBuffer     *buffer;
-
-     (void)buffer;
 
      D_DEBUG_AT( Core_SurfAllocation, "%s( %p )\n", __FUNCTION__, (void *)allocation );
 
@@ -485,11 +462,6 @@ allocation_update_read( CoreSurfaceAllocation *allocation,
 
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( source, CoreSurfaceAllocation );
-
-     D_ASSERT( source->buffer == allocation->buffer );
-
-     buffer = allocation->buffer;
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      /* Lock the destination allocation. */
      dfb_surface_buffer_lock_init( &dst, CSAID_CPU, CSAF_WRITE );
