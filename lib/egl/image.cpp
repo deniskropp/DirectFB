@@ -169,9 +169,11 @@ EGLImage::eglDestroyImageKHR( EGLDisplay  dpy,
 
      Types::TypeHandle *handle = (Types::TypeHandle *) img;
 
-     KHR::Image *image = &(KHR::Image&) **handle;
+//     KHR::Image *image = &(KHR::Image&) **handle;
 
-     delete image;
+//     delete image;
+
+     delete handle;
 
      DFB_EGL_RETURN (EGL_SUCCESS, EGL_TRUE);
 }
