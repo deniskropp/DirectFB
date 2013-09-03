@@ -34,6 +34,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+
 extern "C" {
 #include <direct/messages.h>
 }
@@ -66,9 +69,10 @@ GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
                         X11EGLImpl      &impl )
      :
      Type( egl_image ),
+     impl( impl ),
      glEGLImage( 0 )
 {
-     D_LOG( DFBX11_EGLImpl, DEBUG_1, "X11::GLeglImage::%s( %p, KHR::Image %p, impl %p )\n", __FUNCTION__, this, &egl_image, &impl );
+     D_DEBUG_AT( DFBX11_EGLImpl, "X11::GLeglImage::%s( %p, KHR::Image %p, impl %p )\n", __FUNCTION__, this, &egl_image, &impl );
 
      D_LOG( DFBX11_EGLImpl, VERBOSE, "  -> Deriving GLeglImage for X11 GL Context from generic EGLImageKHR (image %p, surface %p)\n", &egl_image, egl_image.dfb_surface );
 
@@ -96,9 +100,12 @@ GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
           return;
      }
 
+     allocation->Release( allocation );
+
+
      Pixmap pixmap = handle;
 
-     D_LOG( DFBX11_EGLImpl, DEBUG_1, "  -> creating new EGLImage from Pixmap 0x%08lx\n", pixmap );
+     D_DEBUG_AT( DFBX11_EGLImpl, "  -> creating new EGLImage from Pixmap 0x%08lx\n", pixmap );
 
 
      glEGLImage = impl.eglCreateImageKHR( impl.egl_display,
@@ -111,6 +118,14 @@ GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
      }
 
      D_LOG( DFBX11_EGLImpl, VERBOSE, "  => New EGLImage 0x%08lx from Pixmap 0x%08lx\n", (long) glEGLImage, pixmap );
+}
+
+GLeglImage::~GLeglImage()
+{
+     D_DEBUG_AT( DFBX11_EGLImpl, "RCar::GLeglImage::%s( %p )\n", __FUNCTION__, this );
+
+     if (glEGLImage)
+          impl.eglDestroyImageKHR( impl.egl_display, glEGLImage );
 }
 
 /**********************************************************************************************************************/
@@ -154,10 +169,10 @@ void
 X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_  &target,
                                                GLeglImage &image )
 {
-     D_LOG( DFBX11_EGLImpl, DEBUG_1, "X11EGLImpl::Context_glEGLImageTargetTexture2D::%s( %p, target 0x%04x, X11::GLeglImage %p, EGLImage %p )\n",
+     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::Context_glEGLImageTargetTexture2D::%s( %p, target 0x%04x, X11::GLeglImage %p, EGLImage %p )\n",
             __FUNCTION__, this, target, &image, image.glEGLImage );
 
-     if (1) {
+     if (!image.glEGLImage) {
           void                  *data;
           int                    pitch;
           int                    width;
@@ -170,8 +185,10 @@ X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_  &target,
 
           image.parent.dfb_surface->Lock( image.parent.dfb_surface, DSLF_READ, &data, &pitch );
 
-          D_LOG( DFBX11_EGLImpl, DEBUG_1, "  -> calling glTexImage2D( target 0x%04x, data %p )...\n", target, data );
-          D_INFO( "  -> calling glTexImage2D( target 0x%04x, data %p )...\n", target, data );
+          D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling glTexImage2D( target 0x%04x, data %p )...\n", target, data );
+          D_INFO( "  -> calling glTexImage2D( target 0x%04x, %dx%d, data %p )...\n", target, width, height, data );
+
+          glPixelStorei( GL_UNPACK_ROW_LENGTH_EXT, pitch/4 );
 
           if (format == DSPF_ABGR) {
                glTexImage2D( target, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data );
@@ -343,6 +360,9 @@ X11EGLImpl::Initialise()
      eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC) lib.Lookup( "eglCreateImageKHR" );
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglCreateImageKHR = %p\n", eglCreateImageKHR );
 
+     eglDestroyImageKHR = (PFNEGLDESTROYIMAGEKHRPROC) lib.Lookup( "eglDestroyImageKHR" );
+     D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglDestroyImageKHR = %p\n", eglDestroyImageKHR );
+
 
      core->RegisterImplementation( this );
 
@@ -360,6 +380,9 @@ DirectResult
 X11EGLImpl::Finalise()
 {
      core->UnregisterImplementation( this );
+
+     for (auto it=configs.begin(); it!=configs.end(); it++)
+          delete *it;
 
      if (egl_display)
           lib.eglTerminate( egl_display );
@@ -740,17 +763,17 @@ X11EGLSurfacePeer::Flip( const DFBRegion     *region,
 
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglSwapBuffers( %p )\n", egl_surface );
 
-     if (is_pixmap) {
-          glFinish();
-     }
-     else {
+//     if (is_pixmap) {
+//          glFinish();
+//     }
+//     else {
           if (!impl.lib.eglSwapBuffers( impl.egl_display, egl_surface )) {
                D_ERROR( "X11/EGLImpl: eglSwapBuffers( %p ) failed ('%s')\n", egl_surface, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ));
                return DFB_FAILURE;
           }
 
           XFlush( impl.x11_display );
-     }
+//     }
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglSwapBuffers( %p ) done\n", egl_surface );
 
      impl.display->Sync();
@@ -830,7 +853,8 @@ X11EGLSurfacePeer::getEGLSurface()
      if (it == surface_map.end()) {
           X11EGLConfig *config = GetConfig<X11EGLConfig>();
           EGLint surface_attrs[] = {
-               EGL_RENDER_BUFFER, EGL_BACK_BUFFER, EGL_NONE
+               EGL_RENDER_BUFFER, EGL_BACK_BUFFER,
+               EGL_NONE
           };
 
           D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglCreate%sSurface( EGLConfig %p, %p )\n", is_pixmap ? "Pixmap" : "Window",

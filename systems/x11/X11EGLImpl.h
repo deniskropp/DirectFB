@@ -59,11 +59,15 @@ class X11EGLImpl;
 
 
 class GLeglImage : public Types::Type<GLeglImage,EGL::KHR::Image> {
+private:
+     X11EGLImpl &impl;
+
 public:
      GLeglImageOES glEGLImage;
 
      GLeglImage( DirectFB::EGL::KHR::Image &egl_image,
                  X11EGLImpl                &impl );
+     ~GLeglImage();
 };
 
 
@@ -105,6 +109,7 @@ public:
 public:
      DirectFB::EGL::Library              lib;
      PFNEGLCREATEIMAGEKHRPROC            eglCreateImageKHR;
+     PFNEGLDESTROYIMAGEKHRPROC           eglDestroyImageKHR;
      PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
 
      void Context_glEGLImageTargetTexture2D( GL::enum_  &target,
