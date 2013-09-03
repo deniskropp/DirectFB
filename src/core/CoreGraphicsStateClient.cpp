@@ -338,11 +338,12 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( state, CardState );
      D_MAGIC_ASSERT( state->core, CoreDFB );
 
-     client->magic    = 0;
-     client->core     = state->core;
-     client->state    = state;
-     client->renderer = NULL;
-     client->throttle = NULL;
+     client->magic     = 0;
+     client->core      = state->core;
+     client->state     = state;
+     client->renderer  = NULL;
+     client->requestor = NULL;
+     client->throttle  = NULL;
 
      ret = CoreDFB_CreateState( state->core, &client->gfx_state );
      if (ret)
@@ -363,7 +364,12 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
           }
      }
 
-     client->requestor = new DirectFB::IGraphicsState_Requestor( core_dfb, client->gfx_state );
+     if (!client->renderer &&
+         !(!dfb_config->call_nodirect &&
+           (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)))
+     {
+          client->requestor = new DirectFB::IGraphicsState_Requestor( core_dfb, client->gfx_state );
+     }
 
      client->priv = new CoreGraphicsStateClientPrivate( client );
 
@@ -399,7 +405,9 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
      if (client->throttle)
           client->throttle->unref();
 
-     delete (DirectFB::IGraphicsState_Requestor *) client->requestor;
+     if (client->requestor)
+          delete (DirectFB::IGraphicsState_Requestor *) client->requestor;
+
      delete (CoreGraphicsStateClientPrivate *) client->priv;
 
      dfb_graphics_state_unref( client->gfx_state );
@@ -538,7 +546,10 @@ CoreGraphicsStateClient_ReleaseSource( CoreGraphicsStateClient *client )
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     return requestor->ReleaseSource();
+     if (requestor)
+          return requestor->ReleaseSource();
+
+     return DFB_OK;
 }
 
 DFBResult
@@ -552,7 +563,10 @@ CoreGraphicsStateClient_SetColorAndIndex( CoreGraphicsStateClient *client,
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
 
-     return requestor->SetColorAndIndex( color, index );
+     if (requestor)
+          return requestor->SetColorAndIndex( color, index );
+
+     return DFB_OK;
 }
 
 DFBResult
@@ -568,6 +582,8 @@ CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( state, CardState );
 
      DirectFB::IGraphicsState_Requestor *requestor = (DirectFB::IGraphicsState_Requestor*) client->requestor;
+
+     D_ASSERT( requestor != NULL );
 
      if (flags & SMF_DRAWING_FLAGS) {
           ret = requestor->SetDrawingFlags( state->drawingflags );
