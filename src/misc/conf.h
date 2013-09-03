@@ -324,6 +324,8 @@ typedef struct
 
      unsigned int  max_render_tasks;
      long long     max_frame_advance;
+
+     bool          ownership_check;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

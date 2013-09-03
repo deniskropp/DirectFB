@@ -245,7 +245,7 @@ ICore_Real::GetSurface( u32           surface_id,
      if (ret)
           return ret;
 
-     if (fusion_config->secure_fusion) {
+     if (fusion_config->secure_fusion && dfb_config->ownership_check) {
           ret = (DFBResult) fusion_object_has_access( &surface->object, path );
           if (ret) {
                D_DEBUG_AT( DirectFB_CoreDFB, "  -> NO ACCESS!\n" );
