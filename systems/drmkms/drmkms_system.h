@@ -145,6 +145,9 @@ typedef struct {
      VirtualTerminal     *vt;
 
      DirectThread        *thread;
+
+     DFBDisplayLayerIDs   layer_ids[8];
+     DFBDisplayLayerID    layer_id_next;
 } DRMKMSData;
 
 
