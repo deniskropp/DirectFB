@@ -66,8 +66,8 @@ drmkmsInitScreen( CoreScreen           *screen,
 
      int               i, j, k, l, found;
 
-     description->caps = DSCCAPS_ENCODERS | DSCCAPS_OUTPUTS;
-     description->encoders = 0;
+     description->caps = DSCCAPS_MIXERS | DSCCAPS_ENCODERS | DSCCAPS_OUTPUTS;
+
      shared->enabled_crtcs = 0;
 
      direct_snputs( description->name, "DRMKMS Screen", DFB_SCREEN_DESC_NAME_LENGTH );
@@ -152,6 +152,8 @@ drmkmsInitScreen( CoreScreen           *screen,
 
                     if (shared->multihead && shared->enabled_crtcs > 1) {
                          dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
+
+                         DFB_DISPLAYLAYER_IDS_ADD( drmkms->layer_ids[shared->enabled_crtcs-1], drmkms->layer_id_next++ );
                     }
 
                }
@@ -231,22 +233,21 @@ drmkmsGetScreenSize( CoreScreen *screen,
 }
 
 static DFBResult
-drmkmsInitMixer( CoreScreen                  *screen,
-                 void                        *driver_data,
-                 void                        *screen_data,
-                 int                          encoder,
+drmkmsInitMixer( CoreScreen                *screen,
+                 void                      *driver_data,
+                 void                      *screen_data,
+                 int                        mixer,
                  DFBScreenMixerDescription *description,
                  DFBScreenMixerConfig      *config )
 {
-     DRMKMSData       *drmkms = driver_data;
-     DRMKMSDataShared *shared = drmkms->shared;
+     DRMKMSData *drmkms = driver_data;
 
      D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
 
      direct_snputs( description->name, "DRMKMS Mixer", DFB_SCREEN_ENCODER_DESC_NAME_LENGTH );
 
      description->caps       = DSMCAPS_FULL | DSMCAPS_SUB_LAYERS;
-     description->layers     = (1 << encoder);
+     description->layers     = drmkms->layer_ids[mixer];
      description->sub_layers = description->layers;
 
      config->flags           = DSMCONF_LAYERS;
@@ -256,10 +257,10 @@ drmkmsInitMixer( CoreScreen                  *screen,
 }
 
 static DFBResult
-drmkmsSetMixerConfig( CoreScreen                   *screen,
-                      void                         *driver_data,
-                      void                         *screen_data,
-                      int                           encoder,
+drmkmsSetMixerConfig( CoreScreen                 *screen,
+                      void                       *driver_data,
+                      void                       *screen_data,
+                      int                         mixer,
                       const DFBScreenMixerConfig *config )
 {
      D_DEBUG_AT( DRMKMS_Screen, "%s()\n", __FUNCTION__ );
@@ -273,10 +274,10 @@ drmkmsSetMixerConfig( CoreScreen                   *screen,
 
 
 static DFBResult
-drmkmsTestMixerConfig( CoreScreen                   *screen,
-                       void                         *driver_data,
-                       void                         *screen_data,
-                       int                           encoder,
+drmkmsTestMixerConfig( CoreScreen                 *screen,
+                       void                       *driver_data,
+                       void                       *screen_data,
+                       int                         mixer,
                        const DFBScreenMixerConfig *config,
                        DFBScreenMixerConfigFlags  *failed )
 {

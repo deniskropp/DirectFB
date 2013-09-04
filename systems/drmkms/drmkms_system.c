@@ -117,13 +117,14 @@ DRMKMS_BufferThread_Main( DirectThread *thread, void *arg )
 static DFBResult
 InitLocal( DRMKMSData *drmkms )
 {
-     DFBResult   ret;
-     int         i;
+     DFBResult         ret;
+     int               i;
+     DRMKMSDataShared *shared = drmkms->shared;
 
-     drmkms->fd = open( drmkms->shared->device_name, O_RDWR );
+     drmkms->fd = open( shared->device_name, O_RDWR );
      if (drmkms->fd < 0) {
           ret = errno2result( errno );
-          D_PERROR( "DirectFB/DRMKMS: Failed to open '%s'!\n", drmkms->shared->device_name );
+          D_PERROR( "DirectFB/DRMKMS: Failed to open '%s'!\n", shared->device_name );
           return ret;
      }
 
@@ -142,15 +143,22 @@ InitLocal( DRMKMSData *drmkms )
      drmkms->plane_resources = drmModeGetPlaneResources( drmkms->fd );
 
      drmkms->screen = dfb_screens_register( NULL, drmkms, drmkmsScreenFuncs );
+
+
      dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
+
+     DFB_DISPLAYLAYER_IDS_ADD( drmkms->layer_ids[0], drmkms->layer_id_next++ );
+
 
 
      if (drmkms->plane_resources) {
           for (i = 0; i < drmkms->plane_resources->count_planes; i++) {
-               if (i==drmkms->shared->plane_limit)
+               if (i==shared->plane_limit)
                     break;
 
                dfb_layers_register( drmkms->screen, drmkms, drmkmsPlaneLayerFuncs );
+
+               DFB_DISPLAYLAYER_IDS_ADD( drmkms->layer_ids[0], drmkms->layer_id_next++ );
           }
      }
 
