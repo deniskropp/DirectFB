@@ -365,7 +365,7 @@ direct_dbg_free( const char *file, int line, const char *func, const char *what,
      MemDesc       *desc;
 
      if (!mem) {
-          D_WARN( "%s (NULL) called", __FUNCTION__ );
+//          D_WARN( "%s (NULL) called", __FUNCTION__ );
           return;
      }
 
