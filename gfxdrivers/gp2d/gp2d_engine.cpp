@@ -1,5 +1,5 @@
 //#ifdef GP2D_DEBUG_BLT
-     #define DIRECT_ENABLE_DEBUG
+//     #define DIRECT_ENABLE_DEBUG
 //#endif
 
 
