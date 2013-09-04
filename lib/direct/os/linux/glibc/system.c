@@ -113,6 +113,12 @@ direct_trap( const char *domain, int sig )
 {
      sigval_t val;
 
+     if (direct_config->delay_trap_ms) {
+          D_LOG( Direct_Trap, VERBOSE, "NOT RAISING signal %d from %s, waiting for %dms... attach gdb --pid=%d\n", sig, domain, direct_config->delay_trap_ms, getpid() );
+          direct_thread_sleep( direct_config->delay_trap_ms * 1000LL );
+          return;
+     }
+
      D_LOG( Direct_Trap, VERBOSE, "Raising signal %d from %s...\n", sig, domain );
 
      val.sival_int = direct_gettid();
