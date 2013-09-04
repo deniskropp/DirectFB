@@ -76,48 +76,49 @@ GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
 
      D_LOG( DFBX11_EGLImpl, VERBOSE, "  -> Deriving GLeglImage for X11 GL Context from generic EGLImageKHR (image %p, surface %p)\n", &egl_image, egl_image.dfb_surface );
 
+     if (impl.eglCreateImageKHR) {
+          DFBResult                   ret;
+          IDirectFBSurfaceAllocation *allocation;
 
-     DFBResult                   ret;
-     IDirectFBSurfaceAllocation *allocation;
-
-     ret = egl_image.dfb_surface->GetAllocation( egl_image.dfb_surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", &allocation );
-     if (ret) {
-          D_DEBUG_AT( DFBX11_EGLImpl, "  -> IDirectFBSurface::GetAllocation( FRONT, LEFT, 'Pixmap/X11' ) failed! (%s)\n", DirectResultString((DirectResult)ret) );
-
-          ret = egl_image.dfb_surface->Allocate( egl_image.dfb_surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", 0, &allocation );
+          ret = egl_image.dfb_surface->GetAllocation( egl_image.dfb_surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", &allocation );
           if (ret) {
-               D_DERROR_AT( DFBX11_EGLImpl, ret, "  -> IDirectFBSurface::Allocate( FRONT, LEFT, 'Pixmap/X11' ) failed!\n" );
+               D_DEBUG_AT( DFBX11_EGLImpl, "  -> IDirectFBSurface::GetAllocation( FRONT, LEFT, 'Pixmap/X11' ) failed! (%s)\n", DirectResultString((DirectResult)ret) );
+
+               ret = egl_image.dfb_surface->Allocate( egl_image.dfb_surface, DSBR_FRONT, DSSE_LEFT, "Pixmap/X11", 0, &allocation );
+               if (ret) {
+                    D_DERROR_AT( DFBX11_EGLImpl, ret, "  -> IDirectFBSurface::Allocate( FRONT, LEFT, 'Pixmap/X11' ) failed!\n" );
+                    return;
+               }
+          }
+
+          u64 handle;
+
+          ret = allocation->GetHandle( allocation, &handle );
+          if (ret) {
+               D_DERROR_AT( DFBX11_EGLImpl, ret, "  -> IDirectFBSurface::GetAllocation( FRONT, LEFT, 'Pixmap/X11' ) failed!\n" );
+               allocation->Release( allocation );
                return;
           }
-     }
 
-     u64 handle;
-
-     ret = allocation->GetHandle( allocation, &handle );
-     if (ret) {
-          D_DERROR_AT( DFBX11_EGLImpl, ret, "  -> IDirectFBSurface::GetAllocation( FRONT, LEFT, 'Pixmap/X11' ) failed!\n" );
           allocation->Release( allocation );
-          return;
+
+
+          Pixmap pixmap = handle;
+
+          D_DEBUG_AT( DFBX11_EGLImpl, "  -> creating new EGLImage from Pixmap 0x%08lx\n", pixmap );
+
+
+          glEGLImage = impl.eglCreateImageKHR( impl.egl_display,
+                                               EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR,
+                                               (EGLClientBuffer)(long) pixmap, NULL );
+          if (!glEGLImage) {
+               D_ERROR_AT( DFBX11_EGLImpl, "  -> creating new EGLImage from Pixmap 0x%08lx failed (%s)\n",
+                           pixmap, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
+               return;
+          }
+
+          D_LOG( DFBX11_EGLImpl, VERBOSE, "  => New EGLImage 0x%08lx from Pixmap 0x%08lx\n", (long) glEGLImage, pixmap );
      }
-
-     allocation->Release( allocation );
-
-
-     Pixmap pixmap = handle;
-
-     D_DEBUG_AT( DFBX11_EGLImpl, "  -> creating new EGLImage from Pixmap 0x%08lx\n", pixmap );
-
-
-     glEGLImage = impl.eglCreateImageKHR( impl.egl_display,
-                                          EGL_NO_CONTEXT, EGL_NATIVE_PIXMAP_KHR,
-                                          (EGLClientBuffer)(long) pixmap, NULL );
-     if (!glEGLImage) {
-          D_ERROR_AT( DFBX11_EGLImpl, "  -> creating new EGLImage from Pixmap 0x%08lx failed (%s)\n",
-                      pixmap, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
-          return;
-     }
-
-     D_LOG( DFBX11_EGLImpl, VERBOSE, "  => New EGLImage 0x%08lx from Pixmap 0x%08lx\n", (long) glEGLImage, pixmap );
 }
 
 GLeglImage::~GLeglImage()
@@ -208,6 +209,9 @@ X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_  &target,
 
 X11EGLImpl::X11EGLImpl()
      :
+     eglCreateImageKHR( NULL ),
+     eglDestroyImageKHR( NULL ),
+     glEGLImageTargetTexture2DOES( NULL ),
      egl_display( EGL_NO_DISPLAY ),
      egl_major( 0 ),
      egl_minor( 0 )
@@ -354,14 +358,18 @@ X11EGLImpl::Initialise()
 
 
 
-     glEGLImageTargetTexture2DOES = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC) lib.Lookup( "glEGLImageTargetTexture2DOES" );
-     D_DEBUG_AT( DFBX11_EGLImpl, "  -> glEGLImageTargetTexture2DOES = %p\n", glEGLImageTargetTexture2DOES );
+     if (strstr( egl_extensions, "EGL_KHR_image_pixmap" )) {
+          eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC) lib.Lookup( "eglCreateImageKHR" );
+          D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglCreateImageKHR = %p\n", eglCreateImageKHR );
 
-     eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC) lib.Lookup( "eglCreateImageKHR" );
-     D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglCreateImageKHR = %p\n", eglCreateImageKHR );
+          eglDestroyImageKHR = (PFNEGLDESTROYIMAGEKHRPROC) lib.Lookup( "eglDestroyImageKHR" );
+          D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglDestroyImageKHR = %p\n", eglDestroyImageKHR );
 
-     eglDestroyImageKHR = (PFNEGLDESTROYIMAGEKHRPROC) lib.Lookup( "eglDestroyImageKHR" );
-     D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglDestroyImageKHR = %p\n", eglDestroyImageKHR );
+          glEGLImageTargetTexture2DOES = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC) lib.Lookup( "glEGLImageTargetTexture2DOES" );
+          D_DEBUG_AT( DFBX11_EGLImpl, "  -> glEGLImageTargetTexture2DOES = %p\n", glEGLImageTargetTexture2DOES );
+
+          D_INFO( "X11/EGL: Using EGLImage extension\n" );
+     }
 
 
      core->RegisterImplementation( this );
