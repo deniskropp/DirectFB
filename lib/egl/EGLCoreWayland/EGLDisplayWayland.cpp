@@ -290,14 +290,9 @@ EGLDisplayWayland::Surface_Initialise( SurfaceWLEGLWindow &surface )
      D_DEBUG_AT( DFBWayland_EGLDisplay, "EGLDisplayWayland::%s( %p ) <- window %p\n",
                  __FUNCTION__, this, surface.window );
 
-     DFBResult ret;
-
-
-     wl_egl_window *window = surface.window;
-
-
-
-     DFBSurfaceDescription desc;
+     DFBResult              ret;
+     DFBSurfaceDescription  desc;
+     wl_egl_window         *window = surface.window;
 
      desc.width  = window->width;
      desc.height = window->height;
@@ -321,7 +316,7 @@ EGLDisplayWayland::Surface_Initialise( SurfaceWLEGLWindow &surface )
 
      IDirectFB *dfb = parent.GetDFB();
 
-     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
+//     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
 
      ret = dfb->CreateSurface( dfb, &desc, &surface.parent.surface );
      if (ret) {
@@ -405,12 +400,15 @@ SurfaceWLEGLWindow::SwapBuffers()
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_queue %p\n",  display.wl_queue );
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_registry %p\n",  display.wl_registry );
 
-     if (buffer) {
-          wl_dfb_buffer_destroy( buffer );
-          buffer = NULL;
-     }
+//     if (buffer) {
+//          wl_dfb_buffer_destroy( buffer );
+//          buffer = NULL;
+//     }
+//
+//     buffer = wl_dfb_create_buffer( display.wl_dfb, parent.GetID(), 0, 0 );
 
-     buffer = wl_dfb_create_buffer( display.wl_dfb, parent.GetID(), 0, 0 );
+     if (!buffer)
+          buffer = wl_dfb_create_buffer( display.wl_dfb, parent.GetID(), 0, 0 );
 
      wl_surface_attach( window->surface, (struct wl_buffer*) buffer, 0, 0 );
      wl_surface_damage( window->surface, 0, 0, window->width, window->height );
