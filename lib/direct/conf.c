@@ -77,6 +77,7 @@ const char   *direct_config_usage =
      "  log-delay-rand-us=<us>         Add random sleep (of max us) to central logging code for testing purpose\n"
      "  log-delay-min-loops=<loops>    Set minimum busy loops after each log message\n"
      "  log-delay-min-us=<us>          Set minimum sleep after each log message\n"
+     "  delay-trap-ms=<ms>             Set period to wait instead of raising\n"
      "\n";
 
 /**********************************************************************************************************************/
@@ -632,7 +633,7 @@ direct_config_set( const char *name, const char *value )
      } else
      if (direct_strcmp (name, "log-delay-rand-loops" ) == 0) {
           if (value) {
-               long long max;
+               int max;
 
                if (direct_sscanf( value, "%d", &max ) < 1) {
                     D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
@@ -648,7 +649,7 @@ direct_config_set( const char *name, const char *value )
      } else
      if (direct_strcmp (name, "log-delay-rand-us" ) == 0) {
           if (value) {
-               long long max;
+               int max;
 
                if (direct_sscanf( value, "%d", &max ) < 1) {
                     D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
@@ -664,7 +665,7 @@ direct_config_set( const char *name, const char *value )
      } else
      if (direct_strcmp (name, "log-delay-min-loops" ) == 0) {
           if (value) {
-               long long min;
+               int min;
 
                if (direct_sscanf( value, "%d", &min ) < 1) {
                     D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
@@ -680,7 +681,7 @@ direct_config_set( const char *name, const char *value )
      } else
      if (direct_strcmp (name, "log-delay-min-us" ) == 0) {
           if (value) {
-               long long min;
+               int min;
 
                if (direct_sscanf( value, "%d", &min ) < 1) {
                     D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
@@ -688,6 +689,22 @@ direct_config_set( const char *name, const char *value )
                }
 
                direct_config->log_delay_min_us = min;
+          }
+          else {
+               D_ERROR("Direct/Config '%s': No value specified!\n", name);
+               return DR_INVARG;
+          }
+     } else
+     if (direct_strcmp (name, "delay-trap-ms" ) == 0) {
+          if (value) {
+               int ms;
+
+               if (direct_sscanf( value, "%d", &ms ) < 1) {
+                    D_ERROR("Direct/Config '%s': Could not parse value!\n", name);
+                    return DR_INVARG;
+               }
+
+               direct_config->delay_trap_ms = ms;
           }
           else {
                D_ERROR("Direct/Config '%s': No value specified!\n", name);
