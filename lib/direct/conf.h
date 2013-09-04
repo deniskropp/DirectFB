@@ -114,6 +114,8 @@ struct __D_DirectConfig {
      DirectMessageType             fatal_messages;
 
      bool                          nm_for_trace;
+
+     int                           delay_trap_ms;
 };
 
 extern DirectConfig DIRECT_API *direct_config;
