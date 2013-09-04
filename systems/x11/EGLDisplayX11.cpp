@@ -34,8 +34,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <xcb/xcb.h>
-
 extern "C" {
 #include <direct/messages.h>
 

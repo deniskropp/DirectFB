@@ -65,6 +65,9 @@ libdirectfb_x11_la_LIBADD = \
 
 
 
+if EGL_UNITED
+
+
 dfbegl_coredir = $(MODULEDIR)/dfbegl_core
 
 if BUILD_STATIC
@@ -85,9 +88,7 @@ libdfbegl_core_x11_la_SOURCES = \
 
 libdfbegl_core_x11_la_LIBADD = \
 	$(DFB_BASE_LIBS)	\
-	$(libdfbegl) -lxcb
-
-
+	$(libdfbegl)
 
 
 graphicsdir = $(MODULEDIR)/graphics
@@ -111,6 +112,10 @@ libdfbx11_egl_la_LDFLAGS = \
 	$(X11_LIBS)	\
 	-avoid-version	\
 	-module
+
+
+endif	# EGL_UNITED
+
 
 
 include $(top_srcdir)/rules/libobject.make
