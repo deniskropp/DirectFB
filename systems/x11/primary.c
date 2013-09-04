@@ -174,13 +174,16 @@ primaryInitScreen( CoreScreen           *screen,
                    void                 *screen_data,
                    DFBScreenDescription *description )
 {
+     DFBX11       *x11    = driver_data;
+     DFBX11Shared *shared = x11->shared;
+
      D_DEBUG_AT( X11_Layer, "%s()\n", __FUNCTION__ );
 
      /* Set the screen capabilities. */
      description->caps     = DSCCAPS_MIXERS | DSCCAPS_ENCODERS | DSCCAPS_OUTPUTS;
-     description->mixers   = 3;
-     description->encoders = 3;
-     description->outputs  = 3;
+     description->mixers   = shared->outputs;
+     description->encoders = shared->outputs;
+     description->outputs  = shared->outputs;
 
      /* Set the screen name. */
      snprintf( description->name,

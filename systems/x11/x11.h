@@ -88,6 +88,8 @@ typedef struct {
 
      bool                 stereo;
      int                  stereo_width;
+
+     int                  outputs;
 } DFBX11Shared;
 
 struct __DFB_X11 {

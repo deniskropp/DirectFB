@@ -255,11 +255,10 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 
      x11->screen = dfb_screens_register( NULL, x11, x11PrimaryScreenFuncs );
 
-     dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
-     dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
-     dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs );
-
-     //dfb_x11_eglimpl_register( x11 );
+     for (i=0; i<shared->outputs; i++) {
+          if (!dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs ))
+               return DFB_INIT;
+     }
 
      return DFB_OK;
 }
@@ -296,6 +295,8 @@ system_initialize( CoreDFB *core, void **data )
           D_FREE( x11 );
           return D_OOSHM();
      }
+
+     shared->outputs = direct_config_get_int_value_with_default( "x11-outputs", 1 );
 
      /* we need the error handler to signal the error to us, so
         use a global static */
@@ -486,8 +487,6 @@ system_leave( bool emergency )
      DFBX11Shared *shared = x11->shared;
 
      D_DEBUG_AT( X11_Core, "%s()\n", __FUNCTION__ );
-
-     //dfb_x11_eglimpl_unregister();
 
      /*
       * Slave deinit
