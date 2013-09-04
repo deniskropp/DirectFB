@@ -34,6 +34,9 @@
 #include <unistd.h>
 
 #include <wayland-server.h>
+
+#include <directfb_util.h>
+
 #include "wayland-dfb.h"
 #include "wayland-dfb-server-protocol.h"
 
@@ -41,20 +44,83 @@
 D_LOG_DOMAIN( DFBWayland_wl_dfb,      "DFBWayland/wl_dfb",      "DirectFB Wayland extension" );
 D_LOG_DOMAIN( DFBWayland_Buffer,      "DFBWayland/Buffer",      "DirectFB Wayland Buffer" );
 
-
-struct wl_dfb {
-     struct wl_global  *global;
-
-     struct wl_display *display;
-     IDirectFB         *dfb;
-};
-
+/**********************************************************************************************************************/
 
 namespace WL {
 
+struct wl_dfb {
+public:
+     wl_dfb();
+     ~wl_dfb();
 
+     struct wl_global                  *global;
+
+     struct wl_display                 *display;
+     IDirectFB                         *dfb;
+     IDirectFBEventBuffer              *events;
+
+     wl_dfb_client_callback             callback;
+     void                              *callback_context;
+
+     std::map<DFBSurfaceID,Buffer*>     surfaces;
+
+     void HandleSurfaceEvent( const DFBSurfaceEvent &event );
+};
+
+
+wl_dfb::wl_dfb()
+     :
+     global( NULL ),
+     display( NULL ),
+     dfb( NULL )
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "wl_dfb::%s( %p )\n", __FUNCTION__, this );
+}
+
+wl_dfb::~wl_dfb()
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "wl_dfb::%s( %p )\n", __FUNCTION__, this );
+
+     if (global)
+          wl_global_destroy( global );
+
+     if (dfb)
+          dfb->Release( dfb );
+}
+
+void
+wl_dfb::HandleSurfaceEvent( const DFBSurfaceEvent &event )
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "wl_dfb::%s( %p, event %p ) <- type 0x%04x\n", __FUNCTION__, this, &event, event.type );
+
+     switch (event.type) {
+          case DSEVT_UPDATE: {
+               D_DEBUG_AT( DFBWayland_wl_dfb, "  -> UPDATE %u %d,%d-%dx%d %d\n",
+                           event.surface_id, DFB_RECTANGLE_VALS_FROM_REGION( &event.update ), event.flip_count );
+
+               Buffer *surface = surfaces[event.surface_id];
+
+               if (surface) {
+                    surface->surface->FrameAck( surface->surface, event.flip_count );
+
+                    surface->flip_count = event.flip_count;
+               }
+               else
+                    D_LOG( DFBWayland_wl_dfb, VERBOSE, "  -> SURFACE WITH ID %u NOT FOUND\n", event.surface_id );
+
+               break;
+          }
+
+          default:
+               break;
+     }
+}
+
+/**********************************************************************************************************************/
 
 Buffer::Buffer()
+     :
+     flip_count( 0 )
 {
      D_DEBUG_AT( DFBWayland_Buffer, "Buffer::%s( %p )\n", __FUNCTION__, this );
 }
@@ -63,19 +129,26 @@ Buffer::~Buffer()
 {
      D_DEBUG_AT( DFBWayland_Buffer, "Buffer::%s( %p )\n", __FUNCTION__, this );
 
+     surface->DetachEventBuffer( surface, wl_dfb->events );
      surface->Release( surface );
 }
 
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
 static void
 destroy_buffer( struct wl_resource *resource )
 {
      D_DEBUG_AT( DFBWayland_Buffer, "%s( resource %p )\n", __FUNCTION__, resource );
 
-     Buffer        *buffer = (Buffer *) resource->data;
+     Buffer *buffer = (Buffer *) resource->data;
+
+     buffer->wl_dfb->surfaces.erase( buffer->surface_id );
 
      delete buffer;
 }
+
+/**********************************************************************************************************************/
 
 static void
 buffer_destroy( struct wl_client *client, struct wl_resource *resource )
@@ -89,7 +162,16 @@ const struct wl_buffer_interface dfb_buffer_interface = {
      buffer_destroy
 };
 
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
+static void
+destroy_dfb( struct wl_resource *resource )
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "%s( resource %p )\n", __FUNCTION__, resource );
+}
+
+/**********************************************************************************************************************/
 
 static void
 dfb_create_buffer(struct wl_client   *client,
@@ -118,9 +200,17 @@ dfb_create_buffer(struct wl_client   *client,
           return;
      }
 
+     D_DEBUG_AT( DFBWayland_Buffer, "  -> surface %p\n", buffer->surface );
+
      ret = buffer->surface->GetSize( buffer->surface, &buffer->size.w, &buffer->size.h );
      if (ret) {
           D_DERROR( ret, "DFBWayland/Buffer: IDirectFBSurface::GetSize( surface_id %u ) failed!\n", surface_id );
+          return;
+     }
+
+     ret = buffer->surface->GetPixelFormat( buffer->surface, &buffer->format );
+     if (ret) {
+          D_DERROR( ret, "DFBWayland/Buffer: IDirectFBSurface::GetPixelFormat( surface_id %u ) failed!\n", surface_id );
           return;
      }
 
@@ -132,24 +222,20 @@ dfb_create_buffer(struct wl_client   *client,
      }
 
      wl_resource_set_implementation( buffer->resource, &dfb_buffer_interface, buffer, destroy_buffer );
+
+
+     wl_dfb->surfaces[surface_id] = buffer;
+
+     buffer->surface->AttachEventBuffer( buffer->surface, wl_dfb->events );
+     buffer->surface->MakeClient( buffer->surface );
 }
 
 const static struct wl_dfb_interface dfb_interface = {
      dfb_create_buffer
 };
 
-
-
-
-static void
-destroy_dfb( struct wl_resource *resource )
-{
-     D_DEBUG_AT( DFBWayland_wl_dfb, "%s( resource %p )\n", __FUNCTION__, resource );
-
-     struct wl_dfb *wl_dfb = (struct wl_dfb *) resource->data;
-
-     delete wl_dfb;
-}
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
 
 static void
 bind_dfb(struct wl_client *client, void *data, uint32_t version, uint32_t id)
@@ -166,42 +252,59 @@ bind_dfb(struct wl_client *client, void *data, uint32_t version, uint32_t id)
      }
 
      wl_resource_set_implementation( resource, &dfb_interface, wl_dfb, destroy_dfb );
+
+     if (wl_dfb->callback)
+          wl_dfb->callback( wl_dfb->callback_context, client );
 }
 
-
+/**********************************************************************************************************************/
 
 extern "C" {
 
 struct wl_dfb *
-wayland_dfb_init(struct wl_display *display,
-                 IDirectFB         *directfb)
+wayland_dfb_init( struct wl_display      *display,
+                  IDirectFB              *directfb,
+                  wl_dfb_client_callback  callback,
+                  void                   *callback_context,
+                  IDirectFBEventBuffer   *events )
 {
      D_DEBUG_AT( DFBWayland_wl_dfb, "%s( display %p, directfb %p )\n", __FUNCTION__, display, directfb );
 
-     struct wl_dfb *wl_dfb;
+     wl_dfb *wldfb = new wl_dfb();
 
-     wl_dfb = new struct wl_dfb;
+     directfb->AddRef( directfb );
+     events->AddRef( events );
 
-     wl_dfb->display = display;
-     wl_dfb->dfb     = directfb;
-     wl_dfb->global  = wl_global_create( display, &wl_dfb_interface, 1, wl_dfb, bind_dfb );
+     wldfb->display          = display;
+     wldfb->dfb              = directfb;
+     wldfb->events           = events;
+     wldfb->callback         = callback;
+     wldfb->callback_context = callback_context;
+     wldfb->global           = wl_global_create( display, &wl_dfb_interface, 1, wldfb, bind_dfb );
 
-     if (!wl_dfb->global) {
-          delete wl_dfb;
+     if (!wldfb->global) {
+          delete wldfb;
           return NULL;
      }
 
-     return wl_dfb;
+     return wldfb;
 }
 
 void
-wayland_dfb_uninit(struct wl_dfb *wl_dfb)
+wayland_dfb_uninit(wl_dfb *wl_dfb)
 {
      D_DEBUG_AT( DFBWayland_wl_dfb, "%s( wl_dfb %p )\n", __FUNCTION__, wl_dfb );
 
-     wl_global_destroy( wl_dfb->global );
-
      delete wl_dfb;
+}
+
+void
+wayland_dfb_handle_surface_event( struct wl_dfb         *dfb,
+                                  const DFBSurfaceEvent *event )
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "%s( wl_dfb %p, event %p )\n", __FUNCTION__, dfb, event );
+
+     dfb->HandleSurfaceEvent( *event );
 }
 
 int

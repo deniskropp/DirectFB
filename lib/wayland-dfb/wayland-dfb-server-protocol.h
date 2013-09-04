@@ -66,6 +66,14 @@ struct wl_dfb_interface {
 			      uint32_t allocation_id);
 };
 
+#define WL_DFB_SURFACE_ID	0
+
+static inline void
+wl_dfb_send_surface_id(struct wl_resource *resource_, struct wl_resource *surface, uint32_t surface_id)
+{
+	wl_resource_post_event(resource_, WL_DFB_SURFACE_ID, surface, surface_id);
+}
+
 struct wl_dfb_buffer_interface {
 	/**
 	 * destroy - destroy a buffer

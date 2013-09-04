@@ -50,6 +50,26 @@ enum wl_dfb_error {
 };
 #endif /* WL_DFB_ERROR_ENUM */
 
+struct wl_dfb_listener {
+	/**
+	 * surface_id - (none)
+	 * @surface: (none)
+	 * @surface_id: (none)
+	 */
+	void (*surface_id)(void *data,
+			   struct wl_dfb *wl_dfb,
+			   void *surface,
+			   uint32_t surface_id);
+};
+
+static inline int
+wl_dfb_add_listener(struct wl_dfb *wl_dfb,
+		    const struct wl_dfb_listener *listener, void *data)
+{
+	return wl_proxy_add_listener((struct wl_proxy *) wl_dfb,
+				     (void (**)(void)) listener, data);
+}
+
 #define WL_DFB_CREATE_BUFFER	0
 
 static inline void

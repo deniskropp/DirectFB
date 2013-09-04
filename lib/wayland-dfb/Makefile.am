@@ -15,7 +15,10 @@ AM_CPPFLAGS = \
 
 includedir = @INCLUDEDIR@
 
-include_HEADERS = wayland-dfb.h
+include_HEADERS = \
+	wayland-dfb-client-protocol.h	\
+	wayland-dfb-server-protocol.h	\
+	wayland-dfb.h
 
 
 lib_LTLIBRARIES = libwayland-dfb.la
