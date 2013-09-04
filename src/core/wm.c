@@ -178,6 +178,7 @@ dfb_wm_core_initialize( CoreDFB         *core,
      wm_shared->reactor = fusion_reactor_new( 0, "WM", dfb_core_world(core) );
 
      fusion_reactor_direct( wm_shared->reactor, false );
+     fusion_reactor_add_permissions( wm_shared->reactor, 0, FUSION_REACTOR_ATTACH | FUSION_REACTOR_DETACH );
 
      /* Initialize window manager. */
      ret = wm_local->funcs->Initialize( core, wm_local->data, wm_shared->data );
@@ -691,7 +692,9 @@ dfb_wm_attach( CoreDFB            *core,
      if (channel == CORE_WM_WINDOW_ADD) {
           AttachContext context = { func, ctx, reaction };
 
-          dfb_core_enum_layer_contexts( core, dfb_wm_layer_context_WINDOW_ADD_callback, &context );
+          // FIXME: solve as slave, via new interface
+          if (dfb_core_is_master( core ))
+               dfb_core_enum_layer_contexts( core, dfb_wm_layer_context_WINDOW_ADD_callback, &context );
      }
 
      return fusion_reactor_attach_channel( wm_shared->reactor, channel, func, ctx, reaction );
