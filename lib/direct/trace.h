@@ -103,5 +103,10 @@ DirectTraceBuffer DIRECT_API *direct_trace_copy_buffer( DirectTraceBuffer *buffe
  */
 void              DIRECT_API  direct_trace_free_buffer( DirectTraceBuffer *buffer );
 
+/*
+ * Uses backtrace() if possible
+ */
+void DIRECT_API direct_print_backtrace( void );
+
 #endif
 

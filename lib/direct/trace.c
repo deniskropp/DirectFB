@@ -43,11 +43,21 @@
 #include <direct/thread.h>
 #include <direct/trace.h>
 #include <direct/util.h>
+#include <direct/Utils.h>
 
 #include <direct/String.h>
 
 
-#if DIRECT_BUILD_TRACE
+#ifdef HAVE_EXECINFO_H
+#include <execinfo.h>
+#else
+static inline int
+backtrace(void **buffer, int size)
+{
+	return 0;
+}
+#endif
+
 
 #if DIRECT_BUILD_DYNLOAD
 #include <dlfcn.h>
@@ -60,7 +70,15 @@
 
 
 
+
 D_LOG_DOMAIN( Direct_Trace, "Direct/Trace", "Trace support" );
+
+/**************************************************************************************************/
+
+__dfb_no_instrument_function__
+static void print_symbol( void     *fn,
+                          int       index,
+                          D_String *string );
 
 /**************************************************************************************************/
 
@@ -88,8 +106,10 @@ struct __D_DirectTraceBuffer {
 
 /**************************************************************************************************/
 
+#if DIRECT_BUILD_TRACE
 static DirectLink  *buffers;
 static DirectMutex  buffers_lock = DIRECT_RECURSIVE_MUTEX_INITIALIZER(buffers_lock);
+#endif
 
 /**************************************************************************************************/
 
@@ -97,8 +117,10 @@ __dfb_no_instrument_function__
 static inline DirectTraceBuffer *
 get_trace_buffer( void )
 {
-     DirectTraceBuffer *buffer;
-     DirectThread      *self = direct_thread_self();
+     DirectTraceBuffer *buffer = NULL;
+
+#if DIRECT_BUILD_TRACE
+     DirectThread *self = direct_thread_self();
 
      buffer = self->trace_buffer;
      if (!buffer) {
@@ -109,14 +131,15 @@ get_trace_buffer( void )
           buffer->tid    = direct_gettid();
           buffer->thread = direct_thread_self();
 
-          self->trace_buffer = buffer;
-
           D_MAGIC_SET( buffer, DirectTraceBuffer );
+
+          self->trace_buffer = buffer;
 
           direct_mutex_lock( &buffers_lock );
           direct_list_append( &buffers, &buffer->link );
           direct_mutex_unlock( &buffers_lock );
      }
+#endif
 
      return buffer;
 }
@@ -418,9 +441,6 @@ __dfb_no_instrument_function__
 void
 direct_trace_print_stack( DirectTraceBuffer *buffer )
 {
-#if DIRECT_BUILD_DYNLOAD
-     Dl_info info;
-#endif
      int       i;
      int       level;
      D_String *string;
@@ -430,8 +450,10 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
 
      if (!buffer) {
           buffer = get_trace_buffer();
-          if (!buffer)
+          if (!buffer) {
+               direct_print_backtrace();
                return;
+          }
      }
 
      if (buffer->in_trace)
@@ -454,49 +476,10 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
      if (!string)
           return;
 
-
      D_String_PrintF( string, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->thread ? buffer->thread->name : buffer->name );
 
-     for (i=level-1; i>=0; i--) {
-          void *fn = buffer->trace[i].addr;
-
-#if DIRECT_BUILD_DYNLOAD
-          if (dladdr( fn, &info )) {
-               if (info.dli_fname) {
-                    const char *symbol = NULL;//info.dli_sname;
-
-                    if (!symbol) {
-                         symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
-                         if (!symbol) {
-                              symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn));
-                              if (!symbol) {
-                                   if (info.dli_sname)
-                                        symbol = info.dli_sname;
-                                   else
-                                        symbol = "??";
-                              }
-                         }
-                    }
-
-                    D_String_PrintF( string, "  #%-2d 0x%08lx in %s () from %s [%p]\n",
-                                                level - i - 1, (unsigned long) fn, symbol, info.dli_fname, info.dli_fbase );
-               }
-               else if (info.dli_sname) {
-                    D_String_PrintF( string, "  #%-2d 0x%08lx in %s ()\n",
-                                                level - i - 1, (unsigned long) fn, info.dli_sname );
-               }
-               else
-                    D_String_PrintF( string, "  #%-2d 0x%08lx in ?? ()\n",
-                                                level - i - 1, (unsigned long) fn );
-          }
-          else
-#endif
-          {
-               const char *symbol = direct_trace_lookup_symbol(NULL, (long)(fn));
-               D_String_PrintF( string, "  #%-2d 0x%08lx in %s ()\n",
-                                           level - i - 1, (unsigned long) fn, symbol ? symbol : "??" );
-          }
-     }
+     for (i=level-1; i>=0; i--)
+          print_symbol( buffer->trace[i].addr, level - i - 1, string );
 
      D_String_PrintF( string, "\n" );
 
@@ -511,6 +494,7 @@ __dfb_no_instrument_function__
 void
 direct_trace_print_stacks()
 {
+#if DIRECT_BUILD_TRACE
      DirectTraceBuffer *b;
      DirectTraceBuffer *buffer = get_trace_buffer();
 
@@ -525,6 +509,7 @@ direct_trace_print_stacks()
      }
 
      direct_mutex_unlock( &buffers_lock );
+#endif
 }
 
 __dfb_no_instrument_function__
@@ -611,9 +596,11 @@ direct_trace_free_buffer( DirectTraceBuffer *buffer )
      D_MAGIC_ASSERT( buffer, DirectTraceBuffer );
 
      if (buffer->thread) {
+#if DIRECT_BUILD_TRACE
           direct_mutex_lock( &buffers_lock );
           direct_list_remove( &buffers, &buffer->link );
           direct_mutex_unlock( &buffers_lock );
+#endif
 
           buffer->thread = NULL;
      }
@@ -627,6 +614,8 @@ direct_trace_free_buffer( DirectTraceBuffer *buffer )
 }
 
 /**********************************************************************************************************************/
+
+#if DIRECT_BUILD_TRACE
 
 __dfb_no_instrument_function__ void __cyg_profile_func_enter( void *this_fn, void *call_site );
 __dfb_no_instrument_function__ void __cyg_profile_func_exit ( void *this_fn, void *call_site );
@@ -664,55 +653,83 @@ __cyg_profile_func_exit( void *this_fn,
      }
 }
 
-#else
-
-const char *
-direct_trace_lookup_symbol( const char *filename, long offset )
-{
-     return NULL;
-}
-
-const char *
-direct_trace_lookup_file( void *address, void **ret_base )
-{
-     if (ret_base)
-          *ret_base = NULL;
-
-     return NULL;
-}
-
-void
-direct_trace_print_stack( DirectTraceBuffer *buffer )
-{
-}
-
-void
-direct_trace_print_stacks( void )
-{
-}
-
-int
-direct_trace_debug_indent( void )
-{
-     return 0;
-}
-
-void *
-direct_trace_get_caller( void )
-{
-     return NULL;
-}
-
-DirectTraceBuffer *
-direct_trace_copy_buffer( DirectTraceBuffer *buffer )
-{
-     return NULL;
-}
-
-void
-direct_trace_free_buffer( DirectTraceBuffer *buffer )
-{
-}
-
 #endif
+
+
+static void
+print_symbol( void     *fn,
+              int       index,
+              D_String *string )
+{
+#if DIRECT_BUILD_DYNLOAD
+     Dl_info info;
+
+     if (dladdr( fn, &info )) {
+          if (info.dli_fname) {
+               const char *symbol = NULL;
+
+#if DIRECT_BUILD_TRACE
+               symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
+               if (!symbol) {
+                    symbol = direct_trace_lookup_symbol(info.dli_fname, (long)(fn));
+                    if (!symbol) {
+#endif
+                         if (info.dli_sname)
+                              symbol = info.dli_sname;
+                         else
+                              symbol = "??";
+#if DIRECT_BUILD_TRACE
+                    }
+               }
+#endif
+
+               D_String_PrintF( string, "  #%-2d 0x%08lx in %s () from %s [%p]\n",
+                                index, (unsigned long) fn, D_Demangle(symbol), info.dli_fname, info.dli_fbase );
+          }
+          else if (info.dli_sname) {
+               D_String_PrintF( string, "  #%-2d 0x%08lx in %s ()\n",
+                                index, (unsigned long) fn, D_Demangle(info.dli_sname) );
+          }
+          else
+               D_String_PrintF( string, "  #%-2d 0x%08lx in ?? ()\n",
+                                index, (unsigned long) fn );
+     }
+     else
+#endif
+     {
+          const char *symbol = direct_trace_lookup_symbol(NULL, (long)(fn));
+
+          D_String_PrintF( string, "  #%-2d 0x%08lx in %s ()\n",
+                           index, (unsigned long) fn, symbol ? D_Demangle(symbol) : "??" );
+     }
+}
+
+
+void
+direct_print_backtrace()
+{
+     void *buffer[32];
+     int   count;
+
+     count = backtrace( buffer, D_ARRAY_SIZE(buffer) );
+     if (count > 0) {
+          D_String *string = D_String_NewEmpty();
+
+          if (string) {
+               int i;
+
+               D_String_PrintF( string, "(-) [%5d: -STACK- '%s']\n", direct_gettid(),
+                                direct_thread_self_name() ? : "NO NAME" );
+
+               for (i=0; i<count; i++)
+                    print_symbol( buffer[i], i, string );
+          }
+
+          D_String_PrintF( string, "\n" );
+
+          direct_log_write( NULL, D_String_Buffer( string ), D_String_Length( string ) );
+
+          D_String_Delete( string );
+     }
+}
 
