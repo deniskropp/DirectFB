@@ -40,6 +40,19 @@ D_LOG_DOMAIN( Direct_Utils, "Direct/Utils", "Direct Utils" );
 namespace Direct {
 
 
+extern "C" {
+
+const char *
+D_Demangle( const char *symbol )
+{
+     Demangle demangle( symbol );
+
+     return demangle.CopyTLS();
+}
+
+}
+
+
 Module::Module( Modules &modules )
      :
      modules( modules )

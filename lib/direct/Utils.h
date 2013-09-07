@@ -40,6 +40,9 @@ extern "C" {
 #include <direct/modules.h>
 
 
+const char *D_Demangle( const char *symbol );
+
+
 #ifdef __cplusplus
 }
 
@@ -110,11 +113,19 @@ public:
 
           realname = abi::__cxa_demangle(symbol, 0, 0, &status);
 
-          if (status)
-                    PrintF( "DEMANGLE-ERROR-(%d) <- [%s]", status, symbol );
-          else {
+          switch (status) {
+               case -2:
+                    PrintF( "%s", symbol );
+                    break;
+
+               case 0:
                     PrintF( "%s", realname );
                     free(realname);
+                    break;
+
+               default:
+                    PrintF( "DEMANGLE-ERROR-(%d) <- [%s]", status, symbol );
+                    break;
           }
 #else
           PrintF( "%s", symbol );
