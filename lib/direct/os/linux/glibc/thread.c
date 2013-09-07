@@ -241,7 +241,15 @@ direct_thread_self_name( void )
       * Therefore no assertions are made here, because they would loop forever if they fail.
       */
 
-     return thread ? thread->name : NULL;
+     if (!thread)
+          return NULL;
+
+     if (!thread->name) {
+          if (prctl( PR_GET_NAME, thread->handle.name, 0, 0, 0 ) == 0)
+               thread->name = thread->handle.name;
+     }
+
+     return thread->name;
 }
 
 void
@@ -264,8 +272,8 @@ direct_thread_set_name( const char *name )
      }
 
      /* Free old string. */
-     if (thread->name)
-          direct_free( thread->name );
+     if (thread->name && thread->name != thread->handle.name)
+          D_FREE( thread->name );
 
      /* Keep the copy. */
      thread->name = copy;
@@ -389,7 +397,9 @@ direct_thread_cleanup( void *arg )
      if (thread->detached) {
           D_MAGIC_CLEAR( thread );
 
-          D_FREE( thread->name );
+          if (thread->name && thread->name != thread->handle.name)
+               D_FREE( thread->name );
+
           D_FREE( thread );
      }
 }
