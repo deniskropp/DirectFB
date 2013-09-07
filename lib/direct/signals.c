@@ -461,6 +461,8 @@ signal_handler( int num )
           D_LOG( Direct_Signals, FATAL, "    --> Caught signal %d, no siginfo available <--\n", num );
 #endif
 
+     direct_print_backtrace();
+
      direct_trace_print_stacks();
 
      call_handlers( num, addr );
@@ -530,12 +532,13 @@ handle_signals( DirectThread *thread,
                else if (SIG_DUMP_STACK == info.si_signo) {
                     D_DEBUG_AT( Direct_Signals, "  -> got dump signal %d (me %d, from %d)\n", SIG_DUMP_STACK, direct_getpid(), info.si_pid );
 
-                    call_handlers( info.si_signo, NULL );
+                    direct_trace_print_stacks();
 
-                    direct_print_memleaks();
                     direct_print_interface_leaks();
 
-                    direct_trace_print_stacks();
+                    direct_print_memleaks();
+
+                    call_handlers( info.si_signo, NULL );
                }
                else {
 #ifdef SA_SIGINFO
