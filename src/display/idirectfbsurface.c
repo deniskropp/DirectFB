@@ -3665,6 +3665,18 @@ error:
      return ret;
 }
 
+static DFBResult
+IDirectFBSurface_Flush( IDirectFBSurface *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     CoreGraphicsStateClient_Flush( &data->state_client, 0, CGSCFF_NONE );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -3894,6 +3906,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->Allocate       = IDirectFBSurface_Allocate;
      thiz->GetAllocation  = IDirectFBSurface_GetAllocation;
      thiz->GetAllocations = IDirectFBSurface_GetAllocations;
+
+     thiz->Flush          = IDirectFBSurface_Flush;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

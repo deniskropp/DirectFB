@@ -4953,6 +4953,18 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurfaceAllocation **ret_left,
           IDirectFBSurfaceAllocation **ret_right
      );
+
+
+   /** Interface **/
+
+     /*
+      * Flush pending drawing operations
+      *
+      * This function flushes the internal buffer like done implicitly by Flip().
+      */
+     DFBResult (*Flush) (
+          IDirectFBSurface         *thiz
+     );
 )
 
 /**************************
