@@ -58,6 +58,7 @@
 #include <core/CoreGraphicsState.h>
 #include <core/CoreSurface.h>
 #include <core/CoreSurfaceClient.h>
+#include <core/Debug.h>
 
 #include <media/idirectfbfont.h>
 
@@ -2019,25 +2020,33 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p, num %d )\n", __FUNCTION__, thiz, num );
+     D_DEBUG_AT( Surface, "%s( %p, source %p, source_rects %p, dest_points %p, num %d )\n", __FUNCTION__, thiz, source, source_rects, dest_points, num );
 
      if (!data->surface)
           return DFB_DESTROYED;
 
-     if (!source || !source_rects || !dest_points || num < 1)
+     if (!source || !source_rects || !dest_points || num < 1) {
+          D_DEBUG_AT( Surface, "     !source || !source_rects || !dest_points || num < 1\n" );
           return DFB_INVARG;
+     }
 
-     if (!data->area.current.w || !data->area.current.h)
+     if (!data->area.current.w || !data->area.current.h) {
+          D_DEBUG_AT( Surface, "     !data->area.current.w || !data->area.current.h\n" );
           return DFB_INVAREA;
+     }
 
-     if (data->locked)
+     if (data->locked) {
+          D_DEBUG_AT( Surface, "     data->locked\n" );
           return DFB_LOCKED;
+     }
 
 
      src_data = (IDirectFBSurface_data*)source->priv;
 
-     if (!src_data->area.current.w || !src_data->area.current.h)
+     if (!src_data->area.current.w || !src_data->area.current.h) {
+          D_DEBUG_AT( Surface, "     !src_data->area.current.w || !src_data->area.current.h\n" );
           return DFB_INVAREA;
+     }
 
      dx = data->area.wanted.x;
      dy = data->area.wanted.y;
@@ -3685,6 +3694,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
           return DFB_FAILURE;
      }
 
+     D_DEBUG_AT( Surface, "  -> surface %s\n", ToString_CoreSurface( surface ) );
+
      if (parent && dfb_config->startstop) {
           IDirectFBSurface_data *parent_data;
 
@@ -3736,6 +3747,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      /* The currently accessible rectangle */
      data->area.current = data->area.granted;
      dfb_rectangle_intersect( &data->area.current, &rect );
+
+     D_DEBUG_AT( Surface, "  -> wanted  " DFB_RECT_FORMAT "\n", DFB_RECTANGLE_VALS( &data->area.wanted ) );
+     D_DEBUG_AT( Surface, "  -> granted " DFB_RECT_FORMAT "\n", DFB_RECTANGLE_VALS( &data->area.granted ) );
+     D_DEBUG_AT( Surface, "  -> current " DFB_RECT_FORMAT "\n", DFB_RECTANGLE_VALS( &data->area.current ) );
 
      /* Whether granted rectangle is meaningful */
      data->limit_set = (granted != NULL);
