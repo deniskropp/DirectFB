@@ -205,7 +205,7 @@ fi
 AM_CONDITIONAL(X11VDPAU_CORE, test "$enable_x11vdpau" = "yes")
 
 
-AC_CHECK_HEADERS(linux/compiler.h linux/unistd.h asm/page.h signal.h)
+AC_CHECK_HEADERS(linux/compiler.h linux/unistd.h asm/page.h signal.h execinfo.h)
 
 
 dnl Clear default CFLAGS
