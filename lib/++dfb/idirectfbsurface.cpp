@@ -484,3 +484,9 @@ void IDirectFBSurface::Write( const void               *ptr,
 
      DFBCHECK( iface->Write (iface, rect, ptr, pitch) );
 }
+
+void IDirectFBSurface::SetRenderOptions (const DFBSurfaceRenderOptions &options)
+{
+     DFBCHECK( iface->SetRenderOptions (iface, options) );
+}
+
