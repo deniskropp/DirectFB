@@ -215,6 +215,8 @@ public:
 
      void                   PPDFB_API Flush               (DFBSurfaceFlushFlags      flags = DSFF_NONE);
 
+     void                   PPDFB_API SetRenderOptions    (const DFBSurfaceRenderOptions &options);
+
      inline IDirectFBSurface PPDFB_API & operator = (const IDirectFBSurface& other){
           return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
      }

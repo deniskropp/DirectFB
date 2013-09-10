@@ -490,3 +490,8 @@ void IDirectFBSurface::Flush( DFBSurfaceFlushFlags flags )
      DFBCHECK( iface->Flush (iface, flags) );
 }
 
+void IDirectFBSurface::SetRenderOptions (const DFBSurfaceRenderOptions &options)
+{
+     DFBCHECK( iface->SetRenderOptions (iface, options) );
+}
+
