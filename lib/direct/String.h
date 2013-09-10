@@ -309,6 +309,17 @@ public:
           return result;
      }
 
+     bool
+     Contains( const Direct::String &str ) const
+     {
+          for (typename StringsBase::const_iterator it = this->begin(); it != this->end(); it++) {
+               if (*it == str)
+                    return true;
+          }
+
+          return false;
+     }
+
      static Direct::Strings
      FromTokens( const StringBase<_CharT> &string, const StringBase<_CharT> &delimiter )
      {
