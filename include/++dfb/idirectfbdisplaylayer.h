@@ -117,6 +117,7 @@ public:
      void                   PPDFB_API SetCursorOpacity      (u8                            opacity);
 
      void                   PPDFB_API SwitchContext         (DFBBoolean                      exclusive);
+     void                   PPDFB_API SetSurface            (IDirectFBSurface               *surface);
 
      inline IDirectFBDisplayLayer PPDFB_API & operator = (const IDirectFBDisplayLayer& other){
           return IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C>::operator =(other);

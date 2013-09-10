@@ -484,4 +484,3 @@ void IDirectFBSurface::Write( const void               *ptr,
 
      DFBCHECK( iface->Write (iface, rect, ptr, pitch) );
 }
-
