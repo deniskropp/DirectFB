@@ -267,3 +267,16 @@ void IDirectFBWindow::SetSrcGeometry (DFBWindowGeometry *geometry)
      DFBCHECK( iface->SetSrcGeometry (iface, geometry) );
 }
 
+void IDirectFBWindow::SetApplicationID (unsigned long application_id)
+{
+     DFBCHECK( iface->SetApplicationID (iface, application_id) );
+}
+
+unsigned long IDirectFBWindow::GetApplicationID ()
+{
+     unsigned long application_id;
+
+     DFBCHECK( iface->GetApplicationID (iface, &application_id) );
+
+     return application_id;
+}

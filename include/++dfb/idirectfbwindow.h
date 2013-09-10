@@ -114,6 +114,9 @@ public:
      void                  PPDFB_API SetDstGeometry    (DFBWindowGeometry       *geometry);
      void                  PPDFB_API SetSrcGeometry    (DFBWindowGeometry       *geometry);
 
+     void                  PPDFB_API SetApplicationID  (unsigned long           application_id);
+     unsigned long         PPDFB_API GetApplicationID  ();
+
 
      inline IDirectFBWindow PPDFB_API & operator = (const IDirectFBWindow& other){
           return IPPAny<IDirectFBWindow, IDirectFBWindow_C>::operator =(other);
