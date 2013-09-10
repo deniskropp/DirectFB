@@ -1180,7 +1180,7 @@ IDirectFBDisplayLayer_SetSurface( IDirectFBDisplayLayer *thiz,
      if (!surface_data)
           return DFB_DEAD;
 
-     return dfb_layer_region_set_surface( data->region, surface_data->surface );
+     return CoreLayerRegion_SetSurface( data->region, surface_data->surface );
 }
 
 DFBResult

@@ -126,6 +126,23 @@ ILayerRegion_Real::FlipUpdateStereo(
     return dfb_layer_region_flip_update_stereo( obj, left, right, flags );
 }
 
+
+DFBResult
+ILayerRegion_Real::SetSurface(
+                    CoreSurface                               *surface
+)
+{
+    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s( surface %p )\n", __FUNCTION__, surface );
+
+    D_ASSERT( surface != NULL );
+
+    D_DEBUG_AT( DirectFB_CoreLayerRegion, "  -> surface: %s\n", *ToString<CoreSurface>( *surface ) );
+
+    dfb_layer_region_set_surface( obj, surface, true );
+
+    return DFB_OK;
+}
+
 /*********************************************************************************************************************/
 
 void

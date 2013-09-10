@@ -1884,7 +1884,7 @@ dfb_layer_context_allocate_surface( CoreLayer             *layer,
           dfb_surface_clear_buffers( surface );
 
      /* Tell the region about its new surface (adds a global reference). */
-     ret = dfb_layer_region_set_surface( region, surface );
+     ret = dfb_layer_region_set_surface( region, surface, false );
 
      /* Remove local reference of dfb_surface_create(). */
      dfb_surface_unref( surface );

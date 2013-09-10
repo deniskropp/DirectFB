@@ -4019,7 +4019,7 @@ update_hw_cursor( SaWMan                *sawman,
      }
 
      if (flags & CCUF_SHAPE) {
-          ret = dfb_layer_region_set_surface( sawman->cursor.region, stack->cursor.surface );
+          ret = dfb_layer_region_set_surface( sawman->cursor.region, stack->cursor.surface, false );
           if (ret) {
                D_DERROR( ret, "SaWMan/Cursor: Failed to set HW Cursor layer surface!\n" );
                return ret;

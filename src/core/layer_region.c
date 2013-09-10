@@ -353,7 +353,8 @@ dfb_layer_region_disable( CoreLayerRegion *region )
 
 DFBResult
 dfb_layer_region_set_surface( CoreLayerRegion *region,
-                              CoreSurface     *surface )
+                              CoreSurface     *surface,
+                              bool             update )
 {
      DFBResult ret;
 
@@ -375,8 +376,6 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
                     dfb_layer_region_unlock( region );
                     return ret;
                }
-
-               dfb_layer_region_flip_update( region, NULL, DSFLIP_UPDATE );
           }
 
           /* Throw away the old surface. */
@@ -403,6 +402,9 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
                                           DFB_LAYER_REGION_SURFACE_LISTENER,
                                           region, &region->surface_reaction );
           }
+
+          if (update && D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ))
+               dfb_layer_region_flip_update( region, NULL, DSFLIP_UPDATE );
      }
 
      /* Unlock the region. */
