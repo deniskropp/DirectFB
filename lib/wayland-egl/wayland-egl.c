@@ -54,9 +54,3 @@ wl_egl_window_get_attached_size(struct wl_egl_window *egl_window,
 		*height = egl_window->attached_height;
 }
 
-
-int wl_display_get_global(void)    // FIXME: hack
-{
-     return 0;
-}
-
