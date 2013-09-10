@@ -1674,7 +1674,7 @@ IDirectFB_WaitIdle( IDirectFB *thiz )
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
 
-     CoreGraphicsStateClient_FlushCurrent( ++data->idle_cookie );
+     CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_AUTO_COOKIE );
 
      return DFB_OK;
 }

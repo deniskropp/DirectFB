@@ -3783,6 +3783,14 @@ typedef enum {
      DSAF_ALL              = 0x00000313
 } DFBSurfaceAccessFlags;
 
+typedef enum {
+     DSFF_NONE             = 0x00000000,
+
+     DSFF_WAIT             = 0x00000001,  /* wait for commands being processed */
+
+     DSFF_ALL              = 0x00000000
+} DFBSurfaceFlushFlags;
+
 /********************
  * IDirectFBSurface *
  ********************/
@@ -4976,7 +4984,8 @@ D_DEFINE_INTERFACE(   IDirectFBSurface,
       * This function flushes the internal buffer like done implicitly by Flip().
       */
      DFBResult (*Flush) (
-          IDirectFBSurface         *thiz
+          IDirectFBSurface         *thiz,
+          DFBSurfaceFlushFlags      flags
      );
 )
 

@@ -64,7 +64,9 @@ typedef enum {
      CGSCFF_FOLLOW_READER = 0x00000001,
      CGSCFF_FOLLOW_WRITER = 0x00000002,
 
-     CGSCFF_ALL           = 0x00000003,
+     CGSCFF_AUTO_COOKIE   = 0x00000004,
+
+     CGSCFF_ALL           = 0x00000007,
 } CoreGraphicsStateClientFlushFlags;
 
 
@@ -73,11 +75,12 @@ DFBResult CoreGraphicsStateClient_Init            ( CoreGraphicsStateClient *cli
 
 void      CoreGraphicsStateClient_Deinit          ( CoreGraphicsStateClient *client );
 
-void      CoreGraphicsStateClient_Flush           ( CoreGraphicsStateClient *client,
-                                                    u32                      cookie,
-                                                    CoreGraphicsStateClientFlushFlags flags );
+void      CoreGraphicsStateClient_Flush           ( CoreGraphicsStateClient           *client,
+                                                    u32                                cookie,
+                                                    CoreGraphicsStateClientFlushFlags  flags );
 void      CoreGraphicsStateClient_FlushAll        ( void );
-void      CoreGraphicsStateClient_FlushCurrent    ( u32                      cookie );
+void      CoreGraphicsStateClient_FlushCurrent    ( u32                                cookie,
+                                                    CoreGraphicsStateClientFlushFlags  flags );
 
 DFBResult CoreGraphicsStateClient_ReleaseSource   ( CoreGraphicsStateClient *client );
 

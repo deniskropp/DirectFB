@@ -196,7 +196,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      }
 #endif
 
-     CoreGraphicsStateClient_FlushCurrent( 0 );
+     CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
      D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d %4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ), surface->config.size.w, surface->config.size.h );
 
@@ -306,7 +306,7 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
      data->base.local_flip_buffers = surface->num_buffers;
 
-     CoreGraphicsStateClient_FlushCurrent( 0 );
+     CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
      if (surface->config.caps & DSCAPS_FLIPPING) {
           if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&

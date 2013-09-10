@@ -80,8 +80,6 @@ typedef struct {
      bool                        init_done;
      DirectMutex                 init_lock;
      DirectWaitQueue             init_wq;
-
-     u32                         idle_cookie;
 } IDirectFB_data;
 
 /*

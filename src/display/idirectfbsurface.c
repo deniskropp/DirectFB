@@ -157,15 +157,14 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      D_ASSERT( data->children_data == NULL );
 
      if (data->memory_permissions_count) {
-          // FIXME: currently just enough for df_dok
-          CoreGraphicsStateClient_FlushCurrent( 1 );
+          CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_AUTO_COOKIE );
 
           CoreDFB_Roundtrip( data->core );
 
           unregister_prealloc( data );
      }
      else
-          CoreGraphicsStateClient_FlushCurrent( 0 );
+          CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
      if (data->surface_client)
           dfb_surface_client_unref( data->surface_client );
@@ -532,7 +531,7 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
           role = CSBR_BACK;
      }
 
-     CoreGraphicsStateClient_FlushCurrent( 0 );
+     CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
      ret = dfb_surface_lock_buffer( data->surface, role, CSAID_CPU, access, &data->lock );
      if (ret)
@@ -724,7 +723,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     CoreGraphicsStateClient_FlushCurrent( 0 );
+     CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
      data->local_flip_buffers = surface->num_buffers;
 
@@ -2910,7 +2909,7 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     CoreGraphicsStateClient_FlushCurrent( 0 );
+     CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
      return dfb_surface_dump_buffer2( surface, CSBR_FRONT, DSSE_LEFT, directory, prefix );
 }
@@ -3148,7 +3147,7 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
      D_DEBUG_AT( Surface, "  -> FLIPSTEREO Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n",
                  DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
 
-     CoreGraphicsStateClient_FlushCurrent( 0 );
+     CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
      data->local_flip_buffers = data->surface->num_buffers;
 
@@ -3666,13 +3665,19 @@ error:
 }
 
 static DFBResult
-IDirectFBSurface_Flush( IDirectFBSurface *thiz )
+IDirectFBSurface_Flush( IDirectFBSurface     *thiz,
+                        DFBSurfaceFlushFlags  flags )
 {
+     CoreGraphicsStateClientFlushFlags flush_flags = CGSCFF_NONE;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, flags 0x%08x )\n", __FUNCTION__, thiz, flags );
 
-     CoreGraphicsStateClient_Flush( &data->state_client, 0, CGSCFF_NONE );
+     if (flags & DSFF_WAIT)
+          flush_flags |= CGSCFF_AUTO_COOKIE;
+
+     CoreGraphicsStateClient_Flush( &data->state_client, 0, flush_flags );
 
      return DFB_OK;
 }

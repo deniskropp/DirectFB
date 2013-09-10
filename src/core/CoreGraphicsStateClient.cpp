@@ -263,13 +263,15 @@ private:
      CoreGraphicsStateClient *client;
      Direct::LockWQ           lwq;
      Reaction                 gfx_reaction;
-     u32                      last_cookie;
+     u32                      cookie_received;
+     u32                      cookie_sent;
 
 public:
      CoreGraphicsStateClientPrivate( CoreGraphicsStateClient *client )
           :
           client( client ),
-          last_cookie(0)
+          cookie_received(0),
+          cookie_sent(0)
      {
           dfb_graphics_state_attach( client->gfx_state, CoreGraphicsStateClient_Reaction, this, &gfx_reaction );
      }
@@ -285,7 +287,7 @@ public:
 
           Direct::LockWQ::Lock l1( lwq );
 
-          last_cookie = cookie;
+          cookie_received = cookie;
 
           lwq.notifyAll();
      }
@@ -296,8 +298,9 @@ public:
 
           Direct::LockWQ::Lock l1( lwq );
 
-          while (last_cookie != cookie) {
-               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> last cookie is %u, waiting...\n", last_cookie );
+          while (cookie_received != cookie) {
+               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> last cookie received is %u, waiting for %u...\n",
+                           cookie_received, cookie_sent );
 
                DirectResult ret;
 
@@ -310,6 +313,16 @@ public:
           }
 
           D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> waitDone() done.\n" );
+     }
+
+     u32 nextCookie()
+     {
+          u32 cookie = ++cookie_sent;
+
+          if (!cookie)
+               cookie = ++cookie_sent;
+
+          return cookie;
      }
 };
 
@@ -436,6 +449,11 @@ CoreGraphicsStateClient_Flush( CoreGraphicsStateClient           *client,
 
      CoreGraphicsStateClientPrivate *priv = (CoreGraphicsStateClientPrivate *) client->priv;
 
+     if (flags & CGSCFF_AUTO_COOKIE) {
+          cookie = priv->nextCookie();
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> auto cookie %u\n", cookie );
+     }
+
      if (client->renderer) {
           D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flush renderer\n" );
 
@@ -482,18 +500,26 @@ CoreGraphicsStateClient_FlushAll()
 }
 
 void
-CoreGraphicsStateClient_FlushCurrent( u32 cookie )
+CoreGraphicsStateClient_FlushCurrent( u32                               cookie,
+                                      CoreGraphicsStateClientFlushFlags flags )
 {
-     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( cookie %u )\n", __FUNCTION__, cookie );
+     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "%s( cookie %u, flags 0x%08x )\n", __FUNCTION__, cookie, flags );
 
      StateHolder *holder = state_holder_tls.Get( NULL );
      D_ASSERT( holder != NULL );
 
      if (holder->client) {
-          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> unsetting client %p (secure slave or always-indirect)\n", holder->client );
+          CoreGraphicsStateClient        *client = holder->client;
+          CoreGraphicsStateClientPrivate *priv   = (CoreGraphicsStateClientPrivate *) client->priv;
 
-          CoreGraphicsStateClient_Flush( holder->client, cookie, CGSCFF_NONE );
-          //holder->set( NULL );
+          D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> flushing client %p\n", holder->client );
+
+          if (flags & CGSCFF_AUTO_COOKIE) {
+               cookie = priv->nextCookie();
+               D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> auto cookie %u\n", cookie );
+          }
+
+          CoreGraphicsStateClient_Flush( client, cookie, flags );
      }
      else if (dfb_config->task_manager) {
           if (dfb_config->call_nodirect) {
@@ -504,6 +530,11 @@ CoreGraphicsStateClient_FlushCurrent( u32 cookie )
 
                     if (renderer) {
                          CoreGraphicsStateClientPrivate *priv = (CoreGraphicsStateClientPrivate *)( (CoreGraphicsStateClient *) renderer->state->client)->priv;
+
+                         if (flags & CGSCFF_AUTO_COOKIE) {
+                              cookie = priv->nextCookie();
+                              D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> auto cookie %u\n", cookie );
+                         }
 
                          renderer->FlushCurrent( cookie );
 
@@ -520,6 +551,11 @@ CoreGraphicsStateClient_FlushCurrent( u32 cookie )
                if (renderer) {
                     CoreGraphicsStateClientPrivate *priv = (CoreGraphicsStateClientPrivate *)( (CoreGraphicsStateClient *) renderer->state->client)->priv;
 
+                    if (flags & CGSCFF_AUTO_COOKIE) {
+                         cookie = priv->nextCookie();
+                         D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> auto cookie %u\n", cookie );
+                    }
+
                     renderer->FlushCurrent( cookie );
 
                     if (cookie)
@@ -530,7 +566,7 @@ CoreGraphicsStateClient_FlushCurrent( u32 cookie )
      else if (!dfb_config->call_nodirect && (dfb_core_is_master( core_dfb ) || !fusion_config->secure_fusion)) {
           D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in master (or insecure slave) without task-manager, calling dfb_gfxcard_flush/sync()\n" );
 
-          if (cookie)
+          if (cookie || (flags & CGSCFF_AUTO_COOKIE))
                dfb_gfxcard_sync();
           else
                dfb_gfxcard_flush();
