@@ -66,7 +66,8 @@ const char   *direct_config_usage =
      "  fatal-level=<level>            Abort on NONE, ASSERT (default) or ASSUME (incl. assert)\n"
      "  [no-]fatal-break               Abort on BREAK (default)\n"
      "  dont-catch=<num>[[,<num>]...]  Don't catch these signals\n"
-     "  [no-]sighandler                Enable signal handler\n"
+     "  [no-]sighandler                Enable signal handling (default enabled)\n"
+     "  [no-]sighandler-thread         Enable signal handler thread (default enabled)\n"
      "  [no-]thread-block-signals      Block all signals in new threads?\n"
      "  disable-module=<module_name>   suppress loading this module\n"
      "  module-dir=<directory>         Override default module search directory (default = $libdir/directfb-x.y-z)\n"
@@ -94,6 +95,7 @@ __D_conf_init()
      direct_config->log_level             = DIRECT_LOG_DEBUG_0;
      direct_config->trace                 = true;
      direct_config->sighandler            = true;
+     direct_config->sighandler_thread     = true;
 
      direct_config->fatal                 = DCFL_ASSERT;
      direct_config->fatal_break           = true;
