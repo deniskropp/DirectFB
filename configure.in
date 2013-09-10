@@ -1273,7 +1273,7 @@ AC_SUBST(DRMKMS_CFLAGS)
 
 
 dnl Test for EGL
-AC_ARG_ENABLE(egl,
+AC_ARG_ENABLE(egl-united,
               AC_HELP_STRING([--enable-egl-united],
                              [build with EGL United support @<:@default=no@:>@]),
               [], [enable_egl_united=yes])
