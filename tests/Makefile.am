@@ -66,6 +66,7 @@ INCLUDES = \
 if EGL_UNITED
 GL_PROGS = \
 	dfbtest_egl	\
+	dfbtest_eglblit	\
 	dfbtest_eglimage	\
 	dfbtest_gears	\
 	dfbtest_gl1	\
@@ -189,6 +190,10 @@ dfbtest_layers_LDADD   = $(DFB_BASE_LIBS)
 dfbtest_egl_SOURCES = dfbtest_egl.c
 dfbtest_egl_CFLAGS  = $(GLES2_CFLAGS)
 dfbtest_egl_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl)
+
+dfbtest_eglblit_SOURCES = dfbtest_eglblit.c
+dfbtest_eglblit_CFLAGS  = $(GLES2_CFLAGS)
+dfbtest_eglblit_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl)
 
 dfbtest_eglimage_SOURCES = dfbtest_eglimage.cpp ../examples/++dfb/dfbapp.cpp
 dfbtest_eglimage_CFLAGS  = $(GLES2_CFLAGS)

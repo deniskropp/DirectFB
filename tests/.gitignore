@@ -9,6 +9,7 @@ dfbtest_blit_threads
 dfbtest_blit2
 dfbtest_clipboard
 dfbtest_egl
+dfbtest_eglblit
 dfbtest_eglimage
 dfbtest_fillrect
 dfbtest_flip
