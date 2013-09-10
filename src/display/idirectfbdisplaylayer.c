@@ -206,16 +206,16 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL, NULL,
                                              region, DSCAPS_NONE, data->core, data->idirectfb );
 
-     // Fix to only perform single buffered clearing using a background when 
-     // configured to do so AND the display layer region is frozen.  Also 
-     // added support for this behavior when the cooperative level is 
+     // Fix to only perform single buffered clearing using a background when
+     // configured to do so AND the display layer region is frozen.  Also
+     // added support for this behavior when the cooperative level is
      // DLSCL_ADMINISTRATIVE.
-     if (region->config.buffermode == DLBM_FRONTONLY && 
-         data->level != DLSCL_SHARED && 
+     if (region->config.buffermode == DLBM_FRONTONLY &&
+         data->level != DLSCL_SHARED &&
          D_FLAGS_IS_SET( region->state, CLRSF_FROZEN )) {
-          // If a window stack is available, give it the opportunity to 
-          // render the background (optionally based on configuration) and 
-          // flip the display layer so it is visible.  Otherwise, just 
+          // If a window stack is available, give it the opportunity to
+          // render the background (optionally based on configuration) and
+          // flip the display layer so it is visible.  Otherwise, just
           // directly flip the display layer and make it visible.
           if (data->stack) {
                CoreWindowStack_RepaintAll( data->stack );
@@ -727,7 +727,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
      memset( &wd, 0, sizeof(wd) );
 
      wd.flags = DWDESC_WIDTH | DWDESC_HEIGHT | DWDESC_POSX | DWDESC_POSY |
-                DWDESC_PIXELFORMAT | DWDESC_COLORSPACE | DWDESC_SURFACE_CAPS | 
+                DWDESC_PIXELFORMAT | DWDESC_COLORSPACE | DWDESC_SURFACE_CAPS |
                 DWDESC_CAPS;
 
      wd.width  = (desc->flags & DWDESC_WIDTH)  ? desc->width  : 480;
@@ -750,7 +750,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
      if (desc->flags & DWDESC_PIXELFORMAT)
           wd.pixelformat = desc->pixelformat;
 
-     if (desc->flags & DWDESC_COLORSPACE) 
+     if (desc->flags & DWDESC_COLORSPACE)
           wd.colorspace = desc->colorspace;
 
      if (desc->flags & DWDESC_SURFACE_CAPS)
@@ -805,7 +805,7 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
 
      if (!window)
           return DFB_INVARG;
-   
+
      /* IDirectFBWindow_Construct won't ref it, so we don't unref it */
      ret = CoreLayerContext_FindWindow( data->context, id, &w );
      if (ret)

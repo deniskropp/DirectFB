@@ -166,7 +166,6 @@ DirectFBCreate( IDirectFB **interface_ptr )
 #if !DIRECTFB_BUILD_PURE_VOODOO
      DFBResult  ret;
      IDirectFB *dfb;
-     CoreDFB   *core_dfb;
 #endif
 
      if (!dfb_config) {
