@@ -485,3 +485,8 @@ void IDirectFBSurface::Write( const void               *ptr,
      DFBCHECK( iface->Write (iface, rect, ptr, pitch) );
 }
 
+void IDirectFBSurface::Flush( DFBSurfaceFlushFlags flags )
+{
+     DFBCHECK( iface->Flush (iface, flags) );
+}
+

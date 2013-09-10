@@ -261,3 +261,8 @@ void IDirectFBDisplayLayer::SwitchContext (DFBBoolean exclusive)
      DFBCHECK( iface->SwitchContext (iface, exclusive) );
 }
 
+void IDirectFBDisplayLayer::SetSurface (IDirectFBSurface *surface)
+{
+     DFBCHECK( iface->SetSurface (iface, surface->get_iface()) );
+}
+

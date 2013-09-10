@@ -213,6 +213,8 @@ public:
                                                            int                       pitch,
                                                            const DFBRectangle       *rect = NULL);
 
+     void                   PPDFB_API Flush               (DFBSurfaceFlushFlags      flags = DSFF_NONE);
+
      inline IDirectFBSurface PPDFB_API & operator = (const IDirectFBSurface& other){
           return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
      }
