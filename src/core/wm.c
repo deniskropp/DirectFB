@@ -43,6 +43,7 @@
 #include <direct/messages.h>
 #include <direct/modules.h>
 
+#include <fusion/reactor.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -178,7 +179,7 @@ dfb_wm_core_initialize( CoreDFB         *core,
      wm_shared->reactor = fusion_reactor_new( 0, "WM", dfb_core_world(core) );
 
      fusion_reactor_direct( wm_shared->reactor, false );
-     fusion_reactor_add_permissions( wm_shared->reactor, 0, FUSION_REACTOR_ATTACH | FUSION_REACTOR_DETACH );
+     fusion_reactor_add_permissions( wm_shared->reactor, 0, FUSION_REACTOR_PERMIT_ATTACH_DETACH );
 
      /* Initialize window manager. */
      ret = wm_local->funcs->Initialize( core, wm_local->data, wm_shared->data );
