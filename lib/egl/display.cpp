@@ -561,9 +561,8 @@ Display::CopyBuffers( Surface             *source,
      IDirectFBSurface *src = source->GetSurface();
      IDirectFBSurface *dst = (IDirectFBSurface *) destination;
 
+     dst->SetBlittingFlags( dst, DSBLIT_NOFX );
      dst->Blit( dst, src, NULL, 0, 0 );
-
-     dst->Flip( dst, NULL, DSFLIP_NONE );
 
      return EGL_SUCCESS;
 }
