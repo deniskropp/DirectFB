@@ -268,7 +268,7 @@ dfb_window_create_region( CoreWindow              *window,
           }
      }
 
-     ret = dfb_layer_region_set_surface( region, surface );
+     ret = dfb_layer_region_set_surface( region, surface, false );
      if (ret) {
           dfb_surface_unref( surface );
           dfb_layer_region_unref( region );

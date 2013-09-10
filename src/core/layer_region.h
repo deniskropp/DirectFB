@@ -73,7 +73,8 @@ DFBResult dfb_layer_region_enable       ( CoreLayerRegion      *region );
 DFBResult dfb_layer_region_disable      ( CoreLayerRegion      *region );
 
 DFBResult dfb_layer_region_set_surface  ( CoreLayerRegion      *region,
-                                          CoreSurface          *surface );
+                                          CoreSurface          *surface,
+                                          bool                  update );
 
 DFBResult dfb_layer_region_get_surface  ( CoreLayerRegion      *region,
                                           CoreSurface         **ret_surface );

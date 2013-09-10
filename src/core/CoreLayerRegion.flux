@@ -93,5 +93,16 @@ interface {
 			typename  s64
 		}
 	}
+
+	method {
+		name SetSurface
+
+		arg {
+			name      surface
+			direction input
+			type      object
+			typename  CoreSurface
+		}
+	}
 }
 
