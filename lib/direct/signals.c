@@ -76,9 +76,7 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
 
 #define NUM_SIGS_TO_HANDLE ((int)D_ARRAY_SIZE( sigs_to_handle ))
 
-#ifdef ANDROID_NDK
 static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
-#endif
 
 static DirectLink   *handlers = NULL;
 static DirectMutex   handlers_lock;
@@ -86,13 +84,15 @@ static DirectMutex   handlers_lock;
 static DirectThread *sighandler_thread = NULL;
 
 /**************************************************************************************************/
+
 #ifndef ANDROID_NDK
 static void *handle_signals( DirectThread *thread,
                              void         *ptr );
-#else
+#endif
+
 static void install_handlers( void );
 static void remove_handlers( void );
-#endif
+
 /**************************************************************************************************/
 
 DirectResult
@@ -109,14 +109,18 @@ direct_signals_initialize( void )
      install_handlers();
 #else
      if (direct_config->sighandler) {
-          sigemptyset( &mask );
-          for (i=0; i<NUM_SIGS_TO_HANDLE; i++)
-               sigaddset( &mask, sigs_to_handle[i] );
+          if (direct_config->sighandler_thread) {
+               sigemptyset( &mask );
+               for (i=0; i<NUM_SIGS_TO_HANDLE; i++)
+                    sigaddset( &mask, sigs_to_handle[i] );
 
-          pthread_sigmask( SIG_BLOCK, &mask, NULL );
+               pthread_sigmask( SIG_BLOCK, &mask, NULL );
 
-          sighandler_thread = direct_thread_create( DTT_CRITICAL, handle_signals, NULL, "SigHandler" );
-          D_ASSERT( sighandler_thread != NULL );
+               sighandler_thread = direct_thread_create( DTT_CRITICAL, handle_signals, NULL, "SigHandler" );
+               D_ASSERT( sighandler_thread != NULL );
+          }
+          else
+               install_handlers();
      }
 #endif
      return DR_OK;
@@ -129,12 +133,16 @@ direct_signals_shutdown( void )
 #ifdef ANDROID_NDK
      remove_handlers();
 #else
-     if (sighandler_thread) {
-          direct_thread_kill( sighandler_thread, SIG_CLOSE_SIGHANDLER );
-          direct_thread_join( sighandler_thread );
-          direct_thread_destroy( sighandler_thread );
-          sighandler_thread = NULL;
+     if (direct_config->sighandler_thread) {
+          if (sighandler_thread) {
+               direct_thread_kill( sighandler_thread, SIG_CLOSE_SIGHANDLER );
+               direct_thread_join( sighandler_thread );
+               direct_thread_destroy( sighandler_thread );
+               sighandler_thread = NULL;
+          }
      }
+     else
+          remove_handlers();
 #endif
      direct_mutex_deinit( &handlers_lock );
 
@@ -551,7 +559,8 @@ handle_signals( DirectThread *thread,
 
      return NULL;
 }
-#else
+#endif
+
 static void
 install_handlers( void )   
 {
@@ -608,4 +617,4 @@ remove_handlers( void )
           }
      }
 }
-#endif
+

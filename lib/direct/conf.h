@@ -116,6 +116,8 @@ struct __D_DirectConfig {
      bool                          nm_for_trace;
 
      int                           delay_trap_ms;
+
+     bool                          sighandler_thread;
 };
 
 extern DirectConfig DIRECT_API *direct_config;
