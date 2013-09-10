@@ -42,6 +42,7 @@ Makefile.in
 missing
 mkinstalldirs
 *.nm
+*.a
 *.o
 *.patch
 stamp-h
