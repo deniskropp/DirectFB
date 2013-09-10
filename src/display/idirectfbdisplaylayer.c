@@ -1160,6 +1160,30 @@ IDirectFBDisplayLayer_GetWindowByResourceID( IDirectFBDisplayLayer  *thiz,
      return IDirectFBWindow_Construct( *ret_window, w, data->layer, data->core, data->idirectfb, false );
 }
 
+static DFBResult
+IDirectFBDisplayLayer_SetSurface( IDirectFBDisplayLayer *thiz,
+                                  IDirectFBSurface      *surface )
+{
+     DFBResult              ret;
+     IDirectFBSurface_data *surface_data;
+
+     D_DEBUG_AT( Layer, "%s( %p )\n", __FUNCTION__, thiz );
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!surface)
+          return DFB_INVARG;
+
+     if (data->level != DLSCL_EXCLUSIVE)
+          return DFB_ACCESSDENIED;
+
+     surface_data = (IDirectFBSurface_data*) surface->priv;
+     if (!surface_data)
+          return DFB_DEAD;
+
+     return dfb_layer_region_set_surface( data->region, surface_data->surface );
+}
+
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer,
@@ -1242,6 +1266,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->GetWindowByResourceID = IDirectFBDisplayLayer_GetWindowByResourceID;
      thiz->SetStereoDepth        = IDirectFBDisplayLayer_SetStereoDepth;
      thiz->GetStereoDepth        = IDirectFBDisplayLayer_GetStereoDepth;
+     thiz->SetSurface            = IDirectFBDisplayLayer_SetSurface;
 
      return DFB_OK;
 }

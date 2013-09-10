@@ -375,6 +375,8 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
                     dfb_layer_region_unlock( region );
                     return ret;
                }
+
+               dfb_layer_region_flip_update( region, NULL, DSFLIP_UPDATE );
           }
 
           /* Throw away the old surface. */
