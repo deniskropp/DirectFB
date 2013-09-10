@@ -3459,6 +3459,19 @@ D_DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           unsigned long                       resource_id,
           IDirectFBWindow                   **ret_interface
      );
+
+
+   /** Surface **/
+
+     /*
+      * Set the surface to be shown by the layer
+      *
+      * Only available in exclusive mode.
+      */
+     DFBResult (*SetSurface) (
+          IDirectFBDisplayLayer              *thiz,
+          IDirectFBSurface                   *surface
+     );
 )
 
 
