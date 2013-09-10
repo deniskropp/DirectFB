@@ -63,7 +63,8 @@ INCLUDES = \
 	-I$(top_srcdir)/examples/++dfb	\
 	-DLINUX_2_6
 
-GL_PROGS_ = \
+if EGL_UNITED
+GL_PROGS = \
 	dfbtest_egl	\
 	dfbtest_eglimage	\
 	dfbtest_gears	\
@@ -71,13 +72,6 @@ GL_PROGS_ = \
 	dfbtest_gl2	\
 	dfbtest_gl3	\
 	dfbtest_old_gl2
-
-if GFX_GL
-GL_PROGS = $(GL_PROGS_)
-endif
-
-if GFX_GLES2
-GL_PROGS = $(GL_PROGS_)
 endif
 
 if DIRECTFB_BUILD_PURE_VOODOO
@@ -109,6 +103,7 @@ bin_PROGRAMS = \
 	dfbtest_init	\
 	dfbtest_input	\
 	dfbtest_layers \
+	dfbtest_layer_setsurface	\
 	dfbtest_mirror	\
 	dfbtest_prealloc	\
 	dfbtest_reinit	\
@@ -185,12 +180,15 @@ dfbtest_init_LDADD   = $(DFB_BASE_LIBS)
 dfbtest_input_SOURCES = dfbtest_input.c
 dfbtest_input_LDADD   = $(DFB_BASE_LIBS)
 
+dfbtest_layer_setsurface_SOURCES = dfbtest_layer_setsurface.cpp
+dfbtest_layer_setsurface_LDADD   = $(DFB_BASE_LIBS) $(libppdfb)
+
 dfbtest_layers_SOURCES = dfbtest_layers.c
 dfbtest_layers_LDADD   = $(DFB_BASE_LIBS)
 
 dfbtest_egl_SOURCES = dfbtest_egl.c
 dfbtest_egl_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_egl_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libdfbegl)
+dfbtest_egl_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl)
 
 dfbtest_eglimage_SOURCES = dfbtest_eglimage.cpp ../examples/++dfb/dfbapp.cpp
 dfbtest_eglimage_CFLAGS  = $(GLES2_CFLAGS)
@@ -198,7 +196,7 @@ dfbtest_eglimage_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE
 
 dfbtest_gears_SOURCES = dfbtest_gears.c
 dfbtest_gears_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_gears_LDADD   = $(DFB_BASE_LIBS) $(libegl) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libdfbegl)
+dfbtest_gears_LDADD   = $(DFB_BASE_LIBS) $(libegl) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl)
 
 dfbtest_gl1_SOURCES = dfbtest_gl1.c
 dfbtest_gl1_CFLAGS  = $(GLES2_CFLAGS)

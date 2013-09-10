@@ -8,6 +8,8 @@ dfbtest_blit_multi
 dfbtest_blit_threads
 dfbtest_blit2
 dfbtest_clipboard
+dfbtest_egl
+dfbtest_eglimage
 dfbtest_fillrect
 dfbtest_flip
 dfbtest_font
@@ -19,6 +21,7 @@ dfbtest_init
 dfbtest_input
 dfbtest_gears
 dfbtest_layer
+dfbtest_layer_setsurface
 dfbtest_mirror
 dfbtest_prealloc
 dfbtest_reinit
