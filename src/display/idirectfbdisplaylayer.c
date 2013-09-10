@@ -1164,7 +1164,6 @@ static DFBResult
 IDirectFBDisplayLayer_SetSurface( IDirectFBDisplayLayer *thiz,
                                   IDirectFBSurface      *surface )
 {
-     DFBResult              ret;
      IDirectFBSurface_data *surface_data;
 
      D_DEBUG_AT( Layer, "%s( %p )\n", __FUNCTION__, thiz );

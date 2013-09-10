@@ -173,7 +173,6 @@ DirectFBCreate( IDirectFB **interface_ptr )
 #if !DIRECTFB_BUILD_PURE_VOODOO
      DFBResult  ret;
      IDirectFB *dfb;
-     CoreDFB   *core_dfb;
 #endif
 
      D_DEBUG_AT( DirectFB_Main, "%s( %p )\n", __FUNCTION__, interface_ptr );
