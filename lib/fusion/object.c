@@ -206,13 +206,9 @@ fusion_object_pool_create( const char             *name,
      }
 
      /* Initialize the pool lock. */
-     if (fusion_config->secure_fusion)
-          fusion_skirmish_init2( &pool->lock, name, world, true );
-     else {
-          fusion_skirmish_init2( &pool->lock, name, world, false );
+     fusion_skirmish_init2( &pool->lock, name, world, false );
 
-          fusion_skirmish_add_permissions( &pool->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
-     }
+     fusion_skirmish_add_permissions( &pool->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
 
      /* Fill information. */
      pool->shared       = shared;
