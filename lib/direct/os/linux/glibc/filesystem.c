@@ -251,7 +251,7 @@ direct_pclose( DirectFile *file )
      D_ASSERT( file != NULL );
      D_ASSERT( file->file != NULL );
 
-     ret = fclose( file->file );
+     ret = pclose( file->file );
 
      if (ret < 0)
           return errno2result( errno );
