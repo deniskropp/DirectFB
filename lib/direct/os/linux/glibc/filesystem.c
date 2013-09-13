@@ -119,12 +119,11 @@ direct_file_close( DirectFile *file )
      D_ASSERT( file != NULL );
 
      if (file->file) {
-          fclose( file->file );
+          ret = fclose( file->file );
 
           file->file = NULL;
-     }
-
-     ret = close( file->fd );
+     } else
+          ret = close( file->fd );
 
      file->fd = -1;
 
@@ -253,8 +252,6 @@ direct_pclose( DirectFile *file )
      D_ASSERT( file->file != NULL );
 
      ret = fclose( file->file );
-
-     close( file->fd );
 
      if (ret < 0)
           return errno2result( errno );
