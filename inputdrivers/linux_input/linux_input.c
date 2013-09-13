@@ -1067,12 +1067,6 @@ get_device_info( int              fd,
      if (test_bit( EV_KEY, evbit )) {
           int i;
 
-#ifndef DIRECTFB_DISABLE_DEPRECATED
-          info->desc.caps |= DICAPS_KEYS;
-#else
-          info->desc.caps |= DIDCAPS_KEYS;
-#endif
-
           /* get keyboard bits */
           ioctl( fd, EVIOCGBIT(EV_KEY, sizeof(keybit)), keybit );
 
@@ -1096,6 +1090,14 @@ get_device_info( int              fd,
           for (i=BTN_MOUSE; i<BTN_JOYSTICK; i++)
                if (test_bit( i, keybit ))
                     num_buttons++;
+
+          if (num_keys || num_ext_keys)
+#ifndef DIRECTFB_DISABLE_DEPRECATED
+               info->desc.caps |= DICAPS_KEYS;
+#else
+               info->desc.caps |= DIDCAPS_KEYS;
+#endif
+
      }
 
      if (test_bit( EV_REL, evbit )) {
