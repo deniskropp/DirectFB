@@ -321,7 +321,8 @@ drmkmsInitEncoder( CoreScreen                  *screen,
 
      description->all_resolutions = drmkms_modes_to_dsor_bitmask( encoder );
 
-     config->flags                = DSECONF_RESOLUTION | DSECONF_FREQUENCY;
+     config->flags                = DSECONF_RESOLUTION | DSECONF_FREQUENCY | DSECONF_MIXER;
+     config->mixer                = encoder;
 
      drmkms_mode_to_dsor_dsef( &shared->mode[encoder], &config->resolution, &config->frequency );
 
@@ -483,7 +484,8 @@ drmkmsInitOutput( CoreScreen                  *screen,
 
      description->all_resolutions = drmkms_modes_to_dsor_bitmask( output );
 
-     config->flags                = DSOCONF_RESOLUTION;
+     config->flags                = DSOCONF_RESOLUTION | DSOCONF_ENCODER;
+     config->encoder              = output;
 
      drmkms_mode_to_dsor_dsef( &shared->mode[output], &config->resolution, NULL );
 

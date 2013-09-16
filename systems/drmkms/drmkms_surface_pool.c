@@ -290,6 +290,8 @@ drmkmsLeavePool( CoreSurfacePool *pool,
 
      D_DEBUG_AT( DRMKMS_Surfaces, "%s()\n", __FUNCTION__ );
 
+     (void) data;
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, DRMKMSPoolData );
      D_MAGIC_ASSERT( local, DRMKMSPoolLocalData );
@@ -827,6 +829,8 @@ drmkmsUnlock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
+
+     (void) alloc;
 
      D_DEBUG_AT( DRMKMS_SurfLock, "%s( allocation %p )\n", __FUNCTION__, allocation );
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> %s\n", ToString_CoreSurfaceAllocation( allocation ) );
