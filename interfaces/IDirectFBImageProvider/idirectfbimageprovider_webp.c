@@ -128,6 +128,8 @@ WebP_decode_image( IDirectFBImageProvider_WebP_data *data,
      data->config.output.is_external_memory = 1;
 
      ret = DFB_OK;
+     buffer->SeekTo( buffer, 0 );
+
      while (ret != DFB_EOF && buffer->HasData( buffer ) == DFB_OK) {
           ret = buffer->GetData( buffer, data->image_size, image, &read_size );
 
@@ -224,6 +226,9 @@ IDirectFBImageProvider_WebP_RenderTo( IDirectFBImageProvider *thiz,
 
      data->serial = &state.serial;
 
+     dfb_gfxcard_wait_serial( data->serial );
+     dfb_surface_unref( data->decode_surface );
+
      dfb_state_set_source(&state, NULL);
      dfb_state_set_destination(&state, NULL);
 
@@ -234,11 +239,6 @@ IDirectFBImageProvider_WebP_RenderTo( IDirectFBImageProvider *thiz,
           cb_result=data->base.render_callback( &r, data->base.render_callback_context );
      }
 
-     if (cb_result == DIRCR_OK) {
-          data->base.buffer->Release( data->base.buffer );
-          data->base.buffer = NULL;
-     }
-
      return DFB_OK;
 
 error:
@@ -246,9 +246,6 @@ error:
           dfb_surface_unlock_buffer( data->decode_surface, &lock );
 
      dfb_surface_unref( data->decode_surface );
-
-     data->base.buffer->Release( data->base.buffer );
-     data->base.buffer = NULL;
 
      return ret;
 }

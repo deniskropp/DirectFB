@@ -294,13 +294,14 @@ primaryInitEncoder( CoreScreen                  *screen,
                                     DSOR_1920_1080 | DSOR_960_540 | DSOR_1440_540;
 
      config->flags          = DSECONF_TV_STANDARD | DSECONF_SCANMODE   | DSECONF_FREQUENCY |
-                              DSECONF_CONNECTORS  | DSECONF_RESOLUTION | DSECONF_FRAMING;
+                              DSECONF_CONNECTORS  | DSECONF_RESOLUTION | DSECONF_FRAMING | DSECONF_MIXER;
      config->tv_standard    = DSETV_DIGITAL;
      config->out_connectors = DSOC_COMPONENT | DSOC_HDMI;
      config->scanmode       = DSESM_PROGRESSIVE;
      config->frequency      = DSEF_60HZ;
      config->framing        = DSEPF_MONO;
      config->resolution     = DSOR_1280_720;
+     config->mixer          = encoder;
 
      return DFB_OK;
 }
@@ -371,8 +372,9 @@ primaryInitOutput( CoreScreen                   *screen,
 
      description->caps = DSOCAPS_RESOLUTION;
 
-     config->flags      |= DSOCONF_RESOLUTION;
+     config->flags      |= DSOCONF_RESOLUTION | DSOCONF_ENCODER;
      config->resolution  = DSOR_UNKNOWN;
+     config->encoder     = output;
 
      return DFB_OK;
 }

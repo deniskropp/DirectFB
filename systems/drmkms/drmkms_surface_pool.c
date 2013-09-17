@@ -500,7 +500,7 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
           goto error;
      }
 
-     alloc->name = fl.handle;
+     alloc->name = fl.name;
 
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> name      %d\n", alloc->name );
 
