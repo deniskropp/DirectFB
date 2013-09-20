@@ -468,7 +468,7 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
 
      }
 
-     if ((updated & (CLRCF_SRCKEY | CLRCF_OPTIONS)) && data->alpha_propid) {
+     if ((updated & (CLRCF_SRCKEY | CLRCF_OPTIONS)) && data->colorkey_propid) {
           uint32_t drm_colorkey = config->src_key.r << 16 | config->src_key.g << 8 | config->src_key.b;
 
           if (config->options & DLOP_SRC_COLORKEY)
