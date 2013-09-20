@@ -83,6 +83,8 @@ typedef struct {
 
      DirectMutex          lock;
      DirectWaitQueue      wq_event;
+
+     bool                 muted;
 } DRMKMSLayerData;
 
 typedef struct {
