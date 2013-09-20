@@ -422,8 +422,7 @@ drmkmsPlaneTestRegion( CoreLayer                  *layer,
 
      CoreLayerRegionConfigFlags failed = CLRCF_NONE;
 
-     if (((config->options & DLOP_OPACITY     ) && !data->alpha_propid   ) ||
-         ((config->options & DLOP_SRC_COLORKEY) && !data->colorkey_propid))
+     if ((config->options & DLOP_SRC_COLORKEY) && !data->colorkey_propid)
           failed |= CLRCF_OPTIONS;
 
      if (ret_failed)
@@ -448,11 +447,15 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
                       CoreSurfaceBufferLock      *right_lock )
 {
      int              ret;
+     bool             unmute = false;
      DRMKMSData      *drmkms = driver_data;
      DRMKMSLayerData *data   = layer_data;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
-     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE)) {
+     if ((updated & CLRCF_OPACITY) && data->muted && config->opacity)
+          unmute = true;
+
+     if ((updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE)) || unmute) {
           ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
                                 /* plane_flags */ 0, config->dest.x, config->dest.y, config->dest.w, config->dest.h,
                                 config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
@@ -465,7 +468,7 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
           }
 
           data->config = config;
-
+          data->muted = false;
      }
 
      if ((updated & (CLRCF_SRCKEY | CLRCF_OPTIONS)) && data->colorkey_propid) {
@@ -482,15 +485,26 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
           }
      }
 
-     if (updated & CLRCF_OPACITY && data->alpha_propid) {
-          ret = drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->alpha_propid, config->opacity );
+     if (updated & CLRCF_OPACITY) {
+          if (config->opacity == 0) {
+               ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, 0,
+                                     /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
 
-          if (ret) {
-               D_ERROR( "DirectFB/DRMKMS: drmModeObjectSetProperty() failed setting alpha\n");
-               return DFB_FAILURE;
-          }
+	       if (ret) {
+                    D_ERROR( "DirectFB/DRMKMS: drmModeSetPlane() failed disabling plane\n");
+                    return DFB_FAILURE;
+               }
+
+	       data->muted = true;
+	  } else if (data->alpha_propid) {
+               ret = drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->alpha_propid, config->opacity );
+
+               if (ret) {
+                    D_ERROR( "DirectFB/DRMKMS: drmModeObjectSetProperty() failed setting alpha\n");
+                    return DFB_FAILURE;
+               }
+	  }
      }
-
 
      return DFB_OK;
 }
@@ -507,13 +521,14 @@ drmkmsPlaneRemoveRegion( CoreLayer             *layer,
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
+     if (!data->muted) {
+          ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, 0,
+                                /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
 
-     ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, 0,
-                           /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
-
-     if (ret) {
-          D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n" );
-          return ret;
+          if (ret) {
+               D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n" );
+               return ret;
+          }
      }
 
      return DFB_OK;
@@ -557,16 +572,18 @@ drmkmsPlaneUpdateFlipRegion( CoreLayer             *layer,
      /* Task */
      data->pending_task = left_lock->task;
 
-     ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
-                           /* plane_flags */ 0, data->config->dest.x, data->config->dest.y, data->config->dest.w, data->config->dest.h,
-                           data->config->source.x << 16, data->config->source.y <<16, data->config->source.w << 16, data->config->source.h << 16);
+     if (!data->muted) {
+          ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
+                                /* plane_flags */ 0, data->config->dest.x, data->config->dest.y, data->config->dest.w, data->config->dest.h,
+                                data->config->source.x << 16, data->config->source.y <<16, data->config->source.w << 16, data->config->source.h << 16);
 
-     if (ret) {
-          D_PERROR( "DRMKMS/Layer/FlipRegion: Failed setting plane configuration!\n" );
+          if (ret) {
+               D_PERROR( "DRMKMS/Layer/FlipRegion: Failed setting plane configuration!\n" );
 
-          direct_mutex_unlock( &data->lock );
+               direct_mutex_unlock( &data->lock );
 
-          return ret;
+               return ret;
+          }
      }
 
      if (flip)
