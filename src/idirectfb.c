@@ -1013,7 +1013,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               CoreWindowStack_RepaintAll( data->stack );
                          }
                          else {
-                              CoreLayerRegion_FlipUpdate2( region, NULL, NULL, DSFLIP_NONE, -1 );
+                              CoreSurface_Flip2( surface, DFB_FALSE, NULL, NULL, DSFLIP_NONE, -1 );
                          }
                     }
 

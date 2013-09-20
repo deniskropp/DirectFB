@@ -7,6 +7,7 @@ interface {
 	method {
 		name	FrameAck
 		async	yes
+                indirect yes
 		
 		arg {
 			name	    flip_count

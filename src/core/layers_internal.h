@@ -187,6 +187,9 @@ struct __DFB_CoreLayerRegion {
      CoreSurface                *surface;
      GlobalReaction              surface_reaction;
 
+     CoreSurfaceClient          *surface_client;
+     Reaction                    surface_event_reaction;
+
      void                       *region_data;
 
      CoreSurfaceAccessorID       surface_accessor;

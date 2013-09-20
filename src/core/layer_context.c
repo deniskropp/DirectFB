@@ -1883,6 +1883,8 @@ dfb_layer_context_allocate_surface( CoreLayer             *layer,
      if (dfb_config->layers_clear && !dfb_config->surface_clear)
           dfb_surface_clear_buffers( surface );
 
+     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p ) --> dfb_layer_region_set_surface( %p, %p )\n", __FUNCTION__, layer, region, region, surface );
+
      /* Tell the region about its new surface (adds a global reference). */
      ret = dfb_layer_region_set_surface( region, surface, false );
 

@@ -94,6 +94,7 @@ DFBResult dfb_layer_region_flip_update2  ( CoreLayerRegion      *region,
                                            const DFBRegion      *left_update,
                                            const DFBRegion      *right_update,
                                            DFBSurfaceFlipFlags   flags,
+                                           unsigned int          flip_count,
                                            long long             pts,
                                            DFB_DisplayTask     **ret_task );
 

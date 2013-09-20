@@ -61,6 +61,7 @@
 #include <core/CoreLayer.h>
 #include <core/CoreLayerContext.h>
 #include <core/CoreLayerRegion.h>
+#include <core/CoreSurface.h>
 #include <core/CoreWindowStack.h>
 
 #include <windows/idirectfbwindow.h>
@@ -184,6 +185,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      DFBResult         ret;
      CoreLayerRegion  *region;
      IDirectFBSurface *surface;
+     IDirectFBSurface_data *surface_data;
 
      D_DEBUG_AT( Layer, "%s( %p )\n", __FUNCTION__, thiz );
 
@@ -206,6 +208,8 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL, NULL,
                                              region, DSCAPS_NONE, data->core, data->idirectfb );
 
+     DIRECT_INTERFACE_GET_DATA_FROM( surface, surface_data, IDirectFBSurface );
+
      // Fix to only perform single buffered clearing using a background when 
      // configured to do so AND the display layer region is frozen.  Also 
      // added support for this behavior when the cooperative level is 
@@ -213,7 +217,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      if (region->config.buffermode == DLBM_FRONTONLY && 
          data->level != DLSCL_SHARED && 
          D_FLAGS_IS_SET( region->state, CLRSF_FROZEN )) {
-          // If a window stack is available, give it the opportunity to 
+          // If a window stack is available, give it the opportunity to surface_data
           // render the background (optionally based on configuration) and 
           // flip the display layer so it is visible.  Otherwise, just 
           // directly flip the display layer and make it visible.
@@ -221,7 +225,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
                CoreWindowStack_RepaintAll( data->stack );
           }
           else {
-               CoreLayerRegion_FlipUpdate2( region, NULL, NULL, DSFLIP_NONE, -1 );
+               CoreSurface_Flip2( surface_data->surface, DFB_FALSE, NULL, NULL, DSFLIP_NONE, -1 );
           }
      }
 
