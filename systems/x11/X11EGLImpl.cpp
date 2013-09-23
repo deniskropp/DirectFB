@@ -204,6 +204,14 @@ X11EGLImpl::Context_glEGLImageTargetTexture2D( GL::enum_  &target,
           glEGLImageTargetTexture2DOES( target, image.glEGLImage );
 }
 
+void *
+X11EGLImpl::Context_eglGetProcAddress( const char *name )
+{
+     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p, name '%s' )\n", __FUNCTION__, this, name );
+
+     return (void*) impl.lib.eglGetProcAddress( name );
+}
+
 
 /**********************************************************************************************************************/
 
@@ -232,6 +240,9 @@ X11EGLImpl::X11EGLImpl()
 
      Graphics::Context::Register< GL::OES::glEGLImageTargetTexture2D >( "",
                                                                         std::bind( &X11EGLImpl::Context_glEGLImageTargetTexture2D, this, _1, _2 ) );
+
+     EGL::Core::Register< EGL::Core::GetProcAddress >( "",
+                                                       std::bind( &X11EGLImpl::Context_eglGetProcAddress, this, _1 ) );
 
      Register();
 }
