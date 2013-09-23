@@ -1430,7 +1430,6 @@ dfb_wm_set_window_config( CoreWindow             *window,
                               dfb_layer_region_disable( config_window->stack->context->primary.region );
 
                          dfb_layer_region_enable( config_window->region );
-                         dfb_layer_region_flip_update2( config_window->region, NULL, NULL, DSFLIP_UPDATE, 0, NULL );
                     }
                }
 

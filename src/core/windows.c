@@ -268,6 +268,8 @@ dfb_window_create_region( CoreWindow              *window,
           }
      }
 
+     D_DEBUG_AT( Core_Windows, "%s( %p ) --> dfb_layer_region_set_surface( %p, %p )\n", __FUNCTION__, window, region, surface );
+
      ret = dfb_layer_region_set_surface( region, surface, false );
      if (ret) {
           dfb_surface_unref( surface );
@@ -505,7 +507,7 @@ dfb_window_create( CoreWindowStack             *stack,
      window->config              = config;
      window->config.association  = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
      window->config.cursor_flags = dfb_config->default_cursor_flags;
-
+printf("created window with ID=%d\n", window->id);
      /* Set toplevel window ID (new sub window feature) */
      window->toplevel_id = toplevel_id;
 
@@ -1734,16 +1736,7 @@ dfb_window_repaint( CoreWindow          *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     if (window->region && window->region->state & CLRSF_ENABLED) {
-          D_DEBUG_AT( Core_Windows, "  -> updating single window region\n" );
-
-          ret = CoreLayerRegion_FlipUpdate2( window->region, left_region, right_region, flags, timestamp );
-     }
-     else {
-          D_DEBUG_AT( Core_Windows, "  -> updating composed window region\n" );
-
-          ret = CoreSurface_Flip2( window->surface, DFB_FALSE, left_region, right_region, flags, timestamp );
-     }
+     ret = CoreSurface_Flip2( window->surface, DFB_FALSE, left_region, right_region, flags, timestamp );
 
      /* Never call WM after destroying the window. */
      if (DFB_WINDOW_DESTROYED( window )) {

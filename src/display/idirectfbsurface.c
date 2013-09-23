@@ -3931,7 +3931,7 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
      IDirectFBSurface_data         *data         = thiz->priv;
      CoreSurface                   *surface      = data->surface;
 
-     D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, msg_data, ctx );
+     D_DEBUG_AT( Surface, "%s( %p, %p ) (surface %p)\n", __FUNCTION__, msg_data, ctx, surface );
 
      if (notification->flags & CSNF_DESTROY) {
           if (data->surface) {

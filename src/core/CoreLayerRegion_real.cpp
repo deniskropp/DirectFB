@@ -105,12 +105,13 @@ ILayerRegion_Real::FlipUpdate2(
                     const DFBRegion                           *left_update,
                     const DFBRegion                           *right_update,
                     DFBSurfaceFlipFlags                        flags,
+                    unsigned int                               flip_count,
                     s64                                        pts
 )
 {
-    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s( flags 0x%08x, pts %lld )\n", __FUNCTION__, flags, (long long) pts );
+    D_DEBUG_AT( DirectFB_CoreLayerRegion, "ILayerRegion_Requestor::%s( flags 0x%08x, flip_count %d, pts %lld )\n", __FUNCTION__, flags, flip_count, (long long) pts );
 
-    return dfb_layer_region_flip_update2( obj, left_update, right_update, flags, pts, NULL );
+    return dfb_layer_region_flip_update2( obj, left_update, right_update, flags, flip_count, pts, NULL );
 }
 
 
@@ -172,6 +173,7 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
                                const DFBRegion      *left_update,
                                const DFBRegion      *right_update,
                                DFBSurfaceFlipFlags   flags,
+                               unsigned int          flip_count,
                                long long             pts,
                                DisplayTask         **ret_task )
 {
@@ -312,7 +314,7 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
 
      D_DEBUG_AT( DirectFB_Task_Display, "  -> done.\n" );
 
-     dfb_surface_dispatch_update( region->surface, left_update, right_update, pts );
+     //dfb_surface_dispatch_update( region->surface, left_update, right_update, pts );
 
      dfb_surface_unlock( surface );
 

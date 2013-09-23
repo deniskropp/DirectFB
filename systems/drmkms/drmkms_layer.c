@@ -175,16 +175,17 @@ drmkmsSetRegion( CoreLayer                  *layer,
 }
 
 static DFBResult
-drmkmsFlipRegion( CoreLayer             *layer,
-                  void                  *driver_data,
-                  void                  *layer_data,
-                  void                  *region_data,
-                  CoreSurface           *surface,
-                  DFBSurfaceFlipFlags    flags,
-                  const DFBRegion       *left_update,
-                  CoreSurfaceBufferLock *left_lock,
-                  const DFBRegion       *right_update,
-                  CoreSurfaceBufferLock *right_lock )
+drmkmsUpdateFlipRegion( CoreLayer             *layer,
+                        void                  *driver_data,
+                        void                  *layer_data,
+                        void                  *region_data,
+                        CoreSurface           *surface,
+                        DFBSurfaceFlipFlags    flags,
+                        const DFBRegion       *left_update,
+                        CoreSurfaceBufferLock *left_lock,
+                        const DFBRegion       *right_update,
+                        CoreSurfaceBufferLock *right_lock,
+                        bool                   flip )
 {
      int               ret, i;
      DRMKMSData       *drmkms = driver_data;
@@ -199,7 +200,8 @@ drmkmsFlipRegion( CoreLayer             *layer,
      while (data->flip_pending) {
           D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (previous)\n" );
 
-          direct_waitqueue_wait( &data->wq_event, &data->lock );
+          if (direct_waitqueue_wait_timeout( &data->wq_event, &data->lock, 30000 ) == DR_TIMEOUT)
+               break;
      }
 
 
@@ -233,13 +235,15 @@ drmkmsFlipRegion( CoreLayer             *layer,
 
      shared->primary_fb = (u32)(long)left_lock->handle;
 
-     dfb_surface_flip( surface, false );
+     if (flip)
+          dfb_surface_flip( surface, false );
 
      if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) {
           while (data->flip_pending) {
                D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (WAITFORSYNC)\n" );
 
-               direct_waitqueue_wait( &data->wq_event, &data->lock );
+               if (direct_waitqueue_wait_timeout( &data->wq_event, &data->lock, 30000 ) == DR_TIMEOUT)
+                    break;
           }
      }
 
@@ -248,6 +252,36 @@ drmkmsFlipRegion( CoreLayer             *layer,
      return DFB_OK;
 }
 
+static DFBResult
+drmkmsFlipRegion( CoreLayer             *layer,
+                  void                  *driver_data,
+                  void                  *layer_data,
+                  void                  *region_data,
+                  CoreSurface           *surface,
+                  DFBSurfaceFlipFlags    flags,
+                  const DFBRegion       *left_update,
+                  CoreSurfaceBufferLock *left_lock,
+                  const DFBRegion       *right_update,
+                  CoreSurfaceBufferLock *right_lock )
+{
+     return drmkmsUpdateFlipRegion( layer, driver_data, layer_data, region_data, surface, flags,
+                                    left_update, left_lock, right_update, right_lock, true );
+}
+
+static DFBResult
+drmkmsUpdateRegion( CoreLayer             *layer,
+                    void                  *driver_data,
+                    void                  *layer_data,
+                    void                  *region_data,
+                    CoreSurface           *surface,
+                    const DFBRegion       *left_update,
+                    CoreSurfaceBufferLock *left_lock,
+                    const DFBRegion       *right_update,
+                    CoreSurfaceBufferLock *right_lock )
+{
+     return drmkmsUpdateFlipRegion( layer, driver_data, layer_data, region_data, surface, DSFLIP_ONSYNC,
+                                    left_update, left_lock, right_update, right_lock, false );
+}
 
 static int
 drmkmsLayerDataSize( void )
@@ -388,8 +422,7 @@ drmkmsPlaneTestRegion( CoreLayer                  *layer,
 
      CoreLayerRegionConfigFlags failed = CLRCF_NONE;
 
-     if (((config->options & DLOP_OPACITY     ) && !data->alpha_propid   ) ||
-         ((config->options & DLOP_SRC_COLORKEY) && !data->colorkey_propid))
+     if ((config->options & DLOP_SRC_COLORKEY) && !data->colorkey_propid)
           failed |= CLRCF_OPTIONS;
 
      if (ret_failed)
@@ -414,11 +447,15 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
                       CoreSurfaceBufferLock      *right_lock )
 {
      int              ret;
+     bool             unmute = false;
      DRMKMSData      *drmkms = driver_data;
      DRMKMSLayerData *data   = layer_data;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
-     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE)) {
+     if ((updated & CLRCF_OPACITY) && data->muted && config->opacity)
+          unmute = true;
+
+     if ((updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_DEST | CLRCF_SOURCE)) || unmute) {
           ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
                                 /* plane_flags */ 0, config->dest.x, config->dest.y, config->dest.w, config->dest.h,
                                 config->source.x << 16, config->source.y <<16, config->source.w << 16, config->source.h << 16);
@@ -431,10 +468,10 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
           }
 
           data->config = config;
-
+          data->muted = false;
      }
 
-     if ((updated & (CLRCF_SRCKEY | CLRCF_OPTIONS)) && data->alpha_propid) {
+     if ((updated & (CLRCF_SRCKEY | CLRCF_OPTIONS)) && data->colorkey_propid) {
           uint32_t drm_colorkey = config->src_key.r << 16 | config->src_key.g << 8 | config->src_key.b;
 
           if (config->options & DLOP_SRC_COLORKEY)
@@ -448,15 +485,26 @@ drmkmsPlaneSetRegion( CoreLayer                  *layer,
           }
      }
 
-     if (updated & CLRCF_OPACITY && data->alpha_propid) {
-          ret = drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->alpha_propid, config->opacity );
+     if (updated & CLRCF_OPACITY) {
+          if (config->opacity == 0) {
+               ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, 0,
+                                     /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
 
-          if (ret) {
-               D_ERROR( "DirectFB/DRMKMS: drmModeObjectSetProperty() failed setting alpha\n");
-               return DFB_FAILURE;
-          }
+	       if (ret) {
+                    D_ERROR( "DirectFB/DRMKMS: drmModeSetPlane() failed disabling plane\n");
+                    return DFB_FAILURE;
+               }
+
+	       data->muted = true;
+	  } else if (data->alpha_propid) {
+               ret = drmModeObjectSetProperty( drmkms->fd, data->plane->plane_id, DRM_MODE_OBJECT_PLANE, data->alpha_propid, config->opacity );
+
+               if (ret) {
+                    D_ERROR( "DirectFB/DRMKMS: drmModeObjectSetProperty() failed setting alpha\n");
+                    return DFB_FAILURE;
+               }
+	  }
      }
-
 
      return DFB_OK;
 }
@@ -473,13 +521,14 @@ drmkmsPlaneRemoveRegion( CoreLayer             *layer,
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
+     if (!data->muted) {
+          ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, 0,
+                                /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
 
-     ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, 0,
-                           /* plane_flags */ 0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0);
-
-     if (ret) {
-          D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n" );
-          return ret;
+          if (ret) {
+               D_PERROR( "DRMKMS/Layer/Remove: Failed setting plane configuration!\n" );
+               return ret;
+          }
      }
 
      return DFB_OK;
@@ -487,16 +536,17 @@ drmkmsPlaneRemoveRegion( CoreLayer             *layer,
 
 
 static DFBResult
-drmkmsPlaneFlipRegion( CoreLayer             *layer,
-                       void                  *driver_data,
-                       void                  *layer_data,
-                       void                  *region_data,
-                       CoreSurface           *surface,
-                       DFBSurfaceFlipFlags    flags,
-                       const DFBRegion       *left_update,
-                       CoreSurfaceBufferLock *left_lock,
-                       const DFBRegion       *right_update,
-                       CoreSurfaceBufferLock *right_lock )
+drmkmsPlaneUpdateFlipRegion( CoreLayer             *layer,
+                             void                  *driver_data,
+                             void                  *layer_data,
+                             void                  *region_data,
+                             CoreSurface           *surface,
+                             DFBSurfaceFlipFlags    flags,
+                             const DFBRegion       *left_update,
+                             CoreSurfaceBufferLock *left_lock,
+                             const DFBRegion       *right_update,
+                             CoreSurfaceBufferLock *right_lock,
+                             bool                   flip )
 {
      int               ret;
      DRMKMSData       *drmkms = driver_data;
@@ -510,7 +560,8 @@ drmkmsPlaneFlipRegion( CoreLayer             *layer,
      while (data->flip_pending) {
           D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (previous)\n" );
 
-          direct_waitqueue_wait( &data->wq_event, &data->lock );
+          if (direct_waitqueue_wait_timeout( &data->wq_event, &data->lock, 30000 ) == DR_TIMEOUT)
+               break;
      }
 
 
@@ -521,19 +572,22 @@ drmkmsPlaneFlipRegion( CoreLayer             *layer,
      /* Task */
      data->pending_task = left_lock->task;
 
-     ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
-                           /* plane_flags */ 0, data->config->dest.x, data->config->dest.y, data->config->dest.w, data->config->dest.h,
-                           data->config->source.x << 16, data->config->source.y <<16, data->config->source.w << 16, data->config->source.h << 16);
+     if (!data->muted) {
+          ret = drmModeSetPlane(drmkms->fd, data->plane->plane_id, drmkms->encoder[0]->crtc_id, (u32)(long)left_lock->handle,
+                                /* plane_flags */ 0, data->config->dest.x, data->config->dest.y, data->config->dest.w, data->config->dest.h,
+                                data->config->source.x << 16, data->config->source.y <<16, data->config->source.w << 16, data->config->source.h << 16);
 
-     if (ret) {
-          D_PERROR( "DRMKMS/Layer/FlipRegion: Failed setting plane configuration!\n" );
+          if (ret) {
+               D_PERROR( "DRMKMS/Layer/FlipRegion: Failed setting plane configuration!\n" );
 
-          direct_mutex_unlock( &data->lock );
+               direct_mutex_unlock( &data->lock );
 
-          return ret;
+               return ret;
+          }
      }
 
-     dfb_surface_flip( surface, false );
+     if (flip)
+          dfb_surface_flip( surface, false );
 
      data->flip_pending = true;
 
@@ -548,7 +602,8 @@ drmkmsPlaneFlipRegion( CoreLayer             *layer,
           while (data->flip_pending) {
                D_DEBUG_AT( DRMKMS_Layer, "  -> waiting for pending flip (WAITFORSYNC)\n" );
 
-               direct_waitqueue_wait( &data->wq_event, &data->lock );
+               if (direct_waitqueue_wait_timeout( &data->wq_event, &data->lock, 30000 ) == DR_TIMEOUT)
+                    break;
           }
      }
 
@@ -557,13 +612,44 @@ drmkmsPlaneFlipRegion( CoreLayer             *layer,
      return DFB_OK;
 }
 
+static DFBResult
+drmkmsPlaneFlipRegion( CoreLayer             *layer,
+                       void                  *driver_data,
+                       void                  *layer_data,
+                       void                  *region_data,
+                       CoreSurface           *surface,
+                       DFBSurfaceFlipFlags    flags,
+                       const DFBRegion       *left_update,
+                       CoreSurfaceBufferLock *left_lock,
+                       const DFBRegion       *right_update,
+                       CoreSurfaceBufferLock *right_lock )
+{
+     return drmkmsPlaneUpdateFlipRegion( layer, driver_data, layer_data, region_data, surface, flags,
+                                         left_update, left_lock, right_update, right_lock, true );
+}
+
+static DFBResult
+drmkmsPlaneUpdateRegion( CoreLayer             *layer,
+                         void                  *driver_data,
+                         void                  *layer_data,
+                         void                  *region_data,
+                         CoreSurface           *surface,
+                         const DFBRegion       *left_update,
+                         CoreSurfaceBufferLock *left_lock,
+                         const DFBRegion       *right_update,
+                         CoreSurfaceBufferLock *right_lock )
+{
+     return drmkmsPlaneUpdateFlipRegion( layer, driver_data, layer_data, region_data, surface, DSFLIP_ONSYNC,
+                                         left_update, left_lock, right_update, right_lock, false );
+}
 
 static const DisplayLayerFuncs _drmkmsLayerFuncs = {
      .LayerDataSize = drmkmsLayerDataSize,
      .InitLayer     = drmkmsInitLayer,
      .TestRegion    = drmkmsTestRegion,
      .SetRegion     = drmkmsSetRegion,
-     .FlipRegion    = drmkmsFlipRegion
+     .FlipRegion    = drmkmsFlipRegion,
+     .UpdateRegion  = drmkmsUpdateRegion
 };
 
 static const DisplayLayerFuncs _drmkmsPlaneLayerFuncs = {
@@ -574,7 +660,8 @@ static const DisplayLayerFuncs _drmkmsPlaneLayerFuncs = {
      .TestRegion    = drmkmsPlaneTestRegion,
      .SetRegion     = drmkmsPlaneSetRegion,
      .RemoveRegion  = drmkmsPlaneRemoveRegion,
-     .FlipRegion    = drmkmsPlaneFlipRegion
+     .FlipRegion    = drmkmsPlaneFlipRegion,
+     .UpdateRegion  = drmkmsPlaneUpdateRegion,
 };
 
 const DisplayLayerFuncs *drmkmsLayerFuncs = &_drmkmsLayerFuncs;

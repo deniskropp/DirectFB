@@ -64,6 +64,7 @@
 #include <core/wm.h>
 
 #include <core/CoreGraphicsStateClient.h>
+#include <core/CoreLayerRegion.h>
 #include <core/Task.h>
 
 #include <gfx/util.h>
@@ -1514,29 +1515,35 @@ flush_updating( StackData *data )
      if (dfb_config->task_manager) {
           /* Flip the whole layer. */
           DFB_DisplayTask *display_task;
+          CoreSurface *surface;
 
-          ret = dfb_layer_region_flip_update2( data->region, &data->updated.bounding, &data->updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP, -1, &display_task );
+          ret = CoreLayerRegion_GetSurface( data->region, &surface );
           if (ret)
-               D_DERROR( ret, "WM/Default: Display Task creation failed!\n" );
+               D_DERROR( ret, "WM/Default: GetSurface failed!\n" );
           else {
-               DFB_Task *display_notify_task;
-
-               ret = SimpleTask_Create( NULL, defaultwm_surface_display_notify, data, &display_notify_task );
+               ret = dfb_layer_region_flip_update2( data->region, &data->updated.bounding, &data->updated.bounding, DSFLIP_ONSYNC | DSFLIP_SWAP, surface->flips, -1, &display_task );
                if (ret)
-                    D_DERROR( ret, "WM/Default: Simple Task creation failed!\n" );
+                    D_DERROR( ret, "WM/Default: Display Task creation failed!\n" );
                else {
+                    DFB_Task *display_notify_task;
+
+                    ret = SimpleTask_Create( NULL, defaultwm_surface_display_notify, data, &display_notify_task );
+                    if (ret)
+                         D_DERROR( ret, "WM/Default: Simple Task creation failed!\n" );
+                    else {
+                         if (display_task)
+                              Task_AddNotify( display_task, display_notify_task, true );
+
+                         data->last_notify_task = display_notify_task;
+
+                         /* Must be flushed before display task, otherwise Task Manager will
+                            assert on display_notify_task state when display_task is flushed. */
+                         Task_Flush( display_notify_task );
+                    }
+
                     if (display_task)
-                         Task_AddNotify( display_task, display_notify_task, true );
-
-                    data->last_notify_task = display_notify_task;
-
-                    /* Must be flushed before display task, otherwise Task Manager will
-                       assert on display_notify_task state when display_task is flushed. */
-                    Task_Flush( display_notify_task );
+                         Task_Flush( display_task );
                }
-
-               if (display_task)
-                    Task_Flush( display_task );
           }
      }
      else
