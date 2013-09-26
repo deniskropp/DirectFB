@@ -101,6 +101,9 @@ typedef unsigned int CoreSurfacePoolBridgeID;
 
 
 #ifdef __cplusplus
+
+#include <direct/Types++.h>
+
 namespace DirectFB {
 namespace Util {
      class FPS;

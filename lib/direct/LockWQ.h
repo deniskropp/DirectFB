@@ -33,6 +33,8 @@
 #ifndef ___Direct__LockWQ__H___
 #define ___Direct__LockWQ__H___
 
+#include <direct/Types++.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

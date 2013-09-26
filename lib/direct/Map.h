@@ -33,6 +33,8 @@
 #ifndef ___Direct__Map__H___
 #define ___Direct__Map__H___
 
+#include <direct/Types++.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

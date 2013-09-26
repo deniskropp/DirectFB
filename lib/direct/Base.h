@@ -45,6 +45,8 @@ extern "C" {
 #ifdef __cplusplus
 }
 
+#include <direct/Types++.h>
+
 #include <direct/Map.h>
 #include <direct/String.h>
 #include <direct/ToString.h>

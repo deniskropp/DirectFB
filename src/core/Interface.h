@@ -33,6 +33,9 @@
 #ifndef __CORE_INTERFACE_H__
 #define __CORE_INTERFACE_H__
 
+
+#include <direct/Types++.h>
+
 extern "C" {
 #include <core/core.h>
 }
