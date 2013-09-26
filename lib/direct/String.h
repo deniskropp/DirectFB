@@ -34,6 +34,8 @@
 #define ___Direct__String__H___
 
 #ifdef __cplusplus
+#include <direct/Types++.h>
+
 extern "C" {
 #endif
 
@@ -70,7 +72,6 @@ const char *D_String_PrintTLS( const char *format, ... )           D_FORMAT_PRIN
 
 #ifdef __cplusplus
 }
-
 
 #include <ostream>
 #include <string>

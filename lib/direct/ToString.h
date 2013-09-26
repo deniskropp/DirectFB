@@ -34,6 +34,8 @@
 #define ___Direct__ToString__H___
 
 
+#include <direct/Types++.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

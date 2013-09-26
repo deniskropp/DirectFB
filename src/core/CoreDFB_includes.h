@@ -34,6 +34,8 @@
 #define __CoreDFB_includes_h__
 
 #ifdef __cplusplus
+#include <direct/Types++.h>
+
 extern "C" {
 #endif
 

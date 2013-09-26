@@ -35,6 +35,9 @@
 
 
 #ifdef __cplusplus
+
+#include <direct/Types++.h>
+
 extern "C" {
 #endif
 

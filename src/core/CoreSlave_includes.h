@@ -2,6 +2,9 @@
 #define __CORESLAVE_INCLUDES_H__
 
 #ifdef __cplusplus
+
+#include <direct/Types++.h>
+
 extern "C" {
 #endif
 
