@@ -34,6 +34,9 @@
 #define ___DirectFB__Renderer__H___
 
 #ifdef __cplusplus
+
+#include <direct/Types++.h>
+
 extern "C" {
 #endif
 

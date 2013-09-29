@@ -696,6 +696,10 @@ dfbeglGetProcAddress( const char *procname )
           }
           catch (std::bad_function_call &e) {
                D_DEBUG_AT( DFBEGL_Api, "  => %s\n", e.what() );
+
+               addr = (__eglMustCastToProperFunctionPointerType) EGL::Core::Call<EGL::Core::GetProcAddress>()( procname );
+
+               D_DEBUG_AT( DFBEGL_Api, "  => %p\n", addr );
           }
 
 
@@ -704,6 +708,8 @@ dfbeglGetProcAddress( const char *procname )
           if (it != symbols.end())
                return (*it).second;
      }
+
+     D_DEBUG_AT( DFBEGL_Api, "  ==> %p\n", addr );
 
      return addr;
 }

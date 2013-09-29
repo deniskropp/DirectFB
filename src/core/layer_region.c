@@ -55,6 +55,8 @@
 #include <core/system.h>
 
 #include <core/CoreLayerRegion.h>
+#include <core/CoreSurface.h>
+#include <core/CoreSurfaceClient.h>
 #include <core/Task.h>
 
 #include <gfx/util.h>
@@ -113,8 +115,12 @@ region_destructor( FusionObject *object, bool zombie, void *ctx )
      /* Throw away its surface. */
      if (region->surface) {
           /* Detach the global listener. */
-          dfb_surface_detach_global( region->surface,
-                                     &region->surface_reaction );
+          dfb_surface_detach_global( region->surface, &region->surface_reaction );
+
+          /* Detach the surface event listener. */
+          dfb_surface_detach( region->surface, &region->surface_event_reaction );
+
+          dfb_surface_client_unref( region->surface_client );
 
           /* Unlink from structure. */
           dfb_surface_unlink( &region->surface );
@@ -131,6 +137,32 @@ region_destructor( FusionObject *object, bool zombie, void *ctx )
 
      /* Destroy the object. */
      fusion_object_destroy( object );
+}
+
+static ReactionResult surface_react( const void *msg_data,
+                                     void       *ctx )
+{
+     const DFBSurfaceEvent *evt  = msg_data;
+     CoreLayerRegion       *region = ctx;
+
+     D_DEBUG_AT( Core_Layers, "%s( %p ) <- type %06x\n", __FUNCTION__, evt, evt->type );
+     D_DEBUG_AT( Core_Layers, "  -> surface id %u\n", evt->surface_id );
+
+     if (evt->type == DSEVT_UPDATE) {
+          D_DEBUG_AT( Core_Layers, "  -> updated %d,%d-%dx%d (left)\n", DFB_RECTANGLE_VALS_FROM_REGION(&evt->update) );
+          D_DEBUG_AT( Core_Layers, "  -> updated %d,%d-%dx%d (right)\n", DFB_RECTANGLE_VALS_FROM_REGION(&evt->update_right) );
+          D_DEBUG_AT( Core_Layers, "  -> flip count %u\n", evt->flip_count );
+          D_DEBUG_AT( Core_Layers, "  -> time stamp %lld\n", evt->time_stamp );
+
+
+          if (!CoreLayerRegion_FlipUpdate2( region, &evt->update, &evt->update_right,
+                                            DSFLIP_ONSYNC | DSFLIP_UPDATE, evt->flip_count, evt->time_stamp ))
+               CoreSurfaceClient_FrameAck( region->surface_client, evt->flip_count );
+     }
+     else if (evt->type == DSEVT_DESTROYED)
+          return RS_REMOVE;
+
+     return RS_OK;
 }
 
 /******************************************************************************/
@@ -358,6 +390,8 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
 {
      DFBResult ret;
 
+     D_DEBUG_AT( Core_Layers, "%s( %p, %p, %d )\n", __FUNCTION__, region, surface, update );
+
      D_ASSERT( region != NULL );
      D_ASSERT( surface != NULL );
 
@@ -381,8 +415,12 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
           /* Throw away the old surface. */
           if (region->surface) {
                /* Detach the global listener. */
-               dfb_surface_detach_global( region->surface,
-                                          &region->surface_reaction );
+               dfb_surface_detach_global( region->surface, &region->surface_reaction );
+
+               /* Detach the surface event listener. */
+               dfb_surface_detach( region->surface, &region->surface_event_reaction );
+
+               dfb_surface_client_unref( region->surface_client );
 
                /* Unlink surface from structure. */
                dfb_surface_unlink( &region->surface );
@@ -397,10 +435,21 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
                     return DFB_FUSION;
                }
 
+               /* Create the surface client. */
+               ret = CoreSurface_CreateClient( region->surface, &region->surface_client );
+               if (ret) {
+                    D_WARN( "failed to create surface client" );
+                    dfb_layer_region_unlock( region );
+                    return ret;
+               }
+
                /* Attach the global listener. */
-               dfb_surface_attach_global( region->surface,
-                                          DFB_LAYER_REGION_SURFACE_LISTENER,
+               dfb_surface_attach_global( region->surface, DFB_LAYER_REGION_SURFACE_LISTENER,
                                           region, &region->surface_reaction );
+
+               /* Attach the surface event listener. */
+               dfb_surface_attach_channel( region->surface, CSCH_EVENT, surface_react,
+                                           region, &region->surface_event_reaction );
           }
 
           if (update && D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ))
@@ -460,7 +509,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      const DisplayLayerFuncs *funcs;
 
      if (dfb_config->task_manager)
-          return dfb_layer_region_flip_update2( region, update, update, flags, -1, NULL );
+          return dfb_layer_region_flip_update2( region, update, update, flags, region->surface->flips, -1, NULL );
 
      if (update)
           D_DEBUG_AT( Core_Layers,
@@ -662,7 +711,7 @@ update_only:
                ret = DFB_BUG;
      }
 
-     dfb_surface_dispatch_update( surface, update, update, -1 );
+     //dfb_surface_dispatch_update( surface, update, update, -1 );
 
      D_DEBUG_AT( Core_Layers, "  -> done.\n" );
 
@@ -690,7 +739,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
      DFBSurfaceStereoEye      eyes = 0;
 
      if (dfb_config->task_manager)
-          return dfb_layer_region_flip_update2( region, left_update, right_update, flags, -1, NULL );
+          return dfb_layer_region_flip_update2( region, left_update, right_update, flags, region->surface->flips, -1, NULL );
 
      D_DEBUG_AT( Core_Layers, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, region, left_update, right_update, flags );
      if (left_update)

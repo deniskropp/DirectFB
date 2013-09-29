@@ -513,7 +513,7 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
       * Mode Framebuffer
       */
 
-     if (surface->type & CSTF_LAYER) {
+     if (surface->type & (CSTF_LAYER | CSTF_WINDOW)) {
           u32 drm_bo_offsets[4] = {0,0,0,0};
           u32 drm_bo_handles[4] = {0,0,0,0};
           u32 drm_bo_pitches[4] = {0,0,0,0};

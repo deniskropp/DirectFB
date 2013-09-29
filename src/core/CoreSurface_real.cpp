@@ -32,6 +32,8 @@
 
 #include <config.h>
 
+#include <direct/Types++.h>
+
 #include <directfb_util.h>
 
 
@@ -818,7 +820,7 @@ ISurface_Real::CreateClient(
                          CoreSurfaceClient                           **ret_client
                          )
 {
-     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s(%p)\n", __FUNCTION__, obj );
 
      D_ASSERT( ret_client != NULL );
 

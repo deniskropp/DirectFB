@@ -115,6 +115,8 @@ public:
      void Context_glEGLImageTargetTexture2D( GL::enum_  &target,
                                              GLeglImage &image );
 
+     void *Context_eglGetProcAddress( const char *name );
+
 private:
      ::Display         *x11_display;
      X11Display        *display;

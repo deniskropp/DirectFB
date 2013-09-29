@@ -36,6 +36,8 @@
 
 #include <wayland-client.h>
 
+#include <direct/Types++.h>
+
 extern "C" {
 #include <direct/messages.h>
 

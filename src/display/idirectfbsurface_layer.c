@@ -167,7 +167,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
                break;
      }
 
-     ret = CoreLayerRegion_FlipUpdate2( data->region, &reg, &reg, flags, data->base.current_frame_time );
+     ret = CoreSurface_Flip2( surface, DFB_FALSE, &reg, &reg, flags, data->base.current_frame_time );
      if (ret)
           return ret;
 
@@ -259,7 +259,7 @@ IDirectFBSurface_Layer_FlipStereo( IDirectFBSurface    *thiz,
                data->base.local_flip_count++;
      }
 
-     ret = CoreLayerRegion_FlipUpdate2( data->region, &l_reg, &r_reg, flags, data->base.current_frame_time );
+     ret = CoreSurface_Flip2( surface, DFB_FALSE, &l_reg, &r_reg, flags, data->base.current_frame_time );
      if (ret)
           return ret;
 

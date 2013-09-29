@@ -34,6 +34,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <direct/Types++.h>
+
 extern "C" {
 #include <direct/messages.h>
 

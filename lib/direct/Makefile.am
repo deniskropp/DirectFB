@@ -60,6 +60,7 @@ include_HEADERS = \
 	TLSObject.h			\
 	ToString.h			\
 	Type.h				\
+	Types++.h			\
 	Utils.h				\
 	atomic.h			\
 	build.h				\

@@ -108,7 +108,7 @@ dfb_surface_client_create( CoreDFB            *core,
      CORE_SURFACE_ASSERT( surface );
      D_ASSERT( ret_client != NULL );
 
-     D_DEBUG_AT( Core_SurfClient, "%s( %dx%d %s )\n", __FUNCTION__, surface->config.size.w,
+     D_DEBUG_AT( Core_SurfClient, "%s( %p %dx%d %s )\n", __FUNCTION__, surface, surface->config.size.w,
                  surface->config.size.h, dfb_pixelformat_name( surface->config.format ) );
 
      client = dfb_core_create_surface_client( core );

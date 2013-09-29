@@ -58,7 +58,7 @@ struct wl_dfb_listener {
 	 */
 	void (*surface_id)(void *data,
 			   struct wl_dfb *wl_dfb,
-			   void *surface,
+			   struct wl_object *surface,
 			   uint32_t surface_id);
 };
 

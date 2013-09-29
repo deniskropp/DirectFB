@@ -86,6 +86,13 @@ interface {
 			typename  DFBSurfaceFlipFlags
 		}
 
+                arg {
+                        name      flip_count
+                        direction input
+                        type      int
+                        typename  u32
+                }
+
 		arg {
 			name      pts
 			direction input
@@ -96,6 +103,7 @@ interface {
 
 	method {
 		name SetSurface
+                indirect yes
 
 		arg {
 			name      surface

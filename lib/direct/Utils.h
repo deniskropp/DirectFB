@@ -46,6 +46,8 @@ const char *D_Demangle( const char *symbol );
 #ifdef __cplusplus
 }
 
+#include <direct/Types++.h>
+
 #include <direct/String.h>
 #include <direct/ToString.h>
 
