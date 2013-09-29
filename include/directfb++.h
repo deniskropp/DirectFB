@@ -265,6 +265,14 @@ public:
           y2 = y1 + dimension.h - 1;
      }
 
+     int width() const {
+          return x2 - x1 + 1;
+     }
+
+     int height() const {
+          return y2 - y1 + 1;
+     }
+
      bool operator== ( const DFBRegion &ref ) const {
           return ref.x1 == x1 && ref.y1 == y1 && ref.x2 == x2 && ref.y2 == y2;
      }
