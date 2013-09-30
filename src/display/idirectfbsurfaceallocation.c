@@ -103,6 +103,29 @@ IDirectFBSurfaceAllocation_Release( IDirectFBSurfaceAllocation *thiz )
 
 
 static DFBResult
+IDirectFBSurfaceAllocation_GetDescription( IDirectFBSurfaceAllocation *thiz,
+                                           DFBSurfaceDescription      *ret_desc )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurfaceAllocation)
+
+     D_DEBUG_AT( SurfaceAllocation, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->allocation)
+          return DFB_DESTROYED;
+
+     if (!ret_desc)
+          return DFB_INVARG;
+
+     ret_desc->flags = DSDESC_HINTS;
+     ret_desc->hints = DSHF_NONE;
+
+     if (data->allocation->type & CSTF_LAYER)
+          ret_desc->hints |= DSHF_LAYER;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurfaceAllocation_GetHandle( IDirectFBSurfaceAllocation    *thiz,
                                       u64                           *ret_handle )
 {
@@ -179,9 +202,10 @@ DFBResult IDirectFBSurfaceAllocation_Construct( IDirectFBSurfaceAllocation *thiz
      thiz->AddRef = IDirectFBSurfaceAllocation_AddRef;
      thiz->Release = IDirectFBSurfaceAllocation_Release;
 
-     thiz->GetHandle = IDirectFBSurfaceAllocation_GetHandle;
+     thiz->GetDescription = IDirectFBSurfaceAllocation_GetDescription;
+     thiz->GetHandle      = IDirectFBSurfaceAllocation_GetHandle;
 
-     thiz->Updated = IDirectFBSurfaceAllocation_Updated;
+     thiz->Updated        = IDirectFBSurfaceAllocation_Updated;
 
      return DFB_OK;
 }
