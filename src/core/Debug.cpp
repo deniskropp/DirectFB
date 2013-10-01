@@ -171,6 +171,12 @@ ToString<DFBDimension>::ToString( const DFBDimension &v )
 }
 
 template<>
+ToString<DFBRectangle>::ToString( const DFBRectangle &v )
+{
+     PrintF( "%d,%d-%dx%d", v.x, v.y, v.w, v.h );
+}
+
+template<>
 ToString<DFBDisplayLayerBufferMode>::ToString( const DFBDisplayLayerBufferMode &mode )
 {
      switch (mode) {
@@ -244,11 +250,13 @@ ToString<CoreSurfaceAccessFlags>::ToString( const CoreSurfaceAccessFlags &flags 
 template<>
 ToString<CoreLayerRegionConfig>::ToString( const CoreLayerRegionConfig &config )
 {
-     PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%s",
+     PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%s source:%s dest:%s",
              config.width, config.height,
              *ToString<DFBSurfacePixelFormat>(config.format),
              *ToString<DFBSurfaceCapabilities>(config.surface_caps),
-             *ToString<DFBDisplayLayerBufferMode>(config.buffermode) );
+             *ToString<DFBDisplayLayerBufferMode>(config.buffermode),
+             *ToString<DFBRectangle>(config.source),
+             *ToString<DFBRectangle>(config.dest) );
 }
 
 
