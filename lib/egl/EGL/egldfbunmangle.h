@@ -81,5 +81,6 @@
 
 #undef eglGetProcAddress
 
+#undef eglGetConfigAttribsDIRECTFB
 
 #endif /* __egldfbunmangle_h_ */

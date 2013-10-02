@@ -80,6 +80,6 @@
 #define eglCopyBuffers dfbeglCopyBuffers
 
 #define eglGetProcAddress dfbeglGetProcAddress
-
+#define eglGetConfigAttribsDIRECTFB dfbeglGetConfigAttribsDIRECTFB
 
 #endif /* __egldfbmangle_h_ */
