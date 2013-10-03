@@ -255,7 +255,7 @@ direct_log_domain_vprintf( DirectLogDomain *domain,
           indent &= 0x7f;
 
           /* Fill up domain name column after the colon, prepending remaining space (excl. ': ') to indent. */
-          indent += (domain->name_len < 27 ? 27 : 42) - domain->name_len - 2;
+          indent += (domain->name_len < 34 ? 34 : 50) - domain->name_len - 2;
 
           /* Print full message. */
           direct_log_printf( domain->config.log,
