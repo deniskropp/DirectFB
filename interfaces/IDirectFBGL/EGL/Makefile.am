@@ -32,8 +32,10 @@ libidirectfbgl_egl_la_LDFLAGS = -avoid-version -module
 libidirectfbgl_egl_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/lib/fusion/libfusion.la \
-	$(top_builddir)/src/libdirectfb.la
+	$(top_builddir)/src/libdirectfb.la	\
+	$(libegl)
 
 
 include $(top_srcdir)/rules/libobject.make
+include $(top_srcdir)/rules/libs_deps.make
 
