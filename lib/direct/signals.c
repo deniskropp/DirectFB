@@ -48,7 +48,7 @@
 D_LOG_DOMAIN( Direct_Signals, "Direct/Signals", "Signal handling" );
 
 #define SIG_CLOSE_SIGHANDLER SIGUNUSED
-#define SIG_DUMP_STACK       (SIGUNUSED-1)
+#define SIG_DUMP_STACK       SIGPIPE    //(SIGUNUSED-1)
 
 struct __D_DirectSignalHandler {
      DirectLink               link;
