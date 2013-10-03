@@ -470,7 +470,7 @@ fusion_object_get( FusionObjectPool  *pool,
                    FusionObjectID     object_id,
                    FusionObject     **ret_object )
 {
-     DirectResult  ret    = DR_IDNOTFOUND;
+     DirectResult  ret;
      FusionObject *object = NULL;
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
@@ -497,11 +497,14 @@ fusion_object_get( FusionObjectPool  *pool,
                          ret = DR_DEAD;
                }
           }
-          else
+          else {
                D_DEBUG_AT( Fusion_Object, "  -> NOT FOUND\n" );
+               ret = DR_IDNOTFOUND;
+          }
      }
 
-     *ret_object = object;
+     if (ret == DR_OK)
+          *ret_object = object;
 
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
