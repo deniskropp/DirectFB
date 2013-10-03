@@ -37,6 +37,7 @@
 #define EGL_EGLEXT_PROTOTYPES
 
 #include <EGL/egl.h>
+#include <EGL/egldfbext.h>
 
 #include <directfbgl.h>
 
@@ -78,7 +79,7 @@ TestEGLError( const char* pszLocation )
 {
      EGLint iErr = eglGetError();
      if (iErr != EGL_SUCCESS) {
-          D_ERROR( "DirectFB/EGL: %s failed (%d).\n", pszLocation, iErr );
+          D_ERROR( "IDirectFBGL/EGL: %s failed (0x%04x).\n", pszLocation, iErr );
           return false;
      }
 
@@ -154,14 +155,14 @@ IDirectFBGL_Unlock( IDirectFBGL *thiz )
 
      D_DEBUG_AT( IDFBGL_EGL, "%s()\n", __FUNCTION__ );
 
-//     eglSwapBuffers(data->eglDisplay, data->eglSurface);
-
-//     eglMakeCurrent( data->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT );
-//     if (!TestEGLError( "eglMakeCurrent" ))
-//          return DFB_FAILURE;
+     eglMakeCurrent( data->eglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT );
+     if (!TestEGLError( "eglMakeCurrent" ))
+          return DFB_FAILURE;
 
      return DFB_OK;
 }
+
+// TODO: Add wrapping IDirectFBSurface's Flip to call eglSwapBuffers() instead (as long as the context is bound?)
 
 static DFBResult
 IDirectFBGL_GetProcAddress( IDirectFBGL  *thiz,
@@ -240,8 +241,8 @@ Construct( void *interface, ... )
      EGLint            major, minor;
 
      EGLint config_attrs[] = {
-          EGL_BUFFER_SIZE,	EGL_DONT_CARE,
-          EGL_DEPTH_SIZE,		24,
+          //EGL_BUFFER_SIZE,	EGL_DONT_CARE,
+          EGL_DEPTH_SIZE,		16,
           EGL_RED_SIZE,		8,
           EGL_GREEN_SIZE,		8,
           EGL_RED_SIZE,		8,
@@ -273,32 +274,39 @@ Construct( void *interface, ... )
      data->dfb     = dfb;
 
 
-     data->eglDisplay = eglGetDisplay( (EGLNativeDisplayType) DLID_PRIMARY );
+     data->eglDisplay = eglGetDisplay( (EGLNativeDisplayType) dfb );
      if (data->eglDisplay == EGL_NO_DISPLAY) {
-          D_ERROR( "DirectFB/EGL: eglGetDisplay( dfb ) failed!\n" );
+          D_ERROR( "IDirectFBGL/EGL: eglGetDisplay( dfb ) failed!\n" );
           goto error;
      }
 
-     D_INFO("calling eglInitialise()\n");
      if (!eglInitialize( data->eglDisplay, &major, &minor )) {
-          D_ERROR( "DirectFB/EGL: eglInitialize() failed!\n" );
+          D_ERROR( "IDirectFBGL/EGL: eglInitialize() failed!\n" );
           goto error;
      }
 
      ver        = eglQueryString( data->eglDisplay, EGL_VERSION );
      extensions = eglQueryString( data->eglDisplay, EGL_EXTENSIONS );
 
-     D_INFO( "DirectFB/EGL: v%d.%d, EGL_VERSION = %s, EGL_EXTENSIONS = %s\n", major, minor, ver, extensions );
+     D_INFO( "IDirectFBGL/EGL: v%d.%d, EGL_VERSION = %s, EGL_EXTENSIONS = %s\n", major, minor, ver, extensions );
 
+//     PFNEGLGETCONFIGATTRIBSDIRECTFB GetConfigAttribs = eglGetProcAddress( "eglGetConfigAttribsDIRECTFB" );
+//
+//     if (GetConfigAttribs) {
+//          if (!GetConfigAttribs( data->eglDisplay, (EGLNativePixmapType) surface, config_attrs, D_ARRAY_SIZE(config_attrs) ))
+//               D_ERROR( "IDirectFBGL/EGL: eglGetConfigAttribsDIRECTFB() failed! (0x%04x)\n", eglGetError() );
+//     }
+//     else
+//          D_WARN( "could not get eglGetConfigAttribsDIRECTFB" );
 
      if (!eglChooseConfig( data->eglDisplay, config_attrs, &data->eglConfig, 1, &count ) || count == 0) {
-          D_ERROR( "DirectFB/EGL: No suitable EGL config, count = %d!\n", count );
+          D_ERROR( "IDirectFBGL/EGL: No suitable EGL config, count = %d!\n", count );
           goto error;
      }
 
      data->eglSurface = eglCreateWindowSurface( data->eglDisplay, data->eglConfig, (EGLNativeWindowType) surface, surface_attrs );
      if (!TestEGLError("eglCreateWindowSurface")) {
-          D_ERROR( "DirectFB/EGL: eglCreateWindowSurface() failed!\n" );
+          D_ERROR( "IDirectFBGL/EGL: eglCreateWindowSurface() failed!\n" );
           goto error;
      }
 
@@ -306,7 +314,7 @@ Construct( void *interface, ... )
 
      data->eglContext = eglCreateContext( data->eglDisplay, data->eglConfig, EGL_NO_CONTEXT, context_attrs );
      if (!TestEGLError("eglCreateContext")) {
-          D_ERROR( "DirectFB/EGL: eglCreateContext() failed!\n" );
+          D_ERROR( "IDirectFBGL/EGL: eglCreateContext() failed!\n" );
           goto error;
      }
 
