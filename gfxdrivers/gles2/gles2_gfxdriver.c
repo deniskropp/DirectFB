@@ -105,7 +105,9 @@ driver_init_driver(CoreGraphicsDevice  *device,
                    void                *device_data,
                    CoreDFB             *core)
 {
+#ifdef GLES2_USE_FBO
      GLES2DriverData *drv = driver_data;
+#endif
 
      D_DEBUG_AT(GLES2__2D, "%s()\n", __FUNCTION__);
 
