@@ -135,6 +135,9 @@ Core::Display_Initialise( DirectFB::EGL::DisplayDFB &display )
      KHR::Image::Register< KHR::Image::Initialise >( (Direct::String) EGLInt(EGL_IMAGE_IDIRECTFBSURFACE_DIRECTFB),
                                                      std::bind( &DisplayDFB::Image_Initialise, &display, _1 ) );
 
+     KHR::Image::Register< KHR::Image::Initialise >( (Direct::String) EGLInt(EGL_NATIVE_PIXMAP_KHR),
+                                                     std::bind( &DisplayDFB::Image_Initialise, &display, _1 ) );
+
      return DFB_OK;
 }
 
