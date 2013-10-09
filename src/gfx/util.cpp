@@ -35,6 +35,9 @@
 
 #include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
 
+#include <direct/Types++.h>
+
+
 extern "C" {
 #include <direct/util.h>
 

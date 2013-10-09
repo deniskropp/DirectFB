@@ -29,60 +29,16 @@
 */
 
 
-
-#ifndef ___Direct__Performer__H___
-#define ___Direct__Performer__H___
-
-#include <direct/Types++.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <direct/perf.h>
-
-
-#ifdef __cplusplus
-}
-
-#include <direct/String.h>
-
-
-namespace Direct {
-
-
-class PerfCounter {
-public:
-     DirectPerfCounterInstallation counter;
-
-     PerfCounter( const Direct::String &name = Direct::String(), bool reset_on_dump = false )
-     {
-          counter.counter_id    = 0;
-          counter.reset_on_dump = reset_on_dump;
-
-          direct_snputs( counter.name, name.buffer(), sizeof(counter.name) );
-     }
-};
-
-
-
-class Performer
-{
-public:
-     Performer()
-     {
-     }
-
-protected:
-
-};
-
-
-
-}
-
-
-#endif // __cplusplus
-
-#endif
+#undef IDirectFB
+#undef IDirectFBScreen
+#undef IDirectFBDisplayLayer
+#undef IDirectFBSurface
+#undef IDirectFBPalette
+#undef IDirectFBWindow
+#undef IDirectFBInputDevice
+#undef IDirectFBEventBuffer
+#undef IDirectFBFont
+#undef IDirectFBImageProvider
+#undef IDirectFBVideoProvider
+#undef IDirectFBDataBuffer
 

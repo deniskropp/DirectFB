@@ -37,6 +37,8 @@
 #include <directfb.h>
 #include <directfb_util.h>
 
+#include <direct/Types++.h>
+
 
 extern "C" {
 #include <direct/debug.h>

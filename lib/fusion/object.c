@@ -206,13 +206,9 @@ fusion_object_pool_create( const char             *name,
      }
 
      /* Initialize the pool lock. */
-     if (fusion_config->secure_fusion)
-          fusion_skirmish_init2( &pool->lock, name, world, true );
-     else {
-          fusion_skirmish_init2( &pool->lock, name, world, false );
+     fusion_skirmish_init2( &pool->lock, name, world, false );
 
-          fusion_skirmish_add_permissions( &pool->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
-     }
+     fusion_skirmish_add_permissions( &pool->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
 
      /* Fill information. */
      pool->shared       = shared;
@@ -281,9 +277,11 @@ fusion_object_pool_destroy( FusionObjectPool *pool,
           fusion_ref_stat( &object->ref, &refs );
 
           if (refs > 0) {
-               D_WARN( "zombie %p [%u], refs %d (in %s) => ref id 0x%x", object, object->id, refs, pool->name, object->ref.multi.id );
+               if (direct_config_get_int_value( "shutdown-info" )) {
+                    D_WARN( "zombie %p [%u], refs %d (in %s) => ref id 0x%x", object, object->id, refs, pool->name, object->ref.multi.id );
 
-               direct_trace_print_stack( object->create_stack );
+                    direct_trace_print_stack( object->create_stack );
+               }
           }
 
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
@@ -472,7 +470,7 @@ fusion_object_get( FusionObjectPool  *pool,
                    FusionObjectID     object_id,
                    FusionObject     **ret_object )
 {
-     DirectResult  ret    = DR_IDNOTFOUND;
+     DirectResult  ret;
      FusionObject *object = NULL;
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
@@ -499,11 +497,14 @@ fusion_object_get( FusionObjectPool  *pool,
                          ret = DR_DEAD;
                }
           }
-          else
+          else {
                D_DEBUG_AT( Fusion_Object, "  -> NOT FOUND\n" );
+               ret = DR_IDNOTFOUND;
+          }
      }
 
-     *ret_object = object;
+     if (ret == DR_OK)
+          *ret_object = object;
 
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );

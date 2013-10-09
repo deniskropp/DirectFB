@@ -487,6 +487,138 @@ dfb_surface_get_buffer3( CoreSurface           *surface,
      return surface->right_buffers[ surface->buffer_indices[(flip_count + role) % surface->num_buffers] ];
 }
 
+static __inline__ void
+dfb_surface_get_data_offsets( const CoreSurfaceConfig * const config,
+                              const void              * const data,
+                              int                      pitch,
+                              int                      x,
+                              int                      y,
+                              unsigned int             num,
+                              u8                     ** const pointers,
+                              int                     * const pitches )
+{
+     D_ASSERT( config != NULL );
+     D_ASSERT( data != NULL );
+     D_ASSERT( pitch > 0 );
+     D_ASSERT( x >= 0 );
+     D_ASSERT( x < config->size.w );
+     D_ASSERT( y >= 0 );
+     D_ASSERT( y < config->size.h );
+     D_ASSERT( !num
+               || (num && pointers && pitches) );
+
+     if (!num)
+          return;
+
+     switch (config->format) {
+          case DSPF_NV12:
+          case DSPF_NV21:
+          case DSPF_NV16:
+               if (num < 2)
+                    return;
+               break;
+
+          case DSPF_I420:
+          case DSPF_YV12:
+          case DSPF_YV16:
+          case DSPF_YUV444P:
+               if (num < 3)
+                    return;
+               break;
+
+          default:
+               if (num < 1)
+                    return;
+               break;
+     }
+
+     if (config->caps & DSCAPS_SEPARATED) {
+          if (y & 1)
+               y += config->size.h;
+
+          y >>= 1;
+     }
+
+     switch (config->format) {
+          case DSPF_NV12:
+          case DSPF_NV21:
+               pitches[1] = pitch;
+               pointers[1] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[1] * y/2
+                               + DFB_BYTES_PER_LINE( config->format, x/2 ) );
+               break;
+
+          case DSPF_NV16:
+               pitches[1] = pitch;
+               pointers[1] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[1] * y
+                               + DFB_BYTES_PER_LINE( config->format, x/2 ) );
+               break;
+
+          case DSPF_I420:
+               pitches[1] = pitches[2] = pitch / 2;
+               pointers[1] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[1] * y/2
+                               + DFB_BYTES_PER_LINE( config->format, x/2 ) );
+               pointers[2] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[1] * config->size.h/2
+                               + pitches[2] * y/2
+                               + DFB_BYTES_PER_LINE( config->format, x/2 ) );
+               break;
+
+          case DSPF_YV12:
+               pitches[1] = pitches[2] = pitch / 2;
+               pointers[2] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[2] * y/2
+                               + DFB_BYTES_PER_LINE( config->format, x/2 ) );
+               pointers[1] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[2] * config->size.h/2
+                               + pitches[1] * y/2
+                               + DFB_BYTES_PER_LINE( config->format, x/2 ) );
+               break;
+
+          case DSPF_YV16:
+               pitches[1] = pitches[2] = pitch / 2;
+               pointers[2] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[2] * y
+                               + DFB_BYTES_PER_LINE( config->format, x/2 ) );
+               pointers[1] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[2] * config->size.h
+                               + pitches[1] * y
+                               + DFB_BYTES_PER_LINE( config->format, x/2 ) );
+               break;
+
+          case DSPF_YUV444P:
+               pitches[1] = pitches[2] = pitch;
+               pointers[1] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[1] * y
+                               + DFB_BYTES_PER_LINE( config->format, x ) );
+               pointers[2] = ( (u8*)data
+                               + pitch * config->size.h
+                               + pitches[1] * config->size.h
+                               + pitches[2] * y
+                               + DFB_BYTES_PER_LINE( config->format, x ) );
+               break;
+
+          default:
+               break;
+     }
+
+     pointers[0] = ( (u8*)data
+                     + pitch * y
+                     + DFB_BYTES_PER_LINE( config->format, x ) );
+     pitches[0] = pitch;
+}
+
 static __inline__ void *
 dfb_surface_data_offset( const CoreSurface *surface,
                          void              *data,
@@ -494,22 +626,13 @@ dfb_surface_data_offset( const CoreSurface *surface,
                          int                x,
                          int                y )
 {
-     D_ASSERT( surface != NULL );
-     D_ASSERT( data != NULL );
-     D_ASSERT( pitch > 0 );
-     D_ASSERT( x >= 0 );
-     D_ASSERT( x < surface->config.size.w );
-     D_ASSERT( y >= 0 );
-     D_ASSERT( y < surface->config.size.h );
+     u8 *pointers[1];
+     int pitches[1];
 
-     if (surface->config.caps & DSCAPS_SEPARATED) {
-          if (y & 1)
-               y += surface->config.size.h;
+     dfb_surface_get_data_offsets( &surface->config, data, pitch, x, y,
+                                   1, pointers, pitches);
 
-          y >>= 1;
-     }
-
-     return (u8*)data + pitch * y + DFB_BYTES_PER_LINE( surface->config.format, x );
+     return pointers[0];
 }
 
 static __inline__ void

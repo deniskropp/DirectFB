@@ -32,6 +32,8 @@
 
 #include <config.h>
 
+#include <direct/Types++.h>
+
 #include <directfb_util.h>
 
 

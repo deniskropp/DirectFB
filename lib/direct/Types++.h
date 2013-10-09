@@ -30,59 +30,30 @@
 
 
 
-#ifndef ___Direct__Performer__H___
-#define ___Direct__Performer__H___
+#ifndef __DIRECT__TYPESPP_H__
+#define __DIRECT__TYPESPP_H__
 
-#include <direct/Types++.h>
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-
-#include <direct/perf.h>
-
-
-#ifdef __cplusplus
+#include <direct/types.h>
 }
-
-#include <direct/String.h>
 
 
 namespace Direct {
+     // NOTE: if build fails here we most likely have the above error due to nested extern "C"
+     template <typename _Item> class List;
+     template <typename _Item> class ListLocked;
+     template <typename _Item> class ListSimple;
 
+     template <typename _CharT> class StringBase;
+     template <typename _CharT> class StringsBase;
 
-class PerfCounter {
-public:
-     DirectPerfCounterInstallation counter;
-
-     PerfCounter( const Direct::String &name = Direct::String(), bool reset_on_dump = false )
-     {
-          counter.counter_id    = 0;
-          counter.reset_on_dump = reset_on_dump;
-
-          direct_snputs( counter.name, name.buffer(), sizeof(counter.name) );
-     }
-};
-
-
-
-class Performer
-{
-public:
-     Performer()
-     {
-     }
-
-protected:
-
-};
-
-
-
+     typedef StringBase<char>  String;
+     typedef StringsBase<char> Strings;
 }
 
+#define D_String        Direct::String
 
-#endif // __cplusplus
 
 #endif
 

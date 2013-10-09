@@ -184,7 +184,7 @@ surface_callback( FusionObjectPool *pool,
      }
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x [%3lx] : ", object->ref.multi.id, object->ref.multi.creator );
+     printf( "0x%08x [%3lx] : ", object->ref.multi.id, object->identity );
 #else
      printf( "N/A              : " );
 #endif
