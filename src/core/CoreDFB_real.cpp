@@ -242,8 +242,10 @@ ICore_Real::GetSurface( u32           surface_id,
      }
 
      ret = dfb_core_get_surface( core, surface_id, &surface );
-     if (ret)
+     if (ret) {
+          D_DEBUG_AT( DirectFB_CoreDFB, "  -> dfb_core_get_surface: %s!\n", DirectFBErrorString(ret) );
           return ret;
+     }
 
      if (fusion_config->secure_fusion) {
           ret = (DFBResult) fusion_object_has_access( &surface->object, path );
@@ -255,6 +257,8 @@ ICore_Real::GetSurface( u32           surface_id,
 
           fusion_object_add_owner( &surface->object, Core_GetIdentity() );
      }
+
+     D_DEBUG_AT( DirectFB_CoreDFB, "  => surface %p\n", surface );
 
      *ret_surface = surface;
 

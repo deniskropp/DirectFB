@@ -55,6 +55,9 @@
 #include <core/system.h>
 
 #include <core/CoreLayerRegion.h>
+#include <core/CoreSurface.h>
+#include <core/CoreSurfaceClient.h>
+#include <core/Debug.h>
 #include <core/Task.h>
 
 #include <gfx/util.h>
@@ -489,6 +492,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
           return DFB_UNSUPPORTED;
      }
 
+     D_DEBUG_AT( Core_Layers, "  -> region: %s\n", ToString_CoreLayerRegion(region) );
+
      surface = region->surface;
      layer   = dfb_layer_at( region->layer_id );
 
@@ -608,6 +613,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
           case DLBM_FRONTONLY:
 update_only:
+     D_DEBUG_AT( Core_Layers, "  -> update\n" );
                /* Tell the driver about the update if the region is realized. */
                if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                     CoreSurfaceBufferLock left;

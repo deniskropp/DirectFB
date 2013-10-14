@@ -158,7 +158,7 @@ Task_DoneFail( Task      *task,
 {
      D_DEBUG_AT( DirectFB_Task, "%s( %p )\n", __FUNCTION__, task );
 
-     D_ASSUME( result != DFB_OK );
+//     D_ASSUME( result != DFB_OK );
 
      task->Done( result );
 }
@@ -329,6 +329,8 @@ Task::AddRef()
      unsigned int refs_now = D_SYNC_ADD_AND_FETCH( &refs, 1 );
 
      (void) refs_now;
+
+     D_ASSERT( refs_now > 1 );
 
      D_DEBUG_AT( DirectFB_Task, "  -> %u refs now\n", refs_now );
 }
