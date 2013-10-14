@@ -106,6 +106,9 @@ alloc_callback( CoreSurfaceAllocation *alloc,
           }
      }
 
+     printf( "%3lu ", alloc->object.id );
+     printf( "%3lu ", alloc->buffer_id );
+
      printf( "%9lu %8d  ", alloc->offset, alloc->size );
 
      printf( "%4d x %4d   ", alloc->config.size.w, alloc->config.size.h );
@@ -163,8 +166,8 @@ alloc_callback( CoreSurfaceAllocation *alloc,
 
      printf( "   ref 0x%04x\n", alloc->object.ref.multi.id );
 
-     dfb_surface_allocation_dump( alloc, ".", D_String_PrintTLS( "dfb_surface_allocation_0x%08x_ref_0x%08x",
-                                                                 alloc->object.id, alloc->object.ref.multi.id ), false );
+     dfb_surface_allocation_dump( alloc, ".", D_String_PrintTLS( "dfb_surface_allocation_%lu_%lu",
+                                                                 alloc->object.id, alloc->buffer_id ), false );
 
      return DFENUM_OK;
 }
@@ -177,7 +180,7 @@ surface_pool_callback( CoreSurfacePool *pool,
 
      printf( "\n" );
      printf( "--------------------[ Surface Buffer Allocations in %s ]-------------------%n\n", pool->desc.name, &length );
-     printf( "Offset    Length   Width Height     Format  Role  Up nA ID  Usage   Type / Storage / Caps\n" );
+     printf( "ID  BID    Offset   Length Width Height     Format  Role  Up nA ID  Usage   Type / Storage / Caps\n" );
 
      while (length--)
           putc( '-', stdout );
