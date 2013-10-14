@@ -2032,9 +2032,8 @@ static DirectResult
 Dispatch_GetFrameTime( IDirectFBSurface *thiz, IDirectFBSurface *real,
                        VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DFBResult           ret;
-     long long           micros;
-     VoodooMessageParser parser;
+     DFBResult ret;
+     long long micros;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 

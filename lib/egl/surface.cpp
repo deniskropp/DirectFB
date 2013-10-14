@@ -163,6 +163,8 @@ Surface::SwapBuffers()
 
           EGLint result = (*f).second();
 
+          (void) result;
+
           D_DEBUG_AT( DFBEGL_Surface, "  -> SwapBuffers from %s returned 0x%04x '%s'\n",
                       (*f).first.c_str(), result, *ToString<EGLInt>( result ) );
      }

@@ -250,7 +250,7 @@ DFBResult
 Util::GetSurfaceDescription( Graphics::Options     &options,
                              DFBSurfaceDescription &desc )
 {
-     long val;
+     long val = 0;
 
      D_DEBUG_AT( DFBEGL_Util, "EGL::Util::%s()\n", __FUNCTION__ );
 
