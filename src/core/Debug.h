@@ -53,6 +53,7 @@ const char *ToString_DFBSurfaceFlipFlags      ( DFBSurfaceFlipFlags             
 const char *ToString_DFBDimension             ( const DFBDimension                   *dimension );
 
 const char *ToString_CoreSurfaceConfig        ( const CoreSurfaceConfig              *config );
+const char *ToString_CoreLayerRegion          ( const CoreLayerRegion                *region );
 const char *ToString_CoreLayerRegionConfig    ( const CoreLayerRegionConfig          *config );
 
 const char *ToString_CoreSurfaceAllocation    ( const CoreSurfaceAllocation          *allocation );

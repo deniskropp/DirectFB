@@ -45,6 +45,8 @@ extern "C" {
 #include <core/core_strings.h>
 #include <core/layer_region.h>
 #include <core/surface_buffer.h>
+
+#include <core/layers_internal.h>
 }
 
 #include <core/SurfaceTask.h>
@@ -251,17 +253,51 @@ ToString<CoreLayerRegionConfig>::ToString( const CoreLayerRegionConfig &config )
              *ToString<DFBDisplayLayerBufferMode>(config.buffermode) );
 }
 
+template<>
+ToString<CoreLayerRegionStateFlags>::ToString( const CoreLayerRegionStateFlags &flags )
+{
+     #define CORE_LAYER_REGION_STATE_FLAG_PRINTF( __F )              \
+          D_FLAG_PRINTFn( n, flags, CLRSF_, __F )
+
+     if (flags) {
+          size_t n = 0;
+
+          CORE_LAYER_REGION_STATE_FLAG_PRINTF( CONFIGURED );
+          CORE_LAYER_REGION_STATE_FLAG_PRINTF( ENABLED );
+          CORE_LAYER_REGION_STATE_FLAG_PRINTF( ACTIVE );
+          CORE_LAYER_REGION_STATE_FLAG_PRINTF( REALIZED );
+          CORE_LAYER_REGION_STATE_FLAG_PRINTF( FROZEN );
+     }
+     else
+          PrintF( "<NONE>" );
+}
+
+
+// CoreLayer objects
+
+template<>
+ToString<CoreLayerRegion>::ToString( const CoreLayerRegion &region )
+{
+     PrintF( "{CoreLayerRegion %s [%s] layerid:%u %s}",
+             *ToString<FusionObject>(region.object),
+             *ToString<CoreLayerRegionStateFlags>(region.state),
+             region.layer_id,
+             *ToString<CoreLayerRegionConfig>(region.config) );
+}
+
 
 // CoreSurface objects
 
 template<>
 ToString<CoreSurfaceAllocation>::ToString( const CoreSurfaceAllocation &allocation )
 {
-     PrintF( "{CoreSurfaceAllocation %s [%d] type:%s resid:%lu %s}",
+     PrintF( "{CoreSurfaceAllocation %s [%d] type:%s resid:%lu serial:%u/%lu pool:%s %s}",
              ToString<FusionObject>(allocation.object).buffer(),
              allocation.index,
              ToString<CoreSurfaceTypeFlags>(allocation.type).buffer(),
              allocation.resource_id,
+             allocation.serial.overflow, allocation.serial.value,
+             allocation.pool->desc.name,
              ToString<CoreSurfaceConfig>(allocation.config).buffer() );
 }
 
@@ -454,6 +490,12 @@ const char *
 ToString_CoreLayerRegionConfig( const CoreLayerRegionConfig *v )
 {
      return ToString<CoreLayerRegionConfig>( *v ).CopyTLS();
+}
+
+const char *
+ToString_CoreLayerRegion( const CoreLayerRegion *v )
+{
+     return ToString<CoreLayerRegion>( *v ).CopyTLS();
 }
 
 const char *
