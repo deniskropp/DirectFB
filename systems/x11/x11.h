@@ -36,9 +36,12 @@
 #include <fusion/call.h>
 #include <fusion/lock.h>
 #include <core/layers.h>
+#include <core/state.h>
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 #include <core/surface_pool.h>
+
+#include <core/CoreGraphicsStateClient.h>
 
 #include "x11image.h"
 #include "xwindow.h"
@@ -46,6 +49,8 @@
 typedef struct {
      CoreLayerRegionConfig   config;
      XWindow               **xw;
+     int                     output;
+     DFBDisplayLayerID       layer_id;
 } SetModeData;
 
 typedef struct {
@@ -60,6 +65,26 @@ typedef struct {
 typedef struct {
      XWindow               **xw;
 } DestroyData;
+
+typedef struct {
+     int                    layer_id;
+     CoreLayerRegionConfig  config;
+     CoreSurfaceBufferLock  lock_left;
+     CoreSurfaceBufferLock  lock_right;
+     CoreSurface           *surface;
+     bool                   reconfig;
+} X11LayerData;
+
+typedef struct {
+     DFBDimension           size;
+     XWindow               *xw;
+     CoreSurface           *surface;
+     CoreSurfaceBufferLock  lock;
+     X11LayerData          *layers[0xff];
+
+     CoreGraphicsStateClient  client;
+     CardState                gfx_state;
+} X11Output;
 
 typedef struct {
      UpdateScreenData     update;
@@ -90,6 +115,9 @@ typedef struct {
      int                  stereo_width;
 
      int                  outputs;
+     int                  layers;
+
+     X11Output            output[10];
 } DFBX11Shared;
 
 struct __DFB_X11 {

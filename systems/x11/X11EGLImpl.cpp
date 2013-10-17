@@ -65,6 +65,24 @@ using namespace std::placeholders;
 
 /**********************************************************************************************************************/
 
+class X11EGLTask : public Graphics::RenderTask
+{
+public:
+     X11EGLTask()
+          :
+          RenderTask( CSAID_NONE )
+     {
+     }
+
+     virtual DFBResult Bind( CoreSurfaceBuffer *draw,
+                             CoreSurfaceBuffer *read )
+     {
+          return DFB_OK;
+     }
+};
+
+/**********************************************************************************************************************/
+
 GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
                         X11EGLImpl      &impl )
      :
@@ -267,7 +285,7 @@ X11EGLImpl::Initialise()
      const char *client_apis;
      const char *egl_vendor;
      const char *egl_extensions;
-     EGLConfig   egl_configs[400];
+     EGLConfig  *egl_configs;
      EGLint      num_configs = 0;
 
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p )\n", __FUNCTION__, this );
@@ -357,8 +375,16 @@ X11EGLImpl::Initialise()
      //extensions = Direct::String( egl_extensions ).GetTokens( " " );
 
 
-     if (!lib.eglGetConfigs( egl_display, egl_configs, D_ARRAY_SIZE(egl_configs), &num_configs )) {
+     if (!lib.eglGetConfigs( egl_display, NULL, 0, &num_configs )) {
+          D_ERROR( "X11/EGLImpl: eglGetConfigs( %p, 0 ) failed\n", egl_display );
+          goto failure;
+     }
+
+     egl_configs = (EGLConfig*) D_MALLOC( num_configs * sizeof(EGLConfig) );
+
+     if (!lib.eglGetConfigs( egl_display, egl_configs, num_configs, &num_configs )) {
           D_ERROR( "X11/EGLImpl: eglGetConfigs( %p ) failed\n", egl_display );
+          D_FREE( egl_configs );
           goto failure;
      }
 
@@ -367,6 +393,7 @@ X11EGLImpl::Initialise()
      for (EGLint i=0; i<num_configs; i++)
           configs.push_back( new X11EGLConfig( *this, egl_configs[i] ) );
 
+     D_FREE( egl_configs );
 
 
      if (strstr( egl_extensions, "EGL_KHR_image_pixmap" )) {
@@ -480,7 +507,14 @@ X11EGLConfig::CheckOptions( const Graphics::Options &options )
 
           GetOption( base->GetName(), val );
 
-          check = dynamic_cast<Graphics::Option<long> *>(base)->GetValue();
+          //check = dynamic_cast<Graphics::Option<long> *>(base)->GetValue();
+
+          EGL::EGLInt egl_int;
+
+          if (FromString<EGL::EGLInt>( egl_int, base->GetString() ))
+               check = egl_int.value;
+          else
+               check = atoi( *base->GetString() );
 
           if (base->GetName() == "RENDERABLE_TYPE" || base->GetName() == "SURFACE_TYPE") {
                if ((val & check) == check)
@@ -681,6 +715,16 @@ X11EGLContext::GetProcAddress( const Direct::String  &name,
 
      return DFB_ITEMNOTFOUND;
 }
+
+//DFBResult
+//X11EGLContext::CreateTask( Graphics::RenderTask *&task )
+//{
+//     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLContext::%s( %p )\n",  __FUNCTION__, this );
+//
+//     task = new X11EGLTask();
+//
+//     return DFB_OK;
+//}
 
 /**********************************************************************************************************************/
 
@@ -887,6 +931,8 @@ X11EGLSurfacePeer::getEGLSurface()
           else
                egl_surface = impl.lib.eglCreateWindowSurface( impl.egl_display, config->egl_config,
                                                               (EGLNativeWindowType) handle, surface_attrs );// FIXME: Add Options ToAttribs
+
+          D_DEBUG_AT( DFBX11_EGLImpl, "  -> EGLSurface %p\n", egl_surface );
 
           if (egl_surface == EGL_NO_SURFACE) {
                D_ERROR( "X11/EGLImpl: eglCreate%sSurface( EGLConfig %p, %s 0x%08lx ) failed (%s)\n",

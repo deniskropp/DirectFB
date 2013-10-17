@@ -36,19 +36,12 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
+#include "x11.h"
 #include "xwindow.h"
 
 extern ScreenFuncs       *x11PrimaryScreenFuncs;
 extern DisplayLayerFuncs *x11PrimaryLayerFuncs;
 
-typedef struct {
-     int                    layer_id;
-     XWindow               *xw;
-     CoreLayerRegionConfig  config;
-     CoreSurfaceBufferLock  lock_left;
-     CoreSurfaceBufferLock  lock_right;
-     CoreSurface           *surface;
-} X11LayerData;
 
 DFBResult
 dfb_x11_update_screen( DFBX11 *x11, X11LayerData *lds, const DFBRegion *left_region, const DFBRegion *right_region,

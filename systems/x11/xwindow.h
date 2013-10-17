@@ -66,6 +66,8 @@ typedef struct {
      int                 depth;
      int                 bpp;
 
+     int                 layer_id;
+
      /* (Null) cursor stuff*/
      Cursor              NullCursor;
 } XWindow;

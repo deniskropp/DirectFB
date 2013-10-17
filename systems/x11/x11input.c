@@ -479,8 +479,9 @@ handle_expose_Async( void *ctx,
                      void *ctx2 )
 {
      DFBX11                  *x11    = ctx;
+     DFBX11Shared            *shared = x11->shared;
      const XExposeEvent      *expose = ctx2;
-     CoreLayer               *layer  = 0;
+     CoreLayer               *layer;
      CoreLayerContext        *context;
      int                      i;
      X11LayerData            *lds;
@@ -490,20 +491,19 @@ handle_expose_Async( void *ctx,
      //D_INFO_LINE_MSG("handle_expose %d,%d-%dx%d", expose->x, expose->y, expose->width, expose->height);
 
      /* find the correct layer */
-     for( i=0; i<dfb_layer_num(); i++ ) {
-          X11LayerData *lds;
-
-          layer = dfb_layer_at( i );
-          lds   = (X11LayerData*)(layer->layer_data);
-          if( lds->xw && (lds->xw->window == expose->window) )
+     for (i=0; i<shared->outputs; i++) {
+          if (shared->output[i].xw && (shared->output[i].xw->window == expose->window))
                break;
      }
 
      /* layer not found? */
-     if( i==dfb_layer_num() )
+     if (i == shared->outputs)
           return;
 
-     lds = layer->shared->layer_data;
+     lds = shared->output[i].layers[0];
+
+     layer = dfb_layer_at( lds->layer_id );
+     D_ASSERT( layer != NULL );
 
      /* Get the currently active context. */
      if (dfb_layer_get_active_context( layer, &context ) == DFB_OK) {

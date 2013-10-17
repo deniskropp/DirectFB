@@ -251,6 +251,7 @@ x11AllocateKey( CoreSurfacePool       *pool,
      DFBX11            *x11   = local->x11;
 
      D_DEBUG_AT( X11_Surfaces, "%s( %s, 0x%08llx )\n", __FUNCTION__, key, (unsigned long long) handle );
+     D_DEBUG_AT( X11_Surfaces, "  -> allocation: %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -577,6 +578,7 @@ x11Read( CoreSurfacePool       *pool,
      DFBX11            *x11   = local->x11;
 
      D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( X11_Surfaces, "  -> allocation: %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -585,6 +587,7 @@ x11Read( CoreSurfacePool       *pool,
      DFB_RECTANGLE_ASSERT( rect );
 
      D_DEBUG_AT( X11_Surfaces, "  => %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
+
 
      XLockDisplay( x11->display );
 
@@ -603,6 +606,8 @@ x11Read( CoreSurfacePool       *pool,
 #endif
 
      if (image) {
+//          dfb_surface_buffer_dump_type_locked2( allocation->buffer, ".", "x11Read", false, image->data, image->bytes_per_line );
+
           /* FIXME: Why the X-hell is XDestroyImage() freeing *MY* data? */
           image->data = NULL;
           XDestroyImage( image );
@@ -635,6 +640,7 @@ x11Write( CoreSurfacePool       *pool,
      DFBX11            *x11   = local->x11;
 
      D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( X11_Surfaces, "  -> allocation: %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -658,6 +664,8 @@ x11Write( CoreSurfacePool       *pool,
      }
      x11->Sync( x11 );
      D_DEBUG_AT( X11_Surfaces, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
+
+//     dfb_surface_buffer_dump_type_locked2( allocation->buffer, ".", "x11Write", false, image->data, image->bytes_per_line );
 
      XPutImage( x11->display, alloc->xid, alloc->gc, image, 0, 0, rect->x, rect->y, rect->w, rect->h );
 

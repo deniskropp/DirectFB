@@ -31,7 +31,6 @@ libdirectfb_x11_la_LDFLAGS += -lGL
 endif
 
 libdirectfb_x11_la_SOURCES = \
-	idirectfbgl.c		\
 	primary.c		\
 	primary.h		\
 	surfacemanager.c	\
@@ -102,6 +101,7 @@ graphics_LTLIBRARIES = libdfbx11_egl.la
 
 libdfbx11_egl_la_LIBADD = \
 	$(DFB_BASE_LIBS)	\
+	$(GLES2_LIBS)		\
 	$(libdfbegl)
 
 libdfbx11_egl_la_SOURCES = \

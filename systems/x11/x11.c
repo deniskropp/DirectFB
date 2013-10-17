@@ -255,7 +255,7 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 
      x11->screen = dfb_screens_register( NULL, x11, x11PrimaryScreenFuncs );
 
-     for (i=0; i<shared->outputs; i++) {
+     for (i=0; i<shared->outputs * shared->layers; i++) {
           if (!dfb_layers_register( x11->screen, x11, x11PrimaryLayerFuncs ))
                return DFB_INIT;
      }
@@ -297,6 +297,7 @@ system_initialize( CoreDFB *core, void **data )
      }
 
      shared->outputs = direct_config_get_int_value_with_default( "x11-outputs", 1 );
+     shared->layers  = direct_config_get_int_value_with_default( "x11-layers", 5 );
 
      /* we need the error handler to signal the error to us, so
         use a global static */
@@ -452,17 +453,8 @@ system_shutdown( bool emergency )
      fusion_call_destroy( &shared->call );
 
      /* close remaining windows */
-     for( i=0; i<dfb_layer_num(); i++ ) {
-          CoreLayer    *layer;
-          X11LayerData *lds;
-
-          layer = dfb_layer_at( i );
-          lds   = layer->layer_data;
-          if( lds && lds->xw ) {
-              dfb_x11_close_window( x11, lds->xw );
-              lds->xw = 0;
-              shared->window_count--;
-          }
+     for( i=0; i<shared->outputs; i++ ) {
+          dfb_x11_close_window( x11, shared->output[i].xw );
      }
 
 
