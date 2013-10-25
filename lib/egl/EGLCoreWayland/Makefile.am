@@ -34,7 +34,7 @@ libdfbegl_core_wayland_la_SOURCES = \
 
 libdfbegl_core_wayland_la_LIBADD = \
 	$(DFB_BASE_LIBS)	\
-	$(libegl)		\
+	$(libdfbegl)		\
 	$(libwayland_dfb)
 
 
