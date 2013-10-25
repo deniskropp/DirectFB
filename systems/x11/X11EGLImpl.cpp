@@ -65,21 +65,21 @@ using namespace std::placeholders;
 
 /**********************************************************************************************************************/
 
-class X11EGLTask : public Graphics::RenderTask
-{
-public:
-     X11EGLTask()
-          :
-          RenderTask( CSAID_NONE )
-     {
-     }
-
-     virtual DFBResult Bind( CoreSurfaceBuffer *draw,
-                             CoreSurfaceBuffer *read )
-     {
-          return DFB_OK;
-     }
-};
+//class X11EGLTask : public Graphics::RenderTask
+//{
+//public:
+//     X11EGLTask()
+//          :
+//          RenderTask( CSAID_NONE )
+//     {
+//     }
+//
+//     virtual DFBResult Bind( CoreSurfaceBuffer *draw,
+//                             CoreSurfaceBuffer *read )
+//     {
+//          return DFB_OK;
+//     }
+//};
 
 /**********************************************************************************************************************/
 
