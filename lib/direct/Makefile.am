@@ -50,6 +50,7 @@ include_HEADERS = \
 	$(ppcasm_headers)		\
 	$(armasm_headers)		\
 	Base.h				\
+	EvLog.h				\
 	Lists.h				\
 	LockWQ.h			\
 	Magic.h				\
@@ -108,9 +109,11 @@ libdirect_la_SOURCES = \
 	$(ppcasm_sources)	\
 	$(armasm_sources)	\
 	Base.cpp		\
+	EvLog.cpp		\
 	String.cpp		\
 	ToString.cpp		\
 	Utils.cpp		\
+	plusplus.cpp		\
 	clock.c			\
 	conf.c			\
 	debug.c			\
