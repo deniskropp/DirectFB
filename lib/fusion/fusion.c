@@ -97,6 +97,29 @@ static pthread_once_t   fusion_init_once   = PTHREAD_ONCE_INIT;
 /**********************************************************************************************************************/
 
 int
+fusion_fd( const FusionWorld *world )
+{
+     int                index;
+     FusionWorldShared *shared;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     shared = world->shared;
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
+
+     index = shared->world_index;
+
+     D_ASSERT( index >= 0 );
+     D_ASSERT( index < FUSION_MAX_WORLDS );
+
+     D_ASSERT( world == fusion_worlds[index] );
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     return world->fusion_fd;
+}
+
+int
 _fusion_fd( const FusionWorldShared *shared )
 {
      int          index;
@@ -316,7 +339,7 @@ fusion_world_fork( FusionWorld *world )
      snprintf( buf2, sizeof(buf2), "/dev/fusion/%d", shared->world_index );
 
      /* Open Fusion Kernel Device. */
-     fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK, true );
+     fd = direct_try_open( buf1, buf2, O_RDWR /*| O_NONBLOCK*/, true );
      if (fd < 0) {
           D_PERROR( "Fusion/Main: Reopening fusion device (world %d) failed!\n", shared->world_index );
           raise(5);
@@ -625,7 +648,7 @@ fusion_enter( int               world_index,
                snprintf( buf2, sizeof(buf2), "/dev/fusion/%d", world_index );
 
                /* Open Fusion Kernel Device. */
-               fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK | O_EXCL, false );
+               fd = direct_try_open( buf1, buf2, O_RDWR/*| O_NONBLOCK*/ | O_EXCL, false );
                if (fd < 0) {
                     if (errno != EBUSY)
                          D_PERROR( "Fusion/Init: Error opening '%s' and/or '%s'!\n", buf1, buf2 );
@@ -637,7 +660,7 @@ fusion_enter( int               world_index,
      else {
           world = fusion_worlds[world_index];
           if (!world) {
-               int flags = O_RDWR | O_NONBLOCK;
+               int flags = O_RDWR/*| O_NONBLOCK*/;
 
                snprintf( buf1, sizeof(buf1), "/dev/fusion%d", world_index );
                snprintf( buf2, sizeof(buf2), "/dev/fusion/%d", world_index );
@@ -947,19 +970,32 @@ DirectResult
 fusion_stop_dispatcher( FusionWorld *world,
                         bool         emergency )
 {
+     D_DEBUG_AT( Fusion_Main_Dispatch, "%s( %semergency )\n", __FUNCTION__, emergency ? "" : "no " );
+
+     if (!world->dispatch_loop)
+          return DR_OK;
+
      if (!emergency) {
           fusion_sync( world );
 
+          D_DEBUG_AT( Fusion_Main_Dispatch, "  -> locking thread...\n" );
+
           direct_thread_lock( world->dispatch_loop );
      }
-          
+
+     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> locked\n" );
+
      world->dispatch_stop = true;
 
      if (!emergency) {
+          D_DEBUG_AT( Fusion_Main_Dispatch, "  -> unlocking thread...\n" );
+
           direct_thread_unlock( world->dispatch_loop );
 
           fusion_sync( world );
      }
+
+     D_DEBUG_AT( Fusion_Main_Dispatch, "  -> finished stopping.\n" );
 
      return DR_OK;
 }
@@ -1267,29 +1303,36 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
      D_DEBUG_AT( Fusion_Main_Dispatch, "%s() running...\n", __FUNCTION__ );
 
+     direct_thread_lock( thread );
+
      while (true) {
           char *buf_p = buf;
 
           D_MAGIC_ASSERT( world, FusionWorld );
 
-          D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p ) ==> read( %zu )...\n", __FUNCTION__, world, buf_size );
-
-          len = read( world->fusion_fd, buf, buf_size );
-          if (len < 0) {
-               if (errno == EINTR)
-                    continue;
-
-               break;
-          }
-
-          D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p ) ==> got %zu (of up to %zu)\n", __FUNCTION__, world, len, buf_size );
-
-          direct_thread_lock( thread );
-
           if (world->dispatch_stop) {
                D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
+
+               goto out;
           }
           else {
+               D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p ) ==> read( %zu )...\n", __FUNCTION__, world, buf_size );
+
+               direct_thread_unlock( thread );
+
+               len = read( world->fusion_fd, buf, buf_size );
+
+               direct_thread_lock( thread );
+
+               if (len < 0) {
+                    if (errno == EINTR)
+                         continue;
+
+                    break;
+               }
+
+               D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p ) ==> got %zu (of up to %zu)\n", __FUNCTION__, world, len, buf_size );
+
                while (buf_p < buf + len) {
                     FusionReadMessage *header = (FusionReadMessage*) buf_p;
                     void              *data   = buf_p + sizeof(FusionReadMessage);
@@ -1297,10 +1340,10 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                     D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p ) ==> %p [%ld]\n",
                                 __FUNCTION__, world, header, (long) buf_p - (long) buf );
 
-                    if (world->dispatch_stop) {
-                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> ABORTING (dispatch_stop!)\n" );
-                         break;
-                    }
+//                    if (world->dispatch_stop) {
+//                         D_DEBUG_AT( Fusion_Main_Dispatch, "  -> ABORTING (dispatch_stop!)\n" );
+//                         break;
+//                    }
 
                     D_MAGIC_ASSERT( world, FusionWorld );
                     D_ASSERT( (buf + len - buf_p) >= sizeof(FusionReadMessage) );
@@ -1367,20 +1410,153 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
 
           handle_dispatch_cleanups( world );
 
-          direct_thread_unlock( thread );
-
           if (!world->refs) {
                D_DEBUG_AT( Fusion_Main_Dispatch, "  -> good bye!\n" );
-               free( buf );
-               return NULL;
+               goto out;
+          }
+          else {
+//               direct_thread_unlock( thread );
+//               direct_thread_sleep( 5000000 );
+//               direct_thread_lock( thread );
           }
      }
 
      D_PERROR( "Fusion/Receiver: reading from fusion device failed!\n" );
 
+out:
+     direct_thread_unlock( thread );
+     free( buf );
+     return NULL;
+}
+
+DirectResult
+fusion_dispatch( FusionWorld *world,
+                 size_t       buf_size )
+{
+     ssize_t  len = 0;
+     char    *buf;
+     char    *buf_p;
+
+     D_DEBUG_AT( Fusion_Main_Dispatch, "%s( world %p, buf_size %zu )\n", __FUNCTION__, world, buf_size );
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     if (buf_size == 0)
+          buf_size = FUSION_MESSAGE_SIZE * 4;
+     else
+          D_ASSUME( buf_size >= FUSION_MESSAGE_SIZE );
+
+     buf = buf_p = malloc( buf_size );
+
+//     if (world->dispatch_stop) {
+//          D_DEBUG_AT( Fusion_Main_Dispatch, "  -> IGNORING (dispatch_stop!)\n" );
+//          return DR_SUSPENDED;
+//     }
+
+     D_DEBUG_AT( Fusion_Main_Dispatch, "  = = dispatch -> reading up to %zu bytes...\n", buf_size );
+
+     while (true) {
+          len = read( world->fusion_fd, buf, buf_size );
+          if (len < 0) {
+               if (errno == EINTR)
+                    continue;
+
+               if (errno != EAGAIN)
+                    D_PERROR( "Fusion/Receiver: reading from fusion device failed!\n" );
+
+               free( buf );
+               return DR_IO;
+          }
+
+          break;
+     }
+
+     D_DEBUG_AT( Fusion_Main_Dispatch, "  = = dispatch -> got %zu bytes (of up to %zu)\n", len, buf_size );
+
+     if (world->dispatch_loop)
+          direct_thread_lock( world->dispatch_loop );
+
+     while (buf_p < buf + len) {
+          FusionReadMessage *header = (FusionReadMessage*) buf_p;
+          void              *data   = buf_p + sizeof(FusionReadMessage);
+
+          D_DEBUG_AT( Fusion_Main_Dispatch, "  = = dispatch -> %p [%ld]\n", header, (long) buf_p - (long) buf );
+
+//          if (world->dispatch_stop) {
+//               D_DEBUG_AT( Fusion_Main_Dispatch, "  -> ABORTING (dispatch_stop!)\n" );
+//               break;
+//          }
+
+          D_MAGIC_ASSERT( world, FusionWorld );
+          D_ASSERT( (buf + len - buf_p) >= sizeof(FusionReadMessage) );
+
+          switch (header->msg_type) {
+               case FMT_SEND:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SEND!\n" );
+                    break; 
+               case FMT_CALL:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL...\n" );
+
+                    if (((FusionCallMessage*) data)->caller == 0)
+                         handle_dispatch_cleanups( world );
+
+                    /* If the call comes from kernel space it is most likely a destructor call, defer it */
+                    if (fusion_config->defer_destructors && ((FusionCallMessage*) data)->caller == 0) {
+                         defer_message( world, header, data );
+                    }
+                    else
+                         _fusion_call_process( world, header->msg_id, data,
+                                               (header->msg_size != sizeof(FusionCallMessage))
+                                               ?data + sizeof(FusionCallMessage) : NULL );
+                    break;
+               case FMT_REACTOR:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_REACTOR...\n" );
+                    //defer_message( world, header, data );
+                    _fusion_reactor_process_message( world, header->msg_id, header->msg_channel, data );
+                    break;
+               case FMT_SHMPOOL:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_SHMPOOL...\n" );
+                    //defer_message( world, header, data );
+                    _fusion_shmpool_process( world, header->msg_id, data );
+                    break;
+               case FMT_CALL3:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_CALL3...\n" );
+                    //defer_message( world, header, data );
+                    _fusion_call_process3( world, header->msg_id, data,
+                                           (header->msg_size != sizeof(FusionCallMessage3))
+                                           ?data + sizeof(FusionCallMessage3) : NULL );
+                    break;
+               case FMT_LEAVE:
+                    D_DEBUG_AT( Fusion_Main_Dispatch, "  -> FMT_LEAVE...\n" );
+
+                    if (world->fusion_id == FUSION_ID_MASTER) {
+                         direct_mutex_lock( &world->refs_lock );
+                         direct_map_iterate( world->refs_map, refs_iterate, data );
+                         direct_mutex_unlock( &world->refs_lock );
+                    }
+
+                    if (world->leave_callback)
+                         world->leave_callback( world, *((FusionID*)data), world->leave_ctx );
+                    break;
+               default:
+                    D_DEBUG( "Fusion/Receiver: discarding message of unknown type '%d'\n",
+                             header->msg_type );
+                    break;
+          }
+
+          D_DEBUG_AT( Fusion_Main_Dispatch, "  -> done.\n" );
+
+          buf_p = data + ((header->msg_size + 3) & ~3);
+     }
+
+     handle_dispatch_cleanups( world );
+
+     if (world->dispatch_loop)
+          direct_thread_unlock( world->dispatch_loop );
+
      free( buf );
 
-     return NULL;
+     return DR_OK;
 }
 
 static void *
@@ -2572,6 +2748,9 @@ DirectResult
 fusion_stop_dispatcher( FusionWorld *world,
                         bool         emergency )
 {
+     if (!world->dispatch_loop)
+          return DR_OK;
+
      if (!emergency) {
           fusion_sync( world );
 
@@ -3207,7 +3386,10 @@ fusion_dispatcher_tid( const FusionWorld *world )
 {
      D_MAGIC_ASSERT( world, FusionWorld );
 
-     return direct_thread_get_tid( world->dispatch_loop );
+     if (world->dispatch_loop)
+          return direct_thread_get_tid( world->dispatch_loop );
+
+     return 0;
 }
 
 /*

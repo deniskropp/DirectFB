@@ -98,6 +98,10 @@ DirectResult FUSION_API fusion_enter( int               world_index,
 DirectResult FUSION_API fusion_exit( FusionWorld *world,
                                      bool         emergency );
 
+int          FUSION_API fusion_fd( const FusionWorld *world );
+DirectResult FUSION_API fusion_dispatch( FusionWorld *world,
+                                         size_t       buf_size );
+
 DirectResult FUSION_API fusion_stop_dispatcher( FusionWorld *world,
                                                 bool         emergency );
 
