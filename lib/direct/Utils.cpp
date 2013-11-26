@@ -122,7 +122,14 @@ Modules::Register( Module *module )
 {
      D_DEBUG_AT( Direct_Utils, "Modules::%s( %p, module %p )\n", __FUNCTION__, this, module );
 
-     direct_modules_register( &modules, 0, *module->GetName(), module );
+     if (module->registered) {
+          D_WARN( "already registered '%s'", *module->registered );
+          return;
+     }
+
+     module->registered = module->GetName();
+
+     direct_modules_register( &modules, 0, *module->registered, module );
 }
 
 void
@@ -130,7 +137,16 @@ Modules::Unregister( Module *module )
 {
      D_DEBUG_AT( Direct_Utils, "Modules::%s( %p, module %p )\n", __FUNCTION__, this, module );
 
-     direct_modules_unregister( &modules, *module->GetName() );
+     if (!module->registered) {
+          D_WARN( "not registered" );
+          return;
+     }
+
+     const char *copy = module->registered.CopyTLS();
+
+     module->registered.Clear();
+
+     direct_modules_unregister( &modules, copy );
 }
 
 

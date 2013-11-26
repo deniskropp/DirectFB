@@ -174,7 +174,10 @@ protected:
      void Register();
 
 private:
-     Modules &modules;
+     friend class Modules;
+
+     Modules        &modules;
+     Direct::String  registered;
 };
 
 
