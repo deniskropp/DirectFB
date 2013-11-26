@@ -233,7 +233,7 @@ EGLImage::glEGLImageTargetRenderBufferStorageOES( GLenum      target,
      //KHR::Image &image = (KHR::Image&) **handle;
      Direct::Base::TypeBase &image = (Direct::Base::TypeBase&) **handle;
 
-     context.Call<GL::OES::glEGLImageTargetRenderBufferStorage>()( target, image );
+     context.Call<GL::OES::glEGLImageTargetRenderbufferStorage>()( target, image );
 }
 
 /**********************************************************************************************************************/

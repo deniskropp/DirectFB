@@ -176,7 +176,7 @@ typedef std::function<void ( GL::enum_     &target,
                              EGL::KHR::Image &image )> glEGLImageTargetTexture2D;
 
 typedef std::function<void ( GL::enum_     &target,
-                             EGL::KHR::Image &image )> glEGLImageTargetRenderBufferStorage;
+                             EGL::KHR::Image &image )> glEGLImageTargetRenderbufferStorage;
 
 }
 
