@@ -183,6 +183,10 @@ public:
           return str == other.str;
      }
 
+     inline _CharT operator [](size_t index) const {
+          return str[index];
+     }
+
 
      /*
       * Assign
