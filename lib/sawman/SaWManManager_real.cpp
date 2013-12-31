@@ -290,7 +290,7 @@ ISaWManManager_Real::SetWindowConfig(
                     const SaWManWindowConfig *config,
                     SaWManWindowConfigFlags   flags )
 {
-     DFBResult   ret;
+     DFBResult   ret = DFB_OK;
      SaWMan     *sawman;
      CoreWindow *window;
 
