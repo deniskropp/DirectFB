@@ -114,6 +114,10 @@ typedef int64_t s64;
 #include <dlfcn.h>
 #endif
 
+#include <math.h>
+#ifndef sincos
+#define sincos(r,s,c)    do { *(s) = sin(r); *(c) = cos(r); } while (0)
+#endif
 
 #ifndef SIGUNUSED
 #define SIGUNUSED 31
