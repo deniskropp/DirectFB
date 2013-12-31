@@ -42,6 +42,8 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
+#include <direct/EvLog.h>
+
 D_LOG_DOMAIN( Direct_Main, "Direct/Main", "Initialization and shutdown of libdirect" );
 
 /**************************************************************************************************/
@@ -73,6 +75,8 @@ __D_direct_deinit()
      direct_print_memleaks();
 
      direct_print_interface_leaks();
+
+     direct_evlog_dump_all();
 
      direct_mutex_deinit( &main_lock );
 }
