@@ -108,8 +108,8 @@ class TLSObject2
 private:
      void               *ctx;
      DirectTLS           tls;
-//     Mutex               lock;
-//     std::list<Object*>  list;
+     Mutex               lock;
+     std::list<Object*>  list;
 
 public:
      TLSObject2( void *ctx = NULL )
@@ -133,9 +133,9 @@ public:
                if (!obj)
                     return NULL;
 
-//               lock.lock();
-//               list.push_back( obj );
-//               lock.unlock();
+               lock.lock();
+               list.push_back( obj );
+               lock.unlock();
 
                direct_tls_set( tls, obj );
           }
@@ -150,9 +150,9 @@ public:
           if (obj) {
                direct_tls_set( tls, NULL );
 
-//               lock.lock();
-//               list.remove( obj );
-//               lock.unlock();
+               lock.lock();
+               list.remove( obj );
+               lock.unlock();
 
                delete obj;
           }
@@ -160,19 +160,19 @@ public:
 
      void DeleteAll()
      {
-//          lock.lock();
+          lock.lock();
 
-//          std::list<Object*>  list_copy = list;
+          std::list<Object*>  list_copy = list;
 
-//          list.clear();
+          list.clear();
 
           direct_tls_unregister( &tls );
           direct_tls_register( &tls, TLSObject2::destructor );
 
-//          lock.unlock();
+          lock.unlock();
 
-//          for (typename std::list<Object*>::iterator it=list_copy.begin(); it!=list_copy.end(); it++)
-//               delete *it;
+          for (typename std::list<Object*>::iterator it=list_copy.begin(); it!=list_copy.end(); it++)
+               delete *it;
      }
 
 private:
