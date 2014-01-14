@@ -33,7 +33,7 @@ typedef struct {
 } Plane;
 
 
-static Plane g_planes[8];
+static Plane g_planes[64];
 static int   g_plane_count;
 
 
