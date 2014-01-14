@@ -43,6 +43,7 @@ extern "C" {
 #ifndef EGL_DIRECTFB_image_idirectfbsurface
 #define EGL_DIRECTFB_image_idirectfbsurface 1
 #define EGL_IMAGE_IDIRECTFBSURFACE_DIRECTFB			0x3456	/* eglCreateImageKHR target */
+#define EGL_IMAGE_IDIRECTFBSURFACEBUFFER_DIRECTFB		0x3457	/* eglCreateImageKHR target */
 #endif
 
 
