@@ -141,7 +141,7 @@ EGLCoreModuleWayland::Display_Probe( const EGL::Display &display,
                if (env && !strcmp( env, "wayland" )) {
                     D_DEBUG_AT( DFBWayland_EGLCoreModule, "  -> EGL_PLATFORM is set to 'wayland'\n" );
 
-                    ret_score = 40;
+                    ret_score = 60;
                }
           }
      }
@@ -402,18 +402,12 @@ SurfaceWLEGLWindow::SwapBuffers()
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_queue %p\n",  display.wl_queue );
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_registry %p\n",  display.wl_registry );
 
-//     if (buffer) {
-//          wl_dfb_buffer_destroy( buffer );
-//          buffer = NULL;
-//     }
-//
-//     buffer = wl_dfb_create_buffer( display.wl_dfb, parent.GetID(), 0, 0 );
-
-     if (!buffer)
+     if (!buffer) {
           buffer = wl_dfb_create_buffer( display.wl_dfb, parent.GetID(), 0, 0 );
 
-     wl_surface_attach( window->surface, (struct wl_buffer*) buffer, 0, 0 );
-     wl_surface_damage( window->surface, 0, 0, window->width, window->height );
+          wl_surface_attach( window->surface, (struct wl_buffer*) buffer, 0, 0 );
+     }
+
      wl_surface_commit( window->surface );
 
      return EGL_SUCCESS;
