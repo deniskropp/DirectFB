@@ -58,7 +58,7 @@ NON_PURE_VOODOO_SOURCESs = \
 	call.c			\
 	fusion.c		\
 	lock.c			\
-	object.c		\
+	object.cpp		\
 	property.c		\
 	reactor.c		\
 	ref.c

@@ -32,23 +32,33 @@
 
 #include <config.h>
 
+#include <direct/Types++.h>
+
+extern "C" {
 #include <sys/param.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
 
-#include <fusion/Debug.h>
-
 #include <fusion/conf.h>
-#include <fusion/object.h>
 #include <fusion/hash.h>
+#include <fusion/object.h>
 #include <fusion/shmalloc.h>
 
 #include "fusion_internal.h"
+}
+
+#include <fusion/Debug.h>
+
 
 D_DEBUG_DOMAIN( Fusion_Object, "Fusion/Object", "Fusion Objects and Pools" );
 D_DEBUG_DOMAIN( Fusion_Object_Owner, "Fusion/Object/Owner", "Fusion Objects and Pools" );
+
+
+namespace Fusion {
+
+extern "C" {
 
 
 #if 0
@@ -67,8 +77,8 @@ static FusionCallHandlerResult
 object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, unsigned int serial, int *ret_val )
 #endif
 {
-     FusionObject     *object;
-     FusionObjectPool *pool = ctx;
+     FusionObject     *object = NULL;
+     FusionObjectPool *pool   = (FusionObjectPool *) ctx;
 
      D_DEBUG_AT( Fusion_Object, "%s( %d, %d, %p, %p, %u, %p )\n",
 #if 0
@@ -93,7 +103,10 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
      D_MAGIC_ASSERT( pool, FusionObjectPool );
 
      /* Lookup the object. */
-     object = fusion_hash_lookup( pool->objects, (void*)(long) call_arg );
+     ObjectMap::iterator it = pool->objects->find( call_arg );
+
+     if (it != pool->objects->end())
+          object = (*it).second;
 
      D_DEBUG_AT( Fusion_Object, "  -> lookup as %p\n", object );
 
@@ -121,7 +134,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
                case DR_DESTROYED:
                     D_BUG( "already destroyed %p [%u] in '%s'", object, object->id, pool->name );
 
-                    fusion_hash_remove( pool->objects, (void*)(long) object->id, NULL, NULL );
+                    pool->objects->erase( it );
                     fusion_skirmish_dismiss( &pool->lock );
                     return FCHR_RETURN;
 
@@ -142,7 +155,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
           if (object->state == FOS_INIT) {
                D_BUG( "== %s == incomplete object: %d (%p)", pool->name, call_arg, object );
                D_WARN( "won't destroy incomplete object, leaking some memory" );
-               fusion_hash_remove( pool->objects, (void*)(long) object->id, NULL, NULL );
+               pool->objects->erase( it );
                fusion_skirmish_dismiss( &pool->lock );
                return FCHR_RETURN;
           }
@@ -152,7 +165,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
 
           /* Remove the object from the pool. */
           object->pool = NULL;
-          fusion_hash_remove( pool->objects, (void*)(long) object->id, NULL, NULL );
+          pool->objects->erase( it );
 
           /* Unlock the pool. */
           fusion_skirmish_dismiss( &pool->lock );
@@ -188,7 +201,7 @@ fusion_object_pool_create( const char             *name,
      FusionWorldShared *shared;
 
      D_ASSERT( name != NULL );
-     D_ASSERT( object_size >= sizeof(FusionObject) );
+     D_ASSERT( (size_t) object_size >= sizeof(FusionObject) );
      D_ASSERT( destructor != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
 
@@ -199,16 +212,21 @@ fusion_object_pool_create( const char             *name,
      D_MAGIC_ASSERT( shared, FusionWorldShared );
 
      /* Allocate shared memory for the pool. */
-     pool = SHCALLOC( shared->main_pool, 1, sizeof(FusionObjectPool) );
+     pool = (FusionObjectPool*) SHCALLOC( shared->main_pool, 1, sizeof(FusionObjectPool) );
      if (!pool) {
           D_OOSHM();
           return NULL;
      }
 
      /* Initialize the pool lock. */
-     fusion_skirmish_init2( &pool->lock, name, world, false );
+     if (fusion_config->secure_fusion)
+          fusion_skirmish_init2( &pool->lock, name, world, true );
+     else {
+          fusion_skirmish_init2( &pool->lock, name, world, false );
 
-     fusion_skirmish_add_permissions( &pool->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+          fusion_skirmish_add_permissions( &pool->lock, 0,
+                                           (FusionSkirmishPermissions)(FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS) );
+     }
 
      /* Fill information. */
      pool->shared       = shared;
@@ -218,8 +236,7 @@ fusion_object_pool_create( const char             *name,
      pool->destructor   = destructor;
      pool->ctx          = ctx;
      pool->secure       = fusion_config->secure_fusion;
-
-     fusion_hash_create( shared->main_pool, HASH_INT, HASH_PTR, 17, &pool->objects );
+     pool->objects      = new ObjectMap;
 
      /* Destruction call from Fusion. */
      fusion_call_init( &pool->call, object_reference_watcher, pool, world );
@@ -234,10 +251,8 @@ DirectResult
 fusion_object_pool_destroy( FusionObjectPool *pool,
                             FusionWorld      *world )
 {
-     DirectResult        ret;
-     FusionObject       *object;
-     FusionWorldShared  *shared;
-     FusionHashIterator  it;
+     DirectResult       ret;
+     FusionWorldShared *shared;
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
      D_MAGIC_ASSERT( world, FusionWorld );
@@ -257,8 +272,8 @@ fusion_object_pool_destroy( FusionObjectPool *pool,
      D_DEBUG_AT( Fusion_Object, "  -> syncing...\n" );
 
      /* Wait for processing of pending messages. */
-     if (fusion_hash_size(pool->objects))
-          fusion_sync( world );
+//     if (!pool->objects->empty())
+//          fusion_sync( world );
 
      D_DEBUG_AT( Fusion_Object, "  -> locking...\n" );
 
@@ -271,8 +286,9 @@ fusion_object_pool_destroy( FusionObjectPool *pool,
      fusion_call_destroy( &pool->call );
 
      /* Destroy zombies */
-     fusion_hash_foreach (object, it, pool->objects) {
-          int refs;
+     for (ObjectMap::iterator it = pool->objects->begin(); it != pool->objects->end(); it++) {
+          FusionObject *object = (*it).second;
+          int           refs;
 
           fusion_ref_stat( &object->ref, &refs );
 
@@ -298,7 +314,7 @@ fusion_object_pool_destroy( FusionObjectPool *pool,
           D_DEBUG_AT( Fusion_Object, "  -> destructor done.\n" );
      }
 
-     fusion_hash_destroy( pool->objects );
+     delete pool->objects;
 
      D_MAGIC_CLEAR( pool );
 
@@ -326,33 +342,11 @@ fusion_object_pool_set_describe( FusionObjectPool     *pool,
      return DR_OK;
 }
 
-typedef struct {
-     FusionObjectPool     *pool;
-     FusionObjectCallback  callback;
-     void                 *ctx;
-} ObjectIteratorContext;
-
-static bool
-object_iterator( FusionHash *hash,
-                 void       *key,
-                 void       *value,
-                 void       *ctx )
-{
-     ObjectIteratorContext *context = ctx;
-     FusionObject          *object  = value;
-
-     D_MAGIC_ASSERT( object, FusionObject );
-
-     return !context->callback( context->pool, object, context->ctx );
-}
-
 DirectResult
 fusion_object_pool_enum( FusionObjectPool     *pool,
                          FusionObjectCallback  callback,
                          void                 *ctx )
 {
-     ObjectIteratorContext iterator_context;
-
      D_MAGIC_ASSERT( pool, FusionObjectPool );
      D_ASSERT( callback != NULL );
 
@@ -362,14 +356,29 @@ fusion_object_pool_enum( FusionObjectPool     *pool,
      if (fusion_skirmish_prevail( &pool->lock ))
           return DR_FUSION;
 
-     iterator_context.pool     = pool;
-     iterator_context.callback = callback;
-     iterator_context.ctx      = ctx;
+     for (ObjectMap::iterator it = pool->objects->begin(); it != pool->objects->end(); it++) {
+          FusionObject *object = (*it).second;
 
-     fusion_hash_iterate( pool->objects, object_iterator, &iterator_context );
+          if (!callback( pool, object, ctx ))
+               break;
+     }
 
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_object_pool_size( FusionObjectPool *pool,
+                         size_t           *ret_size )
+{
+     D_MAGIC_ASSERT( pool, FusionObjectPool );
+
+     if (!ret_size)
+          return DR_INVARG;
+
+     *ret_size = pool->objects->size();
 
      return DR_OK;
 }
@@ -397,7 +406,7 @@ fusion_object_create( FusionObjectPool  *pool,
           return NULL;
 
      /* Allocate shared memory for the object. */
-     object = SHCALLOC( shared->main_pool, 1, pool->object_size );
+     object = (FusionObject*) SHCALLOC( shared->main_pool, 1, pool->object_size );
      if (!object) {
           D_OOSHM();
           fusion_skirmish_dismiss( &pool->lock );
@@ -452,7 +461,7 @@ fusion_object_create( FusionObjectPool  *pool,
      object->shared = shared;
 
      /* Add the object to the pool. */
-     fusion_hash_insert( pool->objects, (void*)(long) object->id, object );
+     pool->objects->insert( std::pair<FusionObjectID,FusionObject*>( object->id, object ) );
 
      D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
      D_DEBUG_AT( Fusion_Object, "  -> added object %p [%u] (ref %x)\n", object, object->id, object->ref.multi.id );
@@ -481,9 +490,13 @@ fusion_object_get( FusionObjectPool  *pool,
      /* Lock the pool. */
      ret = fusion_skirmish_prevail( &pool->lock );
      if (ret == DR_OK) {
-          object = fusion_hash_lookup( pool->objects, (void*)(long) object_id );
-          if (object) {
+          /* Lookup the object. */
+          ObjectMap::iterator it = pool->objects->find( object_id );
+
+          if (it != pool->objects->end()) {
                int refs;
+
+               object = (*it).second;
 
                D_DEBUG_AT( Fusion_Object, "  -> %s\n", ToString_FusionObject(object) );
 
@@ -529,8 +542,12 @@ fusion_object_lookup( FusionObjectPool  *pool,
      if (fusion_skirmish_prevail( &pool->lock ))
           return DR_FUSION;
 
-     object = fusion_hash_lookup( pool->objects, (void*)(long) object_id );
-     if (object) {
+     /* Lookup the object. */
+     ObjectMap::iterator it = pool->objects->find( object_id );
+
+     if (it != pool->objects->end()) {
+          object = (*it).second;
+
           D_DEBUG_AT( Fusion_Object, "  -> %s\n", ToString_FusionObject(object) );
 
           ret = DR_OK;
@@ -614,7 +631,7 @@ fusion_object_destroy( FusionObject *object )
 
                object->pool = NULL;
 
-               fusion_hash_remove( pool->objects, (void*)(long) object->id, NULL, NULL );
+               pool->objects->erase( object->id );
           }
 
           /* Unlock the pool. */
@@ -703,7 +720,7 @@ fusion_object_set_int_property( FusionObject *object,
      D_MAGIC_ASSERT( object, FusionObject );
      D_ASSERT( key != NULL );
 
-     iptr = SHMALLOC( object->shared->main_pool, sizeof(int) );
+     iptr = (int*) SHMALLOC( object->shared->main_pool, sizeof(int) );
      if (!iptr)
           return D_OOSHM();
 
@@ -897,5 +914,10 @@ fusion_object_catch( FusionObject *object )
      }
 
      return DR_OK;
+}
+
+
+}
+
 }
 
