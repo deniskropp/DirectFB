@@ -114,16 +114,26 @@ public:
           }
 
 
+          void TypeUpdate() {
+               D_DEBUG_AT( Direct_Type, "Type::%s( %p )\n", __FUNCTION__, this );
+
+               if (parent != * (RealTypeParent*) 0L)
+                    parent.TypeUpdate();
+
+               this->Update();
+          }
+
+
           class Info : public InfoBase
           {
           public:
-               Info( Type &type )
+               Info( /*Type &type*/ )
                     :
                     InfoBase( TypeID<TypeBase>(),
 
                               TypeID<_NS>(),
 
-                              type,
+                              //type,
                               TypeID<Type>(),
                               TypeID<RealType>(),
 
@@ -139,15 +149,15 @@ public:
                {
                }
 
-               static InfoHandle New( Type &type ) {
-                    return std::make_shared<Info>( type );
+               static InfoHandle New( /*Type &type*/ ) {
+                    return std::make_shared<Info>( /*type*/ );
                }
           };
 
 
      public:
           virtual InfoBase &GetInfo() {
-               static InfoHandle info = Info::New( *this );
+               static InfoHandle info = Info::New( /**this*/ );
 
                return *info;
           }

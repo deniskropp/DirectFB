@@ -34,6 +34,7 @@
 
 #include <direct/EvLog.h>
 #include <direct/Mutex.h>
+#include <direct/String.h>
 
 extern "C" {
 #include <direct/log.h>
@@ -51,6 +52,8 @@ namespace Direct {
 
 class EvLog {
 public:
+     DirectLogDomain domain;
+
      class Entry {
      public:
           void         *ctx;
@@ -91,7 +94,19 @@ public:
           }
      };
 
+     Direct::String                     name;
      std::map<void*,std::vector<Entry>> map;
+
+     EvLog( const Direct::String &name )
+          :
+          name( name )
+     {
+          memset( &domain, 0, sizeof(domain) );
+
+          domain.description = "Event Log";
+          domain.name        = *name;
+          domain.name_len    = name.length();
+     }
 
      void log( void         *ctx,
                const char   *event,
@@ -143,8 +158,8 @@ public:
 
 class EvLogs {
 public:
-     std::map<std::string,EvLog> map;
-     Direct::Mutex               lock;
+     std::map<std::string,EvLog*> map;
+     Direct::Mutex                lock;
 };
 
 static EvLogs logs;
@@ -162,7 +177,13 @@ void direct_evlog_log( const char   *evlog,
 {
      Direct::Mutex::Lock l1( logs.lock );
 
-     logs.map[evlog].log( ctx, event, info, function, file, line );
+     auto log = logs.map[evlog];
+
+     if (!log)
+          log = logs.map[evlog] = new EvLog( evlog );
+
+     if (direct_log_domain_check( &log->domain ))
+          log->log( ctx, event, info, function, file, line );
 }
 
 void direct_evlog_dump( const char *evlog,
@@ -172,13 +193,17 @@ void direct_evlog_dump( const char *evlog,
      Direct::Mutex::Lock l1( logs.lock );
 
      if (evlog) {
-          logs.map[evlog].dump( ctx, event );
+          auto log = logs.map[evlog];
+
+          if (log)
+               log->dump( ctx, event );
      }
      else {
           for (auto it = logs.map.begin(); it != logs.map.end(); it++) {
-               EvLog &log = (*it).second;
+               auto log = (*it).second;
 
-               log.dump( ctx, event );
+               if (log)
+                    log->dump( ctx, event );
           }
      }
 }

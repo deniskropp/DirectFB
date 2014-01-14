@@ -96,13 +96,13 @@ public:
 
           _Function &entry = map[ index ];
 
-          D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ), &map );
+          //D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
+          //        *ToString<std::type_info>( entry.target_type() ), &map );
 
           entry = f;
 
-          D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s)\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ) );
+          D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
+                  *ToString<std::type_info>( entry.target_type() ), &map );
      }
 
      template <typename _Function>
@@ -112,13 +112,13 @@ public:
 
           _Function &entry = map[ index ];
 
-          D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ), &map );
+          //D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
+          //        *ToString<std::type_info>( entry.target_type() ), &map );
 
           entry = f;
 
-          D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s)\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ) );
+          D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
+                  *ToString<std::type_info>( entry.target_type() ), &map );
      }
 
      template <typename _Function>
@@ -128,13 +128,13 @@ public:
 
           _Function &entry = map[ index ];
 
-          D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ), &map );
+          //D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
+          //        *ToString<std::type_info>( entry.target_type() ), &map );
 
           entry = f;
 
-          D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s)\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ) );
+          D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
+                  *ToString<std::type_info>( entry.target_type() ), &map );
      }
 
      template <typename _Function>
@@ -175,7 +175,7 @@ public:
 
           Direct::String        ns;
 
-          TypeBase             &type;
+          //TypeBase             &type;
           Direct::String        name;
           Direct::String        real_name;
 
@@ -194,7 +194,7 @@ public:
 
                     const Direct::String &ns,
 
-                    TypeBase             &type,
+                    //TypeBase             &type,
                     const Direct::String &name,
                     const Direct::String &real_name,
 
@@ -212,7 +212,7 @@ public:
 
                ns(                 ns ),
 
-               type(               type ),
+               //type(               type ),
                name(               name ),
                real_name(          real_name ),
 
@@ -255,6 +255,8 @@ public:
           virtual void      TypeInit() = 0;
 
           virtual const Direct::String &GetName() = 0;
+
+          virtual void Update() {};
 
      protected:
           std::vector<TypeHandle> all_handles;

@@ -80,5 +80,48 @@ void operator delete[](void* ptr, const std::nothrow_t&) throw()
      D_FREE( ptr );
 }
 
+
+
+
+#if 0
+
+
+DirectResult
+PlusPlusFunc( Args )
+{
+     Legacy *foo1 = NULL;
+     Handle  foo2;
+
+     try {
+          foo1 = Foo1_Create( &Args[x] );
+          foo2 = Foo2_Template( Args[x], Args[y] );
+
+          return DR_OK;
+     }
+     catch (Ex) {
+          if (foo1)
+               Foo1_Destroy( foo1 );
+     }
+}
+
+
+class Abstract {
+public:
+     virtual Foo();
+};
+
+template <typename X, typename Y>
+class Object : public Abstract
+{
+public:
+     virtual Foo()
+     {
+          X::Foo() or Y::Foo();
+     }
+};
+
+#endif
+
+
 #endif
 

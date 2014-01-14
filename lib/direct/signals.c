@@ -45,6 +45,8 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
+#include <direct/EvLog.h>
+
 D_LOG_DOMAIN( Direct_Signals, "Direct/Signals", "Signal handling" );
 
 #define SIG_CLOSE_SIGHANDLER SIGUNUSED
@@ -545,6 +547,8 @@ handle_signals( DirectThread *thread,
                     direct_print_interface_leaks();
 
                     direct_print_memleaks();
+
+                    direct_evlog_dump_all();
 
                     call_handlers( info.si_signo, NULL );
                }

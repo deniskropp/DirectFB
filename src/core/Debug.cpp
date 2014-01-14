@@ -204,6 +204,17 @@ ToString<DFBDisplayLayerBufferMode>::ToString( const DFBDisplayLayerBufferMode &
      }
 }
 
+template<>
+ToString<DFBDisplayLayerOptions>::ToString( const DFBDisplayLayerOptions &options )
+{
+     static const DirectFBDisplayLayerOptionsNames(options_names);
+
+     for (int i=0, n=0; options_names[i].option; i++) {
+          if (options & options_names[i].option)
+               PrintF( "%s%s", n++ ? "," : "", options_names[i].name );
+     }
+}
+
 
 
 // CoreSurface types
@@ -246,19 +257,43 @@ ToString<CoreSurfaceAccessFlags>::ToString( const CoreSurfaceAccessFlags &flags 
           PrintF( "<NONE>" );
 }
 
+template<>
+ToString<CoreSurfaceBufferRole>::ToString( const CoreSurfaceBufferRole &role )
+{
+     switch (role) {
+          case CSBR_FRONT:
+               PrintF( "FRONT" );
+               break;
+
+          case CSBR_BACK:
+               PrintF( "BACK" );
+               break;
+
+          case CSBR_IDLE:
+               PrintF( "IDLE" );
+               break;
+
+          default:
+               PrintF( "invalid 0x%x", role );
+               break;
+     }
+}
+
 
 // CoreLayer types
 
 template<>
 ToString<CoreLayerRegionConfig>::ToString( const CoreLayerRegionConfig &config )
 {
-     PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%s source:%s dest:%s",
+     PrintF( "size:%dx%d format:%s surface_caps:%s buffermode:%s source:%s dest:%s options:%s opacity:%u",
              config.width, config.height,
              *ToString<DFBSurfacePixelFormat>(config.format),
              *ToString<DFBSurfaceCapabilities>(config.surface_caps),
              *ToString<DFBDisplayLayerBufferMode>(config.buffermode),
              *ToString<DFBRectangle>(config.source),
-             *ToString<DFBRectangle>(config.dest) );
+             *ToString<DFBRectangle>(config.dest),
+             *ToString<DFBDisplayLayerOptions>(config.options),
+             config.opacity );
 }
 
 template<>
@@ -299,7 +334,7 @@ ToString<CoreLayerRegion>::ToString( const CoreLayerRegion &region )
 template<>
 ToString<CoreSurfaceAllocation>::ToString( const CoreSurfaceAllocation &allocation )
 {
-     PrintF( "{CoreSurfaceAllocation %s [%d] type:%s resid:%lu serial:%u/%lu pool:%s %s}",
+     PrintF( "{CoreSurfaceAllocation %s index:%d type:%s resid:%lu serial:%u/%lu pool:%s %s}",
              ToString<FusionObject>(allocation.object).buffer(),
              allocation.index,
              ToString<CoreSurfaceTypeFlags>(allocation.type).buffer(),
@@ -312,7 +347,7 @@ ToString<CoreSurfaceAllocation>::ToString( const CoreSurfaceAllocation &allocati
 template<>
 ToString<CoreSurfaceBuffer>::ToString( const CoreSurfaceBuffer &buffer )
 {
-     PrintF( "{CoreSurfaceBuffer %s [%d] allocs:%d type:%s resid:%lu %s}",
+     PrintF( "{CoreSurfaceBuffer %s index:%d allocs:%d type:%s resid:%lu %s}",
              ToString<FusionObject>(buffer.object).buffer(),
              buffer.index, buffer.allocs.count,
              ToString<CoreSurfaceTypeFlags>(buffer.type).buffer(),
@@ -323,8 +358,9 @@ ToString<CoreSurfaceBuffer>::ToString( const CoreSurfaceBuffer &buffer )
 template<>
 ToString<CoreSurface>::ToString( const CoreSurface &surface )
 {
-     PrintF( "{CoreSurface %s [%d] buffers:%d type:%s resid:%lu %s}",
+     PrintF( "{CoreSurface %s flips:%u acked:%u clients:%d buffers:%d type:%s resid:%lu %s}",
              *ToString<FusionObject>(surface.object),
+             surface.flips, surface.flips_acked,
              surface.clients.count, surface.num_buffers,
              *ToString<CoreSurfaceTypeFlags>(surface.type),
              surface.resource_id,
@@ -516,6 +552,18 @@ const char *
 ToString_CoreSurfaceBuffer( const CoreSurfaceBuffer *v )
 {
      return ToString<CoreSurfaceBuffer>( *v ).CopyTLS();
+}
+
+const char *
+ToString_CoreSurfaceBufferLock( const CoreSurfaceBufferLock *v )
+{
+     return ToString<CoreSurfaceBufferLock>( *v ).CopyTLS();
+}
+
+const char *
+ToString_CoreSurfaceBufferRole( CoreSurfaceBufferRole v )
+{
+     return ToString<CoreSurfaceBufferRole>( v ).CopyTLS();
 }
 
 const char *

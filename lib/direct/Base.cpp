@@ -107,7 +107,7 @@ Base::__HandleLists()
           if (item != map.end()) {
           }
           else {
-               info->type.TypeInit();
+//               info->type.TypeInit();
 
                map.insert( std::pair<TypeKey,InfoBase*>( info->real_name, info ) );
           }
