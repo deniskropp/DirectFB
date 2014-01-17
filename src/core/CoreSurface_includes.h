@@ -1,6 +1,8 @@
 #include "CoreDFB_includes.h"
 
 #ifdef __cplusplus
+#include <direct/Types++.h>
+
 extern "C" {
 #endif
 
