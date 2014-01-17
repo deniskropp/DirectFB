@@ -130,7 +130,7 @@ bin_PROGRAMS = \
 	direct_test	\
 	dfbtest_alloc	\
 	dfbtest_layer	\
-	dfbtest_stereo	\	
+	dfbtest_stereo	\
 	$(ONE_PROGS)	\
 	$(VOODOO_PROGS) \
 	$(SAWMAN_PROGS) \
@@ -193,7 +193,7 @@ dfbtest_egl_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS
 
 dfbtest_eglblit_SOURCES = dfbtest_eglblit.c
 dfbtest_eglblit_CFLAGS  = $(GLES2_CFLAGS)
-dfbtest_eglblit_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl)
+dfbtest_eglblit_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libegl) $(libdfbegl)
 
 dfbtest_eglimage_SOURCES = dfbtest_eglimage.cpp ../examples/++dfb/dfbapp.cpp
 dfbtest_eglimage_CFLAGS  = $(GLES2_CFLAGS)
