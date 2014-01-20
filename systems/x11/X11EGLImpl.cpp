@@ -526,7 +526,7 @@ X11EGLConfig::CheckOptions( const Graphics::Options &options )
                }
           }
           else {
-               if (val > check && check != 0)
+               if (val > check)// && check != 0)
                     D_DEBUG_AT( DFBX11_EGLConfig, "  >    local '%ld' greater than '%ld'\n", val, check );
                else if (val == check)
                     D_DEBUG_AT( DFBX11_EGLConfig, "  =    local '%ld' equals\n", val );
