@@ -38,6 +38,8 @@ extern "C" {
 #include <direct/types.h>
 }
 
+#include <map>
+
 
 namespace Direct {
      // NOTE: if build fails here we most likely have the above error due to nested extern "C"
