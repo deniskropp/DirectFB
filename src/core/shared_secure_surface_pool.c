@@ -187,6 +187,7 @@ sharedSecureAllocateBuffer( CoreSurfacePool       *pool,
      SharedAllocationData *alloc = alloc_data;
      char                  buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 99];
      int                   fd;
+     int                   flags = MAP_SHARED;
 
      D_DEBUG_AT( Core_SharedSecure, "%s()\n", __FUNCTION__ );
 
@@ -216,7 +217,10 @@ sharedSecureAllocateBuffer( CoreSurfacePool       *pool,
           return DFB_IO;
      }
 
-     alloc->master_map = mmap( NULL, alloc->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+     if (direct_config_get_int_value_with_default( "fusion-shm-populate", 0 ))
+          flags |= MAP_POPULATE;
+
+     alloc->master_map = mmap( NULL, alloc->size, PROT_READ | PROT_WRITE, flags, fd, 0 );
 
      close( fd );
 
