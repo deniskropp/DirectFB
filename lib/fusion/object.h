@@ -56,7 +56,6 @@ typedef u32 FusionObjectID;
 
 #ifdef __cplusplus
 }
-#include <map>
 namespace Fusion {
 typedef std::map<FusionObjectID,FusionObject*>    ObjectMap;
 }

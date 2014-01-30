@@ -197,9 +197,13 @@ main( int argc, char *argv[] )
 
           dest->Clear( dest, 0, 0, 0, 0 );
 
-          for (i=0; i<100000; i++) {
-               dest->SetColor( dest, rand()%256, rand()%256, rand()%256, rand()%256 );
-               dest->FillRectangle( dest, rand()%100, rand()%100, rand()%100, rand()%100 );
+          for (i=0; i<1000; i++) {
+               dest->SetColor( dest, rand()%256, rand()%256, rand()%256, 0xff );
+
+               int w = rand()%100;
+               int h = rand()%100;
+
+               dest->FillRectangle( dest, rand()%(desc.width-w), rand()%(desc.height-h), w, h );
           }
 
           dest->Flip( dest, NULL, DSFLIP_NONE );
