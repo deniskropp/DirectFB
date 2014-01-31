@@ -981,7 +981,7 @@ update_only:
 
      D_DEBUG_AT( Core_Layers, "  -> done.\n" );
 
-     dfb_surface_dispatch_update( region->surface, left_update, right_update, -1 );
+//     dfb_surface_dispatch_update( region->surface, left_update, right_update, -1 );
 
 out:
      dfb_surface_unlock( surface );
