@@ -480,7 +480,7 @@ dfb_window_create( CoreWindowStack             *stack,
      config.bounds.h = desc->height;
      config.stacking = (desc->flags & DWDESC_STACKING) ? desc->stacking : DWSC_MIDDLE;
 
-     config.events   = DWET_ALL;
+     config.events   = DWET_ALL & ~DWET_UPDATE;   // no update events by default (obsolete)
 
      /* Auto enable blending for ARGB only, not indexed. */
      if ((caps & DWCAPS_ALPHACHANNEL) &&
@@ -507,7 +507,7 @@ dfb_window_create( CoreWindowStack             *stack,
      window->config              = config;
      window->config.association  = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
      window->config.cursor_flags = dfb_config->default_cursor_flags;
-printf("created window with ID=%d\n", window->id);
+
      /* Set toplevel window ID (new sub window feature) */
      window->toplevel_id = toplevel_id;
 
