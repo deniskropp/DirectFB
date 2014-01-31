@@ -849,7 +849,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      Core_PushIdentity( 0 );
 
      /* lock destination */
-     ret = dfb_surface_lock_buffer2( dst, state->to, state->destination->flips,
+     ret = dfb_surface_lock_buffer2( dst, state->to,
+                                     state->destination_flip_count_used ? state->destination_flip_count : state->destination->flips,
                                      state->to_eye,
                                      CSAID_GPU, access, &state->dst );
      if (ret) {
@@ -1230,7 +1231,10 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      state->mod_hw   |= state->modified;
      state->modified  = 0;
 
-     dst_buffer = dfb_surface_get_buffer3( dst, state->to, state->to_eye, state->destination->flips );
+     if (state->destination_flip_count_used)
+          dst_buffer = dfb_surface_get_buffer3( dst, state->to, state->to_eye, state->destination_flip_count );
+     else
+          dst_buffer = dfb_surface_get_buffer3( dst, state->to, state->to_eye, state->destination->flips );
 
      D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
 

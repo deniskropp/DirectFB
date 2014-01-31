@@ -226,12 +226,16 @@ struct _CardState {
      bool                     source_flip_count_used;
 
      void                    *client;
+
+     u32                      destination_flip_count;
+     bool                     destination_flip_count_used;
 };
 
 int  dfb_state_init( CardState *state, CoreDFB *core );
 void dfb_state_destroy( CardState *state );
 
 DFBResult dfb_state_set_destination( CardState *state, CoreSurface *destination );
+DFBResult dfb_state_set_destination_2( CardState *state, CoreSurface *destination, u32 flip_count );
 DFBResult dfb_state_set_source( CardState *state, CoreSurface *source );
 DFBResult dfb_state_set_source_2( CardState *state, CoreSurface *source, u32 flip_count );
 DFBResult dfb_state_set_source_mask( CardState *state, CoreSurface *source_mask );
