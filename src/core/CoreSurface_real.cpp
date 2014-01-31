@@ -50,6 +50,7 @@ extern "C" {
 }
 
 #include <core/CoreSurface.h>
+#include <core/Debug.h>
 #include <core/SurfaceTask.h>
 #include <core/TaskManager.h>
 
@@ -718,8 +719,6 @@ ISurface_Real::PreLockBuffer3(
      D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( surface %p, role %d, count %u, eye %d, accessor 0x%02x, access 0x%02x, %slock )\n",
                  __FUNCTION__, surface, role, flip_count, eye, accessor, access, lock ? "" : "no " );
 
-     D_ASSERT( !dfb_config->task_manager );
-
      ret = (DFBResult) dfb_surface_lock( surface );
      if (ret)
           return ret;
@@ -732,7 +731,7 @@ ISurface_Real::PreLockBuffer3(
      buffer = dfb_surface_get_buffer3( surface, role, eye, flip_count );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     D_DEBUG_AT( DirectFB_CoreSurface, "  -> buffer %p\n", buffer );
+     D_DEBUG_AT( DirectFB_CoreSurface, "  -> buffer    %s\n", ToString_CoreSurfaceBuffer(buffer) );
 
      if (!lock && access & CSAF_READ) {
           if (fusion_vector_is_empty( &buffer->allocs )) {
@@ -757,6 +756,8 @@ ISurface_Real::PreLockBuffer3(
      }
 
      CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "  -> allocation %s\n", ToString_CoreSurfaceAllocation(allocation) );
 
      /* Synchronize with other allocations. */
      ret = dfb_surface_allocation_update( allocation, access );
@@ -1031,6 +1032,50 @@ ISurface_Real::GetAllocation( CoreSurfaceBufferRole   role,
      *ret_allocation = allocation;
 
 out:
+     dfb_surface_unlock( obj );
+
+     return ret;
+}
+
+
+DFBResult
+ISurface_Real::DispatchUpdate(
+                   DFBBoolean                                    swap,
+                   const DFBRegion                              *left,
+                   const DFBRegion                              *right,
+                   DFBSurfaceFlipFlags                           flags,
+                   s64                                           timestamp,
+                   u32                                           flip_count
+                   )
+{
+     DFBResult ret = DFB_OK;
+     DFBRegion l, r;
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( timestamp %lld, flip_count %u )\n",
+                 __FUNCTION__, (long long) timestamp, flip_count );
+
+     dfb_surface_lock( obj );
+
+     if (left)
+          l = *left;
+     else {
+          l.x1 = 0;
+          l.y1 = 0;
+          l.x2 = obj->config.size.w - 1;
+          l.y2 = obj->config.size.h - 1;
+     }
+
+     if (right)
+          r = *right;
+     else
+          r = l;
+
+     if (!(flags & DSFLIP_UPDATE))
+          obj->flips = flip_count;
+
+     // FIXME: this always updates full when a side is empty
+     dfb_surface_dispatch_update( obj, &l, &r, timestamp, flags );
+
      dfb_surface_unlock( obj );
 
      return ret;
