@@ -995,6 +995,8 @@ fusion_stop_dispatcher( FusionWorld *world,
           fusion_sync( world );
      }
 
+     fcntl( world->fusion_fd, F_SETFL, O_NONBLOCK );
+
      D_DEBUG_AT( Fusion_Main_Dispatch, "  -> finished stopping.\n" );
 
      return DR_OK;
