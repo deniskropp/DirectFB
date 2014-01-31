@@ -861,7 +861,13 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
-          if (state->source_flip_count_used)
+          if (state->source_buffer) {
+               dfb_surface_lock( src );
+               CoreSurfaceBuffer *src_buffer = state->source_buffer;
+               ret = dfb_surface_buffer_lock( src_buffer, CSAID_GPU, CSAF_READ, &state->src );
+               dfb_surface_unlock( src );
+          }
+          else if (state->source_flip_count_used)
                ret = dfb_surface_lock_buffer2( src, state->from, state->source_flip_count,
                                                state->from_eye,
                                                CSAID_GPU, CSAF_READ, &state->src );
@@ -1264,7 +1270,9 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* If the front buffer policy of the source is 'system only' no accelerated blitting is available. */
           /* ...lock source for reading */
-          if (state->source_flip_count_used)
+          if (state->source_buffer)
+               src_buffer = state->source_buffer;
+          else if (state->source_flip_count_used)
                src_buffer = dfb_surface_get_buffer3( src, state->from, state->from_eye, state->source_flip_count );
           else
                src_buffer = dfb_surface_get_buffer3( src, state->from, state->from_eye, src->flips );

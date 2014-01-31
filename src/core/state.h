@@ -146,6 +146,7 @@ struct _CardState {
 
      CoreSurface             *destination;   /* destination surface */
      CoreSurface             *source;        /* source surface */
+     CoreSurfaceBuffer       *source_buffer; /* source surface */
 
      DirectSerial             dst_serial;    /* last destination surface serial */
      DirectSerial             src_serial;    /* last source surface serial */
