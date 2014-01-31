@@ -3928,6 +3928,15 @@ fusion_stop_dispatcher( FusionWorld *world,
      return DR_OK;
 }
 
+DirectResult
+fusion_dispatch( FusionWorld *world,
+                 size_t       buf_size )
+{
+     D_UNIMPLEMENTED();
+
+     return DR_OK;
+}
+
 /*
  * Exits the fusion world.
  *
