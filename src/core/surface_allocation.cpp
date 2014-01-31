@@ -629,6 +629,7 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
                     else if (allocation->access[CSAID_CPU] & CSAF_WRITE)
                          ret = allocation_update_read( allocation, source );
                     else {
+                         D_WARN( "[%s] -> [%s]", source->pool->desc.name, allocation->pool->desc.name );
                          D_UNIMPLEMENTED();
                          ret = DFB_UNSUPPORTED;
                     }
