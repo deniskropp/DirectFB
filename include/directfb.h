@@ -3533,6 +3533,8 @@ typedef enum {
 
      DSFLIP_UPDATE       = 0x00000800,  /* Update from front only, no swapping */
 
+     DSFLIP_NOWAIT       = 0x00001000,
+
      DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
 
@@ -3790,7 +3792,7 @@ typedef enum {
 
      DSFF_WAIT             = 0x00000001,  /* wait for commands being processed */
 
-     DSFF_ALL              = 0x00000000
+     DSFF_ALL              = 0x00000001
 } DFBSurfaceFlushFlags;
 
 /********************
