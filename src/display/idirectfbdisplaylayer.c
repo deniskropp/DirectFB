@@ -448,7 +448,7 @@ IDirectFBDisplayLayer_SetScreenPosition( IDirectFBDisplayLayer *thiz,
 {
      DFBPoint position;
 
-     D_DEBUG_AT( Layer, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Layer, "%s( %p, %d,%d )\n", __FUNCTION__, thiz, x, y );
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
