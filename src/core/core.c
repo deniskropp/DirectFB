@@ -1228,15 +1228,18 @@ dfb_core_wait_all( CoreDFB   *core,
 
           for (i=0; i<D_ARRAY_SIZE(pools); i++) {
                if (pools[i]) {
-                    unsigned int num = fusion_hash_size( pools[i]->objects );
+                    size_t    num = 0;
+                    DFBResult ret = fusion_object_pool_size( pools[i], &num );
+
+                    D_ASSERT( ret == DFB_OK );
 
                     if (num > 0) {
                          if (now - start >= timeout) {
-                              D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in pool, timeout!\n", num );
+                              D_DEBUG_AT( DirectFB_Core, "  -> still %zu objects in pool, timeout!\n", num );
                               return DR_TIMEOUT;
                          }
 
-                         D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in '%s', waiting 10ms...\n", num, pools[i]->name );
+                         D_DEBUG_AT( DirectFB_Core, "  -> still %zu objects in '%s', waiting 10ms...\n", num, pools[i]->name );
 
                          break;
                     }
