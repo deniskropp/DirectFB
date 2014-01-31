@@ -1467,6 +1467,12 @@ typedef struct {
           D_ASSERT( (updates)->num_regions <= (updates)->max_regions );    \
      } while (0)
 
+#define DFB_UPDATES_DEBUG_AT(d,updates)                                                        \
+     do {                                                                                      \
+          D_DEBUG_AT( d, " =--[ " #updates " has %d regions ]\n", (updates)->num_regions );    \
+          DFB_REGIONS_DEBUG_AT( d, (updates)->regions, (unsigned) ((updates)->num_regions) );  \
+     } while (0)
+
 
 void DIRECTFB_API dfb_updates_init( DFBUpdates      *updates,
                                     DFBRegion       *regions,
