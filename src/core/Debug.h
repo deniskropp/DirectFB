@@ -61,6 +61,7 @@ const char *ToString_CoreSurfaceBuffer        ( const CoreSurfaceBuffer         
 const char *ToString_CoreSurfaceBufferLock    ( const CoreSurfaceBufferLock          *lock );
 const char *ToString_CoreSurfaceBufferRole    ( CoreSurfaceBufferRole                 role );
 const char *ToString_CoreSurface              ( const CoreSurface                    *surface );
+const char *ToString_CoreWindow               ( const CoreWindow                     *window );
 
 const char *ToString_Task                     ( const DFB_Task                       *task );
 
