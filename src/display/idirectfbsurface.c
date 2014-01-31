@@ -727,6 +727,9 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      data->local_flip_buffers = surface->num_buffers;
 
+     if (dfb_config->force_frametime && !data->current_frame_time)
+          thiz->GetFrameTime( thiz, &data->current_frame_time );
+
      if (surface->config.caps & DSCAPS_FLIPPING) {
           if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
                                         reg.x1 == 0 && reg.y1 == 0 &&
@@ -736,6 +739,9 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      }
 
      ret = CoreSurface_Flip2( data->surface, DFB_FALSE, &reg, NULL, flags, data->current_frame_time );
+
+     data->current_frame_time = 0;
+
      if (ret)
           return ret;
 
@@ -3151,6 +3157,9 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
 
      data->local_flip_buffers = data->surface->num_buffers;
 
+     if (dfb_config->force_frametime && !data->current_frame_time)
+          thiz->GetFrameTime( thiz, &data->current_frame_time );
+
      if (data->surface->config.caps & DSCAPS_FLIPPING) {
           if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
                                         l_reg.x1 == 0 && l_reg.y1 == 0 &&
@@ -3163,6 +3172,9 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
      }
 
      ret = CoreSurface_Flip2( data->surface, DFB_FALSE, &l_reg, &r_reg, flags, data->current_frame_time );
+
+     data->current_frame_time = 0;
+
      if (ret)
           return ret;
 
