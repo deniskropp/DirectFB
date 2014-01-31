@@ -628,8 +628,10 @@ IDirectFBSurface_Write( IDirectFBSurface    *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     if (!data->area.current.w || !data->area.current.h)
+     if (!data->area.current.w || !data->area.current.h) {
+          D_DEBUG_AT( Surface, "  -> NO AREA (current " DFB_RECT_FORMAT ")\n", DFB_RECTANGLE_VALS( &data->area.current ) );
           return DFB_INVAREA;
+     }
 
      D_DEBUG_AT( Surface, "  ->      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS( rect ) );
 
@@ -847,6 +849,7 @@ IDirectFBSurface_SetClip( IDirectFBSurface *thiz, const DFBRegion *clip )
 
      D_DEBUG_AT( Surface, "%s( %p, %p )\n", __FUNCTION__, thiz, clip );
 
+     D_DEBUG_AT( Surface, "  <-      %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS(&data->area.wanted) );
 
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
@@ -1847,7 +1850,7 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, %d,%d )\n", __FUNCTION__, thiz, dx, dy );
 
      if (sr)
           D_DEBUG_AT( Surface, "  -> [%2d] %4d,%4d-%4dx%4d <- %4d,%4d\n", 0, dx, dy, sr->w, sr->h, sr->x, sr->y );
