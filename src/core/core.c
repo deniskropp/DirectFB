@@ -73,6 +73,7 @@
 #include <core/Task.h>
 #include <core/TaskManager.h>
 
+#include <gfx/generic/GenefxEngine.h>
 #include <gfx/util.h>
 
 #include <direct/build.h>
@@ -1846,7 +1847,6 @@ dfb_core_initialize( CoreDFB *core )
                return ret;
      }
 
-     extern void register_genefx(void);
      register_genefx();
 
      if (dfb_config->resource_manager) {
