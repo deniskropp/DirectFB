@@ -248,6 +248,59 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
 }
 
 DFBResult
+dfb_state_set_destination_2( CardState   *state,
+                             CoreSurface *destination,
+                             u32          flip_count )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     dfb_state_lock( state );
+
+     D_ASSUME( !(state->flags & CSF_DRAWING) );
+
+     if (state->destination != destination) {
+          if (destination) {
+               if (dfb_surface_ref( destination )) {
+                    D_WARN( "could not ref() destination" );
+                    dfb_state_unlock( state );
+                    return DFB_DEAD;
+               }
+
+               // FIXME: validate before render
+               validate_clip( state, destination->config.size.w - 1, destination->config.size.h - 1, false );
+          }
+
+          if (state->destination) {
+               D_ASSERT( D_FLAGS_IS_SET( state->flags, CSF_DESTINATION ) );
+               dfb_surface_unref( state->destination );
+          }
+
+          if (destination) {
+               direct_serial_copy( &state->dst_serial, &destination->serial );
+
+               D_FLAGS_SET( state->flags, CSF_DESTINATION );
+          }
+          else
+               D_FLAGS_CLEAR( state->flags, CSF_DESTINATION );
+
+          state->destination  = destination;
+          state->modified    |= SMF_DESTINATION;
+     }
+
+     if (state->destination_flip_count != flip_count || !state->destination_flip_count_used) {
+          state->destination_flip_count      = flip_count;
+          state->destination_flip_count_used = true;
+
+          state->destination  = destination;
+          state->modified    |= SMF_DESTINATION;
+     }
+
+     dfb_state_unlock( state );
+
+     return DFB_OK;
+}
+
+DFBResult
 dfb_state_set_source( CardState *state, CoreSurface *source )
 {
      D_MAGIC_ASSERT( state, CardState );
