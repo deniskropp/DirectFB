@@ -605,6 +605,8 @@ DisplayDFB::Image_Initialise( DirectFB::EGL::KHR::Image &image )
      D_INFO( "DFBEGL/Image: New EGLImage from IDirectFBSurface (%dx%d)\n", w, h );
 
      image.dfb_surface = surface;
+     image.size.w = w;
+     image.size.h = h;
 
      return DFB_OK;
 }
