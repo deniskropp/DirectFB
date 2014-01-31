@@ -1717,6 +1717,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      if (dfb_input_core.initialized)
           dfb_input_core.Suspend( dfb_input_core.data_local );
 
+     TaskManager_SyncAll();
+
      core->shutdown_tid = direct_gettid();
 
 
@@ -1726,8 +1728,14 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      dfb_core_enum_layer_regions( core, region_callback, core );
 
 
+     fusion_stop_dispatcher( core->world, false );
+
+     dfb_gfx_cleanup();
+
      while (loops--) {
-          ret = dfb_core_wait_all( core, 100000 );
+          fusion_dispatch( core->world, 16384 );
+
+          ret = dfb_core_wait_all( core, 10000 );
           if (ret == DFB_OK)
                break;
 
@@ -1743,8 +1751,6 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
                direct_print_interface_leaks();
           }
      }
-
-     fusion_stop_dispatcher( core->world, false );
 
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
