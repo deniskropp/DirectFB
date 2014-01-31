@@ -5825,6 +5825,7 @@ typedef struct {
      DFBRegion                        update;
      DFBRegion                        update_right;
      unsigned int                     flip_count; /* Serial number of frame, modulo number of buffers = buffer index */
+     DFBSurfaceFlipFlags              flip_flags;
 
      // DSEVT_DISPLAY
      unsigned int                     index;      /* Serial number of frame, modulo number of buffers = buffer index */

@@ -904,7 +904,7 @@ ISurface_Real::Flip2(
      }
 
      // FIXME: this always updates full when a side is empty
-     dfb_surface_dispatch_update( obj, &l, &r, timestamp );
+     dfb_surface_dispatch_update( obj, &l, &r, timestamp, flags );
 
 out:
      dfb_surface_unlock( obj );
