@@ -58,9 +58,6 @@ extern "C" {
 
 #include <fusion/shmalloc.h>
 
-#include <core/CoreSurface.h>
-#include <core/CoreSurfaceAllocation.h>
-
 #include <core/gfxcard.h>
 #include <core/palette.h>
 #include <core/surface.h>
@@ -76,6 +73,8 @@ extern "C" {
 #include <direct/Lists.h>
 
 #include <core/Debug.h>
+#include <core/CoreSurface.h>
+#include <core/CoreSurfaceAllocation.h>
 #include <core/SurfaceTask.h>
 
 
