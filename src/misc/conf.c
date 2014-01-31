@@ -497,7 +497,7 @@ static void config_allocate( void )
      dfb_config->keep_accumulators        = 1024;
      dfb_config->font_format              = DSPF_A8;
      dfb_config->cursor_automation        = true;
-     dfb_config->layers_clear             = true;
+     dfb_config->layers_clear             = false;
      dfb_config->wm_fullscreen_updates    = false;
 
      /* default to x11 if DISPLAY is set, or drm/fbdev if permitted */
