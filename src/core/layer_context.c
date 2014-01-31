@@ -908,8 +908,11 @@ update_primary_region_config( CoreLayerContext           *context,
      D_ASSERT( config != NULL );
 
      if (context->primary.region) {
+          if (flags != CLRCF_DEST)
+               flags |= CLRCF_FREEZE;
+
           /* Set the new configuration. */
-          ret = dfb_layer_region_set_configuration( context->primary.region, config, flags | CLRCF_FREEZE );
+          ret = dfb_layer_region_set_configuration( context->primary.region, config, flags );
      }
      else {
           CoreLayer *layer = dfb_layer_at( context->layer_id );
