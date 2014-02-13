@@ -69,7 +69,9 @@ private:
      int                  m_width;
      int                  m_height;
      bool                 m_flipping;
+     bool                 m_premultiplied;
 
+protected:
      /* DirectFB interfaces */
      IDirectFB            m_dfb;
      IDirectFBSurface     m_primary;
