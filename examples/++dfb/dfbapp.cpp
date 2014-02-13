@@ -41,9 +41,10 @@
 
 DFBApp::DFBApp()
 {
-     m_width    = 0;
-     m_height   = 0;
-     m_flipping = true;
+     m_width         = 0;
+     m_height        = 0;
+     m_flipping      = true;
+     m_premultiplied = true;
 }
 
 DFBApp::~DFBApp()
@@ -79,6 +80,9 @@ DFBApp::Init( int argc, char *argv[] )
 
      if (m_flipping)
           DFB_ADD_SURFACE_CAPS( dsc.caps, DSCAPS_FLIPPING );
+
+     if (m_premultiplied)
+          DFB_ADD_SURFACE_CAPS( dsc.caps, DSCAPS_PREMULTIPLIED );
 
      if (m_width) {
           DFB_ADD_SURFACE_DESC( dsc.flags, DSDESC_WIDTH );
