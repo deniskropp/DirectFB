@@ -84,6 +84,9 @@ DFBApp::Init( int argc, char *argv[] )
      if (m_premultiplied)
           DFB_ADD_SURFACE_CAPS( dsc.caps, DSCAPS_PREMULTIPLIED );
 
+     if (m_premultiplied)
+          DFB_ADD_SURFACE_CAPS( dsc.caps, DSCAPS_PREMULTIPLIED );
+
      if (m_width) {
           DFB_ADD_SURFACE_DESC( dsc.flags, DSDESC_WIDTH );
           dsc.width  = m_width;
