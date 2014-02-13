@@ -846,6 +846,9 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                               case DSPF_AiRGB:
                               case DSPF_RGBAF88871:
                                    wd.caps |= DWCAPS_ALPHACHANNEL;
+
+                                   if (caps & DSCAPS_PREMULTIPLIED)
+                                        wd.options |= DWOP_ALPHACHANNEL;
                                    break;
 
                               default:
