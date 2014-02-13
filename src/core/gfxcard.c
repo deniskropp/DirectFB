@@ -3573,7 +3573,8 @@ static void
 font_state_prepare( CardState   *state,
                     CardState   *backup,
                     CoreFont    *font,
-                    CoreSurface *surface )
+                    CoreSurface *surface,
+                    bool         set_blend )
 {
      if (state->blittingflags != DSBLIT_INDEX_TRANSLATION) {
           DFBSurfaceBlittingFlags flags = font->blittingflags;
@@ -3605,12 +3606,14 @@ font_state_prepare( CardState   *state,
                     else
                          flags |= DSBLIT_SRC_PREMULTIPLY;
 
-                    dfb_state_set_src_blend( state, DSBF_ONE );
+                    if (set_blend)
+                         dfb_state_set_src_blend( state, DSBF_ONE );
                }
-               else
+               else if (set_blend)
                     dfb_state_set_src_blend( state, DSBF_SRCALPHA );
 
-               dfb_state_set_dst_blend( state, DSBF_INVSRCALPHA );
+               if (set_blend)
+                    dfb_state_set_dst_blend( state, DSBF_INVSRCALPHA );
           }
 
           dfb_state_set_blitting_flags( state, flags );
@@ -3636,7 +3639,8 @@ font_state_restore( CardState *state,
 void
 dfb_gfxcard_drawstring( const u8 *text, int bytes,
                         DFBTextEncodingID encoding, int x, int y,
-                        CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client )
+                        CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client,
+                        DFBSurfaceTextFlags flags )
 {
      DFBResult     ret;
      unsigned int  prev = 0;
@@ -3688,7 +3692,7 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      if (ret)
           return;
 
-     font_state_prepare( state, &state_backup, font, surface );
+     font_state_prepare( state, &state_backup, font, surface, !(flags & DSTF_BLEND_FUNCS) );
 
      dfb_font_lock( font );
 
@@ -3751,7 +3755,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
 }
 
 void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
-                            CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client )
+                            CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client,
+                            DFBSurfaceTextFlags flags )
 {
      int          l;
      CoreSurface *surface;
@@ -3773,7 +3778,7 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
      surface = state->destination;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     font_state_prepare( state, &state_backup, font, surface );
+     font_state_prepare( state, &state_backup, font, surface, !(flags & DSTF_BLEND_FUNCS) );
 
      for (l=layers-1; l>=0; l--) {
           if (layers > 1)
@@ -3795,7 +3800,8 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
 
 bool dfb_gfxcard_drawstring_check_state( CoreFont                *font,
                                          CardState               *state,
-                                         CoreGraphicsStateClient *client )
+                                         CoreGraphicsStateClient *client,
+                                         DFBSurfaceTextFlags      flags )
 {
      int                  i;
      bool                 result = false;
@@ -3828,7 +3834,7 @@ bool dfb_gfxcard_drawstring_check_state( CoreFont                *font,
           return false;
      }
 
-     font_state_prepare( state, &state_backup, font, surface );
+     font_state_prepare( state, &state_backup, font, surface, !(flags & DSTF_BLEND_FUNCS) );
 
      /* set the source */
      dfb_state_set_source( state, data->surface );
