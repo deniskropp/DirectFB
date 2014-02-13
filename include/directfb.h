@@ -3542,6 +3542,8 @@ typedef enum {
  * Flags controlling the text layout.
  */
 typedef enum {
+     DSTF_NONE           = 0x00000000,  /* no flags */
+
      DSTF_LEFT           = 0x00000000,  /* left aligned */
      DSTF_CENTER         = 0x00000001,  /* horizontally centered */
      DSTF_RIGHT          = 0x00000002,  /* right aligned */
