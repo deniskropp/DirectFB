@@ -3554,6 +3554,7 @@ typedef enum {
                                            instead of the baseline */
 
      DSTF_OUTLINE        = 0x00000010,  /* enables outline rendering if loaded font supports it */
+     DSTF_BLEND_FUNCS    = 0x00000020,  /* keeps src/dst blend functions as set on destination */
 
      DSTF_TOPLEFT        = DSTF_TOP | DSTF_LEFT,
      DSTF_TOPCENTER      = DSTF_TOP | DSTF_CENTER,

@@ -319,7 +319,7 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      if (data->font) {
           IDirectFBFont_data *font_data = data->font->priv;
 
-          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state, &data->state_client ))
+          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state, &data->state_client, DSTF_NONE ))
                mask |= DFXL_DRAWSTRING;
      }
 
@@ -2590,7 +2590,7 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      dfb_gfxcard_drawstring( (const unsigned char*) text, bytes, data->encoding,
                              data->area.wanted.x + x, data->area.wanted.y + y,
-                             core_font, layers, &data->state_client );
+                             core_font, layers, &data->state_client, flags );
 
      return DFB_OK;
 }
@@ -2687,7 +2687,7 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
 
      dfb_gfxcard_drawglyph( glyph,
                             data->area.wanted.x + x, data->area.wanted.y + y,
-                            core_font, layers, &data->state_client );
+                            core_font, layers, &data->state_client, flags );
 
      dfb_font_unlock( core_font );
 
