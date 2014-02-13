@@ -11,6 +11,7 @@ dfbtest_clipboard
 dfbtest_fillrect
 dfbtest_flip
 dfbtest_font
+dfbtest_font_blend
 dfbtest_gl1
 dfbtest_gl2
 dfbtest_gl3
