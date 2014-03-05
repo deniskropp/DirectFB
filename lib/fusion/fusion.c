@@ -1744,7 +1744,7 @@ fusion_sync( const FusionWorld *world )
 
      D_DEBUG_AT( Fusion_Main, "  -> syncing with fusion device...\n" );
 
-     while (ioctl( world->fusion_fd, FUSION_SYNC )) {
+     while (!world->dispatch_stop && ioctl( world->fusion_fd, FUSION_SYNC )) {
           switch (errno) {
                case EINTR:
                     continue;
