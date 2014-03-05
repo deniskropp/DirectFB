@@ -1618,6 +1618,45 @@ AC_SUBST(OPENQUICKTIME_LIBS)
 
 AM_CONDITIONAL(OPENQUICKTIME_PROVIDER, test "x$openquicktime" = xyes)
 
+
+#
+# OpenCL check
+#
+opencl="no"
+AC_ARG_ENABLE(opencl,
+              AC_HELP_STRING([--enable-opencl],
+                             [build with OpenCL support @<:@default=no@:>@]),
+              [], [enable_opencl=no])
+if test "x$enable_opencl" = "xyes"; then
+  if test "x$OPENCL_LIBS" = x; then
+    OPENCL_CFLAGS="-I$prefix/include"
+    OPENCL_LIBS="-L$prefix/lib"
+
+    LDFLAGS_saved="$LDFLAGS"
+    LDFLAGS="$LDFLAGS $OPENCL_LIBS"
+    AC_CHECK_LIB(OpenCL, clGetPlatformIDs, opencl="yes", opencl="no")
+    LDFLAGS="$LDFLAGS_saved"
+
+    OPENCL_LIBS="$OPENCL_LIBS -lOpenCL"
+
+    CPPFLAGS_saved="$CPPFLAGS"
+    CPPFLAGS="$CPPFLAGS $OPENCL_CFLAGS"
+    AC_CHECK_HEADER(CL/cl.h, , opencl="no")
+    CPPFLAGS="$CPPFLAGS_saved"
+
+    if test "x$opencl" = xno; then
+      AC_MSG_WARN([*** OpenCL header not found, building without OpenCL support ***])
+    fi
+
+  fi
+fi
+
+AC_SUBST(OPENCL_CFLAGS)
+AC_SUBST(OPENCL_LIBS)
+
+AM_CONDITIONAL(HAVE_OPENCL, test "x$opencl" = xyes)
+
+
 #
 # Avifile check
 #
@@ -3083,6 +3122,7 @@ Misc options:
   zlib compression          $use_zlib                 $ZLIB_LIBS
   Using setsockopt          $with_setsockopt
   c++ compiler standard     $cxxstd
+  OpenCL                    $opencl
 
 Building Tests              $with_tests
 Building Tools              $with_tools
