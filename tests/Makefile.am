@@ -58,6 +58,8 @@ INCLUDES = \
 	-I$(top_srcdir)/lib/fusiondale	\
 	-I$(top_srcdir)/lib/sawman	\
 	-I$(top_srcdir)/src	\
+	-I$(top_srcdir)/include/++dfb	\
+	-I$(top_srcdir)/examples/++dfb	\
 	-DLINUX_2_6
 
 GL_PROGS_ = \
