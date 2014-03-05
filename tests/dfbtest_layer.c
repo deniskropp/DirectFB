@@ -153,6 +153,7 @@ main( int argc, char *argv[] )
 
           layer->SetSourceRectangle( layer, x, y, size.w - sw3, size.h - sh3 );
 
+          surface->Flip( surface, NULL, DSFLIP_UPDATE );
 
           if (dx > 0) {
                if (x == size.w/3) {
