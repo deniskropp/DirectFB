@@ -1,3 +1,534 @@
+commit 910ff7df860a8ef1eda496f2c44517d47b36a327
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Mar 7 11:03:06 2014 +0100
+
+    dfbtest_layer: Use DLBM_FRONTONLY
+
+commit 545f6f94b3afb9986223c3578a4d566232557d74
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 21:58:04 2014 +0100
+
+    dfbtest_layer: Call Flip after SetSourceRectangle
+
+commit 47c0b7d56cb244726c7e39b1597e6c2bea23b1d3
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jan 20 20:36:31 2014 +0100
+
+    Options: Add "fusion-shm-populate" to enable usage of MAP_POPULATE for shm buffers.
+
+commit e61750cb5d5e990cdda7e76ac3b8e919a558f1f0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Jan 14 10:00:00 2014 +0100
+
+    dfbtest_layers: fix max number of layers, preventing a segfault
+
+commit 304c244c59ef1a92816fc94c0371b6844a2925f4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 31 05:06:36 2013 +0100
+
+    sawman: fix warning
+
+commit 22b108b7a18e176d5ee36d58648a7ff08b1e991e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 17 10:29:21 2013 +0200
+
+    Core: Add ToString_CoreLayerRegion
+
+commit 98deee8a1d5e56187de46d775d9f563d1954ce2c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 14 21:46:03 2013 +0200
+
+    add debug, fix warnings
+    
+    Conflicts:
+    	lib/egl/surface.cpp
+    	lib/egl/util.cpp
+    	src/core/layer_region.c
+
+commit 29ba64c14be84d194a7ddb2ee1695df122ee13ba
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Mar 5 18:02:28 2014 +0100
+
+    Revert "Core: Fix stereo updates (don't dispatch from layer function)"
+    
+    (this is only working with internal surface clients in 1.8)
+    
+    This reverts commit 7bf5fc3591fa6661363c70f4e1ce71010f216ff6.
+
+commit b617d467fe4d2196cefae16eaa05ecce477c6b36
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Mar 5 17:30:52 2014 +0100
+
+    fusion: do not sync when shutting down (dispatcher is already stopped)
+
+commit 94d5482772583793b473e3950fd87ff65efb9365
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Mar 5 11:54:30 2014 +0100
+
+    configure: change version to 1.7.2
+
+commit c0a6b1ec2b61a435e00ef423f2736d400fa09236
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Mar 5 11:01:24 2014 +0100
+
+    tests: build fix
+
+commit e0ba8e2092480e29d3bcb7d9ef81cc15c220ba1b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Feb 13 19:38:19 2014 +0100
+
+    dfbtest_font_blend: Add test for DSTF_BLEND_FUNCS
+
+commit 1818e5229d665c0cf14a7665aad53df35333d068
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Feb 13 19:33:05 2014 +0100
+
+    IDirectFBSurface: Add DSTF_BLEND_FUNCS to keep custom blend funcs set, but follow blitting flags of font
+
+commit 649ab350f823601949ad8122a9efa8963b00b3d9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Feb 13 19:32:01 2014 +0100
+
+    IDirectFB: For windowed primary, set DWOP_ALPHACHANNEL when DSCAPS_PREMULTIPLIED is used (assuming blending)
+
+commit 736a13371acdc4e66c3adc0288892ea78cb0aee2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Feb 13 19:29:02 2014 +0100
+
+    API: Add DSTF_NONE
+
+commit 216aa0d76d0433f412836136b4ccb4653d8f4f33
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Feb 13 19:26:04 2014 +0100
+
+    ++DFB: Add premultiplied caps to DFBApp
+    
+    Conflicts:
+    	examples/++dfb/dfbapp.h
+
+commit 28621f839a6f65f69bc8fc688816e6887ba40376
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 23:55:56 2014 +0100
+
+    Core: Shutdown fixes
+
+commit 9fccf631cc297fbad5443da442f3b33d64dfc233
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 23:55:31 2014 +0100
+
+    libfusion: Fix single app build
+
+commit 031f0e9931897a215c4341c0e37a841c4cf8eee8
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 23:32:34 2014 +0100
+
+    libfusion: Set fd to non-blocking in fusion_stop_dispatcher
+
+commit 7bf5fc3591fa6661363c70f4e1ce71010f216ff6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 22:22:49 2014 +0100
+
+    Core: Fix stereo updates (don't dispatch from layer function)
+
+commit 9be19354f374d0945b273e910e0e36245f8a36d7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 21:57:15 2014 +0100
+
+    Core: Don't freeze when moving layer (update_primary_region_config)
+
+commit bd144603e1801d92cc4a79d04e0eb26a45c1ee2b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Nov 21 11:36:29 2013 +0100
+
+    libfusion: Add fusion_fd() and fusion_dispatch() to allow integration into main loop
+
+commit 4634a46453ebe73301f4342bd8630ba2a584603b
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Mar 3 15:35:17 2014 +0100
+
+    fusion: fix memory corruption in single-app mode
+            (fusion ref was already destroyed after execution completed)
+
+commit b32f77c8ab47ccbffc0d2d92b275ed70a1abe15d
+Merge: a99a541 9c79d75
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 10 17:22:36 2013 +0200
+
+    Merge branch 'directfb-1.7' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.7
+
+commit 9c79d750814419cac262174805105861e21b7f4e
+Author: Chris Tomlinson <christ@broadcom.com>
+Date:   Thu Oct 10 10:42:00 2013 +0100
+
+    Add alternative UHDTV mode.
+
+commit a99a541e05f2b807323405fc6ecdf3a73840902f
+Merge: 8c62b55 906886c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 9 18:46:36 2013 +0200
+
+    Merge branch 'directfb-1.7' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.7
+
+commit 906886c762a979f328f368ab30f4a2cccddb98bc
+Author: Chris Tomlinson <christ@broadcom.com>
+Date:   Wed Oct 9 17:00:56 2013 +0100
+
+    Add 4k display resolution.
+
+commit 8c62b55231113bce6478a199909978d6e840fe88
+Merge: 0b65bfa c0a350a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Oct 9 17:25:34 2013 +0200
+
+    Merge branch 'directfb-1.7' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.7
+
+commit c0a350a38c270a3f4a23f1a1bb9f40f4452e716e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Sep 26 15:04:57 2013 +0200
+
+    libdirect: Move C++ definitions to separate header file.
+
+commit 6f0bc100c28d35e62c3a704c030783391a5192b5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 3 04:06:54 2013 +0200
+
+    libdirect: Switch to using SIGPIPE for dumping stacks etc. (seems SIGPWR is not working in all cases)
+
+commit 0636d67de3ac116117953c1b0a2881eb938d3977
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 3 14:34:00 2013 +0200
+
+    libfusion: Fix fusion_object_get() which returned DR_OK even if lookup failed
+
+commit 3da2a59b6eda50ce763f7d0b73013bcf23e4e49c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 3 04:05:59 2013 +0200
+
+    libdirect: Fix over length lines for D_ERROR() messages
+
+commit 661b0dce3030a732e14353bc50517dab38a63c9b
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Sep 13 13:44:44 2013 +0200
+
+    [PATCH v2 2/2] Fix illegal fclose of a file pointer opened by popen.
+    
+    In direct_pclose, fclose() is called for a file pointer that opened by popen().
+    
+    Signed-off-by: Tetsuya Mukawa <mukawa@igel.co.jp>
+    
+    Thanks!!!
+
+commit c594c0c78bd7ca3b8e7c2df74ee642e6413a5e16
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Sep 13 13:43:30 2013 +0200
+
+    [PATCH v2 1/2] Fix for double close of a single file descriptor.
+    
+    In direct_file_close(), 'file->fd' is closed twice if 'file->file' isn't NULL.
+    Since'file->file' is assigned the result of fdopen(file->fd, ) in direct_fgets(),
+    fclose(file->file,) also closes 'file->fd', so it doesn't need to be closed again with close(file->fd).
+    Similary, in direct_pclose() close(file->fd) doesn't need to be called after calling fclose(file->file).
+    
+    v2 changes:
+      - check a return value of fclose() in direct_file_close().
+    
+    Signed-off-by: Tetsuya Mukawa <mukawa@igel.co.jp>
+    
+    Thanks!!!
+
+commit e805f7407594d2d237c77a7ce967a064211e794e
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Sep 13 13:30:31 2013 +0200
+
+    [PATCH 2/2] fusion: object: initialize a shared/global skirmish for the object pool
+    
+    And rely on the fusion permissions for security.
+    
+    Signed-off-by: Ilyes Gouta <ilyes.gouta@st.com>
+    
+    Thanks!!!
+
+commit 7870c083f0951bd020c74a2786ad88931fd836ce
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Sep 13 13:29:32 2013 +0200
+
+    [PATCH 1/2] fusion: always initialize reactor_globals and arenas_lock locks as globals
+    
+    Redirect fusion_skirmish_init2() through the fusion kernel module for
+    creating the new skirmish. Also master adds the baseline permissions for
+    the newly created object.
+    
+    Signed-off-by: Ilyes Gouta <ilyes.gouta@st.com>
+    
+    Thanks!!!
+
+commit f97cf9db93d20a608950cd5565bd1d031fef2206
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 20:54:34 2013 +0200
+
+    fix warnings
+
+commit e4b0fbda0d339469bf4dba2af3293beea30f111f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 3 23:30:55 2013 +0200
+
+    C++: Add convenience classes like DFBRectangle to new header file <directfb++.h>, fix dynamic cast with NULL pointer
+
+commit b1241377c581bb60c84c07fc377f8c2fd700b290
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 3 23:25:09 2013 +0200
+
+    Core: Remove lots of buffer references in allocation code where not needed
+
+commit 0ec2c1040ed15b113691f9b8eb01ac87eae589e1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 31 21:56:05 2013 +0200
+
+    libdirect: Remove redefinition of __typeof__!!!
+
+commit d11fc9b75abc69042b5d470808932d4dada266db
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jul 29 12:34:00 2013 +0200
+
+    dfbdump: Print object identity instead of creator.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 443590dc5057d668ea4a5c5c0c95b16b24d2d175
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jul 29 11:53:31 2013 +0200
+
+    libdirect: Include interfaces and memory allocations when dumping stacks upon signal 30.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 8900c205dafce717b41a1400271ccdc73ea313e1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jul 29 12:13:07 2013 +0200
+
+    sawman: Fix linkage of installed libs.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 45d99ce971b0356f8fd68f7f41447d0a824a5f24
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jul 28 10:50:22 2013 +0200
+
+    Task: Fix identity when handling allocations in DisplayTask.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 8cc76f6edea988927ba725439c211355201a7f83
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 25 13:31:06 2013 +0200
+
+    libdirect: [1.7] Fix direct_messages_info() to handle too long lines.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 768b24afb779cf838c900e29d65d9258662340b9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 25 13:37:14 2013 +0200
+
+    Options: Add 'shutdown-info' to enable object/interface dump at shutdown time (as done before).
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 1e4158ee1c85929c10cb683106380f8aac4ca912
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 25 13:27:08 2013 +0200
+
+    Options: Add 'nm-for-trace' option that must be used to run 'nm' at trace dump (as done before). Add D_ARGS env as input to libdirect's config_init (constructor).
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit e661f1d18942907eb4f79c3fae44a052be4cda52
+Author: André Draszik <andre.draszik@st.com>
+Date:   Thu May 9 14:49:14 2013 +0100
+
+    convert: modify conversion APIs to be able to support planar formats
+    
+    Since we can't calculate the Cb/Cr pixel addresses for most
+    planar (YCbCr) formats, we have to get them passed in by the callers.
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit ad3b587e2f59d1c0c0fb103e470c3c4a9a82a682
+Author: André Draszik <andre.draszik@st.com>
+Date:   Thu May 9 14:45:37 2013 +0100
+
+    surface/surface_buffer/x11/sdl: use dfb_surface_get_data_offsets()
+    
+    This now allows us to figure out the correct address for split buffer
+    chroma-downsampled planar YCbCr formats
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 03affc536308c1baadcca5a250d08e3a3f12381f
+Author: André Draszik <andre.draszik@st.com>
+Date:   Thu May 9 16:07:25 2013 +0100
+
+    convert: fix YV16 conversion to various formats
+    
+    We can now calculate the correct Cb/Cr start addresses, and at
+    the same time can fix the RGB24 swap that erroneously happened.
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit ddc4d13583ce8ae5961d79d9fa58c6283e3c7c2a
+Author: André Draszik <andre.draszik@st.com>
+Date:   Tue May 14 10:50:55 2013 +0100
+
+    surface: add dfb_surface_get_data_offsets()
+    
+    This can be used to calculate (and return) the pixel address and pitch
+    for split buffer formats, for the CbCr or Cb and Cr components (2-plane
+    or 3-plane formats).
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 1f8a79c880c06aecb12c08db36d78f2eaa7530e4
+Author: Chris Tomlinson <christ@broadcom.com>
+Date:   Thu Aug 15 16:35:04 2013 +0100
+
+    ImageProvider: Add FFMPEG based image provider which will decode MPEG2 and AVC still images.
+
+commit 0b65bfad4536082e7b8f415c9b5adf53cfc3c887
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jul 29 12:16:57 2013 +0200
+
+    sawman: Fix linkage against installed libs.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 702096a8d9e03b3ea0489f25b99b30941c24045f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jul 29 12:13:07 2013 +0200
+
+    sawman: Fix linkage of installed libs.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit fad83b125462464195da2febc8525cfb8703d0b1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 25 14:01:27 2013 +0200
+
+    make: Add more DFB_BASE_LIBS usage.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 182f40e8028b325f28513724696e8316191c1a61
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 25 13:56:42 2013 +0200
+
+    make: Add LIBS_TO_NMFILE variable to nmfile.make for selecting libs to process.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit ce7235c11394953cc39fb28768936bd3b0e93b56
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 25 13:31:06 2013 +0200
+
+    libdirect: [1.7] Fix direct_messages_info() to handle too long lines.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit b9bdac8580ce8e4bf635cc908e8507bcd8ff3e79
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 25 13:54:17 2013 +0200
+
+    make: Add more DFB_BASE_LIBS usage.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 84afe18860e78bea0d4ec04185b49b6526bb54f2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jul 29 20:01:01 2013 +0200
+
+    version: 1.7.1
+
+commit b26a0171d0fd55aa69adceff3137b3768231a53e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 17 21:20:28 2013 +0200
+
+    Core: Check for allocation identity when locking in pools without CSAF_SHARED. Add CSANF_DEALLOCATED.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit c1969b356d5ebf4cac85d05c8764734efba851f0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 17 21:18:50 2013 +0200
+
+    Core: Push master identity for locking the layer buffers, needed for allocation choosing.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit dfe80ea5fed78cdd237b89468822867a9922f387
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jul 24 18:19:48 2013 +0200
+
+    interfaces: unregister watcher instances in local voodoo interfaces (fixes double-free)
+    
+    backport from 6feeb9df0f6e69687b25768c96773a1544b8c469
+
+commit 589169473f4046515feaf62f75dc8a2a2add174b
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Jul 24 18:06:07 2013 +0200
+
+    interfaces: unregister local idirectfbwindows instance in voodoo (fixes segfault)
+    
+    backport from 1cd467daf8bdf77368b198ce9aff9dbf93d1d4c0
+
+commit a087d09e69b557c5d9d1277f049673b125075719
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jul 19 18:54:23 2013 +0200
+
+    direct: add missing include
+
+commit a09f44c730dd96b30faae3ebf15c5f69b509fdfc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 17 21:21:40 2013 +0200
+
+    DRMKMS: Use DRM_IOCTL_GEM_FLINK to map buffers in slaves. Currently using a hack to initialise a local kms_bo!
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit dcde2a15588726e584ba3c7430b0b6a70f7163bd
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jul 12 16:47:04 2013 +0200
+
+    - drmkms: simplyfy locking, fix for task manager
+
+commit a6186acba69070fc05a84ca3c478fd3f9b8fd926
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jul 12 16:18:06 2013 +0200
+
+    drmkms: fix deadlock while flipping
+
+commit 7c283408bc75c46c062a5862de6307df706787c9
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jul 12 15:17:45 2013 +0200
+
+    drmkms: use vblank handler to synchronize flipping on planes
+
+commit c127663c46c74645e9de54b0bf61f6a102b16056
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Fri Jul 12 14:44:17 2013 +0200
+
+    drmkms: set CSCAPS_DISPLAY_TASKS and CSCAPS_NOTIFY_DISPLAY
+
+commit 1bba3a5efca7b132b3ed43c2d1807a0b4a90f969
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Thu Jul 11 15:06:44 2013 +0200
+
+    drmkms: refactoring, cleanups, fix flipping in multihead mode (multiple crtcs with one DirectFB layer each)
+
+commit 902016b20482f8918daa9f898780fefff35ee049
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jul 10 21:10:13 2013 +0200
+
+    update changelog
+
 commit 8e7e21bd19b8143f699476d3e6ee39721e192cb8
 Author: Andreas Shimokawa <andi@directfb.org>
 Date:   Wed Jul 10 20:54:27 2013 +0200
