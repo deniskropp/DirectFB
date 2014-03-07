@@ -86,7 +86,8 @@ main( int argc, char *argv[] )
      layer->GetConfiguration( layer, &config );
 
 
-     config.options = DLOP_OPACITY | DLOP_SRC_COLORKEY;
+     config.options    = DLOP_OPACITY | DLOP_SRC_COLORKEY;
+     config.buffermode = DLBM_FRONTONLY;
 
      layer->SetConfiguration( layer, &config );
      layer->SetSrcColorKey( layer, 0x00, 0xff, 0x00 );
