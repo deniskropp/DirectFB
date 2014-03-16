@@ -418,8 +418,8 @@ dfb_updates_get_rectangles( DFBUpdates   *updates,
                     for (n=0; n<updates->num_regions; n++) {
                          ret_rects[n].x = updates->regions[n].x1;
                          ret_rects[n].y = updates->regions[n].y1;
-                         ret_rects[n].w = updates->regions[n].x2 - updates->regions[n].x1;
-                         ret_rects[n].h = updates->regions[n].y2 - updates->regions[n].y1;
+                         ret_rects[n].w = updates->regions[n].x2 - updates->regions[n].x1 + 1;
+                         ret_rects[n].h = updates->regions[n].y2 - updates->regions[n].y1 + 1;
                     }
 
                     break;
@@ -432,8 +432,8 @@ dfb_updates_get_rectangles( DFBUpdates   *updates,
 
                ret_rects[0].x = updates->bounding.x1;
                ret_rects[0].y = updates->bounding.y1;
-               ret_rects[0].w = updates->bounding.x2 - updates->bounding.x1;
-               ret_rects[0].h = updates->bounding.y2 - updates->bounding.y1;
+               ret_rects[0].w = updates->bounding.x2 - updates->bounding.x1 + 1;
+               ret_rects[0].h = updates->bounding.y2 - updates->bounding.y1 + 1;
                break;
      }
 }
