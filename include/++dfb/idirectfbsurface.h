@@ -217,6 +217,12 @@ public:
 
      void                   PPDFB_API SetRenderOptions    (const DFBSurfaceRenderOptions &options);
 
+     IDirectFBEventBuffer   PPDFB_API CreateEventBuffer   ();
+     void                   PPDFB_API AttachEventBuffer   (IDirectFBEventBuffer     *buffer);
+     void                   PPDFB_API DetachEventBuffer   (IDirectFBEventBuffer     *buffer);
+
+     DFBDimension           PPDFB_API GetSize             ();
+
      inline IDirectFBSurface PPDFB_API & operator = (const IDirectFBSurface& other){
           return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
      }
