@@ -111,7 +111,7 @@ public:
 class FPS : public Direct::Magic<FPS>
 {
 private:
-     int       frames;
+     long long frames;
      int       frames_per_1000s;
      long long fps_time;
 
@@ -134,9 +134,9 @@ public:
 
           frames++;
 
-          diff = (now - fps_time) / 1000;
+          diff = (now - fps_time) / 1000LL;
           if (diff >= interval) {
-               frames_per_1000s = frames * 1000000 / diff;
+               frames_per_1000s = frames * 1000000LL / diff;
 
                fps_time = now;
                frames   = 0;
