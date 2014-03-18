@@ -28,11 +28,13 @@
    Boston, MA 02111-1307, USA.
 */
 
+#ifdef __cplusplus
+#include <directfb++.h>
+#endif
 
 
 #ifndef __DIRECTFB_H__
 #define __DIRECTFB_H__
-
 
 #ifdef __cplusplus
 extern "C"
