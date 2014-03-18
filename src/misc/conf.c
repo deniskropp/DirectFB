@@ -107,6 +107,7 @@ static const char *config_usage_strings[]  = {
      "  [no-]surface-sentinel          Enable surface sentinels at the end of chunks in video memory\n"
      "  [no-]force-windowed            Primary surface always is a window\n"
      "  force-desktop                  Primary surface is the desktop background\n"
+     "  force-offscreen                Primary surface is created offscreen (DFBSurfaceID will be logged)\n"
      "  [no-]hardware                  Enable/disable hardware acceleration\n"
      "  [no-]software                  Enable/disable software fallbacks\n"
      "  [no-]software-warn             Show warnings when doing/dropping software operations\n"
@@ -871,6 +872,15 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "force-desktop" ) == 0) {
           dfb_config->force_desktop = true;
+     } else
+     if (strcmp (name, "no-force-desktop" ) == 0) {
+          dfb_config->force_desktop = false;
+     } else
+     if (strcmp (name, "force-offscreen" ) == 0) {
+          dfb_config->force_offscreen = true;
+     } else
+     if (strcmp (name, "no-force-offscreen" ) == 0) {
+          dfb_config->force_offscreen = false;
      } else
      if (strcmp (name, "hardware" ) == 0) {
           dfb_config->software_only = false;

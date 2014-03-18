@@ -370,7 +370,7 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                if (dfb_config->primary_id)
                     return DFB_ACCESSDENIED;
 
-               if (dfb_config->force_windowed || dfb_config->force_desktop)
+               if (dfb_config->force_windowed || dfb_config->force_desktop || dfb_config->force_offscreen)
                     return DFB_ACCESSDENIED;
 
                if (data->level == DFSCL_NORMAL) {
@@ -696,7 +696,11 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      }
 
      if (caps & DSCAPS_PRIMARY) {
+          D_DEBUG_AT( IDFB, "  -> PRIMARY\n" );
+
           if (dfb_config->primary_id) {
+               D_DEBUG_AT( IDFB, "  -> primary-id 0x%x\n", dfb_config->primary_id );
+
                ret = CoreDFB_GetSurface( data->core, dfb_config->primary_id, &surface );
                if (ret)
                     return ret;
@@ -761,12 +765,20 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     or should we return an error? */
           switch (data->level) {
                case DFSCL_NORMAL:
-                    if (dfb_config->force_desktop) {
+                    D_DEBUG_AT( IDFB, "  -> level normal\n" );
+
+                    if (dfb_config->force_desktop || dfb_config->force_offscreen) {
                          CoreSurface *surface;
 
                          /* Source compatibility with older programs */
-                         if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
-                              caps &= ~DSCAPS_TRIPLE;
+                         if (dfb_config->force_desktop) {
+                              if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
+                                   caps &= ~DSCAPS_TRIPLE;
+                         }
+                         else {
+                              if ((caps & DSCAPS_FLIPPING) == DSCAPS_FLIPPING)
+                                   caps &= ~DSCAPS_DOUBLE;
+                         }
 
                          ret = dfb_surface_create_simple( data->core,
                                                           width, height,
@@ -775,8 +787,9 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                                                           NULL, &surface );
                          if (ret)
                               return ret;
-
-                         surface->notifications |= CSNF_FLIP;
+                  
+                         if (dfb_config->force_desktop)
+                              surface->notifications |= CSNF_FLIP;    // FIXME
 
                          init_palette( surface, desc );
 
@@ -785,8 +798,12 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          ret = IDirectFBSurface_Construct( iface, NULL,
                                                            NULL, NULL, NULL, surface, caps, data->core, thiz );
                          if (ret == DFB_OK) {
-                              CoreWindowStack_BackgroundSetImage( data->stack, surface );
-                              CoreWindowStack_BackgroundSetMode( data->stack, DLBM_IMAGE );
+                              if (dfb_config->force_desktop) {
+                                   CoreWindowStack_BackgroundSetImage( data->stack, surface );
+                                   CoreWindowStack_BackgroundSetMode( data->stack, DLBM_IMAGE );
+                              }
+
+                              D_INFO( "Primary Surface (offscreen) with ID 0x%x\n", surface->object.id );
                          }
 
                          dfb_surface_unref( surface );
