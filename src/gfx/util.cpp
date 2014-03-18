@@ -113,8 +113,6 @@ dfb_gfx_cleanup()
 void
 dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect )
 {
-     D_ASSERT( !dfb_config->task_manager );
-
      dfb_gfx_copy_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, rect, rect ? rect->x : 0, rect ? rect->y : 0, false );
 }
 
@@ -126,8 +124,6 @@ dfb_gfx_copy_to( CoreSurface        *source,
                  int                 y,
                  bool                from_back )
 {
-     D_ASSERT( !dfb_config->task_manager );
-
      dfb_gfx_copy_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, rect, x, y, from_back );
 }
 
@@ -212,8 +208,6 @@ void
 dfb_gfx_stretch_to( CoreSurface *source, CoreSurface *destination,
                     const DFBRectangle *srect, const DFBRectangle *drect, bool from_back )
 {
-     D_ASSERT( !dfb_config->task_manager );
-
      dfb_gfx_stretch_stereo( source, DSSE_LEFT, destination, DSSE_LEFT, srect, drect, from_back );
 }
 
@@ -227,8 +221,6 @@ void dfb_gfx_stretch_stereo( CoreSurface         *source,
 {
      DFBRectangle sourcerect = { 0, 0, source->config.size.w, source->config.size.h };
      DFBRectangle destrect =   { 0, 0, destination->config.size.w, destination->config.size.h };
-
-     D_ASSERT( !dfb_config->task_manager );
 
      if (srect) {
           if (!dfb_rectangle_intersect( &sourcerect, srect ))
@@ -274,8 +266,6 @@ dfb_gfx_copy_regions( CoreSurface           *source,
                       int                    x,
                       int                    y )
 {
-     D_ASSERT( !dfb_config->task_manager );
-
      dfb_gfx_copy_regions_stereo( source, from, DSSE_LEFT, destination, to, DSSE_LEFT, regions, num, x, y );
 }
 
@@ -295,8 +285,6 @@ dfb_gfx_copy_regions_stereo( CoreSurface           *source,
      DFBRectangle rect = { 0, 0, source->config.size.w, source->config.size.h };
      DFBRectangle rects[num];
      DFBPoint     points[num];
-
-     D_ASSERT( !dfb_config->task_manager );
 
      for (i=0; i<num; i++) {
           DFB_REGION_ASSERT( &regions[i] );

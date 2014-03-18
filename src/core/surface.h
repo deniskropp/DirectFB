@@ -339,7 +339,8 @@ DFBResult dfb_surface_dispatch_event( CoreSurface                  *surface,
 DFBResult dfb_surface_dispatch_update( CoreSurface                  *surface,
                                        const DFBRegion              *update,
                                        const DFBRegion              *update_right,
-                                       long long                     timestamp );
+                                       long long                     timestamp,
+                                       DFBSurfaceFlipFlags           flags );
 
 DFBResult dfb_surface_reconfig      ( CoreSurface                  *surface,
                                       const CoreSurfaceConfig      *config );

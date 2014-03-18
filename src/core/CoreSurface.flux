@@ -425,5 +425,55 @@ interface {
                       typename    CoreSurfaceAllocation
               }
       }
+
+
+      method {
+             name     DispatchUpdate
+             async    yes
+
+             arg {
+                     name        swap
+                     direction   input
+                     type        enum
+                     typename    DFBBoolean
+             }
+
+             arg {
+                     name        left
+                     direction   input
+                     type        struct
+                     typename    DFBRegion
+                     optional    yes
+             }
+
+             arg {
+                     name        right
+                     direction   input
+                     type        struct
+                     typename    DFBRegion
+                     optional    yes
+             }
+
+             arg {
+                     name        flags
+                     direction   input
+                     type        enum
+                     typename    DFBSurfaceFlipFlags
+             }
+
+             arg {
+                     name        timestamp
+                     direction   input
+                     type        int
+                     typename    s64
+             }
+
+             arg {
+                     name        flip_count
+                     direction   input
+                     type        int
+                     typename    u32
+             }
+      }
 }
 

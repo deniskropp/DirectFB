@@ -58,9 +58,6 @@ extern "C" {
 
 #include <fusion/shmalloc.h>
 
-#include <core/CoreSurface.h>
-#include <core/CoreSurfaceAllocation.h>
-
 #include <core/gfxcard.h>
 #include <core/palette.h>
 #include <core/surface.h>
@@ -76,6 +73,8 @@ extern "C" {
 #include <direct/Lists.h>
 
 #include <core/Debug.h>
+#include <core/CoreSurface.h>
+#include <core/CoreSurfaceAllocation.h>
 #include <core/SurfaceTask.h>
 
 
@@ -629,6 +628,7 @@ dfb_surface_allocation_update( CoreSurfaceAllocation  *allocation,
                     else if (allocation->access[CSAID_CPU] & CSAF_WRITE)
                          ret = allocation_update_read( allocation, source );
                     else {
+                         D_WARN( "[%s] -> [%s]", source->pool->desc.name, allocation->pool->desc.name );
                          D_UNIMPLEMENTED();
                          ret = DFB_UNSUPPORTED;
                     }

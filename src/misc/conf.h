@@ -162,6 +162,8 @@ typedef struct
 
      bool      force_desktop;                     /* Desktop background is
                                                      the primary surface. */
+     bool      force_offscreen;                   /* Creates a new surface for
+                                                     the primary surface. */
 
      bool      linux_input_ir_only;               /* Ignore non-IR devices. */
 
@@ -326,6 +328,8 @@ typedef struct
      long long     max_frame_advance;
 
      bool          ownership_check;
+
+     bool          force_frametime;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

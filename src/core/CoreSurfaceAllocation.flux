@@ -19,6 +19,7 @@ interface {
 
         method {
                name	Updated
+               async    yes
 
                arg {
                        name        updates

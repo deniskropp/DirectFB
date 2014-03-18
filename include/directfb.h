@@ -28,11 +28,13 @@
    Boston, MA 02111-1307, USA.
 */
 
+#ifdef __cplusplus
+#include <directfb++.h>
+#endif
 
 
 #ifndef __DIRECTFB_H__
 #define __DIRECTFB_H__
-
 
 #ifdef __cplusplus
 extern "C"
@@ -3533,6 +3535,8 @@ typedef enum {
 
      DSFLIP_UPDATE       = 0x00000800,  /* Update from front only, no swapping */
 
+     DSFLIP_NOWAIT       = 0x00001000,
+
      DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
 
@@ -3540,6 +3544,8 @@ typedef enum {
  * Flags controlling the text layout.
  */
 typedef enum {
+     DSTF_NONE           = 0x00000000,  /* no flags */
+
      DSTF_LEFT           = 0x00000000,  /* left aligned */
      DSTF_CENTER         = 0x00000001,  /* horizontally centered */
      DSTF_RIGHT          = 0x00000002,  /* right aligned */
@@ -3550,6 +3556,7 @@ typedef enum {
                                            instead of the baseline */
 
      DSTF_OUTLINE        = 0x00000010,  /* enables outline rendering if loaded font supports it */
+     DSTF_BLEND_FUNCS    = 0x00000020,  /* keeps src/dst blend functions as set on destination */
 
      DSTF_TOPLEFT        = DSTF_TOP | DSTF_LEFT,
      DSTF_TOPCENTER      = DSTF_TOP | DSTF_CENTER,
@@ -3790,7 +3797,7 @@ typedef enum {
 
      DSFF_WAIT             = 0x00000001,  /* wait for commands being processed */
 
-     DSFF_ALL              = 0x00000000
+     DSFF_ALL              = 0x00000001
 } DFBSurfaceFlushFlags;
 
 /********************
@@ -5823,6 +5830,7 @@ typedef struct {
      DFBRegion                        update;
      DFBRegion                        update_right;
      unsigned int                     flip_count; /* Serial number of frame, modulo number of buffers = buffer index */
+     DFBSurfaceFlipFlags              flip_flags;
 
      // DSEVT_DISPLAY
      unsigned int                     index;      /* Serial number of frame, modulo number of buffers = buffer index */

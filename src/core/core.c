@@ -73,6 +73,7 @@
 #include <core/Task.h>
 #include <core/TaskManager.h>
 
+#include <gfx/generic/GenefxEngine.h>
 #include <gfx/util.h>
 
 #include <direct/build.h>
@@ -1228,15 +1229,18 @@ dfb_core_wait_all( CoreDFB   *core,
 
           for (i=0; i<D_ARRAY_SIZE(pools); i++) {
                if (pools[i]) {
-                    unsigned int num = fusion_hash_size( pools[i]->objects );
+                    size_t    num = 0;
+                    DFBResult ret = fusion_object_pool_size( pools[i], &num );
+
+                    D_ASSERT( ret == DFB_OK );
 
                     if (num > 0) {
                          if (now - start >= timeout) {
-                              D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in pool, timeout!\n", num );
+                              D_DEBUG_AT( DirectFB_Core, "  -> still %zu objects in pool, timeout!\n", num );
                               return DR_TIMEOUT;
                          }
 
-                         D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in '%s', waiting 10ms...\n", num, pools[i]->name );
+                         D_DEBUG_AT( DirectFB_Core, "  -> still %zu objects in '%s', waiting 10ms...\n", num, pools[i]->name );
 
                          break;
                     }
@@ -1717,6 +1721,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      if (dfb_input_core.initialized)
           dfb_input_core.Suspend( dfb_input_core.data_local );
 
+     TaskManager_SyncAll();
+
      core->shutdown_tid = direct_gettid();
 
 
@@ -1726,8 +1732,14 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      dfb_core_enum_layer_regions( core, region_callback, core );
 
 
+     fusion_stop_dispatcher( core->world, false );
+
+     dfb_gfx_cleanup();
+
      while (loops--) {
-          ret = dfb_core_wait_all( core, 100000 );
+          fusion_dispatch( core->world, 16384 );
+
+          ret = dfb_core_wait_all( core, 10000 );
           if (ret == DFB_OK)
                break;
 
@@ -1743,8 +1755,6 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
                direct_print_interface_leaks();
           }
      }
-
-     fusion_stop_dispatcher( core->world, false );
 
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
@@ -1843,7 +1853,6 @@ dfb_core_initialize( CoreDFB *core )
                return ret;
      }
 
-     extern void register_genefx(void);
      register_genefx();
 
      if (dfb_config->resource_manager) {

@@ -849,7 +849,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      Core_PushIdentity( 0 );
 
      /* lock destination */
-     ret = dfb_surface_lock_buffer2( dst, state->to, state->destination->flips,
+     ret = dfb_surface_lock_buffer2( dst, state->to,
+                                     state->destination_flip_count_used ? state->destination_flip_count : state->destination->flips,
                                      state->to_eye,
                                      CSAID_GPU, access, &state->dst );
      if (ret) {
@@ -861,7 +862,13 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
-          if (state->source_flip_count_used)
+          if (state->source_buffer) {
+               dfb_surface_lock( src );
+               CoreSurfaceBuffer *src_buffer = state->source_buffer;
+               ret = dfb_surface_buffer_lock( src_buffer, CSAID_GPU, CSAF_READ, &state->src );
+               dfb_surface_unlock( src );
+          }
+          else if (state->source_flip_count_used)
                ret = dfb_surface_lock_buffer2( src, state->from, state->source_flip_count,
                                                state->from_eye,
                                                CSAID_GPU, CSAF_READ, &state->src );
@@ -1224,7 +1231,10 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      state->mod_hw   |= state->modified;
      state->modified  = 0;
 
-     dst_buffer = dfb_surface_get_buffer3( dst, state->to, state->to_eye, state->destination->flips );
+     if (state->destination_flip_count_used)
+          dst_buffer = dfb_surface_get_buffer3( dst, state->to, state->to_eye, state->destination_flip_count );
+     else
+          dst_buffer = dfb_surface_get_buffer3( dst, state->to, state->to_eye, state->destination->flips );
 
      D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
 
@@ -1264,7 +1274,9 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* If the front buffer policy of the source is 'system only' no accelerated blitting is available. */
           /* ...lock source for reading */
-          if (state->source_flip_count_used)
+          if (state->source_buffer)
+               src_buffer = state->source_buffer;
+          else if (state->source_flip_count_used)
                src_buffer = dfb_surface_get_buffer3( src, state->from, state->from_eye, state->source_flip_count );
           else
                src_buffer = dfb_surface_get_buffer3( src, state->from, state->from_eye, src->flips );
@@ -3573,7 +3585,8 @@ static void
 font_state_prepare( CardState   *state,
                     CardState   *backup,
                     CoreFont    *font,
-                    CoreSurface *surface )
+                    CoreSurface *surface,
+                    bool         set_blend )
 {
      if (state->blittingflags != DSBLIT_INDEX_TRANSLATION) {
           DFBSurfaceBlittingFlags flags = font->blittingflags;
@@ -3605,12 +3618,14 @@ font_state_prepare( CardState   *state,
                     else
                          flags |= DSBLIT_SRC_PREMULTIPLY;
 
-                    dfb_state_set_src_blend( state, DSBF_ONE );
+                    if (set_blend)
+                         dfb_state_set_src_blend( state, DSBF_ONE );
                }
-               else
+               else if (set_blend)
                     dfb_state_set_src_blend( state, DSBF_SRCALPHA );
 
-               dfb_state_set_dst_blend( state, DSBF_INVSRCALPHA );
+               if (set_blend)
+                    dfb_state_set_dst_blend( state, DSBF_INVSRCALPHA );
           }
 
           dfb_state_set_blitting_flags( state, flags );
@@ -3636,7 +3651,8 @@ font_state_restore( CardState *state,
 void
 dfb_gfxcard_drawstring( const u8 *text, int bytes,
                         DFBTextEncodingID encoding, int x, int y,
-                        CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client )
+                        CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client,
+                        DFBSurfaceTextFlags flags )
 {
      DFBResult     ret;
      unsigned int  prev = 0;
@@ -3688,7 +3704,7 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      if (ret)
           return;
 
-     font_state_prepare( state, &state_backup, font, surface );
+     font_state_prepare( state, &state_backup, font, surface, !(flags & DSTF_BLEND_FUNCS) );
 
      dfb_font_lock( font );
 
@@ -3751,7 +3767,8 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
 }
 
 void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
-                            CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client )
+                            CoreFont *font, unsigned int layers, CoreGraphicsStateClient *client,
+                            DFBSurfaceTextFlags flags )
 {
      int          l;
      CoreSurface *surface;
@@ -3773,7 +3790,7 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
      surface = state->destination;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     font_state_prepare( state, &state_backup, font, surface );
+     font_state_prepare( state, &state_backup, font, surface, !(flags & DSTF_BLEND_FUNCS) );
 
      for (l=layers-1; l>=0; l--) {
           if (layers > 1)
@@ -3795,7 +3812,8 @@ void dfb_gfxcard_drawglyph( CoreGlyphData **glyph, int x, int y,
 
 bool dfb_gfxcard_drawstring_check_state( CoreFont                *font,
                                          CardState               *state,
-                                         CoreGraphicsStateClient *client )
+                                         CoreGraphicsStateClient *client,
+                                         DFBSurfaceTextFlags      flags )
 {
      int                  i;
      bool                 result = false;
@@ -3828,7 +3846,7 @@ bool dfb_gfxcard_drawstring_check_state( CoreFont                *font,
           return false;
      }
 
-     font_state_prepare( state, &state_backup, font, surface );
+     font_state_prepare( state, &state_backup, font, surface, !(flags & DSTF_BLEND_FUNCS) );
 
      /* set the source */
      dfb_state_set_source( state, data->surface );

@@ -295,7 +295,7 @@ IDirectFBImageProvider_TIFF_RenderTo( IDirectFBImageProvider *thiz,
      if (!dfb_rectangle_region_intersects( &rect, &clip ))
           return DFB_OK;
 
-     ret = dfb_surface_create_simple( data->base.core, data->image_width, data->image_height, DSPF_ARGB,
+     ret = dfb_surface_create_simple( data->base.core, data->image_width, data->image_height, DSPF_ABGR,
                                       DSCS_RGB, DSCAPS_NONE, CSTF_NONE,
                                       0, NULL, &data->decode_surface );
      if (ret) {
@@ -309,7 +309,7 @@ IDirectFBImageProvider_TIFF_RenderTo( IDirectFBImageProvider *thiz,
           goto error;
      }
 
-     TIFFReadRGBAImageOriented( data->tif, data->image_width, data->image_height, (uint32 *)(lock.addr), ORIENTATION_TOPLEFT, 0 );
+     TIFFReadRGBAImageOriented( data->tif, lock.pitch / 4, data->image_height, (uint32 *)(lock.addr), ORIENTATION_TOPLEFT, 0 );
 
      dfb_surface_unlock_buffer( data->decode_surface, &lock );
 
@@ -384,7 +384,7 @@ IDirectFBImageProvider_TIFF_GetSurfaceDescription( IDirectFBImageProvider *thiz,
      dsc->flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc->width       = data->image_width;
      dsc->height      = data->image_height;
-     dsc->pixelformat = DSPF_ARGB;
+     dsc->pixelformat = DSPF_ABGR;
 
      return DFB_OK;
 }

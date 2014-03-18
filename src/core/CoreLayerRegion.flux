@@ -103,7 +103,7 @@ interface {
 
 	method {
 		name SetSurface
-                indirect yes
+                indirect no
 
 		arg {
 			name      surface

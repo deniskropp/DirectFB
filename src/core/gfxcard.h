@@ -470,14 +470,16 @@ void dfb_gfxcard_drawstring             ( const u8             *text,
                                           int                   y,
                                           CoreFont             *font,
                                           unsigned int          layers, 
-                                          CoreGraphicsStateClient *client );
+                                          CoreGraphicsStateClient *client,
+                                          DFBSurfaceTextFlags   flags );
 
 void dfb_gfxcard_drawglyph              ( CoreGlyphData       **glyph,
                                           int                   x,
                                           int                   y,
                                           CoreFont             *font,
                                           unsigned int          layers, 
-                                          CoreGraphicsStateClient *client );
+                                          CoreGraphicsStateClient *client,
+                                          DFBSurfaceTextFlags   flags );
 
 
 
@@ -485,7 +487,8 @@ void dfb_gfxcard_drawglyph              ( CoreGlyphData       **glyph,
 
 bool dfb_gfxcard_drawstring_check_state ( CoreFont                *font,
                                           CardState               *state,
-                                          CoreGraphicsStateClient *client );
+                                          CoreGraphicsStateClient *client,
+                                          DFBSurfaceTextFlags      flags );
 
 
 DFBResult dfb_gfxcard_sync( void );

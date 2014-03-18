@@ -158,6 +158,12 @@ public:
           return str.size();
      }
 
+     inline bool
+     empty() const
+     {
+          return str.empty();
+     }
+
 
      /*
       * Use
@@ -297,6 +303,11 @@ public:
      StringsBase( const StringBase<_CharT> &string )
      {
           push_back( string );
+     }
+
+     StringsBase( const std::vector<StringBase<_CharT> > &list )
+     {
+          assign( list.begin(), list.end() );
      }
 
      Direct::String

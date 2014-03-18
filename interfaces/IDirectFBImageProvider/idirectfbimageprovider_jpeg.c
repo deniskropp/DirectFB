@@ -402,15 +402,6 @@ Construct( IDirectFBImageProvider *thiz,
      return DFB_OK;
 }
 
-static int
-wrap_setjmp( struct my_error_mgr *jerr )
-{
-     if (setjmp( jerr->setjmp_buffer ))
-          return 1;
-     else
-          return 0;
-}
-
 static DFBResult
 IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                       IDirectFBSurface       *destination,
@@ -482,7 +473,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           cinfo.err = jpeg_std_error(&jerr.pub);
           jerr.pub.error_exit = jpeglib_panic;
 
-          if (wrap_setjmp( &jerr )) {
+          if (setjmp (jerr.setjmp_buffer)) {
                D_ERROR( "ImageProvider/JPEG: Error during decoding!\n" );
 
                jpeg_destroy_decompress( &cinfo );

@@ -693,10 +693,11 @@ dfb_surface_dispatch_event( CoreSurface         *surface,
 }
 
 DFBResult
-dfb_surface_dispatch_update( CoreSurface     *surface,
-                             const DFBRegion *update,
-                             const DFBRegion *update_right,
-                             long long        timestamp )
+dfb_surface_dispatch_update( CoreSurface         *surface,
+                             const DFBRegion     *update,
+                             const DFBRegion     *update_right,
+                             long long            timestamp,
+                             DFBSurfaceFlipFlags  flags )
 {
      DFBResult       ret;
      DFBSurfaceEvent event;
@@ -711,6 +712,7 @@ dfb_surface_dispatch_update( CoreSurface     *surface,
      event.type       = DSEVT_UPDATE;
      event.surface_id = surface->object.id;
      event.flip_count = surface->flips;
+     event.flip_flags = flags;
      event.time_stamp = timestamp ? timestamp : direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
      surface->last_frame_time = event.time_stamp;

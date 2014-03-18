@@ -995,6 +995,8 @@ fusion_stop_dispatcher( FusionWorld *world,
           fusion_sync( world );
      }
 
+     fcntl( world->fusion_fd, F_SETFL, O_NONBLOCK );
+
      D_DEBUG_AT( Fusion_Main_Dispatch, "  -> finished stopping.\n" );
 
      return DR_OK;
@@ -3923,6 +3925,15 @@ DirectResult
 fusion_stop_dispatcher( FusionWorld *world,
                         bool         emergency )
 {
+     return DR_OK;
+}
+
+DirectResult
+fusion_dispatch( FusionWorld *world,
+                 size_t       buf_size )
+{
+     D_UNIMPLEMENTED();
+
      return DR_OK;
 }
 

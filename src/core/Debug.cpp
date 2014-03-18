@@ -47,6 +47,7 @@ extern "C" {
 #include <core/surface_buffer.h>
 
 #include <core/layers_internal.h>
+#include <core/windows_internal.h>
 }
 
 #include <core/SurfaceTask.h>
@@ -368,6 +369,13 @@ ToString<CoreSurface>::ToString( const CoreSurface &surface )
 }
 
 template<>
+ToString<CoreWindow>::ToString( const CoreWindow &window )
+{
+     PrintF( "{CoreWindow %s FIXME}",
+             *ToString<FusionObject>(window.object) );
+}
+
+template<>
 ToString<CoreSurfaceBufferLock>::ToString( const CoreSurfaceBufferLock &lock )
 {
      PrintF( "accessor:0x%02x access:%s buffer:%p allocation:%p addr:%p phys:0x%08lx offset:%lu pitch:%u handle:%p",
@@ -570,6 +578,12 @@ const char *
 ToString_CoreSurface( const CoreSurface *v )
 {
      return ToString<CoreSurface>( *v ).CopyTLS();
+}
+
+const char *
+ToString_CoreWindow( const CoreWindow *v )
+{
+     return ToString<CoreWindow>( *v ).CopyTLS();
 }
 
 const char *

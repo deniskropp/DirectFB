@@ -70,7 +70,7 @@ DFBAccelerationMask IDirectFBSurface::GetAccelerationMask (IDirectFBSurface *sou
 {
      DFBAccelerationMask mask;
 
-     DFBCHECK( iface->GetAccelerationMask (iface, source->get_iface(), &mask) );
+     DFBCHECK( iface->GetAccelerationMask (iface, source ? source->get_iface() : NULL, &mask) );
 
      return mask;
 }
@@ -493,5 +493,33 @@ void IDirectFBSurface::Flush( DFBSurfaceFlushFlags flags )
 void IDirectFBSurface::SetRenderOptions (const DFBSurfaceRenderOptions &options)
 {
      DFBCHECK( iface->SetRenderOptions (iface, options) );
+}
+
+IDirectFBEventBuffer IDirectFBSurface::CreateEventBuffer()
+{
+     IDirectFBEventBuffer_C *idirectfbeventbuffer;
+
+     DFBCHECK( iface->CreateEventBuffer (iface, &idirectfbeventbuffer) );
+
+     return IDirectFBEventBuffer (idirectfbeventbuffer);
+}
+
+void IDirectFBSurface::AttachEventBuffer (IDirectFBEventBuffer *buffer)
+{
+     DFBCHECK( iface->AttachEventBuffer (iface, buffer->get_iface()) );
+}
+
+void IDirectFBSurface::DetachEventBuffer (IDirectFBEventBuffer *buffer)
+{
+     DFBCHECK( iface->DetachEventBuffer (iface, buffer->get_iface()) );
+}
+
+DFBDimension IDirectFBSurface::GetSize ()
+{
+     DFBDimension dimension;
+
+     DFBCHECK( iface->GetSize (iface, &dimension.w, &dimension.h) );
+
+     return dimension;
 }
 

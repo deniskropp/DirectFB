@@ -1,7 +1,8 @@
 ## Makefile.am for DirectFB/tests
 
 AM_CPPFLAGS = \
-	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
+	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"	\
+	-DFONT=\"@DATADIR@/decker.ttf\"
 
 if DIRECTFB_BUILD_ONE
 ONE_PROGS = \
@@ -101,6 +102,7 @@ bin_PROGRAMS = \
 	dfbtest_fillrect	\
 	dfbtest_flip	\
 	dfbtest_font	\
+	dfbtest_font_blend	\
 	dfbtest_init	\
 	dfbtest_input	\
 	dfbtest_layers \
@@ -174,6 +176,9 @@ dfbtest_flip_LDADD   = $(DFB_BASE_LIBS)
 
 dfbtest_font_SOURCES = dfbtest_font.c
 dfbtest_font_LDADD   = $(DFB_BASE_LIBS)
+
+dfbtest_font_blend_SOURCES = dfbtest_font_blend.cpp ../examples/++dfb/dfbapp.cpp
+dfbtest_font_blend_LDADD   = $(DFB_BASE_LIBS) $(libppdfb)
 
 dfbtest_init_SOURCES = dfbtest_init.c
 dfbtest_init_LDADD   = $(DFB_BASE_LIBS)

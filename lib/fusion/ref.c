@@ -1699,9 +1699,12 @@ fusion_ref_down (FusionRef *ref, bool global)
                FusionCall *call = ref->single.call;
 
                if (call->handler) {
-                    fusion_call_execute( call, /*FCEF_NODIRECT |*/ FCEF_ONEWAY, ref->single.call_arg, NULL, NULL );
+                    FusionCall copy_call = *call;
+                    int        copy_arg  = ref->single.call_arg;
 
                     direct_mutex_unlock( &ref->single.lock );
+
+                    fusion_call_execute( &copy_call, FCEF_NODIRECT | FCEF_ONEWAY, copy_arg, NULL, NULL );
 
                     return DR_OK;
                }

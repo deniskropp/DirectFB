@@ -196,9 +196,6 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
      if (right_update)
           D_DEBUG_AT( DirectFB_Task_Display, "Right: [%d, %d - %dx%d]\n", DFB_RECTANGLE_VALS_FROM_REGION( right_update ) );
 
-     if (flags & DSFLIP_UPDATE)
-          D_UNIMPLEMENTED();
-
      D_ASSERT( region != NULL );
 
      /* Lock the region. */
@@ -226,6 +223,9 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
 
      if (ret_task)
           *ret_task = NULL;
+
+     if (flags & DSFLIP_UPDATE)
+          goto update_only;
 
      /* Depending on the buffer mode... */
      switch (region->config.buffermode) {
@@ -299,6 +299,7 @@ dfb_layer_region_flip_update2( CoreLayerRegion      *region,
                /* fall through */
 
           case DLBM_FRONTONLY:
+update_only:
                if (D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
                     /* Tell the driver about the update if the region is realized. */
                     D_DEBUG_AT( DirectFB_Task_Display, "  -> Issuing display task...\n" );
