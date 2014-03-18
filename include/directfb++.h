@@ -32,15 +32,13 @@
 #ifndef DIRECTFBPP_H
 #define DIRECTFBPP_H
 
-#ifdef __DIRECTFB_H__
-#error Please include 'directfb++.h' before 'directfb.h'.
-#endif
-
+#include <direct/Types++.h>
 
 #define DFBPoint     DFBPoint_C
 #define DFBDimension DFBDimension_C
 #define DFBRectangle DFBRectangle_C
 #define DFBRegion    DFBRegion_C
+#define DFBUpdates   DFBUpdates_C
 
 
 #include <directfb.h>
@@ -56,6 +54,7 @@ extern "C" {
 #undef DFBDimension
 #undef DFBRectangle
 #undef DFBRegion
+#undef DFBUpdates
 
 
 
@@ -138,6 +137,10 @@ public:
 
      bool operator== ( const DFBDimension &ref ) const {
           return ref.w == w && ref.h == h;
+     }
+
+     bool operator!= ( const DFBDimension &ref ) const {
+          return ref.w != w || ref.h != h;
      }
 
 	bool contains( const DFBRegion_C &region ) const {
@@ -335,6 +338,51 @@ public:
 
           if (r.y2 < y2)
                y2 = r.y2;
+     }
+};
+
+
+class DFBUpdates : public DFBUpdates_C {
+private:
+//     int        max_regions;
+//     DFBRegion *regions;
+
+public:
+     DFBUpdates( int max_regions = 8 )
+//          :
+//          max_regions( max_regions )
+     {
+          regions = new DFBRegion[max_regions];
+
+          if (regions)
+               dfb_updates_init( this, regions, max_regions );
+          else
+               D_OOM();
+     }
+
+     ~DFBUpdates()
+     {
+          if (regions) {
+               dfb_updates_deinit( this );
+
+               delete regions;
+          }
+     }
+
+     void Reset()
+     {
+          D_ASSERT( regions != NULL );
+
+          dfb_updates_reset( this );
+     }
+
+     DFBUpdates& operator|= ( const DFBRegion &r )
+     {
+          D_ASSERT( regions != NULL );
+
+          dfb_updates_add( this, &r );
+
+          return *this;
      }
 };
 

@@ -28,6 +28,9 @@
    Boston, MA 02111-1307, USA.
 */
 
+#ifdef __cplusplus
+#include <directfb++.h>
+#endif
 
 
 #ifndef __DIRECTFB_UTIL_H__
