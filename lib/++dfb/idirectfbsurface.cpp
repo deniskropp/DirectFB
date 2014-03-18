@@ -70,7 +70,7 @@ DFBAccelerationMask IDirectFBSurface::GetAccelerationMask (IDirectFBSurface *sou
 {
      DFBAccelerationMask mask;
 
-     DFBCHECK( iface->GetAccelerationMask (iface, source->get_iface(), &mask) );
+     DFBCHECK( iface->GetAccelerationMask (iface, source ? source->get_iface() : NULL, &mask) );
 
      return mask;
 }
