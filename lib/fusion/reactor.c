@@ -1487,6 +1487,11 @@ lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, Fusi
 
      direct_mutex_lock( &world->reactor_nodes_lock );
 
+     // FIXME: there's a deadlock case where during dispatch via one node
+     //        the outer lock is given up, taken by another thread blocking
+     //        on our node. the problem occurs when we try to get the outer
+     //        lock again for attach/detach etc...
+
      direct_list_foreach_safe (node, n, world->reactor_nodes) {
           D_MAGIC_ASSERT( node, ReactorNode );
 
