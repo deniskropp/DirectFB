@@ -43,6 +43,8 @@ extern "C" {
 #include <direct/debug.h>
 #include <direct/memcpy.h>
 
+#include <fusion/object.h>
+
 #include <core/coretypes.h>
 
 
@@ -57,6 +59,7 @@ void FPS_Delete( DFB_Util_FPS *fps );
 
 #include <direct/Magic.h>
 #include <direct/String.h>
+#include <direct/Type.h>
 
 
 namespace DirectFB {
@@ -156,6 +159,69 @@ public:
      }
 };
 
+
+
+
+class Types : public Direct::Types<Types>
+{
+};
+
+
+template <typename _FusionObject>
+class FusionObjectWrapper : public Types::Type<FusionObjectWrapper<_FusionObject>>
+{
+public:
+     _FusionObject *object;
+
+     FusionObjectWrapper( _FusionObject *object = NULL )
+          :
+          object( object )
+     {
+          if (object) {
+               D_INFO( "FusionObjectWrapper 0x%08x %s\n",
+                       ((FusionObject*) object)->id, ((FusionObject*) object)->pool->name );
+          }
+
+          if (object != NULL) {
+               DirectResult ret = fusion_object_ref( (FusionObject*) object );
+               if (ret) {
+                    D_DERROR( ret, "FusionObjectWrapper: fusion_object_ref() failed!\n" );
+                    object = NULL;
+               }
+          }
+     }
+
+     ~FusionObjectWrapper()
+     {
+          if (object != NULL)
+               fusion_object_unref( (FusionObject*) object );
+     }
+
+     FusionObjectWrapper &operator =( _FusionObject *object )
+     {
+          if (object) {
+               D_INFO( "FusionObjectWrapper 0x%08x %s\n",
+                       ((FusionObject*) object)->id, ((FusionObject*) object)->pool->name );
+          }
+
+          if (this->object != NULL)
+               fusion_object_unref( (FusionObject*) this->object );
+
+          this->object = object;
+
+          if (object != NULL) {
+               DirectResult ret = fusion_object_ref( (FusionObject*) object );
+               if (ret) {
+                    D_DERROR( ret, "FusionObjectWrapper: fusion_object_ref() failed!\n" );
+                    this->object = NULL;
+               }
+          }
+
+          return *this;
+     }
+
+     operator bool() { return object != NULL; }
+};
 
 
 }
