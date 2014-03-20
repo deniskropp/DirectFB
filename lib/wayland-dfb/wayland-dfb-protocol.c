@@ -32,22 +32,16 @@ static const struct wl_interface *types[] = {
 	NULL,
 	&wl_dfb_buffer_interface,
 	NULL,
-	NULL,
-	NULL,
 };
 
 static const struct wl_message wl_dfb_requests[] = {
-	{ "create_buffer", "nuuu", types + 2 },
-};
-
-static const struct wl_message wl_dfb_events[] = {
-	{ "surface_id", "ou", types + 0 },
+	{ "create_buffer", "nu", types + 2 },
 };
 
 WL_EXPORT const struct wl_interface wl_dfb_interface = {
 	"wl_dfb", 1,
 	1, wl_dfb_requests,
-	1, wl_dfb_events,
+	0, NULL,
 };
 
 static const struct wl_message wl_dfb_buffer_requests[] = {

@@ -50,7 +50,7 @@ void      dfb_x11_egl_display_unregister( void );
 #include <core/Graphics.h>
 
 #include <egl/dfbegl.h>
-#include <egl/image.h>
+#include <egl/KHR_image.h>
 
 
 namespace DirectFB {

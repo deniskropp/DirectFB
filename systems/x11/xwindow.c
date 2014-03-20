@@ -100,7 +100,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
      xw->screenptr = DefaultScreenOfDisplay(xw->display);
      xw->screennum = DefaultScreen(xw->display);
-     xw->depth     = 24;//DFB_COLOR_BITS_PER_PIXEL(format) + DFB_ALPHA_BITS_PER_PIXEL(format);
+     xw->depth     = DefaultDepthOfScreen( xw->screenptr );
      xw->visual    = DefaultVisualOfScreen( xw->screenptr );
 
      attr.event_mask =

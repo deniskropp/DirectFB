@@ -77,12 +77,18 @@ Context::Context( EGLenum       api,
           if (ret)
                D_DERROR( ret, "DFBEGL/Context: Failed to get Options from attrib_list!\n" );
      }
+
+     D_MAGIC_SET( this, EGL::Context );
 }
 
 Context::~Context()
 {
      D_DEBUG_AT( DFBEGL_Context, "EGL::Context::%s( %p )\n",
                  __FUNCTION__, this );
+
+     D_MAGIC_ASSERT( this, EGL::Context );
+
+     D_MAGIC_CLEAR( this );
 }
 
 DFBResult
@@ -92,6 +98,8 @@ Context::Init()
 
      D_DEBUG_AT( DFBEGL_Context, "EGL::Context::%s( %p )\n",
                  __FUNCTION__, this );
+
+     D_MAGIC_ASSERT( this, EGL::Context );
 
      Direct::String egl_api = Util::APIToString( api, gfx_options.GetValue<long>( "CONTEXT_CLIENT_VERSION", 1 ) );
 
@@ -112,6 +120,8 @@ Context::Bind( Surface *draw, Surface *read )
      D_DEBUG_AT( DFBEGL_Context, "EGL::Context::%s( %p, draw %p, read %p )\n",
                  __FUNCTION__, this, draw, read );
 
+     D_MAGIC_ASSERT( this, EGL::Context );
+
      ret = gfx_context->Bind( draw->gfx_peer, read->gfx_peer );
      if (ret) {
           D_DERROR( ret, "DFBEGL/Context: Graphics::Context::Bind() failed!\n" );
@@ -128,6 +138,8 @@ Context::Unbind()
 {
      D_DEBUG_AT( DFBEGL_Context, "EGL::Context::%s( %p )\n", __FUNCTION__, this );
 
+     D_MAGIC_ASSERT( this, EGL::Context );
+
      binding.Reset();
 
      gfx_context->Unbind();
@@ -138,6 +150,8 @@ Context::GetAttrib( EGLint attribute, EGLint *value )
 {
      D_DEBUG_AT( DFBEGL_Context, "EGL::Context::%s( %p, attribute 0x%08x (%d) '%s' )\n",
                  __FUNCTION__, this, attribute, attribute, *ToString<EGLInt>( EGLInt(attribute) ) );
+
+     D_MAGIC_ASSERT( this, EGL::Context );
 
      switch (attribute) {
           case EGL_CONTEXT_CLIENT_TYPE:
@@ -176,6 +190,8 @@ Context::GetSurface( EGLint which )
      D_DEBUG_AT( DFBEGL_Context, "EGL::Context::%s( %p, which %d '%s' )\n",
                  __FUNCTION__, this, which, *ToString<EGLInt>( EGLInt(which) ) );
 
+     D_MAGIC_ASSERT( this, EGL::Context );
+
      if (binding.active)
           return (which == EGL_DRAW) ? binding.draw : binding.read;
 
@@ -188,6 +204,8 @@ Context::GetProcAddress( const char  *name,
 {
      D_DEBUG_AT( DFBEGL_Context, "EGL::Context::%s( %p, name '%s' )\n",
                  __FUNCTION__, this, name );
+
+     D_MAGIC_ASSERT( this, EGL::Context );
 
      void *addr = NULL;
 

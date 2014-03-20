@@ -31,26 +31,13 @@
 #define ___DIRECTFB__WAYLAND__EGLDISPLAYWAYLAND__H___
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-//#include "wayland.h"
-
-//DFBResult dfb_wayland_egl_display_register( DFBWayland *wayland );
-//void      dfb_wayland_egl_display_unregister( void );
-
-#ifdef __cplusplus
-}
-
-
 #include <direct/String.h>
 
 #include <core/CoreSurface.h>
 #include <core/Graphics.h>
 
 #include <egl/dfbegl.h>
-#include <egl/image.h>
+#include <egl/KHR_image.h>
 
 #include <wayland-egl.h>
 #include <wayland-egl-priv.h>
@@ -137,8 +124,8 @@ public:
      struct wl_event_queue *wl_queue;
      struct wl_registry    *wl_registry;
 
-     struct wl_dfb         *wl_server_dfb;
-     struct wl_dfb         *wl_dfb;
+     struct WL::wl_dfb     *wl_server_dfb;
+     struct WL::wl_dfb     *wl_dfb;
 };
 
 
@@ -202,8 +189,6 @@ public:
 
 }
 
-
-#endif // __cplusplus
 
 
 #endif

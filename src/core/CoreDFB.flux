@@ -150,6 +150,24 @@ interface {
         }
 
         method {
+                name    GetSurfaceBuffer
+
+                arg {
+                        name        buffer_id
+                        direction   input
+                        type        int
+                        typename    u32
+                }
+
+                arg {
+                        name        buffer
+                        direction   output
+                        type        object
+                        typename    CoreSurfaceBuffer
+                }
+        }
+
+        method {
                 name    ClipboardSet
 
                 arg {

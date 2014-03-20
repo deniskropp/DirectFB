@@ -32,6 +32,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <directfb++.h>
+
 extern "C" {
 #include <direct/messages.h>
 }
@@ -40,6 +42,9 @@ extern "C" {
 
 #include <core/Graphics.h>
 
+#include <core/CoreDFB.h>
+#include <core/CoreSurface.h>
+
 
 D_LOG_DOMAIN( DirectFB_Graphics, "DirectFB/Graphics", "DirectFB Graphics" );
 
@@ -47,10 +52,6 @@ D_LOG_DOMAIN( DirectFB_Graphics, "DirectFB/Graphics", "DirectFB Graphics" );
 namespace DirectFB {
 
 namespace Graphics {
-
-
-//D_TYPE_DEFINE_( Core::Type<Context>, Context );
-//D_TYPE_DEFINE_( Core::Type<Image>, Image );
 
 
 /**********************************************************************************************************************/
@@ -63,6 +64,19 @@ Config::GetOption( const Direct::String &name,
                  __FUNCTION__, this, *name );
 
      return DFB_UNSUPPORTED;
+}
+
+Direct::String
+Config::GetOption( const Direct::String &name )
+{
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p, '%s' )\n", 
+                 __FUNCTION__, this, *name );
+
+     long v = 0;
+
+     GetOption( name, v );
+
+     return Direct::String::F( "%ld", v );
 }
 
 DFBResult
@@ -87,9 +101,9 @@ Config::CreateContext( const Direct::String  &api,
 }
 
 DFBResult
-Config::CreateSurfacePeer( IDirectFBSurface  *surface,
-                           Options           *options,
-                           SurfacePeer      **ret_peer )
+Config::CreateSurfacePeer( CoreSurface  *surface,
+                           Options      *options,
+                           SurfacePeer **ret_peer )
 {
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p, surface %p )\n",
                  __FUNCTION__, this, surface );
@@ -106,6 +120,20 @@ Config::CreateSurfacePeer( IDirectFBSurface  *surface,
      *ret_peer = peer;
 
      return DFB_OK;
+}
+
+void
+Config::DumpValues( std::initializer_list<Direct::String>  names,
+                    Direct::String                        &out_str )
+{
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p )\n", __FUNCTION__, this );
+
+     for (auto &name : names) {
+          long value;
+
+          if (GetOption( name, value ) == DFB_OK)
+               out_str.PrintF( "%s%s:0x%lx", out_str.empty() ? "" : ",", *name, value );
+     }
 }
 
 /**********************************************************************************************************************/
@@ -150,18 +178,33 @@ Context::GetProcAddress( const Direct::String  &name,
      return DFB_ITEMNOTFOUND;
 }
 
+DFBResult
+Context::CreateTask( Graphics::RenderTask *&task )
+{
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Context::%s( %p )\n",  __FUNCTION__, this );
+
+     return DFB_UNSUPPORTED;
+}
+
 /**********************************************************************************************************************/
 
-SurfacePeer::SurfacePeer( Config           *config,
-                          Options          *options,
-                          IDirectFBSurface *surface )
+SurfacePeer::SurfacePeer( Config      *config,
+                          Options     *options,
+                          CoreSurface *surface )
      :
      config( config ),
      options( options ),
-     surface( surface )
+     surface( surface ),
+     flips( 0 ),
+     index( 0 ),
+     buffer_num( 0 )
 {
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::SurfacePeer::%s( %p, config %p, surface %p )\n",
                  __FUNCTION__, this, config, surface );
+
+     direct_serial_init( &surface_serial );
+
+     memset( buffer_ids, 0, sizeof(*buffer_ids) );
 }
 
 SurfacePeer::~SurfacePeer()
@@ -170,44 +213,31 @@ SurfacePeer::~SurfacePeer()
                  __FUNCTION__, this, surface );
 
      if (surface)
-          surface->Release( surface );
+          dfb_surface_unref( surface );
 }
 
 DFBResult
 SurfacePeer::Init()
 {
+     DFBResult ret = DFB_OK;
+
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::SurfacePeer::%s( %p ) <- surface %p\n",
                  __FUNCTION__, this, surface );
 
      if (surface) {
-          DFBResult ret;
-
-          ret = (DFBResult) surface->AddRef( surface );
+          ret = (DFBResult) dfb_surface_ref( surface );
           if (ret) {
-               D_DERROR( ret, "Graphics/SurfacePeer: IDirectFBSurface::AddRef() failed!\n" );
+               D_DERROR( ret, "Graphics/SurfacePeer: dfb_surface_ref() failed!\n" );
+               surface = NULL;
                return ret;
           }
+
+          surface_type = surface->type;
+
+          ret = updateBuffers();
      }
 
-     return DFB_OK;
-}
-
-DFBResult
-SurfacePeer::Flip( const DFBRegion     *region,
-                   DFBSurfaceFlipFlags  flags )
-{
-     D_DEBUG_AT( DirectFB_Graphics, "Graphics::SurfacePeer::%s( %p, region %p, flags 0x%08x )\n",
-                 __FUNCTION__, this, region, flags );
-
-     DFBResult ret;
-
-     ret = surface->Flip( surface, region, flags );
-     if (ret) {
-          D_DERROR( ret, "Graphics/SurfacePeer: IDirectFBSurface::Flip() failed!\n" );
-          return ret;
-     }
-
-     return DFB_OK;
+     return ret;
 }
 
 DFBResult
@@ -223,14 +253,126 @@ SurfacePeer::GetOption( const Direct::String &name,
      return config->GetOption( name, value );
 }
 
+DFBResult
+SurfacePeer::Flip( const DFBRegion     *region,
+                   DFBSurfaceFlipFlags  flags,
+                   long long            timestamp )
+{
+     DFBResult ret;
+
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::SurfacePeer::%s( %p, region %p, flags 0x%08x, timestamp %lld )\n",
+                 __FUNCTION__, this, region, flags, timestamp );
+
+     Dispatch< SurfacePeer::Flush >( "Flush", this );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (0) {
+          DFBSurfaceEvent event;
+     
+          event.clazz        = DFEC_SURFACE;
+          event.type         = DSEVT_FRAME;
+          event.surface_id   = surface->object.id;
+          event.flip_flags   = flags;
+          event.time_stamp   = timestamp;
+          event.left_id      = buffer_left();
+          event.left_serial  = surface->serial.value;
+          event.right_id     = buffer_right();
+          event.right_serial = event.left_serial;
+          event.update       = DFBRegion( surface_config.size );
+          event.update_right = event.update;
+     
+          ret = (DFBResult) dfb_surface_dispatch_channel( surface, CSCH_EVENT, &event, sizeof(DFBSurfaceEvent), NULL );
+          if (ret)
+               return ret;
+     }
+     else {
+          ret = ::CoreSurface_DispatchUpdate( surface, DFB_FALSE, region, region, flags, timestamp, flips );
+          if (ret)
+               D_DERROR( ret, "Graphics/SurfacePeer: CoreSurface::DispatchUpdate() failed!\n" );
+     }
+
+     flips++;
+
+     return updateBuffers();
+}
+
+DFBResult
+SurfacePeer::updateBuffers()
+{
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::SurfacePeer::%s( %p ) <- surface %p\n", __FUNCTION__, this, surface );
+
+     if (direct_serial_update( &surface_serial, &surface->config_serial )) {
+          DFBResult ret;
+
+          surface_config = surface->config;
+
+          ret = ::CoreSurface_GetBuffers( surface, &buffer_ids[0], D_ARRAY_SIZE(buffer_ids), &buffer_num );
+          if (ret) {
+               D_DERROR( ret, "Graphics/SurfacePeer: CoreSurface::GetBuffers() failed!\n" );
+               return ret;
+          }
+
+          for (size_t i=0; i<buffer_num; i++)
+               buffer_objects[i] = NULL;
+     }
+
+     if (surface_config.caps & DSCAPS_STEREO) {
+          D_ASSERT( buffer_num > 1 );
+
+          index = (flips % (buffer_num/2)) * 2;
+     }
+     else {
+          D_ASSERT( buffer_num > 0 );
+
+          index = flips % buffer_num;
+     }
+
+     return DFB_OK;
+}
+
+DirectFB::Util::FusionObjectWrapper<CoreSurfaceBuffer> &
+SurfacePeer::getBuffer( int offset )
+{
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::SurfacePeer::%s( %p, offset %d ) <- surface %p\n", __FUNCTION__, this, offset, surface );
+
+     u32 index;
+
+     if (surface_config.caps & DSCAPS_STEREO) {
+          D_ASSERT( buffer_num > 1 );
+
+          index = ((flips + offset) % (buffer_num/2)) * 2;
+     }
+     else {
+          D_ASSERT( buffer_num > 0 );
+
+          index = (flips + offset) % buffer_num;
+     }
+
+     if (!buffer_objects[index]) {
+          DFBResult          ret;
+          CoreSurfaceBuffer *buffer;
+
+          ret = ::CoreDFB_GetSurfaceBuffer( core_dfb, buffer_ids[index], &buffer );
+          if (ret)
+               D_DERROR( ret, "DirectFB/SurfacePeer: CoreDFB_GetSurfaceBuffer( 0x%x ) failed!\n", buffer_ids[index] );
+          else {
+               buffer_objects[index] = buffer;
+
+               dfb_surface_buffer_unref( buffer );
+          }
+     }
+
+     return buffer_objects[index];
+}
+
 /**********************************************************************************************************************/
 
 Implementation::Implementation( std::shared_ptr<Core> core )
      :
      Direct::Module( core->modules ),
      core( core ),
-     name( "unnamed" )//,
-     //init( false )
+     name( "unnamed" )
 {
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p )\n", __FUNCTION__, this );
 }
@@ -239,24 +381,6 @@ Implementation::~Implementation()
 {
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p )\n", __FUNCTION__, this );
 }
-
-//DFBResult
-//Implementation::Init()
-//{
-//     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Implementation::%s( %p ) <- init %d\n", __FUNCTION__, this, init );
-//
-//     if (!init) {
-//          DirectResult ret;
-//
-//          ret = Initialise();
-//          if (ret)
-//               return (DFBResult) ret;
-//
-//          init = true;
-//     }
-//
-//     return DFB_OK;
-//}
 
 /**********************************************************************************************************************/
 
@@ -275,12 +399,6 @@ Core::RegisterImplementation( Implementation *implementation )
 {
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::Core::%s( implementation %p )\n",
                  __FUNCTION__, implementation );
-
-//     D_DEBUG_AT( DirectFB_Graphics, "  -> name '%s'\n",
-//                 *implementation->GetName() );
-
-//     D_DEBUG_AT( DirectFB_Graphics, "  -> APIS '%s'\n",
-//                 *implementation->GetAPIs().Concatenated(" ") );
 
      implementations.push_back( implementation );
 }

@@ -510,6 +510,9 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
           {
                const SurfacePoolFuncs *funcs;
 
+               D_DEBUG_AT( Core_SurfacePool, "  -> [%d] 0x%02x 0x%03x (%d) [%s]\n", pool->pool_id,
+                           pool->desc.caps, pool->desc.types, pool->desc.priority, pool->desc.name );
+
                funcs = get_funcs( pool );
 
                ret = funcs->TestConfig ? funcs->TestConfig( pool, pool->data, get_local(pool),
@@ -891,6 +894,50 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
 error:
      dfb_surface_allocation_unref( allocation );
 
+     return ret;
+}
+
+DFBResult
+dfb_surface_pool_update_key( CoreSurfacePool       *pool,
+                             CoreSurfaceBuffer     *buffer,
+                             const char            *key,
+                             u64                    handle,
+                             CoreSurfaceAllocation *allocation )
+{
+     DFBResult               ret;
+     const SurfacePoolFuncs *funcs;
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     D_DEBUG_AT( Core_SurfacePool, "%s( %p [%d - %s], %p )\n", __FUNCTION__, pool, pool->pool_id, pool->desc.name, buffer );
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     funcs = get_funcs( pool );
+
+     if (fusion_skirmish_prevail( &pool->lock )) {
+          ret = DFB_FUSION;
+          goto error;
+     }
+
+     D_ASSERT( funcs->AllocateKey != NULL );
+
+     ret = funcs->AllocateKey( pool, pool->data, get_local(pool), buffer, key, handle, allocation, allocation->data );
+
+     if (ret) {
+          D_DEBUG_AT( Core_SurfacePool, "  -> %s\n", DirectFBErrorString( ret ) );
+          fusion_skirmish_dismiss( &pool->lock );
+          goto error;
+     }
+
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     fusion_skirmish_dismiss( &pool->lock );
+
+     return DFB_OK;
+
+error:
      return ret;
 }
 

@@ -78,7 +78,7 @@ public:
           D_DEBUG_AT( Direct_Type, "Types::%s()\n", __FUNCTION__ );
      }
 
-     template <typename _T, typename _P=TypeBase>
+     template <typename _T, typename _P=TypeBase> // TODO: add RelationType?
      class Type : public _P::MyType
      {
      public:
@@ -95,12 +95,28 @@ public:
 
           RealTypeParent &parent;
 
+          static DirectLogDomain &GetLogDomain()
+          {
+               static DirectLogDomain domain;
+
+               if (!domain.description) {
+                    domain.description = strdup( *TypeID<_T>() );
+                    domain.name        = strdup( *TypeID<_T>() );
+                    domain.name_len    = strlen( domain.name );
+               }
+
+               return domain;
+          }
+
           Type( RealTypeParent &parent = * (RealTypeParent*) 0L )
                :
                parent( parent )
           {
                D_DEBUG_AT( Direct_Type, "Type::%s( %p ) <--= '%s' :: '%s' :: '%s'\n",
                            __FUNCTION__, this, *TypeID<_NS>(), *TypeID<_P>(), *TypeID<_T>() );
+
+               if (direct_log_domain_check( &GetLogDomain() ))
+                    D_INFO( "New %s %p\n", *TypeID<_T>(), this );
           }
 
           // no copy
@@ -111,6 +127,9 @@ public:
 
           virtual ~Type() {
                D_DEBUG_AT( Direct_Type, "Type::%s( %p )\n", __FUNCTION__, this );
+
+               if (direct_log_domain_check( &GetLogDomain() ))
+                    D_INFO( "Deleted %s %p\n", *TypeID<_T>(), this );
           }
 
 
@@ -204,23 +223,8 @@ public:
                                    {
                                         return new RealType( (_Source&) *source, std::forward<_ArgTypes...>(__args...) );
                                    },
-               std::placeholders::_1, std::ref(__args)... ) );
+               std::placeholders::_1, std::ref(__args)... ), "" );
           }
-
-
-//          template <typename _Source, typename... _ArgTypes>
-//          static void RegisterConversion( _ArgTypes&&... __args )
-//          {
-//               RealType::template Register<
-//                    std::function< RealType * ( TypeBase *source ) >
-//                    >( _Source::GetTypeInstance().GetInfo().name,
-//                       std::bind( []( TypeBase       *source,
-//                                      _ArgTypes&&...  __args )
-//                                   {
-//                                        return new RealType( (_Source&) *source, std::forward<_ArgTypes>(__args)... );
-//                                   },
-//               std::placeholders::_1, std::ref(__args)... ) );
-//          }
      };
 };
 

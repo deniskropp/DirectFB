@@ -57,6 +57,7 @@
 
 #include <core/CoreDFB.h>
 #include <core/CoreSurface.h>
+#include <core/Debug.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -95,11 +96,97 @@ dfb_surface_get_stereo_eye( CoreSurface *surface )
 
 /**********************************************************************************************************************/
 
+static void
+keep_frame( CoreSurface *surface )
+{
+     CoreSurfaceBuffer *buffer = surface->left_buffers[ surface->buffer_indices[surface->flips % surface->num_buffers] ];
+
+     D_DEBUG_AT( Core_Surface, "%s( surface %p )\n", __FUNCTION__, surface );
+
+     D_DEBUG_AT( Core_Surface, "  -> surface %s\n", ToString_CoreSurface(surface) );
+     D_DEBUG_AT( Core_Surface, "  -> buffer  %s\n", ToString_CoreSurfaceBuffer(buffer) );
+
+     if (!buffer->busy++) {
+          CoreSurfaceBuffer *old = NULL;
+
+          fusion_hash_replace( surface->frames, (void*)(long)(surface->flips * 2), buffer, NULL, (void**) &old );
+
+          D_ASSERT( old == NULL );
+     }
+
+     if (surface->config.caps & DSCAPS_STEREO) {
+          buffer = surface->right_buffers[ surface->buffer_indices[surface->flips % surface->num_buffers] ];
+
+          D_DEBUG_AT( Core_Surface, "  -> buffer  %s\n", ToString_CoreSurfaceBuffer(buffer) );
+
+          if (!buffer->busy++) {
+               CoreSurfaceBuffer *old = NULL;
+
+               fusion_hash_replace( surface->frames, (void*)(long)(surface->flips * 2 + 1), buffer, NULL, (void**) &old );
+
+               D_ASSERT( old == NULL );
+          }
+     }
+}
+
+static void
+release_frame( CoreSurface *surface,
+               u32          flip_count )
+{
+     CoreSurfaceBuffer *buffer;
+
+     D_DEBUG_AT( Core_Surface, "%s( surface %p, flip_count %d )\n", __FUNCTION__, surface, flip_count );
+
+     D_DEBUG_AT( Core_Surface, "  -> surface %s\n", ToString_CoreSurface(surface) );
+
+     buffer = (CoreSurfaceBuffer*) fusion_hash_lookup( surface->frames, (void*)(long)(flip_count * 2) );
+     if (buffer) {
+          D_DEBUG_AT( Core_Surface, "  -> buffer %s\n", ToString_CoreSurfaceBuffer(buffer) );
+
+          if (buffer->busy-- == 1 && (buffer->flags & CSBF_DECOUPLE))
+               dfb_surface_buffer_decouple( buffer );
+
+          fusion_hash_remove( surface->frames, (void*)(long)(flip_count * 2), NULL, NULL );
+     }
+
+     buffer = (CoreSurfaceBuffer*) fusion_hash_lookup( surface->frames, (void*)(long)(flip_count * 2 + 1) );
+     if (buffer) {
+          D_DEBUG_AT( Core_Surface, "  -> buffer %s\n", ToString_CoreSurfaceBuffer(buffer) );
+
+          if (buffer->busy-- == 1 && (buffer->flags & CSBF_DECOUPLE))
+               dfb_surface_buffer_decouple( buffer );
+
+          fusion_hash_remove( surface->frames, (void*)(long)(flip_count * 2 + 1), NULL, NULL );
+     }
+}
+
+/**********************************************************************************************************************/
+
 static const ReactionFunc dfb_surface_globals[] = {
 /* 0 */   _dfb_layer_region_surface_listener,
 /* 1 */   _dfb_windowstack_background_image_listener,
           NULL
 };
+
+static bool
+surface_destructor_buffers_iterator( FusionHash *hash,
+                                     void       *key,
+                                     void       *value,
+                                     void       *ctx )
+{
+     CoreSurface       *surface = (CoreSurface *) ctx;
+     CoreSurfaceBuffer *buffer  = (CoreSurfaceBuffer *) value;
+
+     D_ASSERT( buffer->flags & CSBF_DECOUPLE );
+
+     buffer->busy = 0;
+
+     dfb_surface_buffer_decouple( buffer );
+
+     fusion_hash_remove( surface->frames, key, NULL, NULL );
+
+     return true;
+}
 
 static void
 surface_destructor( FusionObject *object, bool zombie, void *ctx )
@@ -144,6 +231,9 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      }
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
+     while (fusion_hash_size( surface->frames ) > 0)
+          fusion_hash_iterate( surface->frames, surface_destructor_buffers_iterator, surface );
+
      /* release the system driver specific surface data */
      if (surface->data) {
           dfb_system_surface_data_destroy( surface, surface->data );
@@ -152,12 +242,15 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      }
 
      direct_serial_deinit( &surface->serial );
+     direct_serial_deinit( &surface->config_serial );
 
      dfb_surface_unlock( surface );
 
      fusion_vector_destroy( &surface->clients );
 
      fusion_skirmish_destroy( &surface->lock );
+
+     fusion_hash_destroy( surface->frames );
 
      D_MAGIC_CLEAR( surface );
 
@@ -290,6 +383,8 @@ dfb_surface_create( CoreDFB                  *core,
      surface->shmpool = dfb_core_shmpool( core );
 
      direct_serial_init( &surface->serial );
+     direct_serial_init( &surface->config_serial );
+     direct_serial_increase( &surface->config_serial );
 
      fusion_vector_init( &surface->clients, 2, surface->shmpool );
 
@@ -304,6 +399,8 @@ dfb_surface_create( CoreDFB                  *core,
      fusion_reactor_direct( surface->object.reactor, false );
 
 //     fusion_skirmish_add_permissions( &surface->lock, 0, FUSION_SKIRMISH_PERMIT_PREVAIL | FUSION_SKIRMISH_PERMIT_DISMISS );
+
+     fusion_hash_create( surface->shmpool, HASH_INT, HASH_PTR, 7, &surface->frames );
 
      D_MAGIC_SET( surface, CoreSurface );
 
@@ -404,6 +501,9 @@ error:
      fusion_skirmish_destroy( &surface->lock );
 
      direct_serial_deinit( &surface->serial );
+     direct_serial_deinit( &surface->config_serial );
+
+     fusion_hash_destroy( surface->frames );
 
      D_MAGIC_CLEAR( surface );
 
@@ -522,7 +622,7 @@ dfb_surface_notify_display2( CoreSurface     *surface,
                              int              index,
                              DFB_DisplayTask *task )
 {
-     CoreSurfaceNotification notification;
+//     CoreSurfaceNotification notification;
 
      D_DEBUG_AT( Core_Surface, "%s( %p, %d )\n", __FUNCTION__, surface, index );
 
@@ -546,11 +646,11 @@ dfb_surface_notify_display2( CoreSurface     *surface,
           layer->display_task_onscreen = task;
      }
 
-     notification.flags   = CSNF_DISPLAY;
-     notification.surface = surface;
-     notification.index   = index;
+//     notification.flags   = CSNF_DISPLAY;
+//     notification.surface = surface;
+//     notification.index   = index;
 
-     return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
+     return DFB_OK;//dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
 }
 
 DFBResult
@@ -572,7 +672,7 @@ dfb_surface_notify_frame( CoreSurface  *surface,
      notification.surface    = surface;
      notification.flip_count = flip_count;
 
-     return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
+     return dfb_surface_dispatch_channel( surface, CSCH_FRAME, &notification, sizeof(notification), dfb_surface_globals );
 }
 
 DFBResult
@@ -747,10 +847,46 @@ dfb_surface_dispatch_update( CoreSurface         *surface,
      if (ret)
           return ret;
 
-     D_DEBUG_AT( Core_Surface_Updates, "  -> client count %d\n", fusion_vector_size( &surface->clients ) );
+     D_DEBUG_AT( Core_Surface_Updates, "  -> clients %d\n", fusion_vector_size( &surface->clients ) );
 
      if (fusion_vector_is_empty( &surface->clients )) {
           surface->flips_acked = surface->flips;
+
+          dfb_surface_notify_frame( surface, surface->flips_acked );
+     }
+     else
+          keep_frame( surface );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_surface_check_acks( CoreSurface *surface )
+{
+     int                i;
+     CoreSurfaceClient *client;
+     u32                count;
+
+     D_DEBUG_AT( Core_Surface_Updates, "%s( %p [%u] )\n", __FUNCTION__, surface, surface->object.id );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+
+     count = surface->flips;
+
+     fusion_vector_foreach (client, i, surface->clients) {
+          D_DEBUG_AT( Core_Surface_Updates, "  -> client %p [%u] (acked %u)\n", client, client->object.id, client->flip_count );
+
+          if (client->flip_count < count)
+               count = client->flip_count;
+     }
+
+     D_DEBUG_AT( Core_Surface_Updates, "  -> lowest count %u (acked %u)\n", count, surface->flips_acked );
+
+     if (count > surface->flips_acked) {
+          for (; surface->flips_acked<count; surface->flips_acked++)
+               release_frame( surface, surface->flips_acked );
 
           dfb_surface_notify_frame( surface, surface->flips_acked );
      }
@@ -796,6 +932,8 @@ dfb_surface_reconfig( CoreSurface             *surface,
      {
           surface->config.size = config->size;
 
+          direct_serial_increase( &surface->config_serial );
+
           fusion_skirmish_dismiss( &surface->lock );
           return DFB_OK;
      }
@@ -839,6 +977,10 @@ dfb_surface_reconfig( CoreSurface             *surface,
      if (ret)
           return ret;
 
+
+     direct_serial_increase( &surface->config_serial );
+
+
      /* Destroy the Surface Buffers. */
      num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
@@ -851,6 +993,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
      surface->num_buffers = 0;
+     surface->flips++;
 
      Core_Resource_UpdateSurface( surface, &new_config );
 
@@ -1779,5 +1922,34 @@ _dfb_surface_palette_listener( const void *msg_data,
      }
 
      return RS_OK;
+}
+
+CoreSurfaceBuffer *
+dfb_surface_get_buffer3( CoreSurface           *surface,
+                         CoreSurfaceBufferRole  role,
+                         DFBSurfaceStereoEye    eye,
+                         u32                    flip_count )
+{
+     CoreSurfaceBuffer *buffer;
+
+     D_DEBUG_AT( Core_Surface, "%s( %p, role %d, eye %d, flip_count %u )\n", __FUNCTION__, surface, role, eye, flip_count );
+
+     D_ASSERT( role == CSBR_FRONT || role == CSBR_BACK || role == CSBR_IDLE );
+     D_ASSERT( eye == DSSE_LEFT || eye == DSSE_RIGHT );
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
+
+     D_ASSERT( surface->num_buffers > 0 );
+
+     if (eye == DSSE_LEFT) {
+          buffer = (CoreSurfaceBuffer *) fusion_hash_lookup( surface->frames, (void*)(long)((flip_count + role) * 2) );
+
+          return buffer ? buffer : surface->left_buffers[ surface->buffer_indices[(flip_count + role) % surface->num_buffers] ];
+     }
+
+     buffer = (CoreSurfaceBuffer *) fusion_hash_lookup( surface->frames, (void*)(long)((flip_count + role) * 2 + 1) );
+
+     return buffer ? buffer : surface->right_buffers[ surface->buffer_indices[(flip_count + role) % surface->num_buffers] ];
 }
 

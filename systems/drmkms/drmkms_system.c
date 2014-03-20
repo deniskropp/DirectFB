@@ -130,17 +130,29 @@ InitLocal( DRMKMSData *drmkms )
 
 #ifdef USE_GBM
      drmkms->gbm = gbm_create_device( drmkms->fd );
+     if (!drmkms->gbm) {
+          D_ERROR( "DRMKMS: Failed to create gbm_device for '%s' (fd %d)\n",
+                   shared->device_name, drmkms->fd );
+
+          if (dfb_core_is_master( drmkms->core ))
+               return DFB_IO;
+     }
+
+     D_INFO( "DRMKMS: Opened '%s' (fd %d) as gbm_device %p (drmkms %p)\n",
+             shared->device_name, drmkms->fd, drmkms->gbm, drmkms );
 #else
      kms_create( drmkms->fd, &drmkms->kms);
 #endif
 
-     drmkms->resources = drmModeGetResources( drmkms->fd );
-     if (!drmkms->resources) {
-          D_ERROR( "DirectFB/DRMKMS: drmModeGetResources() failed!\n" );
-          return DFB_INIT;
-     }
+     if (!shared->no_resources) {
+          drmkms->resources = drmModeGetResources( drmkms->fd );
+          if (!drmkms->resources) {
+               D_ERROR( "DirectFB/DRMKMS: drmModeGetResources() failed!\n" );
+               return DFB_INIT;
+          }
 
-     drmkms->plane_resources = drmModeGetPlaneResources( drmkms->fd );
+          drmkms->plane_resources = drmModeGetPlaneResources( drmkms->fd );
+     }
 
      drmkms->screen = dfb_screens_register( NULL, drmkms, drmkmsScreenFuncs );
 
@@ -175,11 +187,18 @@ DeinitLocal( DRMKMSData *drmkms )
      if (drmkms->resources)
           drmModeFreeResources( drmkms->resources );
 
+#ifdef USE_GBM
+     if (drmkms->gbm)
+          gbm_device_destroy (drmkms->gbm);
+#else
      if (drmkms->kms)
           kms_destroy (&drmkms->kms);
+#endif
 
-     if (drmkms->fd)
+     if (drmkms->fd) {
+          drmDropMaster( drmkms->fd );
           close (drmkms->fd);
+     }
 
      return DFB_OK;
 }
@@ -191,6 +210,8 @@ system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_DRMKMS;
      info->caps = CSCAPS_ACCELERATION | CSCAPS_NOTIFY_DISPLAY | CSCAPS_DISPLAY_TASKS;
+
+     info->caps |= CSCAPS_SYSMEM_EXTERNAL;
 
      snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "DRM/KMS" );
 }
@@ -233,7 +254,11 @@ system_initialize( CoreDFB *core, void **ret_data )
                return DFB_INIT;
      }
 
-     if (direct_config_get("drmkms-mirror-outputs", &optionbuffer, 1, &ret_num) == DR_OK) {
+     if (direct_config_get("drmkms-no-resources", &optionbuffer, 1, &ret_num) == DR_OK) {
+          shared->no_resources = 1;
+          D_INFO("DRMKMS/Init: not using any display resource\n");
+     }
+     else if (direct_config_get("drmkms-mirror-outputs", &optionbuffer, 1, &ret_num) == DR_OK) {
           shared->mirror_outputs = 1;
           D_INFO("DRMKMS/Init: mirror on connected outputs\n");
      }
@@ -270,6 +295,8 @@ system_initialize( CoreDFB *core, void **ret_data )
           D_INFO("DRMKMS/Init: using device %s (default)\n", shared->device_name);
      }
 
+     *ret_data = m_data;
+
      ret = InitLocal( drmkms );
 
      if (ret) {
@@ -278,7 +305,6 @@ system_initialize( CoreDFB *core, void **ret_data )
 
           return ret;
      }
-     *ret_data = m_data;
 
      dfb_surface_pool_initialize( core, &drmkmsSurfacePoolFuncs, &shared->pool );
 

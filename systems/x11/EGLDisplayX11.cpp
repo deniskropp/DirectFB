@@ -34,6 +34,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <xcb/xcb.h>
+
 #include <direct/Types++.h>
 
 extern "C" {
@@ -130,12 +132,18 @@ EGLCoreModuleX11::Initialise( DirectFB::EGL::Core &core )
      D_DEBUG_AT( DFBX11_EGLCoreModule, "EGLCoreModuleX11::%s( %p, core %p )\n",
                  __FUNCTION__, this, &core );
 
-     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Probe >     ( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Probe, this, _1, _2 ) );
-     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Initialise >( EGLDisplayX11::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleX11::Display_Initialise, this, _1 ) );
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Probe >     ( "Probe",
+                                                                          std::bind( &EGLCoreModuleX11::Display_Probe, this, _1, _2 ),
+                                                                          EGLDisplayX11::GetTypeInstance().GetName() );
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Display::Initialise >( "Initialise",
+                                                                          std::bind( &EGLCoreModuleX11::Display_Initialise, this, _1 ),
+                                                                          EGLDisplayX11::GetTypeInstance().GetName() );
 
      EGLDisplayX11::RegisterConversion< DirectFB::EGL::Display, EGLCoreModuleX11& >( *this );
 
-     DirectFB::EGL::Display::Register< DirectFB::EGL::EGLExtension::GetNames >( GetName(), [](){ return "DIRECTFB_display_x11"; } );
+     DirectFB::EGL::Display::Register< DirectFB::EGL::EGLExtension::GetNames >( "GetNames",
+                                                                                [](){ return "DIRECTFB_display_x11"; },
+                                                                                GetName() );
 
      return DFB_OK;
 }
@@ -175,16 +183,6 @@ EGLCoreModuleX11::Display_Initialise( EGLDisplayX11 &display )
      D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p, display %p, x11_display %p )\n",
                  __FUNCTION__, this, &display, display.x11_display );
 
-     DirectFB::EGL::KHR::Image::Register< DirectFB::EGL::KHR::Image::Initialise >( display.GetName() / DirectFB::EGL::EGLInt(EGL_NATIVE_PIXMAP_KHR),
-                                                     std::bind( &EGLDisplayX11::Image_Initialise, &display, _1 ) );
-
-     DirectFB::EGL::Surface::Register< DirectFB::EGL::Surface::Initialise >( display.GetName(),
-                                                         std::bind( &EGLDisplayX11::Surface_Initialise, &display, _1 ) );
-
-     SurfaceXWindow::RegisterConversion< DirectFB::EGL::Surface, EGLDisplayX11& >( display );
-
-     X11::EGL::Image::RegisterConversion< DirectFB::EGL::KHR::Image, EGLDisplayX11& >( display );
-
      return DFB_OK;
 }
 
@@ -198,11 +196,29 @@ EGLDisplayX11::EGLDisplayX11( DirectFB::EGL::Display     &display,
      x11_display( (::Display*) display.native_display )
 {
      D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p, native_display 0x%08lx )\n", __FUNCTION__, this, (unsigned long) display.native_display );
+
+     DirectFB::EGL::KHR::Image::Register< DirectFB::EGL::KHR::Image::Initialise >( "Initialise",
+                                                                                   std::bind( &EGLDisplayX11::Image_Initialise, this, _1 ),
+                                                                                   DirectFB::EGL::EGLInt(EGL_NATIVE_PIXMAP_KHR),
+                                                                                   &display );
+
+     DirectFB::EGL::Surface::Register< DirectFB::EGL::Surface::Initialise >( "Initialise",
+                                                                             std::bind( &EGLDisplayX11::Surface_Initialise, this, _1 ),
+                                                                             "",
+                                                                             &display );
+
+     SurfaceXWindow::RegisterConversion< DirectFB::EGL::Surface, EGLDisplayX11& >( *this );
+
+     X11::EGL::Image::RegisterConversion< DirectFB::EGL::KHR::Image, EGLDisplayX11& >( *this );
+
+//     x11_display = XOpenDisplay( getenv("DISPLAY") );
 }
 
 EGLDisplayX11::~EGLDisplayX11()
 {
      D_DEBUG_AT( DFBX11_EGLDisplay, "EGLDisplayX11::%s( %p )\n", __FUNCTION__, this );
+
+//     XCloseDisplay( x11_display );
 }
 
 /**********************************************************************************************************************/
@@ -232,18 +248,18 @@ EGLDisplayX11::Surface_Initialise( SurfaceXWindow &surface )
 
      XWindowAttributes  attrs;
 
-     //     xcb_generic_error_t *err = NULL;
-     //
-     //     D_DEBUG_AT( DFBX11_EGLDisplay, "  -> calling xcb_get_window_attributes...\n" );
-     //     xcb_get_window_attributes_cookie_t  cookie = xcb_get_window_attributes( (xcb_connection_t*)display->x11_display, window );
-     //
-     //     D_DEBUG_AT( DFBX11_EGLDisplay, "  -> calling xcb_get_window_attributes_reply...\n" );
-     //     xcb_get_window_attributes_reply_t  *reply  = xcb_get_window_attributes_reply( (xcb_connection_t*)display->x11_display, cookie, &err );
-     //
-     //     if (!reply) {
-     //          D_ERROR( "DFBEGL/SurfaceXWindow: xcb_get_window_attributes() failed (error code %d)!\n", err ? err->error_code : 0 );
-     //          return DFB_FAILURE;
-     //     }
+//     xcb_generic_error_t *err = NULL;
+//     
+//     D_DEBUG_AT( DFBX11_EGLDisplay, "  -> calling xcb_get_window_attributes...\n" );
+//     xcb_get_window_attributes_cookie_t  cookie = xcb_get_window_attributes( (xcb_connection_t*)x11_display, window );
+//     
+//     D_DEBUG_AT( DFBX11_EGLDisplay, "  -> calling xcb_get_window_attributes_reply...\n" );
+//     xcb_get_window_attributes_reply_t  *reply  = xcb_get_window_attributes_reply( (xcb_connection_t*)x11_display, cookie, &err );
+//     
+//     if (!reply) {
+//          D_ERROR( "DFBEGL/SurfaceXWindow: xcb_get_window_attributes() failed (error code %d)!\n", err ? err->error_code : 0 );
+//          return DFB_FAILURE;
+//     }
 
 //     XMapWindow( x11_display, window );
      XSync( x11_display, False );
@@ -263,6 +279,7 @@ EGLDisplayX11::Surface_Initialise( SurfaceXWindow &surface )
      desc.hints       = DSHF_NONE;
 
      if (surface.parent.native_handle.clazz == DirectFB::EGL::NativeHandle::CLASS_WINDOW) {
+          D_FLAGS_SET( desc.caps, DSCAPS_GL );
           D_FLAGS_SET( desc.caps, DSCAPS_PRIMARY );
 //          D_FLAGS_SET( desc.caps, DSCAPS_DOUBLE );
           D_FLAGS_SET( desc.hints, DSHF_WINDOW );

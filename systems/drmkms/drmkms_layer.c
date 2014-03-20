@@ -38,6 +38,8 @@
 #include <core/layers.h>
 #include <core/screens.h>
 
+#include <core/Task.h>
+
 #include <misc/conf.h>
 #include <directfb_util.h>
 
@@ -59,7 +61,7 @@ drmkmsInitLayer( CoreLayer                  *layer,
                  DFBDisplayLayerConfig      *config,
                  DFBColorAdjustment         *adjustment )
 {
-     DRMKMSData *drmkms = driver_data;
+     DRMKMSData       *drmkms = driver_data;
      DRMKMSDataShared *shared = drmkms->shared;
      DRMKMSLayerData  *data   = layer_data;
 
@@ -85,9 +87,9 @@ drmkmsInitLayer( CoreLayer                  *layer,
      config->pixelformat = dfb_config->mode.format ?: DSPF_ARGB;
      config->buffermode  = DLBM_FRONTONLY;
 
-     direct_mutex_init( &data->lock );  
+     direct_mutex_init( &data->lock );
 
-     direct_waitqueue_init( &data->wq_event );      
+     direct_waitqueue_init( &data->wq_event );
 
      return DFB_OK;
 }
@@ -134,14 +136,14 @@ drmkmsSetRegion( CoreLayer                  *layer,
      DRMKMSDataShared *shared = drmkms->shared;
      DRMKMSLayerData  *data   = layer_data;
 
-
-     int index  = data->layer_index;
-
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
 
+     if (!drmkms->resources)
+          return DFB_OK;
 
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_BUFFERMODE | CLRCF_SOURCE)) {
-          int i;
+          int i, index = data->layer_index;
+
           for (i=0; i<shared->enabled_crtcs; i++) {
                if (shared->mirror_outputs)
                     index = i;
@@ -156,7 +158,8 @@ drmkmsSetRegion( CoreLayer                  *layer,
                }
 
                if (ret) {
-                    D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc() failed! (%d)\n", ret );
+                    D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc( fd %d, crtc 0x%x, fb_id 0x%lx ) failed! (%d)\n", ret,
+                              drmkms->fd, drmkms->encoder[index]->crtc_id, (long) left_lock->handle );
                     D_DEBUG_AT( DRMKMS_Mode, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder[index]->crtc_id, drmkms->connector[index]->connector_id, shared->mode[index].hdisplay, shared->mode[index].vdisplay );
                     return DFB_FAILURE;
                }
@@ -165,11 +168,10 @@ drmkmsSetRegion( CoreLayer                  *layer,
                     break;
           }
 
-          shared->primary_dimension[data->layer_index]  = surface->config.size;
-          shared->primary_rect  = config->source;
-          shared->primary_fb    = (u32)(long)left_lock->handle;
+          shared->primary_dimension[data->layer_index] = surface->config.size;
+          shared->primary_rect                         = config->source;
+          shared->primary_fb                           = (u32)(long)left_lock->handle;
      }
-
 
      return DFB_OK;
 }
@@ -193,6 +195,26 @@ drmkmsUpdateFlipRegion( CoreLayer             *layer,
      DRMKMSLayerData  *data   = layer_data;
 
      D_DEBUG_AT( DRMKMS_Layer, "%s()\n", __FUNCTION__ );
+
+     if (!drmkms->resources) {
+          if (flip)
+               dfb_surface_flip( surface, false );
+
+          if (left_lock->buffer)
+               dfb_surface_notify_display( surface, left_lock->buffer );
+
+          if (right_lock && right_lock->buffer)
+               dfb_surface_notify_display( surface, right_lock->buffer );
+
+          if (left_lock->task)
+               Task_Done( left_lock->task );
+
+          if (right_lock && right_lock->task)
+               Task_Done( right_lock->task );
+
+          return DFB_OK;
+     }
+
 
      direct_mutex_lock( &data->lock );
 

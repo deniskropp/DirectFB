@@ -62,11 +62,17 @@ D_DEBUG_DOMAIN( DirectFB_Renderer_Throttle, "DirectFB/Renderer/Throttle", "Direc
 
 /*********************************************************************************************************************/
 
+namespace DirectFB {
+
+namespace Graphics {
+
+
+extern "C" {
 
 typedef struct {
      int                 magic;
 
-     DirectFB::Renderer *last_renderer;
+     Graphics::Renderer *last_renderer;
 } RendererTLS;
 
 static DirectTLS renderer_tls_key;
@@ -99,7 +105,7 @@ Renderer_TLS__deinit()
 void
 Renderer_DeleteEngines()
 {
-     DirectFB::Renderer::DeleteEngines();
+     Graphics::Renderer::DeleteEngines();
 }
 
 static RendererTLS *
@@ -125,9 +131,7 @@ Renderer_GetTLS( void )
      return renderer_tls;
 }
 
-
-
-namespace DirectFB {
+}
 
 
 #define TRANSFORM(_x,_y,p)  \
@@ -2006,7 +2010,7 @@ Quadrangles::render( Renderer::Setup *setup,
 
 /**********************************************************************************************************************/
 
-Renderer::Throttle::Throttle( Renderer &renderer )
+Throttle::Throttle( Renderer &renderer )
      :
      ref_count(1),
      task_count(0)
@@ -2018,7 +2022,7 @@ Renderer::Throttle::Throttle( Renderer &renderer )
      dfb_graphics_state_ref( gfx_state );
 }
 
-Renderer::Throttle::~Throttle()
+Throttle::~Throttle()
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
 
@@ -2028,7 +2032,7 @@ Renderer::Throttle::~Throttle()
 }
 
 void
-Renderer::Throttle::ref()
+Throttle::ref()
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
 
@@ -2044,7 +2048,7 @@ Renderer::Throttle::ref()
 }
 
 void
-Renderer::Throttle::unref()
+Throttle::unref()
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p )\n", __FUNCTION__, this );
 
@@ -2068,7 +2072,7 @@ Renderer::Throttle::unref()
 }
 
 void
-Renderer::Throttle::AddTask( SurfaceTask *task, u32 cookie )
+Throttle::AddTask( SurfaceTask *task, u32 cookie )
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
 
@@ -2080,7 +2084,7 @@ Renderer::Throttle::AddTask( SurfaceTask *task, u32 cookie )
 }
 
 DFBResult
-Renderer::Throttle::waitDone( unsigned long timeout_us )
+Throttle::waitDone( unsigned long timeout_us )
 {
      DirectResult ret = DR_OK;
 
@@ -2102,7 +2106,7 @@ Renderer::Throttle::waitDone( unsigned long timeout_us )
 }
 
 DFBResult
-Renderer::Throttle::Hook::setup( SurfaceTask *task )
+Throttle::Hook::setup( SurfaceTask *task )
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
 
@@ -2122,7 +2126,7 @@ Renderer::Throttle::Hook::setup( SurfaceTask *task )
 }
 
 void
-Renderer::Throttle::Hook::finalise( SurfaceTask *task )
+Throttle::Hook::finalise( SurfaceTask *task )
 {
      D_DEBUG_AT( DirectFB_Renderer_Throttle, "Renderer::Throttle::%s( %p, task %p )\n", __FUNCTION__, this, task );
 
@@ -2256,154 +2260,6 @@ Renderer::GetCurrent()
      return tls->last_renderer;
 }
 
-
-DFBResult
-Renderer::enterLock( CoreSurfaceBufferLock  *lock,
-                     CoreSurfaceAllocation  *allocation,
-                     CoreSurfaceAccessFlags  flags )
-{
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, lock %p, allocation %p, flags %s )\n", __FUNCTION__, this,
-                 lock, allocation, *ToString<CoreSurfaceAccessFlags>(flags) );
-
-     CHECK_MAGIC();
-
-     D_ASSERT( lock != NULL );
-     D_ASSERT( allocation != NULL );
-
-     D_DEBUG_AT( DirectFB_Renderer, "  -> allocation %s\n", *ToString<CoreSurfaceAllocation>(*allocation) );
-
-     D_ASSERT( setup != NULL );
-     D_ASSERT( setup->tasks[0] != NULL );
-
-     /*
-        FIXME: move to engine / task
-     */
-     dfb_surface_buffer_lock_init( lock, setup->tasks[0]->accessor, flags );
-
-     return dfb_surface_pool_lock( allocation->pool, allocation, lock );
-}
-
-DFBResult
-Renderer::leaveLock( CoreSurfaceBufferLock *lock )
-{
-     DFBResult ret = DFB_OK;
-
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, lock %p )\n", __FUNCTION__, this, lock );
-
-     CHECK_MAGIC();
-
-     D_ASSERT( lock != NULL );
-
-     /*
-        FIXME: move to engine / task
-     */
-     if (lock->buffer) {
-          D_ASSERT( lock->allocation != NULL );
-
-          ret = dfb_surface_pool_unlock( lock->allocation->pool, lock->allocation, lock );
-
-          dfb_surface_buffer_lock_deinit( lock );
-     }
-
-     return ret;
-}
-
-DFBResult
-Renderer::updateLock( CoreSurfaceBufferLock  *lock,
-                      CoreSurface            *surface,
-                      CoreSurfaceBufferRole   role,
-                      DFBSurfaceStereoEye     eye,
-                      u32                     flips,
-                      CoreSurfaceAccessFlags  flags )
-{
-     DFBResult              ret;
-     CoreSurfaceBuffer     *buffer;
-     CoreSurfaceAllocation *allocation;
-     SurfaceAllocationMap::iterator it;
-
-     D_DEBUG_AT( DirectFB_Renderer, "Renderer::%s( %p, lock %p, surface %p, role %d, eye %d, flips %u, flags %s )\n", __FUNCTION__, this,
-                 lock, surface, role, eye, flips, *ToString<CoreSurfaceAccessFlags>(flags) );
-
-     CHECK_MAGIC();
-
-     D_ASSERT( lock != NULL );
-     D_DEBUG_AT( DirectFB_Renderer, "  -> lock %s\n", *ToString<CoreSurfaceBufferLock>(*lock) );
-
-     D_ASSERT( surface != NULL );
-     D_DEBUG_AT( DirectFB_Renderer, "  -> surface %s\n", *ToString<CoreSurface>(*surface) );
-
-     // FIXME: don't need to unlock/lock every time in most cases, move to engine
-
-     if (lock->buffer)
-          leaveLock( lock );
-
-
-     SurfaceAllocationKey key( surface->object.id, role, eye, flips );
-
-     it = allocations.find( key );
-     if (it != allocations.end()) {
-          allocation = (*it).second;
-
-          /*
-           * Push our own identity for buffer locking calls (locality of accessor)
-           */
-          Core_PushIdentity( 0 );
-     }
-     else {
-          ret = (DFBResult) dfb_surface_lock( surface );
-          if (ret)
-               return ret;
-
-          // FIXME: move to helper class, e.g. to SurfaceTask
-          //
-
-          if (surface->num_buffers == 0) {
-               dfb_surface_unlock( surface );
-               return DFB_BUFFEREMPTY;
-          }
-
-          buffer = dfb_surface_get_buffer3( surface, role, eye, flips );
-
-          /*
-           * Push our own identity for buffer locking calls (locality of accessor)
-           */
-          Core_PushIdentity( 0 );
-
-          allocation = dfb_surface_buffer_find_allocation( buffer, setup->tasks[0]->accessor, flags, true );
-          if (!allocation) {
-               /* If no allocation exists, create one. */
-               ret = dfb_surface_pools_allocate( buffer, setup->tasks[0]->accessor, flags, &allocation );
-               if (ret) {
-                    D_DERROR( ret, "DirectFB/Renderer: Buffer allocation failed (%s)!\n", ToString<CoreSurfaceBuffer>(*buffer).buffer() );
-                    Core_PopIdentity();
-                    dfb_surface_unlock( surface );
-                    return ret;
-               }
-          }
-
-          ret = dfb_surface_allocation_update( allocation, flags );
-          if (ret)
-               D_DERROR( ret, "DirectFB/Renderer: Allocation update failed!\n" );
-
-          setup->tasks[0]->AddAccess( allocation, flags );
-
-          dfb_surface_unlock( surface );
-
-          allocations.insert( SurfaceAllocationMapPair( key, allocation ) );
-     }
-
-
-     ret = enterLock( lock, allocation, flags );
-     if (ret)
-          return ret;
-
-     Core_PopIdentity();
-
-     D_DEBUG_AT( DirectFB_Renderer, "  => lock %s\n", *ToString<CoreSurfaceBufferLock>(*lock) );
-
-     return DFB_OK;
-}
-
 DFBResult
 Renderer::update( DFBAccelerationMask accel )
 {
@@ -2439,9 +2295,9 @@ Renderer::update( DFBAccelerationMask accel )
      if (state_mod & SMF_DESTINATION) {
           D_ASSERT( state->destination != NULL );
 
-          ret = updateLock( &state->dst, state->destination, state->to, state->to_eye,
-                            state->destination_flip_count_used ? state->destination_flip_count : state->destination->flips,
-                            (CoreSurfaceAccessFlags)( CSAF_WRITE | CSAF_READ ) );
+          ret = engine->updateLock( setup, &state->dst, state->destination, state->to, state->to_eye,
+                                    state->destination_flip_count_used ? state->destination_flip_count : state->destination->flips,
+                                    (CoreSurfaceAccessFlags)( CSAF_WRITE | CSAF_READ ) );
           if (ret)
                return ret;
 
@@ -2452,8 +2308,8 @@ Renderer::update( DFBAccelerationMask accel )
           D_ASSERT( state->source != NULL );
 
           if (state_mod & SMF_SOURCE) {
-               ret = updateLock( &state->src, state->source, state->from, state->from_eye,
-                                 state->source_flip_count_used ? state->source_flip_count : state->source->flips, CSAF_READ );
+               ret = engine->updateLock( setup, &state->src, state->source, state->from, state->from_eye,
+                                         state->source_flip_count_used ? state->source_flip_count : state->source->flips, CSAF_READ );
                if (ret)
                     return ret;
 
@@ -2465,7 +2321,7 @@ Renderer::update( DFBAccelerationMask accel )
                D_ASSERT( state->source_mask != NULL );
 
                if (state_mod & SMF_SOURCE_MASK) {
-                    ret = updateLock( &state->src_mask, state->source_mask, state->from, state->from_eye, state->source_mask->flips, CSAF_READ );
+                    ret = engine->updateLock( setup, &state->src_mask, state->source_mask, state->from, state->from_eye, state->source_mask->flips, CSAF_READ );
                     if (ret)
                          return ret;
 
@@ -2478,7 +2334,7 @@ Renderer::update( DFBAccelerationMask accel )
                D_ASSERT( state->source2 != NULL );
 
                if (state_mod & SMF_SOURCE2) {
-                    ret = updateLock( &state->src2, state->source2, state->from, state->from_eye, state->source2->flips, CSAF_READ );
+                    ret = engine->updateLock( setup, &state->src2, state->source2, state->from, state->from_eye, state->source2->flips, CSAF_READ );
                     if (ret)
                          return ret;
 
@@ -3125,10 +2981,10 @@ Renderer::flushTask( u32                               cookie,
      D_ASSERT( engine != NULL );
      D_ASSERT( setup != NULL );
 
-     leaveLock( &state->src2 );
-     leaveLock( &state->src_mask );
-     leaveLock( &state->src );
-     leaveLock( &state->dst );
+     engine->leaveLock( &state->src2 );
+     engine->leaveLock( &state->src_mask );
+     engine->leaveLock( &state->src );
+     engine->leaveLock( &state->dst );
 
      if (discard) {
           for (int i=setup->tiles-1; i>=0; i--)
@@ -3151,7 +3007,7 @@ Renderer::flushTask( u32                               cookie,
      engine     = NULL;
      operations = 0;
 
-     allocations.clear();
+     setup->allocations.clear();
 }
 
 /*********************************************************************************************************************/
@@ -3189,6 +3045,166 @@ Renderer::DeleteEngines()
 }
 
 /*********************************************************************************************************************/
+
+DFBResult
+Engine::updateLock( Renderer::Setup        *setup,
+                    CoreSurfaceBufferLock  *lock,
+                    CoreSurface            *surface,
+                    CoreSurfaceBufferRole   role,
+                    DFBSurfaceStereoEye     eye,
+                    u32                     flips,
+                    CoreSurfaceAccessFlags  flags )
+{
+     DFBResult                       ret;
+     CoreSurfaceAllocation          *allocation;
+     SurfaceAllocationMap::iterator  it;
+
+     D_DEBUG_AT( DirectFB_Renderer, "Engine::%s( %p, setup %p, lock %p, surface %p, role %d, eye %d, flips %u, flags %s )\n", __FUNCTION__, this,
+                 setup, lock, surface, role, eye, flips, *ToString<CoreSurfaceAccessFlags>(flags) );
+
+     D_ASSERT( lock != NULL );
+     D_DEBUG_AT( DirectFB_Renderer, "  -> lock %s\n", *ToString<CoreSurfaceBufferLock>(*lock) );
+
+     D_ASSERT( surface != NULL );
+     D_DEBUG_AT( DirectFB_Renderer, "  -> surface %s\n", *ToString<CoreSurface>(*surface) );
+
+     if (lock->buffer)
+          leaveLock( lock );
+
+
+     SurfaceAllocationKey key( surface->object.id, role, eye, flips );
+
+     it = setup->allocations.find( key );
+     if (it != setup->allocations.end()) {
+          allocation = (*it).second;
+
+     }
+     else {
+          ret = getAllocation( surface, key, flags, allocation );
+          if (ret)
+               return ret;
+
+          setup->tasks[0]->AddAccess( allocation, flags );
+
+          setup->allocations.insert( SurfaceAllocationMapPair( key, allocation ) );
+     }
+
+
+     ret = enterLock( lock, allocation, flags );
+     if (ret)
+          return ret;
+
+
+     D_DEBUG_AT( DirectFB_Renderer, "  => lock %s\n", *ToString<CoreSurfaceBufferLock>(*lock) );
+
+     return DFB_OK;
+}
+
+DFBResult
+Engine::enterLock( CoreSurfaceBufferLock  *lock,
+                   CoreSurfaceAllocation  *allocation,
+                   CoreSurfaceAccessFlags  flags )
+{
+     DFBResult ret;
+
+     D_DEBUG_AT( DirectFB_Renderer, "Engine::%s( %p, lock %p, allocation %p, flags %s )\n", __FUNCTION__, this,
+                 lock, allocation, *ToString<CoreSurfaceAccessFlags>(flags) );
+
+     D_ASSERT( lock != NULL );
+     D_ASSERT( allocation != NULL );
+
+     D_DEBUG_AT( DirectFB_Renderer, "  -> allocation %s\n", *ToString<CoreSurfaceAllocation>(*allocation) );
+
+     /*
+      * Push our own identity for buffer locking calls (locality of accessor)
+      */
+     Core_PushIdentity( 0 );
+
+     dfb_surface_buffer_lock_init( lock, (CoreSurfaceAccessorID) caps.accessor_id, flags );
+
+     ret = dfb_surface_pool_lock( allocation->pool, allocation, lock );
+
+     Core_PopIdentity();
+
+     return ret;
+}
+
+DFBResult
+Engine::leaveLock( CoreSurfaceBufferLock *lock )
+{
+     DFBResult ret = DFB_OK;
+
+     D_DEBUG_AT( DirectFB_Renderer, "Engine::%s( %p, lock %p )\n", __FUNCTION__, this, lock );
+
+     D_ASSERT( lock != NULL );
+
+     if (lock->buffer) {
+          D_ASSERT( lock->allocation != NULL );
+
+          ret = dfb_surface_pool_unlock( lock->allocation->pool, lock->allocation, lock );
+
+          dfb_surface_buffer_lock_deinit( lock );
+     }
+
+     return ret;
+}
+
+DFBResult
+Engine::getAllocation( CoreSurface             *surface,
+                       SurfaceAllocationKey    &key,
+                       CoreSurfaceAccessFlags   flags,
+                       CoreSurfaceAllocation  *&allocation )
+{
+     DFBResult          ret;
+     CoreSurfaceBuffer *buffer;
+
+     D_DEBUG_AT( DirectFB_Renderer, "Engine::%s( %p, surface %p, role %d, eye %d, flips %u, flags %s )\n", __FUNCTION__, this,
+                 surface, key.role, key.eye, key.flips, *ToString<CoreSurfaceAccessFlags>(flags) );
+
+     D_ASSERT( surface != NULL );
+     D_DEBUG_AT( DirectFB_Renderer, "  -> surface %s\n", *ToString<CoreSurface>(*surface) );
+
+     ret = (DFBResult) dfb_surface_lock( surface );
+     if (ret)
+          return ret;
+
+     // FIXME: move to helper class, e.g. to SurfaceTask
+     //
+
+     if (surface->num_buffers == 0) {
+          dfb_surface_unlock( surface );
+          return DFB_BUFFEREMPTY;
+     }
+
+     buffer = dfb_surface_get_buffer3( surface, key.role, key.eye, key.flips );
+
+     /*
+      * Push our own identity for buffer locking calls (locality of accessor)
+      */
+     Core_PushIdentity( 0 );
+
+     allocation = dfb_surface_buffer_find_allocation( buffer, (CoreSurfaceAccessorID) caps.accessor_id, flags, true );
+     if (!allocation) {
+          /* If no allocation exists, create one. */
+          ret = dfb_surface_pools_allocate( buffer, (CoreSurfaceAccessorID) caps.accessor_id, flags, &allocation );
+          if (ret) {
+               D_DERROR( ret, "DirectFB/Renderer: Buffer allocation failed (%s)!\n", ToString<CoreSurfaceBuffer>(*buffer).buffer() );
+               Core_PopIdentity();
+               dfb_surface_unlock( surface );
+               return ret;
+          }
+     }
+
+     ret = dfb_surface_allocation_update( allocation, flags );
+     if (ret)
+          D_DERROR( ret, "DirectFB/Renderer: Allocation update failed!\n" );
+
+     Core_PopIdentity();
+
+     dfb_surface_unlock( surface );
+
+     return DFB_OK;
+}
 
 DFBResult
 Engine::DrawRectangles( SurfaceTask        *task,
@@ -3329,6 +3345,8 @@ Engine::TextureTriangles( SurfaceTask          *task,
      return DFB_UNIMPLEMENTED;
 }
 
+
+}
 
 }
 

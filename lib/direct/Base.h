@@ -66,95 +66,136 @@ extern "C" {
 D_DEBUG_DOMAIN( Direct_Type, "Direct/Type", "Direct Type" );
 
 
-
 namespace Direct {
-
 
 class Mapping
 {
 public:
-     //template <typename _Function>
-     //using FunctionMap = std::map<std::string,_Function>;
+//     class Key {
+//     public:
+//          Direct::String  name;
+//          Direct::String  impl;
+//          void           *ctx;
+//
+//          Key( const Direct::String &name = "",
+//               const Direct::String &impl = "",
+//               void                 *ctx  = NULL )
+//               :
+//               name( name ),
+//               impl( impl ),
+//               ctx( ctx )
+//          {
+//          }
+//
+//          bool operator < (const Key &other) const {
+//               if (other.name == name) {
+//                    if (other.impl == impl) {
+//                         if (other.ctx == ctx)
+//                              return false;
+//
+//                         return ctx < other.ctx;
+//                    }
+//
+//                    return impl < other.impl;
+//               }
+//
+//               return name < other.name;
+//          }
+//     };
+
+     typedef std::tuple<std::string,std::string,void*> Key;
+
+     typedef Key MapKey;
 
      template<typename _Function>
-     static _Function &Call( const std::string &index = "" )
+     static _Function &Call( const Direct::String &name,
+                             const Direct::String &impl,
+                             void                 *ctx  = NULL )
      {
-          std::map<std::string,_Function> &map = Map<_Function>();
+          std::map<MapKey,_Function> &map = Map<_Function>();
 
-          _Function &entry = map[ index ];
+          Key        key( name, impl, ctx );
+//          _Function &entry = map[ *String::F( "[%s][%s][%p]", *std::get<0>(key), *std::get<1>(key), std::get<2>(key) ) ];
+          _Function &entry = map[ key ];
 
-          D_INFO( "Direct/Type/Call:  %s  [%s]  -> %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ), &map );
-
-          return entry;
-     }
-
-     template <typename _Function, typename _Object>
-     static void Register( const std::string &index, _Object &f )
-     {
-          std::map<std::string,_Function> &map = Map<_Function>();
-
-          _Function &entry = map[ index ];
-
-          //D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
+          //D_INFO( "Direct/Type/Call:  %s  [%s]  -> %p (%s) map: %p\n", *TypeID<_Function>(),
+          //        *String::F( "[%s][%s][%p]", std::get<0>(key).c_str(), std::get<1>(key).c_str(), std::get<2>(key) ), &entry,
           //        *ToString<std::type_info>( entry.target_type() ), &map );
-
-          entry = f;
-
-          D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ), &map );
-     }
-
-     template <typename _Function>
-     static void Register( const std::string &index, _Function &f )
-     {
-          std::map<std::string,_Function> &map = Map<_Function>();
-
-          _Function &entry = map[ index ];
-
-          //D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
-          //        *ToString<std::type_info>( entry.target_type() ), &map );
-
-          entry = f;
-
-          D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ), &map );
-     }
-
-     template <typename _Function>
-     static void Register( const std::string &index, _Function f )
-     {
-          std::map<std::string,_Function> &map = Map<_Function>();
-
-          _Function &entry = map[ index ];
-
-          //D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
-          //        *ToString<std::type_info>( entry.target_type() ), &map );
-
-          entry = f;
-
-          D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
-                  *ToString<std::type_info>( entry.target_type() ), &map );
-     }
-
-     template <typename _Function>
-     static _Function &GetEntry( const std::string &index = "" )
-     {
-          std::map<std::string,_Function> &map = Map<_Function>();
-
-          _Function &entry = map[ index ];
 
           return entry;
      }
 
      template <typename _Function>
-     static std::map<std::string,_Function> &Map()
+     static void Register( const Direct::String &name,
+                           const _Function      &f,
+                           const Direct::String &impl,
+                           void                 *ctx   = NULL )
      {
-          static std::map<std::string,_Function> map;
+          std::map<MapKey,_Function> &map = Map<_Function>();
+
+          Key        key( name, impl, ctx );
+//          _Function &entry = map[ *String::F( "[%s][%s][%p]", *std::get<0>(key), *std::get<1>(key), std::get<2>(key) ) ];
+          _Function &entry = map[ key ];
+
+          //D_INFO( "Direct/Type/Register:  %s  [%s]  <- %p (%s) map: %p\n", *TypeID<_Function>(), index.c_str(), &entry,
+          //        *ToString<std::type_info>( entry.target_type() ), &map );
+
+          entry = f;
+
+          //D_INFO( "Direct/Type/Register:  %s  [%s]  -> %p (%s) map: %p\n", *TypeID<_Function>(),
+          //        *String::F( "[%s][%s][%p]", std::get<0>(key).c_str(), std::get<1>(key).c_str(), std::get<2>(key) ), &entry,
+          //        *ToString<std::type_info>( entry.target_type() ), &map );
+     }
+
+     template <typename _Function>
+     static std::map<MapKey,_Function> &Map()
+     {
+          static std::map<MapKey,_Function> map;
 
           return map;
      }
+
+     template <typename _Function>
+     static std::map<MapKey,_Function> Map( const Direct::String &name,
+                                            void                 *ctx = NULL )
+     {
+          std::map<MapKey,_Function> &map = Map<_Function>();
+          std::map<MapKey,_Function>  ret;
+
+          //D_INFO( "MAPPING %s   %zu (map %p)\n", *name, map.size(), &map );
+
+          for (auto e = map.begin(); e != map.end(); e++) {
+               //if (std::get<0>((*e).first) == name && (!ctx || std::get<2>((*e).first) == ctx)) {
+                    //D_INFO( "MAPPING   %-30s  %s\n", std::get<0>((*e).first).c_str(), std::get<1>((*e).first).c_str() );
+//                    D_INFO( "MAPPING   %s\n", (*e).first.c_str() );
+                    ret.insert( *e );
+               //}
+          }
+
+          return ret;
+     }
+
+
+     template <typename _Function>
+     static void Dispatch( const Direct::String &name,
+                           void                 *ctx = NULL )
+     {
+          auto map = Map<_Function>( name, ctx );
+
+          //D_INFO( "Direct/Type/Dispatch: all %s ctx %p...\n", *name, ctx );
+
+          for (auto f = map.begin(); f != map.end(); f++) {
+               //D_INFO( "  %s\n", (*f).first.c_str() );
+               //D_INFO( "  %s %s (%p)\n",
+               //        std::get<0>((*f).first).c_str(),
+               //        std::get<1>((*f).first).c_str(),
+               //        std::get<2>((*f).first) );
+
+               (*f).second();
+          }
+     }
 };
+
 
 
 class Base {
@@ -242,7 +283,6 @@ public:
           typedef TypeBase  MyType;
           typedef Info      MyInfo;
 
-
           TypeBase() {
                D_DEBUG_AT( Direct_Type, "TypeBase::%s()\n", __FUNCTION__ );
           }
@@ -271,8 +311,8 @@ public:
                InfoBase &source_info = GetInfo();
                InfoBase &target_info = _Target::GetTypeInstance().GetInfo();
 
-               D_INFO( "Direct/Type/Map:    => [  %s  (%p) --->  %s  ] <=\n",
-                       *source_info.real_name, this, *target_info.real_name );
+               //D_INFO( "Direct/Type/Map:    => [  %s  (%p) --->  %s  ] <=\n",
+               //        *source_info.real_name, this, *target_info.real_name );
 
 
 //               std::map<std::type_index,TypeHandle> &handles = GetHandleMap<_Target>();
@@ -280,16 +320,19 @@ public:
                TypeHandle &handle = handles[ ToString<std::type_info>(target_info.real_info) ];
 
                if (!handle) {
-                    _Target *t = _Target::template Call< std::function<_Target *(TypeBase *)> >( *source_info.name )( this );
+                    _Target *t = _Target::template Call< std::function<_Target *(TypeBase *)> >( *source_info.name, "" )( this );
 
-                    D_INFO( "Direct/Type/Map:    => NEW %p <=\n", t );
+                    //D_INFO( "Direct/Type/Map:    => NEW %p <=\n", t );
 
                     handle.reset( t );
 
                     all_handles.push_back( handle );
                }
-               else
-                    D_INFO( "Direct/Type/Map:    => CACHED %p <=\n", & (_Target&) *handle );
+               else {
+                    //D_INFO( "Direct/Type/Map:    => CACHED %p <=\n", & (_Target&) *handle );
+
+                    // FIXME: Update?
+               }
 
                return (_Target&) *handle;
           }

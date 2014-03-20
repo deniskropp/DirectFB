@@ -51,8 +51,9 @@ typedef enum {
      CSBF_NONE      = 0x00000000,  /* None of these. */
 
      CSBF_STICKED   = 0x00000001,  /* Sticked to one Surface Pool, e.g. system only. */
+     CSBF_DECOUPLE  = 0x00000002,  /* Buffer is about to be deallocated and removed from surface. */
 
-     CSBF_ALL       = 0x00000001   /* All of these. */
+     CSBF_ALL       = 0x00000003   /* All of these. */
 } CoreSurfaceBufferFlags;
 
 
@@ -169,6 +170,10 @@ struct __DFB_CoreSurfaceBuffer {
      unsigned long            resource_id;   /* layer id, window id, or user specified */
      
      int                      index;
+
+     unsigned int             busy;
+
+     FusionObjectID           surface_id;
 };
 
 #define CORE_SURFACE_BUFFER_ASSERT(buffer)                                                     \

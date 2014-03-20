@@ -108,19 +108,24 @@ namespace DirectFB {
 namespace Util {
      class FPS;
 }
-class Renderer;
+namespace Graphics {
+     class Renderer;
+     class SurfaceAllocationKey;
+     class Throttle;
+}
 class Task;
-class Throttle;
+class SurfaceBuffer;
 class SurfaceTask;
 class DisplayTask;
 }
 #define DFB_Util_FPS               DirectFB::Util::FPS
-#define DFB_Renderer               DirectFB::Renderer
+#define DFB_Renderer               DirectFB::Graphics::Renderer
 #define DFB_Task                   DirectFB::Task
 #define DFB_TaskList               Direct::List<DirectFB::Task*>
 #define DFB_TaskListLocked         Direct::ListLocked<DirectFB::Task*>
 #define DFB_TaskListSimple         Direct::ListSimple<DirectFB::Task*>
-#define DFB_Throttle               DirectFB::Throttle
+#define DFB_Throttle               DirectFB::Graphics::Throttle
+#define DFB_SurfaceBuffer          DirectFB::SurfaceBuffer
 #define DFB_SurfaceTask            DirectFB::SurfaceTask
 #define DFB_SurfaceTaskList        Direct::List<DirectFB::SurfaceTask*>
 #define DFB_SurfaceTaskListLocked  Direct::ListLocked<DirectFB::SurfaceTask*>

@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: gles2
+Description: DirectFB GLES2 library (public API)
+Version: 7.10
+Requires: dfbgles2
+Libs: -L${libdir}/dfb-gles2 -lGLES2
+Cflags: -I@INCLUDEDIR@/gles2

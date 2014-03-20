@@ -54,25 +54,13 @@ struct wl_dfb_interface {
 	/**
 	 * create_buffer - (none)
 	 * @id: (none)
-	 * @surface_id: (none)
 	 * @buffer_id: (none)
-	 * @allocation_id: (none)
 	 */
 	void (*create_buffer)(struct wl_client *client,
 			      struct wl_resource *resource,
 			      uint32_t id,
-			      uint32_t surface_id,
-			      uint32_t buffer_id,
-			      uint32_t allocation_id);
+			      uint32_t buffer_id);
 };
-
-#define WL_DFB_SURFACE_ID	0
-
-static inline void
-wl_dfb_send_surface_id(struct wl_resource *resource_, struct wl_resource *surface, uint32_t surface_id)
-{
-	wl_resource_post_event(resource_, WL_DFB_SURFACE_ID, surface, surface_id);
-}
 
 struct wl_dfb_buffer_interface {
 	/**

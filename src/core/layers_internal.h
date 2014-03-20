@@ -59,6 +59,7 @@ typedef struct {
 } CoreLayerSource;
 
 typedef struct {
+     // static
      DFBDisplayLayerID                  layer_id;
 
      DFBDisplayLayerDescription         description;
@@ -67,18 +68,26 @@ typedef struct {
 
      CoreLayerSource                   *sources;
 
+     FusionSHMPoolShared               *shmpool;
+
+
+     // local data (impl)
      void                              *layer_data;
 
+
+     // locking
      FusionSkirmish                     lock;
 
+
+     // state
      CoreLayerContexts                  contexts;
 
      bool                               suspended;
 
      FusionVector                       added_regions;
 
-     FusionSHMPoolShared               *shmpool;
 
+     // dispatch
      FusionCall                         call;
 
      DFBSurfacePixelFormat              pixelformat;
@@ -96,8 +105,7 @@ struct __DFB_CoreLayer {
      void                    *driver_data;
      void                    *layer_data;   /* copy of shared->layer_data */
 
-     const DisplayLayerFuncs *funcs;
-
+     // local data (impl)
      CardState                state;
 
      DFB_DisplayTask         *display_task;
@@ -106,6 +114,10 @@ struct __DFB_CoreLayer {
      DFB_Util_FPS            *fps;
 
      DFB_DisplayTask         *prev_task;
+
+
+     // dispatch
+     const DisplayLayerFuncs *funcs;
 };
 
 typedef enum {
@@ -199,6 +211,8 @@ struct __DFB_CoreLayerRegion {
      DFB_DisplayTaskListLocked  *display_tasks;
 
      DFBDisplayLayerID           layer_id;
+
+     u32                         surface_flip_count;
 };
 
 

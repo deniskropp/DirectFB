@@ -37,7 +37,7 @@
 #include <core/Graphics.h>
 
 #include <egl/dfbegl.h>
-#include <egl/image.h>
+#include <egl/KHR_image.h>
 
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
@@ -58,6 +58,17 @@ class Types : public Direct::Types<Types>
 class X11EGLImpl;
 
 
+class X11Window : public Types::Type<X11Window> {
+public:
+     XID                    window_id;
+     CoreSurfaceAllocation *allocation;
+
+     X11Window( DirectFB::Util::FusionObjectWrapper<CoreSurfaceBuffer> &buffer,
+                X11EGLImpl                                             &impl );
+     ~X11Window();
+};
+
+
 class GLeglImage : public Types::Type<GLeglImage,EGL::KHR::Image> {
 private:
      X11EGLImpl &impl;
@@ -68,6 +79,19 @@ public:
      GLeglImage( DirectFB::EGL::KHR::Image &egl_image,
                  X11EGLImpl                &impl );
      ~GLeglImage();
+};
+
+
+class X11EGLSurface : public Types::Type<X11EGLSurface,X11Window> {
+private:
+     X11EGLImpl &impl;
+
+public:
+     EGLSurface egl_surface;
+
+     X11EGLSurface( X11Window  &window,
+                    X11EGLImpl &impl );
+     ~X11EGLSurface();
 };
 
 
@@ -95,6 +119,7 @@ class X11EGLImpl : public Graphics::Implementation
      friend class GLeglImage;
      friend class X11EGLConfig;
      friend class X11EGLContext;
+     friend class X11EGLSurface;
      friend class X11EGLSurfacePeer;
 
 public:
@@ -107,13 +132,11 @@ public:
      virtual DirectResult Finalise();// override;
 
 public:
-     DirectFB::EGL::Library              lib;
-     PFNEGLCREATEIMAGEKHRPROC            eglCreateImageKHR;
-     PFNEGLDESTROYIMAGEKHRPROC           eglDestroyImageKHR;
-     PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES;
-
-     void Context_glEGLImageTargetTexture2D( GL::enum_  &target,
-                                             GLeglImage &image );
+     DirectFB::EGL::Library                        lib;
+     PFNEGLCREATEIMAGEKHRPROC                      eglCreateImageKHR;
+     PFNEGLDESTROYIMAGEKHRPROC                     eglDestroyImageKHR;
+     PFNGLEGLIMAGETARGETTEXTURE2DOESPROC           glEGLImageTargetTexture2DOES;
+     PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES;
 
      void *Context_eglGetProcAddress( const char *name );
 
@@ -129,6 +152,7 @@ class X11EGLConfig : public Graphics::Config
 {
      friend class X11EGLImpl;
      friend class X11EGLContext;
+     friend class X11EGLSurface;
      friend class X11EGLSurfacePeer;
 
 protected:
@@ -147,7 +171,7 @@ public:
                                       Graphics::Options       *options,
                                       Graphics::Context      **ret_context );
 
-     virtual DFBResult CreateSurfacePeer( IDirectFBSurface       *surface,
+     virtual DFBResult CreateSurfacePeer( CoreSurface            *surface,
                                           Graphics::Options      *options,
                                           Graphics::SurfacePeer **ret_peer );
 
@@ -178,11 +202,17 @@ public:
      virtual DFBResult GetProcAddress( const Direct::String  &name,
                                        void                 *&addr );
 
+     void glEGLImageTargetTexture2D( GL::enum_  &target,
+                                     GLeglImage &image );
+
+     void glEGLImageTargetRenderbufferStorage( GL::enum_  &target,
+                                               GLeglImage &image );
+
 private:
      X11EGLImpl &impl;   // FIXME: remove and use Graphics::Config::implementation?
      EGLContext  egl_context;
 
-     // TODO: store draw/read, bind to draw/read, unbind from draw/read
+     // TODO: store draw/read, bind to draw/read, unbind from draw/read?
 };
 
 
@@ -194,32 +224,32 @@ public:
      X11EGLSurfacePeer( X11EGLImpl        &impl,
                         Graphics::Config  *config,
                         Graphics::Options *options,
-                        IDirectFBSurface  *surface );
+                        CoreSurface       *surface );
 
      virtual ~X11EGLSurfacePeer();
 
      virtual DFBResult    Init();
      virtual DFBResult    Flip( const DFBRegion     *region,
-                                DFBSurfaceFlipFlags  flags );
+                                DFBSurfaceFlipFlags  flags,
+                                long long            timestamp );
 
 protected:
      X11EGLImpl &impl;   // FIXME: remove and use Graphics::Config::implementation?
 
      EGLSurface  getEGLSurface();
+     EGLSurface  eglSurface;
 
-     typedef std::map<XID,EGLSurface> SurfaceMap;
+     EGLSurface  bound_surface;
 
-     SurfaceMap    surface_map;
+     bool        is_pixmap;
+     std::string key;
 
-     unsigned int                alloc_num;
-     IDirectFBSurfaceAllocation *alloc_left[MAX_SURFACE_BUFFERS];
-     IDirectFBSurfaceAllocation *alloc_right[MAX_SURFACE_BUFFERS];
-
-     unsigned int                index;
-
-     bool                        is_pixmap;
+     CoreSurfaceAllocation *allocation;
 
      // TODO: add context here which is currently bound to the surface(s)
+
+
+     DFBResult Flush();
 };
 
 

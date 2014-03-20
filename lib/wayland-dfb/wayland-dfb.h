@@ -33,7 +33,7 @@
 
 
           GL Renderer (attach buffer)
- 
+
           - eglDestroyImageKHR (prev)
           - eglCreateImageKHR (buffer)
                -> GetAllocation/Allocate
@@ -77,6 +77,8 @@
 
 #include <direct/Type.h>
 
+#include <queue>
+
 namespace WL {
 
 
@@ -119,14 +121,41 @@ class Types : public Direct::Types<Types>
 };
 
 
+
 class Buffer : public Types::Type<Buffer>
 {
      friend class EGLDisplayWayland;
+public:
+     class Update {
+     public:
+          DFBSurfaceEvent event;
+
+          Update( const DFBSurfaceEvent &event )
+               :
+               event( event )
+          {
+          }
+     };
+
+     class Listener {
+     public:
+          virtual void scheduleUpdate( const Update &update ) = 0;
+          virtual void processUpdate ( const Update &update ) = 0;
+     };
 
 public:
      Buffer();
 
      virtual ~Buffer();
+
+
+     void ScheduleUpdate( const DFBSurfaceEvent &event );
+     void ProcessUpdates( long long              timestamp );
+
+     void SetListener( Listener *listener )
+     {
+          this->listener = listener;
+     }
 
 public:
      struct wl_resource            *resource;
@@ -141,11 +170,78 @@ public:
      DFBDimension                   size;
      DFBSurfacePixelFormat          format;
 
-     unsigned int                   flip_count;
+     std::queue<Update>             updates;
+
+     long long                      last_got;
+     long long                      last_ack;
+
+     Listener                      *listener;
 };
 
 
 }
+
+
+
+/*
+
+  WestonDFB                                                      Wayland EGL/DFB Client
+
+
+                                   = wl_connection =
+
+     weston_surface                                              <- wl_compositor_create_surface( wl_surface_id )
+                                                                           = wl_surface
+
+          WL::Surface                                            <- wl_dfb_create_surface( DFBSurfaceID )
+                                                                           = wl_dfb_surface
+
+                                                                 <- wl_surface_attach( wl_dfb_surface )
+                                                                              /commit
+
+     -> directfb_surface_attach( weston_surface, WL::Surface )
+
+               -> attach event buffer / make client
+
+
+
+                                                                 IDirectFBSurface::Flip()
+
+                                   = event buffer =
+
+                                                            <- - - flip_count / region
+     -> HandleSurfaceEvent( event )
+          -> lookup WL::Surface( event.DFBSurfaceID )
+
+               -> WL::Surface::AddUpdate( count, region )
+
+                    + WL::Updates
+                              - flip_count
+                              - region
+
+                         -> schedule Update (if not pending in WL::Surface)
+
+                              -> weston_surface_damage( region )
+                              -> weston_surface_commit()
+                                   -> weston_output_schedule_repaint()
+
+
+          -> directfb_output_repaint()
+
+                    -> WL::Surface::CheckUpdate()
+
+                         -> check if Update was scheduled
+                              -> IDirectFBSurface::FrameAck()    - - ->    wake up WaitForBackBuffer
+                              -> renderer->attach()
+                                   -> eglCreateImageKHR()
+ 
+                              -> schedule next Frame if queue not empty...
+
+                                   -> weston_surface_damage( region )
+                                   -> weston_surface_commit()
+                                        -> weston_output_schedule_repaint()
+
+*/
 
 
 

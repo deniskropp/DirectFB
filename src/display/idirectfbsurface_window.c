@@ -136,81 +136,13 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                               const DFBRegion     *region,
                               DFBSurfaceFlipFlags  flags )
 {
-     DFBResult    ret = DFB_OK;
-     DFBRegion    reg;
-     CoreSurface *surface;
+     DFBResult ret = DFB_OK;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      D_DEBUG_AT( Surface, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, thiz, region, flags );
 
-     surface = data->base.surface;
-     if (!surface)
-          return DFB_DESTROYED;
-
-     if (data->base.locked)
-          return DFB_LOCKED;
-
-     if (!data->base.area.current.w || !data->base.area.current.h ||
-         (region && (region->x1 > region->x2 || region->y1 > region->y2)))
-          return DFB_INVAREA;
-
-
-     IDirectFBSurface_StopAll( &data->base );
-
-     if (data->base.parent) {
-          IDirectFBSurface_data *parent_data;
-
-          DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
-
-          if (parent_data) {
-               /* Signal end of sequence of operations. */
-               dfb_state_lock( &parent_data->state );
-               dfb_state_stop_drawing( &parent_data->state );
-               dfb_state_unlock( &parent_data->state );
-          }
-     }
-
-
-
-     dfb_region_from_rectangle( &reg, &data->base.area.current );
-
-     if (region) {
-          DFBRegion clip = DFB_REGION_INIT_TRANSLATED( region,
-                                                       data->base.area.wanted.x,
-                                                       data->base.area.wanted.y );
-
-          if (!dfb_region_region_intersect( &reg, &clip ))
-               return DFB_INVAREA;
-     }
-
-     D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
-
-#if 0
-     if (flags & DSFLIP_PIPELINE) {
-          dfb_gfxcard_wait_serial( &data->window->serial2 );
-
-          data->window->serial2 = data->window->serial1;
-
-          dfb_state_get_serial( &data->base.state, &data->window->serial1 );
-     }
-#endif
-
-     CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
-
-     D_DEBUG_AT( Surface, "  -> FLIP %4d,%4d-%4dx%4d %4dx%4d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ), surface->config.size.w, surface->config.size.h );
-
-     data->base.local_flip_buffers = surface->num_buffers;
-
-     if (surface->config.caps & DSCAPS_FLIPPING) {
-          if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
-                                        reg.x1 == 0 && reg.y1 == 0 &&
-                                        reg.x2 == surface->config.size.w - 1 &&
-                                        reg.y2 == surface->config.size.h - 1))
-               data->base.local_flip_count++;
-     }
-
-     ret = CoreWindow_Repaint( data->window, &reg, &reg, flags, data->base.current_frame_time );
+     ret = IDirectFBSurface_Flip( thiz, region, flags );
      if (ret)
           return ret;
 
@@ -219,8 +151,6 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
           ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_OPACITY );
      }
-
-     IDirectFBSurface_WaitForBackBuffer( &data->base );
 
      return ret;
 }
@@ -231,95 +161,13 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
                                     const DFBRegion     *right_region,
                                     DFBSurfaceFlipFlags  flags )
 {
-     DFBResult    ret = DFB_OK;
-     DFBRegion    l_reg, r_reg;
-     CoreSurface *surface;
+     DFBResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      D_DEBUG_AT( Surface, "%s( %p, %p, %p, 0x%08x )\n", __FUNCTION__, thiz, left_region, right_region, flags );
 
-     surface = data->base.surface;
-     if (!surface)
-          return DFB_DESTROYED;
-
-     if (!(data->base.surface->config.caps & DSCAPS_STEREO)) 
-          return DFB_UNSUPPORTED;
-
-     if (data->base.locked)
-          return DFB_LOCKED;
-
-     if (!data->base.area.current.w || !data->base.area.current.h ||
-         (left_region && (left_region->x1 > left_region->x2 || left_region->y1 > left_region->y2)) ||
-         (right_region && (right_region->x1 > right_region->x2 || right_region->y1 > right_region->y2)))
-          return DFB_INVAREA;
-
-
-     IDirectFBSurface_StopAll( &data->base );
-
-     if (data->base.parent) {
-          IDirectFBSurface_data *parent_data;
-
-          DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
-
-          if (parent_data) {
-               /* Signal end of sequence of operations. */
-               dfb_state_lock( &parent_data->state );
-               dfb_state_stop_drawing( &parent_data->state );
-               dfb_state_unlock( &parent_data->state );
-          }
-     }
-
-     dfb_region_from_rectangle( &l_reg, &data->base.area.current );
-     dfb_region_from_rectangle( &r_reg, &data->base.area.current );
-
-     if (left_region) {
-          DFBRegion clip = DFB_REGION_INIT_TRANSLATED( left_region,
-                                                       data->base.area.wanted.x,
-                                                       data->base.area.wanted.y );
-
-          if (!dfb_region_region_intersect( &l_reg, &clip ))
-               return DFB_INVAREA;
-     }
-     if (right_region) {
-          DFBRegion clip = DFB_REGION_INIT_TRANSLATED( right_region,
-                                                       data->base.area.wanted.x,
-                                                       data->base.area.wanted.y );
-
-          if (!dfb_region_region_intersect( &r_reg, &clip ))
-               return DFB_INVAREA;
-     }
-
-     D_DEBUG_AT( Surface, "  -> FLIPSTEREO Left: %4d,%4d-%4dx%4d Right: %4d,%4d-%4dx%4d\n", 
-                 DFB_RECTANGLE_VALS_FROM_REGION( &l_reg ), DFB_RECTANGLE_VALS_FROM_REGION( &r_reg ) );
-
-
-#if 0
-     if (flags & DSFLIP_PIPELINE) {
-          dfb_gfxcard_wait_serial( &data->window->serial2 );
-
-          data->window->serial2 = data->window->serial1;
-
-          dfb_state_get_serial( &data->base.state, &data->window->serial1 );
-     }
-#endif
-
-     data->base.local_flip_buffers = surface->num_buffers;
-
-     CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
-
-     if (surface->config.caps & DSCAPS_FLIPPING) {
-          if ((flags & DSFLIP_SWAP) || (!(flags & DSFLIP_BLIT) &&
-                                        l_reg.x1 == 0 && l_reg.y1 == 0 &&
-                                        l_reg.x2 == surface->config.size.w - 1 &&
-                                        l_reg.y2 == surface->config.size.h - 1 &&
-                                        r_reg.x1 == 0 && r_reg.y1 == 0 &&
-                                        r_reg.x2 == surface->config.size.w - 1 &&
-                                        r_reg.y2 == surface->config.size.h - 1))
-               data->base.local_flip_count++;
-     }
-
-     ret = CoreWindow_Repaint( data->window, &l_reg, &r_reg, flags, data->base.current_frame_time );
+     ret = IDirectFBSurface_FlipStereo( thiz, left_region, right_region, flags );
      if (ret)
           return ret;
 
@@ -328,8 +176,6 @@ IDirectFBSurface_Window_FlipStereo( IDirectFBSurface    *thiz,
 
           ret = CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_OPACITY );
      }
-
-     IDirectFBSurface_WaitForBackBuffer( &data->base );
 
      return ret;
 }
@@ -351,13 +197,13 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
 
      if (!surface)
           return DFB_INVARG;
-          
+
      /* Allocate interface */
      DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
      if (rect || data->base.limit_set) {
           DFBRectangle wanted, granted;
-          
+
           /* Compute wanted rectangle */
           if (rect) {
                wanted = *rect;
@@ -373,12 +219,12 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
           else {
                wanted = data->base.area.wanted;
           }
-          
+
           /* Compute granted rectangle */
           granted = wanted;
 
           dfb_rectangle_intersect( &granted, &data->base.area.granted );
-          
+
           /* Construct */
           ret = IDirectFBSurface_Window_Construct( *surface, thiz, &wanted, &granted,
                                                    data->window, data->base.caps |
@@ -390,7 +236,7 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
                                                    data->window, data->base.caps |
                                                    DSCAPS_SUBSURFACE, data->base.core, data->base.idirectfb );
      }
-     
+
      return ret;
 }
 
@@ -453,7 +299,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      thiz->Flip          = IDirectFBSurface_Window_Flip;
      thiz->FlipStereo    = IDirectFBSurface_Window_FlipStereo;
      thiz->GetSubSurface = IDirectFBSurface_Window_GetSubSurface;
-     
+
      return DFB_OK;
 }
 

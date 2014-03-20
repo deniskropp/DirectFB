@@ -6,7 +6,9 @@ libdirectfb = $(top_builddir)/src/libdirectfb.la
 libsawman = $(top_builddir)/lib/sawman/libsawman.la
 libdivine = $(top_builddir)/lib/divine/libdivine.la
 libdfbegl = $(top_builddir)/lib/egl/libDFBEGL.la
+libdfbgles2 = $(top_builddir)/lib/egl/libDFBGLES2.la
 libegl = $(top_builddir)/lib/egl/libEGL.la
+libgles2 = $(top_builddir)/lib/gles2/libGLESv2.la
 libfusiondale = $(top_builddir)/lib/fusiondale/libfusiondale.la
 libfusionsound = $(top_builddir)/lib/fusionsound/libfusionsound.la
 libppdfb = $(top_builddir)/lib/++dfb/lib++dfb.la
@@ -30,3 +32,4 @@ DFB_BASE_LIBS = $(libdirectfb) $(libone) $(libvoodoo) $(libfusion) $(libdirect)
 
 GL_DFB_BASE_LIBS    = $(GL_LIBS)
 GLES2_DFB_BASE_LIBS = $(GLES2_LIBS)
+

@@ -39,6 +39,7 @@
 #include <direct/serial.h>
 #include <direct/util.h>
 
+#include <fusion/hash.h>
 #include <fusion/object.h>
 #include <fusion/reactor.h>
 
@@ -58,7 +59,7 @@ typedef enum {
      CSNF_PALETTE_CHANGE = 0x00000040,  /* another palette has been set */
      CSNF_PALETTE_UPDATE = 0x00000080,  /* current palette has been altered */
      CSNF_ALPHA_RAMP     = 0x00000100,  /* alpha ramp was modified */
-     CSNF_DISPLAY        = 0x00000200,  /* surface buffer displayed */
+//     CSNF_DISPLAY        = 0x00000200,  /* surface buffer displayed */
      CSNF_FRAME          = 0x00000400,  /* flip count ack */
      CSNF_BUFFER_ALLOCATION_DESTROY
                          = 0x00000800,  /* Buffer allocation about to be destroyed */
@@ -85,7 +86,8 @@ typedef struct {
 
 typedef enum {
      CSCH_NOTIFICATION,
-     CSCH_EVENT
+     CSCH_EVENT,
+     CSCH_FRAME,    // CSNF_FRAME notifications
 } CoreSurfaceChannel;
 
 
@@ -140,6 +142,7 @@ typedef struct {
      CoreSurfacePoolID        preallocated_pool_id;
 
      DFBDimension             min_size;
+     DFBSurfaceHintFlags      hints;
 } CoreSurfaceConfig;
 
 typedef enum {
@@ -262,6 +265,10 @@ struct __DFB_CoreSurface
      DFBFrameTimeConfig       frametime_config;
 
      long long                last_frame_time;
+
+     FusionHash              *frames;
+
+     DirectSerial             config_serial;
 };
 
 #define CORE_SURFACE_ASSERT(surface)                                                           \
@@ -341,6 +348,8 @@ DFBResult dfb_surface_dispatch_update( CoreSurface                  *surface,
                                        const DFBRegion              *update_right,
                                        long long                     timestamp,
                                        DFBSurfaceFlipFlags           flags );
+
+DFBResult dfb_surface_check_acks    ( CoreSurface                  *surface );
 
 DFBResult dfb_surface_reconfig      ( CoreSurface                  *surface,
                                       const CoreSurfaceConfig      *config );
@@ -446,7 +455,7 @@ dfb_surface_get_buffer( CoreSurface           *surface,
 
      D_ASSERT( surface->num_buffers > 0 );
 
-     return surface->buffers[ surface->buffer_indices[(surface->flips + role) % surface->num_buffers] ];
+     return surface->buffers[ surface->buffer_indices[(/*surface->flips +*/ role) % surface->num_buffers] ];
 }
 
 static __inline__ CoreSurfaceBuffer *
@@ -463,30 +472,16 @@ dfb_surface_get_buffer2( CoreSurface           *surface,
      D_ASSERT( surface->num_buffers > 0 );
 
      if (eye == DSSE_LEFT)
-          return surface->left_buffers[ surface->buffer_indices[(surface->flips + role) % surface->num_buffers] ];
+          return surface->left_buffers[ surface->buffer_indices[(/*surface->flips +*/ role) % surface->num_buffers] ];
 
-     return surface->right_buffers[ surface->buffer_indices[(surface->flips + role) % surface->num_buffers] ];
+     return surface->right_buffers[ surface->buffer_indices[(/*surface->flips +*/ role) % surface->num_buffers] ];
 }
 
-static __inline__ CoreSurfaceBuffer *
+CoreSurfaceBuffer *
 dfb_surface_get_buffer3( CoreSurface           *surface,
                          CoreSurfaceBufferRole  role,
                          DFBSurfaceStereoEye    eye,
-                         u32                    flip_count )
-{
-     D_ASSERT( role == CSBR_FRONT || role == CSBR_BACK || role == CSBR_IDLE );
-     D_ASSERT( eye == DSSE_LEFT || eye == DSSE_RIGHT );
-
-     D_MAGIC_ASSERT( surface, CoreSurface );
-     FUSION_SKIRMISH_ASSERT( &surface->lock );
-
-     D_ASSERT( surface->num_buffers > 0 );
-
-     if (eye == DSSE_LEFT)
-          return surface->left_buffers[ surface->buffer_indices[(flip_count + role) % surface->num_buffers] ];
-
-     return surface->right_buffers[ surface->buffer_indices[(flip_count + role) % surface->num_buffers] ];
-}
+                         u32                    flip_count );
 
 static __inline__ void
 dfb_surface_get_data_offsets( const CoreSurfaceConfig * const config,

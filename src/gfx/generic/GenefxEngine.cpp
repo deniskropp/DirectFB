@@ -54,6 +54,8 @@ extern "C" {
 #include <gfx/generic/generic.h>
 }
 
+#include <gfx/generic/GenefxEngine.h>
+
 #include <core/Debug.h>
 #include <core/PacketBuffer.h>
 #include <core/Renderer.h>
@@ -184,7 +186,7 @@ GenefxTask::TypeName() const
 const Direct::String GenefxTask::_Type( "Genefx" );
 
 
-class GenefxEngine : public DirectFB::Engine {
+class GenefxEngine : public Graphics::Engine {
 private:
      friend class GenefxTask;
 
@@ -209,6 +211,7 @@ public:
                                                       DFXL_TEXTRIANGLES);
           caps.render_options = (DFBSurfaceRenderOptions)(DSRO_SMOOTH_DOWNSCALE | DSRO_SMOOTH_UPSCALE);
           caps.max_operations = 300000;
+          caps.accessor_id    = CSAID_CPU;
 
           desc.name = "Genefx";
      }
@@ -218,7 +221,7 @@ public:
       * Engine API
       */
 
-     virtual DFBResult bind          ( Renderer::Setup        *setup )
+     virtual DFBResult bind          ( Graphics::Renderer::Setup        *setup )
      {
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %p )\n", __FUNCTION__, this );
 
@@ -231,7 +234,7 @@ public:
           return DFB_OK;
      }
 
-     virtual DFBResult check         ( Renderer::Setup        *setup )
+     virtual DFBResult check         ( Graphics::Renderer::Setup        *setup )
      {
           D_DEBUG_AT( DirectFB_GenefxEngine, "GenefxEngine::%s( %p )\n", __FUNCTION__, this );
 
@@ -1204,7 +1207,7 @@ extern "C" {
      void
      register_genefx()
      {
-          Renderer::RegisterEngine( new GenefxEngine( dfb_config->software_cores ? : 1 ) );
+          Graphics::Renderer::RegisterEngine( new GenefxEngine( dfb_config->software_cores ? : 1 ) );
      }
 }
 

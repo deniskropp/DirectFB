@@ -265,6 +265,51 @@ ICore_Real::GetSurface( u32           surface_id,
      return DFB_OK;
 }
 
+DFBResult
+ICore_Real::GetSurfaceBuffer( u32                 buffer_id,
+                              CoreSurfaceBuffer **ret_buffer )
+{
+     DFBResult          ret;
+     CoreSurfaceBuffer *buffer;
+     char               path[1000];
+     size_t             path_length;
+
+     D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s( %u )\n", __FUNCTION__, buffer_id );
+
+     D_MAGIC_ASSERT( obj, CoreDFB );
+
+     if (fusion_config->secure_fusion) {
+          ret = (DFBResult) fusion_get_fusionee_path( dfb_core_world(core), Core_GetIdentity(), path, sizeof(path), &path_length );
+          if (ret)
+               return ret;
+
+          D_DEBUG_AT( DirectFB_CoreDFB, "  -> '%s'\n", path );
+     }
+
+     ret = dfb_core_get_surface_buffer( core, buffer_id, &buffer );
+     if (ret) {
+          D_DEBUG_AT( DirectFB_CoreDFB, "  -> dfb_core_get_surface_buffer: %s!\n", DirectFBErrorString(ret) );
+          return ret;
+     }
+
+     if (fusion_config->secure_fusion && dfb_config->ownership_check) {
+          ret = (DFBResult) fusion_object_has_access( &buffer->object, path );
+          if (ret) {
+               D_DEBUG_AT( DirectFB_CoreDFB, "  -> NO ACCESS!\n" );
+               dfb_surface_buffer_unref( buffer );
+               return ret;
+          }
+
+          fusion_object_add_owner( &buffer->object, Core_GetIdentity() );
+     }
+
+     D_DEBUG_AT( DirectFB_CoreDFB, "  => buffer %p\n", buffer );
+
+     *ret_buffer = buffer;
+
+     return DFB_OK;
+}
+
 
 DFBResult
 ICore_Real::ClipboardSet(

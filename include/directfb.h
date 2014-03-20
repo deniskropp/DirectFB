@@ -1424,6 +1424,34 @@ typedef enum {
 } DFBSurfaceHintFlags;
 
 /*
+ * Flags for allocation management
+ */
+typedef enum {
+     DSAO_NONE                = 0x00000000,
+
+
+     DSAO_HANDLE              = 0x00000001,       /* Validates handle (import) */
+
+
+     DSAO_NEW                 = 0x00000002,       /* Always creates new allocation and ignores the one given,
+                                                     otherwise when allocations exist it depends on the KEEP flag */
+     DSAO_KEEP                = 0x00000004,       /* Always keep existing allocations when present (not updated),
+                                                     otherwise with NEW the existing allocation will be freed */
+
+     DSAO_EXISTING            = 0x00000008,       /* Fails if no allocation is already existing */
+
+
+     DSAO_UPDATE              = 0x00000010,       /* When creating a new allocation or updating an existing one,
+                                                     use this flag to fill it with the latest content */
+
+     DSAO_UPDATED             = 0x00000020,       /* When creating a new allocation or updating an existing one,
+                                                     use this flag to indicate it's the latest content */
+
+
+     DSAO_ALL                 = 0x0000003F
+} DFBSurfaceAllocationOps;
+
+/*
  * Description of the surface that is to be created.
  */
 typedef struct {
@@ -5728,7 +5756,9 @@ typedef enum {
      DSEVT_DESTROYED      = 0x00000001,  /* surface got destroyed by global deinitialization function or the application itself */
      DSEVT_UPDATE         = 0x00000002,  /*  */
      DSEVT_DISPLAY        = 0x00000004,  /*  */
-     DSEVT_ALL            = 0x00000007   /* All event types */
+     DSEVT_CONFIG         = 0x00000008,  /*  */
+     DSEVT_FRAME          = 0x00000010,  /*  */
+     DSEVT_ALL            = 0x0000001F   /* All event types */
 } DFBSurfaceEventType;
 
 /*
@@ -5788,6 +5818,7 @@ typedef struct {
      struct timeval                  timestamp;  /* always set */
 
      DFBInputDeviceID                device_id;
+     //DFBWindowStackID                stack_id;
 } DFBWindowEvent;
 
 /*
@@ -5826,14 +5857,25 @@ typedef struct {
      DFBSurfaceID                     surface_id; /* source of event */
      long long                        time_stamp; /* Micro seconds from DIRECT_CLOCK_MONOTONIC */
 
-     // DSEVT_UPDATE
+     // DSEVT_UPDATE | DSEVT_FRAME
      DFBRegion                        update;
      DFBRegion                        update_right;
+     // DSEVT_UPDATE
      unsigned int                     flip_count; /* Serial number of frame, modulo number of buffers = buffer index */
+     // DSEVT_UPDATE | DSEVT_FRAME
      DFBSurfaceFlipFlags              flip_flags;
 
      // DSEVT_DISPLAY
      unsigned int                     index;      /* Serial number of frame, modulo number of buffers = buffer index */
+
+     // DSEVT_CONFIG
+     DFBDimension                     size;       /* New size of surface */
+
+     // DSEVT_FRAME (without flip count)
+     DFBSurfaceBufferID               left_id;    /* ID of surface buffer */
+     u32                              left_serial;
+     DFBSurfaceBufferID               right_id;   /* ID of surface buffer */
+     u32                              right_serial;
 } DFBSurfaceEvent;
 
 /*

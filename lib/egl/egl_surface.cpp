@@ -32,8 +32,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <direct/Types++.h>
+
 extern "C" {
 #include <direct/messages.h>
+
+#include <display/idirectfbsurface.h>
 }
 
 #include <direct/ToString.h>
@@ -81,7 +85,9 @@ Surface::Init()
 
      D_ASSERT( surface != NULL );
 
-     ret = gfx_config->CreateSurfacePeer( surface, &gfx_options, &gfx_peer );
+     IDirectFBSurface_data *data = (IDirectFBSurface_data*) surface->priv;
+
+     ret = gfx_config->CreateSurfacePeer( data->surface, &gfx_options, &gfx_peer );
      if (ret) {
           D_DERROR( ret, "DFBEGL/Surface: Graphics::Config::CreateSurfacePeer() failed!\n" );
           return ret;
@@ -156,18 +162,7 @@ Surface::SwapBuffers()
           }
      }
 
-//     for (auto f : Map< Surface::SwapBuffersFunc >()) {
-     std::map<std::string,Surface::SwapBuffersFunc> &map = Map< Surface::SwapBuffersFunc >();
-     for (std::map<std::string,Surface::SwapBuffersFunc>::iterator f = map.begin(); f != map.end(); f++) {
-          D_DEBUG_AT( DFBEGL_Surface, "  -> calling SwapBuffers from %s...\n", (*f).first.c_str() );
-
-          EGLint result = (*f).second();
-
-          (void) result;
-
-          D_DEBUG_AT( DFBEGL_Surface, "  -> SwapBuffers from %s returned 0x%04x '%s'\n",
-                      (*f).first.c_str(), result, *ToString<EGLInt>( result ) );
-     }
+     Dispatch< Surface::SwapBuffersFunc >( "SwapBuffers", this );
 
      return EGL_SUCCESS;
 }

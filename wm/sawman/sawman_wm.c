@@ -1409,7 +1409,7 @@ sawman_surface_reaction( const void *msg_data,
      wmdata = dfb_wm_get_data();
      D_ASSERT( wmdata != NULL );
 
-     if (notification->flags & CSNF_DISPLAY) {
+     if (0){//notification->flags & CSNF_DISPLAY) {
           D_DEBUG_AT( SaWMan_Surface, "  -> DISPLAY [%d]\n", notification->index );
 
           switch (tier->region->config.buffermode) {

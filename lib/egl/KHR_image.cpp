@@ -41,7 +41,7 @@ extern "C" {
 #include <direct/ToString.h>
 
 #include <egl/dfbegl.h>
-#include <egl/image.h>
+#include <egl/KHR_image.h>
 
 #include <GLES2/gl2.h>
 
@@ -91,23 +91,25 @@ EGLImage::EGLImage()
 {
      D_DEBUG_AT( DFBEGL_Image, "EGLImage::%s( %p )\n", __FUNCTION__, this );
 
-     Display::Register< EGLExtension::GetNames >( "EGLImage", [](){ return "EGL_DIRECTFB_idirectfbsurface EGL_KHR_image_base EGL_KHR_image_pixmap EGL_KHR_image"; } );
+     Display::Register< EGLExtension::GetNames >( "GetNames",
+                                                  [](){ return "EGL_DIRECTFB_idirectfbsurface EGL_KHR_image_base EGL_KHR_image_pixmap EGL_KHR_image"; },
+                                                  GetName() );
 
-     Core::Register<
-          Core::GetProcAddress
-          >( "eglCreateImageKHR", [](const char *){ return (void*) eglCreateImageKHR; } );
+     Core::Register< Core::GetProcAddress >( "GetProcAddress",
+                                             [](const char *){ return (void*) eglCreateImageKHR; },
+                                             "eglCreateImageKHR" );
 
-     Core::Register<
-          Core::GetProcAddress
-          >( "eglDestroyImageKHR", [](const char *){ return (void*) eglDestroyImageKHR; } );
+     Core::Register< Core::GetProcAddress >( "GetProcAddress",
+                                             [](const char *){ return (void*) eglDestroyImageKHR; },
+                                             "eglDestroyImageKHR" );
 
-     Core::Register<
-          Core::GetProcAddress
-          >( "glEGLImageTargetTexture2DOES", [](const char *){ return (void*) glEGLImageTargetTexture2DOES; } );
+     Core::Register< Core::GetProcAddress >( "GetProcAddress",
+                                             [](const char *){ return (void*) glEGLImageTargetTexture2DOES; },
+                                             "glEGLImageTargetTexture2DOES" );
 
-     Core::Register<
-          Core::GetProcAddress
-          >( "glEGLImageTargetRenderBufferStorageOES", [](const char *){ return (void*) glEGLImageTargetRenderBufferStorageOES; } );
+     Core::Register< Core::GetProcAddress >( "GetProcAddress",
+                                             [](const char *){ return (void*) glEGLImageTargetRenderBufferStorageOES; },
+                                             "glEGLImageTargetRenderBufferStorageOES" );
 }
 
 EGLImage::~EGLImage()
@@ -169,10 +171,6 @@ EGLImage::eglDestroyImageKHR( EGLDisplay  dpy,
 
      Types::TypeHandle *handle = (Types::TypeHandle *) img;
 
-//     KHR::Image *image = &(KHR::Image&) **handle;
-
-//     delete image;
-
      delete handle;
 
      DFB_EGL_RETURN (EGL_SUCCESS, EGL_TRUE);
@@ -201,7 +199,7 @@ EGLImage::glEGLImageTargetTexture2DOES( GLenum      target,
 
      KHR::Image &image = (KHR::Image&) **handle;
 
-     auto call = context.Call<GL::OES::glEGLImageTargetTexture2D>();
+     auto call = Graphics::Context::Call<GL::OES::glEGLImageTargetTexture2D>("glEGLImageTargetTexture2D", "", &context);
 
      if (call)
           call( target, image );
@@ -230,10 +228,15 @@ EGLImage::glEGLImageTargetRenderBufferStorageOES( GLenum      target,
 
      Types::TypeHandle *handle = (Types::TypeHandle *) img;
 
-     //KHR::Image &image = (KHR::Image&) **handle;
-     Direct::Base::TypeBase &image = (Direct::Base::TypeBase&) **handle;
+     KHR::Image &image = (KHR::Image&) **handle;
 
-     context.Call<GL::OES::glEGLImageTargetRenderbufferStorage>()( target, image );
+     auto call = Graphics::Context::Call<GL::OES::glEGLImageTargetRenderbufferStorage>("glEGLImageTargetRenderbufferStorage", "", &context);
+
+     if (call)
+          call( target, image );
+     else
+          D_ERROR( "DFBEGL/Image: No implementation for display '%s', context '%p'\n",
+                   *image.display->GetName(), image.context );
 }
 
 /**********************************************************************************************************************/
@@ -299,15 +302,20 @@ KHR::Image::Create( Display          *display,
      KHR::Image::Initialise init;
 
      if (context) {
-          init = KHR::Image::Call<KHR::Image::Initialise>( context->GetName() / *ToString<EGLInt>( EGLInt(target) ) );
+          init = KHR::Image::Call<KHR::Image::Initialise>( "Initialise",
+                                                           ToString<EGLInt>( EGLInt(target) ),
+                                                           context->gfx_context );
      }
 
      if (!init) {
-          init = KHR::Image::Call<KHR::Image::Initialise>( display->GetName() / *ToString<EGLInt>( EGLInt(target) ) );
+          init = KHR::Image::Call<KHR::Image::Initialise>( "Initialise",
+                                                           ToString<EGLInt>( EGLInt(target) ),
+                                                           display );
      }
 
      if (!init) {
-          init = KHR::Image::Call<KHR::Image::Initialise>( ToString<EGLInt>( EGLInt(target) ) );
+          init = KHR::Image::Call<KHR::Image::Initialise>( "Initialise",
+                                                           ToString<EGLInt>( EGLInt(target) ) );
      }
 
 

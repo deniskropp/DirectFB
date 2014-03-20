@@ -314,6 +314,11 @@ DFBResult dfb_surface_pool_destroy   ( CoreSurfacePool         *pool );
 DFBResult dfb_surface_pool_leave     ( CoreSurfacePool         *pool );
 
 
+DFBResult dfb_surface_pool_update_key( CoreSurfacePool         *pool,
+                                       CoreSurfaceBuffer       *buffer,
+                                       const char              *key,
+                                       u64                      handle,
+                                       CoreSurfaceAllocation   *allocation );
 
 DFBResult dfb_surface_pool_check_key ( CoreSurfacePool         *pool,
                                        CoreSurfaceBuffer       *buffer,

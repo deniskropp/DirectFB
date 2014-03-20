@@ -73,6 +73,8 @@ surface_client_destructor( FusionObject *object, bool zombie, void *ctx )
 
      fusion_vector_remove( &surface->clients, index );
 
+     dfb_surface_check_acks( surface );
+
      dfb_surface_unlock( surface );
 
      dfb_surface_unlink( &client->surface );
@@ -126,15 +128,18 @@ dfb_surface_client_create( CoreDFB            *core,
      *ret_client = client;
 
 
+     CoreSurfaceClient_Init_Dispatch( core, client, &client->call );
+
+
      dfb_surface_lock( surface );
+
+     client->flip_count = surface->flips;
 
      fusion_vector_add( &surface->clients, client );
 
-     CoreSurfaceClient_Init_Dispatch( core, client, &client->call );
+     dfb_surface_unlock( surface );
 
      fusion_object_activate( &client->object );
-
-     dfb_surface_unlock( surface );
 
      return DFB_OK;
 }

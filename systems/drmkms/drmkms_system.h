@@ -33,6 +33,8 @@
 #ifndef __DRMKMS_SYSTEM_H__
 #define __DRMKMS_SYSTEM_H__
 
+#define USE_GBM
+
 #ifdef USE_GBM
 #include <gbm.h>
 #else
@@ -49,7 +51,6 @@
 
 #include <core/layers.h>
 #include <core/screens.h>
-#include <core/Task.h>
 
 #include "vt.h"
 
@@ -94,6 +95,7 @@ typedef struct {
 
      bool                 use_prime_fd;
 
+     bool                 no_resources;
      bool                 mirror_outputs;
      bool                 clone_outputs;
      bool                 multihead;

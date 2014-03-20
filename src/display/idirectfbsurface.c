@@ -87,6 +87,7 @@ D_DEBUG_DOMAIN( Surface_Updates, "IDirectFBSurface/Updates", "IDirectFBSurface I
 /**********************************************************************************************************************/
 
 static ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx );
+static ReactionResult IDirectFBSurface_frame_listener( const void *msg_data, void *ctx );
 
 /**********************************************************************************************************************/
 
@@ -144,6 +145,7 @@ unregister_prealloc( IDirectFBSurface_data *data )
 void
 IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 {
+     unsigned int           i;
      IDirectFBSurface_data *data;
      IDirectFBSurface      *parent;
 
@@ -185,8 +187,10 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
           pthread_mutex_unlock( &parent_data->children_lock );
      }
 
-     if (data->surface)
+     if (data->surface) {
           dfb_surface_detach( data->surface, &data->reaction );
+          dfb_surface_detach( data->surface, &data->reaction_frame );
+     }
 
      CoreGraphicsStateClient_Deinit( &data->state_client );
 
@@ -207,6 +211,13 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
                dfb_surface_unlock_buffer( data->surface, &data->lock );
 
           dfb_surface_unref( data->surface );
+     }
+
+     for (i=0; i<data->local_buffer_count; i++) {
+          if (data->allocations[i]) {
+               dfb_surface_allocation_unref( data->allocations[i] );
+               data->allocations[i] = NULL;
+          }
      }
 
      pthread_mutex_destroy( &data->children_lock );
@@ -319,7 +330,7 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      if (data->font) {
           IDirectFBFont_data *font_data = data->font->priv;
 
-          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state, &data->state_client, DSTF_NONE ))
+          if (dfb_gfxcard_drawstring_check_state( font_data->font, &data->state, &data->state_client, DSTF_NONE )) // FIXME: cannot detect for DSTF_BLEND_FUNCS
                mask |= DFXL_DRAWSTRING;
      }
 
@@ -504,6 +515,9 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
                        void **ret_ptr, int *ret_pitch )
 {
      DFBResult              ret;
+#if D_DEBUG_ENABLED
+     long long              ts, ts2;
+#endif
      CoreSurfaceBufferRole  role   = CSBR_FRONT;
      CoreSurfaceAccessFlags access = CSAF_NONE;
 
@@ -533,9 +547,73 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
-     ret = dfb_surface_lock_buffer( data->surface, role, CSAID_CPU, access, &data->lock );
-     if (ret)
+#if D_DEBUG_ENABLED
+     ts = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
+
+#if 1
+     unsigned int           index      = (data->local_flip_count + role) % data->local_buffer_count;
+     CoreSurfaceAllocation *allocation = data->allocations[index];
+
+     if (allocation) {
+          D_DEBUG_AT( Surface, "  -> having allocation %s\n", ToString_CoreSurfaceAllocation(allocation) );
+
+          if (!allocation->buffer ||
+              !direct_serial_check( &allocation->serial, &allocation->buffer->serial ))
+          {
+               D_DEBUG_AT( Surface, "  -> outdated!\n" );
+
+               dfb_surface_allocation_ref( allocation );
+
+               data->allocations[index] = allocation = NULL;
+          }
+     }
+
+     if (!allocation) {
+          D_DEBUG_AT( Surface, "  -> getting allocation from %s\n", ToString_CoreSurface(data->surface) );
+
+          ret = CoreSurface_PreLockBuffer3( data->surface, role, data->local_flip_count, data->src_eye,
+                                            CSAID_CPU, access, true, &allocation );
+          if (ret)
+               return ret;
+
+          data->allocations[index] = allocation;
+     }
+
+     ret = dfb_surface_allocation_ref( allocation );
+     if (ret) {
+          D_DERROR( ret, "IDirectFBSurface: Ref'ing allocation failed! [%s]\n",
+                    allocation->pool->desc.name );
           return ret;
+     }
+
+     /* Lock the allocation. */
+     dfb_surface_buffer_lock_init( &data->lock, CSAID_CPU, access );
+
+     D_DEBUG_AT( Surface, "  -> locking %s\n", ToString_CoreSurfaceAllocation(allocation) );
+
+     ret = dfb_surface_pool_lock( allocation->pool, allocation, &data->lock );
+     if (ret) {
+          D_DERROR( ret, "IDirectFBSurface: Locking allocation failed! [%s]\n",
+                    allocation->pool->desc.name );
+          dfb_surface_buffer_lock_deinit( &data->lock );
+          return ret;
+     }
+#else
+     ret = dfb_surface_lock_buffer( data->surface, role, CSAID_CPU, access, &data->lock );
+     if (ret) {
+          D_DERROR( ret, "IDirectFBSurface: Locking surface failed!\n" );
+          return ret;
+     }
+#endif
+
+
+#if D_DEBUG_ENABLED
+     ts2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+#endif
+
+     D_DEBUG_AT( Surface, "  -> locking took %lldus\n", ts2 - ts );
+
 
      data->locked = true;
 
@@ -672,7 +750,7 @@ IDirectFBSurface_Read( IDirectFBSurface    *thiz,
      return dfb_surface_read_buffer( data->surface, CSBR_FRONT, ptr, pitch, rect );
 }
 
-static DFBResult
+DFBResult
 IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                        const DFBRegion     *region,
                        DFBSurfaceFlipFlags  flags )
@@ -680,6 +758,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
      DFBResult    ret = DFB_OK;
      DFBRegion    reg;
      CoreSurface *surface;
+     bool         dispatched = false;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -727,7 +806,8 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
-     data->local_flip_buffers = surface->num_buffers;
+     if (dfb_config->force_frametime && !data->current_frame_time)
+          thiz->GetFrameTime( thiz, &data->current_frame_time );
 
      if (dfb_config->force_frametime && !data->current_frame_time)
           thiz->GetFrameTime( thiz, &data->current_frame_time );
@@ -737,17 +817,28 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                                         reg.x1 == 0 && reg.y1 == 0 &&
                                         reg.x2 == surface->config.size.w - 1 &&
                                         reg.y2 == surface->config.size.h - 1))
-               data->local_flip_count++;
+          {
+               if (!(flags & DSFLIP_UPDATE))
+                    ++data->local_flip_count;
+
+               dfb_state_set_destination_2( &data->state, surface, data->local_flip_count );
+
+               ret = CoreSurface_DispatchUpdate( data->surface, DFB_FALSE, &reg, NULL, flags,
+                                                 data->current_frame_time, data->local_flip_count );
+               dispatched = true;
+          }
      }
 
-     ret = CoreSurface_Flip2( data->surface, DFB_FALSE, &reg, NULL, flags, data->current_frame_time );
+     if (!dispatched)
+          ret = CoreSurface_Flip2( data->surface, DFB_FALSE, &reg, NULL, flags, data->current_frame_time );
 
      data->current_frame_time = 0;
 
      if (ret)
           return ret;
 
-     IDirectFBSurface_WaitForBackBuffer( data );
+     if (!(flags & DSFLIP_NOWAIT))
+          IDirectFBSurface_WaitForBackBuffer( data );
 
      return DFB_OK;
 }
@@ -3090,7 +3181,7 @@ IDirectFBSurface_SetStereoEye( IDirectFBSurface    *thiz,
      return DFB_OK;
 }
 
-static DFBResult
+DFBResult
 IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                              const DFBRegion     *left_region,
                              const DFBRegion     *right_region,
@@ -3098,6 +3189,7 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
 {
      DFBResult ret = DFB_OK;
      DFBRegion l_reg, r_reg;
+     bool      dispatched = false;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -3158,7 +3250,8 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
 
      CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_NONE );
 
-     data->local_flip_buffers = data->surface->num_buffers;
+     if (dfb_config->force_frametime && !data->current_frame_time)
+          thiz->GetFrameTime( thiz, &data->current_frame_time );
 
      if (dfb_config->force_frametime && !data->current_frame_time)
           thiz->GetFrameTime( thiz, &data->current_frame_time );
@@ -3171,17 +3264,28 @@ IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
                                         r_reg.x1 == 0 && r_reg.y1 == 0 &&
                                         r_reg.x2 == data->surface->config.size.w - 1 &&
                                         r_reg.y2 == data->surface->config.size.h - 1))
-               data->local_flip_count++;
+          {
+               if (!(flags & DSFLIP_UPDATE))
+                    ++data->local_flip_count;
+
+               ret = CoreSurface_DispatchUpdate( data->surface, DFB_FALSE, &l_reg, &r_reg, flags,
+                                                 data->current_frame_time, data->local_flip_count );
+               dispatched = true;
+          }
      }
 
-     ret = CoreSurface_Flip2( data->surface, DFB_FALSE, &l_reg, &r_reg, flags, data->current_frame_time );
+     if (!dispatched)
+          ret = CoreSurface_Flip2( data->surface, DFB_FALSE, &l_reg, &r_reg, flags, data->current_frame_time );
+
+     dfb_state_set_destination_2( &data->state, data->surface, data->local_flip_count );
 
      data->current_frame_time = 0;
 
      if (ret)
           return ret;
 
-     IDirectFBSurface_WaitForBackBuffer( data );
+     if (!(flags & DSFLIP_NOWAIT))
+          IDirectFBSurface_WaitForBackBuffer( data );
 
      return DFB_OK;
 }
@@ -3483,8 +3587,9 @@ IDirectFBSurface_GetFrameTime( IDirectFBSurface *thiz,
      if (data->frametime_config.flags & DFTCF_MAX_ADVANCE)
           max = data->frametime_config.max_advance;
 
+     interval = 16706;//16666;
      if (!interval) {
-          interval = 16666;
+          interval = 16706;//16666;
 
           D_DEBUG_AT( Surface_Updates, "  -> using fallback default interval: %lld\n", interval );
      }
@@ -3721,12 +3826,17 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->core      = core;
      data->idirectfb = idirectfb;
 
+     data->local_flip_count = surface->flips;
+     data->frame_ack        = surface->flips;//_acked;
+
      if (dfb_surface_ref( surface )) {
           DIRECT_DEALLOCATE_INTERFACE(thiz);
           return DFB_FAILURE;
      }
 
      D_DEBUG_AT( Surface, "  -> surface %s\n", ToString_CoreSurface( surface ) );
+     D_DEBUG_AT( Surface, "  -> flips   %d\n", data->local_flip_count );
+     D_DEBUG_AT( Surface, "  -> acked   %d\n", data->frame_ack );
 
      if (parent && dfb_config->startstop) {
           IDirectFBSurface_data *parent_data;
@@ -3790,7 +3900,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->surface = surface;
 
      dfb_state_init( &data->state, core );
-     dfb_state_set_destination( &data->state, surface );
+     dfb_state_set_destination_2( &data->state, surface, data->local_flip_count );
 
      data->state.clip.x1  = data->area.current.x;
      data->state.clip.y1  = data->area.current.y;
@@ -3932,6 +4042,11 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );
 
+     dfb_surface_attach_channel( surface, CSCH_FRAME,
+                                 IDirectFBSurface_frame_listener, thiz, &data->reaction_frame );
+
+     data->local_buffer_count = surface->num_buffers;
+
      return DFB_OK;
 }
 
@@ -3957,6 +4072,7 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
      }
 
      if (notification->flags & CSNF_SIZEFORMAT) {
+          unsigned int i;
           DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
 
           dfb_rectangle_subtract( &rect, &data->area.insets );
@@ -3974,7 +4090,30 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
                thiz->SetClip( thiz, &data->clip_wanted );
           else
                thiz->SetClip( thiz, NULL );
+
+
+          for (i=0; i<data->local_buffer_count; i++) {
+               if (data->allocations[i]) {
+                    dfb_surface_allocation_unref( data->allocations[i] );
+                    data->allocations[i] = NULL;
+               }
+          }
+
+          data->local_buffer_count = surface->num_buffers;
      }
+
+     return RS_OK;
+}
+
+static ReactionResult
+IDirectFBSurface_frame_listener( const void *msg_data, void *ctx )
+{
+     const CoreSurfaceNotification *notification = msg_data;
+     IDirectFBSurface              *thiz         = ctx;
+     IDirectFBSurface_data         *data         = thiz->priv;
+     CoreSurface                   *surface      = data->surface;
+
+     D_DEBUG_AT( Surface, "%s( %p, %p ) (surface %p)\n", __FUNCTION__, msg_data, ctx, surface );
 
      if (notification->flags & CSNF_FRAME) {
           direct_mutex_lock( &data->back_buffer_lock );
@@ -4036,11 +4175,14 @@ IDirectFBSurface_WaitForBackBuffer( IDirectFBSurface_data *data )
 
      direct_mutex_lock( &data->back_buffer_lock );
 
-     while (data->local_flip_count - data->frame_ack >= data->local_flip_buffers-1) {
+     if (surface->flips_acked > data->frame_ack)
+          data->frame_ack = surface->flips_acked;
+
+     while (data->local_flip_count - data->frame_ack >= data->local_buffer_count-1) {
           D_DEBUG_AT( Surface_Updates, "  -> waiting for back buffer... (surface %d, notify %d)\n",
                       data->local_flip_count, data->frame_ack );
 
-          if (data->local_flip_buffers <= 1)
+          if (data->local_buffer_count <= 1)
                break;
 
           direct_waitqueue_wait( &data->back_buffer_wq, &data->back_buffer_lock );

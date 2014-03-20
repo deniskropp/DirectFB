@@ -63,7 +63,9 @@
 
 #include <core/CoreLayerRegion.h>
 #include <core/CoreSurface.h>
+#include <core/CoreSurfaceClient.h>
 #include <core/CoreWindow.h>
+#include <core/Debug.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
@@ -334,6 +336,59 @@ init_subwindow( CoreWindow      *window,
      return DFB_OK;
 }
 
+static ReactionResult
+window_surface_react( const void *msg_data,
+                      void       *ctx )
+{
+     const DFBSurfaceEvent *evt    = msg_data;
+     CoreWindow            *window = ctx;
+
+     D_DEBUG_AT( Core_Windows, "%s( %p ) <- type %06x\n", __FUNCTION__, evt, evt->type );
+     D_DEBUG_AT( Core_Windows, "  -> surface id %u\n", evt->surface_id );
+
+     if (evt->type == DSEVT_UPDATE) {
+          D_DEBUG_AT( Core_Windows, "  -> updated %d,%d-%dx%d (left)\n", DFB_RECTANGLE_VALS_FROM_REGION(&evt->update) );
+          D_DEBUG_AT( Core_Windows, "  -> updated %d,%d-%dx%d (right)\n", DFB_RECTANGLE_VALS_FROM_REGION(&evt->update_right) );
+          D_DEBUG_AT( Core_Windows, "  -> flip count %u\n", evt->flip_count );
+          D_DEBUG_AT( Core_Windows, "  -> time stamp %lld\n", evt->time_stamp );
+          D_DEBUG_AT( Core_Windows, "  -> window %s\n", ToString_CoreWindow(window) );
+
+#if D_DEBUG_ENABLED
+          dfb_surface_lock( window->surface );
+          CoreSurfaceBuffer *buffer = dfb_surface_get_buffer3( window->surface, CSBR_FRONT, DSSE_LEFT, evt->flip_count );
+          D_DEBUG_AT( Core_Windows, "  -> buffer       %s\n", ToString_CoreSurfaceBuffer(buffer) );
+          dfb_surface_unlock( window->surface );
+#endif
+
+          /* Lock the window stack. */
+          if (dfb_windowstack_lock( window->stack ))
+               return RS_OK;
+
+          /* Never call WM after destroying the window. */
+          if (DFB_WINDOW_DESTROYED( window )) {
+               dfb_windowstack_unlock( window->stack );
+               return RS_OK;
+          }
+
+          window->surface_flip_count = evt->flip_count;
+
+          if (!dfb_config->single_window || fusion_vector_size( &window->stack->visible_windows ) != 1) {
+               D_DEBUG_AT( Core_Windows, "  -> dispatching update to window manager\n" );
+
+               dfb_wm_update_window( window, &evt->update, &evt->update_right, DSFLIP_NONE );
+          }
+
+          CoreSurfaceClient_FrameAck( window->surface_client, evt->flip_count );
+
+          /* Unlock the window stack. */
+          dfb_windowstack_unlock( window->stack );
+     }
+     else if (evt->type == DSEVT_DESTROYED)
+          return RS_REMOVE;
+
+     return RS_OK;
+}
+
 DFBResult
 dfb_window_create( CoreWindowStack             *stack,
                    const DFBWindowDescription  *desc,
@@ -384,8 +439,8 @@ dfb_window_create( CoreWindowStack             *stack,
      surface_caps = desc->surface_caps & (DSCAPS_INTERLACED    | DSCAPS_SEPARATED  |
                                           DSCAPS_PREMULTIPLIED | DSCAPS_DEPTH      |
                                           DSCAPS_STATIC_ALLOC  | DSCAPS_SYSTEMONLY |
-                                          DSCAPS_VIDEOONLY     | DSCAPS_TRIPLE     |
-                                          DSCAPS_GL);
+                                          DSCAPS_VIDEOONLY     | DSCAPS_DOUBLE     |
+                                          DSCAPS_GL            | DSCAPS_TRIPLE );
      toplevel_id  = (desc->flags & DWDESC_TOPLEVEL_ID) ? desc->toplevel_id : 0;
 
      if (toplevel_id != 0)
@@ -627,6 +682,18 @@ dfb_window_create( CoreWindowStack             *stack,
                     dfb_surface_link( &window->surface, surface );
                     dfb_surface_unref( surface );
                }
+
+               /* Create the surface client. */
+               ret = CoreSurface_CreateClient( window->surface, &window->surface_client );
+               if (ret) {
+                    D_WARN( "failed to create surface client" );
+                    // FIXME FIXME DEINIT
+                    return ret;
+               }
+
+               /* Attach the surface event listener. */
+               dfb_surface_attach_channel( window->surface, CSCH_EVENT, window_surface_react,
+                                           window, &window->surface_event_reaction );
           }
      }
      else
@@ -753,6 +820,11 @@ dfb_window_destroy( CoreWindow *window )
 
      /* Unlink the window's surface. */
      if (window->surface) {
+          dfb_surface_client_unref( window->surface_client );
+
+          /* Detach the surface event listener. */
+          dfb_surface_detach( window->surface, &window->surface_event_reaction );
+
           dfb_surface_destroy_buffers( window->surface );
           dfb_surface_unlink( &window->surface );
      }

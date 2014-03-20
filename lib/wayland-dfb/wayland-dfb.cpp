@@ -35,6 +35,7 @@
 
 #include <wayland-server.h>
 
+#include <direct/EvLog.h>
 #include <directfb_util.h>
 
 #include "wayland-dfb.h"
@@ -95,18 +96,27 @@ wl_dfb::HandleSurfaceEvent( const DFBSurfaceEvent &event )
 
      switch (event.type) {
           case DSEVT_UPDATE: {
-               D_DEBUG_AT( DFBWayland_wl_dfb, "  -> UPDATE %u %d,%d-%dx%d %d\n",
+               D_DEBUG_AT( DFBWayland_wl_dfb, "  -> UPDATE %u %d,%d-%dx%d %u\n",
                            event.surface_id, DFB_RECTANGLE_VALS_FROM_REGION( &event.update ), event.flip_count );
 
                Buffer *surface = surfaces[event.surface_id];
 
                if (surface) {
-                    surface->surface->FrameAck( surface->surface, event.flip_count );
+                    D_EVLOG( "WaylandDFB/Surface", surface,
+                             "UPDATE", *Direct::String::F("[%3u] %d,%d-%dx%d (%lld us -> %lld diff)",
+                                                          event.flip_count,
+                                                          DFB_RECTANGLE_VALS_FROM_REGION( &event.update ),
+                                                          event.time_stamp, event.time_stamp - surface->last_got ) );
 
-                    surface->flip_count = event.flip_count;
+                    surface->last_got = event.time_stamp;
+
+                    if (!(event.flip_flags & DSFLIP_NOWAIT))
+                         surface->ScheduleUpdate( event );
                }
                else
                     D_LOG( DFBWayland_wl_dfb, VERBOSE, "  -> SURFACE WITH ID %u NOT FOUND\n", event.surface_id );
+
+//               surface->flip_count = event.flip_count;
 
                break;
           }
@@ -120,7 +130,11 @@ wl_dfb::HandleSurfaceEvent( const DFBSurfaceEvent &event )
 
 Buffer::Buffer()
      :
-     flip_count( 0 )
+//     flip_count( 0 ),
+//     updating( false ),
+     last_got( 0 ),
+     last_ack( 0 ),
+     listener( NULL )
 {
      D_DEBUG_AT( DFBWayland_Buffer, "Buffer::%s( %p )\n", __FUNCTION__, this );
 }
@@ -131,6 +145,65 @@ Buffer::~Buffer()
 
      surface->DetachEventBuffer( surface, wl_dfb->events );
      surface->Release( surface );
+}
+
+//void
+//Buffer::AddUpdate( const DFBSurfaceEvent &event )
+//{
+//     D_DEBUG_AT( DFBWayland_Buffer, "Buffer::%s( %p ) <- flip count %u\n", __FUNCTION__, this, event.flip_count );
+//
+//     updates.push( event );
+//
+//     ScheduleUpdate( event );
+//}
+//
+
+void
+Buffer::ScheduleUpdate( const DFBSurfaceEvent &event )
+{
+     D_DEBUG_AT( DFBWayland_Buffer, "Buffer::%s( %p )\n", __FUNCTION__, this );
+
+     updates.push( Update( event ) );
+
+     if (listener)
+          listener->scheduleUpdate( event );
+}
+
+void
+Buffer::ProcessUpdates( long long timestamp )
+{
+     D_DEBUG_AT( DFBWayland_Buffer, "Buffer::%s( %p )\n", __FUNCTION__, this );
+
+     while (!updates.empty()) {
+          Update &update = updates.front();
+
+          if (update.event.time_stamp > timestamp) {
+               D_DEBUG_AT( DFBWayland_Buffer, "  -> next update still in future (by %lld us)\n", update.event.time_stamp - timestamp );
+
+               break;
+          }
+
+          D_DEBUG_AT( DFBWayland_Buffer, "  -> processing flip count %u\n", update.event.flip_count );
+          D_DEBUG_AT( DFBWayland_Buffer, "  -> timestamp %lld us (within %lld us)\n",
+                      update.event.time_stamp, update.event.time_stamp - timestamp );
+
+          D_EVLOG( "WaylandDFB/Surface", this,
+                   "Schedule/Ack", *Direct::String::F("[%3u] %d,%d-%dx%d (%lld us -> %lld since got) -> %lld since last ack",
+                                                      update.event.flip_count,
+                                                      DFB_RECTANGLE_VALS_FROM_REGION( &update.event.update ),
+                                                      update.event.time_stamp, timestamp - last_got, timestamp - last_ack ) );
+
+          last_ack = update.event.time_stamp;
+
+          surface->FrameAck( surface, update.event.flip_count );
+
+          if (listener)
+               listener->processUpdate( update );
+
+          updates.pop();
+
+//          break;
+     }
 }
 
 /**********************************************************************************************************************/
@@ -177,12 +250,10 @@ static void
 dfb_create_buffer(struct wl_client   *client,
                   struct wl_resource *resource,
                   uint32_t            id,
-                  uint32_t            surface_id,
-                  uint32_t            buffer_id,
-                  uint32_t            allocation_id)
+                  uint32_t            surface_id)
 {
-     D_DEBUG_AT( DFBWayland_Buffer, "%s( client %p, resource %p, id %u, surface_id %u, buffer_id %u, allocation_id %u )\n",
-                 __FUNCTION__, client, resource, id, surface_id, buffer_id, allocation_id );
+     D_DEBUG_AT( DFBWayland_Buffer, "%s( client %p, resource %p, id %u, surface_id %u )\n",
+                 __FUNCTION__, client, resource, id, surface_id );
 
      struct wl_dfb *wl_dfb = (struct wl_dfb*) resource->data;
 
@@ -191,8 +262,6 @@ dfb_create_buffer(struct wl_client   *client,
 
      buffer->wl_dfb = wl_dfb;
      buffer->surface_id = surface_id;
-     buffer->buffer_id = buffer_id;
-     buffer->allocation_id = allocation_id;
 
      ret = wl_dfb->dfb->GetSurface( wl_dfb->dfb, surface_id, &buffer->surface );
      if (ret) {
@@ -226,8 +295,10 @@ dfb_create_buffer(struct wl_client   *client,
 
      wl_dfb->surfaces[surface_id] = buffer;
 
-     buffer->surface->AttachEventBuffer( buffer->surface, wl_dfb->events );
-     buffer->surface->MakeClient( buffer->surface );
+     if (wl_dfb->events) {
+          buffer->surface->AttachEventBuffer( buffer->surface, wl_dfb->events );
+          buffer->surface->MakeClient( buffer->surface );
+     }
 }
 
 const static struct wl_dfb_interface dfb_interface = {
@@ -273,7 +344,9 @@ wayland_dfb_init( struct wl_display      *display,
      wl_dfb *wldfb = new wl_dfb();
 
      directfb->AddRef( directfb );
-     events->AddRef( events );
+
+     if (events)
+          events->AddRef( events );
 
      wldfb->display          = display;
      wldfb->dfb              = directfb;

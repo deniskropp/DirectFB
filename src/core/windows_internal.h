@@ -126,6 +126,10 @@ struct __DFB_CoreWindow {
      } cursor;
 
      DFBWindowCapabilities   requested_caps; /* original caps from application upon window creation */
+
+     CoreSurfaceClient      *surface_client;
+     Reaction                surface_event_reaction;
+     u32                     surface_flip_count;
 };
 
 typedef enum {

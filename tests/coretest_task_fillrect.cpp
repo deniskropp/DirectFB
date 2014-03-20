@@ -133,7 +133,7 @@ main( int argc, char *argv[] )
      CoreSurface           *dst;
 
      CardState              state;
-     DirectFB::Renderer    *renderer;
+     DirectFB::Graphics::Renderer *renderer;
 
      LockTask              *lock_task;
 
@@ -209,7 +209,7 @@ main( int argc, char *argv[] )
           dfb_state_set_destination( &state, dst );
 
 
-          renderer = new DirectFB::Renderer( &state, NULL );
+          renderer = new DirectFB::Graphics::Renderer( &state, NULL );
 
 
           for (int i=0; i<100000; i++) {

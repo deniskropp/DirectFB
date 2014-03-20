@@ -35,6 +35,7 @@
 
 #ifdef __cplusplus
 #include <direct/Types++.h>
+#include <directfb++.h>
 
 extern "C" {
 #endif

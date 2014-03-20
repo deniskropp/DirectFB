@@ -27,60 +27,71 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <config.h>
+#ifndef ___DFBEGL__option__H___
+#define ___DFBEGL__option__H___
 
-#include <stdio.h>
-#include <string.h>
 
+#include "dfbegl.h"
+
+
+#ifdef __cplusplus
 extern "C" {
-#include <direct/messages.h>
+#endif
+
+
+// C wrappers
+
+
+#ifdef __cplusplus
 }
 
-#include <direct/ToString.h>
+#include <direct/Map.h>
+#include <direct/String.h>
+#include <direct/TLSObject.h>
 
-#include <egl/dfbegl.h>
+#include <core/CoreSurface.h>
+#include <core/Graphics.h>
+
+
+#include <list>
+#include <map>
 
 
 namespace DirectFB {
 
+
 namespace EGL {
 
 
-Option::Option( const EGLint option,
-                long         value )
-     :
-     option( option ),
-     value( value )
+/*
+ * Graphics::Option implementation for EGLint value based options
+ */
+
+class Option : public Graphics::Option<long>
 {
-}
+public:
+     Option( const EGLint option,
+             long         value );
+     virtual ~Option();
 
-Option::~Option()
-{
-}
+     virtual Direct::String GetName() const;
+     virtual Direct::String GetString() const;
 
-Direct::String
-Option::GetName() const
-{
-     return ToString<EGLInt>( EGLInt(option) );
-}
+     virtual const long    &GetValue() const;
+     virtual void           SetValue( const long &value );
 
-Direct::String
-Option::GetString() const
-{
-     if (value < 0x3000 || value > 0x4000)
-          return ToString<int>( value );
-
-     return ToString<EGLInt>( EGLInt(value) );
-}
-
-const long &
-Option::GetValue() const
-{
-     return value;
-}
+private:
+     const EGLint option;
+     long         value;
+};
 
 
 }
 
 }
+
+
+#endif
+
+#endif
 

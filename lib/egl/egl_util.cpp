@@ -255,7 +255,7 @@ Util::GetSurfaceDescription( Graphics::Options     &options,
      D_DEBUG_AT( DFBEGL_Util, "EGL::Util::%s()\n", __FUNCTION__ );
 
      desc.flags = DSDESC_CAPS;
-     desc.caps  = DSCAPS_FLIPPING;
+     desc.caps  = DSCAPS_NONE;
 
      if (options.Get<long>( "WIDTH", val )) {
           D_DEBUG_AT( DFBEGL_Util, "  -> WIDTH     %ld\n", val );

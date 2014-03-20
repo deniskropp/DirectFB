@@ -73,6 +73,7 @@ D_DEBUG_DOMAIN( Core_SurfBuffer, "Core/SurfBuffer", "DirectFB Core Surface Buffe
 
 /**********************************************************************************************************************/
 
+#if 1
 static void
 surface_buffer_destructor( FusionObject *object, bool zombie, void *ctx )
 {
@@ -201,6 +202,7 @@ dfb_surface_buffer_create( CoreDFB                 *core,
 
      return DFB_OK;
 }
+#endif
 
 DFBResult
 dfb_surface_buffer_decouple( CoreSurfaceBuffer *buffer )
@@ -209,11 +211,15 @@ dfb_surface_buffer_decouple( CoreSurfaceBuffer *buffer )
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     dfb_surface_buffer_deallocate( buffer );
+     buffer->flags |= CSBF_DECOUPLE;
 
-     buffer->surface = NULL;
+     if (!buffer->busy) {
+          dfb_surface_buffer_deallocate( buffer );
 
-     dfb_surface_buffer_unlink( &buffer );
+          buffer->surface = NULL;
+
+          dfb_surface_buffer_unlink( &buffer );
+     }
 
      return DFB_OK;
 }
@@ -335,6 +341,8 @@ dfb_surface_buffer_find_allocation_key( CoreSurfaceBuffer *buffer,
      FUSION_SKIRMISH_ASSERT( &buffer->surface->lock );
 
      fusion_vector_foreach (alloc, i, buffer->allocs) {
+          CORE_SURFACE_ALLOCATION_ASSERT( alloc );
+
           if (dfb_surface_pool_check_key( alloc->pool, buffer, key, 0 ) == DFB_OK)
                return alloc;
      }

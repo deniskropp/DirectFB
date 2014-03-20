@@ -1238,6 +1238,23 @@ AC_SUBST(VNC_LIBS)
 AC_SUBST(VNC_CFLAGS)
 
 
+dnl Test for gbm
+AC_ARG_ENABLE(gbm,
+              AC_HELP_STRING([--enable-gbm],
+                             [build with gbm support @<:@default=auto@:>@]),
+              [], [enable_gbm=yes])
+if test "$enable_gbm" = "yes"; then
+  PKG_CHECK_MODULES(GBM, gbm, [enable_gbm=yes], [enable_gbm=no
+    AC_MSG_WARN([
+*** gbm packages not found -- Building without GBM support.])
+    ])
+fi
+
+AM_CONDITIONAL(GBM_CORE, test "$enable_gbm" = "yes")
+AC_SUBST(GBM_LIBS)
+AC_SUBST(GBM_CFLAGS)
+
+
 
 dnl Test for Mesa
 AC_ARG_ENABLE(mesa,
@@ -2897,6 +2914,11 @@ lib/egl/EGL/Makefile
 lib/egl/GLES2/Makefile
 lib/egl/KHR/Makefile
 lib/egl/EGLCoreWayland/Makefile
+
+lib/gles2/Makefile
+lib/gles2/build.h
+lib/gles2/dfbgles2.pc
+lib/gles2/gles2.pc
 
 lib/fusion/Makefile
 lib/fusion/build.h

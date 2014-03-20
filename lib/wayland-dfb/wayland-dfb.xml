@@ -36,16 +36,8 @@
     <!-- Create a wayland buffer for the surface buffer -->
     <request name="create_buffer">
       <arg name="id" type="new_id" interface="wl_dfb_buffer"/>
-      <arg name="surface_id" type="uint"/>
       <arg name="buffer_id" type="uint"/>
-      <arg name="allocation_id" type="uint"/>
     </request>
-
-    <!-- Get the surface ID of a wayland surface -->
-    <event name="surface_id">
-      <arg name="surface" type="object"/>
-      <arg name="surface_id" type="uint"/>
-    </event>
   </interface>
 
 

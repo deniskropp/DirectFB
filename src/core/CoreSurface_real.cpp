@@ -1081,6 +1081,216 @@ ISurface_Real::DispatchUpdate(
      return ret;
 }
 
+DFBResult
+ISurface_Real::GetBuffers( DFBSurfaceBufferID *ret_buffer_ids,
+                           u32                 ids_max,
+                           u32                *ret_ids_len )
+{
+     DFBResult ret;
+     u32       count  = 0;
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s(  )\n",
+                 __FUNCTION__ );
+
+     if (ids_max < 1)
+          return DFB_INVARG;
+
+     ret = (DFBResult) dfb_surface_lock( obj );
+     if (ret)
+          return ret;
+
+     if (obj->num_buffers == 0) {
+          ret = DFB_NOBUFFER;
+          goto out;
+     }
+
+     for (int i=0; i<obj->num_buffers; i++) {
+          CoreSurfaceBuffer *buffer;
+
+          if (count == ids_max) {
+               ret = DFB_LIMITEXCEEDED;
+               goto out;
+          }
+
+          buffer = obj->left_buffers[ obj->buffer_indices[i] ];
+          CORE_SURFACE_BUFFER_ASSERT( buffer );
+
+          ret_buffer_ids[count++] = buffer->object.id;
+
+
+          if (obj->config.caps & DSCAPS_STEREO) {
+               if (count == ids_max) {
+                    ret = DFB_LIMITEXCEEDED;
+                    goto out;
+               }
+
+               buffer = obj->right_buffers[ obj->buffer_indices[i] ];
+               CORE_SURFACE_BUFFER_ASSERT( buffer );
+
+               ret_buffer_ids[count++] = buffer->object.id;
+          }
+     }
+
+     *ret_ids_len = count;
+
+out:
+     dfb_surface_unlock( obj );
+
+     return ret;
+}
+
+DFBResult
+ISurface_Real::GetOrAllocate( DFBSurfaceBufferID        buffer_id,
+                              const char               *key,
+                              u32                       key_len,
+                              u64                       handle,
+                              DFBSurfaceAllocationOps   ops,
+                              CoreSurfaceAllocation   **ret_allocation )
+{
+     DFBResult              ret;
+     CoreSurfaceBuffer     *buffer     = NULL;
+     CoreSurfaceAllocation *allocation = NULL;
+
+     D_ASSERT( key != NULL );
+     D_ASSERT( key_len > 0 );
+     D_ASSERT( key[key_len-1] == 0 );
+     D_ASSERT( ret_allocation != NULL );
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( buffer id 0x%x, key '%s', handle 0x%llx, ops 0x%04x )\n",
+                 __FUNCTION__, buffer_id, key, (long long)handle, ops );
+
+     ret = (DFBResult) dfb_surface_lock( obj );
+     if (ret)
+          return ret;
+
+     ret = dfb_core_get_surface_buffer( core, buffer_id, &buffer );
+     if (ret)
+          goto out;
+
+     if (!buffer->surface) {
+          ret = DFB_DEAD;
+          goto out;
+     }
+
+     if (buffer->surface != obj) {
+          ret = DFB_NOSUCHINSTANCE;
+          goto out;
+     }
+
+     CORE_SURFACE_BUFFER_ASSERT( buffer );
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "  -> buffer   %s\n", *ToString<CoreSurfaceBuffer>( *buffer ) );
+
+     allocation = dfb_surface_buffer_find_allocation_key( buffer, key );
+
+     if (allocation) {
+          CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+          D_DEBUG_AT( DirectFB_CoreSurface, "  -> existing %s\n", *ToString<CoreSurfaceAllocation>( *allocation ) );
+
+          if (!(ops & DSAO_KEEP)) {
+               dfb_surface_allocation_decouple( allocation );
+               allocation = NULL;
+          }
+          else if (ops & DSAO_NEW)
+               allocation = NULL;
+          else if (ops & DSAO_HANDLE) {
+               ret = dfb_surface_pool_update_key( allocation->pool, buffer, key, handle, allocation );
+               if (ret) {
+                    allocation = NULL;
+                    goto out;
+               }
+          }
+     }
+     else if (ops & DSAO_EXISTING) {
+          ret = DFB_ITEMNOTFOUND;
+          goto out;
+     }
+
+     if (!allocation) {
+          ret = dfb_surface_pools_allocate_key( buffer, key, handle, &allocation );
+          if (ret)
+               goto out;
+
+          D_DEBUG_AT( DirectFB_CoreSurface, "  -> new      %s\n", *ToString<CoreSurfaceAllocation>( *allocation ) );
+     }
+
+     ret = (DFBResult) dfb_surface_allocation_ref( allocation );
+     if (ret) {
+          allocation = NULL;
+          goto out;
+     }
+
+     CORE_SURFACE_ALLOCATION_ASSERT( allocation );
+
+     if (ops & DSAO_UPDATE)
+          dfb_surface_allocation_update( allocation, CSAF_READ );
+
+     if (ops & DSAO_UPDATED) {
+          direct_serial_update( &allocation->serial, &buffer->serial );
+          dfb_surface_allocation_update( allocation, CSAF_WRITE );
+     }
+
+     *ret_allocation = allocation;
+
+out:
+     if (allocation && ret)
+          dfb_surface_allocation_unref( allocation );
+
+     if (buffer)
+          dfb_surface_buffer_unref( buffer );
+
+     dfb_surface_unlock( obj );
+
+     return ret;
+}
+
+
+DFBResult
+ISurface_Real::DispatchUpdate2(
+                   DFBSurfaceFlipFlags                        flags,
+                   s64                                        timestamp,
+                   u32                                        left_id,
+                   u32                                        left_serial,
+                   const DFBRegion                           *left_region,
+                   u32                                        right_id,
+                   u32                                        right_serial,
+                   const DFBRegion                           *right_region
+                   )
+{
+     DFBResult ret = DFB_OK;
+     DFBRegion l, r;
+
+     D_DEBUG_AT( DirectFB_CoreSurface, "ISurface_Real::%s( flags 0x%08x, timestamp %lld, left id 0x%x serial 0x%x )\n",
+                 __FUNCTION__, flags, (long long) timestamp, left_id, left_serial );
+
+     dfb_surface_lock( obj );
+
+     if (left_region)
+          l = *left_region;
+     else {
+          l.x1 = 0;
+          l.y1 = 0;
+          l.x2 = obj->config.size.w - 1;
+          l.y2 = obj->config.size.h - 1;
+     }
+
+     if (right_region)
+          r = *right_region;
+     else
+          r = l;
+
+//     if (!(flags & DSFLIP_UPDATE))
+//          obj->flips = flip_count;
+
+     // FIXME: this always updates full when a side is empty
+     dfb_surface_dispatch_update( obj, &l, &r, timestamp, flags );
+
+     dfb_surface_unlock( obj );
+
+     return ret;
+}
+
 
 }
 

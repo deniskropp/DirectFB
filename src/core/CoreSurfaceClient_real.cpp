@@ -41,6 +41,7 @@ extern "C" {
 #include <direct/messages.h>
 
 #include <core/core.h>
+#include <core/surface.h>
 #include <core/surface_client.h>
 }
 
@@ -56,10 +57,7 @@ ISurfaceClient_Real::FrameAck(
                         u32                                   flip_count
                         )
 {
-     int                i;
-     CoreSurface       *surface;
-     CoreSurfaceClient *client;
-     u32                count = 0xffffffff;
+     CoreSurface *surface;
 
      D_DEBUG_AT( DirectFB_CoreSurfaceClient, "ISurfaceClient_Real::%s( count %u ) <- old count %u\n",
                  __FUNCTION__, flip_count, obj->flip_count );
@@ -73,21 +71,9 @@ ISurfaceClient_Real::FrameAck(
 
      // FIXME: handle wrap around
 
-
      obj->flip_count = flip_count;
 
-     fusion_vector_foreach (client, i, surface->clients) {
-          if (client->flip_count < count)
-               count = client->flip_count;
-     }
-
-     D_DEBUG_AT( DirectFB_CoreSurfaceClient, "  -> lowest count %u (acked %u)\n", count, surface->flips_acked );
-
-     if (count > surface->flips_acked) {
-          surface->flips_acked = count;
-
-          dfb_surface_notify_frame( surface, surface->flips_acked );
-     }
+     dfb_surface_check_acks( surface );
 
      dfb_surface_unlock( surface );
 

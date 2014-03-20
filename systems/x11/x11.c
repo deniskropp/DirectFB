@@ -251,6 +251,7 @@ InitLocal( DFBX11 *x11, DFBX11Shared *shared, CoreDFB *core )
 
      if (XShmQueryExtension( x11->display ))
           XShmQueryVersion( x11->display, &x11->xshm_major, &x11->xshm_minor, &x11->use_shm );
+     x11->use_shm = 0;
 
 
      x11->screen = dfb_screens_register( NULL, x11, x11PrimaryScreenFuncs );

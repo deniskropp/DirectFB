@@ -35,11 +35,13 @@
 #include <direct/Type.h>
 
 #include <core/CoreSurface.h>
+#include <core/SurfaceTask.h>
 
 #include <list>
 #include <map>
 #include <vector>
 
+#include <initializer_list>
 
 namespace DirectFB {
 
@@ -68,6 +70,10 @@ namespace Graphics {
    - key / value pairs (at least as strings)
    - also integers, complex objects (values)
 
+     = Global IDs for configs from different vendors
+
+          - CONFIG_ID will be generated from Core
+
      = Common set of options (should be supported if equivalent attribute exists)
 
           - WIDTH
@@ -79,6 +85,9 @@ namespace Graphics {
           - NATIVE_VISUAL_ID
 
      = More complex options (above are just single integers)
+
+
+
 
 
 
@@ -106,6 +115,45 @@ namespace Graphics {
 */
 
 
+class SurfaceAllocationKey
+{
+public:
+     DFBSurfaceID             surfaceID;
+     CoreSurfaceBufferRole    role;
+     DFBSurfaceStereoEye      eye;
+     u32                      flips;
+
+     SurfaceAllocationKey( DFBSurfaceID             surfaceID,
+                           CoreSurfaceBufferRole    role,
+                           DFBSurfaceStereoEye      eye,
+                           u32                      flips )
+          :
+          surfaceID( surfaceID ),
+          role( role ),
+          eye( eye ),
+          flips( flips )
+     {
+     }
+
+     bool operator < (const SurfaceAllocationKey &other) const {
+          if (surfaceID == other.surfaceID) {
+               if (role == other.role) {
+                    if (eye == other.eye)
+                         return flips < other.flips;
+
+                    return eye < other.eye;
+               }
+
+               return role < other.role;
+          }
+
+          return surfaceID < other.surfaceID;
+     }
+};
+
+typedef std::map<SurfaceAllocationKey,CoreSurfaceAllocation*>  SurfaceAllocationMap;
+typedef std::pair<SurfaceAllocationKey,CoreSurfaceAllocation*> SurfaceAllocationMapPair;
+
 
 class OptionBase
 {
@@ -125,6 +173,32 @@ class Option : public OptionBase
 {
 public:
      virtual const _T &GetValue() const = 0;
+     virtual void      SetValue( const _T & ) = 0;
+};
+
+
+class SimpleOption : public Graphics::Option<Direct::String>
+{
+public:
+     SimpleOption( const Direct::String &name,
+                   const Direct::String &value )
+          :
+          name( name ),
+          value( value )
+     {
+     }
+
+     virtual ~SimpleOption() {}
+
+     virtual Direct::String GetName() const { return name; }
+     virtual Direct::String GetString() const { return value; }
+
+     virtual const Direct::String &GetValue() const { return value; }
+     virtual void                  SetValue( const Direct::String &value ) { this->value = value; }
+
+private:
+     Direct::String name;
+     Direct::String value;
 };
 
 
@@ -243,14 +317,6 @@ public:
 };
 
 
-//class Buffer : public Core::Type<Buffer>
-//{
-//};
-
-
-
-
-
 class Implementation : public Direct::Module
 {
 protected:
@@ -273,11 +339,6 @@ protected:
      Direct::Strings          apis;
      Direct::Strings          extensions;
      Graphics::Configs        configs;
-
-private:
-     //DFBResult /*Init();*/
-
-     //bool init;
 };
 
 
@@ -294,6 +355,8 @@ public:
      virtual DFBResult GetOption( const Direct::String &name,
                                   long                 &value );// FIXME: replace by template
 
+     virtual Direct::String GetOption( const Direct::String &name );
+
      virtual DFBResult CheckOptions( const Graphics::Options &options );
 
      virtual DFBResult CreateContext( const Direct::String  &api,
@@ -301,12 +364,32 @@ public:
                                       Options               *options,
                                       Context              **ret_context );
 
-     virtual DFBResult CreateSurfacePeer( IDirectFBSurface  *surface,
+     /*
+        Create interface for EGLSurface like producer side
+     */
+     virtual DFBResult CreateSurfacePeer( CoreSurface       *surface,
                                           Options           *options,
                                           SurfacePeer      **ret_peer );
 
+     virtual void DumpValues( std::initializer_list<Direct::String>  names,
+                              Direct::String                        &out_str );
+
 private:
      Implementation *implementation;
+};
+
+
+
+class RenderTask : public Task
+{
+public:
+     RenderTask() {}
+
+     virtual ~RenderTask() {}
+
+     virtual DFBResult Bind  ( CoreSurfaceBuffer *draw,
+                               CoreSurfaceBuffer *read ) { return DFB_UNIMPLEMENTED; }
+     virtual DFBResult Unbind() { return DFB_OK; }
 };
 
 
@@ -324,15 +407,21 @@ public:
      const Direct::String &GetAPI() const { return api; }
 
      virtual DFBResult Init  () = 0;
-     virtual DFBResult Bind  ( Graphics::SurfacePeer *draw,
-                               Graphics::SurfacePeer *read ) = 0;
-     virtual DFBResult Unbind() = 0;
 
      virtual DFBResult GetOption( const Direct::String &name,
                                   long                 &value );// FIXME: replace by template
 
      virtual DFBResult GetProcAddress( const Direct::String  &name,
                                        void                 *&addr );
+
+     // sync api
+     virtual DFBResult Bind  ( Graphics::SurfacePeer *draw,
+                               Graphics::SurfacePeer *read ) = 0;
+     virtual DFBResult Unbind() = 0;
+
+     // async api
+     virtual DFBResult CreateTask( Graphics::RenderTask *&task );
+
 
 protected:
      Direct::String  api;
@@ -348,32 +437,66 @@ protected:
      }
 };
 
+/*
+   Producer side for CoreSurface (later Stream)
 
-
-class SurfacePeer
+   Sends out events upon Flip (SwapBuffers)
+*/
+class SurfacePeer : public Core::Type<SurfacePeer>
 {
      friend class Context;
 
 public:
      SurfacePeer( Graphics::Config *config,
                   Options          *options,
-                  IDirectFBSurface *surface = NULL );
+                  CoreSurface      *surface );
 
      virtual ~SurfacePeer();
 
-     virtual DFBResult    Init();
-     virtual DFBResult    Flip( const DFBRegion     *region,
-                                DFBSurfaceFlipFlags  flags );
+     virtual DFBResult Init();
 
-     virtual DFBResult    GetOption( const Direct::String &name,
-                                     long                 &value );// FIXME: replace by template
+     // FIXME: replace by template
+     virtual DFBResult GetOption ( const Direct::String &name,
+                                   long                 &value );
 
-     IDirectFBSurface    *GetSurface() const { return surface; }
+     // FIXME: Add new region/update class including stereo support
+     virtual DFBResult Flip      ( const DFBRegion     *region    = NULL,
+                                   DFBSurfaceFlipFlags  flags     = DSFLIP_NONE,
+                                   long long            timestamp = 0 );
+
+     CoreSurface                *GetSurface() const { return surface; }
+     const CoreSurfaceConfig    &GetSurfaceConfig() const { return surface_config; }
+     CoreSurfaceTypeFlags        GetSurfaceType() const { return surface_type; }
 
 protected:
-     Config           *config;
-     Options          *options;
-     IDirectFBSurface *surface;
+     typedef std::function<DFBResult(void)>  Flush;
+
+     virtual DFBResult                                               updateBuffers();
+     virtual DirectFB::Util::FusionObjectWrapper<CoreSurfaceBuffer> &getBuffer( int offset = 0 );
+
+private:
+     Config                                                *config;
+     Options                                               *options;
+     CoreSurface                                           *surface;
+
+     u32                                                    flips;
+     u32                                                    index;
+
+     CoreSurfaceTypeFlags                                   surface_type;
+     DirectSerial                                           surface_serial;
+
+     CoreSurfaceConfig                                      surface_config;
+
+     u32                                                    buffer_num;
+     DFBSurfaceBufferID                                     buffer_ids[MAX_SURFACE_BUFFERS*2];
+     DirectFB::Util::FusionObjectWrapper<CoreSurfaceBuffer> buffer_objects[MAX_SURFACE_BUFFERS*2];
+
+protected:
+     u32                         index_left()  const { return index+0; }
+     u32                         index_right() const { return index+1; }
+
+     DFBSurfaceBufferID          buffer_left()  const { return buffer_ids[index_left()]; }
+     DFBSurfaceBufferID          buffer_right() const { return buffer_ids[index_right()]; }
 
      template <class _Config>
      _Config *

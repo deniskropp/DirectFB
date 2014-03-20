@@ -48,7 +48,7 @@
 #include "x11image.h"
 #include "x11_surface_pool.h"
 
-D_DEBUG_DOMAIN( X11_Surfaces, "X11/Surfaces", "X11 System Surface Pool" );
+D_DEBUG_DOMAIN( X11_Surfaces, "X11/Windows", "X11 System Surface Pool" );
 
 /**********************************************************************************************************************/
 
@@ -106,9 +106,22 @@ x11InitPool( CoreDFB                    *core,
      ret_desc->priority = CSPP_ULTIMATE;
 
      /* For showing our X11 window */
-     ret_desc->access[CSAID_LAYER0] = CSAF_READ;
-     ret_desc->access[CSAID_LAYER1] = CSAF_READ;
-     ret_desc->access[CSAID_LAYER2] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER0]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER1]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER2]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER3]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER4]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER5]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER6]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER7]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER8]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER9]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER10] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER11] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER12] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER13] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER14] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER15] = CSAF_READ;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "X11 Windows" );
 
@@ -278,7 +291,7 @@ x11AllocateKey( CoreSurfacePool       *pool,
 
 //     alloc->depth  = DefaultDepthOfScreen( x11->screenptr );
 //     alloc->visual = DefaultVisualOfScreen( x11->screenptr );
-     alloc->visual = x11->visuals[DFB_PIXELFORMAT_INDEX(buffer->format)];
+     alloc->visual = x11->visuals[DFB_PIXELFORMAT_INDEX(buffer->format)] ?: DefaultVisualOfScreen( x11->screenptr );
      alloc->depth  = DFB_COLOR_BITS_PER_PIXEL( buffer->format ) + DFB_ALPHA_BITS_PER_PIXEL( buffer->format );
 
      if (alloc->depth == DefaultDepthOfScreen( x11->screenptr ))
@@ -307,16 +320,16 @@ x11AllocateKey( CoreSurfacePool       *pool,
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> window 0x%08lx\n", (long) alloc->window );
 
-                    XCompositeRedirectWindow( x11->display, alloc->window, CompositeRedirectManual );
+//                    XCompositeRedirectWindow( x11->display, alloc->window, CompositeRedirectManual );
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> redirected\n" );
 
-                    alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
-//                    alloc->xid = alloc->window;
+//                    alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
+                    alloc->xid = alloc->window;
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
 
-                    XUnmapWindow( x11->display, alloc->window );
+//                    XUnmapWindow( x11->display, alloc->window );
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> unmapped\n" );
 
@@ -340,6 +353,9 @@ x11AllocateKey( CoreSurfacePool       *pool,
 
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> creating pixmap...\n" );
+
+//                    if (allocation->type & CSTF_LAYER)
+//                         alloc->depth = DefaultDepthOfScreen( DefaultScreenOfDisplay(x11->display) );
 
                     alloc->xid = XCreatePixmap( x11->display, DefaultRootWindow(x11->display),
                                                 allocation->config.size.w, allocation->config.size.h, alloc->depth );
@@ -376,6 +392,9 @@ x11AllocateKey( CoreSurfacePool       *pool,
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> creating window...\n" );
 
+                    alloc->depth  = DefaultDepthOfScreen( x11->screenptr );
+                    alloc->visual = DefaultVisualOfScreen( x11->screenptr );
+
                     alloc->window = w?:XCreateWindow( x11->display,
                                                    DefaultRootWindow(x11->display),
                                                    600, 200, allocation->config.size.w, allocation->config.size.h, 0,
@@ -386,19 +405,19 @@ x11AllocateKey( CoreSurfacePool       *pool,
                     buffer->surface->data = (void*) (long) alloc->window;
 
                     XMapRaised( x11->display, alloc->window );
-                    x11->Sync( x11 );
+                    XSync( x11->display, False );
                     D_DEBUG_AT( X11_Surfaces, "  -> raised\n" );
 
-                    XCompositeRedirectWindow( x11->display, alloc->window, CompositeRedirectManual );
+//                    XCompositeRedirectWindow( x11->display, alloc->window, CompositeRedirectManual );
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> redirected\n" );
 
-                    alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
-//                    alloc->xid = alloc->window;
+//                    alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
+                    alloc->xid = alloc->window;
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
 
-                    XUnmapWindow( x11->display, alloc->window );
+//                    XUnmapWindow( x11->display, alloc->window );
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> unmapped\n" );
 

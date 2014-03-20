@@ -76,25 +76,44 @@ ISurfaceAllocation_Real::Updated( const DFBBox *updates,
           D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  -> dead object!\n" );
      }
      else {
-          if (obj->buffer) {
-               D_ASSERT( obj->buffer == buffer );
+          CoreSurface *surface;
 
-               D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- buffer  %s\n", *ToString<CoreSurfaceBuffer>( *buffer ) );
-               D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- written %p\n", buffer->written );
-               D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- read    %p\n", buffer->read );
-               D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- serial  %lu (this %lu)\n", buffer->serial.value, obj->serial.value );
+          ret = (DFBResult) fusion_object_get( core->shared->surface_pool, buffer->surface_id, (FusionObject**) &surface );
+          if (ret && ret != DFB_DEAD) {
+               dfb_surface_buffer_unref( buffer );
+               return ret;
+          }
 
-               direct_serial_increase( &buffer->serial );
-
-               direct_serial_copy( &obj->serial, &buffer->serial );
-
-               buffer->written = obj;
-               buffer->read    = NULL;
-
-               D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  -> serial  %lu\n", buffer->serial.value );
+          if (ret == DFB_DEAD) {
+               D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  -> dead object!\n" );
           }
           else {
-               D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  -> already decoupled!\n" );
+               dfb_surface_lock( surface );
+
+               if (obj->buffer) {
+                    D_ASSERT( obj->buffer == buffer );
+
+                    D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- buffer  %s\n", *ToString<CoreSurfaceBuffer>( *buffer ) );
+                    D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- written %p\n", buffer->written );
+                    D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- read    %p\n", buffer->read );
+                    D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  <- serial  %lu (this %lu)\n", buffer->serial.value, obj->serial.value );
+
+                    direct_serial_increase( &buffer->serial );
+
+                    direct_serial_copy( &obj->serial, &buffer->serial );
+
+                    buffer->written = obj;
+                    buffer->read    = NULL;
+
+                    D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  -> serial  %lu\n", buffer->serial.value );
+               }
+               else {
+                    D_DEBUG_AT( DirectFB_CoreSurfaceAllocation, "  -> already decoupled!\n" );
+               }
+
+               dfb_surface_unlock( surface );
+
+               dfb_surface_unref( surface );
           }
 
           dfb_surface_buffer_unref( buffer );

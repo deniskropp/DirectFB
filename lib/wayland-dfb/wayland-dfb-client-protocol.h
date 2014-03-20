@@ -50,26 +50,6 @@ enum wl_dfb_error {
 };
 #endif /* WL_DFB_ERROR_ENUM */
 
-struct wl_dfb_listener {
-	/**
-	 * surface_id - (none)
-	 * @surface: (none)
-	 * @surface_id: (none)
-	 */
-	void (*surface_id)(void *data,
-			   struct wl_dfb *wl_dfb,
-			   struct wl_object *surface,
-			   uint32_t surface_id);
-};
-
-static inline int
-wl_dfb_add_listener(struct wl_dfb *wl_dfb,
-		    const struct wl_dfb_listener *listener, void *data)
-{
-	return wl_proxy_add_listener((struct wl_proxy *) wl_dfb,
-				     (void (**)(void)) listener, data);
-}
-
 #define WL_DFB_CREATE_BUFFER	0
 
 static inline void
@@ -91,17 +71,12 @@ wl_dfb_destroy(struct wl_dfb *wl_dfb)
 }
 
 static inline struct wl_dfb_buffer *
-wl_dfb_create_buffer(struct wl_dfb *wl_dfb, uint32_t surface_id, uint32_t buffer_id, uint32_t allocation_id)
+wl_dfb_create_buffer(struct wl_dfb *wl_dfb, uint32_t buffer_id)
 {
 	struct wl_proxy *id;
 
-	id = wl_proxy_create((struct wl_proxy *) wl_dfb,
-			     &wl_dfb_buffer_interface);
-	if (!id)
-		return NULL;
-
-	wl_proxy_marshal((struct wl_proxy *) wl_dfb,
-			 WL_DFB_CREATE_BUFFER, id, surface_id, buffer_id, allocation_id);
+	id = wl_proxy_marshal_constructor((struct wl_proxy *) wl_dfb,
+			 WL_DFB_CREATE_BUFFER, &wl_dfb_buffer_interface, NULL, buffer_id);
 
 	return (struct wl_dfb_buffer *) id;
 }

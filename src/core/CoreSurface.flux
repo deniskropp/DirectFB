@@ -6,7 +6,7 @@ interface {
 
 	method {
 		name	SetConfig
-		
+
 		arg {
 			name	    config
 			direction   input
@@ -475,5 +475,146 @@ interface {
                      typename    u32
              }
       }
+
+
+      method {
+             name    GetBuffers
+
+             arg {
+                     name        buffer_ids
+                     direction   output
+                     type        int
+                     typename    u32
+                     max         ids_max
+                     count       ids_len
+             }
+
+             arg {
+                     name        ids_max
+                     direction   input
+                     type        int
+                     typename    u32
+             }
+
+             arg {
+                     name        ids_len
+                     direction   output
+                     type        int
+                     typename    u32
+             }
+     }
+
+
+     method {
+            name    GetOrAllocate
+
+            arg {
+                    name        buffer_id
+                    direction   input
+                    type        int
+                    typename    u32
+            }
+
+            arg {
+                    name        key
+                    direction   input
+                    type        int
+                    typename    char
+                    count       key_len
+            }
+
+            arg {
+                    name        key_len
+                    direction   input
+                    type        int
+                    typename    u32
+            }
+
+            arg {
+                    name        handle
+                    direction   input
+                    type        int
+                    typename    u64
+            }
+
+            arg {
+                    name        ops
+                    direction   input
+                    type        int
+                    typename    DFBSurfaceAllocationOps
+            }
+
+            arg {
+                    name        allocation
+                    direction   output
+                    type        object
+                    typename    CoreSurfaceAllocation
+            }
+    }
+
+
+    method {
+           name     DispatchUpdate2
+           async    yes
+
+           arg {
+                   name        flags
+                   direction   input
+                   type        enum
+                   typename    DFBSurfaceFlipFlags
+           }
+
+           arg {
+                   name        timestamp
+                   direction   input
+                   type        int
+                   typename    s64
+           }
+
+
+           arg {
+                   name        left_id
+                   direction   input
+                   type        int
+                   typename    u32
+           }
+
+           arg {
+                   name        left_serial
+                   direction   input
+                   type        int
+                   typename    u32
+           }
+
+           arg {
+                   name        left_region
+                   direction   input
+                   type        struct
+                   typename    DFBRegion
+                   optional    yes
+           }
+
+           arg {
+                   name        right_id
+                   direction   input
+                   type        int
+                   typename    u32
+           }
+
+           arg {
+                   name        right_serial
+                   direction   input
+                   type        int
+                   typename    u32
+           }
+
+           arg {
+                   name        right_region
+                   direction   input
+                   type        struct
+                   typename    DFBRegion
+                   optional    yes
+           }
+    }
 }
 

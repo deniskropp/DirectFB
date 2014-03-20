@@ -59,7 +59,6 @@ D_DEBUG_DOMAIN( DirectFB_CoreGraphicsState_Throttle, "DirectFB/CoreGraphicsState
 
 namespace DirectFB {
 
-
 /**********************************************************************************************************************
  * State
  */
@@ -365,14 +364,14 @@ IGraphicsState_Real::SetTo(
  * Rendering
  */
 
-class ThrottleGraphicsState : public Renderer::Throttle
+class ThrottleGraphicsState : public Graphics::Throttle
 {
 private:
     CoreGraphicsState *state;
 
 public:
-    ThrottleGraphicsState( Renderer          &renderer,
-                           CoreGraphicsState *state )
+    ThrottleGraphicsState( Graphics::Renderer &renderer,
+                           CoreGraphicsState  *state )
         :
         Throttle( renderer ),
         state( state )
@@ -389,11 +388,12 @@ protected:
     }
 };
 
+
 static void
 CoreGraphicsState_SetupRenderer( CoreGraphicsState *state )
 {
     if (!state->renderer) {
-         state->renderer = new Renderer( &state->state, state );
+         state->renderer = new Graphics::Renderer( &state->state, state );
 
          state->renderer->SetThrottle( new ThrottleGraphicsState(*state->renderer, state) );
     }

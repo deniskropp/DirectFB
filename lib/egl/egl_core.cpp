@@ -45,7 +45,7 @@ extern "C" {
 
 #include <egl/dfbegl.h>
 #include <egl/dfbegl_int_names.h>
-#include <egl/image.h>
+#include <egl/KHR_image.h>
 
 
 D_LOG_DOMAIN( DFBEGL_Core, "DFBEGL/Core", "DirectFB EGL Core" );
@@ -84,7 +84,7 @@ Core::GetInstance()
      return core;
 }
 
-
+/**********************************************************************************************************************/
 
 DFBResult
 Core::Display_Probe( DirectFB::EGL::Display &display,
@@ -98,7 +98,7 @@ Core::Display_Probe( DirectFB::EGL::Display &display,
      if (!display.native_display)
           ret_score = 1;
 
-     if (display.native_display == idirectfb_singleton) {
+     if (display.native_display && display.native_display == idirectfb_singleton) {
           D_DEBUG_AT( DFBEGL_Core, "  -> is IDirectFB singleton = %p!\n", idirectfb_singleton );
 
           ret_score = 100;
@@ -132,24 +132,21 @@ Core::Display_Initialise( DirectFB::EGL::DisplayDFB &display )
      else
           D_DEBUG_AT( DFBEGL_Core, "  ===> Creating native DirectFB display (new)\n" );
 
-     KHR::Image::Register< KHR::Image::Initialise >( (Direct::String) EGLInt(EGL_IMAGE_IDIRECTFBSURFACE_DIRECTFB),
-                                                     std::bind( &DisplayDFB::Image_Initialise, &display, _1 ) );
-
-     KHR::Image::Register< KHR::Image::Initialise >( (Direct::String) EGLInt(EGL_NATIVE_PIXMAP_KHR),
-                                                     std::bind( &DisplayDFB::Image_Initialise, &display, _1 ) );
-
      return DFB_OK;
 }
 
-
-
+/**********************************************************************************************************************/
 
 Core::Core()
 {
      D_DEBUG_AT( DFBEGL_Core, "Core::%s( %p )\n", __FUNCTION__, this );
 
-     Register< Display::Probe >     ( Display::GetTypeInstance().GetName(), std::bind( &Core::Display_Probe, this, _1, _2 ) );
-     Register< Display::Initialise >( Display::GetTypeInstance().GetName(), std::bind( &Core::Display_Initialise, this, _1 ) );
+     Core::Register< Display::Probe >     ( "Probe",
+                                            std::bind( &Core::Display_Probe, this, _1, _2 ),
+                                            Display::GetTypeInstance().GetName() );
+     Core::Register< Display::Initialise >( "Initialise",
+                                            std::bind( &Core::Display_Initialise, this, _1 ),
+                                            Display::GetTypeInstance().GetName() );
 
      DisplayDFB::RegisterConversion< EGL::Display, Core& >( *this );
 }
@@ -159,7 +156,7 @@ Core::~Core()
      D_DEBUG_AT( DFBEGL_Core, "Core::%s( %p )\n", __FUNCTION__, this );
 }
 
-
+/**********************************************************************************************************************/
 
 DFBResult
 Core::LoadModules()
@@ -249,10 +246,11 @@ Core::GetDisplay( EGLNativeDisplayType   native_display,
 
      D_DEBUG_AT( DFBEGL_Core, "  -> probing modules...\n" );
 
-//     for (auto f : Map< Display::Probe >()) {
-     std::map<std::string,Display::Probe> &map = Map< Display::Probe >();
-     for (std::map<std::string,Display::Probe>::iterator f = map.begin(); f != map.end(); f++) {
-          D_DEBUG_AT( DFBEGL_Core, "  -> probing %s...\n", (*f).first.c_str() );
+     auto map = Map< Display::Probe >( "Probe" );
+
+     for (auto f = map.begin(); f != map.end(); f++) {
+          D_DEBUG_AT( DFBEGL_Core, "  -> probing %s...\n", std::get<1>((*f).first).c_str() );
+          //D_DEBUG_AT( DFBEGL_Core, "  -> probing %s...\n", (*f).first.c_str() );
 
           unsigned int score = 0;
 
@@ -263,7 +261,7 @@ Core::GetDisplay( EGLNativeDisplayType   native_display,
           else if (score > scored_value) {
                D_DEBUG_AT( DFBEGL_Core, "  => KEEPING AS BEST %u > %u\n", score, scored_value );
 
-               scored_impl  = (*f).first;
+               scored_impl  = std::get<1>((*f).first);
                scored_value = score;
 
                continue;
@@ -275,7 +273,7 @@ Core::GetDisplay( EGLNativeDisplayType   native_display,
      if (scored_impl) {
           D_DEBUG_AT( DFBEGL_Core, "  ===> Creating %s display\n", *scored_impl );
 
-          ret = Call<Display::Initialise>(scored_impl)( *display );
+          ret = Call<Display::Initialise>("Initialise", scored_impl)( *display );
           if (ret) {
                D_DERROR( ret, "DFBEGL/Core: DisplayModule(%s)::CreateDisplay( 0x%08lx ) failed!\n",
                          *scored_impl, (unsigned long) native_display );

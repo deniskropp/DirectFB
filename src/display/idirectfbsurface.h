@@ -130,6 +130,7 @@ typedef struct {
                                                 this surface */
 
      Reaction               reaction;
+     Reaction               reaction_frame;
 
      CoreDFB               *core;
      IDirectFB             *idirectfb;
@@ -159,7 +160,9 @@ typedef struct {
      DFBFrameTimeConfig       frametime_config;
 
      unsigned int             local_flip_count;
-     int                      local_flip_buffers;
+     unsigned int             local_buffer_count;
+
+     CoreSurfaceAllocation   *allocations[MAX_SURFACE_BUFFERS];
 } IDirectFBSurface_data;
 
 /*
@@ -179,6 +182,20 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface *thiz,
  * destroys surface(s) and frees private data
  */
 void IDirectFBSurface_Destruct( IDirectFBSurface *thiz );
+
+
+
+DFBResult
+IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
+                       const DFBRegion     *region,
+                       DFBSurfaceFlipFlags  flags );
+
+DFBResult
+IDirectFBSurface_FlipStereo( IDirectFBSurface    *thiz,
+                             const DFBRegion     *left_region,
+                             const DFBRegion     *right_region,
+                             DFBSurfaceFlipFlags  flags );
+
 
 /*
  * internal

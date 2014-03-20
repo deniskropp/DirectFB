@@ -217,10 +217,17 @@ Library::Lookup( const Direct::String &symbol )
      D_DEBUG_AT( DFBEGL_Library, "EGL::Library::%s( %p, '%s' )\n",
                  __FUNCTION__, this, *symbol );
 
-     if (handle)
-          ret = dlsym( handle, *symbol );
-     else
-          D_DEBUG_AT( DFBEGL_Library, "  -> NOT LOADED\n" );
+     if (this->eglGetProcAddress) {
+          D_DEBUG_AT( DFBEGL_Library, "  -> trying eglGetProcAddress...\n" );
+          ret = (void*) this->eglGetProcAddress( *symbol );
+     }
+
+     if (!ret) {
+          if (handle)
+               ret = dlsym( handle, *symbol );
+          else
+               D_DEBUG_AT( DFBEGL_Library, "  -> NOT LOADED\n" );
+     }
 
 
      D_DEBUG_AT( DFBEGL_Library, "  => %p\n", ret );

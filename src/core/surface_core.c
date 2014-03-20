@@ -106,8 +106,8 @@ alloc_callback( CoreSurfaceAllocation *alloc,
           }
      }
 
-     printf( "%3lu ", alloc->object.id );
-     printf( "%3lu ", alloc->buffer_id );
+     printf( "%3u ", alloc->object.id );
+     printf( "%3u ", alloc->buffer_id );
 
      printf( "%9lu %8d  ", alloc->offset, alloc->size );
 
@@ -166,7 +166,7 @@ alloc_callback( CoreSurfaceAllocation *alloc,
 
      printf( "   ref 0x%04x\n", alloc->object.ref.multi.id );
 
-     dfb_surface_allocation_dump( alloc, ".", D_String_PrintTLS( "dfb_surface_allocation_%lu_%lu",
+     dfb_surface_allocation_dump( alloc, ".", D_String_PrintTLS( "dfb_surface_allocation_%u_%u",
                                                                  alloc->object.id, alloc->buffer_id ), false );
 
      return DFENUM_OK;

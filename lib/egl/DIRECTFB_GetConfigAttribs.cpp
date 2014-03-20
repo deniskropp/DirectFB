@@ -61,13 +61,17 @@ GetConfigAttribs::GetConfigAttribs()
 {
      D_DEBUG_AT( DFBEGL_GetConfigAttribs, "GetConfigAttribs::%s( %p )\n", __FUNCTION__, this );
 
-     DirectFB::EGL::Display::Register< DirectFB::EGL::EGLExtension::GetNames >( GetName(), [](){ return "EGL_DIRECTFB_get_config_attribs";} );
+     DirectFB::EGL::Display::Register< DirectFB::EGL::EGLExtension::GetNames >( "GetNames",
+                                                                                [](){ return "EGL_DIRECTFB_get_config_attribs";},
+                                                                                GetName() );
 
-     DirectFB::EGL::Core::Register<
-     DirectFB::EGL::Core::GetProcAddress
-     >( "eglGetConfigAttribsDIRECTFB", [](const char *){ return (void*) eglGetConfigAttribsDIRECTFB;} );
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Core::GetProcAddress >( "GetProcAddress",
+                                                                           [](const char *){ return (void*) eglGetConfigAttribsDIRECTFB;},
+                                                                           "eglGetConfigAttribsDIRECTFB" );
 
-     DirectFB::EGL::Display::Register< GetConfigAttribsDIRECTFB >( "", std::bind( &GetConfigAttribs::eglGetConfigAttribs, this, _1, _2, _3, _4 ) );
+     DirectFB::EGL::Display::Register< GetConfigAttribsDIRECTFB >( "GetConfigAttribsDIRECTFB",
+                                                                   std::bind( &GetConfigAttribs::eglGetConfigAttribs, this, _1, _2, _3, _4 ),
+                                                                   "" );
 }
 
 GetConfigAttribs::~GetConfigAttribs()
@@ -96,7 +100,7 @@ GetConfigAttribs::eglGetConfigAttribsDIRECTFB( EGLDisplay           dpy,
 
      DirectFB::EGL::Display *display = (DirectFB::EGL::Display*) dpy;
 
-     DFBResult ret = DirectFB::EGL::Display::Call< GetConfigAttribsDIRECTFB >()( *display, native, attribs, max );
+     DFBResult ret = DirectFB::EGL::Display::Call< GetConfigAttribsDIRECTFB >( "GetConfigAttribsDIRECTFB", "" )( *display, native, attribs, max );
 
      if (ret)
           DFB_EGL_RETURN (EGL_BAD_PARAMETER, EGL_FALSE);

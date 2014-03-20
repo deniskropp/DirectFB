@@ -27,8 +27,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-//#define DIRECT_ENABLE_DEBUG
-
 #include <config.h>
 
 #include <stdio.h>
@@ -43,46 +41,48 @@ extern "C" {
 #include <egl/dfbegl.h>
 
 
-
-D_LOG_DOMAIN( DFBEGL_Config, "DFBEGL/Config", "DirectFB EGL Config" );
-
-
 namespace DirectFB {
 
 namespace EGL {
 
 
-Config::Config( Display          *display,
-                Graphics::Config *gfx_config )
+Option::Option( const EGLint option,
+                long         value )
      :
-     display( display ),
-     gfx_config( gfx_config )
-{
-     D_DEBUG_AT( DFBEGL_Config, "EGL::Config::%s( %p, display %p, gfx_config %p )\n",
-                 __FUNCTION__, this, display, gfx_config );
-
-}
-
-Config::~Config()
+     option( option ),
+     value( value )
 {
 }
 
-EGLint
-Config::GetAttrib( EGLint attribute, EGLint *value )
+Option::~Option()
 {
-     D_DEBUG_AT( DFBEGL_Config, "EGL::Config::%s( %p, attribute 0x%08x (%d) '%s' )\n",
-                 __FUNCTION__, this, attribute, attribute, *ToString<EGLInt>( EGLInt(attribute) ) );
+}
 
-     if (gfx_config) {
-          long v;
+Direct::String
+Option::GetName() const
+{
+     return ToString<EGLInt>( EGLInt(option) );
+}
 
-          if (gfx_config->GetOption( ToString<EGLInt>( EGLInt(attribute) ), v ) == DFB_OK) {
-               *value = v;
-               return EGL_SUCCESS;
-          }
-     }
+Direct::String
+Option::GetString() const
+{
+     if (value < 0x3000 || value > 0x4000)
+          return ToString<int>( value );
 
-     return EGL_BAD_ATTRIBUTE;
+     return ToString<EGLInt>( EGLInt(value) );
+}
+
+const long &
+Option::GetValue() const
+{
+     return value;
+}
+
+void
+Option::SetValue( const long &value )
+{
+     this->value = value;
 }
 
 

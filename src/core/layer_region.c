@@ -65,6 +65,7 @@
 
 D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
 D_DEBUG_DOMAIN( Core_LayersLock, "Core/Layers/Lock", "DirectFB Display Layer Core locks" );
+D_DEBUG_DOMAIN( Core_LayersUpdate, "Core/Layers/Update", "DirectFB Display Layer Core Update" );
 
 
 static DFBResult region_buffer_unlock( CoreLayerRegion *region,
@@ -146,15 +147,24 @@ static ReactionResult surface_react( const void *msg_data,
      const DFBSurfaceEvent *evt  = msg_data;
      CoreLayerRegion       *region = ctx;
 
-     D_DEBUG_AT( Core_Layers, "%s( %p ) <- type %06x\n", __FUNCTION__, evt, evt->type );
-     D_DEBUG_AT( Core_Layers, "  -> surface id %u\n", evt->surface_id );
+     D_DEBUG_AT( Core_LayersUpdate, "%s( %p ) <- type %06x\n", __FUNCTION__, evt, evt->type );
+     D_DEBUG_AT( Core_LayersUpdate, "  -> surface id %u\n", evt->surface_id );
 
      if (evt->type == DSEVT_UPDATE) {
-          D_DEBUG_AT( Core_Layers, "  -> updated %d,%d-%dx%d (left)\n", DFB_RECTANGLE_VALS_FROM_REGION(&evt->update) );
-          D_DEBUG_AT( Core_Layers, "  -> updated %d,%d-%dx%d (right)\n", DFB_RECTANGLE_VALS_FROM_REGION(&evt->update_right) );
-          D_DEBUG_AT( Core_Layers, "  -> flip count %u\n", evt->flip_count );
-          D_DEBUG_AT( Core_Layers, "  -> time stamp %lld\n", evt->time_stamp );
+          D_DEBUG_AT( Core_LayersUpdate, "  -> updated %d,%d-%dx%d (left)\n", DFB_RECTANGLE_VALS_FROM_REGION(&evt->update) );
+          D_DEBUG_AT( Core_LayersUpdate, "  -> updated %d,%d-%dx%d (right)\n", DFB_RECTANGLE_VALS_FROM_REGION(&evt->update_right) );
+          D_DEBUG_AT( Core_LayersUpdate, "  -> flip count %u\n", evt->flip_count );
+          D_DEBUG_AT( Core_LayersUpdate, "  -> time stamp %lld\n", evt->time_stamp );
+          D_DEBUG_AT( Core_LayersUpdate, "  -> layer region %s\n", ToString_CoreLayerRegion(region) );
 
+#if D_DEBUG_ENABLED
+          dfb_surface_lock( region->surface );
+          CoreSurfaceBuffer *buffer = dfb_surface_get_buffer3( region->surface, CSBR_FRONT, DSSE_LEFT, evt->flip_count );
+          D_DEBUG_AT( Core_LayersUpdate, "  -> buffer       %s\n", ToString_CoreSurfaceBuffer(buffer) );
+          dfb_surface_unlock( region->surface );
+#endif
+
+          region->surface_flip_count = evt->flip_count;
 
           if (!CoreLayerRegion_FlipUpdate2( region, &evt->update, &evt->update_right,
                                             DSFLIP_ONSYNC | DSFLIP_UPDATE, evt->flip_count, evt->time_stamp ))
@@ -453,8 +463,11 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
                                            region, &region->surface_event_reaction );
           }
 
-          if (update && D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE ))
+          if (update && D_FLAGS_ARE_SET( region->state, CLRSF_ENABLED | CLRSF_ACTIVE )) {
+               region->surface_flip_count = surface->flips;
+
                dfb_layer_region_flip_update( region, NULL, DSFLIP_UPDATE );
+          }
      }
 
      /* Unlock the region. */
@@ -616,7 +629,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                                                        layer->driver_data,
                                                        layer->layer_data,
                                                        region->region_data,
-                                                       surface, flags, 
+                                                       surface, flags,
                                                        update, &left,
                                                        NULL, NULL );
 
@@ -850,7 +863,7 @@ dfb_layer_region_flip_update_stereo( CoreLayerRegion     *region,
                                                        layer->driver_data,
                                                        layer->layer_data,
                                                        region->region_data,
-                                                       surface, flags, 
+                                                       surface, flags,
                                                        left_update, &left,
                                                        right_update, &right);
 
@@ -905,7 +918,7 @@ update_only:
                          CoreSurfaceAllocation *left_allocation, *right_allocation;
 
                          (void)left_allocation;
-                         (void)right_allocation;                         
+                         (void)right_allocation;
 
                          /* Lock region buffer before it is used. */
                          region_buffer_lock( region, surface, CSBR_FRONT, &left, &right );
@@ -936,7 +949,7 @@ update_only:
                     }
 
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
-                    
+
                     if (!left_update && !right_update) {
                          unrotated    = DFB_REGION_INIT_FROM_RECTANGLE_VALS( 0, 0,
                                            region->config.width, region->config.height );
@@ -964,7 +977,7 @@ update_only:
                                                layer->driver_data,
                                                layer->layer_data,
                                                region->region_data,
-                                               surface, 
+                                               surface,
                                                &left_rotated, &left,
                                                &right_rotated, &right );
 
@@ -1201,6 +1214,12 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
      if (notification->surface != region->surface)
           return RS_OK;
 
+//     if (flags & CSNF_DISPLAY)
+//          return RS_OK;
+
+     if (flags & CSNF_BUFFER_ALLOCATION_DESTROY)
+          return RS_OK;
+
      layer = dfb_layer_at( region->layer_id );
 
      D_ASSERT( layer != NULL );
@@ -1219,9 +1238,6 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
           region->surface = NULL;
           return RS_REMOVE;
      }
-
-     if (flags & CSNF_DISPLAY)
-          return RS_OK;
 
      if (dfb_layer_region_lock( region ))
           return RS_OK;
@@ -1305,9 +1321,10 @@ region_buffer_unlock( CoreLayerRegion       *region,
 
      D_ASSERT(region != NULL);
      D_ASSERT(left_buffer_lock != NULL);
-     D_ASSERT( !dfb_config->task_manager );
+//     D_ASSERT( !dfb_config->task_manager );
 
      D_DEBUG_AT( Core_Layers, "%s(): region=%p, lock buffer=%p\n", __FUNCTION__, (void *)region, (void *)left_buffer_lock->buffer );
+
      /* Unlock any previously locked buffer. */
      if (left_buffer_lock->buffer) {
           D_MAGIC_ASSERT( left_buffer_lock->buffer, CoreSurfaceBuffer );
@@ -1341,19 +1358,22 @@ region_buffer_lock( CoreLayerRegion       *region,
      D_ASSERT( region != NULL );
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT(left_buffer_lock != NULL);
-     D_ASSERT( !dfb_config->task_manager );
+//     D_ASSERT( !dfb_config->task_manager );
 
      FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      stereo = surface->config.caps & DSCAPS_STEREO;
 
      D_DEBUG_AT( Core_LayersLock, "%s( role %d )\n", __FUNCTION__, role );
+     D_DEBUG_AT( Core_LayersLock, " -> region  %s\n", ToString_CoreLayerRegion(region) );
+     D_DEBUG_AT( Core_LayersLock, " -> surface %s\n", ToString_CoreSurface(surface) );
 
      Core_PushIdentity( FUSION_ID_MASTER );
 
      /* Save current buffer focus. */
-     buffer = dfb_surface_get_buffer2( surface, role, DSSE_LEFT );
+     buffer = dfb_surface_get_buffer3( surface, role, DSSE_LEFT, region->surface_flip_count );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     D_DEBUG_AT( Core_LayersLock, " -> buffer  %s\n", ToString_CoreSurfaceBuffer(buffer) );
 
      /* Lock the surface buffer. */
      ret = dfb_surface_buffer_lock( buffer, region->surface_accessor, CSAF_READ, left_buffer_lock );
@@ -1365,23 +1385,14 @@ region_buffer_lock( CoreLayerRegion       *region,
 
      allocation = left_buffer_lock->allocation;
      D_ASSERT( allocation != NULL );
-#if 0
-     /* If hardware has written or is writing... */
-     if (allocation->accessed[CSAID_GPU] & CSAF_WRITE) {
-          D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
 
-          /* ...wait for the operation to finish. */
-          dfb_gfxcard_sync(); /* TODO: wait for serial instead */
-
-          allocation->accessed[CSAID_GPU] &= ~CSAF_WRITE;
-     }
-#endif
      if (stereo) {
           D_ASSERT(right_buffer_lock != NULL);
 
-          buffer = dfb_surface_get_buffer2( surface, role, DSSE_RIGHT );
+          buffer = dfb_surface_get_buffer3( surface, role, DSSE_RIGHT, region->surface_flip_count );
           D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-     
+          D_DEBUG_AT( Core_LayersLock, " -> buffer  %s\n", ToString_CoreSurfaceBuffer(buffer) );
+
           /* Lock the surface buffer. */
           ret = dfb_surface_buffer_lock( buffer, region->surface_accessor, CSAF_READ, right_buffer_lock );
           if (ret) {
@@ -1389,20 +1400,9 @@ region_buffer_lock( CoreLayerRegion       *region,
                Core_PopIdentity();
                return ret;
           }
-     
+
           allocation = right_buffer_lock->allocation;
           D_ASSERT( allocation != NULL );
-#if 0
-          /* If hardware has written or is writing... */
-          if (allocation->accessed[CSAID_GPU] & CSAF_WRITE) {
-               D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
-     
-               /* ...wait for the operation to finish. */
-               dfb_gfxcard_sync(); /* TODO: wait for serial instead */
-     
-               allocation->accessed[CSAID_GPU] &= ~CSAF_WRITE;
-          }
-#endif
      }
      else if (right_buffer_lock)
           /* clear for region_buffer_unlock */
@@ -1441,7 +1441,7 @@ dfb_layer_region_set( CoreLayerRegion            *region,
      D_ASSERT( region != NULL );
      D_ASSERT( config != NULL );
      D_ASSERT( config->buffermode != DLBM_WINDOWS );
-     D_ASSERT( !dfb_config->task_manager );
+//     D_ASSERT( !dfb_config->task_manager );
 
      D_ASSERT( D_FLAGS_IS_SET( region->state, CLRSF_REALIZED ) );
 

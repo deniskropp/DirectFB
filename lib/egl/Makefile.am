@@ -29,10 +29,20 @@ pkgconfig_DATA = dfbegl.pc egl.pc
 includedir = @INCLUDEDIR@/egl
 
 include_HEADERS = \
-	dfbegl.h		\
-	dfbegl_int_names.h	\
-	egl_result.h		\
-	image.h
+	dfbegl.h			\
+	dfbegl_int_names.h		\
+	egl_result.h			\
+	egl_config.h			\
+	egl_context.h			\
+	egl_core.h			\
+	egl_display.h			\
+	egl_library.h			\
+	egl_option.h			\
+	egl_surface.h			\
+	egl_tls.h			\
+	egl_util.h			\
+	DIRECTFB_GetConfigAttribs.h	\
+	KHR_image.h
 
 DISTCLEANFILES = dfbegl_int_names.h
 
@@ -67,18 +77,18 @@ lib_LTLIBRARIES = libDFBEGL.la
 
 
 libDFBEGL_la_SOURCES = \
-	api.cpp			\
-	config.cpp		\
-	context.cpp		\
-	core.cpp		\
-	display.cpp		\
-	library.cpp		\
-	image.cpp		\
-	option.cpp		\
-	surface.cpp		\
-	tls.cpp			\
-	util.cpp		\
-	DIRECTFB_GetConfigAttribs.cpp
+	dfbegl.cpp			\
+	egl_config.cpp			\
+	egl_context.cpp			\
+	egl_core.cpp			\
+	egl_display.cpp			\
+	egl_library.cpp			\
+	egl_option.cpp			\
+	egl_surface.cpp			\
+	egl_tls.cpp			\
+	egl_util.cpp			\
+	DIRECTFB_GetConfigAttribs.cpp	\
+	KHR_image.cpp
 
 libDFBEGL_la_LIBADD = \
 	$(DFB_BASE_LIBS)
@@ -107,34 +117,6 @@ libEGL_la_LDFLAGS = \
 
 
 LIBS_TO_NMFILE = libDFBEGL.la
-
-
-#
-## and now rebuild the static version with the *correct* object files
-#
-if BUILD_STATIC
-
-clean-local:
-	rm -f libDFBEGL_fixed.a
-
-all-local: libDFBEGL_fixed.a
-
-libDFBEGL_fixed.a: .libs/libDFBEGL.a
-	rm -f libDFBEGL_fixed.a
-	${AR} cru libDFBEGL_fixed.a `find . -name "*.o" | grep -v '.libs'`
-	${RANLIB} libDFBEGL_fixed.a
-	cp -pf libDFBEGL_fixed.a .libs/libDFBEGL.a
-
-.libs/libDFBEGL.a: libDFBEGL.la
-
-else
-
-clean-local:
-
-all-local:
-
-endif
-
 
 
 $(libDFBEGL_la_SOURCES): dfbegl_int_names.h

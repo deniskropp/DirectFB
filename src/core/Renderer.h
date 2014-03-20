@@ -70,6 +70,7 @@ extern "C" {
 }
 
 
+#include <core/Graphics.h>
 #include <core/SurfaceTask.h>
 
 #include <list>
@@ -80,6 +81,8 @@ extern "C" {
 
 
 namespace DirectFB {
+
+namespace Graphics {
 
 
 /*
@@ -100,46 +103,6 @@ TODO
 
 
 class Engine;
-
-
-class SurfaceAllocationKey
-{
-public:
-     DFBSurfaceID             surfaceID;
-     CoreSurfaceBufferRole    role;
-     DFBSurfaceStereoEye      eye;
-     u32                      flips;
-
-     SurfaceAllocationKey( DFBSurfaceID             surfaceID,
-                           CoreSurfaceBufferRole    role,
-                           DFBSurfaceStereoEye      eye,
-                           u32                      flips )
-          :
-          surfaceID( surfaceID ),
-          role( role ),
-          eye( eye ),
-          flips( flips )
-     {
-     }
-
-     bool operator < (const SurfaceAllocationKey &other) const {
-          if (surfaceID == other.surfaceID) {
-               if (role == other.role) {
-                    if (eye == other.eye)
-                         return flips < other.flips;
-
-                    return eye < other.eye;
-               }
-
-               return role < other.role;
-          }
-
-          return surfaceID < other.surfaceID;
-     }
-};
-
-typedef std::map<SurfaceAllocationKey,CoreSurfaceAllocation*>  SurfaceAllocationMap;
-typedef std::pair<SurfaceAllocationKey,CoreSurfaceAllocation*> SurfaceAllocationMapPair;
 
 
 namespace Primitives {
@@ -195,8 +158,6 @@ private:
 class Renderer : public Direct::Magic<Renderer>
 {
 public:
-     typedef ::DirectFB::Throttle Throttle;
-
      class Setup
      {
      public:
@@ -206,6 +167,8 @@ public:
           DFBRegion     *clips_clipped;
           unsigned int   task_mask;
           unsigned int   tiles_render;
+
+          SurfaceAllocationMap     allocations;
 
           Setup( int width, int height, unsigned int tiles = 1 )
                :
@@ -332,8 +295,6 @@ private:
      Setup                 *setup;
      unsigned int           operations;
 
-     SurfaceAllocationMap   allocations;
-
 
      DFBAccelerationMask getTransformAccel( DFBAccelerationMask accel,
                                             WaterTransformType  type );
@@ -354,19 +315,6 @@ private:
      void      render    ( Primitives::Base       *primitives );
 
      DFBResult update    ( DFBAccelerationMask     accel );
-
-     DFBResult updateLock( CoreSurfaceBufferLock  *lock,
-                           CoreSurface            *surface,
-                           CoreSurfaceBufferRole   role,
-                           DFBSurfaceStereoEye     eye,
-                           u32                     flips,
-                           CoreSurfaceAccessFlags  flags );
-
-     DFBResult enterLock ( CoreSurfaceBufferLock  *lock,
-                           CoreSurfaceAllocation  *allocation,
-                           CoreSurfaceAccessFlags  flags );
-     DFBResult leaveLock ( CoreSurfaceBufferLock  *lock );
-
 
      /* Engines */
 
@@ -448,8 +396,8 @@ public:
           }
      };
 
-     Capabilities caps;
-     Description  desc;
+     Capabilities             caps;
+     Description              desc;
 
 protected:
      Engine()
@@ -472,6 +420,23 @@ public:
                                          StateModificationFlags  modified,
                                          DFBAccelerationMask     accel ) = 0;
 
+     virtual DFBResult updateLock      ( Renderer::Setup        *setup,
+                                         CoreSurfaceBufferLock  *lock,
+                                         CoreSurface            *surface,
+                                         CoreSurfaceBufferRole   role,
+                                         DFBSurfaceStereoEye     eye,
+                                         u32                     flips,
+                                         CoreSurfaceAccessFlags  flags );
+
+     virtual DFBResult enterLock       ( CoreSurfaceBufferLock  *lock,
+                                         CoreSurfaceAllocation  *allocation,
+                                         CoreSurfaceAccessFlags  flags );
+     virtual DFBResult leaveLock       ( CoreSurfaceBufferLock  *lock );
+
+     virtual DFBResult getAllocation   ( CoreSurface             *surface,
+                                         SurfaceAllocationKey    &key,
+                                         CoreSurfaceAccessFlags   flags,
+                                         CoreSurfaceAllocation  *&allocation );
 
 
      virtual DFBResult DrawRectangles  ( SurfaceTask            *task,
@@ -561,6 +526,8 @@ e.g. one full performance four core engine and one with only one core allocated.
 
 */
 
+
+}
 
 }
 

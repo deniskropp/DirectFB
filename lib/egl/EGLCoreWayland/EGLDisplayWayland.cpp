@@ -94,12 +94,18 @@ EGLCoreModuleWayland::Initialise( DirectFB::EGL::Core &core )
      D_DEBUG_AT( DFBWayland_EGLCoreModule, "EGLCoreModuleWayland::%s( %p, core %p )\n",
                  __FUNCTION__, this, &core );
 
-     Core::Register< Display::Probe >     ( EGLDisplayWayland::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleWayland::Display_Probe, this, _1, _2 ) );
-     Core::Register< Display::Initialise >( EGLDisplayWayland::GetTypeInstance().GetName(), std::bind( &EGLCoreModuleWayland::Display_Initialise, this, _1 ) );
+     Core::Register< Display::Probe >     ( "Probe",
+                                            std::bind( &EGLCoreModuleWayland::Display_Probe, this, _1, _2 ),
+                                            EGLDisplayWayland::GetTypeInstance().GetName() );
+     Core::Register< Display::Initialise >( "Initialise",
+                                            std::bind( &EGLCoreModuleWayland::Display_Initialise, this, _1 ),
+                                            EGLDisplayWayland::GetTypeInstance().GetName() );
 
      EGLDisplayWayland::RegisterConversion< EGL::Display, EGLCoreModuleWayland& >( *this );
 
-     Display::Register< EGLExtension::GetNames >( GetName(), [](){ return "DIRECTFB_display_wayland";} );
+     Display::Register< EGLExtension::GetNames >( "GetNames",
+                                                  [](){ return "DIRECTFB_display_wayland";},
+                                                  GetName() );
 
      return DFB_OK;
 }
@@ -113,7 +119,7 @@ EGLCoreModuleWayland::Display_Probe( const EGL::Display &display,
      D_DEBUG_AT( DFBWayland_EGLCoreModule, "EGLCoreModuleWayland::%s( %p, display %p, native_display 0x%08lx )\n",
                  __FUNCTION__, this, &display, (unsigned long) display.native_display );
 
-     if (display.native_display == idirectfb_singleton) {
+     if (display.native_display && display.native_display == idirectfb_singleton) {
           D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> is IDirectFB singleton = %p!\n", idirectfb_singleton );
           return DFB_UNSUPPORTED;
      }
@@ -132,17 +138,16 @@ EGLCoreModuleWayland::Display_Probe( const EGL::Display &display,
 
           ret_score = 100;
      }
-     else {
+     else if (display.native_display) {
           D_DEBUG_AT( DFBWayland_EGLCoreModule, "  -> *display.native_display (%p) != &wl_display_interface (%p)\n", deref, &wl_display_interface );
 
-          if (display.native_display != 0) {
-               char *env = getenv("EGL_PLATFORM");
+          char *env = getenv("EGL_PLATFORM");
 
-               if (env && !strcmp( env, "wayland" )) {
-                    D_DEBUG_AT( DFBWayland_EGLCoreModule, "  -> EGL_PLATFORM is set to 'wayland'\n" );
+          if (env) {
+               D_DEBUG_AT( DFBWayland_EGLCoreModule, "  -> EGL_PLATFORM is set to '%s'\n", env );
 
+               if (!strcmp( env, "wayland" ))
                     ret_score = 60;
-               }
           }
      }
 
@@ -156,16 +161,10 @@ EGLCoreModuleWayland::registry_handle_global(void *data, struct wl_registry *reg
 {
      EGLDisplayWayland *display = (EGLDisplayWayland*) data;
 
-     if (version > 1)
-          version = 2;
-
      D_INFO( "EGLCoreModuleWayland/registry_handle_global: '%s' (name 0x%08x)\n", interface, name );
 
-     if (strcmp(interface, "wl_dfb") == 0) {
-          display->wl_dfb = (struct wl_dfb*) wl_registry_bind(registry, name, &wl_dfb_interface, version);
-
-//          wl_dfb_add_listener(dri2_dpy->wl_dfb, &dfb_listener, display);
-     }
+     if (strcmp(interface, "wl_dfb") == 0)
+          display->wl_dfb = (struct WL::wl_dfb*) wl_registry_bind(registry, name, &wl_dfb_interface, version);
 }
 
 void
@@ -190,13 +189,6 @@ EGLCoreModuleWayland::Display_Initialise( EGLDisplayWayland &display )
      display.parent.native_pixmap_target = EGL_WAYLAND_BUFFER_WL;
 
      display.wl_display = (::wl_display*) display.parent.native_display;
-
-     EGL::Surface::Register< EGL::Surface::Initialise >( display.GetName(),
-                                                         std::bind( &EGLDisplayWayland::Surface_Initialise, &display, _1 ) );
-
-     SurfaceWLEGLWindow::RegisterConversion< EGL::Surface, EGLDisplayWayland& >( display );
-
-
 
      display.wl_queue = wl_display_create_queue( display.wl_display );
 
@@ -246,8 +238,17 @@ EGLDisplayWayland::EGLDisplayWayland( EGL::Display         &display,
 {
      D_DEBUG_AT( DFBWayland_EGLDisplay, "EGLDisplayWayland::%s( %p, native_display 0x%08lx )\n", __FUNCTION__, this, (unsigned long) display.native_display );
 
-     KHR::Image::Register< KHR::Image::Initialise >( EGLInt(EGL_WAYLAND_BUFFER_WL),
-                                                     std::bind( &EGLDisplayWayland::Image_Initialise, this, _1 ) );
+     KHR::Image::Register< KHR::Image::Initialise >( "Initialise",
+                                                     std::bind( &EGLDisplayWayland::Image_Initialise, this, _1 ),
+                                                     EGLInt(EGL_WAYLAND_BUFFER_WL),
+                                                     &display );
+
+     EGL::Surface::Register< EGL::Surface::Initialise >( "Initialise",
+                                                         std::bind( &EGLDisplayWayland::Surface_Initialise, this, _1 ),
+                                                         "",
+                                                         &display );
+
+     SurfaceWLEGLWindow::RegisterConversion< EGL::Surface, EGLDisplayWayland& >( *this );
 }
 
 EGLDisplayWayland::~EGLDisplayWayland()
@@ -292,33 +293,38 @@ EGLDisplayWayland::Surface_Initialise( SurfaceWLEGLWindow &surface )
      D_DEBUG_AT( DFBWayland_EGLDisplay, "EGLDisplayWayland::%s( %p ) <- window %p\n",
                  __FUNCTION__, this, surface.window );
 
-     DFBResult              ret;
-     DFBSurfaceDescription  desc;
-     wl_egl_window         *window = surface.window;
+     DFBResult             ret;
+     DFBSurfaceDescription desc;
 
-     desc.width  = window->width;
-     desc.height = window->height;
+     EGL::Util::GetSurfaceDescription( surface.parent.gfx_options, desc );
 
-     D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> size %dx%d\n", desc.width, desc.height );
+     D_FLAGS_SET( desc.flags, DSDESC_PIXELFORMAT );
 
-     desc.flags       = (DFBSurfaceDescriptionFlags)(DSDESC_WIDTH       | DSDESC_HEIGHT |
-                                                     /*DSDESC_PIXELFORMAT |*/ DSDESC_CAPS   |
-                                                     DSDESC_RESOURCE_ID | DSDESC_HINTS);
      desc.pixelformat = DSPF_ARGB;
-     desc.caps        = DSCAPS_SHARED;
-     desc.resource_id = wl_proxy_get_id( (wl_proxy*) window->surface );
-     desc.hints       = DSHF_NONE;
 
-     D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wayland surface_id %lu\n", desc.resource_id );
+     if (surface.parent.native_handle.clazz == NativeHandle::CLASS_WINDOW) {
+          wl_egl_window *window = surface.window;
 
-     //if (WINDOW)
-     D_FLAGS_SET( desc.caps, DSCAPS_PRIMARY );
-     D_FLAGS_SET( desc.caps, DSCAPS_FLIPPING );
-     D_FLAGS_SET( desc.hints, DSHF_WINDOW );
+          D_FLAGS_SET( desc.flags, DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_RESOURCE_ID | DSDESC_CAPS | DSDESC_HINTS );
+
+          desc.pixelformat = DSPF_ARGB;
+          desc.caps        = DSCAPS_SHARED;
+          desc.hints       = DSHF_NONE;
+
+          desc.width       = window->width;
+          desc.height      = window->height;
+          desc.resource_id = window ? wl_proxy_get_id( (wl_proxy*) window->surface ) : 0;
+
+          D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wayland surface_id %lu\n", desc.resource_id );
+
+          D_FLAGS_SET( desc.caps, DSCAPS_PRIMARY );
+          D_FLAGS_SET( desc.caps, DSCAPS_FLIPPING );
+          D_FLAGS_SET( desc.hints, DSHF_WINDOW );
+
+          D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> size %dx%d\n", desc.width, desc.height );
+     }
 
      IDirectFB *dfb = parent.GetDFB();
-
-//     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
 
      ret = dfb->CreateSurface( dfb, &desc, &surface.parent.surface );
      if (ret) {
@@ -331,19 +337,20 @@ EGLDisplayWayland::Surface_Initialise( SurfaceWLEGLWindow &surface )
      return DFB_OK;
 }
 
-
+/**********************************************************************************************************************/
 
 static void
 sync_callback(void *data, struct wl_callback *callback, uint32_t serial)
 {
-   int *done = (int*) data;
+     int *done = (int*) data;
 
-   *done = 1;
-   wl_callback_destroy(callback);
+     *done = 1;
+
+     wl_callback_destroy(callback);
 }
 
 static const struct wl_callback_listener sync_listener = {
-   sync_callback
+     sync_callback
 };
 
 int
@@ -380,7 +387,10 @@ SurfaceWLEGLWindow::SurfaceWLEGLWindow( EGL::Surface      &surface,
      D_DEBUG_AT( DFBWayland_EGLDisplay, "SurfaceWLEGLWindow::%s( %p, window %p, display %p )\n",
                  __FUNCTION__, this, window, &display );
 
-     EGL::Surface::Register< EGL::Surface::SwapBuffersFunc >( GetName(), std::bind( &SurfaceWLEGLWindow::SwapBuffers, this ) );
+     EGL::Surface::Register< EGL::Surface::SwapBuffersFunc >( "SwapBuffers",
+                                                              std::bind( &SurfaceWLEGLWindow::SwapBuffers, this ),
+                                                              GetName(),
+                                                              &surface );
 }
 
 SurfaceWLEGLWindow::~SurfaceWLEGLWindow()
@@ -396,19 +406,25 @@ SurfaceWLEGLWindow::SwapBuffers()
 {
      D_DEBUG_AT( DFBWayland_EGLDisplay, "SurfaceWLEGLWindow::%s( %p, display %p )\n",  __FUNCTION__, this, &display );
 
-     D_ASSERT( window != NULL );
-
-     D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_dfb %p\n",  display.wl_dfb );
-     D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_queue %p\n",  display.wl_queue );
-     D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_registry %p\n",  display.wl_registry );
-
-     if (!buffer) {
-          buffer = wl_dfb_create_buffer( display.wl_dfb, parent.GetID(), 0, 0 );
-
-          wl_surface_attach( window->surface, (struct wl_buffer*) buffer, 0, 0 );
+     if (window) {
+          D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_dfb %p\n",  display.wl_dfb );
+          D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_queue %p\n",  display.wl_queue );
+          D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_registry %p\n",  display.wl_registry );
+     
+     //     if (buffer) {
+     //          wl_dfb_buffer_destroy( buffer );
+     //          buffer = NULL;
+     //     }
+     
+          if (!buffer) {
+               buffer = wl_dfb_create_buffer( (struct wl_dfb*) display.wl_dfb, parent.GetID() );
+     
+               wl_surface_attach( window->surface, (struct wl_buffer*) buffer, 0, 0 );
+          }
+     
+          wl_surface_damage( window->surface, 0, 0, 9999, 9999 );
+          wl_surface_commit( window->surface );
      }
-
-     wl_surface_commit( window->surface );
 
      return EGL_SUCCESS;
 }
@@ -432,22 +448,28 @@ BindWaylandDisplay::BindWaylandDisplay()
 {
      D_DEBUG_AT( DFBWayland_BindDisplay, "BindWaylandDisplay::%s( %p )\n", __FUNCTION__, this );
 
-     DirectFB::EGL::Display::Register< DirectFB::EGL::EGLExtension::GetNames >( GetName(), [](){ return "EGL_WL_bind_wayland_display";} );
+     DirectFB::EGL::Display::Register< DirectFB::EGL::EGLExtension::GetNames >( "GetNames",
+                                                                                [](){ return "EGL_WL_bind_wayland_display";},
+                                                                                GetName() );
 
-     DirectFB::EGL::Core::Register<
-     DirectFB::EGL::Core::GetProcAddress
-     >( "eglBindWaylandDisplayWL", [](const char *){ return (void*) eglBindWaylandDisplayWL;} );
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Core::GetProcAddress >( "GetProcAddress",
+                                                                           [](const char *){ return (void*) eglBindWaylandDisplayWL;},
+                                                                           "eglBindWaylandDisplayWL" );
 
-     DirectFB::EGL::Core::Register<
-     DirectFB::EGL::Core::GetProcAddress
-     >( "eglUnbindWaylandDisplayWL", [](const char *){ return (void*) eglUnbindWaylandDisplayWL;} );
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Core::GetProcAddress >( "GetProcAddress",
+                                                                           [](const char *){ return (void*) eglUnbindWaylandDisplayWL;},
+                                                                           "eglUnbindWaylandDisplayWL" );
 
-     DirectFB::EGL::Core::Register<
-     DirectFB::EGL::Core::GetProcAddress
-     >( "eglQueryWaylandBufferWL", [](const char *){ return (void*) eglQueryWaylandBufferWL;} );
+     DirectFB::EGL::Core::Register< DirectFB::EGL::Core::GetProcAddress >( "GetProcAddress",
+                                                                           [](const char *){ return (void*) eglQueryWaylandBufferWL;},
+                                                                           "eglQueryWaylandBufferWL" );
 
-     DirectFB::EGL::Display::Register< BindWaylandDisplayWL >( "", std::bind( &BindWaylandDisplay::eglBindWaylandDisplay, this, _1, _2 ) );
-//     DirectFB::EGL::Display::Register< UnbindWaylandDisplayWL >( "", std::bind( &BindWaylandDisplay::eglUnbindWaylandDisplay, this, _1, _2 ) );
+     DirectFB::EGL::Display::Register< BindWaylandDisplayWL >( "Bind",
+                                                               std::bind( &BindWaylandDisplay::eglBindWaylandDisplay, this, _1, _2 ),
+                                                               "" );
+     DirectFB::EGL::Display::Register< UnbindWaylandDisplayWL >( "Unbind",
+                                                                 std::bind( &BindWaylandDisplay::eglUnbindWaylandDisplay, this, _1, _2 ),
+                                                                 "" );
 }
 
 BindWaylandDisplay::~BindWaylandDisplay()
@@ -459,6 +481,29 @@ BindWaylandDisplay::~BindWaylandDisplay()
 
 EGLBoolean
 BindWaylandDisplay::eglBindWaylandDisplayWL( EGLDisplay         dpy,
+                                             struct wl_display *wl_display )
+{
+     D_DEBUG_AT( DFBWayland_BindDisplay, "%s( display %p, wl_display %p )\n", __FUNCTION__, dpy, wl_display );
+
+     DirectFB::EGL::TLS *tls = DirectFB::EGLTLS.Get();
+
+     if (!dpy)
+          DFB_EGL_RETURN (EGL_BAD_DISPLAY, EGL_FALSE);
+
+     if (!wl_display)
+          DFB_EGL_RETURN (EGL_BAD_PARAMETER, EGL_FALSE);
+
+
+     DirectFB::EGL::Display *display = (DirectFB::EGL::Display*) dpy;
+
+     DirectFB::EGL::Display::Call< BindWaylandDisplayWL >("Bind", "")( *display, wl_display );
+
+
+     DFB_EGL_RETURN (EGL_SUCCESS, EGL_TRUE);
+}
+
+EGLBoolean
+BindWaylandDisplay::eglUnbindWaylandDisplayWL( EGLDisplay         dpy,
                                                struct wl_display *wl_display )
 {
      D_DEBUG_AT( DFBWayland_BindDisplay, "%s( display %p, wl_display %p )\n", __FUNCTION__, dpy, wl_display );
@@ -474,30 +519,7 @@ BindWaylandDisplay::eglBindWaylandDisplayWL( EGLDisplay         dpy,
 
      DirectFB::EGL::Display *display = (DirectFB::EGL::Display*) dpy;
 
-     DirectFB::EGL::Display::Call< BindWaylandDisplayWL >()( *display, wl_display );
-
-
-     DFB_EGL_RETURN (EGL_SUCCESS, EGL_TRUE);
-}
-
-EGLBoolean
-BindWaylandDisplay::eglUnbindWaylandDisplayWL( EGLDisplay         dpy,
-                                                 struct wl_display *wl_display )
-{
-     D_DEBUG_AT( DFBWayland_BindDisplay, "%s( display %p, wl_display %p )\n", __FUNCTION__, dpy, wl_display );
-
-     DirectFB::EGL::TLS *tls = DirectFB::EGLTLS.Get();
-
-     if (!dpy)
-          DFB_EGL_RETURN (EGL_BAD_DISPLAY, EGL_FALSE);
-
-     if (!wl_display)
-          DFB_EGL_RETURN (EGL_BAD_PARAMETER, EGL_FALSE);
-
-
-     DirectFB::EGL::Display *display = (DirectFB::EGL::Display*) dpy;
-
-     DirectFB::EGL::Display::Call< UnbindWaylandDisplayWL >()( *display, wl_display );
+     DirectFB::EGL::Display::Call< UnbindWaylandDisplayWL >("Unbind", "")( *display, wl_display );
 
 
      DFB_EGL_RETURN (EGL_SUCCESS, EGL_TRUE);
@@ -505,17 +527,16 @@ BindWaylandDisplay::eglUnbindWaylandDisplayWL( EGLDisplay         dpy,
 
 EGLBoolean
 BindWaylandDisplay::eglQueryWaylandBufferWL( EGLDisplay        dpy,
-                                               struct wl_buffer *wl_buffer,
-                                               EGLint            attribute,
-                                               EGLint           *value )
+                                             struct wl_buffer *wl_buffer,
+                                             EGLint            attribute,
+                                             EGLint           *value )
 {
      WL::Buffer *buffer;
 
      D_DEBUG_AT( DFBWayland_BindDisplay, "%s( display %p, wl_buffer %p, attribute 0x%04x '%s' )\n",
                  __FUNCTION__, dpy, wl_buffer, attribute, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(attribute) ) );
 
-     DirectFB::EGL::TLS     *tls = DirectFB::EGLTLS.Get();
-//     EGL::Context *ctx = tls->GetContext();
+     DirectFB::EGL::TLS *tls = DirectFB::EGLTLS.Get();
 
      if (!wl_buffer)
           DFB_EGL_RETURN (EGL_BAD_PARAMETER, EGL_FALSE);
@@ -541,7 +562,7 @@ BindWaylandDisplay::eglQueryWaylandBufferWL( EGLDisplay        dpy,
 
 DFBResult
 BindWaylandDisplay::eglBindWaylandDisplay( DirectFB::Wayland::EGLDisplayWayland &display,
-                                           struct wl_display *wl_display )
+                                           struct wl_display                    *wl_display )
 {
      D_DEBUG_AT( DFBWayland_BindDisplay, "EGLDisplayWayland::%s( %p, display %p, wl_display %p ) <- display.wl_display %p\n",
                  __FUNCTION__, this, &display, wl_display, display.wl_display );
@@ -553,9 +574,9 @@ BindWaylandDisplay::eglBindWaylandDisplay( DirectFB::Wayland::EGLDisplayWayland 
                    display.wl_display, wl_display );
      }
      else
-          display.wl_display    = wl_display;
+          display.wl_display = wl_display;
 
-     //display.wl_server_dfb = wayland_dfb_init( wl_display, display.parent.dfb );
+     display.wl_server_dfb = wayland_dfb_init( wl_display, display.parent.dfb, NULL, NULL, NULL );
 
      return DFB_OK;
 }
@@ -570,6 +591,11 @@ BindWaylandDisplay::eglUnbindWaylandDisplay( DirectFB::Wayland::EGLDisplayWaylan
      if (display.wl_display && display.wl_display != wl_display)
           D_ERROR( "WL/EGL/BindWaylandDisplay: display.wl_display (%p) != wl_display (%p)\n",
                    display.wl_display, wl_display );
+
+     if (display.wl_server_dfb) {
+          wayland_dfb_uninit( display.wl_server_dfb );
+          display.wl_server_dfb = NULL;
+     }
 
      display.wl_display = NULL;
 

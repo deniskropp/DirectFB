@@ -531,13 +531,14 @@ handle_expose_Async( void *ctx,
                          dfb_surface_unlock( region->surface );
                     }
                     else {
-                         if (lds->lock_left.buffer) {
+                         //if (lds->lock_left.buffer) {
                               DFBRegion update = { expose->x, expose->y,
                                                    expose->x + expose->width  - 1,
                                                    expose->y + expose->height - 1 };
 
-                              dfb_x11_update_screen( x11, lds, &update, &update, &lds->lock_left, &lds->lock_right );
-                         }
+                         //     dfb_x11_update_screen( x11, lds, &update, &update, &lds->lock_left, &lds->lock_right );
+                         //}
+                         dfb_x11_update_screen( x11, lds, &update, &update, NULL, NULL );
                     }
                }
 
@@ -576,7 +577,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
           /* FIXME: Detect key repeats, we're receiving KeyPress, KeyRelease, KeyPress, KeyRelease... !!?? */
 
           if (expose_event.type) {
-               handle_expose_Async( x11, &expose_event );
+//               handle_expose_Async( x11, &expose_event );
                expose_event.type = 0;
           }
 

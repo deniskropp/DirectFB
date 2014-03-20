@@ -126,8 +126,6 @@ private:
      std::list<CoreGraphicsStateClient*> clients;
 };
 
-}
-
 static DirectFB::ClientList client_list;
 
 
@@ -197,14 +195,14 @@ static Direct::TLSObject2<StateHolder> state_holder_tls;
 
 
 
-class ThrottleBlocking : public DirectFB::Renderer::Throttle
+class ThrottleBlocking : public Graphics::Throttle
 {
 private:
     bool           blocking;
     Direct::LockWQ lwq;
 
 public:
-    ThrottleBlocking( DirectFB::Renderer &renderer )
+    ThrottleBlocking( Graphics::Renderer &renderer )
         :
         Throttle( renderer ),
         blocking( false )
@@ -360,7 +358,7 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      client->requestor = NULL;
      client->throttle  = NULL;
 
-     ret = CoreDFB_CreateState( state->core, &client->gfx_state );
+     ret = ::CoreDFB_CreateState( state->core, &client->gfx_state );
      if (ret)
           return ret;
 
@@ -369,11 +367,11 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      if (dfb_config->task_manager) {
           if (dfb_config->call_nodirect) {
                if (direct_thread_get_tid( direct_thread_self() ) == fusion_dispatcher_tid(state->core->world)) {
-                    client->renderer = new DirectFB::Renderer( client->state, client->gfx_state );
+                    client->renderer = new Graphics::Renderer( client->state, client->gfx_state );
                }
           }
           else if (!fusion_config->secure_fusion || dfb_core_is_master( client->core )) {
-               client->renderer = new DirectFB::Renderer( client->state, client->gfx_state );
+               client->renderer = new Graphics::Renderer( client->state, client->gfx_state );
                client->throttle = new ThrottleBlocking( *client->renderer );
                client->renderer->SetThrottle( client->throttle );
           }
@@ -450,6 +448,8 @@ CoreGraphicsStateClient_Flush( CoreGraphicsStateClient           *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
      CoreGraphicsStateClientPrivate *priv = (CoreGraphicsStateClientPrivate *) client->priv;
+
+     // TODO: OPTIMISE: keep flag and flush only if needed
 
      if (flags & CGSCFF_AUTO_COOKIE) {
           cookie = priv->nextCookie();
@@ -528,7 +528,7 @@ CoreGraphicsStateClient_FlushCurrent( u32                               cookie,
                if (direct_thread_get_tid( direct_thread_self() ) == fusion_dispatcher_tid(core_dfb->world)) {
                     D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in dispatcher with task-manager and always-indirect, flushing Renderer\n" );
 
-                    DirectFB::Renderer *renderer = DirectFB::Renderer::GetCurrent();
+                    Graphics::Renderer *renderer = Graphics::Renderer::GetCurrent();
 
                     if (renderer) {
                          CoreGraphicsStateClientPrivate *priv = (CoreGraphicsStateClientPrivate *)( (CoreGraphicsStateClient *) renderer->state->client)->priv;
@@ -548,7 +548,7 @@ CoreGraphicsStateClient_FlushCurrent( u32                               cookie,
           else if (!fusion_config->secure_fusion || dfb_core_is_master( core_dfb )) {
                D_DEBUG_AT( Core_GraphicsStateClient_Flush, "  -> in master (or insecure slave) with task-manager, flushing Renderer\n" );
 
-               DirectFB::Renderer *renderer = DirectFB::Renderer::GetCurrent();
+               Graphics::Renderer *renderer = Graphics::Renderer::GetCurrent();
 
                if (renderer) {
                     CoreGraphicsStateClientPrivate *priv = (CoreGraphicsStateClientPrivate *)( (CoreGraphicsStateClient *) renderer->state->client)->priv;
@@ -1134,7 +1134,7 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
                                      const DFBRectangle      *drects,
                                      unsigned int             num )
 {
-     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p )\n", __FUNCTION__, client );
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p, source buffer %p )\n", __FUNCTION__, client, client->state->source_buffer );
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      D_ASSERT( srects != NULL );
@@ -1149,6 +1149,8 @@ CoreGraphicsStateClient_StretchBlit( CoreGraphicsStateClient *client,
           if (!dfb_config->call_nodirect && (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)) {
                if (num == 1 && srects[0].w == drects[0].w && srects[0].h == drects[0].h) {
                     DFBPoint point = { drects[0].x, drects[0].y };
+
+                    D_DEBUG_AT( Core_GraphicsStateClient, "  -> %d,%d -> %d,%d (%dx%d)\n", srects[0].x, srects[0].y, drects[0].x, drects[0].x, drects[0].w, drects[0].h );
 
                     // FIXME: will overwrite rects, points
                     dfb_gfxcard_batchblit( (DFBRectangle*) srects, &point, 1, client->state );
@@ -1256,6 +1258,9 @@ CoreGraphicsStateClient_TextureTriangles( CoreGraphicsStateClient *client,
      }
 
      return DFB_OK;
+}
+
+
 }
 
 }

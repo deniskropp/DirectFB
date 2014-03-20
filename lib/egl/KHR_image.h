@@ -27,7 +27,9 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <config.h>
+#ifndef ___DFBEGL__image__H___
+#define ___DFBEGL__image__H___
+
 
 #include <stdio.h>
 #include <string.h>
@@ -172,10 +174,10 @@ public:
 };
 */
 
-typedef std::function<void ( GL::enum_     &target,
+typedef std::function<void ( GL::enum_       &target,
                              EGL::KHR::Image &image )> glEGLImageTargetTexture2D;
 
-typedef std::function<void ( GL::enum_     &target,
+typedef std::function<void ( GL::enum_       &target,
                              EGL::KHR::Image &image )> glEGLImageTargetRenderbufferStorage;
 
 }
@@ -185,4 +187,8 @@ typedef std::function<void ( GL::enum_     &target,
 
 
 }
+
+
+#endif
+
 

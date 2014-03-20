@@ -54,6 +54,7 @@ DECLARE_INTERFACE( IDirectFBGraphics )
 
 
 typedef u32 DFBGraphicsEngineID;
+typedef u32 DFBSurfaceAccessorID;
 
 
 typedef struct {
@@ -65,6 +66,7 @@ typedef struct {
      unsigned int             max_scale_down_y;
      unsigned int             max_operations;
      WaterTransformType       transforms;
+     DFBSurfaceAccessorID     accessor_id;
 } DFBGraphicsEngineCapabilities;
 
 

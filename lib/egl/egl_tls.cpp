@@ -47,7 +47,9 @@ TLS::TLS()
      :
      egl_error( EGL_SUCCESS ),
      api( EGL_OPENGL_ES_API ),
-     context( NULL )
+     context( NULL ),
+     draw( NULL ),
+     read( NULL )
 {
 
 }
@@ -74,6 +76,30 @@ void
 TLS::SetContext( Context *context )
 {
     this->context = context;
+}
+
+Surface *
+TLS::GetDraw()
+{
+    return draw;
+}
+
+void
+TLS::SetDraw( Surface *draw )
+{
+    this->draw = draw;
+}
+
+Surface *
+TLS::GetRead()
+{
+    return read;
+}
+
+void
+TLS::SetRead( Surface *draw )
+{
+    this->read = read;
 }
 
 EGLenum

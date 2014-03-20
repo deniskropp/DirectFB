@@ -105,9 +105,22 @@ x11InitPool( CoreDFB                    *core,
      ret_desc->priority          = CSPP_PREFERED;
 
      /* For showing our X11 window */
-//     ret_desc->access[CSAID_LAYER0] = CSAF_READ;
-//     ret_desc->access[CSAID_LAYER1] = CSAF_READ;
-//     ret_desc->access[CSAID_LAYER2] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER0]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER1]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER2]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER3]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER4]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER5]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER6]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER7]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER8]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER9]  = CSAF_READ;
+     ret_desc->access[CSAID_LAYER10] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER11] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER12] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER13] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER14] = CSAF_READ;
+     ret_desc->access[CSAID_LAYER15] = CSAF_READ;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "X11 Shm Images" );
 
