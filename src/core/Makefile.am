@@ -223,6 +223,7 @@ distclean-local:
 
 # quirks for generated headers
 $(srcdir)/CoreGraphicsStateClient.cpp: CoreGraphicsState.h CoreDFB.h
+$(srcdir)/Graphics.cpp: CoreDFB.h
 $(srcdir)/core.c: CoreDFB.h CoreSlave.h
 $(srcdir)/surface.c: CoreDFB.h
 $(srcdir)/graphics_state.c: CoreGraphicsState.h
@@ -237,7 +238,7 @@ $(srcdir)/surface_buffer.c: CoreSurface.h
 $(srcdir)/windows.c: CoreWindow.h
 $(srcdir)/windowstack.c: CoreWindowStack.h
 
-$(srcdir)/CoreDFB_real.cpp: CoreGraphicsState.h CoreDFB.h
+$(srcdir)/CoreDFB_real.cpp: CoreSurface.h CoreGraphicsState.h CoreDFB.h
 $(srcdir)/CoreGraphicsState_real.cpp: CoreGraphicsState.h
 $(srcdir)/CoreInputDevice_real.cpp: CoreInputDevice.h
 $(srcdir)/CoreLayerContext_real.cpp: CoreLayerContext.h
