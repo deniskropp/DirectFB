@@ -221,6 +221,10 @@ public:
      }
 
      operator bool() { return object != NULL; }
+
+     operator _FusionObject*() { return object; }
+
+     _FusionObject* operator ->() { return object; }
 };
 
 
