@@ -570,6 +570,7 @@ static inline DirectResult
 sawman_lock( SaWMan *sawman )
 {
      D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( sawman->lock != NULL );
 
      return fusion_skirmish_prevail( sawman->lock );
 }

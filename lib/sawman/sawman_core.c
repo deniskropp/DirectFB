@@ -976,6 +976,7 @@ process_watcher( int           caller,
      D_DEBUG_AT( SaWMan_Core, "%s( %d, %d, %p, %p, %u, %p )\n", __FUNCTION__, caller, call_arg, call_ptr, ctx, serial, ret_val );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
+     D_ASSERT( sawman->lock != NULL );
 
      /* Lookup process by pid. */
      direct_list_foreach (process, sawman->processes) {
@@ -994,15 +995,20 @@ process_watcher( int           caller,
      D_INFO( "SaWMan/Watcher: Process [%s] has exited%s\n",
              ToString_SaWManProcess( process ), (process->flags & SWMPF_EXITING) ? "." : " ABNORMALLY!" );
 
-     ret = sawman_lock( sawman );
-     if (ret)
-          D_DERROR( ret, "SaWMan/%s(): sawman_lock() failed!\n", __FUNCTION__ );
-     else {
-          unregister_process( sawman, process );
-
-          sawman_unlock( sawman );
+     if (sawman->lock) {
+          ret = sawman_lock( sawman );
+          if (ret) {
+               D_DERROR( ret, "SaWMan/%s(): sawman_lock() failed!\n", __FUNCTION__ );
+               goto out;
+          }
      }
 
+     unregister_process( sawman, process );
+
+     if (sawman->lock)
+          sawman_unlock( sawman );
+
+out:
      return FCHR_RETURN;
 }
 
