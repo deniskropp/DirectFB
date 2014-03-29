@@ -1890,13 +1890,7 @@ dfb_core_leave( CoreDFB *core, bool emergency )
      for (i=D_ARRAY_SIZE(core_parts)-1; i>=0; i--)
           dfb_core_part_leave( core, core_parts[i], emergency );
 
-     fusion_stop_dispatcher( core->world, false );
-
-     dfb_gfx_cleanup();
-
      CoreSlave_Deinit_Dispatch( &core->slave_call );
-
-     fusion_dispatch( core->world, 16384 );
 
      // FIXME: cleanup items
      direct_hash_destroy( core->resource.identities );
