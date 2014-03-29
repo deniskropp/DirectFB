@@ -1,3 +1,54 @@
+commit 1621480a68326ab22282d061b1ef9718117a5671
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Mar 29 17:45:03 2014 +0100
+
+    SaWMan: Fix shutdown crash with slave processes exiting with master
+
+commit 036f75ddcf91c595caa7c66df2924310ca97b5b0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Mar 29 14:28:26 2014 +0100
+
+    Revert "Core: Fix crash during slave shutdown by stopping dispatcher"
+    
+    This reverts commit fea3b66b06b68ff00984256450f0f4d7ad9ca25e.
+
+commit fea3b66b06b68ff00984256450f0f4d7ad9ca25e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Mar 29 14:23:26 2014 +0100
+
+    Core: Fix crash during slave shutdown by stopping dispatcher
+
+commit 822f3cae6cde0ae46d1e808d5e40002ac72177bb
+Merge: f846343 b8cec45
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Mar 29 11:55:56 2014 +0100
+
+    Merge branch 'directfb-1.7' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.7
+
+commit b8cec4587563caa04e767671780dc790d2c45b0c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Mar 22 21:06:05 2014 +0100
+
+    configure: version 1.7.3
+
+commit e047b1875751e29bedd19eacdb22d18e3e45fbb1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Mar 18 17:38:25 2014 +0100
+
+    ++DFB: Fix crash when source is NULL in GetAccelerationMask() call
+
+commit f846343f7b0ec440c4e78ad5a06a7b81964a0e39
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Mar 7 11:09:14 2014 +0100
+
+    update ChangeLog for 1.7.2
+
+commit f08385db22f38e4761dca378b395986ecf86466b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Mar 7 11:09:03 2014 +0100
+
+    update ignore file
+
 commit 910ff7df860a8ef1eda496f2c44517d47b36a327
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Fri Mar 7 11:03:06 2014 +0100
