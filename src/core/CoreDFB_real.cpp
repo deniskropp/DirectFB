@@ -233,7 +233,7 @@ ICore_Real::GetSurface( u32           surface_id,
 
      D_MAGIC_ASSERT( obj, CoreDFB );
 
-     if (fusion_config->secure_fusion) {
+     if (fusion_config->secure_fusion && dfb_config->ownership_check && !dfb_core_is_master( core )) {
           ret = (DFBResult) fusion_get_fusionee_path( dfb_core_world(core), Core_GetIdentity(), path, sizeof(path), &path_length );
           if (ret)
                return ret;
@@ -247,7 +247,7 @@ ICore_Real::GetSurface( u32           surface_id,
           return ret;
      }
 
-     if (fusion_config->secure_fusion && dfb_config->ownership_check) {
+     if (fusion_config->secure_fusion && dfb_config->ownership_check && !dfb_core_is_master( core )) {
           ret = (DFBResult) fusion_object_has_access( &surface->object, path );
           if (ret) {
                D_DEBUG_AT( DirectFB_CoreDFB, "  -> NO ACCESS!\n" );
@@ -278,7 +278,7 @@ ICore_Real::GetSurfaceBuffer( u32                 buffer_id,
 
      D_MAGIC_ASSERT( obj, CoreDFB );
 
-     if (fusion_config->secure_fusion) {
+     if (fusion_config->secure_fusion && dfb_config->ownership_check && !dfb_core_is_master( core )) {
           ret = (DFBResult) fusion_get_fusionee_path( dfb_core_world(core), Core_GetIdentity(), path, sizeof(path), &path_length );
           if (ret)
                return ret;
@@ -292,7 +292,7 @@ ICore_Real::GetSurfaceBuffer( u32                 buffer_id,
           return ret;
      }
 
-     if (fusion_config->secure_fusion && dfb_config->ownership_check) {
+     if (fusion_config->secure_fusion && dfb_config->ownership_check && !dfb_core_is_master( core )) {
           ret = (DFBResult) fusion_object_has_access( &buffer->object, path );
           if (ret) {
                D_DEBUG_AT( DirectFB_CoreDFB, "  -> NO ACCESS!\n" );
