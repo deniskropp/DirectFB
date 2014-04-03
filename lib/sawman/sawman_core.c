@@ -976,7 +976,6 @@ process_watcher( int           caller,
      D_DEBUG_AT( SaWMan_Core, "%s( %d, %d, %p, %p, %u, %p )\n", __FUNCTION__, caller, call_arg, call_ptr, ctx, serial, ret_val );
 
      D_MAGIC_ASSERT( sawman, SaWMan );
-     D_ASSERT( sawman->lock != NULL );
 
      /* Lookup process by pid. */
      direct_list_foreach (process, sawman->processes) {
