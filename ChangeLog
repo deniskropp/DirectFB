@@ -1,3 +1,21 @@
+commit f3a149e7d2488cbd2828f4aa230cc62ef87ad3dd
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Apr 5 21:46:55 2014 +0200
+
+    version: 1.7.4
+
+commit 80f4db799f50cc7d34c907e31b99e97fee300dc5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Apr 3 17:34:59 2014 +0200
+
+    core: Remove D_ASSERT in process_watcher.
+
+commit f4247a492f14ec2f3cf482e53672a86cc68b30d8
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Mar 29 20:25:14 2014 +0100
+
+    version: update changelog
+
 commit 1621480a68326ab22282d061b1ef9718117a5671
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Sat Mar 29 17:45:03 2014 +0100
