@@ -214,6 +214,11 @@ EGLCoreModuleWayland::Display_Initialise( EGLDisplayWayland &display )
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_queue %p\n",  display.wl_queue );
      D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_registry %p\n",  display.wl_registry );
 
+     EGL::Surface::Register< EGL::Surface::Initialise >( "Initialise",
+                                                         std::bind( &EGLDisplayWayland::Surface_Initialise, &display, _1 ),
+                                                         "",
+                                                         &display.parent );
+
      return DFB_OK;
 
 
@@ -242,11 +247,6 @@ EGLDisplayWayland::EGLDisplayWayland( EGL::Display         &display,
                                                      std::bind( &EGLDisplayWayland::Image_Initialise, this, _1 ),
                                                      EGLInt(EGL_WAYLAND_BUFFER_WL),
                                                      &display );
-
-     EGL::Surface::Register< EGL::Surface::Initialise >( "Initialise",
-                                                         std::bind( &EGLDisplayWayland::Surface_Initialise, this, _1 ),
-                                                         "",
-                                                         &display );
 
      SurfaceWLEGLWindow::RegisterConversion< EGL::Surface, EGLDisplayWayland& >( *this );
 }
