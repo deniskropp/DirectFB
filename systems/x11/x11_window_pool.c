@@ -371,7 +371,11 @@ x11AllocateKey( CoreSurfacePool       *pool,
                     break;
 
                case X11_ALLOC_WINDOW: {
-                    Window w = (Window) (long) buffer->surface->data;
+
+                    if (!surface->data)
+                         surface->data = SHCALLOC( surface->shmpool, 1, sizeof(Window) );
+
+                    Window w = (Window) (long) * (Window*) buffer->surface->data;
 
 
                     XSetWindowAttributes attr;
@@ -402,7 +406,7 @@ x11AllocateKey( CoreSurfacePool       *pool,
                                                    alloc->visual, CWEventMask, &attr );
                     x11->Sync( x11 );
                     D_DEBUG_AT( X11_Surfaces, "  -> window 0x%08lx\n", (long) alloc->window );
-                    buffer->surface->data = (void*) (long) alloc->window;
+                    * (Window*) buffer->surface->data = (void*) (long) alloc->window;
 
                     XMapRaised( x11->display, alloc->window );
                     XSync( x11->display, False );

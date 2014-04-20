@@ -35,6 +35,7 @@
 
 #include <core/CoreSurface.h>
 #include <core/Graphics.h>
+#include <core/SurfaceBuffer.h>
 
 #include <egl/dfbegl.h>
 #include <egl/KHR_image.h>
@@ -79,19 +80,6 @@ public:
      GLeglImage( DirectFB::EGL::KHR::Image &egl_image,
                  X11EGLImpl                &impl );
      ~GLeglImage();
-};
-
-
-class X11EGLSurface : public Types::Type<X11EGLSurface,X11Window> {
-private:
-     X11EGLImpl &impl;
-
-public:
-     EGLSurface egl_surface;
-
-     X11EGLSurface( X11Window  &window,
-                    X11EGLImpl &impl );
-     ~X11EGLSurface();
 };
 
 
@@ -243,8 +231,6 @@ protected:
 
      bool        is_pixmap;
      std::string key;
-
-     CoreSurfaceAllocation *allocation;
 
      // TODO: add context here which is currently bound to the surface(s)
 

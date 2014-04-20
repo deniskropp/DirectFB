@@ -201,46 +201,6 @@ GLeglImage::~GLeglImage()
 
 /**********************************************************************************************************************/
 
-X11EGLSurface::X11EGLSurface( X11Window  &window,
-                              X11EGLImpl &impl )
-     :
-     Type( window ),
-     impl( impl ),
-     egl_surface( EGL_NO_SURFACE )
-{
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11::X11EGLSurface::%s( %p, X11Window %p, impl %p )\n", __FUNCTION__, this, &window, &impl );
-
-     D_LOG( DFBX11_EGLImpl, VERBOSE, "  -> Deriving X11EGLSurface for X11 Impl from generic SurfaceBuffer (window %p, ID 0x%lx)\n", &window, window.window_id );
-
-     EGLint surface_attrs[] = {
-          EGL_RENDER_BUFFER, EGL_BACK_BUFFER,
-          EGL_NONE
-     };
-
-
-     EGLConfig egl_config = ((X11EGLConfig*)impl.configs[0])->egl_config;
-
-     D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglCreateWindowSurface( EGLConfig %p, %p )\n",
-                 egl_config, (EGLNativePixmapType) window.window_id );
-
-     egl_surface = impl.lib.eglCreateWindowSurface( impl.egl_display, egl_config,
-                                                    (EGLNativeWindowType) window.window_id, surface_attrs );// FIXME: Add Options ToAttribs
-     if (egl_surface == EGL_NO_SURFACE) {
-          D_ERROR( "X11/EGLImpl: eglCreateWindowSurface( EGLConfig %p, 0x%08lx ) failed (%s)\n", egl_config,
-                   (long) window.window_id, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
-     }
-}
-
-X11EGLSurface::~X11EGLSurface()
-{
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11::X11EGLSurface::%s( %p )\n", __FUNCTION__, this );
-
-     if (egl_surface)
-          impl.lib.eglDestroySurface( impl.egl_display, egl_surface );
-}
-
-/**********************************************************************************************************************/
-
 X11Window::X11Window( DirectFB::Util::FusionObjectWrapper<CoreSurfaceBuffer> &buffer,
                       X11EGLImpl                                             &impl )
      :
@@ -371,7 +331,6 @@ X11EGLImpl::Initialise()
 
      X11::GLeglImage::RegisterConversion< DirectFB::EGL::KHR::Image, X11EGLImpl& >( *this );
 
-     X11::X11EGLSurface::RegisterConversion< X11Window, X11EGLImpl& >( *this );
      X11::X11Window::RegisterConversion< DirectFB::Util::FusionObjectWrapper<CoreSurfaceBuffer>, X11EGLImpl& >( *this );
 
      EGL::Core::Register< EGL::Core::GetProcAddress >( "GetProcAddress",
@@ -478,18 +437,12 @@ X11EGLImpl::Initialise()
      apis       = Direct::String( client_apis ).GetTokens( " " );
      //extensions = Direct::String( egl_extensions ).GetTokens( " " );
 
-{
-     EGLint config_attrs[] = {
-          EGL_ALPHA_SIZE, 0,
-          EGL_NONE
-     };
 
-//     if (!lib.eglChooseConfig( egl_display, config_attrs, egl_configs, D_ARRAY_SIZE(egl_configs), &num_configs )) {
      if (!lib.eglGetConfigs( egl_display, egl_configs, D_ARRAY_SIZE(egl_configs), &num_configs )) {
           D_ERROR( "X11/EGLImpl: eglGetConfigs( %p ) failed\n", egl_display );
           goto failure;
      }
-}
+
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> got %u configs\n", num_configs );
 
      for (EGLint i=0; i<num_configs; i++)
@@ -911,8 +864,7 @@ X11EGLSurfacePeer::X11EGLSurfacePeer( X11EGLImpl        &impl,
      impl( impl ),
      eglSurface( EGL_NO_SURFACE ),
      bound_surface( EGL_NO_SURFACE ),
-     is_pixmap( false ),
-     allocation( NULL )
+     is_pixmap( false )
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLSurfacePeer::%s( %p )\n", __FUNCTION__, this );
 
@@ -920,14 +872,13 @@ X11EGLSurfacePeer::X11EGLSurfacePeer( X11EGLImpl        &impl,
                                                   std::bind( &X11EGLSurfacePeer::Flush, this ),
                                                   "",
                                                   this );
+
+     D_INFO("surface %p  ->data = 0x%08lx\n",GetSurface(),(long)GetSurface()->data);
 }
 
 X11EGLSurfacePeer::~X11EGLSurfacePeer()
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLSurfacePeer::%s( %p )\n", __FUNCTION__, this );
-
-     if (allocation)
-          dfb_surface_allocation_unref( allocation );
 }
 
 DFBResult
@@ -1027,9 +978,30 @@ X11EGLSurfacePeer::getEGLSurface()
 
      if (eglSurface == EGL_NO_SURFACE) {
           X11Window     &x11_window      = getBuffer();
-          X11EGLSurface &x11_egl_surface = x11_window;//getBuffer();
 
-          eglSurface = x11_egl_surface.egl_surface;
+
+          X11EGLConfig *config = GetConfig<X11EGLConfig>();
+
+
+
+          D_LOG( DFBX11_EGLImpl, VERBOSE, "  -> Deriving X11EGLSurface for X11 Impl from generic SurfaceBuffer (window %p, ID 0x%lx)\n", &x11_window, x11_window.window_id );
+
+          EGLint surface_attrs[] = {
+               EGL_RENDER_BUFFER, EGL_BACK_BUFFER,
+               EGL_NONE
+          };
+
+
+          EGLConfig egl_config = config->egl_config;
+
+          D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglCreateWindowSurface( EGLConfig %p, %p )\n",
+                      egl_config, (EGLNativePixmapType) x11_window.window_id );
+
+          eglSurface = impl.lib.eglCreateWindowSurface( impl.egl_display, egl_config,
+                                                        (EGLNativeWindowType) x11_window.window_id, surface_attrs );// FIXME: Add Options ToAttribs
+          if (eglSurface == EGL_NO_SURFACE)
+               D_ERROR( "X11/EGLImpl: eglCreateWindowSurface( EGLConfig %p, 0x%08lx ) failed (%s)\n", egl_config,
+                        (long) x11_window.window_id, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
      }
 
      return eglSurface;
