@@ -1217,9 +1217,6 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
 //     if (flags & CSNF_DISPLAY)
 //          return RS_OK;
 
-     if (flags & CSNF_BUFFER_ALLOCATION_DESTROY)
-          return RS_OK;
-
      layer = dfb_layer_at( region->layer_id );
 
      D_ASSERT( layer != NULL );
@@ -1232,6 +1229,9 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
 
      flags   = notification->flags;
      surface = notification->surface;
+
+     if (flags & CSNF_BUFFER_ALLOCATION_DESTROY)
+          return RS_OK;
 
      if (flags & CSNF_DESTROY) {
           D_WARN( "layer region surface destroyed" );
