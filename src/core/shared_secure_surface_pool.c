@@ -34,6 +34,7 @@
 
 #include <direct/debug.h>
 
+#include <fusion/conf.h>
 #include <fusion/fusion.h>
 #include <fusion/shm/shm_internal.h>
 
@@ -207,6 +208,12 @@ sharedSecureAllocateBuffer( CoreSurfacePool       *pool,
      if (fd < 0) {
           D_PERROR( "Core/Surface/SHM: Could not create '%s'!\n", buf );
           return DFB_IO;
+     }
+
+     if (fusion_config->shmfile_gid != (gid_t)-1) {
+          /* chgrp the SH_FILE dev entry */
+          if (fchown( fd, -1, fusion_config->shmfile_gid ) != 0)
+               D_WARN( "Fusion/SHM: Changing owner on %s failed... continuing on.", buf );
      }
 
      fchmod( fd, 0660 );
