@@ -315,6 +315,9 @@ fusion_call_execute (FusionCall          *call,
                      void                *call_ptr,
                      int                 *ret_val)
 {
+     FusionWorld *world;
+     CallTLS     *call_tls;
+
      D_DEBUG_AT( Fusion_Call, "%s( %p, 0x%x, %d, %p )\n", __FUNCTION__, call, flags, call_arg, call_ptr );
 
      D_ASSERT( call != NULL );
@@ -322,14 +325,23 @@ fusion_call_execute (FusionCall          *call,
      if (!call->handler)
           return DR_DESTROYED;
 
+     world = _fusion_world( call->shared );
+
 #if D_DEBUG_ENABLED
      if (call->fusion_id == _fusion_id( call->shared ) && direct_log_domain_check( &Fusion_Call ))
           D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
 #endif
 
-     if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
+     call_tls = Call_GetTLS( world );
+
+     if (call->fusion_id == fusion_id( world ) &&
+         (!(flags & FCEF_NODIRECT) || (call_tls->dispatcher)))
+//     if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared ))
+     {
           int                     ret;
           FusionCallHandlerResult result;
+
+          D_ASSERT( call_tls->bins_num == 0 );
 
           result = call->handler( call->fusion_id, call_arg, call_ptr, call->ctx, 0, &ret );
 
@@ -348,9 +360,9 @@ fusion_call_execute (FusionCall          *call,
           execute.flags    = flags | FCEF_RESUMABLE;
           execute.serial   = 0;
 
-          fusion_world_flush_calls( _fusion_world( call->shared ), 1 );
+          fusion_world_flush_calls( world, 1 );
 
-          while (ioctl( _fusion_fd( call->shared ), FUSION_CALL_EXECUTE, &execute )) {
+          while (ioctl( world->fusion_fd, FUSION_CALL_EXECUTE, &execute )) {
                switch (errno) {
                     case EINTR:
                          continue;
