@@ -88,6 +88,9 @@ void      *dfb_core_get_part( CoreDFB        *core,
 
 DFBResult dfb_core_initialize( CoreDFB *core );
 
+int       dfb_core_shutdown  ( CoreDFB *core,
+                               bool     emergency );
+
 
 /*
  * Object creation
