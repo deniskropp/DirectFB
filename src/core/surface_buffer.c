@@ -73,7 +73,6 @@ D_DEBUG_DOMAIN( Core_SurfBuffer, "Core/SurfBuffer", "DirectFB Core Surface Buffe
 
 /**********************************************************************************************************************/
 
-#if 1
 static void
 surface_buffer_destructor( FusionObject *object, bool zombie, void *ctx )
 {
@@ -202,7 +201,6 @@ dfb_surface_buffer_create( CoreDFB                 *core,
 
      return DFB_OK;
 }
-#endif
 
 DFBResult
 dfb_surface_buffer_decouple( CoreSurfaceBuffer *buffer )
