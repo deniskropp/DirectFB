@@ -81,6 +81,20 @@ ICore_Real::Initialize(
 }
 
 DFBResult
+ICore_Real::Shutdown(
+)
+{
+    D_DEBUG_AT( DirectFB_CoreDFB, "ICore_Real::%s()\n", __FUNCTION__ );
+
+    D_MAGIC_ASSERT( obj, CoreDFB );
+
+    if (Core_GetIdentity() != FUSION_ID_MASTER)
+         return DFB_ACCESSDENIED;
+
+    return (DFBResult) dfb_core_shutdown( core, false );
+}
+
+DFBResult
 ICore_Real::Register(
      u32                       slave_call
 )

@@ -258,5 +258,10 @@ interface {
         method {
                 name	Roundtrip
         }
+
+        method {
+                name	 Shutdown
+                indirect yes
+        }
 }
 
