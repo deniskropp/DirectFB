@@ -1491,23 +1491,33 @@ IDirectFB_CreateFont( IDirectFB                 *thiz,
      D_DEBUG_AT( IDFB, "%s( %p, '%s' )\n", __FUNCTION__, thiz, filename );
 
      /* Check arguments */
-     if (!interface)
+     if (!interface) {
+          D_DEBUG_AT( IDFB, "  -> return pointer is NULL\n" );
           return DFB_INVARG;
+     }
 
      if (desc) {
-          if ((desc->flags & DFDESC_HEIGHT) && desc->height < 1)
+          if ((desc->flags & DFDESC_HEIGHT) && desc->height < 1) {
+               D_DEBUG_AT( IDFB, "  -> invalid height %d\n", desc->height );
                return DFB_INVARG;
+          }
 
-          if ((desc->flags & DFDESC_WIDTH) && desc->width < 1)
+          if ((desc->flags & DFDESC_WIDTH) && desc->width < 1) {
+               D_DEBUG_AT( IDFB, "  -> invalid width %d\n", desc->width );
                return DFB_INVARG;
+          }
      }
 
      if (filename) {
-          if (!desc)
+          if (!desc) {
+               D_DEBUG_AT( IDFB, "  -> missing description\n" );
                return DFB_INVARG;
+          }
 
-          if (access( filename, R_OK ) != 0)
+          if (access( filename, R_OK ) != 0) {
+               D_DEBUG_AT( IDFB, "  -> cannot access '%s'\n", filename );
                return errno2result( errno );
+          }
      }
 
      /* Create a data buffer. */
@@ -1515,8 +1525,10 @@ IDirectFB_CreateFont( IDirectFB                 *thiz,
      dbdesc.file  = filename;
 
      ret = thiz->CreateDataBuffer( thiz, &dbdesc, &databuffer );
-     if (ret)
+     if (ret) {
+          D_DEBUG_AT( IDFB, "  -> data buffer creation failed! (%s)\n", DirectFBErrorString(ret) );
           return ret;
+     }
 
      /* Create (probing) the font. */
      ret = IDirectFBFont_CreateFromBuffer( databuffer, data->core, desc, &font );
@@ -1524,7 +1536,9 @@ IDirectFB_CreateFont( IDirectFB                 *thiz,
      /* We don't need it anymore, font has its own reference. */
      databuffer->Release( databuffer );
 
-     if (!ret)
+     if (ret)
+          D_DEBUG_AT( IDFB, "  -> font loading failed! (%s)\n", DirectFBErrorString(ret) );
+     else
           *interface = font;
 
      return ret;
