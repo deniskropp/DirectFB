@@ -1371,6 +1371,8 @@ typedef enum {
       ((fmt) == DSPF_RGB444)       ||   \
       ((fmt) == DSPF_RGB555)       ||   \
       ((fmt) == DSPF_BGR555)       ||   \
+      ((fmt) == DSPF_ARGB8565)     ||   \
+      ((fmt) == DSPF_ABGR)         ||   \
       ((fmt) == DSPF_RGBAF88871))
 
 #define DFB_COLOR_IS_YUV(fmt)           \
