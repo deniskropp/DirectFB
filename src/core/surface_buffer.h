@@ -52,8 +52,9 @@ typedef enum {
 
      CSBF_STICKED   = 0x00000001,  /* Sticked to one Surface Pool, e.g. system only. */
      CSBF_DECOUPLE  = 0x00000002,  /* Buffer is about to be deallocated and removed from surface. */
+     CSBF_RIGHT     = 0x00000004,  /* Buffer is for right eye */
 
-     CSBF_ALL       = 0x00000003   /* All of these. */
+     CSBF_ALL       = 0x00000007   /* All of these. */
 } CoreSurfaceBufferFlags;
 
 

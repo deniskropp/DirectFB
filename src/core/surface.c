@@ -442,7 +442,7 @@ dfb_surface_create( CoreDFB                  *core,
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<buffers; i++) {
-               ret = dfb_surface_buffer_create( core, surface, CSBF_NONE, i, &surface->buffers[i] );
+               ret = dfb_surface_buffer_create( core, surface, (eye == DSSE_RIGHT) ? CSBF_RIGHT : CSBF_NONE, i, &surface->buffers[i] );
                if (ret) {
                     D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
                     dfb_surface_unlock( surface );
@@ -1006,7 +1006,7 @@ dfb_surface_reconfig( CoreSurface             *surface,
           for (i=0; i<buffers; i++) {
                CoreSurfaceBuffer *buffer;
 
-               ret = dfb_surface_buffer_create( core_dfb, surface, CSBF_NONE, i, &buffer );
+               ret = dfb_surface_buffer_create( core_dfb, surface, (eye == DSSE_RIGHT) ? CSBF_RIGHT : CSBF_NONE, i, &buffer );
                if (ret) {
                     D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
                     goto error;
