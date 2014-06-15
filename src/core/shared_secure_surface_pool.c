@@ -128,7 +128,7 @@ sharedSecureInitPool( CoreDFB                    *core,
                return DFB_IO;
           }
 
-          D_WARN( "%s exists, cleaning up", data->tmpfs_dir );
+          D_DEBUG_AT( Core_SharedSecure, "  -> %s exists, cleaning up\n", data->tmpfs_dir );
 
           dir = opendir( data->tmpfs_dir );
           if (!dir) {
