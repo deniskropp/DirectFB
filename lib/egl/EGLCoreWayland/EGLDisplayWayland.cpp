@@ -283,6 +283,8 @@ EGLDisplayWayland::Image_Initialise( DirectFB::EGL::KHR::Image &image )
      D_INFO( "DFBEGL/Image: New EGLImage from WL::Buffer (%dx%d)\n", w, h );
 
      image.dfb_surface = surface;
+     image.size.w = w;
+     image.size.h = h;
 
      return DFB_OK;
 }
@@ -410,18 +412,18 @@ SurfaceWLEGLWindow::SwapBuffers()
           D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_dfb %p\n",  display.wl_dfb );
           D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_queue %p\n",  display.wl_queue );
           D_DEBUG_AT( DFBWayland_EGLDisplay, "  -> wl_registry %p\n",  display.wl_registry );
-     
+
      //     if (buffer) {
      //          wl_dfb_buffer_destroy( buffer );
      //          buffer = NULL;
      //     }
-     
+
           if (!buffer) {
                buffer = wl_dfb_create_buffer( (struct wl_dfb*) display.wl_dfb, parent.GetID() );
-     
+
                wl_surface_attach( window->surface, (struct wl_buffer*) buffer, 0, 0 );
           }
-     
+
           wl_surface_damage( window->surface, 0, 0, 9999, 9999 );
           wl_surface_commit( window->surface );
      }
