@@ -523,3 +523,13 @@ DFBDimension IDirectFBSurface::GetSize ()
      return dimension;
 }
 
+void IDirectFBSurface::MakeClient ()
+{
+     DFBCHECK( iface->MakeClient (iface) );
+}
+
+void IDirectFBSurface::FrameAck (u32 flip_count)
+{
+     DFBCHECK( iface->FrameAck (iface, flip_count) );
+}
+

@@ -223,6 +223,9 @@ public:
 
      DFBDimension           PPDFB_API GetSize             ();
 
+     void                   PPDFB_API MakeClient          ();
+     void                   PPDFB_API FrameAck            (u32                       flip_count);
+
      inline IDirectFBSurface PPDFB_API & operator = (const IDirectFBSurface& other){
           return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
      }
