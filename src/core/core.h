@@ -287,7 +287,7 @@ struct __DFB_CoreDFB {
 
      int                      refs;
 
-     int                      fusion_id;
+     FusionID                 fusion_id;
 
      FusionWorld             *world;
 
