@@ -88,6 +88,7 @@ extern "C" {
     - Native/X11 (X11 system module)
     - Native/XDirectFB (app module)
     - Native/Wayland
+    - Native/SDL
 
     = Extensions
       - WL/BindDisplay
@@ -146,6 +147,7 @@ extern "C" {
              - EGL_NATIVE_PIXMAP_KHR
                     / DirectFB
                     / X11
+                    / SDL
 
 
           - Impl Extensions              <context>

@@ -2913,6 +2913,7 @@ lib/egl/egl.pc
 lib/egl/EGL/Makefile
 lib/egl/GLES2/Makefile
 lib/egl/KHR/Makefile
+lib/egl/EGLCoreSDL/Makefile
 lib/egl/EGLCoreWayland/Makefile
 
 lib/gles2/Makefile

@@ -1,12 +1,16 @@
 ## Makefile.am for DirectFB/lib/egl
 
 
+if SDL_CORE
+SDL_DIRS = EGLCoreSDL
+endif
+
 if ENABLE_WAYLAND
 WAYLAND_DIRS = EGLCoreWayland
 endif
 
 
-SUBDIRS = . EGL GLES2 KHR $(WAYLAND_DIRS)
+SUBDIRS = . EGL GLES2 KHR $(SDL_DIRS) $(WAYLAND_DIRS)
 
 
 INCLUDES = \
