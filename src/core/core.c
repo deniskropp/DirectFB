@@ -334,7 +334,7 @@ dfb_core_create( CoreDFB **ret_core )
      core->fusion_id = fusion_id( core->world );
 
 #if FUSION_BUILD_MULTI
-     D_DEBUG_AT( DirectFB_Core, "world %d, fusion id %d\n", fusion_world_index(core->world), core->fusion_id );
+     D_DEBUG_AT( DirectFB_Core, "world %d, fusion id %lu\n", fusion_world_index(core->world), core->fusion_id );
 
      snprintf( buf, sizeof(buf), "%d", fusion_world_index(core->world) );
 
@@ -1705,7 +1705,6 @@ region_callback( FusionObjectPool *pool,
 int
 dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
-     DFBResult      ret;
      CoreDFBShared *shared;
 
      D_MAGIC_ASSERT( core, CoreDFB );
@@ -1794,7 +1793,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      TaskManager_Shutdown();
 
      if (direct_config_get_int_value( "dfb-error-shutdown-timeout" ))
-          return ret;
+          return DFB_TIMEOUT;
 
      return DFB_OK;
 }
