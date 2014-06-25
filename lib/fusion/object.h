@@ -54,6 +54,21 @@ typedef bool (*FusionPropIterator)( char *key, void *value, void *ctx);
 typedef u32 FusionObjectID;
 
 
+#ifdef __cplusplus
+}
+
+#include <map>
+
+namespace Fusion {
+typedef std::map<FusionObjectID,FusionObject*>    ObjectMap;
+}
+typedef Fusion::ObjectMap                         Fusion_ObjectMap;
+extern "C" {
+#else
+typedef void                                      Fusion_ObjectMap;
+#endif
+
+
 typedef enum {
      FOS_INIT,
      FOS_ACTIVE,
