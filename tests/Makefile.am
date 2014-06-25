@@ -72,6 +72,10 @@ GL_PROGS += \
 	dfbtest_eglblit	\
 	dfbtest_eglimage	\
 	dfbtest_gears
+if SDL_CORE
+GL_PROGS += \
+	dfbtest_sdlegl
+endif
 endif
 
 if GFX_GL
@@ -213,6 +217,10 @@ dfbtest_eglimage_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE
 dfbtest_gears_SOURCES = dfbtest_gears.c
 dfbtest_gears_CFLAGS  = $(GLES2_CFLAGS)
 dfbtest_gears_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libgles2) $(libegl) $(libdfbegl)
+
+dfbtest_sdlegl_SOURCES = dfbtest_sdlegl.c
+dfbtest_sdlegl_CFLAGS  = $(GLES2_CFLAGS) $(SDL_CFLAGS)
+dfbtest_sdlegl_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libgles2) $(libegl) $(libdfbegl) $(SDL_LIBS)
 
 dfbtest_gl1_SOURCES = dfbtest_gl1.c
 dfbtest_gl1_CFLAGS  = $(GLES2_CFLAGS)
