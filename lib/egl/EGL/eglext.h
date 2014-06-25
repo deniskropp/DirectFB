@@ -572,6 +572,7 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLSWAPBUFFERSWITHDAMAGEEXTPROC)(EGLDisplay 
 #endif
 
 #include <EGL/egldfbext.h>
+#include <EGL/eglmesaext.h>
 
 #ifdef __cplusplus
 }

@@ -7,5 +7,6 @@ include_HEADERS = \
 	egldfbext.h			\
 	egldfbmangle.h			\
 	egldfbunmangle.h		\
+	eglmesaext.h			\
 	eglext.h			\
 	eglplatform.h
