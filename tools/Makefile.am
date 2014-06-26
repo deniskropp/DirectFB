@@ -9,6 +9,7 @@ INCLUDES = \
 	-I$(top_builddir)/lib/fusionsound \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/include/++dfb	\
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/lib/divine	\
 	-I$(top_srcdir)/lib/sawman	\
@@ -90,6 +91,10 @@ NON_PURE_VOODOO_bin_PROGS = \
 	dfbdump			\
 	dfbdumpinput		\
 	dfbinput
+if SDL_CORE
+NON_PURE_VOODOO_bin_PROGS += \
+	dfbsurface_view
+endif
 endif
 
 bin_PROGRAMS = \
@@ -158,6 +163,10 @@ dfbscreen_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 #dfbsummon_SOURCES = dfbsummon.c
 #dfbsummon_LDADD   = $(DFB_BASE_LIBS)
+
+dfbsurface_view_SOURCES  = dfbsurface_view.cpp
+dfbsurface_view_CXXFLAGS = $(SDL_CFLAGS)
+dfbsurface_view_LDADD    = $(DFB_BASE_LIBS) $(libppdfb) $(OSX_LIBS) $(SDL_LIBS)
 
 dfbpenmount_SOURCES = dfbpenmount.c
 dfbpenmount_LDADD   = $(DFB_BASE_LIBS)
