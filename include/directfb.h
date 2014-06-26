@@ -5149,6 +5149,14 @@ D_DEFINE_INTERFACE(   IDirectFBSurfaceAllocation,
      );
 
      /*
+      * Get the surface pitch.
+      */
+     DFBResult (*GetPitch) (
+          IDirectFBSurfaceAllocation    *thiz,
+          int                           *ret_pitch
+     );
+
+     /*
       * Update the surface allocation if outdated.
       */
      DFBResult (*Update) (

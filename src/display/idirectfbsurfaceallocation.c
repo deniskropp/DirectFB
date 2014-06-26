@@ -157,6 +157,37 @@ IDirectFBSurfaceAllocation_GetHandle( IDirectFBSurfaceAllocation    *thiz,
 }
 
 static DFBResult
+IDirectFBSurfaceAllocation_GetPitch( IDirectFBSurfaceAllocation    *thiz,
+                                     int                           *ret_pitch )
+{
+     DFBResult ret;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurfaceAllocation)
+
+     D_DEBUG_AT( SurfaceAllocation, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!data->allocation)
+          return DFB_DESTROYED;
+
+     if (!ret_pitch)
+          return DFB_INVARG;
+
+     /* Lock the allocation. */
+     if (!data->lock.allocation) {
+          ret = dfb_surface_pool_lock( data->allocation->pool, data->allocation, &data->lock );
+          if (ret) {
+               D_DERROR( ret, "IDirectFBSurfaceAllocation: Locking allocation failed! [%s]\n",
+                         ToString_CoreSurfaceAllocation( data->allocation ) );
+               return ret;
+          }
+     }
+
+     *ret_pitch = data->lock.pitch;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurfaceAllocation_Updated( IDirectFBSurfaceAllocation *thiz,
                                     const DFBBox               *updates,
                                     unsigned int                num_updates )
@@ -204,6 +235,7 @@ DFBResult IDirectFBSurfaceAllocation_Construct( IDirectFBSurfaceAllocation *thiz
 
      thiz->GetDescription = IDirectFBSurfaceAllocation_GetDescription;
      thiz->GetHandle      = IDirectFBSurfaceAllocation_GetHandle;
+     thiz->GetPitch       = IDirectFBSurfaceAllocation_GetPitch;
 
      thiz->Updated        = IDirectFBSurfaceAllocation_Updated;
 
