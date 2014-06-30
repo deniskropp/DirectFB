@@ -60,6 +60,8 @@ struct __D_DirectSignalHandler {
      int                      num;
      DirectSignalHandlerFunc  func;
      void                    *ctx;
+
+     bool                     removed;
 };
 
 /**************************************************************************************************/
@@ -206,13 +208,16 @@ direct_signal_handler_remove( DirectSignalHandler *handler )
      D_DEBUG_AT( Direct_Signals, "Removing handler %p for signal %d with context %p...\n",
                  handler->func, handler->num, handler->ctx );
 
-     direct_mutex_lock( &handlers_lock );
-     direct_list_remove( &handlers, &handler->link );
-     direct_mutex_unlock( &handlers_lock );
+     if (direct_mutex_trylock( &handlers_lock ))
+          handler->removed = true;
+     else {
+          direct_list_remove( &handlers, &handler->link );
+          direct_mutex_unlock( &handlers_lock );
 
-     D_MAGIC_CLEAR( handler );
+          D_MAGIC_CLEAR( handler );
 
-     D_FREE( handler );
+          D_FREE( handler );
+     }
 
      return DR_OK;
 }
@@ -378,6 +383,13 @@ call_handlers( int   num,
 
      direct_list_foreach_safe (l, n, handlers) {
           DirectSignalHandler *handler = (DirectSignalHandler*) l;
+
+          if (handler->removed) {
+               direct_list_remove( &handlers, &handler->link );
+               D_MAGIC_CLEAR( handler );
+               D_FREE( handler );
+               continue;
+          }
 
           D_LOG( Direct_Signals, FATAL, "    --> %d\n", handler->num );
 
