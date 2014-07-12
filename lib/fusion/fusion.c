@@ -849,15 +849,17 @@ fusion_enter( int               world_index,
 
      /* Initialize other parts. */
      if (enter.fusion_id == FUSION_ID_MASTER) {
-          fusion_skirmish_init2( &shared->reactor_globals, "Fusion Reactor Globals", world, false );
-          fusion_skirmish_init2( &shared->arenas_lock, "Fusion Arenas", world, false );
+          fusion_skirmish_init2( &shared->reactor_globals, "Fusion Reactor Globals", world, fusion_config->secure_fusion );
+          fusion_skirmish_init2( &shared->arenas_lock, "Fusion Arenas", world, fusion_config->secure_fusion );
 
-          fusion_skirmish_add_permissions( &shared->reactor_globals, 0,
-                                           FUSION_SKIRMISH_PERMIT_PREVAIL
-                                           | FUSION_SKIRMISH_PERMIT_DISMISS );
-          fusion_skirmish_add_permissions( &shared->arenas_lock, 0,
-                                           FUSION_SKIRMISH_PERMIT_PREVAIL
-                                           | FUSION_SKIRMISH_PERMIT_DISMISS );
+          if (!fusion_config->secure_fusion) {
+               fusion_skirmish_add_permissions( &shared->reactor_globals, 0,
+                                                FUSION_SKIRMISH_PERMIT_PREVAIL
+                                                | FUSION_SKIRMISH_PERMIT_DISMISS );
+               fusion_skirmish_add_permissions( &shared->arenas_lock, 0,
+                                                FUSION_SKIRMISH_PERMIT_PREVAIL
+                                                | FUSION_SKIRMISH_PERMIT_DISMISS );
+          }
 
           /* Create the main pool. */
           ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x1000000,
