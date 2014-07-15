@@ -130,6 +130,9 @@ DirectResult     FUSION_API  fusion_object_pool_enum          ( FusionObjectPool
                                                                 FusionObjectCallback    callback,
                                                                 void                   *ctx );
 
+DirectResult     FUSION_API  fusion_object_pool_size          ( FusionObjectPool       *pool,
+                                                                size_t                 *ret_size );
+
 
 FusionObject     FUSION_API *fusion_object_create             ( FusionObjectPool       *pool,
                                                                 const FusionWorld      *world,
