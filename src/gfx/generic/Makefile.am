@@ -24,6 +24,7 @@ endif
 
 libdirectfb_generic_la_SOURCES = \
 	GenefxEngine.cpp		\
+	GenefxEngine.h			\
 	duffs_device.h			\
 	$(GENERIC_C)			\
 	generic.h			\
