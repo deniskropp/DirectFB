@@ -700,6 +700,9 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
      if (patch->flags & DSECONF_FRAMING)
           patched->framing = patch->framing;
 
+     if (patch->flags & DSECONF_ASPECT_RATIO)
+          patched->aspect_ratio = patch->aspect_ratio;
+
      return DFB_OK;
 }
 
