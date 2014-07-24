@@ -136,10 +136,10 @@ static CoreSystemFuncs system_funcs = {
      .AuxMemoryVirtual    = system_aux_memory_virtual,
      .AuxRamLength        = system_auxram_length,
      .GetBusID            = system_get_busid,
+     .GetDeviceID         = system_get_deviceid,
      .SurfaceDataSize     = system_surface_data_size,
      .SurfaceDataInit     = system_surface_data_init,
-     .SurfaceDataDestroy  = system_surface_data_destroy,
-     .GetDeviceID         = system_get_deviceid
+     .SurfaceDataDestroy  = system_surface_data_destroy
 };
 
 #define DFB_CORE_SYSTEM(shortname)                              \

@@ -30,31 +30,27 @@
 
 
 
-#ifndef __DIRECT__TYPESPP_H__
-#define __DIRECT__TYPESPP_H__
+#ifndef __GENEFX_ENGINE_H__
+#define __GENEFX_ENGINE_H__
 
+
+/*********************************************************************************************************************/
+
+#ifdef __cplusplus
+namespace DirectFB {
 
 extern "C" {
-#include <direct/types.h>
+#endif
+
+
+void register_genefx(void);
+
+
+#ifdef __cplusplus
 }
 
-#include <map>
-
-
-namespace Direct {
-     // NOTE: if build fails here we most likely have the above error due to nested extern "C"
-     template <typename _Item> class List;
-     template <typename _Item> class ListLocked;
-     template <typename _Item> class ListSimple;
-
-     template <typename _CharT> class StringBase;
-     template <typename _CharT> class StringsBase;
-
-     typedef StringBase<char>  String;
-     typedef StringsBase<char> Strings;
 }
-
-#define D_String        Direct::String
+#endif // __cplusplus
 
 
 #endif

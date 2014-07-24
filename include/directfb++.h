@@ -32,15 +32,13 @@
 #ifndef DIRECTFBPP_H
 #define DIRECTFBPP_H
 
-#ifdef __DIRECTFB_H__
-#error Please include 'directfb++.h' before 'directfb.h'.
-#endif
-
+#include <direct/Types++.h>
 
 #define DFBPoint     DFBPoint_C
 #define DFBDimension DFBDimension_C
 #define DFBRectangle DFBRectangle_C
 #define DFBRegion    DFBRegion_C
+#define DFBUpdates   DFBUpdates_C
 
 
 #include <directfb.h>
@@ -56,6 +54,7 @@ extern "C" {
 #undef DFBDimension
 #undef DFBRectangle
 #undef DFBRegion
+#undef DFBUpdates
 
 
 
@@ -138,6 +137,10 @@ public:
 
      bool operator== ( const DFBDimension &ref ) const {
           return ref.w == w && ref.h == h;
+     }
+
+     bool operator!= ( const DFBDimension &ref ) const {
+          return ref.w != w || ref.h != h;
      }
 
 	bool contains( const DFBRegion_C &region ) const {
@@ -273,6 +276,13 @@ public:
           return y2 - y1 + 1;
      }
 
+     void translate( int x, int y ) {
+          x1 += x;
+          y1 += y;
+          x2 += x;
+          y2 += y;
+     }
+
      bool operator== ( const DFBRegion &ref ) const {
           return ref.x1 == x1 && ref.y1 == y1 && ref.x2 == x2 && ref.y2 == y2;
      }
@@ -291,22 +301,12 @@ public:
      }
 
      DFBRegion& operator|= ( const DFBRegion &r ) {
-          if (r.x1 < x1)
-               x1 = r.x1;
-
-          if (r.y1 < y1)
-               y1 = r.y1;
-
-          if (r.x2 > x2)
-               x2 = r.x2;
-
-          if (r.y2 > y2)
-               y2 = r.y2;
+          unionWith( r );
 
           return *this;
      }
 
-     void unionWith ( const DFBRegion &r ) {
+     void unionWith( const DFBRegion &r ) {
           if (r.x1 < x1)
                x1 = r.x1;
 
@@ -318,6 +318,71 @@ public:
 
           if (r.y2 > y2)
                y2 = r.y2;
+     }
+
+     DFBRegion& operator&= ( const DFBRegion &r ) {
+          clipBy( r );
+
+          return *this;
+     }
+
+     void clipBy( const DFBRegion &r ) {
+          if (r.x1 > x1)
+               x1 = r.x1;
+
+          if (r.y1 > y1)
+               y1 = r.y1;
+
+          if (r.x2 < x2)
+               x2 = r.x2;
+
+          if (r.y2 < y2)
+               y2 = r.y2;
+     }
+};
+
+
+class DFBUpdates : public DFBUpdates_C {
+private:
+//     int        max_regions;
+//     DFBRegion *regions;
+
+public:
+     DFBUpdates( int max_regions = 8 )
+//          :
+//          max_regions( max_regions )
+     {
+          regions = new DFBRegion[max_regions];
+
+          if (regions)
+               dfb_updates_init( this, regions, max_regions );
+          else
+               D_OOM();
+     }
+
+     ~DFBUpdates()
+     {
+          if (regions) {
+               dfb_updates_deinit( this );
+
+               delete regions;
+          }
+     }
+
+     void Reset()
+     {
+          D_ASSERT( regions != NULL );
+
+          dfb_updates_reset( this );
+     }
+
+     DFBUpdates& operator|= ( const DFBRegion &r )
+     {
+          D_ASSERT( regions != NULL );
+
+          dfb_updates_add( this, &r );
+
+          return *this;
      }
 };
 

@@ -28,6 +28,9 @@
    Boston, MA 02111-1307, USA.
 */
 
+#ifdef __cplusplus
+#include <directfb++.h>
+#endif
 
 
 #ifndef __DIRECTFB_UTIL_H__
@@ -1465,6 +1468,12 @@ typedef struct {
           D_ASSERT( (updates)->regions != NULL );                          \
           D_ASSERT( (updates)->max_regions > 0 );                          \
           D_ASSERT( (updates)->num_regions <= (updates)->max_regions );    \
+     } while (0)
+
+#define DFB_UPDATES_DEBUG_AT(d,updates)                                                        \
+     do {                                                                                      \
+          D_DEBUG_AT( d, " =--[ " #updates " has %d regions ]\n", (updates)->num_regions );    \
+          DFB_REGIONS_DEBUG_AT( d, (updates)->regions, (unsigned) ((updates)->num_regions) );  \
      } while (0)
 
 

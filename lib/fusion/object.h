@@ -54,6 +54,21 @@ typedef bool (*FusionPropIterator)( char *key, void *value, void *ctx);
 typedef u32 FusionObjectID;
 
 
+#ifdef __cplusplus
+}
+
+#include <map>
+
+namespace Fusion {
+typedef std::map<FusionObjectID,FusionObject*>    ObjectMap;
+}
+typedef Fusion::ObjectMap                         Fusion_ObjectMap;
+extern "C" {
+#else
+typedef void                                      Fusion_ObjectMap;
+#endif
+
+
 typedef enum {
      FOS_INIT,
      FOS_ACTIVE,
@@ -129,6 +144,9 @@ DirectResult     FUSION_API  fusion_object_pool_set_describe  ( FusionObjectPool
 DirectResult     FUSION_API  fusion_object_pool_enum          ( FusionObjectPool       *pool,
                                                                 FusionObjectCallback    callback,
                                                                 void                   *ctx );
+
+DirectResult     FUSION_API  fusion_object_pool_size          ( FusionObjectPool       *pool,
+                                                                size_t                 *ret_size );
 
 
 FusionObject     FUSION_API *fusion_object_create             ( FusionObjectPool       *pool,

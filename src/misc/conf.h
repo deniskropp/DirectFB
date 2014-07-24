@@ -326,6 +326,8 @@ typedef struct
      long long     max_frame_advance;
 
      bool          ownership_check;
+
+     bool          force_frametime;
 } DFBConfig;
 
 extern DFBConfig DIRECTFB_API *dfb_config;

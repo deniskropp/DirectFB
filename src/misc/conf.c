@@ -188,6 +188,7 @@ static const char *config_usage_strings[]  = {
      "  font-resource-id=<id>          Resource ID to use for font cache row surfaces\n"
      "  resource-manager=<impl>        Use this resource manager implementation\n"
      "  [no-]task-manager              Use experimental task manager (default: no)\n"
+     "  [no-]force-frametime           Call GetFrameTime() before each Flip() automatically\n"
      "  software-cores=<num>           Set number of threads to use for software rendering\n"
      "\n",
      "  x11-borderless[=<x>.<y>]       Disable X11 window borders, optionally position window\n"
@@ -496,7 +497,7 @@ static void config_allocate( void )
      dfb_config->keep_accumulators        = 1024;
      dfb_config->font_format              = DSPF_A8;
      dfb_config->cursor_automation        = true;
-     dfb_config->layers_clear             = true;
+     dfb_config->layers_clear             = false;
      dfb_config->wm_fullscreen_updates    = false;
 
      /* default to x11 if DISPLAY is set, or drm/fbdev if permitted */
@@ -2052,6 +2053,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-task-manager" ) == 0) {
           dfb_config->task_manager = false;
+     } else
+     if (strcmp (name, "force-frametime" ) == 0) {
+          dfb_config->force_frametime = true;
+     } else
+     if (strcmp (name, "no-force-frametime" ) == 0) {
+          dfb_config->force_frametime = false;
      } else
      if (strcmp (name, "software-cores" ) == 0) {
           if (value) {

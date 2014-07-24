@@ -388,6 +388,9 @@ fusion_hash_replace (FusionHash *hash,
                          SHFREE(hash->pool, (*node)->value );
                }
           }
+
+          (*node)->key = (void*)key;
+          (*node)->value = (void*)value;
      }
      else {
           if (hash->local)
@@ -398,10 +401,14 @@ fusion_hash_replace (FusionHash *hash,
           if ( !(*node) )
                return hash->local?DR_NOLOCALMEMORY:DR_NOSHAREDMEMORY;
 
+          (*node)->key = (void*)key;
+          (*node)->value = (void*)value;
+
           hash->nnodes++;
+
+          if (fusion_hash_should_resize(hash))
+               fusion_hash_resize(hash);
      }
-     (*node)->key = (void*)key;
-     (*node)->value = (void*)value;
 
      return DR_OK;
 }

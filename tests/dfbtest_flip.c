@@ -47,6 +47,8 @@
 #include <directfb_strings.h>
 #include <directfb_util.h>
 
+D_DEBUG_DOMAIN( DFBTest_Flip, "DFBTest/Flip", "DFBTest Flip" );
+
 static const DirectFBPixelFormatNames( format_names );
 
 /**********************************************************************************************************************/
@@ -123,6 +125,100 @@ print_usage( const char *prg )
 }
 
 /**********************************************************************************************************************/
+
+typedef struct {
+     char      *name;
+
+     long long  stamps[1000];
+     size_t     counts[1000];
+     size_t     index;
+} Timings;
+
+static Timings m_timings[5];
+
+static void
+timings_add( const char *name,
+             long long   stamp,
+             size_t      count )
+{
+     size_t i;
+
+     //printf( "%-20s: %lld (count %zu)\n", name, stamp, count );
+
+     for (i=0; i<D_ARRAY_SIZE(m_timings) && m_timings[i].name; i++) {
+          if (!direct_strcmp( m_timings[i].name, name ))
+               break;
+     }
+
+     if (i == D_ARRAY_SIZE(m_timings)) {
+          D_WARN( "timings array out of bounds" );
+          return;
+     }
+
+     if (!m_timings[i].name)
+          m_timings[i].name = direct_strdup( name );
+
+     m_timings[i].stamps[m_timings[i].index] = stamp;
+     m_timings[i].counts[m_timings[i].index] = count;
+
+     if (++m_timings[i].index == D_ARRAY_SIZE(m_timings[i].stamps))
+          m_timings[i].index = 0;
+}
+
+static void
+timings_get( Timings   *timings,
+             long long  now,
+             long long *ret_stamps,
+             size_t    *ret_counts,
+             size_t    *ret_num )
+{
+     size_t i, num = 0;
+
+     for (i=1; i<=D_ARRAY_SIZE(timings->stamps); i++) {
+          size_t    index = (D_ARRAY_SIZE(timings->stamps) + timings->index - i)  %  D_ARRAY_SIZE(timings->stamps);
+          long long stamp = timings->stamps[ index ];
+
+          //printf( "%4zu: %4zu  %lld  (%lld)   count %zu\n", i, index, stamp, now, timings->counts[ index ] );
+
+          if (stamp >= now - 800000) {
+               ret_stamps[num] = stamp;
+               ret_counts[num] = timings->counts[ index ];
+
+               num++;
+          }
+     }
+
+     *ret_num = num;
+}
+
+static void
+draw_timings( IDirectFBSurface *dest )
+{
+     long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
+     long long stamps[1000];
+     size_t    counts[1000];
+     size_t    num, i, n, count0 = 0;
+
+     for (i=0; i<D_ARRAY_SIZE(m_timings) && m_timings[i].name; i++) {
+          timings_get( &m_timings[i], now, stamps, counts, &num );
+
+          dest->SetDrawingFlags( dest, DSDRAW_NOFX );
+          dest->SetColor( dest, 0xff, 0xff, 0xff, 0xff );
+
+          dest->DrawString( dest, m_timings[i].name, -1, 20, 200 + i*40 + 2, DSTF_TOPLEFT );
+
+          if (i == 0)
+               count0 = counts[0];
+
+          for (n=0; n<num; n++) {
+               size_t count = counts[n] - count0;
+
+               dest->SetColor( dest, 100 * count, 133 * count, 199 * count, 0xff );
+
+               dest->FillRectangle( dest, 200 + (now - stamps[n]) / 1000LL, 200 + i*40, 1, 40 );
+          }
+     }
+}
 
 int
 main( int argc, char *argv[] )
@@ -244,11 +340,16 @@ main( int argc, char *argv[] )
           long long base, frame_time = 0;
           long long now = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
 
+          timings_add( "loop start", now, count );
+
           if (use_frame_time) {
                if (dest->GetFrameTime( dest, &frame_time ))
                     break;
 
-               D_INFO( "Got frame time %lld (now %lld) with advance %lld (us in future)\n", frame_time, now, frame_time - now );
+               D_DEBUG_AT( DFBTest_Flip, "Got frame time %lld (now %lld) with advance %lld (us in future)\n", frame_time, now, frame_time - now );
+
+               if (count % 120 == 0)
+                    D_INFO( "Got frame time %lld (now %lld) with advance %lld (us in future)\n", frame_time, now, frame_time - now );
 
                base = frame_time * 5 / 17000;
           }
@@ -259,10 +360,20 @@ main( int argc, char *argv[] )
                base = (direct_clock_get_abs_millis() - t0) * 5 / 17;
           }
 
-          dest->Clear( dest, 0x55, 0x55, 0x55, 0xde );
+          timings_add( "frametime", frame_time, count );
+
+          dest->Clear( dest, 0x33, 0x33, 0x33, 0xff );
+
+
+          draw_timings( dest );
+
 
           dest->SetColor( dest, 0xff, 0xff, 0xff, 0xff );
-          dest->FillRectangle( dest, base % (desc.width - 100), 100, 100, 100 );
+          //dest->FillRectangle( dest, base % (desc.width - 100), 100, 100, 10000 );
+          dest->FillRectangle( dest, base % (desc.width - 100), 0, 100, 20000 );
+
+
+          dest->SetColor( dest, 0x33, 0x55, 0xff, 0xff );
 
           dest->DrawString( dest, D_String_PrintTLS( "Frame Time: %lld (%lld from now)",
                                                      frame_time, frame_time - now ),
@@ -274,13 +385,19 @@ main( int argc, char *argv[] )
 
           prev = frame_time;
 
+          timings_add( "flip call", direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ), count );
+
           //t1 = direct_clock_get_abs_millis();
           dest->Flip( dest, NULL, triple ? DSFLIP_ONSYNC : DSFLIP_WAITFORSYNC );
           //t2 = direct_clock_get_abs_millis();
 
+          timings_add( "flip done", direct_clock_get_time( DIRECT_CLOCK_MONOTONIC ), count );
+
           count++;
 
 //          D_INFO( "Took %lld ms\n", t2 - t1 );
+
+//          sleep(15);
      }
 
 out:

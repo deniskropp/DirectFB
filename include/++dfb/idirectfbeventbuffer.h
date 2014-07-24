@@ -42,6 +42,8 @@ friend
 friend
      class IDirectFBInputDevice;
 friend
+     class IDirectFBSurface;
+friend
      class IDirectFBWindow;
 
 public:

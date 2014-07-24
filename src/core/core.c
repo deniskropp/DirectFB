@@ -73,6 +73,7 @@
 #include <core/Task.h>
 #include <core/TaskManager.h>
 
+#include <gfx/generic/GenefxEngine.h>
 #include <gfx/util.h>
 
 #include <direct/build.h>
@@ -333,7 +334,7 @@ dfb_core_create( CoreDFB **ret_core )
      core->fusion_id = fusion_id( core->world );
 
 #if FUSION_BUILD_MULTI
-     D_DEBUG_AT( DirectFB_Core, "world %d, fusion id %d\n", fusion_world_index(core->world), core->fusion_id );
+     D_DEBUG_AT( DirectFB_Core, "world %d, fusion id %lu\n", fusion_world_index(core->world), core->fusion_id );
 
      snprintf( buf, sizeof(buf), "%d", fusion_world_index(core->world) );
 
@@ -1228,15 +1229,18 @@ dfb_core_wait_all( CoreDFB   *core,
 
           for (i=0; i<D_ARRAY_SIZE(pools); i++) {
                if (pools[i]) {
-                    unsigned int num = fusion_hash_size( pools[i]->objects );
+                    size_t    num = 0;
+                    DFBResult ret = fusion_object_pool_size( pools[i], &num );
+
+                    D_ASSERT( ret == DFB_OK );
 
                     if (num > 0) {
                          if (now - start >= timeout) {
-                              D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in pool, timeout!\n", num );
+                              D_DEBUG_AT( DirectFB_Core, "  -> still %zu objects in pool, timeout!\n", num );
                               return DR_TIMEOUT;
                          }
 
-                         D_DEBUG_AT( DirectFB_Core, "  -> still %u objects in '%s', waiting 10ms...\n", num, pools[i]->name );
+                         D_DEBUG_AT( DirectFB_Core, "  -> still %zu objects in '%s', waiting 10ms...\n", num, pools[i]->name );
 
                          break;
                     }
@@ -1698,12 +1702,10 @@ region_callback( FusionObjectPool *pool,
      return true;
 }
 
-static int
+int
 dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
-     DFBResult      ret;
      CoreDFBShared *shared;
-     int            loops = 10;
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
@@ -1727,30 +1729,18 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      dfb_core_enum_layer_regions( core, region_callback, core );
 
-
-     fusion_stop_dispatcher( core->world, false );
+     dfb_core_part_shutdown( core, &dfb_screen_core, emergency );
 
      dfb_gfx_cleanup();
 
-     while (loops--) {
-          fusion_dispatch( core->world, 16384 );
+     if (direct_config_get_int_value( "shutdown-info" )) {
+          D_ERROR( "DirectFB/Core: Some objects remain alive, application or internal ref counting issue!\n" );
 
-          ret = dfb_core_wait_all( core, 10000 );
-          if (ret == DFB_OK)
-               break;
+          dfb_core_dump_all( core, &DirectFB_Core, DIRECT_LOG_VERBOSE );
 
-          dfb_gfx_cleanup();
+          direct_print_interface_leaks();
      }
 
-     if (ret == DFB_TIMEOUT) {
-          if (direct_config_get_int_value( "shutdown-info" )) {
-               D_ERROR( "DirectFB/Core: Some objects remain alive, application or internal ref counting issue!\n" );
-
-               dfb_core_dump_all( core, &DirectFB_Core, DIRECT_LOG_VERBOSE );
-
-               direct_print_interface_leaks();
-          }
-     }
 
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
@@ -1759,8 +1749,6 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      /* Close window stacks. */
      if (dfb_wm_core.initialized)
           dfb_wm_close_all_stacks( dfb_wm_core.data_local );
-
-     CoreDFB_Deinit_Dispatch( &shared->call );
 
      /* Destroy layer context and region objects. */
      fusion_object_pool_destroy( shared->layer_region_pool, core->world );
@@ -1771,7 +1759,6 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      /* Shutdown layer core. */
      dfb_core_part_shutdown( core, &dfb_layer_core, emergency );
-     dfb_core_part_shutdown( core, &dfb_screen_core, emergency );
 
      TaskManager_SyncAll();
 
@@ -1806,7 +1793,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      TaskManager_Shutdown();
 
      if (direct_config_get_int_value( "dfb-error-shutdown-timeout" ))
-          return ret;
+          return DFB_TIMEOUT;
 
      return DFB_OK;
 }
@@ -1849,7 +1836,6 @@ dfb_core_initialize( CoreDFB *core )
                return ret;
      }
 
-     extern void register_genefx(void);
      register_genefx();
 
      if (dfb_config->resource_manager) {
@@ -2023,7 +2009,9 @@ dfb_core_arena_shutdown( void *ctx,
      }
 
      /* Shutdown. */
-     ret = dfb_core_shutdown( core, emergency );
+     ret = CoreDFB_Shutdown( core );
+
+     CoreDFB_Deinit_Dispatch( &shared->call );
 
      fusion_hash_destroy( shared->field_hash );
 

@@ -32,6 +32,8 @@
 
 #include <config.h>
 
+#include <direct/Types++.h>
+
 #include "DataBuffer.h"
 
 extern "C" {

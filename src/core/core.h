@@ -88,6 +88,9 @@ void      *dfb_core_get_part( CoreDFB        *core,
 
 DFBResult dfb_core_initialize( CoreDFB *core );
 
+int       dfb_core_shutdown  ( CoreDFB *core,
+                               bool     emergency );
+
 
 /*
  * Object creation
@@ -284,7 +287,7 @@ struct __DFB_CoreDFB {
 
      int                      refs;
 
-     int                      fusion_id;
+     FusionID                 fusion_id;
 
      FusionWorld             *world;
 

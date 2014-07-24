@@ -374,6 +374,20 @@ fusion_object_pool_enum( FusionObjectPool     *pool,
      return DR_OK;
 }
 
+DirectResult
+fusion_object_pool_size( FusionObjectPool *pool,
+                         size_t           *ret_size )
+{
+     D_MAGIC_ASSERT( pool, FusionObjectPool );
+
+     if (!ret_size)
+          return DR_INVARG;
+
+     *ret_size = fusion_hash_size( pool->objects );
+
+     return DR_OK;
+}
+
 FusionObject *
 fusion_object_create( FusionObjectPool  *pool,
                       const FusionWorld *world,
