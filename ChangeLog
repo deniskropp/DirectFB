@@ -1,3 +1,597 @@
+commit a1a930c40f3ecdde7e1fa327a023a1eacff66a6c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 24 13:08:45 2014 +0200
+
+    Screen: Add missing code for DSECONF_ASPECT_RATIO to PatchEncoderConfig
+
+commit be46411a640eb99a9ae0a89de0455481905412c0
+Merge: 92f2850 4e7f089
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 24 11:20:24 2014 +0200
+
+    Merge branch 'directfb-1.7' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.7
+
+commit 4e7f089bc78848edff2f79e20dd19cf6920e1c30
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Jul 15 18:55:35 2014 +0200
+
+    configure: 1.7.5
+
+commit 06668550b900a9834b3ecebf3214027537f52eec
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Jul 15 18:54:51 2014 +0200
+
+    gfx: Add GenefxEngine.h to Makefile
+
+commit 4ddbf722ce5f93bf383f476f6be4a845b70879fb
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Jul 15 18:53:38 2014 +0200
+
+    configure: Set C++ standard to C++0x
+
+commit bfd4107bdec63ce1c6eac88eca8997ad92f462f2
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jun 30 20:23:05 2014 +0200
+
+    libdirect: Fix deadlock using a fallback flag for removing a signal handler.
+
+commit b549164cfab2450222e4b5b54433806a29cad9dc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 26 02:04:35 2014 +0200
+
+    Core: Fix order of CoreSystemFuncs initialisation
+
+commit 1f96cfdebdf971b0f45045af60b51976316316cf
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 26 01:57:42 2014 +0200
+
+    Core: Fix type of fusion_id in CoreDFB structure
+
+commit 9b23c3b5f0c6aa074d509309c916a8d5d9b1883f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 26 01:57:09 2014 +0200
+
+    Core: Fix warnings
+
+commit 0ad1970a5ec52a8e9b0e910e1f92a45b858f2b3f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jun 26 01:33:07 2014 +0200
+
+    libfusion: Add missing include of <map> to object.h
+
+commit b81a3809618048e147179209b3f97fb170596ca5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jun 15 22:56:44 2014 +0200
+
+    dfbtest_flip: Add visualisation of timings
+
+commit 05365c45fb42d982005773b763721f72c768549f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat May 31 11:54:35 2014 +0200
+
+    Core: Add CSBF_RIGHT to indicate buffer is for right eye
+
+commit 21a55dffbbb6180dc249a444b61eedb80921b66e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat May 31 11:47:59 2014 +0200
+
+    API: Add DSPF_ARGB8565 and DSPF_ABGR to DFB_COLOR_IS_RGB
+
+commit d1267d05fb964f882b90599b8259e41a9a4e811b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Apr 20 13:41:40 2014 +0200
+
+    Core: Add Shutdown method to run in dispatch thread, solving (potential) shutdown issues caused by race conditions with dispatch thread
+
+commit 9dcae150c8f40e6434fa28fdf433059c3adda60b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Apr 20 13:39:22 2014 +0200
+
+    libfusion: Run indirect calls directly in dispatcher in fusion_call_execute, like in fusion_call_execute3
+
+commit 92f2850e2c19ce0f8de33789776f47b4a23ebe8c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Mar 16 11:30:37 2014 +0100
+
+    util: The rectangles used to be 1 pixel too small in both dimensions. (Thanks to Sven Neumann)
+
+commit 2e174bfdba7be1c284b13f5542d803e503dad984
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Mar 18 18:06:39 2014 +0100
+
+    FPS: Fix long long
+
+commit 1001c04e8caa9007b11612fc3664c83da3225a76
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Mar 18 17:53:04 2014 +0100
+
+    libfusion: Add deadlock note about reactor (to be replaced in 1.9 anyways)
+
+commit 2fde4b29539866097900cb347cc3452bd1dd0f3a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Mar 18 17:46:53 2014 +0100
+
+    API: Add event buffer calls and convenience GetSize() to IDirectFBSurface wrapper
+
+commit 1cce0c1e3953dddd8f2f5e30b50e37e4d9833c46
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Mar 18 17:45:39 2014 +0100
+
+    API: Always include directfb++ utils when C++ is used
+
+commit 26164fb7ba2782e08d889299528d056c14502e89
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Mar 17 00:03:22 2014 +0100
+
+    TIFF: Fixes
+    
+    - use ABGR pixelformat instead of ARGB
+    - use "lock.pitch" instead of image width
+    
+    Signed-off-by: Haithem Rahmani <haithem.rahmani@gmail.com>
+
+commit b3b402a3a102ea700e0ba0f75f4eeafa5634d0b8
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Mar 16 11:45:02 2014 +0100
+
+    JPEG: Fix setjmp() issue (thanks to Sven Neumann)
+    
+    Wrapping the call to setjmp() into a helper function is a bad
+    idea as setjmp() saves the stack for later use by longjmp().
+    
+    The way it was done here totally broke error handling for fatal
+    errors from libjpeg. Reverting this part of commit aaebf60b86
+    restores error handling in the JPEG image provider.
+
+commit 62b3b1572952fe3fddd395e29ad76281a9e32ca5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Mar 16 11:30:37 2014 +0100
+
+    util: The rectangles used to be 1 pixel too small in both dimensions. (Thanks to Sven Neumann)
+
+commit 355c10e39f3d173f1b25e03e35a81888887d396b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 23:15:21 2014 +0100
+
+    Core: Add GenefxEngine.h
+
+commit 579c2becf2d973a86fe887736debdc22159493dc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Jul 15 10:26:41 2014 +0200
+
+    libfusion: Add fusion_object_pool_size()
+
+commit 375b5bf4f6a3b2802584554d4cac496ec74091b6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 23:01:31 2014 +0100
+
+    Core: Fix crash in dfb_core_wait_all
+
+commit a7515368a04486066d96dfcd00599fe8f4611d4e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 22:56:32 2014 +0100
+
+    Core: Implement DSFLIP_UPDATE in dfb_layer_region_flip_update2
+
+commit 768855340a190c4ae1aed07ee54106b58e592af0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 22:42:47 2014 +0100
+
+    Core: Add dfb_state_set_destination_2 including flip count
+
+commit 0e0844b9205344aa08333a3f3af2de639fb93cca
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 22:35:00 2014 +0100
+
+    Core: Optimise dfb_state_set_source_2 for flip count only updates
+
+commit 502dfeb31a591c2ceba11654ce938ea6be52f00f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 22:20:51 2014 +0100
+
+    Core: Print warning when dfb_surface_allocation_update fails to find transfer method
+
+commit 9edd84d79887c306af60b8b5edd0248bece36bd6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 22:12:33 2014 +0100
+
+    Options: Set default for 'layers-clear' to false (previous behaviour)
+
+commit e917b21694d952aefe1409716c3d3a6a0157e9a9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 22:11:27 2014 +0100
+
+    API: minor debug message enhancements
+
+commit d4804909ba07e49f99cdfb6162d527952f861367
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 22:08:06 2014 +0100
+
+    Options: Add 'force-frametime' to call GetFrameTime() before each Flip() automatically
+
+commit 31ad1edb78d687b3451306173f13b4d90c33707b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 19:54:13 2014 +0100
+
+    util: Remove some bogus assertions
+
+commit 8eda452dd8fa5ccb1ba97ddf7607e0d1250d52c0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 31 19:44:46 2014 +0100
+
+    Util: Add DFB_UPDATES_DEBUG_AT
+
+commit 22189cdb83abab6deed60319162978aee5051154
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jan 20 19:49:27 2014 +0100
+
+    DataBuffer: include <direct/Types++.h>
+
+commit 1e5e9b407ce99d5183ac2c60e410988408deb924
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jan 20 19:43:51 2014 +0100
+
+    C++: fix some includes
+    
+    Conflicts:
+    	lib/fusion/object.h
+
+commit d1702bdb13681c335adf708f5312bfb0cf859d89
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jan 17 02:28:33 2014 +0100
+
+    Core: Include direct/Types++.h earlier.
+
+commit b5ea55b15bf60ac6768c642056a5afdff360f51e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jan 5 15:20:14 2014 +0100
+
+    API: Extend DFBRegion
+
+commit 9cffbbc9d4b60406f2f265d70ab5c3087e7fc470
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Jan 5 15:19:03 2014 +0100
+
+    API: Add DirectFBDisplayLayerOptionsNames
+
+commit 5328cd22e64eabb84568745af50b237be2a5cfa5
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Dec 31 05:05:28 2013 +0100
+
+    libfusion: hash resizing in fusion_hash_replace (when new)
+
+commit 405a711996b90e558d9f91089c2a21138c60b372
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 3 21:59:35 2013 +0200
+
+    GLES2: Fix warning
+
+commit 68d05a048ec621786a87a52c234604e486aec4ad
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 3 04:05:06 2013 +0200
+
+    libdirect: extend domain name space in debug messages
+
+commit cb3168781edfbc957b052cfbcf01ac9d7a0a6d93
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 1 18:08:08 2013 +0200
+
+    GP2D: include direct/Types++ to fix build
+
+commit cf1ae22fb841f932b7631eef3aa284a0e0071b65
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Sep 29 22:17:26 2013 +0200
+
+    API: Add width() and height() to DFBRegion
+
+commit 54aeb5c9e0e96cc006da347e1565e4d4df791d99
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Sep 20 17:12:18 2013 +0200
+
+    [PATCH 2/2] drmkms: mute plane when opacity is set to zero.
+    
+    If the opacity value of zero is passed, then we mute the plane
+    by disabling the plane. We re-enable when the plane if non-zero
+    opacity value is passed.
+    
+    Thanks to Takanari Hayama <taki@igel.co.jp>
+
+commit 8ae0a7845d0f18c9f62c8ba633ab54151ad40153
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Sep 20 17:10:49 2013 +0200
+
+    [PATCH 1/2] drmkms: fix property to check when setting source color key.
+    
+    Thanks to Takanari Hayama <taki@igel.co.jp>
+
+commit b6f76750d71d7753c9be1715c0a65ead6c704d2b
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Sep 20 14:57:27 2013 +0200
+
+    drmkms: add some timeouts
+
+commit f44e50fd0e16e9cfbed7938bde9084c3ffcab008
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Sep 18 15:23:15 2013 +0200
+
+    drmkms: allow setting of windows as layer surface
+
+commit 00f840635d362b5894825f243b1b3481fa39ce91
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Sep 16 15:09:57 2013 +0200
+
+    drmkms: add mixer and encoder to encoder and output config
+
+commit a23ecb35bd70ef4eab20be1502745096156d7ff4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Sep 14 02:27:20 2013 +0200
+
+    [PATCH] drmkms: correctly set a name that is created with DRM_IOCTL_GEM_FLINK, thanks to Kazunori Kobayashi <kkobayas@igel.co.jp>
+
+commit 1738cc9a02706398899567f43733d475f3442891
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Jul 12 17:39:21 2014 +0200
+
+    libfusion: fix secure-fusion mode for reactor_globals and arenas_lock
+
+commit 741c5aa9bc589cf0e5540986a1c4c4de4e795947
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Sep 13 13:25:37 2013 +0200
+
+    [PATCH] imageprovider: fix crash when doing multiple RenderTo()'s in the webp provider
+    
+    Signed-off-by: Haithem Rahmani <haithem.rahmani@st.com>
+    
+    Thanks!!!
+
+commit c2a94d5c6eee5512b2c7e8d7ceb563e39943b1d5
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Sep 13 13:22:47 2013 +0200
+
+    [PATCH (DirectFB)] inputdrivers: set DICAPS_KEYS/DIDCAPS_KEYS only for input devices with keys
+    
+    DICAPS_KEYS/DIDCAPS_KEYS is set in DFBInputDeviceCapabilities for all linux
+    input devices that have the EV_KEY bit set: keyboards, buttons, or other
+    key-like devices. This patch sets DICAPS_KEYS/DIDCAPS_KEYS only for input
+    devices with keys.
+    
+    Signed-off-by: Thouraya ANDOLSI <thouraya.andolsi@st.com>
+    
+    Thanks!!!
+
+commit d8ead68fe2ec578e7c4af5171d217c5301c62de6
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 22:21:09 2013 +0200
+
+    ++DFB: IDirectFBWindow::Get/SetApplicationID(), thanks to Krzysztof Konopko <kris@konagma.com>!
+
+commit 75ab289f036c085e8defd34f5d208a221fd71d3b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 22:19:11 2013 +0200
+
+    ++DFB: Add IDirectFBSurface::SetRenderOptions(), thanks to Krzysztof Konopko <kris@konagma.com>!
+
+commit 7b88cfebb6a40acab5571def6a2c9fe1543495cd
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 21:31:09 2013 +0200
+
+    more gitignore
+
+commit 2364205f36d51554d5890133ed6440070e018617
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 21:16:57 2013 +0200
+
+    Core: Add CoreLayerRegion::SetSurface(), add parameter to dfb_layer_region_set_surface() to preserve the old behaviour
+
+commit 46e40743d36c1acc3f36579c4811c29ee2a5229a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 20:39:28 2013 +0200
+
+    add more gitignore
+
+commit 5b5e4dac5145e07cee0d7bd50f29f12754cad0e9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 20:34:40 2013 +0200
+
+    ++DFB: Add IDirectFBSurface::Flush() and IDirectFBDisplayLayer::SetSurface()
+
+commit 06a548428b1aebb207a8801f12b80e5b26e5ff45
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 16:25:32 2013 +0200
+
+    API: Add IDirectFBDisplayLayer::SetSurface() to allow mapping of arbitrary surfaces onto hardware layers
+
+commit 50ff8566c2af6086687037b0c1f4ccdb88fadbae
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 14:47:00 2013 +0200
+
+    Options: Add no-sighandler-thread to disable handling signals in a separate thread
+
+commit f1415337eeebd703734f15db85d50ccbe4ed25ad
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Sep 8 23:24:01 2013 +0200
+
+    IDirectFBSurface: add more debug
+
+commit f9b064347ebf356e8b070a9c165708f4c5bfb7bc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Sep 7 14:50:11 2013 +0200
+
+    libdirect: Use prctl(GET_NAME) if thread was not created via direct_thread_create()
+
+commit b7c75e65a6278d34a3f4447ad717560d8b96f16a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Sep 4 13:07:27 2013 +0200
+
+    GP2D: Comment out forced debug mode
+
+commit 22e8e9a5f47e422688a14b4e04965f6c3db86a68
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Sep 4 09:15:28 2013 +0200
+
+    DRMKMS: Add mixers, indicate which layer is on which output
+    
+    TODO: Allow moving layers from one mixer to another, or clone, ...
+
+commit 7ecb6e278f41de355f05bbd6cdc74657885cf7c7
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 10 16:24:24 2013 +0200
+
+    Core: Fix permissions on reactor, using FUSION_REACTOR_PERMIT_... instead of ioctl defs.
+
+commit d2922476919ac72e1b96c62491fb8a0b85f02b31
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Sep 4 09:12:25 2013 +0200
+
+    Core: Hotfix IDirectFBWindows::RegisterWatcher() for slaves...
+
+commit a670233e784c270ebff2066473da4bb6114e4c3f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Sep 4 09:05:29 2013 +0200
+
+    libdirect: Implement 'delay-trap-ms' option
+
+commit 6b88a59dd71bbe3bc7218db654781be1250bbaae
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Sep 4 09:04:38 2013 +0200
+
+    libdirect: Don't print warning when direct_dbg_free() is called with NULL
+
+commit 8c98917047cf0785655c508b6afbc4ecb4b8628d
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Sep 4 09:03:46 2013 +0200
+
+    Options: Add 'delay-trap-ms' to make direct_trap() sleep instead of raising a signal, including a message for copy'n'paste 'gdb --pid=...'
+
+commit 60317ffe164b2ceebad7d966603b801d71cbb6cb
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 3 23:37:25 2013 +0200
+
+    Options: Add '[no-]ownership-check' to not check for privileges when calling GetSurface() or GetWindow() by ID
+
+commit 5ed2d0ca30188c7f66e4cca90a7397e7270be2dc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 3 23:17:04 2013 +0200
+
+    Renderer: Support source flip count setting
+
+commit 14f089f01872462b0742f76ad68837c63c4350d4
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 3 23:15:43 2013 +0200
+
+    CoreGraphicsStateClient: Fix pending call buffer data, avoid creating requestor if not needed
+
+commit ff3bb090aecf5ce42bc472addc05706f9ab4c9ba
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Sep 3 23:10:57 2013 +0200
+
+    Options: Add no-force-windowed to disable force-windowed option
+
+commit 0971446792dfc76493a9b5f8145983fdb7b088ab
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Aug 29 18:32:06 2013 +0200
+
+    libdirect: Include file name in error message in direct_modules_explore_directory
+
+commit ccffcc9a54fa356e68814000ef30052fbbe66291
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 26 21:29:38 2013 +0200
+
+    Core: Register DUMP signal handler to dump allocation data of surface buffers (e.g. killall -30 df_andi)
+
+commit 6aba6d402be4a716736a2f6c6f5da931cef6f502
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 26 21:27:18 2013 +0200
+
+    libdirect: Allow to register handlers for DUMP signal.
+
+commit 108738fb9b021ab5de9030b3f44ae1d2129df0a8
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 26 13:22:46 2013 +0200
+
+    DirectFB: Add debug domain DirectFB/Main
+
+commit 96594295410c64ff5bbdfadeab7260c6ac8a3ce9
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 26 13:16:38 2013 +0200
+
+    libfusion: slightly change debug output when printing function name in _fusion_call_process to allow highlighting
+
+commit 052bda1604d2ec6849b89b9bec16e9efa143f86e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 26 13:15:16 2013 +0200
+
+    Core: Add dfb_surface_allocation_dump(), add dfb_surface_buffer_dump_type_locked2() that takes pointer/pitch instead of full buffer lock
+
+commit 1d91ae9493a8493fa5ffd5bc4cfa48c26dbf0155
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Aug 19 12:24:47 2013 +0200
+
+    tests: C++ fixes
+
+commit 81381a87dc26d82b922f165d38d47909a58091ec
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Aug 16 20:37:29 2013 +0200
+
+    DRMKMS: Initialise also a mixer for each connector
+
+commit 901d83c8b6c5f78db6bde4f66e2f9cd547c15cbf
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Aug 16 17:08:42 2013 +0200
+
+    libdirect: Add debug to direct_stream_create
+
+commit 555300e0fe940a874ac5887ae3225c1309a53dc5
+Author: André Draszik <andre.draszik@st.com>
+Date:   Mon Aug 5 11:46:33 2013 +0100
+
+    configure: fix detection of pre-generated files
+    
+    When doing out-of-tree builds, pre-generated files are in $srcdir,
+    otherwise we'd be looking for them in $CWD, which would be $builddir
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit d747f01d10421e39cac7564211e07d35bf855624
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 25 13:58:21 2013 +0200
+
+    ++dfb: Use DSCAPS_FLIPPING in DFBApp::Init.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 94e4df53de1681698bf2d2e416992cff6e737496
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Feb 13 19:26:04 2014 +0100
+
+    ++DFB: Add premultiplied caps to DFBApp
+
+commit 1c2cc1e46872cc1be09bcd982033932773cbb6c9
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Jul 12 15:30:36 2013 +0200
+
+    convert non-windows files to have unix-style line endings
+
+commit fdf0f5fa1e9bd09b82d6d7755643b0ec6c1ab722
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Jul 25 13:44:43 2013 +0200
+
+    Debug: Add/change some debug messages.
+    
+    Signed-off-by: Denis Oliver Kropp <dok@directfb.org>
+
+commit 089abf8f0f3e78c78daa97ef27c7f934638cc27b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Jul 11 22:56:17 2014 +0200
+
+    remove accidentally added files
+
+commit e76963cc9b970dce8f63b956ff4582445dce6388
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Apr 5 21:47:13 2014 +0200
+
+    update changelog for 1.7.4
+
 commit f3a149e7d2488cbd2828f4aa230cc62ef87ad3dd
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Sat Apr 5 21:46:55 2014 +0200
