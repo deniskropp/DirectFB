@@ -165,11 +165,11 @@ public:
           //D_INFO( "MAPPING %s   %zu (map %p)\n", *name, map.size(), &map );
 
           for (auto e = map.begin(); e != map.end(); e++) {
-               //if (std::get<0>((*e).first) == name && (!ctx || std::get<2>((*e).first) == ctx)) {
+               if (Direct::String( std::get<0>((*e).first).c_str() ) == name && (!ctx || std::get<2>((*e).first) == ctx)) {
                     //D_INFO( "MAPPING   %-30s  %s\n", std::get<0>((*e).first).c_str(), std::get<1>((*e).first).c_str() );
 //                    D_INFO( "MAPPING   %s\n", (*e).first.c_str() );
                     ret.insert( *e );
-               //}
+               }
           }
 
           return ret;
