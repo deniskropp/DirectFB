@@ -124,8 +124,8 @@ public:
      struct wl_event_queue *wl_queue;
      struct wl_registry    *wl_registry;
 
-     struct WL::wl_dfb     *wl_server_dfb;
-     struct WL::wl_dfb     *wl_dfb;
+     WL::WLDFB             *wl_server_dfb;
+     struct wl_dfb         *wl_dfb;
 };
 
 

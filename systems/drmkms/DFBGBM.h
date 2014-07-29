@@ -161,6 +161,7 @@ public:
      struct gbm_bo      *gbm_bo;
      u32                 handle;
      u32                 name;
+     int                 pitch;
      bool                locked;
 
      CoreSurfaceAllocation *allocation;
@@ -183,6 +184,7 @@ public:
           struct drm_gem_flink  fl;
 
           handle = gbm_bo_get_handle( gbm_bo ).u32;
+          pitch  = gbm_bo_get_stride( gbm_bo );
 
           fl.handle = handle;
           fl.name   = 0;

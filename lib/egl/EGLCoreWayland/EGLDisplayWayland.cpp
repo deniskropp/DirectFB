@@ -164,7 +164,7 @@ EGLCoreModuleWayland::registry_handle_global(void *data, struct wl_registry *reg
      D_INFO( "EGLCoreModuleWayland/registry_handle_global: '%s' (name 0x%08x)\n", interface, name );
 
      if (strcmp(interface, "wl_dfb") == 0)
-          display->wl_dfb = (struct WL::wl_dfb*) wl_registry_bind(registry, name, &wl_dfb_interface, version);
+          display->wl_dfb = (struct wl_dfb*) wl_registry_bind(registry, name, &wl_dfb_interface, version);
 }
 
 void

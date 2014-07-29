@@ -49,10 +49,10 @@ D_LOG_DOMAIN( DFBWayland_Buffer,      "DFBWayland/Buffer",      "DirectFB Waylan
 
 namespace WL {
 
-struct wl_dfb {
+class WLDFB {
 public:
-     wl_dfb();
-     ~wl_dfb();
+     WLDFB();
+     ~WLDFB();
 
      struct wl_global                  *global;
 
@@ -69,18 +69,18 @@ public:
 };
 
 
-wl_dfb::wl_dfb()
+WLDFB::WLDFB()
      :
      global( NULL ),
      display( NULL ),
      dfb( NULL )
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "wl_dfb::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DFBWayland_wl_dfb, "WLDFB::%s( %p )\n", __FUNCTION__, this );
 }
 
-wl_dfb::~wl_dfb()
+WLDFB::~WLDFB()
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "wl_dfb::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DFBWayland_wl_dfb, "WLDFB::%s( %p )\n", __FUNCTION__, this );
 
      if (global)
           wl_global_destroy( global );
@@ -90,9 +90,9 @@ wl_dfb::~wl_dfb()
 }
 
 void
-wl_dfb::HandleSurfaceEvent( const DFBSurfaceEvent &event )
+WLDFB::HandleSurfaceEvent( const DFBSurfaceEvent &event )
 {
-     D_DEBUG_AT( DFBWayland_wl_dfb, "wl_dfb::%s( %p, event %p ) <- type 0x%04x\n", __FUNCTION__, this, &event, event.type );
+     D_DEBUG_AT( DFBWayland_wl_dfb, "WLDFB::%s( %p, event %p ) <- type 0x%04x\n", __FUNCTION__, this, &event, event.type );
 
      switch (event.type) {
           case DSEVT_UPDATE: {
@@ -137,6 +137,8 @@ Buffer::Buffer()
      listener( NULL )
 {
      D_DEBUG_AT( DFBWayland_Buffer, "Buffer::%s( %p )\n", __FUNCTION__, this );
+
+     wl_signal_init( &destroy_signal );
 }
 
 Buffer::~Buffer()
@@ -145,6 +147,8 @@ Buffer::~Buffer()
 
      surface->DetachEventBuffer( surface, wl_dfb->events );
      surface->Release( surface );
+
+     wl_signal_emit( &destroy_signal, this );
 }
 
 //void
@@ -255,7 +259,7 @@ dfb_create_buffer(struct wl_client   *client,
      D_DEBUG_AT( DFBWayland_Buffer, "%s( client %p, resource %p, id %u, surface_id %u )\n",
                  __FUNCTION__, client, resource, id, surface_id );
 
-     struct wl_dfb *wl_dfb = (struct wl_dfb*) resource->data;
+     WLDFB *wl_dfb = (WLDFB*) resource->data;
 
      DFBResult  ret;
      Buffer    *buffer = new Buffer();
@@ -313,7 +317,7 @@ bind_dfb(struct wl_client *client, void *data, uint32_t version, uint32_t id)
 {
      D_DEBUG_AT( DFBWayland_wl_dfb, "%s( client %p, data %p, version %u, id %u )\n", __FUNCTION__, client, data, version, id );
 
-     struct wl_dfb      *wl_dfb = (struct wl_dfb *) data;
+     WLDFB              *wl_dfb = (WLDFB *) data;
      struct wl_resource *resource;
 
      resource = wl_resource_create( client, &wl_dfb_interface, 1, id );
@@ -332,7 +336,7 @@ bind_dfb(struct wl_client *client, void *data, uint32_t version, uint32_t id)
 
 extern "C" {
 
-struct wl_dfb *
+WLDFB *
 wayland_dfb_init( struct wl_display      *display,
                   IDirectFB              *directfb,
                   wl_dfb_client_callback  callback,
@@ -341,7 +345,7 @@ wayland_dfb_init( struct wl_display      *display,
 {
      D_DEBUG_AT( DFBWayland_wl_dfb, "%s( display %p, directfb %p )\n", __FUNCTION__, display, directfb );
 
-     wl_dfb *wldfb = new wl_dfb();
+     WLDFB *wldfb = new WLDFB();
 
      directfb->AddRef( directfb );
 
@@ -364,7 +368,7 @@ wayland_dfb_init( struct wl_display      *display,
 }
 
 void
-wayland_dfb_uninit(wl_dfb *wl_dfb)
+wayland_dfb_uninit(WLDFB *wl_dfb)
 {
      D_DEBUG_AT( DFBWayland_wl_dfb, "%s( wl_dfb %p )\n", __FUNCTION__, wl_dfb );
 
@@ -372,7 +376,7 @@ wayland_dfb_uninit(wl_dfb *wl_dfb)
 }
 
 void
-wayland_dfb_handle_surface_event( struct wl_dfb         *dfb,
+wayland_dfb_handle_surface_event( WLDFB                 *dfb,
                                   const DFBSurfaceEvent *event )
 {
      D_DEBUG_AT( DFBWayland_wl_dfb, "%s( wl_dfb %p, event %p )\n", __FUNCTION__, dfb, event );
@@ -388,6 +392,158 @@ wayland_is_dfb_buffer(struct wl_resource *resource)
      return resource->object.implementation == (void (**)(void)) &dfb_buffer_interface;
 }
 
+}
+
+
+
+
+Server::SurfaceResource::SurfaceResource( Server             &server,
+                                          struct wl_client   *client,
+                                          struct wl_resource *resource, uint32_t id )
+     :
+     server( server )
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "Server::SurfaceResource::%s( %p, client %p, resource %p, id %u )\n", __FUNCTION__, this, client, resource, id );
+
+     resource = wl_resource_create( client, &wl_surface_interface, wl_resource_get_version(resource), id );
+     if (resource == NULL) {
+          wl_resource_post_no_memory( resource );
+          throw std::runtime_error( "wl_resource_create for surface failed" );
+     }
+
+     surface_interface.destroy = surface_destroy;
+     surface_interface.attach  = surface_attach;
+
+     wl_resource_set_implementation( resource, &surface_interface, this, destroy_surface );
+}
+
+void
+Server::SurfaceResource::surface_attach(struct wl_client   *client,
+                                        struct wl_resource *resource,
+                                        struct wl_resource *buffer_resource, int32_t sx, int32_t sy)
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "Server::SurfaceResource::%s( client %p, resource %p, buffer_resource %p, xy %d,%d )\n",
+                 __FUNCTION__, client, resource, buffer_resource, sx, sy );
+
+     SurfaceResource      *surface    = (SurfaceResource*) wl_resource_get_user_data( resource );
+     WL::Buffer           *dfb_buffer = NULL;
+     struct wl_shm_buffer *shm_buffer = NULL;
+
+     if (buffer_resource) {
+          shm_buffer = wl_shm_buffer_get( buffer_resource );
+
+          if (!shm_buffer && WL::wayland_is_dfb_buffer(buffer_resource)) {
+               dfb_buffer = (WL::Buffer *) wl_resource_get_user_data( buffer_resource );
+               if (dfb_buffer == NULL) {
+                    wl_client_post_no_memory(client);
+                    throw std::runtime_error( "wl_resource_get_user_data for buffer failed" );
+               }
+          }
+     }
+     else
+          throw std::runtime_error( "no buffer resource" );
+
+
+     /* Attach, attach, without commit in between does not send
+      * wl_buffer.release. */
+     if (surface->pending_buffer)
+          wl_list_remove( &surface->pending_buffer_destroy_listener.link );
+
+     surface->pending_buffer = new BufferHandle( dfb_buffer, shm_buffer );
+
+     if (dfb_buffer)
+          wl_signal_add( &dfb_buffer->destroy_signal,
+                         &surface->pending_buffer_destroy_listener );
+
+     if (surface->server.buffer_handler)
+          surface->server.buffer_handler( *surface, *surface->pending_buffer );
+}
+
+
+Client::Client( const char *socket_name )
+     :
+     formats( 0 ),
+     shm( NULL )
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "Client::%s( %p )\n", __FUNCTION__, this );
+
+     display  = wl_display_connect( socket_name );
+     registry = wl_display_get_registry( display );
+
+     registry_listener.global        = registry_handle_global;
+     registry_listener.global_remove = registry_handle_global_remove;
+
+     shm_listener.format             = shm_handle_format;
+
+     wl_registry_add_listener( registry, &registry_listener, this );
+
+     D_DEBUG_AT( DFBWayland_wl_dfb, "  -> roundtrip...\n" );
+     wl_display_roundtrip( display );
+
+     if (wl_dfb == NULL)
+          throw std::runtime_error( "No wl_dfb global" );
+     if (shm == NULL)
+          throw std::runtime_error( "No wl_shm global" );
+     if (compositor == NULL)
+          throw std::runtime_error( "No wl_compositor global" );
+
+     D_DEBUG_AT( DFBWayland_wl_dfb, "  -> roundtrip...\n" );
+//     wl_display_roundtrip( display );
+     D_DEBUG_AT( DFBWayland_wl_dfb, "  -> roundtrip done.\n" );
+
+//     if (!(formats & (1 << WL_SHM_FORMAT_XRGB8888)))
+//          throw std::runtime_error( "WL_SHM_FORMAT_XRGB32 not available" );
+
+     D_DEBUG_AT( DFBWayland_wl_dfb, "  -> getting fd...\n" );
+
+     int fd = wl_display_get_fd( display );
+
+     D_DEBUG_AT( DFBWayland_wl_dfb, "  -> done, fd = %d\n", fd );
+}
+
+Client::~Client()
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "Client::%s( %p )\n", __FUNCTION__, this );
+
+     wl_display_destroy( display );
+}
+
+void
+Client::run()
+{
+     D_DEBUG_AT( DFBWayland_wl_dfb, "Client::%s( %p )\n", __FUNCTION__, this );
+
+     wl_display_run( display );
+}
+
+void
+Client::registry_handle_global(void *data, struct wl_registry *registry,
+                               uint32_t id, const char *interface, uint32_t version)
+{
+     Client *client = (Client*) data;
+
+     D_DEBUG_AT( DFBWayland_wl_dfb, "Client::%s( %p, %u, '%s' %d )\n", __FUNCTION__, data, id, interface, version );
+
+     if (strcmp(interface, "wl_compositor") == 0) {
+          client->compositor = (struct wl_compositor*) wl_registry_bind( registry, id, &wl_compositor_interface, version );
+     }
+     else if (strcmp(interface, "wl_shm") == 0) {
+          client->shm = (struct wl_shm*) wl_registry_bind( registry, id, &wl_shm_interface, version );
+          wl_shm_add_listener( client->shm, &client->shm_listener, client );
+     }
+     else
+          client->wl_dfb = (struct wl_dfb*) wl_registry_bind( registry, id, &wl_dfb_interface, version );
+}
+
+
+void
+Client::shm_handle_format(void *data, struct wl_shm *wl_shm, uint32_t format)
+{
+     Client *client = (Client*) data;
+
+     D_DEBUG_AT( DFBWayland_wl_dfb, "Client::%s( %p, %p, %u )\n", __FUNCTION__, data, wl_shm, format );
+
+     client->formats |= (1 << format);
 }
 
 
