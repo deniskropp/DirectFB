@@ -27,6 +27,37 @@
    Boston, MA 02111-1307, USA.
 */
 
+/************************************************************************** 
+ * Config compare and sort from Mesa 
+ **************************************************************************
+ *
+ * Copyright 2008 VMware, Inc.
+ * Copyright 2009-2010 Chia-I Wu <olvaffe@gmail.com>
+ * Copyright 2010-2011 LunarG, Inc.
+ * All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sub license, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the
+ * next paragraph) shall be included in all copies or substantial portions
+ * of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ **************************************************************************/
+
 //#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
@@ -120,23 +151,28 @@ Display::Init()
      auto map = Map< EGLExtension::GetNames >( "GetNames" );
 
      for (auto f = map.begin(); f != map.end(); f++) {
-          extensions.PrintF( "%s%s", comma, *(*f).second().Concatenated( " " ) );
+          if (!(*f).second().empty()) {
+               extensions.PrintF( "%s%s", comma, *(*f).second().Concatenated( " " ) );
 
-          comma = " ";
+               comma = " ";
+          }
      }
 
-     extensions += " (Display)";
+//     extensions += " (Display)";
 
-     comma = "   ";
+//     comma = "   ";
 
      // FIXME: filter extensions / provide/bridge them
      for (Graphics::Implementations::const_iterator it = gfx_core->implementations.begin();
           it != gfx_core->implementations.end();
           it++)
      {
-          extensions.PrintF( "%s%s (%s)", comma, *(*it)->GetExtensions().Concatenated( " " ), *(*it)->GetName()  );
+//          extensions.PrintF( "%s%s (%s)", comma, *(*it)->GetExtensions().Concatenated( " " ), *(*it)->GetName()  );
+          if (!(*it)->GetExtensions().empty()) {
+               extensions.PrintF( "%s%s", comma, *(*it)->GetExtensions().Concatenated( " " )  );
 
-          comma = "   ";
+               comma = " ";
+          }
      }
 
 
@@ -303,6 +339,13 @@ Display::ChooseConfig( const EGLint *attrib_list, Config **confs, EGLint config_
      }
 
      if (confs != NULL && config_size > 0) {
+          try {
+               sortConfigs( configs.data(), configs.size(), fallbackCompareConfigs, &options );
+          }
+          catch (std::runtime_error &e) {
+               return EGLTLS.Get()->GetError();   // FIXME: avoid double SetError by using TLS more intelligently
+          }
+
           for (EGLint i=0; i<(EGLint) configs.size() && i < config_size; i++)
                confs[i] = configs[i];
      }
@@ -356,16 +399,12 @@ Display::CreateSurface( Config        *config,
 
      Direct::String name = (native_handle.clazz == NativeHandle::CLASS_NONE) ? DisplayDFB::GetTypeInstance().GetName() : GetName();    // FIXME
 
-     D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, config %p, handle 0x%08lx (class %d), attrib %p )\n",
-                 __FUNCTION__, this, config, native_handle.value, native_handle.clazz, attrib );
      auto init = Surface::Call< Surface::Initialise >( "Initialise", "", this );
      if (!init) {
           D_ERROR( "DFBEGL/Display: No Surface::Call< Surface::Initialise >( %s )!\n", *name );
           return DFB_NOIMPL;
      }
 
-     D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, config %p, handle 0x%08lx (class %d), attrib %p )\n",
-                 __FUNCTION__, this, config, native_handle.value, native_handle.clazz, attrib );
      ret = init( *surface );
      if (ret) {
           D_DERROR( ret, "DFBEGL/Display: Surface::Call< Surface::Initialise > failed!\n" );
@@ -373,8 +412,6 @@ Display::CreateSurface( Config        *config,
           return ret;
      }
 
-     D_DEBUG_AT( DFBEGL_Display, "EGL::Display::%s( %p, config %p, handle 0x%08lx (class %d), attrib %p )\n",
-                 __FUNCTION__, this, config, native_handle.value, native_handle.clazz, attrib );
      *ret_surface = surface;
 
      return DFB_OK;
@@ -554,6 +591,143 @@ Display::CopyBuffers( Surface             *source,
      dst->Blit( dst, src, NULL, 0, 0 );
 
      return EGL_SUCCESS;
+}
+
+void
+Display::sortConfigs( Config **configs, EGLint count,
+                      EGLint (*compare)(const Config &, const Config &, const Graphics::Options *),
+                      const Graphics::Options *criteria )
+{
+     const EGLint pivot = 0;
+     EGLint i, j;
+
+     if (count <= 1)
+          return;
+
+     std::swap( configs[pivot], configs[count / 2] );
+     i = 1;
+     j = count - 1;
+     do {
+          while (i < count && compare( *configs[i], *configs[pivot], criteria ) < 0)
+               i++;
+          while (compare( *configs[j], *configs[pivot], criteria ) > 0)
+               j--;
+          if (i < j) {
+               std::swap( configs[i], configs[j] );
+               i++;
+               j--;
+          }
+          else if (i == j) {
+               i++;
+               j--;
+               break;
+          }
+     } while (i <= j);
+     std::swap( configs[pivot], configs[j] );
+
+     sortConfigs( configs, j, compare, criteria );
+     sortConfigs( configs + i, count - i, compare, criteria );
+}
+
+int
+Display::fallbackCompareConfigs( const Config &conf1, const Config &conf2, const Graphics::Options *criteria )
+{
+     return compareConfigs( conf1, conf2, criteria, true );
+}
+
+int
+Display::compareConfigs( const Config &conf1, const Config &conf2, const Graphics::Options *criteria, bool compare_id )
+{
+     const EGLint compare_attribs[] = {
+          EGL_BUFFER_SIZE,
+          EGL_SAMPLE_BUFFERS,
+          EGL_SAMPLES,
+          EGL_DEPTH_SIZE,
+          EGL_STENCIL_SIZE,
+          EGL_ALPHA_MASK_SIZE,
+     };
+     EGLint val1, val2;
+     EGLint i;
+
+     if (&conf1 == &conf2)
+          return 0;
+
+     EGL::TLS *tls = EGLTLS.Get();
+
+
+#define GET_ATTRIB( conf, attrib )                \
+     ({                                           \
+          EGLint v;                               \
+          EGLint err;                             \
+          err = conf.GetAttrib( attrib, &v );     \
+          if (err != EGL_SUCCESS) {               \
+               tls->SetError( err );              \
+               throw std::runtime_error("");      \
+          }                                       \
+          v;                                      \
+     })
+
+     /* the enum values have the desired ordering */
+     D_ASSERT( EGL_NONE < EGL_SLOW_CONFIG );
+     D_ASSERT( EGL_SLOW_CONFIG < EGL_NON_CONFORMANT_CONFIG );
+
+     val1 = GET_ATTRIB( conf1, EGL_CONFIG_CAVEAT ) - GET_ATTRIB( conf2, EGL_CONFIG_CAVEAT );
+     if (val1)
+          return val1;
+
+     /* the enum values have the desired ordering */
+     D_ASSERT( EGL_RGB_BUFFER < EGL_LUMINANCE_BUFFER );
+     val1 = GET_ATTRIB( conf1, EGL_COLOR_BUFFER_TYPE ) - GET_ATTRIB( conf2, EGL_COLOR_BUFFER_TYPE );
+     if (val1)
+          return val1;
+
+     if (criteria) {
+          val1 = val2 = 0;
+          if (GET_ATTRIB( conf1, EGL_COLOR_BUFFER_TYPE ) == EGL_RGB_BUFFER) {
+               if (criteria->GetValue<long>( "RED_SIZE", 0 ) > 0) {
+                    val1 += GET_ATTRIB( conf1, EGL_RED_SIZE );
+                    val2 += GET_ATTRIB( conf2, EGL_RED_SIZE );
+               }
+               if (criteria->GetValue<long>( "GREEN_SIZE", 0 ) > 0) {
+                    val1 += GET_ATTRIB( conf1, EGL_GREEN_SIZE );
+                    val2 += GET_ATTRIB( conf2, EGL_GREEN_SIZE );
+               }
+               if (criteria->GetValue<long>( "BLUE_SIZE", 0 ) > 0) {
+                    val1 += GET_ATTRIB( conf1, EGL_BLUE_SIZE );
+                    val2 += GET_ATTRIB( conf2, EGL_BLUE_SIZE );
+               }
+          }
+          else {
+               if (criteria->GetValue<long>( "LUMINANCE_SIZE", 0 ) > 0) {
+                    val1 += GET_ATTRIB( conf1, EGL_LUMINANCE_SIZE );
+                    val2 += GET_ATTRIB( conf2, EGL_LUMINANCE_SIZE );
+               }
+          }
+          if (criteria->GetValue<long>( "ALPHA_SIZE", 0 ) > 0) {
+               val1 += GET_ATTRIB( conf1, EGL_ALPHA_SIZE );
+               val2 += GET_ATTRIB( conf2, EGL_ALPHA_SIZE );
+          }
+     }
+     else {
+          /* assume the default criteria, which gives no specific ordering */
+          val1 = val2 = 0;
+     }
+
+     /* for color bits, larger one is preferred */
+     if (val1 != val2)
+          return(val2 - val1);
+
+     for (i = 0; i < D_ARRAY_SIZE(compare_attribs); i++) {
+          val1 = GET_ATTRIB( conf1, compare_attribs[i] );
+          val2 = GET_ATTRIB( conf2, compare_attribs[i] );
+
+          if (val1 != val2)
+               return(val1 - val2);
+     }
+
+     /* EGL_NATIVE_VISUAL_TYPE cannot be compared here */
+
+     return (compare_id) ? (GET_ATTRIB( conf1, EGL_CONFIG_ID ) - GET_ATTRIB( conf2, EGL_CONFIG_ID )) : 0;
 }
 
 /**********************************************************************************************************************/

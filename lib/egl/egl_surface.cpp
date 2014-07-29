@@ -78,8 +78,7 @@ Surface::~Surface()
 DFBResult
 Surface::Init()
 {
-     D_DEBUG_AT( DFBEGL_Surface, "EGL::Surface::%s( %p )\n",
-                 __FUNCTION__, this );
+     D_DEBUG_AT( DFBEGL_Surface, "EGL::Surface::%s( %p )\n", __FUNCTION__, this );
 
      DFBResult ret;
 
@@ -161,6 +160,8 @@ Surface::SwapBuffers()
                return EGL_BAD_SURFACE;
           }
      }
+     else
+          D_DEBUG_AT( DFBEGL_Surface, "  -> NO PEER\n" );
 
      Dispatch< Surface::SwapBuffersFunc >( "SwapBuffers", this );
 

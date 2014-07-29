@@ -68,7 +68,7 @@ Config::~Config()
 }
 
 EGLint
-Config::GetAttrib( EGLint attribute, EGLint *value )
+Config::GetAttrib( EGLint attribute, EGLint *value ) const
 {
      D_DEBUG_AT( DFBEGL_Config, "EGL::Config::%s( %p, attribute 0x%08x (%d) '%s' )\n",
                  __FUNCTION__, this, attribute, attribute, *ToString<EGLInt>( EGLInt(attribute) ) );

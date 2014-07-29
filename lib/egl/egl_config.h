@@ -76,7 +76,7 @@ public:
              Graphics::Config *gfx_config );
      virtual ~Config();
 
-     virtual EGLint  GetAttrib( EGLint attribute, EGLint *value );
+     virtual EGLint  GetAttrib( EGLint attribute, EGLint *value ) const;
 
      Display        *GetDisplay() const { return display; }
 

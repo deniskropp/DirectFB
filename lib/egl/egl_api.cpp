@@ -250,5 +250,56 @@ eglGetConfigAttribsDIRECTFB( EGLDisplay           dpy,
 }
 
 
+
+/*
+ * FIXME: dummies
+ */
+
+EGLBoolean
+eglGetScreensMESA( EGLDisplay dpy, EGLScreenMESA *screens,
+                   EGLint max_screens, EGLint *num_screens )
+{
+     if (max_screens > 0) {
+          *num_screens = 1;
+          screens[0] = 0;
+     }
+
+     return EGL_TRUE;
+}
+
+EGLBoolean
+eglGetModesMESA( EGLDisplay dpy, EGLScreenMESA screen, EGLModeMESA *modes, EGLint modes_size, EGLint *num_modes )
+{
+     *num_modes = 0;
+
+     return EGL_TRUE;
+}
+
+EGLBoolean
+eglGetModeAttribMESA( EGLDisplay dpy, EGLModeMESA mode, EGLint attribute, EGLint *value )
+{
+     *value = 0;
+
+     return EGL_TRUE;
+}
+
+EGLSurface
+eglCreateScreenSurfaceMESA( EGLDisplay dpy, EGLConfig config, const EGLint *attrib_list )
+{
+     return EGL_NO_SURFACE;
+}
+
+EGLBoolean
+eglShowScreenSurfaceMESA( EGLDisplay dpy, EGLint screen, EGLSurface surface, EGLModeMESA mode )
+{
+     return EGL_TRUE;
+}
+
+const char *
+eglQueryModeStringMESA( EGLDisplay dpy, EGLModeMESA mode )
+{
+     return "";
+}
+
 }
 

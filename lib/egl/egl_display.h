@@ -161,6 +161,13 @@ protected:
      void addRef() {
           refs++;
      }
+
+private:
+     void sortConfigs( Config **configs, EGLint count,
+                       EGLint (*compare)(const Config &, const Config &, const Graphics::Options *),
+                       const Graphics::Options *criteria );
+     static int fallbackCompareConfigs( const Config &a, const Config &b, const Graphics::Options *criteria );
+     static int compareConfigs( const Config &a, const Config &b, const Graphics::Options *criteria, bool compare_id );
 };
 
 
