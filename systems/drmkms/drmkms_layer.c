@@ -158,9 +158,12 @@ drmkmsSetRegion( CoreLayer                  *layer,
                }
 
                if (ret) {
-                    D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc( fd %d, crtc 0x%x, fb_id 0x%lx ) failed! (%d)\n", ret,
-                              drmkms->fd, drmkms->encoder[index]->crtc_id, (long) left_lock->handle );
-                    D_DEBUG_AT( DRMKMS_Mode, " crtc_id: %d connector_id %d, mode %dx%d\n", drmkms->encoder[index]->crtc_id, drmkms->connector[index]->connector_id, shared->mode[index].hdisplay, shared->mode[index].vdisplay );
+                    D_PERROR( "DirectFB/DRMKMS: drmModeSetCrtc( fd %d, index %d, crtc 0x%x, fb_id 0x%lx, xy %d,%d, cloned %p, count %d ) failed! (%d)\n",
+                              drmkms->fd, index, drmkms->encoder[index]->crtc_id, (long) left_lock->handle, config->source.x, config->source.y,
+                              shared->cloned_connectors, shared->cloned_count, ret );
+                    D_DEBUG_AT( DRMKMS_Mode, " crtc_id: %d connector_id %d, mode %dx%d\n",
+                                drmkms->encoder[index]->crtc_id, drmkms->connector[index]->connector_id,
+                                shared->mode[index].hdisplay, shared->mode[index].vdisplay );
                     return DFB_FAILURE;
                }
 

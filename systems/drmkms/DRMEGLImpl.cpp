@@ -116,10 +116,18 @@ GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
           }
 
           u64 handle;
+          int pitch;
 
           ret = allocation->GetHandle( allocation, &handle );
           if (ret) {
                D_DERROR_AT( DFBDRM_EGLImpl, ret, "  -> IDirectFBSurface::GetAllocation( FRONT, LEFT, 'drm_gem.name' ) failed!\n" );
+               allocation->Release( allocation );
+               return;
+          }
+
+          ret = allocation->GetPitch( allocation, &pitch );
+          if (ret) {
+               D_DERROR_AT( DFBDRM_EGLImpl, ret, "  -> IDirectFBSurface::GetPitch() failed!\n" );
                allocation->Release( allocation );
                return;
           }
@@ -134,9 +142,8 @@ GLeglImage::GLeglImage( EGL::KHR::Image &egl_image,
           EGLint attribs[] = {
               EGL_WIDTH,                      egl_image.size.w,
               EGL_HEIGHT,                     egl_image.size.h,
-              EGL_DRM_BUFFER_STRIDE_MESA,     egl_image.size.w,//FIXME
+              EGL_DRM_BUFFER_STRIDE_MESA,     pitch/4,
               EGL_DRM_BUFFER_FORMAT_MESA,     EGL_DRM_BUFFER_FORMAT_ARGB32_MESA,
-              EGL_DRM_BUFFER_USE_MESA,        EGL_DRM_BUFFER_USE_SHARE_MESA | EGL_DRM_BUFFER_USE_SCANOUT_MESA,
               EGL_NONE
           };
 
@@ -238,7 +245,7 @@ DRMEGLImpl::Initialise()
      direct_config_get( "drmkms-egl-so", &vals[0], 10, &num );
 
      if (num) {
-          ret = lib.Init( vals[0], true, false );
+          ret = lib.Init( vals[0], true, true );
           if (ret)
                return (DirectResult) ret;
      }
@@ -434,6 +441,206 @@ DRMEGLConfig::GetOption( const Direct::String &name,
      return Graphics::Config::GetOption( name, value );
 }
 
+enum {
+   /* types */
+   ATTRIB_TYPE_INTEGER,
+   ATTRIB_TYPE_BOOLEAN,
+   ATTRIB_TYPE_BITMASK,
+   ATTRIB_TYPE_ENUM,
+   ATTRIB_TYPE_PSEUDO, /* non-queryable */
+   ATTRIB_TYPE_PLATFORM, /* platform-dependent */
+   /* criteria */
+   ATTRIB_CRITERION_EXACT,
+   ATTRIB_CRITERION_ATLEAST,
+   ATTRIB_CRITERION_MASK,
+   ATTRIB_CRITERION_SPECIAL,
+   ATTRIB_CRITERION_IGNORE
+};
+
+
+/* EGL spec Table 3.1 and 3.4 */
+static const struct {
+   EGLint attr;
+   EGLint type;
+   EGLint criterion;
+   EGLint default_value;
+} _eglValidationTable[] =
+{
+   /* core */
+   { EGL_BUFFER_SIZE,               ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_RED_SIZE,                  ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_GREEN_SIZE,                ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_BLUE_SIZE,                 ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_LUMINANCE_SIZE,            ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_ALPHA_SIZE,                ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_ALPHA_MASK_SIZE,           ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_BIND_TO_TEXTURE_RGB,       ATTRIB_TYPE_BOOLEAN,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_BIND_TO_TEXTURE_RGBA,      ATTRIB_TYPE_BOOLEAN,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_COLOR_BUFFER_TYPE,         ATTRIB_TYPE_ENUM,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_RGB_BUFFER },
+   { EGL_CONFIG_CAVEAT,             ATTRIB_TYPE_ENUM,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_CONFIG_ID,                 ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_CONFORMANT,                ATTRIB_TYPE_BITMASK,
+                                    ATTRIB_CRITERION_MASK,
+                                    0 },
+   { EGL_DEPTH_SIZE,                ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_LEVEL,                     ATTRIB_TYPE_PLATFORM,
+                                    ATTRIB_CRITERION_EXACT,
+                                    0 },
+   { EGL_MAX_PBUFFER_WIDTH,         ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_IGNORE,
+                                    0 },
+   { EGL_MAX_PBUFFER_HEIGHT,        ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_IGNORE,
+                                    0 },
+   { EGL_MAX_PBUFFER_PIXELS,        ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_IGNORE,
+                                    0 },
+   { EGL_MAX_SWAP_INTERVAL,         ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_MIN_SWAP_INTERVAL,         ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_NATIVE_RENDERABLE,         ATTRIB_TYPE_BOOLEAN,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_NATIVE_VISUAL_ID,          ATTRIB_TYPE_PLATFORM,
+                                    ATTRIB_CRITERION_IGNORE,
+                                    0 },
+   { EGL_NATIVE_VISUAL_TYPE,        ATTRIB_TYPE_PLATFORM,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_RENDERABLE_TYPE,           ATTRIB_TYPE_BITMASK,
+                                    ATTRIB_CRITERION_MASK,
+                                    EGL_OPENGL_ES_BIT },
+   { EGL_SAMPLE_BUFFERS,            ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_SAMPLES,                   ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_STENCIL_SIZE,              ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_ATLEAST,
+                                    0 },
+   { EGL_SURFACE_TYPE,              ATTRIB_TYPE_BITMASK,
+                                    ATTRIB_CRITERION_MASK,
+                                    EGL_WINDOW_BIT },
+   { EGL_TRANSPARENT_TYPE,          ATTRIB_TYPE_ENUM,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_NONE },
+   { EGL_TRANSPARENT_RED_VALUE,     ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_TRANSPARENT_GREEN_VALUE,   ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_TRANSPARENT_BLUE_VALUE,    ATTRIB_TYPE_INTEGER,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE },
+   { EGL_MATCH_NATIVE_PIXMAP,       ATTRIB_TYPE_PSEUDO,
+                                    ATTRIB_CRITERION_SPECIAL,
+                                    EGL_NONE },
+   /* extensions */
+   { EGL_Y_INVERTED_NOK,            ATTRIB_TYPE_BOOLEAN,
+                                    ATTRIB_CRITERION_EXACT,
+                                    EGL_DONT_CARE }
+};
+
+DFBResult
+DRMEGLConfig::CheckOptions( const Graphics::Options &options )
+{
+     D_DEBUG_AT( DFBDRM_EGLConfig, "DRMEGLConfig::%s( %p, options %p )\n", __FUNCTION__, this, &options );
+
+     long attr, val, i;
+     EGLBoolean matched = EGL_TRUE;
+
+     for (i = 0; i < D_ARRAY_SIZE(_eglValidationTable); i++) {
+        long cmp;
+
+        if (_eglValidationTable[i].criterion == ATTRIB_CRITERION_IGNORE)
+           continue;
+
+        attr = _eglValidationTable[i].attr;
+
+        cmp = EGL_DONT_CARE;
+        cmp = options.GetValue( ToString<EGL::EGLInt>( EGL::EGLInt(attr) ), cmp );
+        //options.GetValue( ToString<EGL::EGLInt>( EGL::EGLInt(attr) ), cmp );
+        if (cmp == EGL_DONT_CARE)
+           continue;
+
+        GetOption( ToString<EGL::EGLInt>( EGL::EGLInt(attr) ), val );
+
+        D_DEBUG_AT( DFBDRM_EGLConfig, "  -> checking '%s', shall be %4ld, is %4ld, criterion %d\n",
+                    *ToString<EGL::EGLInt>( EGL::EGLInt(attr) ), cmp, val, _eglValidationTable[i].criterion );
+
+        switch (_eglValidationTable[i].criterion) {
+        case ATTRIB_CRITERION_EXACT:
+           if (val != cmp) {
+              D_DEBUG_AT( DFBDRM_EGLConfig, "  -> EXACT FAIL\n" );
+              matched = EGL_FALSE;
+           }
+           else
+              D_DEBUG_AT( DFBDRM_EGLConfig, "  -> exact match\n" );
+           break;
+        case ATTRIB_CRITERION_ATLEAST:
+           if (val < cmp) {
+              D_DEBUG_AT( DFBDRM_EGLConfig, "  -> AT LEAST FAIL\n" );
+              matched = EGL_FALSE;
+           }
+           else
+              D_DEBUG_AT( DFBDRM_EGLConfig, "  -> at least match\n" );
+           break;
+        case ATTRIB_CRITERION_MASK:
+           if ((val & cmp) != cmp) {
+              D_DEBUG_AT( DFBDRM_EGLConfig, "  -> MASK FAIL\n" );
+              matched = EGL_FALSE;
+           }
+           else
+              D_DEBUG_AT( DFBDRM_EGLConfig, "  -> mask match\n" );
+           break;
+        case ATTRIB_CRITERION_SPECIAL:
+           /* ignored here */
+           D_DEBUG_AT( DFBDRM_EGLConfig, "  -> SPECIAL\n" );
+           break;
+        default:
+           D_ASSERT(0);
+           break;
+        }
+     }
+
+     if (!matched)
+          return DFB_UNSUPPORTED;
+
+     return Graphics::Config::CheckOptions( options );
+}
+
+#if 0
 DFBResult
 DRMEGLConfig::CheckOptions( const Graphics::Options &options )
 {
@@ -482,6 +689,7 @@ DRMEGLConfig::CheckOptions( const Graphics::Options &options )
 
      return Graphics::Config::CheckOptions( options );
 }
+#endif
 
 DFBResult
 DRMEGLConfig::CreateContext( const Direct::String  &api,
@@ -678,7 +886,7 @@ DRMEGLContext::glEGLImageTargetTexture2D( GL::enum_  &target,
           image.parent.dfb_surface->Lock( image.parent.dfb_surface, DSLF_READ, &data, &pitch );
 
           D_DEBUG_AT( DFBDRM_EGLImpl, "  -> calling glTexImage2D( target 0x%04x, data %p )...\n", target, data );
-          D_INFO( "  -> calling glTexImage2D( target 0x%04x, %dx%d, data %p )...\n", target, width, height, data );
+          D_INFO( "  -> calling glTexImage2D( target 0x%04x, %dx%d, pitch %d, data %p )...\n", target, width, height, pitch, data );
 
           glPixelStorei( GL_UNPACK_ROW_LENGTH_EXT, pitch/4 );
 
@@ -829,12 +1037,12 @@ DRMEGLSurfacePeer::Flush()
      if (!bo->allocation) {
           ret = ::CoreSurface_GetOrAllocate( GetSurface(),
                                              buffer_left(),
-                                             "drm_gem.name+handle", strlen("drm_gem.name+handle")+1,
-                                             (((u64)bo->handle) << 32) | bo->name,
+                                             "drm_gem.name+pitch", sizeof("drm_gem.name+pitch"),
+                                             (((u64)bo->pitch) << 32) | bo->name,
                                              (DFBSurfaceAllocationOps)(DSAO_HANDLE | DSAO_KEEP | DSAO_UPDATED),
                                              &bo->allocation );
           if (ret)
-               D_ERROR_AT( DFBDRM_EGLImpl, "CoreSurface_GetOrAllocate( 0x%x, drm_gem.name+handle 0x%x / 0x%x ) failed! (%s)\n",
+               D_ERROR_AT( DFBDRM_EGLImpl, "CoreSurface_GetOrAllocate( 0x%x, drm_gem.name+pitch 0x%x / 0x%x ) failed! (%s)\n",
                            buffer_left(), bo->name, bo->handle, *ToString<DFBResult>(ret) );
      }
      else {

@@ -94,6 +94,7 @@ public:
      PFNGLEGLIMAGETARGETTEXTURE2DOESPROC           glEGLImageTargetTexture2DOES;
      PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES;
 
+
      void *Context_eglGetProcAddress( const char *name );
 
 private:

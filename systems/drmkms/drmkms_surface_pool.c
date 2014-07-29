@@ -517,8 +517,6 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
 
 #ifdef USE_GBM
      if (alloc->name) {
-          alloc->pitch = pitch;  // FIXME
-
           if (alloc->handle && Core_GetIdentity() == core_dfb->fusion_id) {
                alloc->size = alloc->pitch * drm_fake_height;  // FIXME
           }
@@ -687,7 +685,7 @@ drmkmsCheckKey( CoreSurfacePool   *pool,
      if (!strcmp( key, "drm_gem.name" ))
           return DFB_OK;
 
-     if (!strcmp( key, "drm_gem.name+handle" ))
+     if (!strcmp( key, "drm_gem.name+pitch" ))
           return DFB_OK;
 
      return DFB_UNSUPPORTED;
@@ -735,48 +733,18 @@ drmkmsAllocateKey( CoreSurfacePool       *pool,
      if (!strcmp( key, "drm_gem.name" )) {
           D_DEBUG_AT( DRMKMS_Surfaces, "  -> drm_gem.name\n" );
 
-#if 0
-          EGLImageKHR image;
-          EGLint attribs[] = {
-               EGL_WIDTH, 0,
-               EGL_HEIGHT, 0,
-               EGL_DRM_BUFFER_STRIDE_MESA, 0,
-               EGL_DRM_BUFFER_FORMAT_MESA,
-               EGL_DRM_BUFFER_FORMAT_ARGB32_MESA,
-               EGL_DRM_BUFFER_USE_MESA,
-               EGL_DRM_BUFFER_USE_SHARE_MESA |
-               EGL_DRM_BUFFER_USE_SCANOUT_MESA,
-               EGL_NONE
-          };
-
-          attribs[1] = width;
-          attribs[3] = height;
-          attribs[5] = stride;
-
-          //if (depth != 32 && depth != 24)
-          //     return EGL_NO_IMAGE_KHR;
-
-          image = glamor_egl->egl_create_image_khr(glamor_egl->display,
-                                                   glamor_egl->context,
-                                                   EGL_DRM_BUFFER_MESA,
-                                                   (void *) (uintptr_t)name, attribs);
-          if (image == EGL_NO_IMAGE_KHR)
-               return DFB_MISSINGIMAGE;
-
-          gbm_bo_import( drmkms->gbm, GBM_BO_IMPORT_EGL_IMAGE, (void*) (long) image, GBM_BO_USE_RENDERING | GBM_BO_USE_SCANOUT );
-#endif
-
           alloc->name = handle;
 
           D_DEBUG_AT( DRMKMS_Surfaces, "  -> alloc 0x%x of 0x%x = got name 0x%x...\n",
                       allocation->object.id, surface->object.id, alloc->name );
      }
      else
-     if (!strcmp( key, "drm_gem.name+handle" )) {
-          D_DEBUG_AT( DRMKMS_Surfaces, "  -> drm_gem.name+handle\n" );
+     if (!strcmp( key, "drm_gem.name+pitch" )) {
+          D_DEBUG_AT( DRMKMS_Surfaces, "  -> drm_gem.name+pitch\n" );
 
           alloc->name   = handle;
-          alloc->handle = handle >> 32;
+          alloc->handle = 0;
+          alloc->pitch  = handle >> 32;
 
           D_DEBUG_AT( DRMKMS_Surfaces, "  -> alloc 0x%x of 0x%x = got name 0x%x / handle 0x%lx...\n",
                       allocation->object.id, surface->object.id, alloc->name, alloc->handle );

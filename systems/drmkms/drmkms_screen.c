@@ -76,100 +76,125 @@ drmkmsInitScreen( CoreScreen           *screen,
 
      if (resources) {
           D_INFO( "DirectFB/DRMKMS: Got %d connectors, %d encoders\n", resources->count_connectors, resources->count_encoders );
-     
+
+          int connected_mode = DRM_MODE_CONNECTED;
+
+again:
           for (i = 0; i < resources->count_connectors; i++) {
                crtc = 0;
                connector = drmModeGetConnector( drmkms->fd, resources->connectors[i] );
                if (!connector)
                     continue;
-     
-               if ((connector->connection == DRM_MODE_CONNECTED || connector->connection == DRM_MODE_UNKNOWNCONNECTION) && connector->count_modes > 0) {
-                    D_INFO( "DirectFB/DRMKMS: found connected connector id %d.\n", connector->connector_id );
-     
+
+               if (/*(connector->connection == connected_mode || connector->connection == DRM_MODE_UNKNOWNCONNECTION) &&*/ connector->count_modes > 0) {
+                    D_INFO( "DirectFB/DRMKMS: Found connector id %d\n", connector->connector_id );
+
                     if (connector->encoder_id) {
-                         D_INFO( "DirectFB/DRMKMS: connector %d is already bound to encoder %d.\n", connector->connector_id, connector->encoder_id );
+                         D_INFO( "DirectFB/DRMKMS: Connector %d is bound to encoder %d\n", connector->connector_id, connector->encoder_id );
                          encoder = drmModeGetEncoder(drmkms->fd, connector->encoder_id);
                     }
-     
+
                     if (encoder)
                          crtc = encoder->crtc_id;
-     
+
                     if (crtc)
-                         D_INFO( "DirectFB/DRMKMS: encoder %d is already bound to ctrc %d.\n", connector->encoder_id, encoder->crtc_id );
+                         D_INFO( "DirectFB/DRMKMS: Encoder %d is bound to ctrc %d\n", connector->encoder_id, encoder->crtc_id );
                     else {
-                         D_INFO( "DirectFB/DRMKMS: Seaching for appropriate encoder/crtc for connector %d.\n", connector->connector_id );
+                         D_INFO( "DirectFB/DRMKMS: Searching for appropriate encoder/crtc for connector %d...\n", connector->connector_id );
+
                          for (j = 0; j < resources->count_encoders; j++) {
                               int busy = 0;
                               encoder = drmModeGetEncoder( drmkms->fd, resources->encoders[j] );
-     
+
                               if (encoder == NULL)
                                    continue;
-     
+
                               for (k=0; k<shared->enabled_crtcs; k++) {
                                    if (drmkms->encoder[k]->encoder_id == encoder->encoder_id) {
-                                        D_INFO( "DirectFB/DRMKMS: encoder %d is already in use by connector %d\n", encoder->encoder_id, drmkms->connector[k]->connector_id );
+                                        D_INFO( "DirectFB/DRMKMS: Encoder %d is already in use by connector %d\n", encoder->encoder_id, drmkms->connector[k]->connector_id );
                                         busy = 1;
                                    }
                               }
-     
+
                               if (busy)
                                    continue;
-     
+
                               found = 0;
                               for (k = 0; k < resources->count_crtcs; k++) {
                                    busy = 0;
                                    if (!(encoder->possible_crtcs & (1 << k)))
                                         continue;
-     
+
                                    for (l=0; l<shared->enabled_crtcs; l++) {
                                         if (drmkms->encoder[l]->crtc_id == resources->crtcs[k])
                                              busy = 1;
                                    }
                                    if (busy)
                                         continue;
-     
-     
+
+
                                    crtc = resources->crtcs[k];
-                                   D_INFO( "DirectFB/DRMKMS: using encoder %d and crtc %d for connector %d.\n", encoder->encoder_id, crtc, connector->connector_id );
+                                   D_INFO( "DirectFB/DRMKMS: Using encoder %d and crtc %d for connector %d\n", encoder->encoder_id, crtc, connector->connector_id );
                                    found = 1;
                                    break;
                               }
-     
+
                               if (found)
                                    break;
                          }
                     }
-     
+
                     if (encoder && crtc) {
                          drmkms->connector[shared->enabled_crtcs] = connector;
                          drmkms->encoder[shared->enabled_crtcs] = encoder;
-                         drmkms->encoder[shared->enabled_crtcs]->crtc_id = crtc;
+//                         drmkms->encoder[shared->enabled_crtcs]->crtc_id = crtc;
                          shared->mode[shared->enabled_crtcs] = connector->modes[0];
-     
+
+                         for (int m=0; m<connector->count_modes; m++)
+                              D_INFO( "DirectFB/DRMKMS: [%2d] is %dx%d\n",
+                                      m, connector->modes[m].hdisplay, connector->modes[m].vdisplay );
+
                          shared->enabled_crtcs++;
-     
+
                          if (!shared->multihead && !shared->mirror_outputs)
                               break;
-     
+
                          if (shared->multihead && shared->enabled_crtcs > 1) {
                               dfb_layers_register( drmkms->screen, drmkms, drmkmsLayerFuncs );
-     
+
                               DFB_DISPLAYLAYER_IDS_ADD( drmkms->layer_ids[shared->enabled_crtcs-1], drmkms->layer_id_next++ );
                          }
-     
+
                     }
-                    else if (encoder)
-                         drmModeFreeEncoder( encoder );
-     
-                    encoder = NULL;
+                    //else if (encoder)
+                    //     drmModeFreeEncoder( encoder );
+
+                    //encoder = NULL;
                }
-               else
-                    drmModeFreeConnector( connector );
+               //else
+               //     drmModeFreeConnector( connector );
           }
 
           if (!shared->enabled_crtcs) {
-               D_ERROR( "DirectFB/DRMKMS: No currently active connector found.\n");
-               return DFB_INIT;
+               if (connected_mode == DRM_MODE_CONNECTED) {
+                    D_ERROR( "DirectFB/DRMKMS: No currently active connector found!\n");
+                    connected_mode = DRM_MODE_DISCONNECTED;
+                    goto again;
+               }
+
+               D_ERROR( "DirectFB/DRMKMS: No usable connector found!\n");
+
+               drmkms->connector[shared->enabled_crtcs] = connector;
+               drmkms->encoder[shared->enabled_crtcs] = encoder;
+               shared->mode[shared->enabled_crtcs] = connector->modes[0];
+
+               for (int m=0; m<connector->count_modes; m++)
+                    D_INFO( "DirectFB/DRMKMS: [%2d] is %dx%d\n",
+                            m, connector->modes[m].hdisplay, connector->modes[m].vdisplay );
+
+               shared->enabled_crtcs++;
+
+//               return DFB_INIT;
           }
 
           if (dfb_config->mode.width && dfb_config->mode.height) {
@@ -200,8 +225,8 @@ drmkmsInitScreen( CoreScreen           *screen,
                     }
                }
                else {
-                         D_WARN( "DirectFB/DRMKMS: cloning is not possible, disabling.\n" );
-                         shared->clone_outputs = false;
+                    D_WARN( "DirectFB/DRMKMS: cloning is not possible, disabling.\n" );
+                            shared->clone_outputs = false;
                }
           }
 
