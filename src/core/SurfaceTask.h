@@ -34,6 +34,9 @@
 #define ___DirectFB__SurfaceTask__H___
 
 
+#include <core/Task.h>
+
+
 #ifdef __cplusplus
 
 #include <direct/Types++.h>
@@ -52,10 +55,19 @@ extern "C" {
 #include <directfb.h>
 
 
-DFB_SurfaceTask *SurfaceTask_New      ( CoreSurfaceAccessorID    accessor );
-DFBResult        SurfaceTask_AddAccess( DFB_SurfaceTask         *task,
-                                        CoreSurfaceAllocation   *allocation,
-                                        CoreSurfaceAccessFlags   flags );
+DFBResult SurfaceTask_Create   ( SimpleTaskFunc          *push,     // If NULL, Push() will just call Run() in TaskManager thread!
+                                 SimpleTaskFunc          *run,      // Can be NULL, but Push() must make sure the task gets Done()
+                                 void                    *ctx,
+                                 CoreSurfaceAccessorID    accessor,
+                                 DFB_SurfaceTask        **ret_task );
+
+DFBResult SurfaceTask_AddAccess( DFB_SurfaceTask         *task,
+                                 CoreSurface             *surface,
+                                 CoreSurfaceBufferRole    role,
+                                 DFBSurfaceStereoEye      eye,
+                                 u32                      flips,
+                                 CoreSurfaceAccessFlags   flags,
+                                 CoreSurfaceAllocation  **ret_allocation );
 
 /*********************************************************************************************************************/
 
@@ -69,7 +81,6 @@ DFBResult        SurfaceTask_AddAccess( DFB_SurfaceTask         *task,
 #include <direct/String.h>
 
 #include <core/Fifo.h>
-#include <core/Task.h>
 #include <core/Util.h>
 
 #include <list>
@@ -112,6 +123,14 @@ public:
                           CoreSurfaceAccessFlags  flags );
 
      DFBResult AddHook( Hook *hook );
+
+
+     DFBResult AddAccess( CoreSurface                       *surface,
+                          Graphics::SurfaceAllocationKey    &key,
+                          CoreSurfaceAccessFlags             flags,
+                          CoreSurfaceAllocation            *&allocation );
+
+
 
 protected:
      virtual DFBResult Setup();

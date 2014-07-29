@@ -236,9 +236,9 @@ SimpleTask_Create( SimpleTaskFunc  *push,
 
 Task::Task()
      :
-     magic( D_MAGIC("Task") ),
-     state( TASK_NEW ),
-     flags( TASK_FLAG_NONE ),
+     magic( D_MAGIC("Task") ),     //
+     state( TASK_NEW ),            //
+     flags( TASK_FLAG_NONE ),      //
      refs( 1 ),
      block_count( 0 ),
      slaves( 0 ),
@@ -273,10 +273,12 @@ Task::~Task()
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
 #if DFB_TASK_DEBUG_STATE
-     if (direct_thread_self() == TaskManager::thread)
-          DFB_TASK_CHECK_STATE( this, TASK_DEAD, );
-     else
-          DFB_TASK_CHECK_STATE( this, TASK_NEW, );
+     if (TaskManager::thread) {
+          if (direct_thread_self() == TaskManager::thread)
+               DFB_TASK_CHECK_STATE( this, TASK_DEAD, );
+          else
+               DFB_TASK_CHECK_STATE( this, TASK_NEW, );
+     }
 #endif
 
 #if DFB_TASK_DEBUG_TIMING
@@ -318,10 +320,12 @@ Task::AddRef()
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p ) <- refs:%u\n", __FUNCTION__, this, refs );
 
 #if DFB_TASK_DEBUG_STATE
-     if (direct_thread_self() == TaskManager::thread)
-          DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return );
-     else
-          DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING, return );
+     if (TaskManager::thread) {
+          if (direct_thread_self() == TaskManager::thread)
+               DFB_TASK_CHECK_STATE( this, TASK_FLUSHED, return );
+          else
+               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING, return );
+     }
 #endif
 
      D_ASSERT( refs > 0 );
@@ -341,14 +345,16 @@ Task::Release()
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p ) <- refs:%u\n", __FUNCTION__, this, refs );
 
 #if DFB_TASK_DEBUG_STATE
-     if (direct_thread_self() == TaskManager::thread) {
-          DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_FINISH, return );
-     }
-     else {
-          if (refs == 1)
-               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_FINISH, return );
-          else
-               DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING | TASK_DONE | TASK_FINISH, return );
+     if (TaskManager::thread) {
+          if (direct_thread_self() == TaskManager::thread) {
+               DFB_TASK_CHECK_STATE( this, TASK_RUNNING | TASK_FINISH, return );
+          }
+          else {
+               if (refs == 1)
+                    DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_FINISH, return );
+               else
+                    DFB_TASK_CHECK_STATE( this, TASK_NEW | TASK_RUNNING | TASK_DONE | TASK_FINISH, return );
+          }
      }
 #endif
 
@@ -361,7 +367,7 @@ Task::Release()
      if (refs_now == 0) {
           state = TASK_DEAD;
 
-          if (direct_thread_self() == TaskManager::thread) {
+          if (!TaskManager::thread || direct_thread_self() == TaskManager::thread) {
                D_DEBUG_AT( DirectFB_Task, "  -> in manager thread, deleting Task\n" );
                delete this;
           }
@@ -419,12 +425,13 @@ Task::emit()
 {
      DFBResult ret;
 
-     D_ASSERT( direct_thread_self() == TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_MAGIC_ASSERT( this, Task );
 
 #if D_DEBUG_ENABLED
-     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p ) <- [%s]\n", __FUNCTION__, this, Description().buffer() );
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p ) <- [%s]\n", __FUNCTION__, this, *Description() );
 #endif
 
      DFB_TASK_CHECK_STATE( this, TASK_READY, return DFB_BUG );
@@ -496,14 +503,15 @@ Task::emit()
 DFBResult
 Task::finish()
 {
-     D_ASSERT( direct_thread_self() == TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_MAGIC_ASSERT( this, Task );
 
      Task *shutdown = NULL;
 
 #if D_DEBUG_ENABLED
-     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p ) <- [%s]\n", __FUNCTION__, this, Description().buffer() );
+     D_DEBUG_AT( DirectFB_Task, "Task::%s( %p ) <- [%s]\n", __FUNCTION__, this, *Description() );
 #endif
 
      DFB_TASK_CHECK_STATE( this, TASK_DONE, return DFB_BUG );
@@ -591,7 +599,8 @@ Task::Done( DFBResult ret )
 DFBResult
 Task::Setup()
 {
-     D_ASSERT( direct_thread_self() == TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
@@ -613,7 +622,8 @@ Task::Setup()
 DFBResult
 Task::Push()
 {
-     D_ASSERT( direct_thread_self() == TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
@@ -623,11 +633,11 @@ Task::Push()
 
      DFB_TASK_LOG( "Push()" );
 
-//     return Run();
+     return Run();
 
-     TaskManager::threads->Push( this );
+//     TaskManager::threads->Push( this );
 
-     return DFB_OK;
+//     return DFB_OK;
 }
 
 DFBResult
@@ -649,7 +659,8 @@ Task::Run()
 void
 Task::Finalise()
 {
-     D_ASSERT( direct_thread_self() == TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
@@ -699,9 +710,11 @@ Task::AddNotify( Task *notified,
 
      /* May only call addNotify from outside TaskManager thread when task wasn't flushed to manager yet */
 #if DFB_TASK_DEBUG_STATE
-     if (direct_thread_self() != TaskManager::thread) {
-          DFB_TASK_CHECK_STATE( this, TASK_NEW, return );
-          DFB_TASK_CHECK_STATE( notified, TASK_NEW, return );
+     if (TaskManager::thread) {
+          if (direct_thread_self() != TaskManager::thread) {
+               DFB_TASK_CHECK_STATE( this, TASK_NEW, return );
+               DFB_TASK_CHECK_STATE( notified, TASK_NEW, return );
+          }
      }
 #endif
 
@@ -743,7 +756,8 @@ Task::AddNotify( Task *notified,
 void
 Task::notifyAll( TaskState state )
 {
-     D_ASSERT( direct_thread_self() == TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
@@ -769,7 +783,8 @@ Task::checkEmit()
 {
      DFBResult ret;
 
-     D_ASSERT( direct_thread_self() == TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
@@ -793,7 +808,7 @@ Task::checkEmit()
 #if DFB_TASK_DEBUG_TIMES
           t2 = direct_clock_get_time( DIRECT_CLOCK_MONOTONIC );
           if (t2 - t1 > DFB_TASK_WARN_EMIT) {
-               D_WARN( "Task::Emit took more than %dus (%lld) [%s]", DFB_TASK_WARN_EMIT, t2 - t1, Description().buffer() );
+               D_WARN( "Task::Emit took more than %dus (%lld) [%s]", DFB_TASK_WARN_EMIT, t2 - t1, *task->Description_() );
                enableDump();
           }
 #endif
@@ -803,7 +818,8 @@ Task::checkEmit()
 void
 Task::handleNotify()
 {
-     D_ASSERT( direct_thread_self() == TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p )\n", __FUNCTION__, this );
 
@@ -834,7 +850,8 @@ Task::enableDump()
 void
 Task::append( Task *task )
 {
-     D_ASSERT( direct_thread_self() == TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() == TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "Task::%s( %p, %p )\n", __FUNCTION__, this, task );
 
@@ -896,7 +913,7 @@ Task::DumpLog( DirectLogDomain &domain, DirectLogLevel level )
 #endif
 
      direct_log_domain_log( &domain, level, __FUNCTION__, __FILE__, __LINE__,
-                            "  [ %s ]\n", Description().buffer() );
+                            "  [ %s ]\n", *Description() );
 
 #if DFB_TASK_DEBUG_LOG
      for (std::vector<LogEntry>::const_iterator it=tasklog.begin(); it!=tasklog.end(); it++) {

@@ -98,7 +98,7 @@ private:
      static DirectThread      *thread;
      static FIFO<Task*>        fifo;
 
-     static TaskThreads       *threads;
+//     static TaskThreads       *threads;
 
 #if DFB_TASK_DEBUG_TASKS
      static std::list<Task*>   tasks;

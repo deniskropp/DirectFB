@@ -124,7 +124,7 @@ void TaskThreadsQ::Push( Task *task )
 
      D_MAGIC_ASSERT( task, Task );
 
-     D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s( task [%s] )\n", __FUNCTION__, task->Description().buffer() );
+     D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s( task [%s] )\n", __FUNCTION__, *task->Description() );
 
      D_ASSERT( task->qid != 0 );
 
@@ -156,7 +156,7 @@ void TaskThreadsQ::Finalise( Task *task )
 
      D_MAGIC_ASSERT( task, Task );
 
-     D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s( task [%s] ) <- next %p\n", __FUNCTION__, task->Description().buffer(), task->next );
+     D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s( task [%s] ) <- next %p\n", __FUNCTION__, *task->Description(), task->next );
 
      D_ASSERT( task->qid != 0 );
      D_MAGIC_ASSERT_IF( task->next, Task );
@@ -203,7 +203,7 @@ TaskThreadsQ::taskLoop( DirectThread *thread,
                return NULL;
           }
 
-          D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s()  -> got task [%s]\n", __FUNCTION__, task->Description().buffer() );
+          D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s()  -> got task [%s]\n", __FUNCTION__, *task->Description() );
 
           task->hwid = runner->index;
 
@@ -225,7 +225,7 @@ next:
                //}
           }
           else
-               D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s()  -> next will be [%s]\n", __FUNCTION__, next->Description().buffer() );
+               D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s()  -> next will be [%s]\n", __FUNCTION__, *next->Description() );
 
           D_MAGIC_ASSERT_IF( next, Task );
 
@@ -233,7 +233,7 @@ next:
 
           ret = task->Run();
           if (ret) {
-               D_DERROR( ret, "TaskThreadsQ: Task::Run() failed! [%s]\n", task->Description().buffer() );
+               D_DERROR( ret, "TaskThreadsQ: Task::Run() failed! [%s]\n", *task->Description() );
                task->Done( ret );
           }
 
@@ -244,7 +244,7 @@ next:
                     goto next;
                }
 
-               D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s()  -> pushing next [%s]...\n", __FUNCTION__, next->Description().buffer() );
+               D_DEBUG_AT( DirectFB_TaskThreadsQ, "TaskThreadsQ::%s()  -> pushing next [%s]...\n", __FUNCTION__, *next->Description() );
 
                D_MAGIC_ASSERT( next, Task );
 

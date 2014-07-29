@@ -56,11 +56,18 @@ namespace Graphics {
 
 /**********************************************************************************************************************/
 
+Config::Config( Implementation *implementation )
+     :
+     implementation( implementation )
+{
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p )\n", __FUNCTION__, this );
+}
+
 DFBResult
 Config::GetOption( const Direct::String &name,
                    long                 &value )
 {
-     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p, '%s' )\n", 
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p, '%s' )\n",
                  __FUNCTION__, this, *name );
 
      return DFB_UNSUPPORTED;
@@ -69,7 +76,7 @@ Config::GetOption( const Direct::String &name,
 Direct::String
 Config::GetOption( const Direct::String &name )
 {
-     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p, '%s' )\n", 
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p, '%s' )\n",
                  __FUNCTION__, this, *name );
 
      long v = 0;
@@ -82,7 +89,7 @@ Config::GetOption( const Direct::String &name )
 DFBResult
 Config::CheckOptions( const Graphics::Options &options )
 {
-     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p, options %p )\n", 
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p, options %p )\n",
                  __FUNCTION__, this, &options );
 
      return DFB_OK;
@@ -159,7 +166,7 @@ DFBResult
 Context::GetOption( const Direct::String &name,
                     long                 &value )
 {
-     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Context::%s( %p, '%s' )\n", 
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Context::%s( %p, '%s' )\n",
                  __FUNCTION__, this, *name );
 
      if (options->Get<long>( name, value ))
@@ -172,7 +179,7 @@ DFBResult
 Context::GetProcAddress( const Direct::String  &name,
                          void                 *&addr )
 {
-     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Context::%s( %p, name '%s' )\n", 
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::Context::%s( %p, name '%s' )\n",
                  __FUNCTION__, this, *name );
 
      return DFB_ITEMNOTFOUND;
@@ -244,7 +251,7 @@ DFBResult
 SurfacePeer::GetOption( const Direct::String &name,
                         long                 &value )
 {
-     D_DEBUG_AT( DirectFB_Graphics, "Graphics::SurfacePeer::%s( %p, '%s' )\n", 
+     D_DEBUG_AT( DirectFB_Graphics, "Graphics::SurfacePeer::%s( %p, '%s' )\n",
                  __FUNCTION__, this, *name );
 
      if (options->Get<long>( name, value ))
@@ -269,7 +276,7 @@ SurfacePeer::Flip( const DFBRegion     *region,
 
      if (0) {
           DFBSurfaceEvent event;
-     
+
           event.clazz        = DFEC_SURFACE;
           event.type         = DSEVT_FRAME;
           event.surface_id   = surface->object.id;
@@ -281,7 +288,7 @@ SurfacePeer::Flip( const DFBRegion     *region,
           event.right_serial = event.left_serial;
           event.update       = DFBRegion( surface_config.size );
           event.update_right = event.update;
-     
+
           ret = (DFBResult) dfb_surface_dispatch_channel( surface, CSCH_EVENT, &event, sizeof(DFBSurfaceEvent), NULL );
           if (ret)
                return ret;

@@ -34,6 +34,8 @@
 
 #include <config.h>
 
+#include <direct/Types++.h>
+
 #include <directfb.h>    // include here to prevent it being included indirectly causing nested extern "C"
 
 #include "SurfaceTask.h"
@@ -55,6 +57,7 @@ extern "C" {
 #include <direct/Lists.h>
 
 #include <core/Debug.h>
+#include <core/Graphics.h>
 #include <core/Task.h>
 
 /*********************************************************************************************************************/
@@ -62,24 +65,92 @@ extern "C" {
 namespace DirectFB {
 
 
+class SimpleSurfaceTask : public SurfaceTask
+{
+public:
+     SimpleSurfaceTask( SimpleTaskFunc        *push,
+                        SimpleTaskFunc        *run,
+                        void                  *ctx,
+                        CoreSurfaceAccessorID  accessor )
+          :
+          SurfaceTask( accessor ),
+          push( push ),
+          run( run ),
+          ctx( ctx )
+     {
+     }
+
+protected:
+     virtual DFBResult Push()
+     {
+          if (push)
+               return push( ctx, this );
+
+          return SurfaceTask::Push();
+     }
+
+     virtual DFBResult Run()
+     {
+          if (run)
+               return run( ctx, this );
+
+          return SurfaceTask::Run();
+     }
+
+private:
+     SimpleTaskFunc *push;
+     SimpleTaskFunc *run;
+     void           *ctx;
+};
+
+
 extern "C" {
 
-SurfaceTask *
-SurfaceTask_New( CoreSurfaceAccessorID accessor )
+DFBResult
+SurfaceTask_Create( SimpleTaskFunc          *push,     // If NULL, Push() will just call Run() in TaskManager thread!
+                    SimpleTaskFunc          *run,      // Can be NULL, but Push() must make sure the task gets Done()
+                    void                    *ctx,
+                    CoreSurfaceAccessorID    accessor,
+                    DFB_SurfaceTask        **ret_task )
 {
+     SurfaceTask *task;
+
      D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
 
-     return new SurfaceTask( accessor );
+     task = new SimpleSurfaceTask( push, run, ctx, accessor );
+
+     if (ret_task)
+          *ret_task = task;
+     else
+          task->Flush();
+
+     return DFB_OK;
 }
 
 DFBResult
-SurfaceTask_AddAccess( SurfaceTask            *task,
-                       CoreSurfaceAllocation  *allocation,
-                       CoreSurfaceAccessFlags  flags )
+SurfaceTask_AddAccess( SurfaceTask                *task,
+                       CoreSurface                *surface,
+                       CoreSurfaceBufferRole       role,
+                       DFBSurfaceStereoEye         eye,
+                       u32                         flips,
+                       CoreSurfaceAccessFlags      flags,
+                       CoreSurfaceAllocation     **ret_allocation )
 {
+     DFBResult              ret;
+     CoreSurfaceAllocation *allocation;
+
      D_DEBUG_AT( DirectFB_Task, "%s()\n", __FUNCTION__ );
 
-     return task->AddAccess( allocation, flags );
+     Graphics::SurfaceAllocationKey key( surface->object.id, role, eye, flips );
+
+     ret = task->AddAccess( surface, key, flags, allocation );
+     if (ret)
+          return ret;
+
+     if (ret_allocation)
+          *ret_allocation = allocation;
+
+     return DFB_OK;
 }
 
 }
@@ -134,6 +205,64 @@ SurfaceTask::AddHook( Hook *hook )
      DFB_TASK_CHECK_STATE( this, TASK_NEW, return DFB_BUG );
 
      hooks.push_back( hook );
+
+     return DFB_OK;
+}
+
+DFBResult
+SurfaceTask::AddAccess( CoreSurface                       *surface,
+                        Graphics::SurfaceAllocationKey    &key,
+                        CoreSurfaceAccessFlags             flags,
+                        CoreSurfaceAllocation            *&allocation )
+{
+     DFBResult ret;
+
+     D_DEBUG_AT( DirectFB_Task, "SurfaceTask::%s( %p, surface %p, flags 0x%02x )\n",
+                 __FUNCTION__, this, surface, flags );
+
+     D_ASSERT( surface != NULL );
+     D_DEBUG_AT( DirectFB_Task, "  -> surface %s\n", *ToString<CoreSurface>(*surface) );
+
+     DFB_TASK_CHECK_STATE( this, TASK_NEW, return DFB_BUG );
+
+
+     CoreSurfaceBuffer *buffer;
+
+     ret = (DFBResult) dfb_surface_lock( surface );
+     if (ret)
+          return ret;
+
+     if (surface->num_buffers == 0) {
+          dfb_surface_unlock( surface );
+          return DFB_BUFFEREMPTY;
+     }
+
+     buffer = dfb_surface_get_buffer3( surface, key.role, key.eye, key.flips );
+
+     /*
+      * Push our own identity for buffer locking calls (locality of accessor)
+      */
+     Core_PushIdentity( 0 );
+
+     allocation = dfb_surface_buffer_find_allocation( buffer, accessor, flags, true );
+     if (!allocation) {
+          /* If no allocation exists, create one. */
+          ret = dfb_surface_pools_allocate( buffer, accessor, flags, &allocation );
+          if (ret) {
+               D_DERROR( ret, "DirectFB/Renderer: Buffer allocation failed (%s)!\n", ToString<CoreSurfaceBuffer>(*buffer).buffer() );
+               Core_PopIdentity();
+               dfb_surface_unlock( surface );
+               return ret;
+          }
+     }
+
+     ret = dfb_surface_allocation_update( allocation, flags );   // TODO; implicit vs explicit flushing
+     if (ret)
+          D_DERROR( ret, "DirectFB/Renderer: Allocation update failed!\n" );
+
+     Core_PopIdentity();
+
+     dfb_surface_unlock( surface );
 
      return DFB_OK;
 }

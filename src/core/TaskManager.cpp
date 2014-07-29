@@ -105,7 +105,7 @@ TaskManager_DumpTasks()
 bool              TaskManager::running;
 DirectThread     *TaskManager::thread;
 FIFO<Task*>       TaskManager::fifo;
-TaskThreads      *TaskManager::threads;
+//TaskThreads      *TaskManager::threads;
 #if DFB_TASK_DEBUG_TASKS
 std::list<Task*>  TaskManager::tasks;
 DirectMutex       TaskManager::tasks_lock;
@@ -130,7 +130,7 @@ TaskManager::Initialise()
 
           thread = direct_thread_create( DTT_CRITICAL, managerLoop, NULL, "Task Manager" );
 
-          threads = new TaskThreads( "Task", 4 );
+//          threads = new TaskThreads( "Task", 4 );
      }
 
      return DFB_OK;
@@ -139,11 +139,14 @@ TaskManager::Initialise()
 void
 TaskManager::Shutdown()
 {
-     D_ASSERT( direct_thread_self() != TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() != TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
 
      if (thread != NULL) {
+          D_ASSERT( running );
+
           running = false;
 
           fifo.push( NULL );
@@ -154,10 +157,10 @@ TaskManager::Shutdown()
           thread = NULL;
      }
 
-     if (threads != NULL) {
-          delete threads;
-          threads = NULL;
-     }
+//     if (threads != NULL) {
+//          delete threads;
+//          threads = NULL;
+//     }
 
 #if DFB_TASK_DEBUG_TASKS
      direct_mutex_deinit( &tasks_lock );
@@ -167,7 +170,8 @@ TaskManager::Shutdown()
 void
 TaskManager::SyncAll()
 {
-     D_ASSERT( direct_thread_self() != TaskManager::thread );
+     if (TaskManager::thread)
+          D_ASSERT( direct_thread_self() != TaskManager::thread );
 
      D_DEBUG_AT( DirectFB_Task, "TaskManager::%s()\n", __FUNCTION__ );
 
@@ -202,7 +206,14 @@ TaskManager::pushTask( Task *task )
 
      D_DEBUG_AT( DirectFB_Task, "  =-> pushTask [%s]\n", *task->Description() );
 
-     fifo.push( task );
+     if (thread != NULL) {
+          fifo.push( task );
+     }
+     else {
+          handleTask( task );
+
+          //FIXME: handleTimedEmits();
+     }
 }
 
 Task *

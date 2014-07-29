@@ -26,7 +26,7 @@
    License along with this library; if not, write to the
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
-*/ 
+*/
 
 #ifndef ___DirectFB__Task__H___
 #define ___DirectFB__Task__H___
@@ -259,8 +259,6 @@ protected:
 
      void notifyAll( TaskState state );
      void checkEmit();
-     void handleFlushed();
-     void handleDone();
      void handleNotify();
      void enableDump();
      void append( Task *task );
@@ -274,7 +272,7 @@ private:
      unsigned int             refs;
 
      /* building dependency tree */
-     std::vector<TaskNotify>  notifies;      // FIXME: Use Direct::Vector
+     std::vector<TaskNotify>  notifies;
      unsigned int             block_count;
 
 protected:
@@ -386,7 +384,7 @@ public:
           D_DEBUG_AT( DirectFB_Task, "TaskThreads::%s()\n", __FUNCTION__ );
 
           /* Preinitialize state client for possible blits from layer driver (avoids dead lock with region lock) */
-          dfb_gfx_init_tls();
+          //dfb_gfx_init_tls();
 
           while (true) {
                task = thiz->fifo.pull();
@@ -397,7 +395,7 @@ public:
 
                ret = task->Run();
                if (ret) {
-                    D_DERROR( ret, "TaskThreads: Task::Run() failed! [%s]\n", task->Description().buffer() );
+                    D_DERROR( ret, "TaskThreads: Task::Run() failed! [%s]\n", *task->Description() );
                     task->Done( ret );
                }
           }
@@ -481,6 +479,31 @@ pool_lock / read / write / unlock
       Task::Done()    ->      - emit blocked tasks (if the Lock is blocking)
                               - SurfaceTask::Finalise()
                                 - unref allocations
+
+
+
+
+
+
+
+
+
+
+
+ Queues
+
+ - TaskManager
+     -q work
+     -O waiting for emit
+
+ - GenefxEngine
+     -Q core1-8
+
+ - M2MC
+     -Q Core1-2
+
+
+
 
 
 

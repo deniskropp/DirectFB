@@ -345,7 +345,8 @@ protected:
 class Config
 {
 protected:
-     Config( Implementation *implementation ) : implementation( implementation ) {};
+     Config( Implementation *implementation );
+
 public:
      virtual ~Config() {};
 
@@ -474,11 +475,12 @@ protected:
      virtual DFBResult                                               updateBuffers();
      virtual DirectFB::Util::FusionObjectWrapper<CoreSurfaceBuffer> &getBuffer( int offset = 0 );
 
-private:
+public:
      Config                                                *config;
      Options                                               *options;
      CoreSurface                                           *surface;
 
+private:
      u32                                                    flips;
      u32                                                    index;
 
