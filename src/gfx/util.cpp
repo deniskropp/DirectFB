@@ -87,13 +87,24 @@ public:
 
      static void destroy( void *ctx, StateClient *client )
      {
-          delete client;
+          _tls.Delete();
      }
+
+     static StateClient* Get()
+     {
+          return _tls.Get();
+     }
+
+     static void DeleteAll()
+     {
+          _tls.DeleteAll();
+     }
+
+private:
+     static Direct::TLSObject2<StateClient> _tls;
 };
 
-
-static Direct::TLSObject2<StateClient> state_client_tls;
-
+Direct::TLSObject2<StateClient> StateClient::_tls;
 
 extern "C" {
 
@@ -101,13 +112,13 @@ extern "C" {
 void
 dfb_gfx_init_tls()
 {
-     state_client_tls.Get();
+     StateClient::Get();
 }
 
 void
 dfb_gfx_cleanup()
 {
-     state_client_tls.DeleteAll();
+     StateClient::DeleteAll();
 }
 
 void
@@ -139,7 +150,7 @@ dfb_gfx_copy_stereo( CoreSurface         *source,
 {
      DFBRectangle sourcerect = { 0, 0, source->config.size.w, source->config.size.h };
 
-     StateClient *client = state_client_tls.Get();
+     StateClient *client = StateClient::Get();
 
      D_FLAGS_SET( client->state.modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO );
 
@@ -179,7 +190,7 @@ dfb_gfx_clear( CoreSurface *surface, CoreSurfaceBufferRole role )
 {
      DFBRectangle rect = { 0, 0, surface->config.size.w, surface->config.size.h };
 
-     StateClient *client = state_client_tls.Get();
+     StateClient *client = StateClient::Get();
 
      D_FLAGS_SET( client->state.modified, SMF_CLIP | SMF_COLOR | SMF_DESTINATION | SMF_TO );
 
@@ -232,7 +243,7 @@ void dfb_gfx_stretch_stereo( CoreSurface         *source,
                return;
      }
 
-     StateClient *client = state_client_tls.Get();
+     StateClient *client = StateClient::Get();
 
      D_FLAGS_SET( client->state.modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO );
 
@@ -300,7 +311,7 @@ dfb_gfx_copy_regions_stereo( CoreSurface           *source,
      }
 
      if (n > 0) {
-          StateClient *client = state_client_tls.Get();
+          StateClient *client = StateClient::Get();
 
           D_FLAGS_SET( client->state.modified, SMF_CLIP | SMF_SOURCE | SMF_DESTINATION | SMF_FROM | SMF_TO );
 
@@ -342,7 +353,7 @@ dfb_gfx_copy_regions_client( CoreSurface             *source,
      DFBRectangle             rect = { 0, 0, source->config.size.w, source->config.size.h };
      DFBRectangle             rects[num];
      DFBPoint                 points[num];
-     CoreGraphicsStateClient *client = _client ? _client : &state_client_tls.Get()->client;
+     CoreGraphicsStateClient *client = _client ? _client : &StateClient::Get()->client;
      CardState               *state  = client->state;
      CardState                backup;
 
@@ -413,7 +424,7 @@ back_to_front_copy( CoreSurface             *surface,
 {
      DFBRectangle  rect;
      DFBPoint      point;
-     StateClient  *client = state_client_tls.Get();
+     StateClient  *client = StateClient::Get();
 
 
      if (region) {
