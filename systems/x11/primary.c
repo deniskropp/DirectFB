@@ -764,8 +764,8 @@ static DFBResult
 update_screen( DFBX11 *x11, const DFBRectangle *clip, CoreSurfaceBufferLock *lock, XWindow *xw )
 {
      void                  *dst;
-     u8                    *srces[3];
-     int                    pitches[3];
+     u8                    *srces[3] = { 0 };
+     int                    pitches[3] = { 0 };
      unsigned int           offset = 0;
      XImage                *ximage;
      CoreSurfaceAllocation *allocation;
