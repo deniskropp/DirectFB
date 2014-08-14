@@ -1702,10 +1702,11 @@ region_callback( FusionObjectPool *pool,
      return true;
 }
 
-int
+static int
 dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
      CoreDFBShared *shared;
+     int            loops = 10;
 
      D_MAGIC_ASSERT( core, CoreDFB );
 
@@ -1729,18 +1730,30 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      dfb_core_enum_layer_regions( core, region_callback, core );
 
-     dfb_core_part_shutdown( core, &dfb_screen_core, emergency );
+
+     fusion_stop_dispatcher( core->world, false );
 
      dfb_gfx_cleanup();
 
-     if (direct_config_get_int_value( "shutdown-info" )) {
-          D_ERROR( "DirectFB/Core: Some objects remain alive, application or internal ref counting issue!\n" );
+     while (loops--) {
+          fusion_dispatch( core->world, 16384 );
 
-          dfb_core_dump_all( core, &DirectFB_Core, DIRECT_LOG_VERBOSE );
+          ret = dfb_core_wait_all( core, 10000 );
+          if (ret == DFB_OK)
+               break;
 
-          direct_print_interface_leaks();
+          dfb_gfx_cleanup();
      }
 
+     if (ret == DFB_TIMEOUT) {
+          if (direct_config_get_int_value( "shutdown-info" )) {
+               D_ERROR( "DirectFB/Core: Some objects remain alive, application or internal ref counting issue!\n" );
+
+               dfb_core_dump_all( core, &DirectFB_Core, DIRECT_LOG_VERBOSE );
+
+               direct_print_interface_leaks();
+          }
+     }
 
      /* Destroy window objects. */
      fusion_object_pool_destroy( shared->window_pool, core->world );
@@ -1749,6 +1762,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      /* Close window stacks. */
      if (dfb_wm_core.initialized)
           dfb_wm_close_all_stacks( dfb_wm_core.data_local );
+
+     CoreDFB_Deinit_Dispatch( &shared->call );
 
      /* Destroy layer context and region objects. */
      fusion_object_pool_destroy( shared->layer_region_pool, core->world );
@@ -1759,6 +1774,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      /* Shutdown layer core. */
      dfb_core_part_shutdown( core, &dfb_layer_core, emergency );
+     dfb_core_part_shutdown( core, &dfb_screen_core, emergency );
 
      TaskManager_SyncAll();
 
@@ -2009,9 +2025,7 @@ dfb_core_arena_shutdown( void *ctx,
      }
 
      /* Shutdown. */
-     ret = CoreDFB_Shutdown( core );
-
-     CoreDFB_Deinit_Dispatch( &shared->call );
+     ret = dfb_core_shutdown( core, emergency );
 
      fusion_hash_destroy( shared->field_hash );
 
