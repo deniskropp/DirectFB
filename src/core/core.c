@@ -1705,6 +1705,7 @@ region_callback( FusionObjectPool *pool,
 static int
 dfb_core_shutdown( CoreDFB *core, bool emergency )
 {
+     DFBResult      ret;
      CoreDFBShared *shared;
      int            loops = 10;
 
