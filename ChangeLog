@@ -1,3 +1,85 @@
+commit 4b4ca723b8dc7d83b8cd8c709f4b0d5e7a96e06b
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Aug 14 09:17:21 2014 +0200
+
+    core: add missing ret variable
+
+commit b5d96d22f4dc2b5b0b340224dbd047bc1ef99918
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Aug 14 09:14:41 2014 +0200
+
+    Revert "Core: Add Shutdown method to run in dispatch thread, solving (potential) shutdown issues caused by race conditions with dispatch thread"
+    
+    This reverts commit d1267d05fb964f882b90599b8259e41a9a4e811b.
+
+commit 3332d3e908946ad21def7820f9e17015693ea258
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Aug 5 18:11:07 2014 +0200
+
+    [directfb-dev] [PATCH] StateClient: Fix double-free memory corruption.
+    
+    StateClient object instances are stored in thread local storage. Each
+    thread can only have one instance of this object. There is however one
+    shared list inside of TLSOjbect2 that holds references to all
+    StateClient objects created in a given process. The instances of
+    
+    StateClient can be destroyed in two ways.
+    1. Something calls dfb_gfx_cleanup().
+    2. Thread terminates.
+    
+    In the first case the function is called once when the process using
+    directfb shuts down. This happens ony once during application life.
+    The function iterates over all StateClient objects present in the
+    TLSObject2::list and removes each one.
+    
+    The second case libc will call the callback function passed to
+    direct_tls_register() when the thread which registered the tls object
+    terminates.
+    
+    The problem is that while dfb_gfx_cleanup() does remove the deleted objects
+    from the TLSObject2::list, the default callback function passed to
+    direct_tls_register (TLSObject2::destructor) does not. As a result the
+    following situation will lead to a double-free memory corruption.
+    1. The application starts and initializes directfb.
+    2. At least one extra thread is started, this thread uses some dfb APIs
+       which internally create new StateClient object.
+    3. The extra thread terminates thus invokes TLSObject2::destructor.
+    4. The application exits, dfb_gfx_cleanup() is called, StateClient for the
+       extra thread is deleted for the second time.
+    
+    The problem is nicely illustrated by valgrind. In this case dfbterm is
+    used as the application triggering the problem.
+    
+    ==336== Invalid read of size 4
+    ==336==    at 0x4EA4120: CoreGraphicsStateClient_Deinit
+                             (CoreGraphicsStateClient.cpp:387)
+    ==336==    by 0x4F7165F: StateClient::~StateClient() (util.cpp:78)
+    ==336==    by 0x4F71A07: Direct::TLSObject2<StateClient, StateClient,
+                             StateClient>::DeleteAll() (TLSObject.h:175)
+    ==336==    by 0x4EE3130: dfb_core_shutdown (core.c:1734)
+    ==336==    by 0x4EE36F3: dfb_core_arena_shutdown (core.c:2020)
+    ==336==    by 0x4EE418C: dfb_core_destroy (core.c:472)
+    ==336==    by 0x4E969A2: IDirectFB_Destruct (idirectfb.c:307)
+    ==336==    by 0x402813: main (term.c:523)
+    ==336==  Address 0x8b37730 is 1,072 bytes inside a block of size 1,136 free'd
+    ==336==    at 0x4C28D2C: operator delete(void*) (vg_replace_malloc.c:482)
+    ==337==    by 0x5233F81: __nptl_deallocate_tsd (pthread_create.c:158)
+    ==337==    by 0x52341E3: start_thread (pthread_create.c:325)
+    ==336==    by 0x5B7A0DC: clone (clone.S:111)
+    
+    This bug also triggers the following assertion:
+    Assertion [(client)->magic == D_MAGIC("CoreGraphicsStateClient")] failed
+    *** [CoreGraphicsStateClient.cpp:387 in
+    CoreGraphicsStateClient_Deinit()]
+    
+    This patch is also applicable for directfb-1.7 branch.
+
+commit 650773f3b0a08be053687d9bffac6746fe9fe287
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Jul 28 12:02:50 2014 +0200
+
+    update changelog
+
 commit a1a930c40f3ecdde7e1fa327a023a1eacff66a6c
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Thu Jul 24 13:08:45 2014 +0200
