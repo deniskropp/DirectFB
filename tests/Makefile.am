@@ -86,6 +86,11 @@ GL_PROGS += \
 	dfbtest_old_gl2
 endif
 
+if HAVE_OPENCL
+CL_PROGS = \
+	opencl_test1
+endif
+
 if DIRECTFB_BUILD_PURE_VOODOO
 NON_PURE_VOODOO_PROGS = 
 else
@@ -102,6 +107,7 @@ NON_PURE_VOODOO_PROGS = \
 endif
 
 bin_PROGRAMS = \
+	$(CL_PROGS)	\
 	$(GL_PROGS)	\
 	$(NON_PURE_VOODOO_PROGS)	\
 	dfbtest_blit	\
@@ -336,6 +342,10 @@ fusion_skirmish_LDADD   = $(DFB_BASE_LIBS)
 
 fusion_stream_SOURCES = fusion_stream.c
 fusion_stream_LDADD   = $(DFB_BASE_LIBS)
+
+opencl_test1_SOURCES  = opencl_test1.cpp
+opencl_test1_CXXFLAGS = $(OPENCL_CFLAGS)
+opencl_test1_LDADD    = $(OPENCL_LIBS)
 
 OneBench_SOURCES = OneBench.c
 OneBench_LDADD   = $(DFB_BASE_LIBS)
