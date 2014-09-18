@@ -292,7 +292,7 @@ EGLDisplayX11::Surface_Initialise( SurfaceXWindow &surface )
 
      IDirectFB *dfb = parent.GetDFB();
 
-//     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
+     dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
 
      ret = dfb->CreateSurface( dfb, &desc, &surface.parent.surface );
      if (ret) {
