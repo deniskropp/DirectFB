@@ -342,7 +342,7 @@ protected:
 };
 
 
-class Config
+class Config : public Core::Type<Config>
 {
 protected:
      Config( Implementation *implementation );
