@@ -17,7 +17,9 @@ INCLUDES = \
 	-I$(top_srcdir)/lib/fusionsound	\
 	-I$(top_srcdir)/src
 
-AM_CPPFLAGS = -DBINDIR=\"@bindir@\" -DDATADIR=\"@DATADIR@\"
+AM_CPPFLAGS = \
+	-DBINDIR=\"@bindir@\"	\
+	-DDATADIR=\"@DATADIR@\"
 
 AM_CFLAGS = $(FREETYPE_CFLAGS) $(LIBPNG_CFLAGS)
 AM_CXXFLAGS = $(LIBPNG_CFLAGS)
@@ -137,7 +139,7 @@ dfbdump_LDADD   = $(DFB_BASE_LIBS)
 dfbg_SOURCES = dfbg.c
 dfbg_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
-dfbinfo_SOURCES = dfbinfo.c
+dfbinfo_SOURCES = dfbinfo.cpp
 dfbinfo_LDADD   = $(DFB_BASE_LIBS) $(OSX_LIBS)
 
 dfbdumpinput_SOURCES = dfbdumpinput.c

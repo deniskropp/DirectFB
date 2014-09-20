@@ -40,8 +40,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <memory>
+
 #include <directfb.h>
+extern "C" {
 #include <directfb_strings.h>
+}
+
+#include <core/Graphics.h>
 
 static const DirectFBInputDeviceTypeFlagsNames(input_types);
 static const DirectFBInputDeviceCapabilitiesNames(input_caps);
@@ -69,6 +75,7 @@ static IDirectFB *dfb = NULL;
 static DFBBoolean parse_command_line ( int argc, char *argv[] );
 static void       enum_input_devices ( void );
 static void       enum_screens ( void );
+static void       enum_graphics( void );
 
 /*****************************************************************************/
 
@@ -102,6 +109,7 @@ main( int argc, char *argv[] )
 
      enum_screens();
      enum_input_devices();
+     enum_graphics();
 
      /* Release the super interface. */
      dfb->Release( dfb );
@@ -195,7 +203,7 @@ input_device_callback( DFBInputDeviceID           id,
 
      printf( "\n" );
 
-     return DFB_OK;
+     return DFENUM_OK;
 }
 
 static void
@@ -267,7 +275,7 @@ display_layer_callback( DFBDisplayLayerID           id,
           else {
                DFBDisplayLayerSourceDescription *descs;
 
-               descs = D_CALLOC( desc.sources, sizeof(*descs) );
+               descs = (DFBDisplayLayerSourceDescription*) D_CALLOC( desc.sources, sizeof(*descs) );
                if (descs) {
                     ret = layer->GetSourceDescriptions( layer, descs );
                     if (ret) {
@@ -298,7 +306,7 @@ display_layer_callback( DFBDisplayLayerID           id,
 
      printf( "\n" );
 
-     return DFB_OK;
+     return DFENUM_OK;
 }
 
 static void
@@ -321,7 +329,7 @@ dump_mixers( IDirectFBScreen *screen,
      DFBResult                  ret;
      DFBScreenMixerDescription *descs;
 
-     descs = D_CALLOC( num, sizeof(*descs) );
+     descs = (DFBScreenMixerDescription*) D_CALLOC( num, sizeof(*descs) );
      if (!descs) {
           D_OOM();
           return;
@@ -388,8 +396,9 @@ dump_encoders( IDirectFBScreen *screen,
      int                          i, n;
      DFBResult                    ret;
      DFBScreenEncoderDescription *descs;
+     DFBScreenEncoderConfig       conf;
 
-     descs = D_CALLOC( num, sizeof(*descs) );
+     descs = (DFBScreenEncoderDescription*) D_CALLOC( num, sizeof(*descs) );
      if (!descs) {
           D_OOM();
           return;
@@ -488,6 +497,16 @@ dump_encoders( IDirectFBScreen *screen,
                printf( "\n" );
           }
 
+          ret = screen->GetEncoderConfiguration( screen, i, &conf );
+          if (ret) {
+               DirectFBError( "IDirectFBScreen::GetEncoderConfiguration", ret );
+               D_FREE( descs );
+               return;
+          }
+
+          if (conf.flags & DSECONF_MIXER)
+               printf( "     Mixer:          %d (current)\n", conf.mixer );
+
           printf( "\n" );
      }
 
@@ -503,8 +522,9 @@ dump_outputs( IDirectFBScreen *screen,
      int                         i, n;
      DFBResult                   ret;
      DFBScreenOutputDescription *descs;
+     DFBScreenOutputConfig       conf;
 
-     descs = D_CALLOC( num, sizeof(*descs) );
+     descs = (DFBScreenOutputDescription*) D_CALLOC( num, sizeof(*descs) );
      if (!descs) {
           D_OOM();
           return;
@@ -564,6 +584,16 @@ dump_outputs( IDirectFBScreen *screen,
           }
 
           printf( "\n" );
+
+          ret = screen->GetOutputConfiguration( screen, i, &conf );
+          if (ret) {
+               DirectFBError( "IDirectFBScreen::GetOutputConfiguration", ret );
+               D_FREE( descs );
+               return;
+          }
+
+          if (conf.flags & DSOCONF_ENCODER)
+               printf( "     Encoder:    %d (current)\n", conf.encoder );
 
           printf( "\n" );
      }
@@ -627,7 +657,7 @@ screen_callback( DFBScreenID           id,
 
      screen->Release( screen );
 
-     return DFB_OK;
+     return DFENUM_OK;
 }
 
 static void
@@ -640,5 +670,31 @@ enum_screens( void )
      ret = dfb->EnumScreens( dfb, screen_callback, NULL );
      if (ret)
           DirectFBError( "IDirectFB::EnumScreens", ret );
+}
+
+static void
+enum_graphics( void )
+{
+     std::shared_ptr<DirectFB::Graphics::Core> gfx_core;
+
+     gfx_core = DirectFB::Graphics::Core::GetInstance();
+
+     gfx_core->LoadModules();
+
+     printf( "\n" );
+     printf( "Implementation              | APIs                                        | Extensions\n" );
+     printf( "--------------------------------------------------------------------------------------\n" );
+
+     for (DirectFB::Graphics::Implementations::const_iterator it = gfx_core->implementations.begin();
+          it != gfx_core->implementations.end();
+          it++)
+     {
+          printf( "%-28s  %-40s      %s\n",
+                  *(*it)->GetName(),
+                  *(*it)->GetAPIs().Concatenated( " " ),
+                  *(*it)->GetExtensions().Concatenated( " " ) );
+     }
+
+     printf( "\n" );
 }
 
