@@ -106,7 +106,6 @@ class X11EGLImpl : public Graphics::Implementation
      friend class GLeglImage;
      friend class X11EGLConfig;
      friend class X11EGLContext;
-     friend class X11EGLSurface;
      friend class X11EGLSurfacePeer;
 
 public:
@@ -135,11 +134,10 @@ private:
 };
 
 
-class X11EGLConfig : public Graphics::Config
+class X11EGLConfig : public EGL::GraphicsConfig
 {
      friend class X11EGLImpl;
      friend class X11EGLContext;
-     friend class X11EGLSurface;
      friend class X11EGLSurfacePeer;
 
 protected:
@@ -150,8 +148,6 @@ protected:
 public:
      virtual DFBResult GetOption    ( const Direct::String    &name,
                                       long                    &value );
-
-     virtual DFBResult CheckOptions ( const Graphics::Options &options );
 
      virtual DFBResult CreateContext( const Direct::String    &api,
                                       Graphics::Context       *share,

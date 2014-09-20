@@ -298,6 +298,7 @@ X11EGLImpl::X11EGLImpl()
 X11EGLImpl::~X11EGLImpl()
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLImpl::%s( %p )\n", __FUNCTION__, this );
+     display->Sync();
 }
 
 const Direct::String &
@@ -435,7 +436,7 @@ X11EGLImpl::Initialise()
 
      name       = Direct::String::F( "X11 EGL (on %s)", egl_vendor );
      apis       = Direct::String( client_apis ).GetTokens( " " );
-     //extensions = Direct::String( egl_extensions ).GetTokens( " " );
+//     extensions = Direct::String( egl_extensions ).GetTokens( " " );
 
 
      if (!lib.eglGetConfigs( egl_display, egl_configs, D_ARRAY_SIZE(egl_configs), &num_configs )) {
@@ -481,6 +482,8 @@ failure:
 DirectResult
 X11EGLImpl::Finalise()
 {
+     display->Sync();
+
      core->UnregisterImplementation( this );
 
      for (auto it=configs.begin(); it!=configs.end(); it++)
@@ -501,17 +504,19 @@ X11EGLImpl::Finalise()
 X11EGLConfig::X11EGLConfig( X11EGLImpl &impl,
                             EGLConfig   egl_config )
      :
-     Config( &impl ),
+     EGL::GraphicsConfig( impl ),
      impl( impl ),
      egl_config( egl_config )
 {
      D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, egl_config 0x%08lx )\n", __FUNCTION__, this, (long) egl_config );
+     impl.display->Sync();
 
 }
 
 X11EGLConfig::~X11EGLConfig()
 {
      D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
 
 }
 
@@ -520,6 +525,7 @@ X11EGLConfig::GetOption( const Direct::String &name,
                          long                 &value )
 {
      D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, '%s' ) <- egl_config 0x%08lx\n", __FUNCTION__, this, *name, (long) egl_config );
+     impl.display->Sync();
 
      DirectFB::EGL::EGLInt option;
 
@@ -545,55 +551,6 @@ X11EGLConfig::GetOption( const Direct::String &name,
 }
 
 DFBResult
-X11EGLConfig::CheckOptions( const Graphics::Options &options )
-{
-     DFBResult ret = DFB_OK;
-
-     D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, options %p )\n", __FUNCTION__, this, &options );
-
-     for (Graphics::Options::const_iterator it = options.begin();
-          it != options.end();
-          it++)
-     {
-          long                  val   = 0;
-          long                  check = 0;
-          Graphics::OptionBase *base = (*it).second;
-
-          D_DEBUG_AT( DFBX11_EGLConfig, "  ---> '%s'\n", *base->GetName() );
-
-          GetOption( base->GetName(), val );
-
-          check = dynamic_cast<Graphics::Option<long> *>(base)->GetValue();
-
-          if (base->GetName() == "RENDERABLE_TYPE" || base->GetName() == "SURFACE_TYPE") {
-               if ((val & check) == check)
-                    D_DEBUG_AT( DFBX11_EGLConfig, "  =    local '0x%08lx' contains '0x%08lx'\n", val, check );
-               else {
-                    D_DEBUG_AT( DFBX11_EGLConfig, "  X    local '0x%08lx' misses '0x%08lx'\n", val, check );
-
-                    ret = DFB_UNSUPPORTED;
-               }
-          }
-          else {
-               if (val > check)// && check != 0)
-                    D_DEBUG_AT( DFBX11_EGLConfig, "  >    local '%ld' greater than '%ld'\n", val, check );
-               else if (val == check)
-                    D_DEBUG_AT( DFBX11_EGLConfig, "  =    local '%ld' equals\n", val );
-               else {
-                    D_DEBUG_AT( DFBX11_EGLConfig, "  X    local '%ld' < '%ld'\n", val, check );
-
-                    ret = DFB_UNSUPPORTED;
-               }
-          }
-     }
-
-     if (ret)
-          return ret;
-
-     return Graphics::Config::CheckOptions( options );
-}
-
-DFBResult
 X11EGLConfig::CreateContext( const Direct::String  &api,
                              Graphics::Context     *share,
                              Graphics::Options     *options,
@@ -604,6 +561,7 @@ X11EGLConfig::CreateContext( const Direct::String  &api,
 
      D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, api '%s', share %p, options %p )\n",
                  __FUNCTION__, this, *api, share, options );
+     impl.display->Sync();
 
      Direct::String v;
 
@@ -649,6 +607,7 @@ X11EGLConfig::CreateSurfacePeer( CoreSurface       *surface,
 
      D_DEBUG_AT( DFBX11_EGLConfig, "X11EGLConfig::%s( %p, surface %p )\n",
                  __FUNCTION__, this, surface );
+     impl.display->Sync();
 
      peer = new X11EGLSurfacePeer( impl, this, options, surface );
 
@@ -676,6 +635,7 @@ X11EGLContext::X11EGLContext( X11EGLImpl           &impl,
      egl_context( EGL_NO_CONTEXT )
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLContext::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
 
      Graphics::Context::Register< GL::OES::glEGLImageTargetTexture2D >( "glEGLImageTargetTexture2D",
                                                                         std::bind( &X11EGLContext::glEGLImageTargetTexture2D, this, _1, _2 ),
@@ -691,6 +651,7 @@ X11EGLContext::X11EGLContext( X11EGLImpl           &impl,
 X11EGLContext::~X11EGLContext()
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLContext::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
 }
 
 DFBResult
@@ -700,6 +661,7 @@ X11EGLContext::Init()
      EGLContext    egl_share = EGL_NO_CONTEXT;
 
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLContext::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
 
      config = GetConfig<X11EGLConfig>();
 
@@ -744,6 +706,7 @@ X11EGLContext::Bind( Graphics::SurfacePeer *draw,
                      Graphics::SurfacePeer *read )
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLContext::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
 
      X11EGLSurfacePeer *draw_peer = (X11EGLSurfacePeer *) draw;
      X11EGLSurfacePeer *read_peer = (X11EGLSurfacePeer *) read;
@@ -756,11 +719,15 @@ X11EGLContext::Bind( Graphics::SurfacePeer *draw,
 
      impl.display->Sync();
 
+     // TODO: load library for GLES2 etc and setup call dispatch...
+
      if (!impl.lib.eglMakeCurrent( impl.egl_display, surf_draw, surf_read, egl_context )) {
           D_ERROR_AT( DFBX11_EGLImpl, "eglMakeCurrent( draw %p, read %p, context %p ) failed (%s)\n", surf_draw, surf_read, (void*) (long) egl_context,
                       *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
           return DFB_FAILURE;
      }
+
+     impl.display->Sync();
 
      draw_peer->bound_surface = surf_draw;
 
@@ -773,12 +740,17 @@ DFBResult
 X11EGLContext::Unbind()
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLContext::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
+
+     // TODO: clear call dispatch...
 
      if (!impl.lib.eglMakeCurrent( impl.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT )) {
           D_ERROR_AT( DFBX11_EGLImpl, "eglMakeCurrent( EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT ) failed (%s)\n",
                       *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
           return DFB_FAILURE;
      }
+
+     impl.display->Sync();
 
      return DFB_OK;
 }
@@ -788,6 +760,7 @@ X11EGLContext::GetProcAddress( const Direct::String  &name,
                                void                 *&addr )
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLContext::%s( %p, name '%s' )\n", __FUNCTION__, this, *name );
+     impl.display->Sync();
 
      __eglMustCastToProperFunctionPointerType result = impl.lib.eglGetProcAddress( *name );
 
@@ -807,6 +780,7 @@ X11EGLContext::glEGLImageTargetTexture2D( GL::enum_  &target,
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLContext::glEGLImageTargetTexture2D::%s( %p, target 0x%04x, X11::GLeglImage %p, EGLImage %p )\n",
             __FUNCTION__, this, target, &image, image.glEGLImage );
+     impl.display->Sync();
 
      // FIXME: implement fallback via update-mechanism
      if (!image.glEGLImage) {
@@ -835,8 +809,11 @@ X11EGLContext::glEGLImageTargetTexture2D( GL::enum_  &target,
 
           image.parent.dfb_surface->Unlock( image.parent.dfb_surface );
      }
-     else
+     else {
           impl.glEGLImageTargetTexture2DOES( target, image.glEGLImage );
+
+          impl.display->Sync();
+     }
 }
 
 void
@@ -845,12 +822,16 @@ X11EGLContext::glEGLImageTargetRenderbufferStorage( GL::enum_  &target,
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLContext::glEGLImageTargetRenderbufferStorage::%s( %p, target 0x%04x, X11::GLeglImage %p, EGLImage %p )\n",
                  __FUNCTION__, this, target, &image, image.glEGLImage );
+     impl.display->Sync();
 
      if (!image.glEGLImage) {
           D_UNIMPLEMENTED();
      }
-     else
+     else {
           impl.glEGLImageTargetRenderbufferStorageOES( target, image.glEGLImage );
+
+          impl.display->Sync();
+     }
 }
 
 /**********************************************************************************************************************/
@@ -866,25 +847,29 @@ X11EGLSurfacePeer::X11EGLSurfacePeer( X11EGLImpl        &impl,
      bound_surface( EGL_NO_SURFACE ),
      is_pixmap( false )
 {
-     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLSurfacePeer::%s( %p )\n", __FUNCTION__, this );
+     D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLSurfacePeer::%s( %p, impl %p, surface %p )\n",
+                 __FUNCTION__, this, &impl, surface );
+     impl.display->Sync();
+
+     D_DEBUG_AT( DFBX11_EGLImpl, "  -> surface %s\n", ToString_CoreSurface( surface ) );
 
      SurfacePeer::Register< SurfacePeer::Flush >( "Flush",
                                                   std::bind( &X11EGLSurfacePeer::Flush, this ),
                                                   "",
                                                   this );
-
-     D_INFO("surface %p  ->data = 0x%08lx\n",GetSurface(),(long)GetSurface()->data);
 }
 
 X11EGLSurfacePeer::~X11EGLSurfacePeer()
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLSurfacePeer::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
 }
 
 DFBResult
 X11EGLSurfacePeer::Init()
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLSurfacePeer::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
 
      DFBResult ret;
 
@@ -908,6 +893,7 @@ X11EGLSurfacePeer::Flip( const DFBRegion     *region,
      DFBResult ret;
 
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLSurfacePeer::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
 
      ret = SurfacePeer::Flip( region, flags, timestamp );
      if (ret)
@@ -943,6 +929,8 @@ X11EGLSurfacePeer::Flip( const DFBRegion     *region,
                          return DFB_FAILURE;
                     }
 
+                    impl.display->Sync();
+
                     bound_surface = egl_surface;
                }
           }
@@ -955,6 +943,7 @@ DFBResult
 X11EGLSurfacePeer::Flush()
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLSurfacePeer::%s( %p ) <- bound %p\n", __FUNCTION__, this, bound_surface );
+     impl.display->Sync();
 
      if (bound_surface != EGL_NO_SURFACE) {
           D_DEBUG_AT( DFBX11_EGLImpl, "  -> calling eglSwapBuffers( %p )\n", bound_surface );
@@ -964,6 +953,8 @@ X11EGLSurfacePeer::Flush()
                            *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
                return DFB_FAILURE;
           }
+
+          impl.display->Sync();
      }
 
      D_DEBUG_AT( DFBX11_EGLImpl, "  -> eglSwapBuffers( %p ) done\n", bound_surface );
@@ -975,14 +966,12 @@ EGLSurface
 X11EGLSurfacePeer::getEGLSurface()
 {
      D_DEBUG_AT( DFBX11_EGLImpl, "X11EGLSurfacePeer::%s( %p )\n", __FUNCTION__, this );
+     impl.display->Sync();
+
+     X11Window &x11_window = getBuffer();
 
      if (eglSurface == EGL_NO_SURFACE) {
-          X11Window     &x11_window      = getBuffer();
-
-
           X11EGLConfig *config = GetConfig<X11EGLConfig>();
-
-
 
           D_LOG( DFBX11_EGLImpl, VERBOSE, "  -> Deriving X11EGLSurface for X11 Impl from generic SurfaceBuffer (window %p, ID 0x%lx)\n", &x11_window, x11_window.window_id );
 
@@ -1002,6 +991,8 @@ X11EGLSurfacePeer::getEGLSurface()
           if (eglSurface == EGL_NO_SURFACE)
                D_ERROR( "X11/EGLImpl: eglCreateWindowSurface( EGLConfig %p, 0x%08lx ) failed (%s)\n", egl_config,
                         (long) x11_window.window_id, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ) );
+
+          impl.display->Sync();
      }
 
      return eglSurface;
