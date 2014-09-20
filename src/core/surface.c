@@ -1030,6 +1030,9 @@ dfb_surface_reconfig( CoreSurface             *surface,
      }
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
 
+     while (fusion_hash_size( surface->frames ) > 0)
+          fusion_hash_iterate( surface->frames, surface_destructor_buffers_iterator, surface );
+
      dfb_surface_notify( surface, CSNF_SIZEFORMAT );
 
      if (dfb_config->surface_clear)
