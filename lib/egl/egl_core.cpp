@@ -62,16 +62,6 @@ using namespace std::placeholders;
 DEFINE_MODULE_DIRECTORY( core_modules, "dfbegl_core", DFBEGL_CORE_ABI_VERSION );
 
 
-//D_TYPE_DEFINE_( GL::OES::eglImage, eglImage );
-//D_TYPE_DEFINE_( GL::OES::glEGLImageTargetTexture2D, glEGLImageTargetTexture2D );
-//D_TYPE_DEFINE_( GL::OES::glEGLImageTargetRenderBufferStorage, glEGLImageTargetRenderBufferStorage );
-
-//D_TYPE_DEFINE( Context );
-//D_TYPE_DEFINE( Display );
-
-//D_TYPE_DEFINE_( KHR::Image, Image );
-
-
 Core &
 Core::GetInstance()
 {

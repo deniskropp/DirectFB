@@ -63,6 +63,24 @@ namespace EGL {
 
 
 /*
+ * GraphicsConfig for wrapping implementations' configs
+ */
+
+class GraphicsConfig : public Graphics::Config
+{
+protected:
+     GraphicsConfig( Graphics::Implementation &impl );
+     virtual ~GraphicsConfig();
+
+public:
+     virtual DFBResult CheckOptions( const Graphics::Options &options );
+
+private:
+     Graphics::Implementation &impl;
+};
+
+
+/*
  * EGL::Config for wrapping implementations' configs
  */
 
