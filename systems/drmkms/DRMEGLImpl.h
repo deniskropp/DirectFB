@@ -118,8 +118,6 @@ public:
      virtual DFBResult GetOption    ( const Direct::String    &name,
                                       long                    &value );
 
-     virtual DFBResult CheckOptions ( const Graphics::Options &options );
-
      virtual DFBResult CreateContext( const Direct::String    &api,
                                       Graphics::Context       *share,
                                       Graphics::Options       *options,
