@@ -48,7 +48,7 @@
 #include "x11image.h"
 #include "x11_surface_pool.h"
 
-D_DEBUG_DOMAIN( X11_Surfaces, "X11/Windows", "X11 System Surface Pool" );
+D_DEBUG_DOMAIN( X11_Windows, "X11/Windows", "X11 System Surface Pool" );
 
 /**********************************************************************************************************************/
 
@@ -94,7 +94,7 @@ x11InitPool( CoreDFB                    *core,
      x11PoolLocalData *local = pool_local;
      DFBX11           *x11   = system_data;
 
-     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( X11_Windows, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
@@ -153,7 +153,7 @@ x11JoinPool( CoreDFB                    *core,
      x11PoolLocalData *local = pool_local;
      DFBX11           *x11   = system_data;
 
-     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( X11_Windows, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
@@ -177,7 +177,7 @@ x11DestroyPool( CoreSurfacePool *pool,
 {
      x11PoolLocalData *local = pool_local;
 
-     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( X11_Windows, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
@@ -195,7 +195,7 @@ x11LeavePool( CoreSurfacePool *pool,
 {
      x11PoolLocalData *local = pool_local;
 
-     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( X11_Windows, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
@@ -216,10 +216,10 @@ x11TestConfig( CoreSurfacePool         *pool,
      x11PoolLocalData *local = pool_local;
      DFBX11           *x11   = local->x11;
 
-     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( X11_Windows, "%s()\n", __FUNCTION__ );
 
      if (!x11->visuals[DFB_PIXELFORMAT_INDEX(config->format)]) {
-          D_DEBUG_AT( X11_Surfaces, "  -> NO VISUAL for %s\n", dfb_pixelformat_name(config->format) );
+          D_DEBUG_AT( X11_Windows, "  -> NO VISUAL for %s\n", dfb_pixelformat_name(config->format) );
           return DFB_UNSUPPORTED;
      }
 
@@ -234,7 +234,7 @@ x11CheckKey( CoreSurfacePool   *pool,
              const char        *key,
              u64                handle )
 {
-     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( X11_Windows, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -263,8 +263,8 @@ x11AllocateKey( CoreSurfacePool       *pool,
      x11PoolLocalData  *local = pool_local;
      DFBX11            *x11   = local->x11;
 
-     D_DEBUG_AT( X11_Surfaces, "%s( %s, 0x%08llx )\n", __FUNCTION__, key, (unsigned long long) handle );
-     D_DEBUG_AT( X11_Surfaces, "  -> allocation: %s\n", ToString_CoreSurfaceAllocation( allocation ) );
+     D_DEBUG_AT( X11_Windows, "%s( %s, 0x%08llx )\n", __FUNCTION__, key, (unsigned long long) handle );
+     D_DEBUG_AT( X11_Windows, "  -> allocation: %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -273,12 +273,12 @@ x11AllocateKey( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      if (!strcmp( key, "Pixmap/X11" )) {
-          D_DEBUG_AT( X11_Surfaces, "  -> Pixmap/X11\n" );
+          D_DEBUG_AT( X11_Windows, "  -> Pixmap/X11\n" );
 
           alloc->type = X11_ALLOC_PIXMAP;
      }
      else if (!strcmp( key, "Window/X11" )) {
-          D_DEBUG_AT( X11_Surfaces, "  -> Window/X11\n" );
+          D_DEBUG_AT( X11_Windows, "  -> Window/X11\n" );
 
           alloc->type = X11_ALLOC_WINDOW;
      }
@@ -297,43 +297,37 @@ x11AllocateKey( CoreSurfacePool       *pool,
      if (alloc->depth == DefaultDepthOfScreen( x11->screenptr ))
           alloc->visual = DefaultVisualOfScreen( x11->screenptr );
 
-     D_DEBUG_AT( X11_Surfaces, "  -> visual %p (id %lu), depth %d\n", alloc->visual, alloc->visual->visualid, alloc->depth );
+     D_DEBUG_AT( X11_Windows, "  -> visual %p (id %lu), depth %d\n", alloc->visual, alloc->visual->visualid, alloc->depth );
+
+     XLockDisplay( x11->display );
 
      if (handle) {
           switch (alloc->type) {
                case X11_ALLOC_PIXMAP:
-                    XLockDisplay( x11->display );
-
                     alloc->xid = (unsigned long) handle;
                     x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
-
-                    XUnlockDisplay( x11->display );
+                    D_DEBUG_AT( X11_Windows, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
 
                     D_INFO( "X11/Windows: Import Pixmap 0x%08lx\n", alloc->xid );
                     break;
 
                case X11_ALLOC_WINDOW: {
-                    XLockDisplay( x11->display );
-
                     alloc->window = (unsigned long) handle;
                     x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> window 0x%08lx\n", (long) alloc->window );
+                    D_DEBUG_AT( X11_Windows, "  -> window 0x%08lx\n", (long) alloc->window );
 
-//                    XCompositeRedirectWindow( x11->display, alloc->window, CompositeRedirectManual );
+                    XCompositeRedirectWindow( x11->display, alloc->window, CompositeRedirectManual );
                     x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> redirected\n" );
+                    D_DEBUG_AT( X11_Windows, "  -> redirected\n" );
 
-//                    alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
-                    alloc->xid = alloc->window;
+                    alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
+//                    alloc->xid = alloc->window;
                     x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
+                    D_DEBUG_AT( X11_Windows, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
 
-//                    XUnmapWindow( x11->display, alloc->window );
+                    XUnmapWindow( x11->display, alloc->window );
                     x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> unmapped\n" );
-
-                    XUnlockDisplay( x11->display );
+                    D_DEBUG_AT( X11_Windows, "  -> unmapped\n" );
 
                     D_INFO( "X11/Windows: Import Window 0x%08lx with Pixmap handle 0x%08lx\n", alloc->window, alloc->xid );
                     break;
@@ -349,10 +343,8 @@ x11AllocateKey( CoreSurfacePool       *pool,
 
           switch (alloc->type) {
                case X11_ALLOC_PIXMAP:
-                    XLockDisplay( x11->display );
-
                     x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> creating pixmap...\n" );
+                    D_DEBUG_AT( X11_Windows, "  -> creating pixmap...\n" );
 
 //                    if (allocation->type & CSTF_LAYER)
 //                         alloc->depth = DefaultDepthOfScreen( DefaultScreenOfDisplay(x11->display) );
@@ -361,9 +353,7 @@ x11AllocateKey( CoreSurfacePool       *pool,
                                                 allocation->config.size.w, allocation->config.size.h, alloc->depth );
                     x11->Sync( x11 );
                     XSync( x11->display, False );
-                    D_DEBUG_AT( X11_Surfaces, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
-
-                    XUnlockDisplay( x11->display );
+                    D_DEBUG_AT( X11_Windows, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
 
                     D_INFO( "X11/Windows: New Pixmap 0x%08lx\n", alloc->xid );
 
@@ -375,59 +365,54 @@ x11AllocateKey( CoreSurfacePool       *pool,
                     if (!surface->data)
                          surface->data = SHCALLOC( surface->shmpool, 1, sizeof(Window) );
 
-                    Window w = (Window) (long) * (Window*) buffer->surface->data;
-
-
-                    XSetWindowAttributes attr;
-
-                    attr.event_mask =
-                           ButtonPressMask
-                         | ButtonReleaseMask
-                         | PointerMotionMask
-                         | KeyPressMask
-                         | KeyReleaseMask
-                         | ExposureMask
-                         | StructureNotifyMask;
-
-                    attr.background_pixmap = 0;
-
-                    XLockDisplay( x11->display );
-
-                    x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> creating window...\n" );
+                    Window w = * (Window*) buffer->surface->data;
 
                     alloc->depth  = DefaultDepthOfScreen( x11->screenptr );
                     alloc->visual = DefaultVisualOfScreen( x11->screenptr );
 
-                    alloc->window = w?:XCreateWindow( x11->display,
-                                                   DefaultRootWindow(x11->display),
-                                                   600, 200, allocation->config.size.w, allocation->config.size.h, 0,
-                                                   alloc->depth, InputOutput,
-                                                   alloc->visual, CWEventMask, &attr );
-                    x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> window 0x%08lx\n", (long) alloc->window );
-                    * (Window*) buffer->surface->data = (void*) (long) alloc->window;
 
-                    XMapRaised( x11->display, alloc->window );
-                    XSync( x11->display, False );
-                    D_DEBUG_AT( X11_Surfaces, "  -> raised\n" );
+                    if (w) {
+                         alloc->window = w;
+                    }
+                    else {
+                         XSetWindowAttributes attr;
 
-//                    XCompositeRedirectWindow( x11->display, alloc->window, CompositeRedirectManual );
-                    x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> redirected\n" );
+                         attr.background_pixel = 0;
+                         attr.border_pixel = 0;
+                         attr.colormap = XCreateColormap( x11->display, DefaultRootWindow(x11->display), alloc->visual, AllocNone );
+                         attr.event_mask = StructureNotifyMask | ExposureMask;
 
-//                    alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
-                    alloc->xid = alloc->window;
-                    x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
+                         x11->Sync( x11 );
+                         D_DEBUG_AT( X11_Windows, "  -> creating window with visual ID %lu...\n", alloc->visual->visualid );
 
-//                    XUnmapWindow( x11->display, alloc->window );
-                    x11->Sync( x11 );
-                    D_DEBUG_AT( X11_Surfaces, "  -> unmapped\n" );
+                         alloc->window = XCreateWindow( x11->display,
+                                                        DefaultRootWindow(x11->display),
+                                                        600, 200, allocation->config.size.w, allocation->config.size.h, 0,
+                                                        alloc->depth, InputOutput,
+                                                        alloc->visual, CWBackPixel | CWBorderPixel | CWColormap | CWEventMask, &attr );
+                         x11->Sync( x11 );
+                         D_DEBUG_AT( X11_Windows, "  -> window 0x%08lx\n", (long) alloc->window );
+                         * (Window*) buffer->surface->data = alloc->window;
 
-                    XUnlockDisplay( x11->display );
+                         XMapRaised( x11->display, alloc->window );
+                         XSync( x11->display, False );
+                         D_DEBUG_AT( X11_Windows, "  -> raised\n" );
 
-                    D_INFO( "X11/Windows: New Window 0x%08lx with Pixmap handle 0x%08lx\n", alloc->window, alloc->xid );
+//                         XCompositeRedirectWindow( x11->display, alloc->window, CompositeRedirectManual );
+                         x11->Sync( x11 );
+                         D_DEBUG_AT( X11_Windows, "  -> redirected\n" );
+
+//                         alloc->xid = XCompositeNameWindowPixmap( x11->display, alloc->window );
+                         alloc->xid = alloc->window;
+                         x11->Sync( x11 );
+                         D_DEBUG_AT( X11_Windows, "  -> pixmap 0x%08lx\n", (long) alloc->xid );
+
+//                         XUnmapWindow( x11->display, alloc->window );
+                         x11->Sync( x11 );
+                         D_DEBUG_AT( X11_Windows, "  -> unmapped\n" );
+
+                         D_INFO( "X11/Windows: New Window 0x%08lx with Pixmap handle 0x%08lx\n", alloc->window, alloc->xid );
+                    }
 
                     alloc->created = !w;
                     break;
@@ -440,6 +425,8 @@ x11AllocateKey( CoreSurfacePool       *pool,
      }
 
      alloc->gc = XCreateGC( x11->display, alloc->xid, 0, NULL );
+
+     XUnlockDisplay( x11->display );
 
      allocation->offset = alloc->type;
 
@@ -473,7 +460,7 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
      x11PoolLocalData  *local = pool_local;
      DFBX11            *x11   = local->x11;
 
-     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( X11_Windows, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
@@ -489,7 +476,7 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
                D_ASSUME( x11->showing != alloc->window );
 
                if (x11->showing == alloc->window) {
-                    D_LOG( X11_Surfaces, VERBOSE, "  -> Hiding window 0x%08lx that is to be destroyed!!!\n", x11->showing );
+                    D_LOG( X11_Windows, VERBOSE, "  -> Hiding window 0x%08lx that is to be destroyed!!!\n", x11->showing );
                     XUnmapWindow( x11->display, x11->showing );
 
                     x11->showing = 0;
@@ -533,8 +520,8 @@ x11Lock( CoreSurfacePool       *pool,
      x11PoolLocalData  *local = pool_local;
      x11AllocationData *alloc = alloc_data;
 
-     D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
-     D_DEBUG_AT( X11_Surfaces, "  -> %s\n", ToString_CoreSurfaceAllocation( allocation ) );
+     D_DEBUG_AT( X11_Windows, "%s( %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( X11_Windows, "  -> %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -575,7 +562,7 @@ x11Unlock( CoreSurfacePool       *pool,
            void                  *alloc_data,
            CoreSurfaceBufferLock *lock )
 {
-     D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( X11_Windows, "%s( %p )\n", __FUNCTION__, allocation );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -600,8 +587,8 @@ x11Read( CoreSurfacePool       *pool,
      x11AllocationData *alloc = alloc_data;
      DFBX11            *x11   = local->x11;
 
-     D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
-     D_DEBUG_AT( X11_Surfaces, "  -> allocation: %s\n", ToString_CoreSurfaceAllocation( allocation ) );
+     D_DEBUG_AT( X11_Windows, "%s( %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( X11_Windows, "  -> allocation: %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -609,7 +596,7 @@ x11Read( CoreSurfacePool       *pool,
      D_ASSERT( pitch >= 0 );
      DFB_RECTANGLE_ASSERT( rect );
 
-     D_DEBUG_AT( X11_Surfaces, "  => %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
+     D_DEBUG_AT( X11_Windows, "  => %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
 
 
      XLockDisplay( x11->display );
@@ -662,8 +649,8 @@ x11Write( CoreSurfacePool       *pool,
      x11AllocationData *alloc = alloc_data;
      DFBX11            *x11   = local->x11;
 
-     D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
-     D_DEBUG_AT( X11_Surfaces, "  -> allocation: %s\n", ToString_CoreSurfaceAllocation( allocation ) );
+     D_DEBUG_AT( X11_Windows, "%s( %p )\n", __FUNCTION__, allocation );
+     D_DEBUG_AT( X11_Windows, "  -> allocation: %s\n", ToString_CoreSurfaceAllocation( allocation ) );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -671,13 +658,13 @@ x11Write( CoreSurfacePool       *pool,
      D_ASSERT( pitch >= 0 );
      DFB_RECTANGLE_ASSERT( rect );
 
-     D_DEBUG_AT( X11_Surfaces, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
+     D_DEBUG_AT( X11_Windows, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
 
      XLockDisplay( x11->display );
 
      x11->Sync( x11 );
 
-     D_DEBUG_AT( X11_Surfaces, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
+     D_DEBUG_AT( X11_Windows, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
 
      image = XCreateImage( x11->display, alloc->visual, alloc->depth, ZPixmap, 0, (void*) source, rect->w, rect->h, 32, pitch );
      if (!image) {
@@ -686,21 +673,21 @@ x11Write( CoreSurfacePool       *pool,
           return DFB_FAILURE;
      }
      x11->Sync( x11 );
-     D_DEBUG_AT( X11_Surfaces, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
+     D_DEBUG_AT( X11_Windows, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
 
 //     dfb_surface_buffer_dump_type_locked2( allocation->buffer, ".", "x11Write", false, image->data, image->bytes_per_line );
 
      XPutImage( x11->display, alloc->xid, alloc->gc, image, 0, 0, rect->x, rect->y, rect->w, rect->h );
 
      x11->Sync( x11 );
-     D_DEBUG_AT( X11_Surfaces, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
+     D_DEBUG_AT( X11_Windows, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
 
      /* FIXME: Why the X-hell is XDestroyImage() freeing *MY* data? */
      image->data = NULL;
      XDestroyImage( image );
 
      x11->Sync( x11 );
-     D_DEBUG_AT( X11_Surfaces, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
+     D_DEBUG_AT( X11_Windows, "  <= %p 0x%08lx [%4d,%4d-%4dx%4d]\n", alloc, alloc->xid, DFB_RECTANGLE_VALS(rect) );
 
      XUnlockDisplay( x11->display );
 

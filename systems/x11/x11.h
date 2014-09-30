@@ -69,8 +69,8 @@ typedef struct {
 typedef struct {
      int                    layer_id;
      CoreLayerRegionConfig  config;
-//     CoreSurfaceBufferLock  lock_left;
-//     CoreSurfaceBufferLock  lock_right;
+     CoreSurfaceBufferLock  lock_left;
+     CoreSurfaceBufferLock  lock_right;
      CoreSurface           *surface;
      bool                   reconfig;
      CoreLayerRegionConfig  new_config;

@@ -147,6 +147,9 @@ error_handler( Display *display, XErrorEvent *event )
 
      shared_for_error_handler->x_error = True;
 
+     if (direct_config_get_int_value_with_default( "x11-error-break", 0 ))
+          D_BREAK( "x11-error-break" );
+
      return 0;
 }
 

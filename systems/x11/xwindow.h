@@ -47,6 +47,7 @@
 typedef struct {
      Display*            display;
      Window              window;
+     bool                window_hidden;
      Screen*             screenptr;
      int                 screennum;
      Visual*             visual;

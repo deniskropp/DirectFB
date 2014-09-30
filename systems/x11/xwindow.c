@@ -61,24 +61,6 @@ error_handler_shm( Display *display, XErrorEvent *event )
 }
 
 
-static int error_code = 0;
-
-static int
-error_handler( Display *display, XErrorEvent *event )
-{
-     char buf[512];
-
-     D_DEBUG_AT( X11_Window, "%s()\n", __FUNCTION__ );
-
-     XGetErrorText( display, event->error_code, buf, sizeof(buf) );
-
-     D_ERROR( "X11/Window: Error! %s\n", buf );
-
-     error_code = event->error_code;
-
-     return 0;
-}
-
 Bool
 dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight, DFBSurfacePixelFormat format )
 {
@@ -120,16 +102,14 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
      XLockDisplay( x11->display );
 
-     old_error_handler = XSetErrorHandler( error_handler );
-
-     error_code = 0;
+     old_error_handler = XSetErrorHandler( error_handler_shm );
 
      xw->window = XCreateWindow( xw->display,
                                  RootWindowOfScreen(xw->screenptr),
                                  iXPos, iYPos, iWidth, iHeight, 0, xw->depth, InputOutput,
                                  xw->visual, cw_mask, &attr );
      XSync( xw->display, False );
-     if (!xw->window || error_code) {
+     if (!xw->window) {
           D_FREE( xw );
           XUnlockDisplay( x11->display );
           return False;
@@ -150,7 +130,7 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
       * The same goes for Height. You can try whith differents values, or
       * let's use Hints.flags=Psize; and resize your window..
       */
-     Hints.min_width          =    Hints.max_width          =    Hints.base_width    =    xw->width;
+     Hints.min_width     =    Hints.max_width     =    Hints.base_width    =    xw->width;
      Hints.min_height    =    Hints.max_height    =    Hints.base_height   =    xw->height;
 
      /* Now we can set the size hints for the specified window */
@@ -161,28 +141,10 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
      xw->gc = XCreateGC(xw->display, xw->window, 0, NULL);
 
-#if 0
-     // Create a null cursor
-     Pixmap  pixmp1;
-     Pixmap  pixmp2;
-     XColor  fore;
-     XColor  back;
-     char    zero = 0;
-
-     pixmp1 = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
-     pixmp2 = XCreateBitmapFromData( xw->display, xw->window, &zero, 1, 1 );
-
-     xw->NullCursor = XCreatePixmapCursor( xw->display, pixmp1, pixmp2, &fore, &back, 0, 0 );
-
-     XFreePixmap ( xw->display, pixmp1 );
-     XFreePixmap ( xw->display, pixmp2 );
-
-     XDefineCursor( xw->display, xw->window, xw->NullCursor );
-#endif
-
      /* maps the window and raises it to the top of the stack */
      XMapRaised( xw->display, xw->window );
 
+     x11->Sync( x11 );
 
      if (x11->use_shm) {
           // Shared memory
@@ -195,11 +157,10 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
           xw->ximage=XShmCreateImage(xw->display, xw->visual, xw->depth, ZPixmap,
                                      NULL,xw->shmseginfo, xw->width, xw->height * 2);
           XSync( xw->display, False );
-          if (!xw->ximage || error_code) {
+          if (!xw->ximage) {
                D_ERROR("X11: Error creating shared image (XShmCreateImage) \n");
                x11->use_shm = false;
                D_FREE(xw->shmseginfo);
-               error_code = 0;
                goto no_shm;
           }
 
@@ -244,9 +205,10 @@ dfb_x11_open_window( DFBX11 *x11, XWindow** ppXW, int iXPos, int iYPos, int iWid
 
           XSync(x11->display, False);
 
-          XSetErrorHandler( error_handler );
+          XSetErrorHandler( old_error_handler );
 
-          if (!x11->use_shm) {
+          if (!use_shm) {
+               x11->use_shm = false;
                shmdt(xw->shmseginfo->shmaddr);
                shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
                XDestroyImage(xw->ximage);
@@ -271,7 +233,7 @@ no_shm:
           xw->ximage = XCreateImage( xw->display, xw->visual, xw->depth, ZPixmap, 0,
                                      xw->virtualscreen, xw->width, xw->height * 2, 32, pitch );
           XSync( xw->display, False );
-          if (!xw->ximage || error_code) {
+          if (!xw->ximage) {
                D_ERROR( "X11/Window: XCreateImage( Visual %02lu, depth %d, size %dx%d, buffer %p [%d] ) failed!\n",
                         xw->visual->visualid, xw->depth, xw->width, xw->height * 2, xw->virtualscreen, pitch );
                XFreeGC(xw->display,xw->gc);

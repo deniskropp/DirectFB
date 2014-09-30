@@ -372,6 +372,7 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
      void              *addr;
 
      D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+     x11->Sync( x11 );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
@@ -409,6 +410,8 @@ x11DeallocateBuffer( CoreSurfacePool       *pool,
                return DFB_BUG;
      }
 
+     x11->Sync( x11 );
+
      return DFB_OK;
 }
 
@@ -428,6 +431,7 @@ x11Lock( CoreSurfacePool       *pool,
      void              *addr;
 
      D_DEBUG_AT( X11_Surfaces, "%s( %p )\n", __FUNCTION__, allocation );
+     x11->Sync( x11 );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -453,6 +457,8 @@ x11Lock( CoreSurfacePool       *pool,
                          pthread_mutex_unlock( &local->lock );
                          return ret;
                     }
+
+                    x11->Sync( x11 );
 
                     direct_hash_insert( local->hash, alloc->image.seginfo.shmid, addr );
 
