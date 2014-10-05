@@ -138,12 +138,11 @@ foo_channel_listener( const void *msg_data,
 
      region = context->region;
      D_ASSERT( region != NULL );
-     D_ASSERT( region->context != NULL );
 
      shared = context->shared;
      D_MAGIC_ASSERT( shared, WMShared );
 
-     dfb_layer_context_lock( region->context );
+     dfb_layer_region_lock( region );
 
      switch (event->type) {
           case UIET_MOTION:
@@ -180,7 +179,7 @@ foo_channel_listener( const void *msg_data,
                break;
      }
 
-     dfb_layer_context_unlock( region->context );
+     dfb_layer_region_unlock( region );
 
      return RS_OK;
 }
