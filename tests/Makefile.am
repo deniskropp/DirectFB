@@ -71,8 +71,9 @@ GL_PROGS += \
 	dfbtest_egl	\
 	dfbtest_eglblit	\
 	dfbtest_eglimage	\
-	dfbtest_gears
 	dfbtest_egl_compositor	\
+	dfbtest_gears	\
+	gears_image
 if SDL_CORE
 GL_PROGS += \
 	dfbtest_sdlegl
@@ -121,8 +122,10 @@ bin_PROGRAMS = \
 	dfbtest_font	\
 	dfbtest_font_blend	\
 	dfbtest_init	\
+	dfbtest_image	\
 	dfbtest_input	\
 	dfbtest_layers \
+	dfbtest_layer_resize	\
 	dfbtest_layer_setsurface	\
 	dfbtest_mirror	\
 	dfbtest_prealloc	\
@@ -200,11 +203,17 @@ dfbtest_font_blend_LDADD   = $(DFB_BASE_LIBS) $(libppdfb)
 dfbtest_init_SOURCES = dfbtest_init.c
 dfbtest_init_LDADD   = $(DFB_BASE_LIBS)
 
+dfbtest_image_SOURCES = dfbtest_image.c
+dfbtest_image_LDADD   = $(DFB_BASE_LIBS)
+
 dfbtest_input_SOURCES = dfbtest_input.c
 dfbtest_input_LDADD   = $(DFB_BASE_LIBS)
 
 dfbtest_layer_setsurface_SOURCES = dfbtest_layer_setsurface.cpp
 dfbtest_layer_setsurface_LDADD   = $(DFB_BASE_LIBS) $(libppdfb)
+
+dfbtest_layer_resize_SOURCES = dfbtest_layer_resize.cpp
+dfbtest_layer_resize_LDADD   = $(DFB_BASE_LIBS) $(libppdfb)
 
 dfbtest_layers_SOURCES = dfbtest_layers.c
 dfbtest_layers_LDADD   = $(DFB_BASE_LIBS)
@@ -347,6 +356,9 @@ fusion_skirmish_LDADD   = $(DFB_BASE_LIBS)
 
 fusion_stream_SOURCES = fusion_stream.c
 fusion_stream_LDADD   = $(DFB_BASE_LIBS)
+
+gears_image_SOURCES = gears_image.c
+gears_image_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libgles2) $(libegl) $(libdfbegl)
 
 opencl_test1_SOURCES  = opencl_test1.cpp
 opencl_test1_CXXFLAGS = $(OPENCL_CFLAGS)

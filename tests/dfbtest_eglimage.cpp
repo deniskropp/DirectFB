@@ -62,6 +62,7 @@ extern "C" {
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
+#include "dfbtest_egl_utils.cpp"
 
 
 static const char vertex_shader[] =
@@ -87,314 +88,138 @@ static const char fragment_shader[] =
 "}";
 
 
-static void
-gears_init(void)
+int
+main( int argc, char *argv[] )
 {
-     GLuint v, f, program;
-     const char *p;
+     int                      width, height;
+     DFBSurfaceDescription    desc;
+     IDirectFB                dfb;
+     IDirectFBEventBuffer     events;
+     IDirectFBSurface         primary;
+
+     EGL                      egl;
+
+     IDirectFBSurface         dfb_image;
+     EGLImageKHR              egl_image;
+     GLuint                   texture;
+
+     /* Initialize DirectFB. */
+     DirectFB::Init( &argc, &argv );
+
+     /* Create super interface. */
+     dfb = DirectFB::Create();
+
+     /* Create an event buffer. */
+     events = dfb.CreateEventBuffer();
+
+     dfb.SetCooperativeLevel( DFSCL_FULLSCREEN );
+
+     /* Fill description for a primary surface. */
+     desc.flags = DSDESC_CAPS;
+     desc.caps  = (DFBSurfaceCapabilities)(DSCAPS_PRIMARY | DSCAPS_FLIPPING);
+
+     /* Create a primary surface. */
+     primary = dfb.CreateSurface( desc );
+
+
+     egl.Initialise( dfb, primary, true );
+
+     primary.GetSize( &width, &height );
+
+
+     Shader shader( vertex_shader, fragment_shader );
+
+     shader.Use();
+
+     glUniform1i( shader.GetUniformLocation( "sampler" ), 0 );
 
      glDisable(GL_CULL_FACE);
      glDisable(GL_DEPTH_TEST);
 
-     program = glCreateProgram();
-
-     /* Compile the vertex shader */
-     p = vertex_shader;
-     v = glCreateShader(GL_VERTEX_SHADER);
-     glShaderSource(v, 1, &p, NULL);
-     glCompileShader(v);
+     /* Set the viewport */
+     glViewport( 0, 0, width, height );
 
 
-     GLint  log_length, char_count;
+     desc.flags       = (DFBSurfaceDescriptionFlags)(DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
+     desc.width       = 512;
+     desc.height      = 512;
+     desc.pixelformat = DSPF_ARGB;
+
+     dfb_image = dfb.CreateSurface( desc );
 
 
-     GLint status;
 
-     glGetShaderiv(v, GL_COMPILE_STATUS, &status);
-     if (status) {
-          glAttachShader(program, v);
-          glDeleteShader(v); // mark for deletion on detach
-     }
-     else {
-          glGetShaderiv(v, GL_INFO_LOG_LENGTH, &log_length);
+     dfb_image.Clear( 0xff, 0xff, 0xff, 0xff );
 
-          DirectFB::Util::TempArray<GLchar> log( log_length );
-
-          glGetShaderInfoLog( v, log_length, &char_count, log );
-
-          fprintf(stderr,"%s: vertex shader compilation failure:\n%s\n", __FUNCTION__, *log);
-     }
+     dfb_image.SetColor( 0x80, 0x80, 0x80, 0x80 );
+     dfb_image.FillRectangle( 0, 0, 256, 256 );
 
 
-     /* Compile the fragment shader */
-     p = fragment_shader;
-     f = glCreateShader(GL_FRAGMENT_SHADER);
-     glShaderSource(f, 1, &p, NULL);
-     glCompileShader(f);
+
+     typedef EGLImageKHR (EGLAPIENTRYP PFNEGLCREATEIMAGEKHRPROC) (EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, EGLint *attr_list);
+     //typedef EGLBoolean (EGLAPIENTRYP PFNEGLDESTROYIMAGEKHRPROC) (EGLDisplay dpy, EGLImageKHR image);
 
 
-     glGetShaderiv(f, GL_COMPILE_STATUS, &status);
-     if (status) {
-          glAttachShader(program, f);
-          glDeleteShader(f); // mark for deletion on detach
-     }
-     else {
-          glGetShaderiv(f, GL_INFO_LOG_LENGTH, &log_length);
+     PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC) eglGetProcAddress( "eglCreateImageKHR" );
 
-          DirectFB::Util::TempArray<GLchar> log( log_length );
+     egl_image = eglCreateImageKHR( egl.GetDisplay(), EGL_NO_CONTEXT, EGL_IMAGE_IDIRECTFBSURFACE_DIRECTFB, dfb_image.iface, NULL );
 
-          glGetShaderInfoLog( f, log_length, &char_count, log );
-
-          fprintf(stderr,"%s: fragment shader compilation failure:\n%s\n", __FUNCTION__, *log);
+     if (egl_image == NULL) {
+          D_ERROR( "DFBTest/EGLImage: eglCreateImageKHR() returned 0!\n" );
+          return 1;
      }
 
 
+     typedef void (GL_APIENTRYP PFNGLEGLIMAGETARGETTEXTURE2DOESPROC) (GLenum target, GLeglImageOES image);
+     //typedef void (GL_APIENTRYP PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC) (GLenum target, GLeglImageOES image);
 
-     /* Create and link the shader program */
-     glBindAttribLocation(program, 0, "position");
-     glBindAttribLocation(program, 1, "texcoords");
-
-     glLinkProgram(program);
-     glValidateProgram(program);
+     PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES_ = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC) eglGetProcAddress( "glEGLImageTargetTexture2DOES" );
 
 
-     glGetProgramiv(program, GL_LINK_STATUS, &status);
+     glGenTextures( 1, &texture );
 
+     glBindTexture( GL_TEXTURE_2D, texture );
 
-     // Report errors.  Shader objects detached when program is deleted.
-     glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_length);
+     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-     DirectFB::Util::TempArray<GLchar> log( log_length );
+     glGetError();
+     glEGLImageTargetTexture2DOES_( GL_TEXTURE_2D, egl_image );
+     GLenum error = glGetError();
 
-     glGetProgramInfoLog(program, log_length, &char_count, log);
-     fprintf(stderr,"%s: shader program link failure:\n%s\n", __FUNCTION__, *log);
-
-
-     /* Enable the shaders */
-     glUseProgram(program);
-
-
-     glUniform1i( glGetUniformLocation( program, "sampler" ), 0 );
-}
-
-
-
-
-#define EGL_CHECK(cmd)                                      \
-     /*fprintf(stderr, "CALLING %s...\n", #cmd);*/              \
-     if (cmd) {                                             \
-          fprintf(stderr, "!!! %s failed\n", #cmd);         \
-          goto quit;                                        \
+     if (error != GL_NO_ERROR) {
+          D_ERROR( "DFBTest/EGLImage: glEGLImageTargetTexture2D() failed (0x%04x)!\n", error );
+          return 1;
      }
 
 
-class DFBTestEGLImage : public DFBApp {
-public:
-     DFBTestEGLImage() {
-     }
+     glClear( GL_COLOR_BUFFER_BIT );
 
-     virtual ~DFBTestEGLImage() {
-     }
+     float pos[] = {
+          -1.0f,  1.0f,
+           1.0f,  1.0f,
+           1.0f, -1.0f,
+          -1.0f, -1.0f
+     };
 
-private:
-     EGLDisplay display;
-     EGLConfig  configs[2];
-     EGLContext context;
-     EGLSurface egl_surface;
+     float tex[] = {
+           0.0f,  0.0f,
+           1.0f,  0.0f,
+           1.0f,  1.0f,
+           0.0f,  1.0f
+     };
 
-     void InitEGL( IDirectFB_C        *dfb,
-                   IDirectFBSurface_C *dfb_surface )
-     {
-          EGLint width, height;
-          EGLint major, minor, nconfigs;
-          EGLint attribs[] = {
-               EGL_SURFACE_TYPE,        EGL_WINDOW_BIT,
-               EGL_RED_SIZE,            1,
-               EGL_GREEN_SIZE,          1,
-               EGL_BLUE_SIZE,           1,
-//               EGL_ALPHA_SIZE,          1,
-               EGL_RENDERABLE_TYPE,     EGL_OPENGL_ES2_BIT,
-               EGL_NONE
-          };
-          EGLint context_attrs[] = {
-               EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE, EGL_NONE
-          };
-          EGLint surface_attrs[] = {
-               EGL_RENDER_BUFFER, EGL_BACK_BUFFER, EGL_NONE
-          };
+     glVertexAttribPointer( 0, 2, GL_FLOAT, GL_FALSE, 0, pos );
+     glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 0, tex );
 
-          EGLint render_buffer = 0;
-          const char *client_apis;
+     glEnableVertexAttribArray( 0 );
+     glEnableVertexAttribArray( 1 );
 
-          // get display
-          EGL_CHECK((display = eglGetDisplay((EGLNativeDisplayType) 0)) == EGL_NO_DISPLAY)
+     glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );
 
-          // init
-          EGL_CHECK(!eglInitialize(display, &major, &minor))
+     egl.SwapBuffers();
 
-          client_apis = eglQueryString( display, EGL_CLIENT_APIS );
-          D_INFO("EGL_CLIENT_APIS: '%s'\n", client_apis);
-
-          // get configs
-          EGL_CHECK(!eglGetConfigs(display, configs, 2, &nconfigs))
-
-          // choose config
-          EGL_CHECK(!eglChooseConfig(display, attribs, configs, 2, &nconfigs))
-
-          // create a surface
-          EGL_CHECK((egl_surface = eglCreateWindowSurface(display, configs[0], (EGLNativeWindowType) dfb_surface, surface_attrs)) == EGL_NO_SURFACE)
-
-          EGL_CHECK(eglBindAPI(EGL_OPENGL_ES_API) != EGL_TRUE)
-
-          // create context
-          EGL_CHECK((context = eglCreateContext(display, configs[0], EGL_NO_CONTEXT, context_attrs)) == EGL_NO_CONTEXT)
-
-          EGL_CHECK(eglMakeCurrent(display, egl_surface, egl_surface, context) != EGL_TRUE)
-
-          eglQuerySurface(display, egl_surface, EGL_WIDTH, &width);
-          eglQuerySurface(display, egl_surface, EGL_HEIGHT, &height);
-
-          EGL_CHECK(!eglQuerySurface(display, egl_surface, EGL_RENDER_BUFFER, &render_buffer));
-
-
-          eglSwapInterval( display, 1 );
-     quit:
-          return;
-     }
-
-     /* called after initialization */
-     virtual bool Setup( int width, int height ) {
-          InitEGL( m_dfb.iface, m_primary.iface );
-
-          gears_init();
-
-          /* Set the viewport */
-          glViewport( 0, 0, width, height );
-
-          DFBSurfaceDescription desc;
-
-          desc.flags       = (DFBSurfaceDescriptionFlags)(DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
-          desc.width       = 512;
-          desc.height      = 512;
-          desc.pixelformat = DSPF_ARGB;
-
-          dfb_image = m_dfb.CreateSurface( desc );
-
-
-
-          typedef EGLImageKHR (EGLAPIENTRYP PFNEGLCREATEIMAGEKHRPROC) (EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, EGLint *attr_list);
-          typedef EGLBoolean (EGLAPIENTRYP PFNEGLDESTROYIMAGEKHRPROC) (EGLDisplay dpy, EGLImageKHR image);
-
-
-          PFNEGLCREATEIMAGEKHRPROC eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC) eglGetProcAddress( "eglCreateImageKHR" );
-
-          egl_image = eglCreateImageKHR( display, EGL_NO_CONTEXT, EGL_IMAGE_IDIRECTFBSURFACE_DIRECTFB, dfb_image.iface, NULL );
-
-          if (egl_image == NULL) {
-               D_ERROR( "DFBTest/EGLImage: eglCreateImageKHR() returned 0!\n" );
-               return false;
-          }
-
-
-          typedef void (GL_APIENTRYP PFNGLEGLIMAGETARGETTEXTURE2DOESPROC) (GLenum target, GLeglImageOES image);
-          typedef void (GL_APIENTRYP PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC) (GLenum target, GLeglImageOES image);
-
-          PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES_ = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC) eglGetProcAddress( "glEGLImageTargetTexture2DOES" );
-
-
-
-          dfb_image.Clear( 0xff, 0xff, 0xff, 0xff );
-
-          dfb_image.SetColor( 0x80, 0x80, 0x80, 0x80 );
-          dfb_image.FillRectangle( 0, 0, 256, 256 );
-
-
-
-          glGenTextures( 1, &texture );
-
-          glBindTexture( GL_TEXTURE_2D, texture );
-
-          glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-          glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-          glGetError();
-          glEGLImageTargetTexture2DOES_( GL_TEXTURE_2D, egl_image );
-          GLenum error = glGetError();
-
-          if (error != GL_NO_ERROR) {
-               D_ERROR( "DFBTest/EGLImage: glEGLImageTargetTexture2D() failed (0x%04x)!\n", error );
-               return false;
-          }
-
-          return true;
-     }
-
-     /* render callback */
-     virtual void Render( IDirectFBSurface &surface ) {
-          //int x = ((int) surface.GetWidth()  - (int) dfb_image.GetWidth())  / 2;
-          //int y = ((int) surface.GetHeight() - (int) dfb_image.GetHeight()) / 2;
-
-          glClear( GL_COLOR_BUFFER_BIT );
-
-          float pos[] = {
-               -1.0f,  1.0f,
-                1.0f,  1.0f,
-                1.0f, -1.0f,
-               -1.0f, -1.0f
-          };
-
-          float tex[] = {
-                0.0f,  0.0f,
-                1.0f,  0.0f,
-                1.0f,  1.0f,
-                0.0f,  1.0f
-          };
-
-          glVertexAttribPointer( 0, 2, GL_FLOAT, GL_FALSE, 0, pos );
-          glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 0, tex );
-
-          glEnableVertexAttribArray( 0 );
-          glEnableVertexAttribArray( 1 );
-
-          glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );
-
-          eglSwapBuffers( display, egl_surface );
-     }
-
-     bool ParseArgs( int argc, char *argv[] ) {
-          return true;
-     }
-
-private:
-     IDirectFBSurface dfb_image;
-     EGLImageKHR      egl_image;
-     GLuint           texture;
-};
-
-int
-main( int argc, char *argv[] )
-{
-     DFBTestEGLImage app;
-
-     direct_initialize();
-
-     try {
-          /* Initialize DirectFB command line parsing. */
-          DirectFB::Init( &argc, &argv );
-
-          /* Parse remaining arguments and run. */
-          if (app.Init( argc, argv ))
-               app.Run();
-     }
-     catch (DFBException *ex) {
-          /*
-           * Exception has been caught, destructor of 'app' will deinitialize
-           * anything at return time (below) that got initialized until now.
-           */
-          std::cerr << std::endl;
-          std::cerr << "Caught exception!" << std::endl;
-          std::cerr << "  -- " << ex << std::endl;
-     }
+     pause();
 
      return 0;
 }

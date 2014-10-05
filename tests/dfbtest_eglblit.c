@@ -20,14 +20,7 @@
  */
 
 
-#define DFBEGL_ENABLE_MANGLE
-
-#include <dfbegl.h>
-
 #include <directfb.h>
-
-#define GL_GLEXT_PROTOTYPES
-#define EGL_EGLEXT_PROTOTYPES
 
 #include <math.h>
 #include <stdlib.h>
@@ -35,9 +28,11 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+
 #include <GLES2/gl2.h>
+
+#define EGL_EGLEXT_PROTOTYPES
 #include <EGL/egl.h>
-#include <EGL/eglext.h>
 
 
 
@@ -50,10 +45,14 @@ static const char vertex_shader[] =
 "}";
 
 static const char fragment_shader[] =
+"precision highp float;\n"
+"uniform vec4 color;\n"
 "void main(void)\n"
 "{\n"
-"    gl_FragColor = vec4( 0.0, 1.0, 0.0, 1.0 );\n"
+"    gl_FragColor = color;\n"
 "}";
+
+static GLint color_location;
 
 static void
 shader_init(void)
@@ -153,6 +152,8 @@ shader_init(void)
 
 
      int l1 = glGetAttribLocation(program, "position");
+
+     color_location = glGetUniformLocation(program, "color");
 
      printf("location: %d\n",l1);
 
@@ -356,8 +357,142 @@ main( int argc, char *argv[] )
      DFBResult ret;
      bool      quit = false;
      Test      test;
+     int       n = 1;
 
      memset( &test, 0, sizeof(test) );
+
+#if 1
+
+     DFBSurfaceDescription  dsc;
+
+     IDirectFB             *dfb;
+//     IDirectFBDisplayLayer *layer;
+
+     /*
+      * Initialize DirectFB options
+      */
+     ret = DirectFBInit( &argc, &argv );
+     if (ret) {
+          D_DERROR( ret, "DirectFBInit() failed!\n" );
+          return ret;
+     }
+
+     /*
+      * Create the super interface
+      */
+     ret = DirectFBCreate( &dfb );
+     if (ret) {
+          D_DERROR( ret, "DirectFBCreate() failed!\n" );
+          return ret;
+     }
+
+
+
+     EGLDisplay gEGLDisplay = 0;
+     EGLConfig  gEGLConfig;
+     EGLContext gEGLContext;
+
+
+    const char *s;
+    //Display* display = sharedDisplay();
+    //gEGLDisplay = eglGetDisplay(display);
+    gEGLDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    if (gEGLDisplay == EGL_NO_DISPLAY)
+        return 0;
+    if (!eglInitialize(gEGLDisplay, 0, 0))
+        return 0;
+    s = eglQueryString(gEGLDisplay, EGL_VERSION);
+    printf("EGL_VERSION = %s\n", s);
+    s = eglQueryString(gEGLDisplay, EGL_VENDOR);
+    printf("EGL_VENDOR = %s\n", s);
+    s = eglQueryString(gEGLDisplay, EGL_EXTENSIONS);
+    printf("EGL_EXTENSIONS = %s\n", s);
+    s = eglQueryString(gEGLDisplay, EGL_CLIENT_APIS);
+    printf("EGL_CLIENT_APIS = %s\n", s);
+
+
+     const int fbConfigAttrbs[] = {
+//             EGL_BUFFER_SIZE, EGL_DONT_CARE,
+         EGL_RED_SIZE, 1,
+         EGL_GREEN_SIZE, 1,
+         EGL_BLUE_SIZE, 1,
+         EGL_ALPHA_SIZE, 1,
+         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+         EGL_SURFACE_TYPE, /*EGL_PIXMAP_BIT |*/ EGL_WINDOW_BIT,
+         EGL_NONE
+     };
+     EGLint numOfConfig;
+     if (!eglChooseConfig(gEGLDisplay, fbConfigAttrbs, &gEGLConfig, 1, &numOfConfig)) {
+         printf("egl choose config failed\n");
+         return 0;
+     }
+     if (!numOfConfig) {
+         printf("no egl configs found\n");
+         return 0;
+     }
+
+
+     const EGLint eglContextAttrbs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE };
+     gEGLContext = eglCreateContext(gEGLDisplay, gEGLConfig, EGL_NO_CONTEXT, eglContextAttrbs);
+     if (gEGLContext)
+         eglBindAPI(EGL_OPENGL_ES_API);
+
+
+     IDirectFBSurface *m_dfbsurface;
+     EGLSurface        m_surface;
+
+     {
+         IDirectFB *dfb;
+         if (DirectFBCreate(&dfb)) {
+             printf("failed to DirectFBCreate\n");
+             return -1;
+         }
+
+         DFBSurfaceDescription dsc;
+         dsc.flags = (DFBSurfaceDescriptionFlags)(DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT | DSDESC_CAPS);
+         dsc.width = 1024;
+         dsc.height = 1024;
+         dsc.pixelformat = DSPF_ARGB;
+         dsc.caps = DSCAPS_DOUBLE;
+
+//         surf->GetSize( surf, &dsc.width, &dsc.height );
+//         surf->GetPixelFormat( surf, &dsc.pixelformat );
+
+         if (dfb->CreateSurface(dfb, &dsc, &m_dfbsurface)) {
+             printf("failed to DFB::CreateSurface\n");
+             return -1;
+         }
+
+         EGLint windowsAttr[] = { EGL_RENDER_BUFFER, EGL_BACK_BUFFER, EGL_NONE };
+
+         m_surface = eglCreateWindowSurface(gEGLDisplay, gEGLConfig, (EGLNativeWindowType)m_dfbsurface, windowsAttr);
+         if (m_surface == EGL_NO_SURFACE) {
+             printf("failed to eglCreateWindowSurface()\n");
+             return -1;
+         }
+     }
+
+
+     eglMakeCurrent(gEGLDisplay, m_surface, m_surface, gEGLContext);
+//        WKViewPaintToCurrentGLContext(_view->wkView());
+
+     glClearColor( 0, 0, 1, 1 );
+     glClear( GL_COLOR_BUFFER_BIT );
+
+     eglSwapBuffers(gEGLDisplay, m_surface);
+
+//     m_dfbsurface->Dump( m_dfbsurface, ".", "dfbsurface" );
+//sleep(1);
+//     m_dfbsurface->Dump( m_dfbsurface, ".", "dfbsurface" );
+//sleep(999);
+//exit(1);
+
+
+
+
+#endif
+
+
 
 
      ret = Initialize( &test, &argc, &argv );
@@ -375,10 +510,12 @@ main( int argc, char *argv[] )
       */
      while (!quit) {
           DFBInputEvent evt;
+#if 0
+          GLfloat       color[4] = { n * 100 / 100.0f, n * 100 / 100.0f, n * 100 / 100.0f, 1.0f };
 
           const static GLfloat v[6] = { -1.0, -1.0,  1.0, 0.0,  -1.0, 1.0 };
 
-          glClearColor(1.0, 1.0, 1.0, 1.0);
+          glClearColor(n/10.0, n/10.0, n/10.0, 1.0);
           glClear(GL_COLOR_BUFFER_BIT);
 
           glDisable( GL_CULL_FACE );
@@ -387,19 +524,24 @@ main( int argc, char *argv[] )
           glEnableVertexAttribArray( 0 );
           glVertexAttribPointer( 0, 2, GL_FLOAT, GL_TRUE, 0, v );
 
+          glUniform4fv( color_location, 4, color );
+
           glDrawArrays( GL_TRIANGLE_FAN, 0, 3 );
 
           eglSwapBuffers( display, surface );
-
+          test.offscreen->Dump( test.offscreen, ".", "offscreen" );
+//exit(0);
+#endif
           // behaves like eglCopyBuffers( display, surface, test.primary );
-          test.primary->Blit( test.primary, test.offscreen, NULL, 0, 0 );
+          //test.primary->Blit( test.primary, test.offscreen, NULL, 0, 0 );
+          test.primary->Blit( test.primary, m_dfbsurface, NULL, 0, 0 );
 
           test.primary->Flip( test.primary, NULL, DSFLIP_NONE );
 
           /*
            * Process events
            */
-          test.events->WaitForEvent( test.events );
+          sleep( 3 );
 
           while (test.events->GetEvent( test.events, DFB_EVENT(&evt) ) == DFB_OK) {
                switch (evt.type) {
@@ -416,6 +558,8 @@ main( int argc, char *argv[] )
                          ;
                }
           }
+
+          n++;
      }
 
 

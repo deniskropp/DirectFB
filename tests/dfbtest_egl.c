@@ -20,7 +20,9 @@
  */
 
 
-//#define DFBEGL_ENABLE_MANGLE
+#define DFBEGL_ENABLE_MANGLE
+
+#include <dfbegl.h>
 
 #include <directfb.h>
 
@@ -217,8 +219,9 @@ Initialize( Test   *test,
      /*
       * Create the primary surface
       */
-     dsc.flags = DSDESC_CAPS;
-     dsc.caps  = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
+     dsc.flags       = DSDESC_CAPS | DSDESC_PIXELFORMAT;
+     dsc.caps        = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
+     dsc.pixelformat = DSPF_ARGB;
 
      ret = test->dfb->CreateSurface( test->dfb, &dsc, &test->primary );
      if (ret) {
@@ -231,8 +234,8 @@ Initialize( Test   *test,
       */
      test->primary->GetSize( test->primary, &test->size.w, &test->size.h );
 
-     test->primary->Clear( test->primary, 0, 0, 0, 0 );
-     test->primary->Flip( test->primary, NULL, 0 );
+//     test->primary->Clear( test->primary, 0, 0, 0, 0 );
+//     test->primary->Flip( test->primary, NULL, 0 );
 
 
      return DFB_OK;
@@ -272,6 +275,7 @@ InitGL( Test *test )
           EGL_RED_SIZE,            1,
           EGL_GREEN_SIZE,          1,
           EGL_BLUE_SIZE,           1,
+          EGL_ALPHA_SIZE,          1,
           EGL_RENDERABLE_TYPE,     EGL_OPENGL_ES2_BIT,
           EGL_NONE
      };
@@ -371,7 +375,7 @@ main( int argc, char *argv[] )
 
           eglSwapBuffers( display, surface );
 
-          sleep(3);
+          sleep(30);
 
           /*
            * Process events

@@ -58,6 +58,7 @@
 #define VERTICES_PER_TOOTH 34
 #define GEAR_VERTEX_STRIDE 6
 
+
 /**
  * Struct describing the vertices in triangle strip
  */
@@ -705,14 +706,10 @@ gears_init(void)
      log = malloc(log_length);
 
      glGetProgramInfoLog(program, log_length, &char_count, log);
-     fprintf(stderr,"%s: shader program link failure:\n%s\n", __FUNCTION__, log);
+     if (log[0])
+          fprintf(stderr,"%s: shader program link log:\n%s\n", __FUNCTION__, log);
      free(log);
 
-
-     int l1 = glGetAttribLocation(program, "position");
-     int l2 = glGetAttribLocation(program, "normal");
-
-     printf("l1/l2: %d/%d\n",l1,l2);
 
      /* Enable the shaders */
      glUseProgram(program);
@@ -901,6 +898,11 @@ InitGL( Test *test )
 //     EGLint render_buffer = 0;
 //     EGL_CHECK(!eglQuerySurface(display, surface, EGL_RENDER_BUFFER, &render_buffer));
 //     fprintf(stderr,"RENDER_BUFFER = 0x%04x\n", render_buffer );
+
+
+     const GLubyte *renderer = glGetString( GL_RENDERER );
+
+     printf( "GL Renderer: '%s'\n", renderer );
 
 
      eglSwapInterval( display, 1 );
