@@ -1278,7 +1278,7 @@ AC_ARG_ENABLE(drmkms,
                              [build with DRM/KMS support @<:@default=auto@:>@]),
               [], [enable_drmkms=yes])
 if test "$enable_drmkms" = "yes"; then
-  PKG_CHECK_MODULES(DRMKMS, [libdrm libkms], [enable_drmkms=yes], [enable_drmkms=no
+  PKG_CHECK_MODULES(DRMKMS, [libdrm], [enable_drmkms=yes], [enable_drmkms=no
     AC_MSG_WARN([
 *** libdrm gbm packages not found -- Building without DRM/KMS support.])
     ])
