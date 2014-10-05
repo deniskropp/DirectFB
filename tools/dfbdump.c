@@ -164,8 +164,10 @@ surface_callback( FusionObjectPool *pool,
      int          vmem;
      int          smem;
 
-     if (object->state != FOS_ACTIVE)
+     if (object->state != FOS_ACTIVE) {
+          printf( "  inactive %p (state %d)\n", object, object->state );
           return true;
+     }
 
      ret = fusion_ref_stat( &object->ref, &refs );
      if (ret) {
@@ -174,7 +176,7 @@ surface_callback( FusionObjectPool *pool,
      }
 
      if (dump_surface && ((dump_surface < 0 /*&& surface->type & CSTF_SHARED*/) ||
-                          (dump_surface == object->ref.multi.id)) && surface->num_buffers)
+                          (dump_surface == object->id)) && surface->num_buffers)
      {
           char buf[32];
 
@@ -359,7 +361,7 @@ alloc_callback( CoreSurfaceAllocation *alloc,
      if (alloc->config.caps & DSCAPS_PREMULTIPLIED)
           printf( "premultiplied" );
 
-     printf( "   %d\n", alloc->object.ref.multi.id );
+     printf( "   ref 0x%04x\n", alloc->object.ref.multi.id );
 
      return DFENUM_OK;
 }
@@ -950,8 +952,12 @@ parse_command_line( int argc, char *argv[] )
           }
 
           if (strcmp (arg, "-ds") == 0 || strcmp (arg, "--dumpsurface") == 0) {
-               dump_surface = -1;
-               continue;
+               if (n<argc-1) {
+                    const char *option = argv[++n];
+
+                    dump_surface = atoi( option );
+                    continue;
+               }
           }
 
           print_usage (argv[0]);
