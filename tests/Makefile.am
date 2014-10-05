@@ -72,6 +72,7 @@ GL_PROGS += \
 	dfbtest_eglblit	\
 	dfbtest_eglimage	\
 	dfbtest_gears
+	dfbtest_egl_compositor	\
 if SDL_CORE
 GL_PROGS += \
 	dfbtest_sdlegl
@@ -219,6 +220,10 @@ dfbtest_eglblit_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_
 dfbtest_eglimage_SOURCES = dfbtest_eglimage.cpp ../examples/++dfb/dfbapp.cpp
 dfbtest_eglimage_CFLAGS  = $(GLES2_CFLAGS)
 dfbtest_eglimage_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libgles2) $(libegl) $(libdfbegl) $(libppdfb)
+
+dfbtest_egl_compositor_SOURCES = dfbtest_egl_compositor.cpp
+dfbtest_egl_compositor_CFLAGS  = $(GLES2_CFLAGS)
+dfbtest_egl_compositor_LDADD   = $(DFB_BASE_LIBS) $(GL_DFB_BASE_LIBS) $(GLES2_DFB_BASE_LIBS) $(LIBM) $(libgles2) $(libegl) $(libdfbegl) $(libppdfb)
 
 dfbtest_gears_SOURCES = dfbtest_gears.c
 dfbtest_gears_CFLAGS  = $(GLES2_CFLAGS)
