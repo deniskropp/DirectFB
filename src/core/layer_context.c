@@ -727,9 +727,9 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                return DFB_FUSION;
           }
 
-wait:
-          if (region->display_tasks)
-               TaskList_WaitEmpty( region->display_tasks );
+//wait:
+//          if (region->display_tasks)
+//               TaskList_WaitEmpty( region->display_tasks );
 
           /* Lock the region. */
           if (dfb_layer_region_lock( region )) {
@@ -738,10 +738,10 @@ wait:
                return DFB_FUSION;
           }
 
-          if (region->display_tasks && !TaskList_IsEmpty( region->display_tasks )) {
-               dfb_layer_region_unlock( region );
-               goto wait;
-          }
+//          if (region->display_tasks && !TaskList_IsEmpty( region->display_tasks )) {
+//               dfb_layer_region_unlock( region );
+//               goto wait;
+//          }
 
           /* Normal buffer mode? */
           if (region_config.buffermode != DLBM_WINDOWS) {

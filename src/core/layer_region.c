@@ -1034,8 +1034,8 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
 
      funcs = layer->funcs;
 
-     if (region->display_tasks)
-          TaskList_WaitEmpty( region->display_tasks );
+//     if (region->display_tasks)
+//          TaskList_WaitEmpty( region->display_tasks );
 
      /* Lock the region. */
      if (dfb_layer_region_lock( region ))
