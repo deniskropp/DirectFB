@@ -19,7 +19,7 @@ PROXY_DIR = proxy
 endif
 
 if EGL_UNITED
-EGL_UNITED_DIR = lib/egl lib/gles2
+EGL_UNITED_DIR = lib/egl
 endif
 
 if BUILD_DVC

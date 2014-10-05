@@ -2916,11 +2916,6 @@ lib/egl/KHR/Makefile
 lib/egl/EGLCoreSDL/Makefile
 lib/egl/EGLCoreWayland/Makefile
 
-lib/gles2/Makefile
-lib/gles2/build.h
-lib/gles2/dfbgles2.pc
-lib/gles2/gles2.pc
-
 lib/fusion/Makefile
 lib/fusion/build.h
 lib/fusion/fusion.pc
