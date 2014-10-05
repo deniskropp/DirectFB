@@ -67,3 +67,8 @@ voodoo_bench_server
 voodoo_bench_server_unix
 OneBench
 OneTest
+dfbtest_egl_compositor
+dfbtest_image
+dfbtest_layer_resize
+dfbtest_sdlegl
+gears_image
