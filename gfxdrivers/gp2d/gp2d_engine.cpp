@@ -55,7 +55,7 @@ extern "C" {
      register_gp2d( GP2DDriverData *drv )
      {
           if (dfb_config->task_manager)
-               DirectFB::Renderer::RegisterEngine( new Renesas::GP2DEngine( drv ) );
+               DirectFB::Graphics::Renderer::RegisterEngine( new Renesas::GP2DEngine( drv ) );
      }
 }
 
@@ -324,7 +324,7 @@ GP2DEngine::validate_STRANS( GP2DTask  *mytask,
 /**********************************************************************************************************************/
 
 DFBResult
-GP2DEngine::bind( DirectFB::Renderer::Setup *setup )
+GP2DEngine::bind( DirectFB::Graphics::Renderer::Setup *setup )
 {
      D_DEBUG_AT( GP2D_Engine, "GP2DEngine::%s()\n", __FUNCTION__ );
 
@@ -336,7 +336,7 @@ GP2DEngine::bind( DirectFB::Renderer::Setup *setup )
 }
 
 DFBResult
-GP2DEngine::check( DirectFB::Renderer::Setup *setup )
+GP2DEngine::check( DirectFB::Graphics::Renderer::Setup *setup )
 {
      D_DEBUG_AT( GP2D_Engine, "GP2DEngine::%s()\n", __FUNCTION__ );
 
