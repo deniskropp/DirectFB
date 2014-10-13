@@ -151,7 +151,7 @@ private:
 };
 
 
-class GP2DEngine : public DirectFB::Engine {
+class GP2DEngine : public DirectFB::Graphics::Engine {
 private:
      GP2DDriverData *drv;
 
@@ -159,9 +159,9 @@ public:
      GP2DEngine( GP2DDriverData *drv );
 
 
-     virtual DFBResult bind          ( DirectFB::Renderer::Setup *setup );
+     virtual DFBResult bind          ( DirectFB::Graphics::Renderer::Setup *setup );
 
-     virtual DFBResult check         ( DirectFB::Renderer::Setup *setup );
+     virtual DFBResult check         ( DirectFB::Graphics::Renderer::Setup *setup );
 
      virtual DFBResult CheckState    ( CardState              *state,
                                        DFBAccelerationMask     accel );

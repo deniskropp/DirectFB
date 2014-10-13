@@ -122,7 +122,7 @@ public:
 
                case 0:
                     PrintF( "%s", realname );
-                    free(realname);
+                    free( realname );
                     break;
 
                default:

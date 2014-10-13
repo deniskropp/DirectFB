@@ -135,11 +135,11 @@ Config::DumpValues( std::initializer_list<Direct::String>  names,
 {
      D_DEBUG_AT( DirectFB_Graphics, "Graphics::Config::%s( %p )\n", __FUNCTION__, this );
 
-     for (auto &name : names) {
+     for (auto name = names.begin(); name != names.end(); name++) {
           long value;
 
-          if (GetOption( name, value ) == DFB_OK)
-               out_str.PrintF( "%s%s:0x%lx", out_str.empty() ? "" : ",", *name, value );
+          if (GetOption( *name, value ) == DFB_OK)
+               out_str.PrintF( "%s%s:0x%lx", out_str.empty() ? "" : ",", **name, value );
      }
 }
 
