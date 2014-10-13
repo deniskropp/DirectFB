@@ -125,7 +125,7 @@ GetConfigAttribs::eglGetConfigAttribs( EGL::Display        &display,
 
      for (EGLint *v=attribs; *v != EGL_NONE; v+=2) {
           if (max > 0 && v-attribs >= max) {
-               D_DEBUG_AT( DFBEGL_GetConfigAttribs, "  -> max (%d) reached (%ld)\n", max, v-attribs );
+               D_DEBUG_AT( DFBEGL_GetConfigAttribs, "  -> max (%d) reached (%zd)\n", max, v-attribs );
                break;
           }
 
@@ -134,7 +134,7 @@ GetConfigAttribs::eglGetConfigAttribs( EGL::Display        &display,
           DFBSurfacePixelFormat format;
           DFBDimension          size;
 
-          D_DEBUG_AT( DFBEGL_GetConfigAttribs, "  -> [%ld] 0x%04x '%s'  <- %d (0x%08x)\n", v-attribs, attribute, **EGLInt(attribute), value, value );
+          D_DEBUG_AT( DFBEGL_GetConfigAttribs, "  -> [%zd] 0x%04x '%s'  <- %d (0x%08x)\n", v-attribs, attribute, **EGLInt(attribute), value, value );
 
           switch (attribute) {
           case EGL_BUFFER_SIZE:
