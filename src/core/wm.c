@@ -448,6 +448,7 @@ dfb_wm_deactivate_all_stacks( void *data )
      D_MAGIC_ASSERT( local, DFBWMCore );
 
      shared = local->shared;
+     (void) shared;
      D_MAGIC_ASSERT( shared, DFBWMCoreShared );
 
      dfb_core_enum_layer_contexts( local->core, dfb_wm_layer_context_callback, (void*)(long) CWSF_ACTIVATED );
@@ -467,6 +468,7 @@ dfb_wm_close_all_stacks( void *data )
      D_MAGIC_ASSERT( local, DFBWMCore );
 
      shared = local->shared;
+     (void) shared;
      D_MAGIC_ASSERT( shared, DFBWMCoreShared );
 
      dfb_core_enum_layer_contexts( local->core, dfb_wm_layer_context_callback, (void*)(long) CWSF_INITIALIZED );

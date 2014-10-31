@@ -1230,8 +1230,10 @@ dfb_core_wait_all( CoreDFB   *core,
           for (i=0; i<D_ARRAY_SIZE(pools); i++) {
                if (pools[i]) {
                     size_t    num = 0;
-                    DFBResult ret = fusion_object_pool_size( pools[i], &num );
+                    DFBResult ret;
 
+                    ret = fusion_object_pool_size( pools[i], &num );
+                    (void) ret;
                     D_ASSERT( ret == DFB_OK );
 
                     if (num > 0) {

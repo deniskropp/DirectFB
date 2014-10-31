@@ -108,7 +108,7 @@ fusion_fd( const FusionWorld *world )
      D_MAGIC_ASSERT( shared, FusionWorldShared );
 
      index = shared->world_index;
-
+     (void) index;
      D_ASSERT( index >= 0 );
      D_ASSERT( index < FUSION_MAX_WORLDS );
 

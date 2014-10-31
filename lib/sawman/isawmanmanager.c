@@ -130,6 +130,7 @@ ISaWManManager_QueueUpdate( ISaWManManager         *thiz,
      }
 
      sawman = data->sawman;
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      return SaWManManager_QueueUpdate( data->manager, stacking, region );
@@ -146,6 +147,7 @@ ISaWManManager_ProcessUpdates( ISaWManManager      *thiz,
      D_DEBUG_AT( SaWMan_Manager, "%s()\n", __FUNCTION__ );
 
      sawman = data->sawman;
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      return SaWManManager_ProcessUpdates( data->manager, flags );
@@ -166,6 +168,7 @@ ISaWManManager_CloseWindow( ISaWManManager     *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
@@ -189,6 +192,7 @@ ISaWManManager_SetVisible( ISaWManManager     *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
@@ -213,6 +217,7 @@ ISaWManManager_SwitchFocus( ISaWManManager     *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
@@ -273,6 +278,7 @@ ISaWManManager_InsertWindow( ISaWManManager       *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
@@ -296,6 +302,7 @@ ISaWManManager_RemoveWindow( ISaWManManager     *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
 
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( window, SaWManWindow );
@@ -317,6 +324,7 @@ ISaWManManager_SetScalingMode( ISaWManManager    *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      return SaWManManager_SetScalingMode( data->manager, mode );
@@ -347,6 +355,7 @@ ISaWManManager_SetWindowConfig ( ISaWManManager           *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
      
@@ -440,6 +449,7 @@ ISaWManManager_GetWindowInfo( ISaWManManager     *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
@@ -478,6 +488,7 @@ ISaWManManager_GetProcessInfo( ISaWManManager     *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
@@ -504,6 +515,7 @@ ISaWManManager_IsWindowShowing( ISaWManManager     *thiz,
           return DFB_INVARG;
 
      sawman = data->sawman;
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 

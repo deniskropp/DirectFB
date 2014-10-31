@@ -719,6 +719,7 @@ dfb_surface_pools_allocate_key( CoreSurfaceBuffer       *buffer,
      D_ASSERT( ret_allocation != NULL );
 
      surface = buffer->surface;
+     (void) surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
      FUSION_SKIRMISH_ASSERT( &surface->lock );
 

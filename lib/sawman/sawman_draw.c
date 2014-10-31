@@ -681,6 +681,7 @@ draw_window_color( SaWManWindow *sawwin,
      window = sawwin->window;
      dst    = sawwin->dst;
 
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
      D_ASSERT( window != NULL );
 
@@ -832,6 +833,7 @@ sawman_draw_two_windows( SaWManTier   *tier,
 
      D_ASSERT( window1 != NULL );
      D_ASSERT( window2 != NULL );
+     (void) stack;
      D_ASSERT( stack != NULL );
 
      D_DEBUG_AT( SaWMan_Draw, "%s( %p, %p, %d,%d-%dx%d )\n", __FUNCTION__,

@@ -911,8 +911,8 @@ dfb_surface_buffer_dump_type_locked2( CoreSurfaceBuffer     *buffer,
           int n3;
 
           /* Prepare one row. */
-          u8 *srces[3];
-          int pitches[3];
+          u8 *srces[3] = {0};
+          int pitches[3] = {0};
           u8 *src8;
 
           dfb_surface_get_data_offsets( &surface->config, addr, pitch, 0, i,

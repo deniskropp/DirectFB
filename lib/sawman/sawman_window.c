@@ -261,6 +261,7 @@ sawman_update_window( SaWMan              *sawman,
      stack  = sawwin->stack;
      window = sawwin->window;
 
+     (void) stack;
      D_ASSERT( stack != NULL );
      D_MAGIC_COREWINDOW_ASSERT( window );
 
@@ -1777,6 +1778,7 @@ sawman_window_border( const SaWManWindow *sawwin )
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
      sawman = sawwin->sawman;
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
      FUSION_SKIRMISH_ASSERT( sawman->lock );
 

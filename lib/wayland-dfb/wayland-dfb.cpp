@@ -498,6 +498,8 @@ Client::Client( const char *socket_name )
 
      int fd = wl_display_get_fd( display );
 
+     (void) fd;
+
      D_DEBUG_AT( DFBWayland_wl_dfb, "  -> done, fd = %d\n", fd );
 }
 
