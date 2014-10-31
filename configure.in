@@ -2711,8 +2711,8 @@ fi
 
 
 # Sysroot used for runtime module loading, etc.
-AC_ARG_WITH(sysroot,
-            AC_HELP_STRING([--with-sysroot=DIR],
+AC_ARG_WITH(runtime-sysroot,
+            AC_HELP_STRING([--with-runtime-sysroot=DIR],
                            [search for lib/share et al within DIR at runtime,]
                            [e.g. when loading modules]),
             [RUNTIME_SYSROOT="$withval"], [RUNTIME_SYSROOT=])
