@@ -716,7 +716,7 @@ DRMEGLSurfacePeer::Init()
 
      EGLint attrs[] = { EGL_NONE };
 
-     eglSurface = impl.lib.eglCreateWindowSurface( impl.egl_display, config->egl_config, gbm_surface, attrs );
+     eglSurface = impl.lib.eglCreateWindowSurface( impl.egl_display, config->egl_config, (EGLNativeWindowType) gbm_surface, attrs );
      if (!eglSurface) {
           D_ERROR( "DRM/EGLImpl: eglCreateWindowSurface( %p ) failed ('%s')\n", eglSurface, *ToString<DirectFB::EGL::EGLInt>( DirectFB::EGL::EGLInt(impl.lib.eglGetError()) ));
           return DFB_FAILURE;

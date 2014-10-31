@@ -3501,6 +3501,7 @@ defaultwm_surface_reaction( const void *msg_data,
      D_ASSERT( ctx != NULL );
 
      if (0){//notification->flags & CSNF_DISPLAY) {
+          (void) notification;
           D_DEBUG_AT( WM_Default, "  -> DISPLAY [%d]\n", notification->index );
 
           fusion_skirmish_prevail( &wmdata->update_skirmish );

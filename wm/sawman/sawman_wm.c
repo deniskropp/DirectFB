@@ -659,6 +659,7 @@ grab_key( SaWMan                     *sawman,
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
      data = sawwin->stack_data;
+     (void) data;
      D_MAGIC_ASSERT( data, StackData );
 
      /* Reject if already grabbed. */
@@ -698,6 +699,7 @@ ungrab_key( SaWMan                     *sawman,
      D_MAGIC_ASSERT( sawwin, SaWManWindow );
 
      data = sawwin->stack_data;
+     (void) data;
      D_MAGIC_ASSERT( data, StackData );
 
      direct_list_foreach (key, sawman->grabbed_keys) {
@@ -1410,6 +1412,7 @@ sawman_surface_reaction( const void *msg_data,
      D_ASSERT( wmdata != NULL );
 
      if (0){//notification->flags & CSNF_DISPLAY) {
+          (void) notification;
           D_DEBUG_AT( SaWMan_Surface, "  -> DISPLAY [%d]\n", notification->index );
 
           switch (tier->region->config.buffermode) {
@@ -3344,6 +3347,7 @@ wm_begin_updates( CoreWindow      *window,
      D_DEBUG_AT( SaWMan_FlipOnce, "%s( %p ) <- window id %u\n", __FUNCTION__, window, window->id );
 
      sawman = wmdata->sawman;
+     (void) sawman;
      D_MAGIC_ASSERT( sawman, SaWMan );
 
      sawwin->flags |= SWMWF_UPDATING;

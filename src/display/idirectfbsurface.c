@@ -4111,9 +4111,8 @@ IDirectFBSurface_frame_listener( const void *msg_data, void *ctx )
      const CoreSurfaceNotification *notification = msg_data;
      IDirectFBSurface              *thiz         = ctx;
      IDirectFBSurface_data         *data         = thiz->priv;
-     CoreSurface                   *surface      = data->surface;
 
-     D_DEBUG_AT( Surface, "%s( %p, %p ) (surface %p)\n", __FUNCTION__, msg_data, ctx, surface );
+     D_DEBUG_AT( Surface, "%s( %p, %p ) (surface %p)\n", __FUNCTION__, msg_data, ctx, data->surface );
 
      if (notification->flags & CSNF_FRAME) {
           direct_mutex_lock( &data->back_buffer_lock );
