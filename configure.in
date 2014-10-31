@@ -3092,6 +3092,10 @@ docs/html/Makefile
 ], [chmod +x directfb-config])
 
 
+eval eval_moduledir=$MODULEDIR
+eval eval_moduledir=$eval_moduledir
+eval eval_moduledir=$eval_moduledir
+
 
 AC_MSG_RESULT([
 Build options:
@@ -3101,7 +3105,7 @@ Build options:
   Config files in           $SYSCONFDIR
   Build shared libs         $enable_shared
   Build static libs         $enable_static
-  Module directory          $MODULEDIR
+  Module directory          $eval_moduledir
   CC                        $CC
   CXX                       $CXX
   LD                        $LD
