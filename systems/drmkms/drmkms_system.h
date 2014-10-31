@@ -33,7 +33,7 @@
 #ifndef __DRMKMS_SYSTEM_H__
 #define __DRMKMS_SYSTEM_H__
 
-#define USE_GBM
+//#define USE_GBM
 
 #ifdef USE_GBM
 #include <gbm.h>

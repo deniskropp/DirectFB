@@ -89,7 +89,7 @@ typedef struct {
      int                 size;
      int                 offset;
 
-     unsigned long       handle;
+     unsigned int        handle;
 
      int                 prime_fd;
      u32                 name;
@@ -144,7 +144,7 @@ drmkmsDeallocateInternal( DRMKMSAllocationData *alloc,
      //D_MAGIC_ASSERT( alloc, DRMKMSAllocationData );
 
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo        %p\n", alloc->bo );
-     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.handle %lu\n", alloc->handle );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.handle %u\n", alloc->handle );
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.pitch  %u\n", alloc->pitch );
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> size      %u\n", alloc->size );
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> prime_fd  %d\n", alloc->prime_fd );
@@ -537,9 +537,15 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
           }
      }
      else {
-          if (!alloc->bo)
+          if (!alloc->bo) {
                alloc->bo = gbm_bo_create( drmkms->gbm, drm_fake_width, drm_fake_height, GBM_BO_FORMAT_ARGB8888,
                                           GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING );
+               if (!alloc->bo) {
+                    D_ERROR( "DirectFB/DRMKMS: gbm_bo_create( '%s' ) failed (%s)!\n", ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
+                    return DFB_FAILURE;
+               }
+          }
+
           alloc->handle = gbm_bo_get_handle( alloc->bo ).u32;
           alloc->pitch  = gbm_bo_get_stride( alloc->bo );
           alloc->size   = alloc->pitch * drm_fake_height;
@@ -556,19 +562,23 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
 
      kms_bo_get_prop(alloc->bo, KMS_HANDLE, &alloc->handle);
      kms_bo_get_prop(alloc->bo, KMS_PITCH, &alloc->pitch);
+
+     alloc->size = allocation->config.size.h * alloc->pitch;
 #endif
 
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo        %p\n", alloc->bo );
-     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.handle %lu\n", alloc->handle );
+     D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.handle %u\n", alloc->handle );
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> bo.pitch  %u\n", alloc->pitch );
      D_DEBUG_AT( DRMKMS_Surfaces, "  -> size      %u\n", alloc->size );
+
+     alloc->prime_fd = -1;
 
      if (drmkms->shared->use_prime_fd) {
           // this seems to render the handle unusable on radeon
           ret = drmPrimeHandleToFD( drmkms->fd, alloc->handle, DRM_CLOEXEC, &alloc->prime_fd );
           if (ret) {
                ret = errno2result( errno );
-               D_ERROR( "DirectFB/DRMKMS: drmPrimeHandleToFD( %lu '%s' ) failed (%s)!\n",
+               D_ERROR( "DirectFB/DRMKMS: drmPrimeHandleToFD( %u '%s' ) failed (%s)!\n",
                         alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
                goto error;
           }
@@ -585,7 +595,7 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
           ret = drmIoctl( drmkms->fd, DRM_IOCTL_GEM_FLINK, &fl );
           if (ret) {
                ret = errno2result( errno );
-               D_ERROR( "DirectFB/DRMKMS: DRM_IOCTL_GEM_FLINK( %lu '%s' ) failed (%s)!\n",
+               D_ERROR( "DirectFB/DRMKMS: DRM_IOCTL_GEM_FLINK( %u '%s' ) failed (%s)!\n",
                         alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
                goto error;
           }
@@ -619,7 +629,7 @@ drmkmsAllocateBuffer( CoreSurfacePool       *pool,
 
           if (ret) {
                ret = errno2result( errno );
-               D_ERROR( "DirectFB/DRMKMS: drmModeAddFB2( %lu '%s' ) failed (%s)!\n",
+               D_ERROR( "DirectFB/DRMKMS: drmModeAddFB2( %u '%s' ) failed (%s)!\n",
                         alloc->handle, ToString_CoreSurfaceAllocation( allocation ), strerror(errno) );
                goto error;
           }
@@ -880,6 +890,7 @@ drmkmsLock( CoreSurfacePool       *pool,
                if (!dfb_core_is_master( core_dfb )) {
 #ifdef USE_GBM
 #else
+                    int                        ret;
                     DRMKMSAllocationLocalData *alloc_local;
 
                     alloc_local = direct_hash_lookup( local->hash, (unsigned long) allocation->object.id );

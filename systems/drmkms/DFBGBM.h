@@ -36,6 +36,8 @@
 #include <core/CoreSurface.h>
 #include <core/Graphics.h>
 
+#include <gbm.h>
+
 #include <egl/dfbegl.h>
 #include <egl/KHR_image.h>
 
