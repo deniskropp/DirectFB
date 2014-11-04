@@ -1851,7 +1851,8 @@ dfb_layer_context_allocate_surface( CoreLayer             *layer,
           /* Add available surface capabilities. */
           caps |= config->surface_caps & (DSCAPS_INTERLACED |
                                           DSCAPS_SEPARATED  |
-                                          DSCAPS_PREMULTIPLIED);
+                                          DSCAPS_PREMULTIPLIED |
+                                          DSCAPS_GL);
 
           scon.flags          = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
           scon.size.w         = config->width;
@@ -1931,7 +1932,7 @@ dfb_layer_context_reallocate_surface( CoreLayer             *layer,
      sconfig.flags = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_COLORSPACE | CSCONF_CAPS;
 
      sconfig.caps = surface->config.caps & ~(DSCAPS_FLIPPING  | DSCAPS_INTERLACED |
-                                             DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED | 
+                                             DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED |
                                              DSCAPS_ROTATED | DSCAPS_STEREO);
 
      switch (config->buffermode) {
@@ -1958,7 +1959,8 @@ dfb_layer_context_reallocate_surface( CoreLayer             *layer,
      /* Add available surface capabilities. */
      sconfig.caps |= config->surface_caps & (DSCAPS_INTERLACED |
                                              DSCAPS_SEPARATED  |
-                                             DSCAPS_PREMULTIPLIED); 
+                                             DSCAPS_PREMULTIPLIED |
+                                             DSCAPS_GL);
 
      if (config->options & DLOP_DEINTERLACING)
           sconfig.caps |= DSCAPS_INTERLACED;
