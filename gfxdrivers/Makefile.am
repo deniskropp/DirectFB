@@ -156,6 +156,12 @@ else
 EP9X_DIR =
 endif
 
+if GFX_VSP1
+VSP1_DIR = vsp1
+else
+VSP1_DIR =
+endif
+
 
 SUBDIRS = \
 	$(ATI128_DIR)	\
@@ -183,4 +189,5 @@ SUBDIRS = \
 	$(TDFX_DIR)	\
 	$(UNICHROME_DIR) \
 	$(VDPAU_DIR)	\
-	$(VMWARE_DIR)
+	$(VMWARE_DIR)	\
+	$(VSP1_DIR)

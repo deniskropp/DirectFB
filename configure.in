@@ -2013,6 +2013,7 @@ tdfx=no
 unichrome=no
 vdpau=no
 vmware=no
+vsp1=no
 
 if test "$have_linux" = "yes"; then
 
@@ -2025,7 +2026,7 @@ AC_ARG_WITH(gfxdrivers,
                            [cyber5k, davinci, ep9x, gp2d, gl, gles2, i810, i830, mach64,]
                            [matrox, neomagic, nsc, nvidia, omap, pvr2d, pxa3xx,]
                            [radeon, savage, sh772x, sis315, tdfx, unichrome,]
-                           [vdpau, vmware. @<:@default=all@:>@]),
+                           [vdpau, vmware, vsp1. @<:@default=all@:>@]),
             [gfxdrivers="$withval"], [gfxdrivers=all])
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
@@ -2054,6 +2055,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_unichrome=no
   checkfor_vdpau=yes
   checkfor_vmware=no
+  checkfor_vsp1=no
 
   AC_MSG_RESULT(all)
 else
@@ -2139,6 +2141,9 @@ else
                   ;;
           vdpau)
                   checkfor_vdpau=yes
+                  ;;
+          vsp1)
+                  checkfor_vsp1=yes
                   ;;
           *)
                   echo "Unknown gfxdriver $gfxdriver, exiting!"
@@ -2295,6 +2300,16 @@ if test "$checkfor_vdpau" = "yes"; then
    if test "$enable_x11vdpau" = "yes"; then
       vdpau=yes
    fi
+fi
+
+if test "$checkfor_vsp1" = "yes"; then
+  vsp1=yes
+
+  PKG_CHECK_MODULES(VSP1, [libdrm gbm], [vsp1=yes], [vsp1=no
+    AC_MSG_ERROR([
+*** libdrm gbm packages not found.])
+  ])
+
 fi
 
 # lets check for input driver
@@ -2769,6 +2784,7 @@ AM_CONDITIONAL(GFX_TDFX, test "$tdfx" = "yes")
 AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
 AM_CONDITIONAL(GFX_VMWARE, test "$vmware" = "yes")
 AM_CONDITIONAL(GFX_VDPAU, test "$vdpau" = "yes")
+AM_CONDITIONAL(GFX_VSP1, test "$vsp1" = "yes")
 
 AM_CONDITIONAL(SH772X_SHJPEG, test "$sh772x_shjpeg" = "yes")
 
@@ -3035,6 +3051,7 @@ gfxdrivers/tdfx/Makefile
 gfxdrivers/unichrome/Makefile
 gfxdrivers/vdpau/Makefile
 gfxdrivers/vmware/Makefile
+gfxdrivers/vsp1/Makefile
 
 inputdrivers/Makefile
 inputdrivers/dbox2remote/Makefile
@@ -3259,6 +3276,7 @@ Building Graphics Drivers:
   VIA UniChrome             $unichrome
   VMWare                    $vmware
   VDPAU                     $vdpau
+  VSP1                      $vsp1                 $VSP1_CFLAGS  $VSP1_LIBS
   --
   OpenGL                    $gl (GLX: $glx)
   OpenGL ES 2.0             $gles2 (Mesa:  $enable_mesa, PVR2D: $enable_pvr2d)
