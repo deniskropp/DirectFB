@@ -31,8 +31,10 @@
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/screens.h>
+#include <core/surface_buffer.h>
 #include <core/system.h>
 
+#include <core/CoreSurface.h>
 #include <core/Task.h>
 
 #include <core/graphics_driver.h>
@@ -183,7 +185,7 @@ driver_get_info( CoreGraphicsDevice *device,
                "Denis Oliver Kropp" );
 
      info->version.major = 0;
-     info->version.minor = 1;
+     info->version.minor = 5;
 
      info->driver_data_size = sizeof(VSP1DriverData);
      info->device_data_size = sizeof(VSP1DeviceData);
@@ -278,7 +280,6 @@ driver_init_driver( CoreGraphicsDevice  *device,
      funcs->CheckState        = vsp1CheckState;
      funcs->SetState          = vsp1SetState;
      funcs->FillRectangle     = vsp1FillRectangle;
-     funcs->DrawRectangle     = vsp1DrawRectangle;
      funcs->Blit              = vsp1Blit;
      funcs->StretchBlit       = vsp1StretchBlit;
 
@@ -297,6 +298,7 @@ driver_init_device( CoreGraphicsDevice *device,
                     void               *driver_data,
                     void               *device_data )
 {
+     DFBResult       ret;
      VSP1DriverData *gdrv = driver_data;
 
      D_DEBUG_AT( VSP1_Driver, "%s()\n", __FUNCTION__ );
@@ -316,9 +318,62 @@ driver_init_device( CoreGraphicsDevice *device,
      device_info->caps.drawing  = VSP1_SUPPORTED_DRAWINGFLAGS;
      device_info->caps.blitting = VSP1_SUPPORTED_BLITTINGFLAGS;
 
+     CoreSurfaceConfig config;
+
+     config.flags  = CSCONF_SIZE | CSCONF_FORMAT;
+     config.size.w = 8;
+     config.size.h = 8;
+     config.format = DSPF_ARGB;
+
+     // FIXME: check result values
+     ret = dfb_surface_create( gdrv->core, &config, CSTF_NONE, 0, NULL, &gdrv->fake_source );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to create a surface for rectangle filling!\n" );
+          return ret;
+     }
+
+     ret = CoreSurface_GetBuffers( gdrv->fake_source, &gdrv->fake_buffer_id, 1, NULL );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to get buffers for rectangle filling!\n" );
+          goto error;
+     }
+
+     ret = CoreSurface_GetOrAllocate( gdrv->fake_source, gdrv->fake_buffer_id, "Pixmap/DRM",
+                                      sizeof("Pixmap/DRM")+1, 0, DSAO_KEEP | DSAO_UPDATED, &gdrv->fake_source_allocation );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to allocate a surface for rectangle filling!\n" );
+          goto error;
+     }
+
+     ret = dfb_core_get_surface_buffer( gdrv->core, gdrv->fake_buffer_id, &gdrv->fake_source_buffer );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to get a buffer for rectangle filling!\n" );
+          goto error;
+     }
+
+     dfb_surface_buffer_lock_init( &gdrv->fake_source_lock, CSAID_GPU, CSAF_READ | CSAF_WRITE );
+
+     ret = dfb_surface_pool_lock( gdrv->fake_source_allocation->pool, gdrv->fake_source_allocation, &gdrv->fake_source_lock );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to lock a surface for rectangle filling!\n" );
+          goto error;
+     }
+
      gdrv->event_thread = direct_thread_create( DTT_CRITICAL, vsp1_event_loop, gdrv, "VSP1 Queue" );
 
      return DFB_OK;
+
+error:
+     if (gdrv->fake_source_buffer)
+          dfb_surface_buffer_unref( gdrv->fake_source_buffer );
+
+     if (gdrv->fake_source_allocation)
+          dfb_surface_allocation_unref( gdrv->fake_source_allocation );
+
+     if (gdrv->fake_source)
+          dfb_surface_unref( gdrv->fake_source );
+
+     return ret;
 }
 
 static void
@@ -326,7 +381,19 @@ driver_close_device( CoreGraphicsDevice *device,
                      void               *driver_data,
                      void               *device_data )
 {
+     VSP1DriverData *gdrv = driver_data;
+
      D_DEBUG_AT( VSP1_Driver, "%s()\n", __FUNCTION__ );
+
+     dfb_surface_pool_unlock( gdrv->fake_source_allocation->pool, gdrv->fake_source_allocation, &gdrv->fake_source_lock );
+
+     dfb_surface_buffer_lock_deinit( &gdrv->fake_source_lock );
+
+     dfb_surface_buffer_unref( gdrv->fake_source_buffer );
+
+     dfb_surface_allocation_unref( gdrv->fake_source_allocation );
+
+     dfb_surface_unref( gdrv->fake_source );
 }
 
 static void

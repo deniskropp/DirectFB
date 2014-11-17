@@ -920,9 +920,9 @@ vsp_comp_set_view(struct v4l2_renderer_device *dev, struct v4l2_surface_state *s
 	/* check if we need to use a scaler */
 	if (vs->base.dst_rect.width != vs->base.src_rect.width ||
 	    vs->base.dst_rect.height != vs->base.src_rect.height) {
-		weston_log("We need scaler! scaler! scaler! (%dx%d)->(%dx%d)\n",
-			vs->base.src_rect.width, vs->base.src_rect.height,
-			vs->base.dst_rect.width, vs->base.dst_rect.height);
+		//weston_log("We need scaler! scaler! scaler! (%dx%d)->(%dx%d)\n",
+		//	vs->base.src_rect.width, vs->base.src_rect.height,
+		//	vs->base.dst_rect.width, vs->base.dst_rect.height);
 
 		// if all scalers are oocupied, flush and then retry.
 		if (vsp->scaler_count == vsp->scaler_max) {

@@ -68,6 +68,12 @@ typedef struct {
 
      int                          sources;
 
+     CoreSurface                 *fake_source;
+     CoreSurfaceBuffer           *fake_source_buffer;
+     DFBSurfaceBufferID           fake_buffer_id;
+     CoreSurfaceAllocation       *fake_source_allocation;
+     CoreSurfaceBufferLock        fake_source_lock;
+
 
      DirectMutex              q_lock;
      DirectWaitQueue          q_wait;

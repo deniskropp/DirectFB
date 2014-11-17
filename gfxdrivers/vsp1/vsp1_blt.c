@@ -93,30 +93,6 @@ vsp1_validate_DESTINATION( VSP1DriverData *gdrv,
      gdev->dst_size   = alloc->config.size;
      gdev->dst_format = alloc->config.format;
 
-#if 0
-     if (gdrv->output == 0 || gdrv->output->width != gdev->dst_size.w || gdrv->output->height != gdev->dst_size.h) {
-          if (gdrv->output) {
-               D_DEBUG_AT( VSP1_BLT, "  -> detroying previous output...\n" );
-
-//               v4l2_device_interface.destroy_output( gdrv->vsp_renderer_data );
-          }
-
-
-          D_DEBUG_AT( VSP1_BLT, "  -> creating output...\n" );
-
-          gdrv->output = v4l2_device_interface.create_output( gdrv->vsp_renderer_data, gdev->dst_size.w, gdev->dst_size.h );
-
-
-          D_DEBUG_AT( VSP1_BLT, "  -> setting output buffer... (fd %d)\n", gdev->dst_fd );
-
-          struct v4l2_bo_state output_state;
-
-          output_state.dmafd  = gdev->dst_fd;
-          output_state.stride = gdev->dst_pitch;
-
-          v4l2_device_interface.set_output_buffer( gdrv->output, &output_state );
-     }
-#endif
      /* Set the flags. */
      VSP1_VALIDATE( DESTINATION );
 }
@@ -138,36 +114,7 @@ vsp1_validate_SOURCE( VSP1DriverData *gdrv,
      gdev->src_index  = DFB_PIXELFORMAT_INDEX( alloc->config.format ) % DFB_NUM_PIXELFORMATS;
      gdev->src_size   = alloc->config.size;
      gdev->src_format = alloc->config.format;
-#if 0
-     if (gdrv->source == 0 || gdrv->source->width != gdev->src_size.w || gdrv->source->height != gdev->src_size.h) {
-          if (gdrv->source) {
-               D_DEBUG_AT( VSP1_BLT, "  -> detroying previous source...\n" );
 
-//               v4l2_device_interface.destroy_surface( gdrv->source );
-          }
-
-
-          D_DEBUG_AT( VSP1_BLT, "  -> creating surface...\n" );
-
-          gdrv->source = v4l2_device_interface.create_surface( gdrv->vsp_renderer_data );
-
-          gdrv->source->width        = gdev->src_size.w;
-          gdrv->source->height       = gdev->src_size.h;
-          gdrv->source->pixel_format = V4L2_PIX_FMT_ABGR32;
-          gdrv->source->bpp          = 4;
-          gdrv->source->num_planes   = 1;
-
-          for (int i = 0; i < 1/*kbuf->num_planes*/; i++) {
-               gdrv->source->planes[i].stride = gdev->src_pitch;
-               gdrv->source->planes[i].dmafd  = gdev->src_fd;
-          }
-
-
-          D_DEBUG_AT( VSP1_BLT, "  -> attaching buffer... (fd %d)\n", gdev->src_fd );
-
-          v4l2_device_interface.attach_buffer( gdrv->source );
-     }
-#endif
      /* Set the flags. */
      VSP1_VALIDATE( SOURCE );
 }
@@ -188,7 +135,7 @@ vsp1_validate_FAKE_SOURCE( VSP1DriverData *gdrv,
 DFBResult
 vsp1EngineSync( void *drv, void *dev )
 {
-     VSP1DriverData *gdrv = drv;
+//     VSP1DriverData *gdrv = drv;
 
      D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
 #if 0
@@ -202,7 +149,7 @@ vsp1EngineSync( void *drv, void *dev )
 void
 vsp1EmitCommands( void *drv, void *dev )
 {
-     VSP1DriverData *gdrv = drv;
+//     VSP1DriverData *gdrv = drv;
 
      D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
 #if 0
@@ -362,7 +309,6 @@ vsp1SetState( void                *drv,
      /* Depending on the function... */
      switch (accel) {
           case DFXL_FILLRECTANGLE:
-          case DFXL_DRAWRECTANGLE:
                /* ...require valid color. */
                VSP1_CHECK_VALIDATE( FAKE_SOURCE );
 
@@ -415,6 +361,111 @@ vsp1SetState( void                *drv,
 
 /**********************************************************************************************************************/
 
+static bool
+vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
+{
+     VSP1DriverData *gdrv = drv;
+     VSP1DeviceData *gdev = dev;
+
+     if (gdev->disabled) {
+          D_DEBUG_AT( VSP1_BLT, "  -> disabled\n" );
+          return false;
+     }
+
+
+
+     D_DEBUG_AT( VSP1_BLT, "  -> creating output...\n" );
+
+     gdrv->output = v4l2_device_interface.create_output( gdrv->vsp_renderer_data, gdev->dst_size.w, gdev->dst_size.h );
+
+
+     D_DEBUG_AT( VSP1_BLT, "  -> setting output buffer... (fd %d)\n", gdev->dst_fd );
+
+     struct v4l2_bo_state output_state;
+
+     output_state.dmafd  = gdev->dst_fd;
+     output_state.stride = gdev->dst_pitch;
+
+     v4l2_device_interface.set_output_buffer( gdrv->output, &output_state );
+
+
+
+     D_DEBUG_AT( VSP1_BLT, "  -> beginning...\n" );
+
+     if (gdrv->sources == 0) {
+          v4l2_device_interface.begin_compose( gdrv->vsp_renderer_data, gdrv->output );
+
+          v4l2_device_interface.draw_view( gdrv->vsp_renderer_data, &((struct vsp_device*) (gdrv->vsp_renderer_data))->output_surface_state->base );
+     }
+
+
+     D_DEBUG_AT( VSP1_BLT, "  -> creating surface...\n" );
+
+     gdrv->source = v4l2_device_interface.create_surface( gdrv->vsp_renderer_data );
+
+     gdrv->source->width        = 8;
+     gdrv->source->height       = 8;
+     gdrv->source->pixel_format = V4L2_PIX_FMT_ABGR32;
+     gdrv->source->bpp          = 4;
+     gdrv->source->num_planes   = 1;
+
+     for (int i = 0; i < 1/*kbuf->num_planes*/; i++) {
+          gdrv->source->planes[i].stride = gdrv->fake_source_lock.pitch;
+          gdrv->source->planes[i].dmafd  = gdrv->fake_source_lock.offset;
+     }
+
+
+     D_DEBUG_AT( VSP1_BLT, "  -> attaching buffer... (fd %lu)\n", gdrv->fake_source_lock.offset );
+
+     v4l2_device_interface.attach_buffer( gdrv->source );
+
+
+
+     u32 *ptr = gdrv->fake_source_lock.addr;
+     int  x, y;
+
+     for (y=0; y<8; y++) {
+          for (x=0; x<8; x++) {
+               ptr[x+y*gdrv->fake_source_lock.pitch/4] = PIXEL_ARGB( 0xff, gdev->color.r, gdev->color.g, gdev->color.b );
+          }
+     }
+
+
+
+     D_DEBUG_AT( VSP1_BLT, "  -> drawing view...\n" );
+
+     gdrv->source->src_rect.left   = 0;
+     gdrv->source->src_rect.top    = 0;
+     gdrv->source->src_rect.width  = 8;
+     gdrv->source->src_rect.height = 8;
+
+     gdrv->source->dst_rect.left   = dx;
+     gdrv->source->dst_rect.top    = dy;
+     gdrv->source->dst_rect.width  = dw;
+     gdrv->source->dst_rect.height = dh;
+
+     gdrv->source->alpha = (gdev->dflags & DSDRAW_BLEND) ? gdev->color.a / 255.0f : 255.0f;
+
+     v4l2_device_interface.draw_view( gdrv->vsp_renderer_data, gdrv->source );
+
+     v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data );
+
+#if 0
+     gdrv->sources++;
+
+     if (gdrv->sources == 3) {
+          D_DEBUG_AT( VSP1_BLT, "  -> flushing...\n" );
+
+          v4l2_device_interface.flush( gdrv->vsp_renderer_data, false );
+
+          gdrv->sources = 0;
+     }
+#endif
+     return true;
+}
+
+/**********************************************************************************************************************/
+
 /*
  * Render a filled rectangle using the current hardware state.
  */
@@ -431,28 +482,7 @@ vsp1FillRectangle( void *drv, void *dev, DFBRectangle *rect )
           return false;
      }
 
-     return true;
-}
-
-/**********************************************************************************************************************/
-
-/*
- * Render rectangle outlines using the current hardware state.
- */
-bool
-vsp1DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
-{
-     VSP1DeviceData *gdev = dev;
-
-     D_DEBUG_AT( VSP1_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
-                 DFB_RECTANGLE_VALS( rect ) );
-
-     if (gdev->disabled) {
-          D_DEBUG_AT( VSP1_BLT, "  -> disabled\n" );
-          return false;
-     }
-
-     return true;
+     return vsp1GenFill( drv, dev, rect->x, rect->y, rect->w, rect->h );
 }
 
 /**********************************************************************************************************************/

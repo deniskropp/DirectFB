@@ -7,14 +7,14 @@
 
 
 
-#define VSP1_SUPPORTED_DRAWINGFLAGS      (DSDRAW_NOFX)
+#define VSP1_SUPPORTED_DRAWINGFLAGS      (DSDRAW_BLEND)
 
-#define VSP1_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_NONE)
+#define VSP1_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_FILLRECTANGLE)
 
 #define VSP1_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL | \
                                           DSBLIT_BLEND_COLORALPHA)
 
-#define VSP1_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT)
+#define VSP1_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 
 DFBResult vsp1EngineSync   ( void *drv, void *dev );
@@ -28,7 +28,6 @@ void      vsp1SetState     ( void *drv, void *dev,
                              CardState *state, DFBAccelerationMask accel );
 
 bool      vsp1FillRectangle( void *drv, void *dev, DFBRectangle *rect );
-bool      vsp1DrawRectangle( void *drv, void *dev, DFBRectangle *rect );
 bool      vsp1Blit         ( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
 bool      vsp1StretchBlit  ( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect );
 
