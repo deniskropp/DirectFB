@@ -1131,7 +1131,8 @@ ISurface_Real::GetBuffers( DFBSurfaceBufferID *ret_buffer_ids,
           }
      }
 
-     *ret_ids_len = count;
+     if (ret_ids_len)
+          *ret_ids_len = count;
 
 out:
      dfb_surface_unlock( obj );
