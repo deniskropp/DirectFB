@@ -73,6 +73,9 @@ dfb_core_part_initialize( CoreDFB  *core,
      if (core_part->size_shared)
           shared = SHCALLOC( pool, 1, core_part->size_shared );
 
+     core_part->data_local  = local;
+     core_part->data_shared = shared;
+
      ret = core_part->Initialize( core, local, shared );
      if (ret) {
           D_ERROR( "DirectFB/Core: Could not initialize '%s' core!\n"
@@ -85,14 +88,15 @@ dfb_core_part_initialize( CoreDFB  *core,
           if (local)
                D_FREE( local );
 
+          core_part->data_local  = NULL;
+          core_part->data_shared = NULL;
+
           return ret;
      }
 
      if (shared)
           core_arena_add_shared_field( core, core_part->name, shared );
 
-     core_part->data_local  = local;
-     core_part->data_shared = shared;
      core_part->initialized = true;
 
      return DFB_OK;
