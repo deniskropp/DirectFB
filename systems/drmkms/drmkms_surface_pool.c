@@ -681,16 +681,19 @@ error:
 
 static DFBResult
 drmkmsCheckKey( CoreSurfacePool   *pool,
-             void              *pool_data,
-             void              *pool_local,
-             CoreSurfaceBuffer *buffer,
-             const char        *key,
-             u64                handle )
+                void              *pool_data,
+                void              *pool_local,
+                CoreSurfaceBuffer *buffer,
+                const char        *key,
+                u64                handle )
 {
-     D_DEBUG_AT( DRMKMS_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( DRMKMS_Surfaces, "%s( %s )\n", __FUNCTION__, key );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     if (!strcmp( key, "Pixmap/DRM" ))
+          return DFB_OK;
 
      if (!strcmp( key, "drm_gem.name" ))
           return DFB_OK;
