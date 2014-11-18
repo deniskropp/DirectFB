@@ -403,8 +403,8 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
 
      gdrv->source = v4l2_device_interface.create_surface( gdrv->vsp_renderer_data );
 
-     gdrv->source->width        = 8;
-     gdrv->source->height       = 8;
+     gdrv->source->width        = 16;
+     gdrv->source->height       = 16;
      gdrv->source->pixel_format = V4L2_PIX_FMT_ABGR32;
      gdrv->source->bpp          = 4;
      gdrv->source->num_planes   = 1;
@@ -424,8 +424,8 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
      u32 *ptr = gdrv->fake_source_lock.addr;
      int  x, y;
 
-     for (y=0; y<8; y++) {
-          for (x=0; x<8; x++) {
+     for (y=0; y<MIN( dh/4, 16 ); y++) {
+          for (x=0; x<MIN( dw/4, 16 ); x++) {
                ptr[x+y*gdrv->fake_source_lock.pitch/4] = PIXEL_ARGB( gdev->color.a, gdev->color.r, gdev->color.g, gdev->color.b );
           }
      }
@@ -436,8 +436,8 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
 
      gdrv->source->src_rect.left   = 0;
      gdrv->source->src_rect.top    = 0;
-     gdrv->source->src_rect.width  = 8;
-     gdrv->source->src_rect.height = 8;
+     gdrv->source->src_rect.width  = MIN( dw/4, 16 );
+     gdrv->source->src_rect.height = MIN( dh/4, 16 );
 
      gdrv->source->dst_rect.left   = dx;
      gdrv->source->dst_rect.top    = dy;
@@ -481,6 +481,12 @@ vsp1FillRectangle( void *drv, void *dev, DFBRectangle *rect )
           D_DEBUG_AT( VSP1_BLT, "  -> disabled\n" );
           return false;
      }
+
+     if (rect->w > 16*16 || rect->h > 16*16)
+          return false;
+
+     if (rect->w < 64 || rect->h < 64)
+          return false;
 
      return vsp1GenFill( drv, dev, rect->x, rect->y, rect->w, rect->h );
 }

@@ -321,8 +321,8 @@ driver_init_device( CoreGraphicsDevice *device,
      CoreSurfaceConfig config;
 
      config.flags  = CSCONF_SIZE | CSCONF_FORMAT;
-     config.size.w = 8;
-     config.size.h = 8;
+     config.size.w = 16;
+     config.size.h = 16;
      config.format = DSPF_ARGB;
 
      // FIXME: check result values
