@@ -366,12 +366,16 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
 {
      VSP1DriverData *gdrv = drv;
      VSP1DeviceData *gdev = dev;
+     int             sw, sh;
 
-     if (gdev->disabled) {
-          D_DEBUG_AT( VSP1_BLT, "  -> disabled\n" );
-          return false;
-     }
+     sw = dw/16 + 1;
+     sh = dh/16 + 1;
 
+     if (sw < 8)
+          sw = 8;
+
+     if (sh < 8)
+          sh = 8;
 
 
      D_DEBUG_AT( VSP1_BLT, "  -> creating output...\n" );
@@ -403,8 +407,8 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
 
      gdrv->source = v4l2_device_interface.create_surface( gdrv->vsp_renderer_data );
 
-     gdrv->source->width        = 16;
-     gdrv->source->height       = 16;
+     gdrv->source->width        = sw;
+     gdrv->source->height       = sh;
      gdrv->source->pixel_format = V4L2_PIX_FMT_ABGR32;
      gdrv->source->bpp          = 4;
      gdrv->source->num_planes   = 1;
@@ -424,8 +428,8 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
      u32 *ptr = gdrv->fake_source_lock.addr;
      int  x, y;
 
-     for (y=0; y<MIN( dh/4, 16 ); y++) {
-          for (x=0; x<MIN( dw/4, 16 ); x++) {
+     for (y=0; y<sh; y++) {
+          for (x=0; x<sw; x++) {
                ptr[x+y*gdrv->fake_source_lock.pitch/4] = PIXEL_ARGB( gdev->color.a, gdev->color.r, gdev->color.g, gdev->color.b );
           }
      }
@@ -436,15 +440,15 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
 
      gdrv->source->src_rect.left   = 0;
      gdrv->source->src_rect.top    = 0;
-     gdrv->source->src_rect.width  = MIN( dw/4, 16 );
-     gdrv->source->src_rect.height = MIN( dh/4, 16 );
+     gdrv->source->src_rect.width  = sw;
+     gdrv->source->src_rect.height = sh;
 
      gdrv->source->dst_rect.left   = dx;
      gdrv->source->dst_rect.top    = dy;
      gdrv->source->dst_rect.width  = dw;
      gdrv->source->dst_rect.height = dh;
 
-     gdrv->source->alpha = (gdev->dflags & DSDRAW_BLEND) ? gdev->color.a / 255.0f : 255.0f;
+     gdrv->source->alpha = (gdev->dflags & DSDRAW_BLEND) ? gdev->color.a / 255.0f : 1.0f;
 
      v4l2_device_interface.draw_view( gdrv->vsp_renderer_data, gdrv->source );
 
@@ -482,10 +486,7 @@ vsp1FillRectangle( void *drv, void *dev, DFBRectangle *rect )
           return false;
      }
 
-     if (rect->w > 16*16 || rect->h > 16*16)
-          return false;
-
-     if (rect->w < 64 || rect->h < 64)
+     if (rect->w * rect->h < 2048)
           return false;
 
      return vsp1GenFill( drv, dev, rect->x, rect->y, rect->w, rect->h );
@@ -500,11 +501,6 @@ vsp1GenBlit( void *drv, void *dev,
 {
      VSP1DriverData *gdrv = drv;
      VSP1DeviceData *gdev = dev;
-
-     if (gdev->disabled) {
-          D_DEBUG_AT( VSP1_BLT, "  -> disabled\n" );
-          return false;
-     }
 
 
 
