@@ -426,7 +426,7 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
 
      for (y=0; y<8; y++) {
           for (x=0; x<8; x++) {
-               ptr[x+y*gdrv->fake_source_lock.pitch/4] = PIXEL_ARGB( 0xff, gdev->color.r, gdev->color.g, gdev->color.b );
+               ptr[x+y*gdrv->fake_source_lock.pitch/4] = PIXEL_ARGB( gdev->color.a, gdev->color.r, gdev->color.g, gdev->color.b );
           }
      }
 
