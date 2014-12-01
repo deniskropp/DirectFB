@@ -411,7 +411,7 @@ drmkmsTestConfig( CoreSurfacePool         *pool,
           case DSPF_NV16:
                break;
           default:
-               D_ERROR( "DirectFB/DRMKMS: unsupported pixelformat!\n" );
+               D_DEBUG_AT( DRMKMS_Surfaces, "  -> unsupported pixelformat!\n" );
                return DFB_UNSUPPORTED;
      }
 
