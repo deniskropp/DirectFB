@@ -61,62 +61,146 @@ static void *
 vsp1_event_loop( DirectThread *thread,
                  void         *arg )
 {
-#if 0
-     int             ret;
      VSP1DriverData *gdrv = arg;
-     u32             buf[16384];
 
-     while (true) {
-          void *p;
+     while (0&&true) {
+          VSP1Buffer *buffer;
 
-          D_DEBUG_AT( VSP1_Driver, "%s() read...\n", __FUNCTION__ );
+          D_DEBUG_AT( VSP1_Driver, "%s() waiting...\n", __FUNCTION__ );
 
-          ret = read( gdrv->gfx_fd, buf, sizeof(buf) );
-          if (ret < 0) {
-               switch (errno) {
-                    case EINTR:
-                         continue;
+          direct_mutex_lock( &gdrv->q_lock );
 
-                    default:
-                         D_PERROR( "VSP1: read() from drm device failed!\n" );
-                         return NULL;
-               }
+          while (!gdrv->queue) {
+               gdrv->idle = true;
+
+               direct_waitqueue_broadcast( &gdrv->q_idle );
+
+               direct_waitqueue_wait( &gdrv->q_submit, &gdrv->q_lock );
           }
 
-          p = buf;
+          buffer = (VSP1Buffer*) gdrv->queue;
 
-          while (ret > 0) {
-               struct drm_vsp1_event_executed *event = p;
-               VSP1Buffer                     *buffer;
+          D_MAGIC_ASSERT( buffer, VSP1Buffer );
 
-               D_ASSERT( event->base.length <= ret );
+          direct_list_remove( &gdrv->queue, gdrv->queue );
 
-               switch (event->base.type) {
-                    case DRM_VSP1_EVENT_EXECUTED:
-                         D_DEBUG_AT( VSP1_Driver, "  -> EXECUTED %u (%p)\n", event->handle, event->user_data );
+          v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data );//, false );
 
-                         buffer = event->user_data;
-                         D_MAGIC_ASSERT( buffer, VSP1Buffer );
+          direct_mutex_unlock( &gdrv->q_lock );
 
-                         if (buffer->task)
-                              Task_Done( buffer->task );
 
-                         D_ASSERT( buffer == (VSP1Buffer*) gdrv->emitted );
-                         D_ASSERT( buffer->handle == event->handle );
-
-                         vsp1_put_buffer( gdrv, buffer );
-                         break;
-
-                    default:
-                         break;
-               }
-
-               ret -= event->base.length;
-               p   += event->base.length;
-          }
+          vsp1_buffer_finished( gdrv, gdrv->dev, buffer );
      }
-#endif
+
      return NULL;
+}
+
+/**********************************************************************************************************************/
+
+static void
+vsp1_destroy_fake_source( VSP1FakeSource *fake_source );
+
+static DFBResult
+vsp1_create_fake_source( VSP1DriverData  *gdrv,
+                         VSP1FakeSource **ret_fake_source )
+{
+     DFBResult          ret;
+     VSP1FakeSource    *fake_source;
+     CoreSurfaceConfig  config;
+
+     D_DEBUG_AT( VSP1_Driver, "%s()\n", __FUNCTION__ );
+
+     D_ASSERT( ret_fake_source != NULL );
+
+     /* Allocate new fake_source */
+     fake_source = D_CALLOC( 1, sizeof(VSP1FakeSource) );
+     if (!fake_source) {
+          ret = D_OOSHM();
+          goto error;
+     }
+
+     dfb_surface_buffer_lock_init( &fake_source->lock, CSAID_GPU, CSAF_READ | CSAF_WRITE );
+
+     /* Initialize fake_source */
+     config.flags  = CSCONF_SIZE | CSCONF_FORMAT;
+     config.size.w = 256;
+     config.size.h = 256;
+     config.format = DSPF_ARGB;
+
+     // FIXME: check result values
+     ret = dfb_surface_create( gdrv->core, &config, CSTF_NONE, 0, NULL, &fake_source->surface );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to create a surface for rectangle filling!\n" );
+          goto error;
+     }
+
+     ret = CoreSurface_GetBuffers( fake_source->surface, &fake_source->buffer_id, 1, NULL );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to get buffers for rectangle filling!\n" );
+          goto error;
+     }
+
+     ret = CoreSurface_GetOrAllocate( fake_source->surface, fake_source->buffer_id, "Pixmap/DRM",
+                                      sizeof("Pixmap/DRM")+1, 0, DSAO_KEEP | DSAO_UPDATED, &fake_source->allocation );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to allocate a surface for rectangle filling!\n" );
+          goto error;
+     }
+
+     ret = dfb_core_get_surface_buffer( gdrv->core, fake_source->buffer_id, &fake_source->buffer );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to get a buffer for rectangle filling!\n" );
+          goto error;
+     }
+
+     ret = dfb_surface_pool_lock( fake_source->allocation->pool, fake_source->allocation, &fake_source->lock );
+     if (ret) {
+          D_DERROR( ret, "VSP1/Driver: Failed to lock a surface for rectangle filling!\n" );
+          goto error;
+     }
+
+     D_MAGIC_SET( fake_source, VSP1FakeSource );
+
+     D_DEBUG_AT( VSP1_Driver, "  -> %p\n", fake_source );
+
+     /* Return new fake_source */
+     *ret_fake_source = fake_source;
+
+     return DFB_OK;
+
+
+error:
+     D_MAGIC_SET( fake_source, VSP1FakeSource );
+
+     vsp1_destroy_fake_source( fake_source );
+
+     return ret;
+}
+
+static void
+vsp1_destroy_fake_source( VSP1FakeSource *fake_source )
+{
+     D_DEBUG_AT( VSP1_Driver, "%s( %p )\n", __FUNCTION__, fake_source );
+
+     D_MAGIC_ASSERT( fake_source, VSP1FakeSource );
+
+     if (fake_source->lock.allocation)
+          dfb_surface_pool_unlock( fake_source->allocation->pool, fake_source->allocation, &fake_source->lock );
+
+     if (fake_source->buffer)
+          dfb_surface_buffer_unref( fake_source->buffer );
+
+     if (fake_source->allocation)
+          dfb_surface_allocation_unref( fake_source->allocation );
+
+     if (fake_source->surface)
+          dfb_surface_unref( fake_source->surface );
+
+     dfb_surface_buffer_lock_deinit( &fake_source->lock );
+
+     D_MAGIC_CLEAR( fake_source );
+
+     D_FREE( fake_source );
 }
 
 /**********************************************************************************************************************/
@@ -271,8 +355,12 @@ driver_init_driver( CoreGraphicsDevice  *device,
      gdrv->vsp_renderer_data = v4l2_device_interface.init( gdrv->media );
 
 
+     gdrv->idle = true;
+
+
      direct_recursive_mutex_init( &gdrv->q_lock );
-     direct_waitqueue_init( &gdrv->q_wait );
+     direct_waitqueue_init( &gdrv->q_idle );
+     direct_waitqueue_init( &gdrv->q_submit );
 
      /* Initialize function table. */
      funcs->EngineSync        = vsp1EngineSync;
@@ -318,60 +406,22 @@ driver_init_device( CoreGraphicsDevice *device,
      device_info->caps.drawing  = VSP1_SUPPORTED_DRAWINGFLAGS;
      device_info->caps.blitting = VSP1_SUPPORTED_BLITTINGFLAGS;
 
-     CoreSurfaceConfig config;
-
-     config.flags  = CSCONF_SIZE | CSCONF_FORMAT;
-     config.size.w = 256;
-     config.size.h = 256;
-     config.format = DSPF_ARGB;
-
-     // FIXME: check result values
-     ret = dfb_surface_create( gdrv->core, &config, CSTF_NONE, 0, NULL, &gdrv->fake_source );
-     if (ret) {
-          D_DERROR( ret, "VSP1/Driver: Failed to create a surface for rectangle filling!\n" );
-          return ret;
-     }
-
-     ret = CoreSurface_GetBuffers( gdrv->fake_source, &gdrv->fake_buffer_id, 1, NULL );
-     if (ret) {
-          D_DERROR( ret, "VSP1/Driver: Failed to get buffers for rectangle filling!\n" );
-          goto error;
-     }
-
-     ret = CoreSurface_GetOrAllocate( gdrv->fake_source, gdrv->fake_buffer_id, "Pixmap/DRM",
-                                      sizeof("Pixmap/DRM")+1, 0, DSAO_KEEP | DSAO_UPDATED, &gdrv->fake_source_allocation );
-     if (ret) {
-          D_DERROR( ret, "VSP1/Driver: Failed to allocate a surface for rectangle filling!\n" );
-          goto error;
-     }
-
-     ret = dfb_core_get_surface_buffer( gdrv->core, gdrv->fake_buffer_id, &gdrv->fake_source_buffer );
-     if (ret) {
-          D_DERROR( ret, "VSP1/Driver: Failed to get a buffer for rectangle filling!\n" );
-          goto error;
-     }
-
-     dfb_surface_buffer_lock_init( &gdrv->fake_source_lock, CSAID_GPU, CSAF_READ | CSAF_WRITE );
-
-     ret = dfb_surface_pool_lock( gdrv->fake_source_allocation->pool, gdrv->fake_source_allocation, &gdrv->fake_source_lock );
-     if (ret) {
-          D_DERROR( ret, "VSP1/Driver: Failed to lock a surface for rectangle filling!\n" );
-          goto error;
+     for (int i=0; i<4; i++) {
+          ret = vsp1_create_fake_source( gdrv, &gdrv->fake_sources[i] );
+          if (ret)
+               goto error;
      }
 
      gdrv->event_thread = direct_thread_create( DTT_CRITICAL, vsp1_event_loop, gdrv, "VSP1 Queue" );
 
      return DFB_OK;
 
+
 error:
-     if (gdrv->fake_source_buffer)
-          dfb_surface_buffer_unref( gdrv->fake_source_buffer );
-
-     if (gdrv->fake_source_allocation)
-          dfb_surface_allocation_unref( gdrv->fake_source_allocation );
-
-     if (gdrv->fake_source)
-          dfb_surface_unref( gdrv->fake_source );
+     for (int i=0; i<4; i++) {
+          if (gdrv->fake_sources[i])
+               vsp1_destroy_fake_source( gdrv->fake_sources[i] );
+     }
 
      return ret;
 }
@@ -382,34 +432,11 @@ driver_close_device( CoreGraphicsDevice *device,
                      void               *device_data )
 {
      VSP1DriverData *gdrv = driver_data;
+     VSP1DeviceData *gdev = device_data;
 
      D_DEBUG_AT( VSP1_Driver, "%s()\n", __FUNCTION__ );
 
-     dfb_surface_pool_unlock( gdrv->fake_source_allocation->pool, gdrv->fake_source_allocation, &gdrv->fake_source_lock );
-
-     dfb_surface_buffer_lock_deinit( &gdrv->fake_source_lock );
-
-     dfb_surface_buffer_unref( gdrv->fake_source_buffer );
-
-     dfb_surface_allocation_unref( gdrv->fake_source_allocation );
-
-     dfb_surface_unref( gdrv->fake_source );
-}
-
-static void
-driver_close_driver( CoreGraphicsDevice *device,
-                     void               *driver_data )
-{
-     VSP1DriverData *gdrv = driver_data;
-
-     D_DEBUG_AT( VSP1_Driver, "%s()\n", __FUNCTION__ );
-
-     direct_mutex_lock( &gdrv->q_lock );
-
-     while (gdrv->queue)
-          direct_waitqueue_wait( &gdrv->q_wait, &gdrv->q_lock );
-
-     direct_mutex_unlock( &gdrv->q_lock );
+     vsp1_wait_idle( gdrv, gdev );
 
 
      direct_thread_join( gdrv->event_thread );
@@ -422,6 +449,18 @@ driver_close_driver( CoreGraphicsDevice *device,
      free( gdrv->device_name );
 
      direct_mutex_deinit( &gdrv->q_lock );
-     direct_waitqueue_deinit( &gdrv->q_wait );
+     direct_waitqueue_deinit( &gdrv->q_idle );
+     direct_waitqueue_deinit( &gdrv->q_submit );
+
+
+     for (int i=0; i<4; i++)
+          vsp1_destroy_fake_source( gdrv->fake_sources[i] );
+}
+
+static void
+driver_close_driver( CoreGraphicsDevice *device,
+                     void               *driver_data )
+{
+     D_DEBUG_AT( VSP1_Driver, "%s()\n", __FUNCTION__ );
 }
 

@@ -754,52 +754,10 @@ vsp_comp_setup_inputs(struct vsp_device *vsp, struct vsp_media_pad *mpad, struct
 }
 
 static int
-vsp_comp_dequeue(struct vsp_device *vsp)
+vsp_comp_flush(struct vsp_device *vsp)
 {
 	int i, fd;
 	int type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-
-	DBG("dequeue vsp composition.\n");
-
-	// get an output pad
-	fd = vsp->output_pad.fd;
-
-	// dequeue buffer
-	if (vsp_dequeue_buffer(fd, 1) < 0)
-		goto error;
-
-	DBG("stream off capture\n");
-	type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-	if (ioctl(fd, VIDIOC_STREAMOFF, &type) == -1) {
-		weston_log("%s: VIDIOC_STREAMOFF failed on %d (%s).\n", __func__, fd, strerror(errno));
-		goto error;
-	}
-
-	// stream off
-	type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-	for (i = 0; i < vsp->input_count; i++) {
-	     DBG("stream off input %d\n",i);
-		if (ioctl(vsp->input_pads[i].fd, VIDIOC_STREAMOFF, &type) == -1) {
-			weston_log("VIDIOC_STREAMOFF failed for input %d.\n", i);
-		}
-	}
-
-	return 0;
-
-error:
-	video_debug_mediactl();
-	vsp->input_count = 0;
-	return -1;
-}
-
-static int
-vsp_comp_flush(struct vsp_device *vsp, bool dequeue)
-{
-	int i, fd, ret;
-	int type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-
-	if (vsp->input_count == 0)
-	     return 0;
 
 	DBG("flush vsp composition.\n");
 
@@ -815,41 +773,48 @@ vsp_comp_flush(struct vsp_device *vsp, bool dequeue)
 	// get an output pad
 	fd = vsp->output_pad.fd;
 
-	DBG("queueing output buffer...\n");
 	// queue buffer
 	if (vsp_queue_buffer(fd, 1, vsp->output_surface_state) < 0)
 		goto error;
-	DBG("queued output buffer\n");
 
 //	video_debug_mediactl();
 
 	// stream on
 	type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
 	for (i = 0; i < vsp->input_count; i++) {
-	     DBG("stream on input %d\n",i);
 		if (ioctl(vsp->input_pads[i].fd, VIDIOC_STREAMON, &type) == -1) {
 			weston_log("VIDIOC_STREAMON failed for input %d. (%s)\n", i, strerror(errno));
 		}
 	}
 
-	DBG("stream on capture\n");
 	type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 	if (ioctl(fd, VIDIOC_STREAMON, &type) == -1) {
 		weston_log("VIDIOC_STREAMON failed for output (%s).\n", strerror(errno));
 		goto error;
 	}
 
-	if (dequeue) {
-		ret = vsp_comp_dequeue( vsp );
-		if (ret)
-		     goto error;
+	// dequeue buffer
+	if (vsp_dequeue_buffer(fd, 1) < 0)
+		goto error;
+
+	type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+	if (ioctl(fd, VIDIOC_STREAMOFF, &type) == -1) {
+		weston_log("%s: VIDIOC_STREAMOFF failed on %d (%s).\n", __func__, fd, strerror(errno));
+		goto error;
+	}
+
+	// stream off
+	type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+	for (i = 0; i < vsp->input_count; i++) {
+		if (ioctl(vsp->input_pads[i].fd, VIDIOC_STREAMOFF, &type) == -1) {
+			weston_log("VIDIOC_STREAMOFF failed for input %d.\n", i);
+		}
 	}
 
 	// disable UDS if used
 	if (vsp->scaler_count) {
 		for (i = 0; i < vsp->input_count; i++) {
 			if (vsp->use_scaler[i]) {
-			     DBG("disable uds %d\n",i);
 				vsp_comp_setup_inputs(vsp, &vsp->input_pads[i], vsp->use_scaler[i], NULL, 0);
 				vsp->use_scaler[i]->input = -1;
 				vsp->use_scaler[i] = NULL;
@@ -872,7 +837,7 @@ vsp_comp_finish(struct v4l2_renderer_device *dev)
 	struct vsp_device *vsp = (struct vsp_device*)dev;
 
 	if (vsp->input_count > 0)
-		vsp_comp_flush(vsp, true);
+		vsp_comp_flush(vsp);
 
 	vsp->state = VSP_STATE_IDLE;
 	DBG("complete vsp composition.\n");
@@ -890,9 +855,26 @@ vsp_comp_set_view(struct v4l2_renderer_device *dev, struct v4l2_surface_state *s
 		return -1;
 	}
 
-	DBG("set input %d (dmafd=%d): %dx%d@(%d,%d). alpha=%f\n",
+	if (vs->base.src_rect.width < 1 || vs->base.src_rect.height < 1) {
+		weston_log("ignoring the size of zeros < (%dx%d)\n", vs->base.src_rect.width, vs->base.src_rect.height);
+		return -1;
+	}
+
+	if (vs->base.src_rect.left < 0) {
+		vs->base.src_rect.width += vs->base.src_rect.left;
+		vs->base.src_rect.left = 0;
+	}
+
+	if (vs->base.src_rect.top < 0) {
+		vs->base.src_rect.height += vs->base.src_rect.top;
+		vs->base.src_rect.top = 0;
+	}
+
+	DBG("set input %d (dmafd=%d): %dx%d@(%d,%d)->%dx%d@(%d,%d). alpha=%f\n",
 	    vsp->input_count,
 	    vs->base.planes[0].dmafd,
+	    vs->base.src_rect.width, vs->base.src_rect.height,
+	    vs->base.src_rect.left, vs->base.src_rect.top,
 	    vs->base.dst_rect.width, vs->base.dst_rect.height,
 	    vs->base.dst_rect.left, vs->base.dst_rect.top,
 	    vs->base.alpha);
@@ -920,13 +902,13 @@ vsp_comp_set_view(struct v4l2_renderer_device *dev, struct v4l2_surface_state *s
 	/* check if we need to use a scaler */
 	if (vs->base.dst_rect.width != vs->base.src_rect.width ||
 	    vs->base.dst_rect.height != vs->base.src_rect.height) {
-		//weston_log("We need scaler! scaler! scaler! (%dx%d)->(%dx%d)\n",
-		//	vs->base.src_rect.width, vs->base.src_rect.height,
-		//	vs->base.dst_rect.width, vs->base.dst_rect.height);
+		DBG("We need scaler! scaler! scaler! (%dx%d)->(%dx%d)\n",
+		    vs->base.src_rect.width, vs->base.src_rect.height,
+		    vs->base.dst_rect.width, vs->base.dst_rect.height);
 
 		// if all scalers are oocupied, flush and then retry.
 		if (vsp->scaler_count == vsp->scaler_max) {
-			vsp_comp_flush(vsp, true);
+			vsp_comp_flush(vsp);
 			return vsp_comp_set_view(dev, surface_state);
 		}
 
@@ -941,7 +923,7 @@ vsp_comp_set_view(struct v4l2_renderer_device *dev, struct v4l2_surface_state *s
 	// check if we should flush now
 	vsp->input_count++;
 	if (vsp->input_count == vsp->input_max)
-		vsp_comp_flush(vsp, true);
+		vsp_comp_flush(vsp);
 
 	return 0;
 }
@@ -973,7 +955,7 @@ WL_EXPORT struct v4l2_device_interface v4l2_device_interface = {
 	.begin_compose = vsp_comp_begin,
 	.finish_compose = vsp_comp_finish,
 	.draw_view = vsp_comp_set_view,
-	.flush = vsp_comp_flush,
+//	.flush = vsp_comp_flush,
 
 	.get_capabilities = vsp_get_capabilities,
 };

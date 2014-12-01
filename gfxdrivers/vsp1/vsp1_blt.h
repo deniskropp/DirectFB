@@ -12,7 +12,8 @@
 #define VSP1_SUPPORTED_DRAWINGFUNCTIONS  (DFXL_FILLRECTANGLE)
 
 #define VSP1_SUPPORTED_BLITTINGFLAGS     (DSBLIT_BLEND_ALPHACHANNEL | \
-                                          DSBLIT_BLEND_COLORALPHA)
+                                          DSBLIT_BLEND_COLORALPHA   | \
+                                          DSBLIT_SRC_PREMULTIPLY)
 
 #define VSP1_SUPPORTED_BLITTINGFUNCTIONS (DFXL_BLIT | DFXL_STRETCHBLIT)
 

@@ -11,6 +11,11 @@
 #include "vsp-renderer.h"
 
 
+#ifndef V4L2_PIX_FMT_FLAG_PREMUL_ALPHA
+#define V4L2_PIX_FMT_FLAG_PREMUL_ALPHA	0x00000001
+#endif
+
+
 typedef struct {
      /* state validation */
      int                      v_flags;
@@ -38,18 +43,32 @@ typedef struct {
 
      DFBColor                 color;
      DFBRegion                clip;
+
+     u32                      premul_alpha;
 } VSP1DeviceData;
 
 
 typedef struct {
-     DirectLink               link;
+     DirectLink                    link;
 
-     int                      magic;
+     int                           magic;
 
-     u32                      handle;
-     unsigned int             size;
-     void                    *mapped;
+     struct v4l2_renderer_output  *output;
+     int                           sources;
+
+     u32                           fd;
+     int                           pitch;
+     DFBDimension                  size;
 } VSP1Buffer;
+
+typedef struct {
+     int                          magic;
+     CoreSurface                 *surface;
+     CoreSurfaceBuffer           *buffer;
+     DFBSurfaceBufferID           buffer_id;
+     CoreSurfaceAllocation       *allocation;
+     CoreSurfaceBufferLock        lock;
+} VSP1FakeSource;
 
 typedef struct {
      VSP1DeviceData          *dev;
@@ -61,22 +80,23 @@ typedef struct {
      struct media_device     *media;
      char                    *device_name;
 
+
      void                    *vsp_renderer_data;
 
-     struct v4l2_renderer_output *output;
-     struct v4l2_surface_state   *source;
 
-     int                          sources;
+     bool                     idle;
 
-     CoreSurface                 *fake_source;
-     CoreSurfaceBuffer           *fake_source_buffer;
-     DFBSurfaceBufferID           fake_buffer_id;
-     CoreSurfaceAllocation       *fake_source_allocation;
-     CoreSurfaceBufferLock        fake_source_lock;
+
+     VSP1Buffer              *current;
+
+
+     VSP1FakeSource          *fake_sources[4];
+     int                      fake_source_index;
 
 
      DirectMutex              q_lock;
-     DirectWaitQueue          q_wait;
+     DirectWaitQueue          q_idle;
+     DirectWaitQueue          q_submit;
 
      DirectLink              *queue;
 

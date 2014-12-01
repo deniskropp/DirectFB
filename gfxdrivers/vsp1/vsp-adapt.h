@@ -146,9 +146,10 @@ struct v4l2_device_interface {
 	int (*attach_buffer)(struct v4l2_surface_state *vs);
 
 	void (*begin_compose)(struct v4l2_renderer_device *dev, struct v4l2_renderer_output *out);
+//	void (*finish_compose)(struct v4l2_renderer_device *dev, bool flush);
 	void (*finish_compose)(struct v4l2_renderer_device *dev);
 	int (*draw_view)(struct v4l2_renderer_device *dev, struct v4l2_surface_state *vs);
-	void (*flush)(struct v4l2_renderer_device *dev, bool flush);
+//	void (*flush)(struct v4l2_renderer_device *dev, bool dequeue);
 
 	uint32_t (*get_capabilities)(void);
 };
