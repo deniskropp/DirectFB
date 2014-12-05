@@ -1170,6 +1170,12 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND | SMF_RENDER_OPTIONS)) {
           /* ...force rechecking for all functions. */
           state->checked = DFXL_NONE;
+
+          if (state->destination->config.size.w < card->limits.dst_min.w || state->destination->config.size.h < card->limits.dst_min.h ||
+              state->destination->config.size.w > card->limits.dst_max.w || state->destination->config.size.h > card->limits.dst_max.h) {
+               fusion_skirmish_dismiss_multi( locks, num_locks );
+               return false;
+          }
      }
      else {
           /* If source/mask or blitting flags have been changed... */
@@ -1186,6 +1192,12 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
           if (state->modified & SMF_DRAWING_FLAGS) {
                /* ...force rechecking for all drawing functions. */
                state->checked &= ~DFXL_ALL_DRAW;
+          }
+
+          if (state->source->config.size.w < card->limits.dst_min.w || state->source->config.size.h < card->limits.dst_min.h ||
+              state->source->config.size.w > card->limits.dst_max.w || state->source->config.size.h > card->limits.dst_max.h) {
+               fusion_skirmish_dismiss_multi( locks, num_locks );
+               return false;
           }
      }
 
