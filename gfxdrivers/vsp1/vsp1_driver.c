@@ -63,18 +63,20 @@ vsp1_event_loop( DirectThread *thread,
 {
      VSP1DriverData *gdrv = arg;
 
-     while (0&&true) {
+     while (true) {
           VSP1Buffer *buffer;
 
-          D_DEBUG_AT( VSP1_Driver, "%s() waiting...\n", __FUNCTION__ );
+          D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
 
           direct_mutex_lock( &gdrv->q_lock );
 
           while (!gdrv->queue) {
                gdrv->idle = true;
 
+               D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
                direct_waitqueue_broadcast( &gdrv->q_idle );
 
+               D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
                direct_waitqueue_wait( &gdrv->q_submit, &gdrv->q_lock );
           }
 
@@ -84,11 +86,14 @@ vsp1_event_loop( DirectThread *thread,
 
           direct_list_remove( &gdrv->queue, gdrv->queue );
 
-          v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data );//, false );
+          D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
+          v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data, false );
 
+          D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
           direct_mutex_unlock( &gdrv->q_lock );
 
 
+          D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
           vsp1_buffer_finished( gdrv, gdrv->dev, buffer );
      }
 
@@ -398,6 +403,15 @@ driver_init_device( CoreGraphicsDevice *device,
      /* Set device limitations. */
      device_info->limits.surface_byteoffset_alignment = 512;
      device_info->limits.surface_bytepitch_alignment  = 512;
+
+     device_info->limits.dst_min.w = 4;
+     device_info->limits.dst_min.h = 4;
+     device_info->limits.dst_max.w = 8190;
+     device_info->limits.dst_max.h = 8190;
+     device_info->limits.src_min.w = 4;
+     device_info->limits.src_min.h = 4;
+     device_info->limits.src_max.w = 8190;
+     device_info->limits.src_max.h = 8190;
 
      /* Set device capabilities. */
      device_info->caps.flags    = 0;//CCF_CLIPPING;// | CCF_RENDEROPTS;

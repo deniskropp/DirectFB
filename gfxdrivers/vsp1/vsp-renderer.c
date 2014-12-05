@@ -955,7 +955,7 @@ WL_EXPORT struct v4l2_device_interface v4l2_device_interface = {
 	.begin_compose = vsp_comp_begin,
 	.finish_compose = vsp_comp_finish,
 	.draw_view = vsp_comp_set_view,
-//	.flush = vsp_comp_flush,
+	.flush = vsp_comp_flush,
 
 	.get_capabilities = vsp_get_capabilities,
 };

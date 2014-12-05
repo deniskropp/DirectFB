@@ -143,12 +143,12 @@ vsp1_buffer_create( VSP1DriverData  *gdrv,
      D_MAGIC_SET( buffer, VSP1Buffer );
 
 
-//     if (init) {
+     if (init) {
           D_DEBUG_AT( VSP1_BLT, "  -> drawing destination as background...\n" );
 
 //          vsp1_buffer_add_source( gdrv, gdev, buffer, fd, pitch, width, height, 0, 0, width, height, 0, 0, width, height );
           v4l2_device_interface.draw_view( gdrv->vsp_renderer_data, &((struct vsp_device*) (gdrv->vsp_renderer_data))->output_surface_state->base );
-//     }
+     }
 
 
      D_DEBUG_AT( VSP1_BLT, "  -> %p\n", buffer );
@@ -211,7 +211,7 @@ vsp1_buffer_add_source( VSP1DriverData     *gdrv,
 
      source->width        = width;
      source->height       = height;
-     source->pixel_format = V4L2_PIX_FMT_ABGR32;// | gdev->premul_alpha;
+     source->pixel_format = V4L2_PIX_FMT_ABGR32 | gdev->premul_alpha;
      source->bpp          = 4;
      source->num_planes   = 1;
 
@@ -260,12 +260,12 @@ vsp1_buffer_submit( VSP1DriverData *gdrv,
 
      D_ASSERT( gdrv->idle == true );
 
-     if (wait||1) { // FIXME
+     if (wait) {
           gdrv->idle = false;
 
           D_DEBUG_AT( VSP1_BLT, "  -> finish_compose()\n" );
 
-          v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data );//, true );
+          v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data, true );
 
           gdrv->idle = true;
 
@@ -276,9 +276,9 @@ vsp1_buffer_submit( VSP1DriverData *gdrv,
 
           D_DEBUG_AT( VSP1_BLT, "  -> flush()\n" );
 
-//          v4l2_device_interface.flush( gdrv->vsp_renderer_data );//, false );
-
           direct_list_append( &gdrv->queue, &buffer->link );
+
+          v4l2_device_interface.flush( gdrv->vsp_renderer_data, false );
 
           direct_waitqueue_broadcast( &gdrv->q_submit );
      }
@@ -322,13 +322,13 @@ static DFBResult
 vsp1GenSetup( VSP1DriverData *gdrv,
               VSP1DeviceData *gdev,
               bool            init,
-              bool            fake )
+              bool            fake,
+              int             width,
+              int             height )
 {
      DFBResult ret = DFB_OK;
      int       fd;
      int       pitch;
-     int       width;
-     int       height;
 
      D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
 
@@ -344,14 +344,10 @@ vsp1GenSetup( VSP1DriverData *gdrv,
 
           fd     = fake_source->lock.offset;
           pitch  = fake_source->lock.pitch;
-          width  = fake_source->allocation->config.size.w;
-          height = fake_source->allocation->config.size.h;
      }
      else {
           fd     = gdev->dst_fd;;
           pitch  = gdev->dst_pitch;
-          width  = gdev->dst_size.w;
-          height = gdev->dst_size.h;
      }
 
      if (gdrv->current) {
@@ -721,7 +717,7 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
 
      ret = vsp1GenSetup( gdrv, gdev,
                          dx > 0 || dy > 0 || (dx + dw) < gdev->dst_size.w || (dy + dh) < gdev->dst_size.h,
-                         false );
+                         false, gdev->dst_size.w, gdev->dst_size.h );
      if (ret) {
           direct_mutex_unlock( &gdrv->q_lock );
           return false;
@@ -814,14 +810,14 @@ vsp1GenBlit( void *drv, void *dev,
           if (scale <= 11.0f)
                break;
 
-          ret = vsp1GenSetup( gdrv, gdev, false, true );
+          int tw = (sw > dw) ? (sw / 11 + 1) : (sw * 11);
+          int th = (sh > dh) ? (sh / 11 + 1) : (sh * 11);
+
+          ret = vsp1GenSetup( gdrv, gdev, false, true, tw, th );
           if (ret) {
                direct_mutex_unlock( &gdrv->q_lock );
                return false;
           }
-
-          int tw = (sw > dw) ? (sw / 11 + 1) : (sw * 11);
-          int th = (sh > dh) ? (sh / 11 + 1) : (sh * 11);
 
           vsp1_buffer_add_source( gdrv, gdev, gdrv->current,
                                   src_fd, src_pitch, src_w, src_h,
@@ -829,8 +825,8 @@ vsp1GenBlit( void *drv, void *dev,
 
           src_fd    = gdrv->current->fd;
           src_pitch = gdrv->current->pitch;
-          src_w     = gdrv->current->size.w;
-          src_h     = gdrv->current->size.h;
+          src_w     = tw;
+          src_h     = th;
 
           vsp1GenFlush( gdrv, gdev, true );
 
@@ -843,7 +839,7 @@ vsp1GenBlit( void *drv, void *dev,
 
      ret = vsp1GenSetup( gdrv, gdev,
                          dx > 0 || dy > 0 || (dx + dw) < gdev->dst_size.w || (dy + dh) < gdev->dst_size.h,
-                         false );
+                         false, gdev->dst_size.w, gdev->dst_size.h );
      if (ret) {
           direct_mutex_unlock( &gdrv->q_lock );
           return false;
