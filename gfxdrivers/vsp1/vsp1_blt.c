@@ -124,6 +124,8 @@ vsp1_buffer_create( VSP1DriverData  *gdrv,
      buffer->size.w = width;
      buffer->size.h = height;
 
+     dfb_updates_init( &buffer->updates, buffer->updates_regions, D_ARRAY_SIZE(buffer->updates_regions) );
+
 
      D_DEBUG_AT( VSP1_BLT, "  -> setting output buffer... (fd %d)\n", fd );
 
@@ -147,7 +149,13 @@ vsp1_buffer_create( VSP1DriverData  *gdrv,
           D_DEBUG_AT( VSP1_BLT, "  -> drawing destination as background...\n" );
 
 //          vsp1_buffer_add_source( gdrv, gdev, buffer, fd, pitch, width, height, 0, 0, width, height, 0, 0, width, height );
+//
+//   OR:
+//
+
           v4l2_device_interface.draw_view( gdrv->vsp_renderer_data, &((struct vsp_device*) (gdrv->vsp_renderer_data))->output_surface_state->base );
+
+          buffer->sources++;
      }
 
 
@@ -175,6 +183,7 @@ vsp1_buffer_destroy( VSP1Buffer *buffer )
      D_MAGIC_ASSERT( buffer, VSP1Buffer );
 
      // FIXME: add deinit calls
+     dfb_updates_deinit( &buffer->updates );
 
      D_MAGIC_CLEAR( buffer );
 
@@ -238,6 +247,8 @@ vsp1_buffer_add_source( VSP1DriverData     *gdrv,
 
      source->alpha = (gdev->dflags & DSDRAW_BLEND) ? gdev->color.a / 255.0f : 1.0f;
 
+     dfb_updates_add_rect( &buffer->updates, dx, dy, dw, dh );
+
      v4l2_device_interface.draw_view( gdrv->vsp_renderer_data, source );
 
      buffer->sources++;
@@ -245,45 +256,30 @@ vsp1_buffer_add_source( VSP1DriverData     *gdrv,
 
 /**********************************************************************************************************************/
 
-void
+//D_UNUSED
+static void
 vsp1_buffer_submit( VSP1DriverData *gdrv,
                     VSP1DeviceData *gdev,
-                    VSP1Buffer     *buffer,
-                    bool            wait )
+                    VSP1Buffer     *buffer )
 {
      D_DEBUG_AT( VSP1_BLT, "%s( %p )\n", __FUNCTION__, buffer );
 
      D_MAGIC_ASSERT( buffer, VSP1Buffer );
 
 
-     direct_mutex_lock( &gdrv->q_lock );
-
      D_ASSERT( gdrv->idle == true );
 
-     if (wait) {
-          gdrv->idle = false;
+     gdrv->idle = false;
 
-          D_DEBUG_AT( VSP1_BLT, "  -> finish_compose()\n" );
+     D_DEBUG_AT( VSP1_BLT, "  -> flush()\n" );
 
-          v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data, true );
+     direct_list_append( &gdrv->queue, &buffer->link );
 
-          gdrv->idle = true;
+     D_ASSERT( buffer->updates.num_regions > 0 );
+     struct v4l2_rect r = { DFB_RECTANGLE_VALS_FROM_REGION( &buffer->updates.bounding ) };
+     v4l2_device_interface.flush( gdrv->vsp_renderer_data, &r );
 
-          direct_waitqueue_broadcast( &gdrv->q_idle );
-     }
-     else {
-          gdrv->idle = false;
-
-          D_DEBUG_AT( VSP1_BLT, "  -> flush()\n" );
-
-          direct_list_append( &gdrv->queue, &buffer->link );
-
-          v4l2_device_interface.flush( gdrv->vsp_renderer_data, false );
-
-          direct_waitqueue_broadcast( &gdrv->q_submit );
-     }
-
-     direct_mutex_unlock( &gdrv->q_lock );
+     direct_waitqueue_broadcast( &gdrv->q_submit );
 }
 
 void
@@ -298,13 +294,43 @@ vsp1_buffer_finished( VSP1DriverData *gdrv,
      vsp1_buffer_destroy( buffer );
 }
 
-void
-vsp1_wait_idle( VSP1DriverData *gdrv,
-                VSP1DeviceData *gdev )
+/**********************************************************************************************************************/
+/**********************************************************************************************************************/
+
+static DFBResult
+vsp1GenFlush( VSP1DriverData  *gdrv,
+              VSP1DeviceData  *gdev,
+              int              min_sources )
 {
      D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
 
-     direct_mutex_lock( &gdrv->q_lock );
+     min_sources = 1;
+
+     if (gdrv->current && gdrv->current->sources >= min_sources) {
+          D_DEBUG_AT( VSP1_BLT, "  -> submit...\n" );
+
+#if VSP1_USE_THREAD
+          vsp1_buffer_submit( gdrv, gdev, gdrv->current );
+#else
+          v4l2_device_interface.flush( gdrv->vsp_renderer_data );
+
+          v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data );
+          vsp1_buffer_finished( gdrv, gdrv->dev, gdrv->current );
+#endif
+
+          gdrv->current = NULL;
+     }
+     else
+          D_DEBUG_AT( VSP1_BLT, "  -> nothing to submit!\n" );
+
+     return DFB_OK;
+}
+
+static DFBResult
+vsp1GenWait( VSP1DriverData *gdrv,
+             VSP1DeviceData *gdev )
+{
+     D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
 
      while (!gdrv->idle) {
           D_DEBUG_AT( VSP1_BLT, "  -> waiting...\n" );
@@ -312,10 +338,11 @@ vsp1_wait_idle( VSP1DriverData *gdrv,
           direct_waitqueue_wait( &gdrv->q_idle, &gdrv->q_lock );
      }
 
-     direct_mutex_unlock( &gdrv->q_lock );
+     D_DEBUG_AT( VSP1_BLT, "  -> finished waiting from %s()\n", __FUNCTION__ );
+
+     return DFB_OK;
 }
 
-/**********************************************************************************************************************/
 /**********************************************************************************************************************/
 
 static DFBResult
@@ -331,8 +358,6 @@ vsp1GenSetup( VSP1DriverData *gdrv,
      int       pitch;
 
      D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
-
-     direct_mutex_lock( &gdrv->q_lock );
 
      if (fake) {
           VSP1FakeSource *fake_source;
@@ -351,25 +376,18 @@ vsp1GenSetup( VSP1DriverData *gdrv,
      }
 
      if (gdrv->current) {
-          if (gdrv->current->sources == 3 ||
-              gdrv->current->fd != fd ||
+          if (gdrv->current->fd != fd ||
               gdrv->current->pitch != pitch ||
               gdrv->current->size.w != width ||
               gdrv->current->size.h != height)
           {
                D_DEBUG_AT( VSP1_BLT, "  -> different destination\n" );
 
-               vsp1_buffer_submit( gdrv, gdev, gdrv->current, false );
-
-               gdrv->current = NULL;
+               vsp1GenFlush( gdrv, gdev, 1 );
           }
      }
 
-     while (!gdrv->idle) {
-          D_DEBUG_AT( VSP1_BLT, "  -> waiting...\n" );
-
-          direct_waitqueue_wait( &gdrv->q_idle, &gdrv->q_lock );
-     }
+     vsp1GenWait( gdrv, gdev );
 
      if (!gdrv->current) {
           D_DEBUG_AT( VSP1_BLT, "  -> creating new buffer...\n" );
@@ -377,41 +395,142 @@ vsp1GenSetup( VSP1DriverData *gdrv,
           ret = vsp1_buffer_create( gdrv, gdev, fd, pitch, width, height, init, &gdrv->current );
      }
 
-     direct_mutex_unlock( &gdrv->q_lock );
-
      return ret;
 }
 
-static DFBResult
-vsp1GenFlush( VSP1DriverData *gdrv,
-              VSP1DeviceData *gdev,
-              bool            wait )
+/**********************************************************************************************************************/
+
+static bool
+vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
 {
+     DFBResult       ret;
+     VSP1DriverData *gdrv = drv;
+     VSP1DeviceData *gdev = dev;
+     VSP1FakeSource *fake_source;
+     int             sw, sh;
+
      D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
 
-     direct_mutex_lock( &gdrv->q_lock );
+     sw = dw/11 + 1;
+     sh = dh/11 + 1;
 
-     if (gdrv->current && gdrv->current->sources) {
-          D_DEBUG_AT( VSP1_BLT, "  -> submit...\n" );
+     if (sw < 8)
+          sw = 8;
 
-          vsp1_buffer_submit( gdrv, gdev, gdrv->current, wait );
+     if (sh < 8)
+          sh = 8;
 
-          gdrv->current = NULL;
-     }
-     else
-          D_DEBUG_AT( VSP1_BLT, "  -> nothing to submit!\n" );
+     ret = vsp1GenSetup( gdrv, gdev,
+                         dx > 0 || dy > 0 || (dx + dw) < gdev->dst_size.w || (dy + dh) < gdev->dst_size.h,
+                         false, gdev->dst_size.w, gdev->dst_size.h );
+     if (ret)
+          return false;
 
-     if (wait) {
-          while (!gdrv->idle) {
-               D_DEBUG_AT( VSP1_BLT, "  -> waiting...\n" );
 
-               direct_waitqueue_wait( &gdrv->q_idle, &gdrv->q_lock );
+     fake_source = gdrv->fake_sources[gdrv->fake_source_index++];
+
+     if (gdrv->fake_source_index == 4)
+          gdrv->fake_source_index = 0;
+
+     u32 *ptr = fake_source->lock.addr;
+     int  x, y;
+
+     for (y=0; y<sh; y++) {
+          for (x=0; x<sw; x++) {
+               ptr[x+y*fake_source->lock.pitch/4] = PIXEL_ARGB( gdev->color.a, gdev->color.r, gdev->color.g, gdev->color.b );
           }
      }
 
-     direct_mutex_unlock( &gdrv->q_lock );
 
-     return DFB_OK;
+     vsp1_buffer_add_source( gdrv, gdev, gdrv->current, fake_source->lock.offset,
+                             fake_source->lock.pitch, sw, sh,
+                             0, 0, sw, sh, dx, dy, dw, dh );
+
+     vsp1GenFlush( gdrv, gdev, 2 );
+
+     return true;
+}
+
+static bool
+vsp1GenBlit( void *drv, void *dev,
+             int sx, int sy, int sw, int sh,
+             int dx, int dy, int dw, int dh,
+             int src_fd, int src_pitch, int src_w, int src_h )
+{
+     DFBResult       ret;
+     VSP1DriverData *gdrv = drv;
+     VSP1DeviceData *gdev = dev;
+     float           scale_w;
+     float           scale_h;
+     float           scale;
+
+     D_DEBUG_AT( VSP1_BLT, "%s( %d, %d - %dx%d <- %dx%d - %d, %d,  fd %d, pitch %d )\n", __FUNCTION__,
+                 dx, dy, dw, dh, sw, sh, sx, sy, src_fd, src_pitch );
+
+     while (true) {
+          if (dw > sw)
+               scale_w = (float) dw / (float) sw;
+          else
+               scale_w = (float) sw / (float) dw;
+
+          if (dh > sh)
+               scale_h = (float) dh / (float) sh;
+          else
+               scale_h = (float) sh / (float) dh;
+
+          scale = (scale_w > scale_h) ? scale_w : scale_h;
+
+          D_DEBUG_AT( VSP1_BLT, "  -> scale %f (%f, %f)\n", scale, scale_w, scale_h );
+
+          if (scale <= 11.0f)
+               break;
+
+          int tw = (sw > dw) ? (sw / 11 + 1) : (sw * 11);
+          int th = (sh > dh) ? (sh / 11 + 1) : (sh * 11);
+
+          ret = vsp1GenSetup( gdrv, gdev, false, true, tw, th );
+          if (ret)
+               return false;
+
+          vsp1_buffer_add_source( gdrv, gdev, gdrv->current,
+                                  src_fd, src_pitch, src_w, src_h,
+                                  sx, sy, sw, sh, 0, 0, tw, th );
+
+          src_fd    = gdrv->current->fd;
+          src_pitch = gdrv->current->pitch;
+          src_w     = tw;
+          src_h     = th;
+
+          vsp1GenFlush( gdrv, gdev, 1 );
+
+          sx = 0;
+          sy = 0;
+          sw = tw;
+          sh = th;
+     }
+
+
+     ret = vsp1GenSetup( gdrv, gdev,
+//                         dx > 0 || dy > 0 || (dx + dw) < gdev->dst_size.w || (dy + dh) < gdev->dst_size.h ||
+                         false, false, gdev->dst_size.w, gdev->dst_size.h );
+     if (ret)
+          return false;
+
+     if (gdev->bflags & DSBLIT_BLEND_ALPHACHANNEL) {
+          vsp1_buffer_add_source( gdrv, gdev, gdrv->current,
+                                  gdrv->current->fd, gdrv->current->pitch,
+                                  gdrv->current->size.w, gdrv->current->size.h,
+                                  dx, dy, dw, dh,
+                                  dx, dy, dw, dh );
+     }
+
+     vsp1_buffer_add_source( gdrv, gdev, gdrv->current,
+                             src_fd, src_pitch, src_w, src_h,
+                             sx, sy, sw, sh, dx, dy, dw, dh );
+
+     vsp1GenFlush( gdrv, gdev, (sw == dw && sh == dh) ? 4 : 1 );
+
+     return true;
 }
 
 /**********************************************************************************************************************/
@@ -470,7 +589,12 @@ vsp1EngineSync( void *drv, void *dev )
 
      D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
 
-     vsp1GenFlush( gdrv, gdev, true );
+     direct_mutex_lock( &gdrv->q_lock );
+
+     vsp1GenFlush( gdrv, gdev, 1 );
+     vsp1GenWait( gdrv, gdev );
+
+     direct_mutex_unlock( &gdrv->q_lock );
 
      return DFB_OK;
 }
@@ -483,7 +607,11 @@ vsp1EmitCommands( void *drv, void *dev )
 
      D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
 
-     vsp1GenFlush( gdrv, gdev, false );
+     direct_mutex_lock( &gdrv->q_lock );
+
+     vsp1GenFlush( gdrv, gdev, 1 );
+
+     direct_mutex_unlock( &gdrv->q_lock );
 }
 
 /**********************************************************************************************************************/
@@ -693,69 +821,14 @@ vsp1SetState( void                *drv,
 
 /**********************************************************************************************************************/
 
-static bool
-vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
-{
-     DFBResult       ret;
-     VSP1DriverData *gdrv = drv;
-     VSP1DeviceData *gdev = dev;
-     VSP1FakeSource *fake_source;
-     int             sw, sh;
-
-     D_DEBUG_AT( VSP1_BLT, "%s()\n", __FUNCTION__ );
-
-     sw = dw/11 + 1;
-     sh = dh/11 + 1;
-
-     if (sw < 8)
-          sw = 8;
-
-     if (sh < 8)
-          sh = 8;
-
-     direct_mutex_lock( &gdrv->q_lock );
-
-     ret = vsp1GenSetup( gdrv, gdev,
-                         dx > 0 || dy > 0 || (dx + dw) < gdev->dst_size.w || (dy + dh) < gdev->dst_size.h,
-                         false, gdev->dst_size.w, gdev->dst_size.h );
-     if (ret) {
-          direct_mutex_unlock( &gdrv->q_lock );
-          return false;
-     }
-
-
-     fake_source = gdrv->fake_sources[gdrv->fake_source_index++];
-
-     if (gdrv->fake_source_index == 4)
-          gdrv->fake_source_index = 0;
-
-     u32 *ptr = fake_source->lock.addr;
-     int  x, y;
-
-     for (y=0; y<sh; y++) {
-          for (x=0; x<sw; x++) {
-               ptr[x+y*fake_source->lock.pitch/4] = PIXEL_ARGB( gdev->color.a, gdev->color.r, gdev->color.g, gdev->color.b );
-          }
-     }
-
-
-     vsp1_buffer_add_source( gdrv, gdev, gdrv->current, fake_source->lock.offset,
-                             fake_source->lock.pitch, sw, sh,
-                             0, 0, sw, sh, dx, dy, dw, dh );
-
-     vsp1GenFlush( gdrv, gdev, true );
-
-     direct_mutex_unlock( &gdrv->q_lock );
-
-     return true;
-}
-
 /*
  * Render a filled rectangle using the current hardware state.
  */
 bool
 vsp1FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
+     bool            result;
+     VSP1DriverData *gdrv = drv;
      VSP1DeviceData *gdev = dev;
 
      D_DEBUG_AT( VSP1_BLT, "%s( %d, %d - %dx%d )\n", __FUNCTION__,
@@ -769,92 +842,16 @@ vsp1FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      if (rect->w * rect->h < 2048)
           return false;
 
-     return vsp1GenFill( drv, dev, rect->x, rect->y, rect->w, rect->h );
-}
-
-/**********************************************************************************************************************/
-
-static bool
-vsp1GenBlit( void *drv, void *dev,
-             int sx, int sy, int sw, int sh,
-             int dx, int dy, int dw, int dh,
-             int src_fd, int src_pitch, int src_w, int src_h )
-{
-     DFBResult       ret;
-     VSP1DriverData *gdrv = drv;
-     VSP1DeviceData *gdev = dev;
-     float           scale_w;
-     float           scale_h;
-     float           scale;
-
-     D_DEBUG_AT( VSP1_BLT, "%s( %d, %d - %dx%d <- %dx%d - %d, %d,  fd %d, pitch %d )\n", __FUNCTION__,
-                 dx, dy, dw, dh, sw, sh, sx, sy, src_fd, src_pitch );
-
      direct_mutex_lock( &gdrv->q_lock );
 
-     while (true) {
-          if (dw > sw)
-               scale_w = (float) dw / (float) sw;
-          else
-               scale_w = (float) sw / (float) dw;
-
-          if (dh > sh)
-               scale_h = (float) dh / (float) sh;
-          else
-               scale_h = (float) sh / (float) dh;
-
-          scale = (scale_w > scale_h) ? scale_w : scale_h;
-
-          D_DEBUG_AT( VSP1_BLT, "  -> scale %f (%f, %f)\n", scale, scale_w, scale_h );
-
-          if (scale <= 11.0f)
-               break;
-
-          int tw = (sw > dw) ? (sw / 11 + 1) : (sw * 11);
-          int th = (sh > dh) ? (sh / 11 + 1) : (sh * 11);
-
-          ret = vsp1GenSetup( gdrv, gdev, false, true, tw, th );
-          if (ret) {
-               direct_mutex_unlock( &gdrv->q_lock );
-               return false;
-          }
-
-          vsp1_buffer_add_source( gdrv, gdev, gdrv->current,
-                                  src_fd, src_pitch, src_w, src_h,
-                                  sx, sy, sw, sh, 0, 0, tw, th );
-
-          src_fd    = gdrv->current->fd;
-          src_pitch = gdrv->current->pitch;
-          src_w     = tw;
-          src_h     = th;
-
-          vsp1GenFlush( gdrv, gdev, true );
-
-          sx = 0;
-          sy = 0;
-          sw = tw;
-          sh = th;
-     }
-
-
-     ret = vsp1GenSetup( gdrv, gdev,
-                         dx > 0 || dy > 0 || (dx + dw) < gdev->dst_size.w || (dy + dh) < gdev->dst_size.h,
-                         false, gdev->dst_size.w, gdev->dst_size.h );
-     if (ret) {
-          direct_mutex_unlock( &gdrv->q_lock );
-          return false;
-     }
-
-     vsp1_buffer_add_source( gdrv, gdev, gdrv->current,
-                             src_fd, src_pitch, src_w, src_h,
-                             sx, sy, sw, sh, dx, dy, dw, dh );
-
-     vsp1GenFlush( gdrv, gdev, true );
+     result = vsp1GenFill( gdrv, gdev, rect->x, rect->y, rect->w, rect->h );
 
      direct_mutex_unlock( &gdrv->q_lock );
 
-     return true;
+     return result;
 }
+
+/**********************************************************************************************************************/
 
 /*
  * Blit a rectangle using the current hardware state.
@@ -862,6 +859,7 @@ vsp1GenBlit( void *drv, void *dev,
 bool
 vsp1Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
+     bool            result;
      VSP1DriverData *gdrv = drv;
      VSP1DeviceData *gdev = dev;
 
@@ -873,7 +871,13 @@ vsp1Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
           return false;
      }
 
-     return vsp1GenBlit( gdrv, gdev, rect->x, rect->y, rect->w, rect->h, dx, dy, rect->w, rect->h, gdev->src_fd, gdev->src_pitch, gdev->src_size.w, gdev->src_size.h );
+     direct_mutex_lock( &gdrv->q_lock );
+
+     result = vsp1GenBlit( gdrv, gdev, rect->x, rect->y, rect->w, rect->h, dx, dy, rect->w, rect->h, gdev->src_fd, gdev->src_pitch, gdev->src_size.w, gdev->src_size.h );
+
+     direct_mutex_unlock( &gdrv->q_lock );
+
+     return result;
 }
 
 /*
@@ -884,6 +888,7 @@ vsp1StretchBlit( void *drv, void *dev,
                  DFBRectangle *srect,
                  DFBRectangle *drect )
 {
+     bool            result;
      VSP1DriverData *gdrv = drv;
      VSP1DeviceData *gdev = dev;
 
@@ -892,6 +897,12 @@ vsp1StretchBlit( void *drv, void *dev,
           return false;
      }
 
-     return vsp1GenBlit( gdrv, gdev, srect->x, srect->y, srect->w, srect->h, drect->x, drect->y, drect->w, drect->h, gdev->src_fd, gdev->src_pitch, gdev->src_size.w, gdev->src_size.h );
+     direct_mutex_lock( &gdrv->q_lock );
+
+     result = vsp1GenBlit( gdrv, gdev, srect->x, srect->y, srect->w, srect->h, drect->x, drect->y, drect->w, drect->h, gdev->src_fd, gdev->src_pitch, gdev->src_size.w, gdev->src_size.h );
+
+     direct_mutex_unlock( &gdrv->q_lock );
+
+     return result;
 }
 

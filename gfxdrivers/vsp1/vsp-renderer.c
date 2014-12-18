@@ -55,6 +55,15 @@
 
 #include "vsp-renderer.h"
 
+
+#include <direct/debug.h>
+
+#include <directfb_util.h>
+
+
+D_DEBUG_DOMAIN( VSP1_Renderer, "VSP1/Renderer", "Renesas VSP1 Renderer" );
+
+
 const char *vsp_input_links[] = {
 	"'%s rpf.0':1 -> '%s bru':0",
 	"'%s rpf.1':1 -> '%s bru':1",
@@ -169,16 +178,17 @@ vsp_check_capabiility(int fd, const char *devname)
 		   (video_is_streaming(cap.device_caps) ? "w/" : "w/o"));
 }
 
+static int
+vsp_init_pipeline(struct vsp_device *vsp);
+
 static struct v4l2_renderer_device*
 vsp_init(struct media_device *media)
 {
 	struct vsp_device *vsp = NULL;
-	struct media_link *link;
 	struct media_entity *entity;
 	const struct media_device_info *info;
-	char buf[64], *p, *endp;
+	char buf[64], *p;
 	const char *device_name, *devname;
-	int i, j;
 	
 	/* Get device name */
 	info = media_get_info(media);
@@ -205,6 +215,48 @@ vsp_init(struct media_device *media)
 	if (!vsp->input_pads)
 		goto error;
 
+	vsp_init_pipeline( vsp );
+
+	/* get a file descriptor for the output */
+	snprintf(buf, sizeof(buf), vsp_output, device_name);
+	entity = media_get_entity_by_name(media, buf, strlen(buf));
+	if (!entity) {
+		weston_log("error... '%s' not found.\n", buf);
+		goto error;
+	}
+
+	devname = media_entity_get_devname(entity);
+	weston_log("output '%s' is associated with '%s'\n", buf, devname);
+	vsp->output_pad.fd = open(devname, O_RDWR);
+	if (vsp->output_pad.fd < 0) {
+		weston_log("error... can't open '%s'.\n", devname);
+		goto error;
+	}
+	vsp_check_capabiility(vsp->output_pad.fd, devname);
+
+	return (struct v4l2_renderer_device*)vsp;
+
+error:
+	if (vsp) {
+		if (vsp->input_pads)
+			free(vsp->input_pads);
+		free(vsp);
+	}
+	weston_log("VSP device init failed...\n");
+
+	return NULL;
+}
+
+static int
+vsp_init_pipeline(struct vsp_device *vsp)
+{
+	struct media_device *media = vsp->base.media;
+	struct media_link *link;
+	struct media_entity *entity;
+	char buf[64], *endp;
+	const char *device_name = vsp->base.device_name;
+	int i, j;
+	
 	/* Reset links */
 	if (media_reset_links(media)) {
 		weston_log("Reset media controller links failed.\n");
@@ -317,34 +369,16 @@ vsp_init(struct media_device *media)
 		}
 	}
 
-	/* get a file descriptor for the output */
-	snprintf(buf, sizeof(buf), vsp_output, device_name);
-	entity = media_get_entity_by_name(media, buf, strlen(buf));
-	if (!entity) {
-		weston_log("error... '%s' not found.\n", buf);
-		goto error;
-	}
-
-	devname = media_entity_get_devname(entity);
-	weston_log("output '%s' is associated with '%s'\n", buf, devname);
-	vsp->output_pad.fd = open(devname, O_RDWR);
-	if (vsp->output_pad.fd < 0) {
-		weston_log("error... can't open '%s'.\n", devname);
-		goto error;
-	}
-	vsp_check_capabiility(vsp->output_pad.fd, devname);
-
-	return (struct v4l2_renderer_device*)vsp;
+	return 0;
 
 error:
 	if (vsp) {
-		if (vsp->input_pads)
-			free(vsp->input_pads);
-		free(vsp);
+//		if (vsp->input_pads)
+//			free(vsp->input_pads);
 	}
-	weston_log("VSP device init failed...\n");
+	weston_log("VSP pipeline init failed...\n");
 
-	return NULL;
+	return -1;
 }
 
 static struct v4l2_surface_state*
@@ -404,6 +438,8 @@ vsp_set_format(int fd, struct v4l2_format *fmt)
 {
 	struct v4l2_format current_fmt;
 	int ret;
+
+	D_DEBUG_AT( VSP1_Renderer, "%s( fd %d )\n", __FUNCTION__, fd );
 
 	memset(&current_fmt, 0, sizeof(struct v4l2_format));
 	current_fmt.type = fmt->type;
@@ -527,6 +563,8 @@ vsp_dequeue_buffer(int fd, int capture)
 	struct v4l2_buffer buf;
 	struct v4l2_plane planes[VIDEO_MAX_PLANES];
 
+	D_DEBUG_AT( VSP1_Renderer, "%s( fd %d, capture %d )...\n", __FUNCTION__, fd, capture );
+
 	memset(&buf, 0, sizeof buf);
 	buf.type = (capture) ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
 	buf.memory = V4L2_MEMORY_DMABUF;
@@ -540,6 +578,8 @@ vsp_dequeue_buffer(int fd, int capture)
 		return -1;
 	}
 
+	D_DEBUG_AT( VSP1_Renderer, "  -> done\n" );
+
 	return 0;
 }
 
@@ -549,6 +589,8 @@ vsp_queue_buffer(int fd, int capture, struct vsp_surface_state *vs)
 	struct v4l2_buffer buf;
 	struct v4l2_plane planes[VIDEO_MAX_PLANES];
 	int i;
+
+	D_DEBUG_AT( VSP1_Renderer, "%s( fd %d, capture %d, state %p )\n", __FUNCTION__, fd, capture, vs );
 
 	memset(&buf, 0, sizeof buf);
 	buf.type = (capture) ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
@@ -573,6 +615,8 @@ static int
 vsp_request_buffer(int fd, int capture, int count)
 {
 	struct v4l2_requestbuffers reqbuf;
+
+	D_DEBUG_AT( VSP1_Renderer, "%s( fd %d, capture %d, count %d )\n", __FUNCTION__, fd, capture, count );
 
 	memset(&reqbuf, 0, sizeof(reqbuf));
 	reqbuf.type = (capture) ? V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE : V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
@@ -635,6 +679,8 @@ vsp_comp_setup_inputs(struct vsp_device *vsp, struct vsp_media_pad *mpad, struct
 {
 	struct v4l2_mbus_framefmt format;
 
+	D_DEBUG_AT( VSP1_Renderer, "%s( state %p, enable %d )\n", __FUNCTION__, vs, enable );
+
 	// enable link associated with this pad
 	if (!scaler) {
 		if (media_setup_link(vsp->base.media, mpad->link->source, mpad->link->sink, enable)) {
@@ -676,6 +722,18 @@ vsp_comp_setup_inputs(struct vsp_device *vsp, struct vsp_media_pad *mpad, struct
 		weston_log("setting alpha (=%f) failed.", vs->base.alpha);
 		return -1;
 	}
+#if 1
+	// set a crop paramters
+	if (v4l2_subdev_set_selection(mpad->infmt_pad->entity, &vs->base.src_rect, mpad->infmt_pad->index,
+				      V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE)) {
+		weston_log("set crop parameter failed: %dx%d@(%d,%d).\n",
+			   vs->base.src_rect.width, vs->base.src_rect.height,
+			   vs->base.src_rect.left, vs->base.src_rect.top);
+		return -1;
+	}
+#endif
+	format.width = vs->base.src_rect.width;
+	format.height = vs->base.src_rect.height;
 
 	// this is an output towards BRU. this shall be consistent among all inputs.
 	format.code = V4L2_MBUS_FMT_ARGB8888_1X32;
@@ -711,23 +769,13 @@ vsp_comp_setup_inputs(struct vsp_device *vsp, struct vsp_media_pad *mpad, struct
 		return -1;
 	}
 
-#if 0
-	// set a crop paramters
-	if (v4l2_subdev_set_selection(mpad->compose_pad->entity, &vs->base.src_rect, mpad->compose_pad->index,
-				      V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE)) {
-		weston_log("set crop parameter failed: %dx%d@(%d,%d).\n",
-			   vs->base.src_rect.width, vs->base.src_rect.height,
-			   vs->base.src_rect.left, vs->base.src_rect.top);
-		return -1;
-	}
-#endif
-
 	// set a composition paramters
-	if (v4l2_subdev_set_selection(mpad->compose_pad->entity, &vs->base.dst_rect, mpad->compose_pad->index,
+	struct v4l2_rect x = { 0, 0, vs->base.dst_rect.width, vs->base.dst_rect.height };
+	if (v4l2_subdev_set_selection(mpad->compose_pad->entity, &x, mpad->compose_pad->index,
 				      V4L2_SEL_TGT_COMPOSE, V4L2_SUBDEV_FORMAT_ACTIVE)) {
 		weston_log("set compose parameter failed: %dx%d@(%d,%d).\n",
-			   vs->base.dst_rect.width, vs->base.dst_rect.height,
-			   vs->base.dst_rect.left, vs->base.dst_rect.top);
+			   x.width, x.height,
+			   x.left, x.top);
 		return -1;
 	}
 
@@ -754,12 +802,16 @@ vsp_comp_setup_inputs(struct vsp_device *vsp, struct vsp_media_pad *mpad, struct
 }
 
 static int
-vsp_comp_flush(struct vsp_device *vsp)
+vsp_comp_flush_views(struct vsp_device *vsp, const struct v4l2_rect *clip)
 {
 	int i, fd;
 	int type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
 
+	D_DEBUG_AT( VSP1_Renderer, "%s()\n", __FUNCTION__ );
+
 	DBG("flush vsp composition.\n");
+
+	D_ASSERT( vsp->flushed == 0 );
 
 	// enable links and queue buffer
 	for (i = 0; i < vsp->input_count; i++)
@@ -793,6 +845,97 @@ vsp_comp_flush(struct vsp_device *vsp)
 		goto error;
 	}
 
+	vsp->flushed = 1;
+	return 0;
+
+error:
+	video_debug_mediactl();
+	vsp->input_count = 0;
+	return -1;
+}
+
+static void
+vsp_comp_flush(struct v4l2_renderer_device *dev, const struct v4l2_rect *clip)
+{
+	char buf[64];
+	struct vsp_device *vsp = (struct vsp_device*)dev;
+	struct media_pad *pad;
+	struct v4l2_mbus_framefmt format;
+
+	D_DEBUG_AT( VSP1_Renderer, "%s( " DFB_RECT_FORMAT " )\n", __FUNCTION__,
+		    clip->left, clip->top, clip->width, clip->height );
+
+	if (!vsp->flushed && vsp->input_count > 0) {
+		format.width  = clip->width;
+		format.height = clip->height;
+		format.code   = V4L2_MBUS_FMT_ARGB8888_1X32;
+
+
+		/* Set wpf.0:0 size */
+		snprintf(buf, sizeof(buf), "'%s wpf.0':0", vsp->base.device_name);
+		pad = media_parse_pad(vsp->base.media, buf, NULL);
+
+		if (v4l2_subdev_set_format(pad->entity, &format, pad->index, V4L2_SUBDEV_FORMAT_ACTIVE)) {
+			weston_log("wpf.0:0 set format failed: %dx%d.\n",
+					 clip->width, clip->height);
+		}
+
+
+		/* Set bru:4 size */
+		snprintf(buf, sizeof(buf), "'%s bru':4", vsp->base.device_name);
+		pad = media_parse_pad(vsp->base.media, buf, NULL);
+
+		if (v4l2_subdev_set_format(pad->entity, &format, pad->index, V4L2_SUBDEV_FORMAT_ACTIVE)) {
+			weston_log("bru:4 set format failed: %dx%d.\n",
+					 clip->width, clip->height);
+		}
+
+
+		/* Set wpf.0:0 crop */
+		snprintf(buf, sizeof(buf), "'%s wpf.0':0", vsp->base.device_name);
+		pad = media_parse_pad(vsp->base.media, buf, NULL);
+
+		struct v4l2_rect x = { 0, 0, clip->width, clip->height };
+		if (v4l2_subdev_set_selection(pad->entity, (struct v4l2_rect*) &x, pad->index,
+								V4L2_SEL_TGT_CROP, V4L2_SUBDEV_FORMAT_ACTIVE)) {
+			weston_log("wpf.0:0 set crop parameter failed: %dx%d@(%d,%d).\n",
+					 x.width, x.height,
+					 x.left, x.top);
+		}
+
+
+		/* Set wpf.0:1 compose (for offset) */
+		snprintf(buf, sizeof(buf), "'%s wpf.0':1", vsp->base.device_name);
+		pad = media_parse_pad(vsp->base.media, buf, NULL);
+
+		if (v4l2_subdev_set_selection(pad->entity, (struct v4l2_rect*) clip, pad->index,
+								V4L2_SEL_TGT_COMPOSE, V4L2_SUBDEV_FORMAT_ACTIVE)) {
+			weston_log("wpf.0:1 set compose parameter failed: %dx%d@(%d,%d).\n",
+					 clip->width, clip->height,
+					 clip->left, clip->top);
+		}
+
+
+		/* program rpf.0... */
+		vsp_comp_flush_views(vsp, clip);
+	}
+}
+
+static int
+vsp_comp_dequeue(struct vsp_device *vsp)
+{
+	int i, fd;
+	int type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+
+	D_DEBUG_AT( VSP1_Renderer, "%s()\n", __FUNCTION__ );
+
+	DBG("dequeue vsp composition.\n");
+
+	D_ASSERT( vsp->flushed == 1 );
+
+	// get an output pad
+	fd = vsp->output_pad.fd;
+
 	// dequeue buffer
 	if (vsp_dequeue_buffer(fd, 1) < 0)
 		goto error;
@@ -822,6 +965,7 @@ vsp_comp_flush(struct vsp_device *vsp)
 		}
 		vsp->scaler_count = 0;
 	}
+
 	vsp->input_count = 0;
 	return 0;
 
@@ -836,8 +980,15 @@ vsp_comp_finish(struct v4l2_renderer_device *dev)
 {
 	struct vsp_device *vsp = (struct vsp_device*)dev;
 
-	if (vsp->input_count > 0)
-		vsp_comp_flush(vsp);
+	D_DEBUG_AT( VSP1_Renderer, "%s()\n", __FUNCTION__ );
+
+//	vsp_comp_flush(dev);
+
+	if (vsp->flushed) {
+		vsp_comp_dequeue(vsp);
+
+		vsp->flushed = 0;
+	}
 
 	vsp->state = VSP_STATE_IDLE;
 	DBG("complete vsp composition.\n");
@@ -849,6 +1000,8 @@ vsp_comp_set_view(struct v4l2_renderer_device *dev, struct v4l2_surface_state *s
 {
 	struct vsp_device *vsp = (struct vsp_device*)dev;
 	struct vsp_surface_state *vs = (struct vsp_surface_state*)surface_state;
+
+	D_DEBUG_AT( VSP1_Renderer, "%s( state %p )\n", __FUNCTION__, surface_state );
 
 	if (vs->base.src_rect.width > 8190 || vs->base.src_rect.height > 8190) {
 		weston_log("ignoring the size exceeding the limit (8190x8190) < (%dx%d)\n", vs->base.src_rect.width, vs->base.src_rect.height);
@@ -908,7 +1061,8 @@ vsp_comp_set_view(struct v4l2_renderer_device *dev, struct v4l2_surface_state *s
 
 		// if all scalers are oocupied, flush and then retry.
 		if (vsp->scaler_count == vsp->scaler_max) {
-			vsp_comp_flush(vsp);
+		     D_BREAK("foo");
+			vsp_comp_flush_views(vsp, NULL);
 			return vsp_comp_set_view(dev, surface_state);
 		}
 
@@ -922,8 +1076,8 @@ vsp_comp_set_view(struct v4l2_renderer_device *dev, struct v4l2_surface_state *s
 
 	// check if we should flush now
 	vsp->input_count++;
-	if (vsp->input_count == vsp->input_max)
-		vsp_comp_flush(vsp);
+//	if (vsp->input_count == vsp->input_max)
+//		vsp_comp_flush_views(vsp);
 
 	return 0;
 }

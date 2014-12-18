@@ -146,16 +146,16 @@ struct v4l2_device_interface {
 	int (*attach_buffer)(struct v4l2_surface_state *vs);
 
 	void (*begin_compose)(struct v4l2_renderer_device *dev, struct v4l2_renderer_output *out);
-	void (*finish_compose)(struct v4l2_renderer_device *dev, bool flush);
-//	void (*finish_compose)(struct v4l2_renderer_device *dev);
+	void (*finish_compose)(struct v4l2_renderer_device *dev);
 	int (*draw_view)(struct v4l2_renderer_device *dev, struct v4l2_surface_state *vs);
-	void (*flush)(struct v4l2_renderer_device *dev, bool dequeue);
+
+	void (*flush)(struct v4l2_renderer_device *dev, const struct v4l2_rect *clip );
 
 	uint32_t (*get_capabilities)(void);
 };
 
-#define weston_log            printf
-#define weston_log_continue   printf
+#define weston_log            d_printf
+#define weston_log_continue   d_printf
 
 #define WL_EXPORT
 

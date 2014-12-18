@@ -63,21 +63,26 @@ vsp1_event_loop( DirectThread *thread,
 {
      VSP1DriverData *gdrv = arg;
 
-     while (true) {
-          VSP1Buffer *buffer;
+     D_DEBUG_AT( VSP1_Driver, "%s()\n", __FUNCTION__ );
 
-          D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
+     while (!gdrv->quit) {
+          VSP1Buffer *buffer;
 
           direct_mutex_lock( &gdrv->q_lock );
 
           while (!gdrv->queue) {
                gdrv->idle = true;
 
-               D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
                direct_waitqueue_broadcast( &gdrv->q_idle );
 
-               D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
+               D_DEBUG_AT( VSP1_Driver, "%s() waiting for submit...\n", __FUNCTION__ );
+
                direct_waitqueue_wait( &gdrv->q_submit, &gdrv->q_lock );
+
+               if (gdrv->quit) {
+                    direct_mutex_unlock( &gdrv->q_lock );
+                    return NULL;
+               }
           }
 
           buffer = (VSP1Buffer*) gdrv->queue;
@@ -86,14 +91,15 @@ vsp1_event_loop( DirectThread *thread,
 
           direct_list_remove( &gdrv->queue, gdrv->queue );
 
-          D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
-          v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data, false );
+          D_DEBUG_AT( VSP1_Driver, "%s() found submit, waiting for finish...\n", __FUNCTION__ );
 
-          D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
+          v4l2_device_interface.finish_compose( gdrv->vsp_renderer_data );
+
           direct_mutex_unlock( &gdrv->q_lock );
 
 
-          D_DEBUG_AT( VSP1_Driver, "%s() waiting... %d\n", __FUNCTION__, __LINE__ );
+          D_DEBUG_AT( VSP1_Driver, "%s() finished, freeing buffer...\n", __FUNCTION__ );
+
           vsp1_buffer_finished( gdrv, gdrv->dev, buffer );
      }
 
@@ -214,7 +220,7 @@ static int
 driver_probe( CoreGraphicsDevice *device )
 {
      struct media_device            *media;
-     char                           *device_filename;
+     char                           *device_filename = "/dev/media0";
      const char                     *device_name;
 	const struct media_device_info *info;
      char                           *p;
@@ -230,7 +236,7 @@ driver_probe( CoreGraphicsDevice *device )
           return 1;
 
      /* Initialize V4L2 media controller */
-     media = media_device_new( "/dev/media0" );
+     media = media_device_new( device_filename );
      if (!media)
           return 0;
 
@@ -291,7 +297,7 @@ driver_init_driver( CoreGraphicsDevice  *device,
      VSP1DriverData                 *gdrv = driver_data;
 	const struct media_device_info *info;
      int                             num;
-     char                           *device_filename;
+     char                           *device_filename = "/dev/media0";
 	char                           *p;
 
      D_DEBUG_AT( VSP1_Driver, "%s()\n", __FUNCTION__ );
@@ -302,6 +308,8 @@ driver_init_driver( CoreGraphicsDevice  *device,
      /* Keep core and device pointer. */
      gdrv->core   = core;
      gdrv->device = device;
+
+     gdrv->idle   = true;
 
      /* Determine filename of v4l device */
      if (direct_config_get( "vsp1-device", &device_filename, 1, &num ) || num == 0)
@@ -426,7 +434,9 @@ driver_init_device( CoreGraphicsDevice *device,
                goto error;
      }
 
+#if VSP1_USE_THREAD
      gdrv->event_thread = direct_thread_create( DTT_CRITICAL, vsp1_event_loop, gdrv, "VSP1 Queue" );
+#endif
 
      return DFB_OK;
 
@@ -446,15 +456,22 @@ driver_close_device( CoreGraphicsDevice *device,
                      void               *device_data )
 {
      VSP1DriverData *gdrv = driver_data;
-     VSP1DeviceData *gdev = device_data;
 
      D_DEBUG_AT( VSP1_Driver, "%s()\n", __FUNCTION__ );
 
-     vsp1_wait_idle( gdrv, gdev );
+#if VSP1_USE_THREAD
+     direct_mutex_lock( &gdrv->q_lock );
+
+     gdrv->quit = true;
+
+     direct_waitqueue_broadcast( &gdrv->q_submit );
+
+     direct_mutex_unlock( &gdrv->q_lock );
 
 
      direct_thread_join( gdrv->event_thread );
      direct_thread_destroy( gdrv->event_thread );
+#endif
 
 
      /* Shutdown V4L2 media controller */

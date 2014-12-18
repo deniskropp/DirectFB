@@ -145,6 +145,8 @@ struct vsp_device {
 	int scaler_count;
 	int scaler_max;
 	struct vsp_scaler scalers[VSP_SCALER_MAX];
+
+	int flushed;
 };
 
 
