@@ -420,11 +420,6 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
      if (sh < 8)
           sh = 8;
 
-     ret = vsp1GenSetup( gdrv, gdev,
-                         dx > 0 || dy > 0 || (dx + dw) < gdev->dst_size.w || (dy + dh) < gdev->dst_size.h,
-                         false, gdev->dst_size.w, gdev->dst_size.h );
-     if (ret)
-          return false;
 
 
      fake_source = gdrv->fake_sources[gdrv->fake_source_index++];
@@ -441,6 +436,20 @@ vsp1GenFill( void *drv, void *dev, int dx, int dy, int dw, int dh )
           }
      }
 
+
+     ret = vsp1GenSetup( gdrv, gdev,
+//                         dx > 0 || dy > 0 || (dx + dw) < gdev->dst_size.w || (dy + dh) < gdev->dst_size.h,
+                         false, false, gdev->dst_size.w, gdev->dst_size.h );
+     if (ret)
+          return false;
+
+     if (gdev->dflags & DSDRAW_BLEND) {
+          vsp1_buffer_add_source( gdrv, gdev, gdrv->current,
+                                  gdrv->current->fd, gdrv->current->pitch,
+                                  gdrv->current->size.w, gdrv->current->size.h,
+                                  dx, dy, dw, dh,
+                                  dx, dy, dw, dh );
+     }
 
      vsp1_buffer_add_source( gdrv, gdev, gdrv->current, fake_source->lock.offset,
                              fake_source->lock.pitch, sw, sh,
