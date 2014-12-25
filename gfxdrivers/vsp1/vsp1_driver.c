@@ -422,7 +422,7 @@ driver_init_device( CoreGraphicsDevice *device,
      device_info->limits.src_max.h = 8190;
 
      /* Set device capabilities. */
-     device_info->caps.flags    = 0;//CCF_CLIPPING;// | CCF_RENDEROPTS;
+     device_info->caps.flags    = CCF_NOTRIEMU;//CCF_CLIPPING;// | CCF_RENDEROPTS;
      device_info->caps.accel    = VSP1_SUPPORTED_DRAWINGFUNCTIONS | \
                                   VSP1_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = VSP1_SUPPORTED_DRAWINGFLAGS;
