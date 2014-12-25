@@ -1605,6 +1605,8 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
           if (!dfb_config->task_manager &&
               dfb_gfxcard_state_check_acquire( state, DFXL_FILLRECTANGLE ))
           {
+               D_DEBUG_AT( Core_GraphicsOps, "  -> hw, no task manager\n" );
+
                /*
                 * Now everything is prepared for execution of the
                 * FillRectangle driver function.
@@ -1619,16 +1621,19 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
                     if (rect.w > card->limits.dst_max.w || rect.h > card->limits.dst_max.h) {
                          dfb_clip_rectangle( &state->clip, &rect );
 
-                         if (rect.w > card->limits.dst_max.w || rect.h > card->limits.dst_max.h)
+                         if (rect.w > card->limits.dst_max.w || rect.h > card->limits.dst_max.h) {
+                              D_DEBUG_AT( Core_GraphicsOps, "  -> driver limits prevent hw operation\n" );
                               break;
+                         }
                     }
                     else if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
                              !D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLRECTANGLE ))
                          dfb_clip_rectangle( &state->clip, &rect );
 
-                    if (!card->funcs.FillRectangle( card->driver_data,
-                                                    card->device_data, &rect ))
+                    if (!card->funcs.FillRectangle( card->driver_data, card->device_data, &rect )) {
+                         D_DEBUG_AT( Core_GraphicsOps, "  -> driver returned false\n" );
                          break;
+                    }
                }
 
                /* Release after state acquisition. */
@@ -1636,6 +1641,8 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
           }
 
           if (i < num) {
+               D_DEBUG_AT( Core_GraphicsOps, "  -> using software fallback\n" );
+
                /* Use software fallback. */
                if (!(state->render_options & DSRO_MATRIX)) {
                     if (gAcquire( state, DFXL_FILLRECTANGLE )) {
@@ -2270,6 +2277,8 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
      if (!dfb_config->task_manager &&
          dfb_gfxcard_state_check_acquire( state, DFXL_FILLTRIANGLE ))
      {
+          D_DEBUG_AT( Core_GraphicsOps, "  -> hw, no task manager\n" );
+
           if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ) &&
               !D_FLAGS_IS_SET( card->caps.clip, DFXL_FILLTRIANGLE ))
           {
@@ -2287,16 +2296,22 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
                          tri.x3 = p[2].x; tri.y3 = p[2].y;
                          hw = card->funcs.FillTriangle( card->driver_data,
                                                         card->device_data, &tri );
-                         if (!hw)
+                         if (!hw) {
+                              D_DEBUG_AT( Core_GraphicsOps, "  -> driver returned false\n" );
                               break;
+                         }
 
                          /* FIXME: return value. */
                          for (j = 3; j < n; j++) {
                               tri.x1 = p[0].x;   tri.y1 = p[0].y;
                               tri.x2 = p[j-1].x; tri.y2 = p[j-1].y;
                               tri.x3 = p[j].x;   tri.y3 = p[j].y;
-                              card->funcs.FillTriangle( card->driver_data,
-                                                        card->device_data, &tri );
+                              hw = card->funcs.FillTriangle( card->driver_data,
+                                                             card->device_data, &tri );
+                              if (!hw) {
+                                   D_DEBUG_AT( Core_GraphicsOps, "  -> driver returned false\n" );
+                                   break;
+                              }
                          }
                     }
                }
@@ -2307,8 +2322,10 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
 
                     hw = card->funcs.FillTriangle( card->driver_data,
                                                    card->device_data, &tri );
-                    if (!hw)
+                    if (!hw) {
+                         D_DEBUG_AT( Core_GraphicsOps, "  -> driver returned false\n" );
                          break;
+                    }
                }
 
           }
@@ -2317,6 +2334,8 @@ void dfb_gfxcard_filltriangles( const DFBTriangle *tris, int num, CardState *sta
      }
 
      if (!hw && i < num) {
+          D_DEBUG_AT( Core_GraphicsOps, "  -> using software fallback\n" );
+
           /* otherwise use the spanline rasterizer (fill_tri)
              and fill the triangle using a rectangle for each spanline */
 
