@@ -789,7 +789,7 @@ Initialize( Test   *test,
       * Create the primary surface
       */
      dsc.flags = DSDESC_CAPS;
-     dsc.caps  = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
+     dsc.caps  = DSCAPS_PRIMARY | DSCAPS_FLIPPING | DSCAPS_GL;
 
      ret = test->dfb->CreateSurface( test->dfb, &dsc, &test->primary );
      if (ret) {
