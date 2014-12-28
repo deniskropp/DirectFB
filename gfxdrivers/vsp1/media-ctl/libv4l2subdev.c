@@ -39,6 +39,12 @@
 #include "tools.h"
 #include "v4l2subdev.h"
 
+#include <direct/debug.h>
+#include <directfb_util.h>
+
+D_DEBUG_DOMAIN( VSP1_V4L2, "VSP1/V4L2", "Renesas VSP1 V4L2 calls" );
+
+
 int v4l2_subdev_open(struct media_entity *entity)
 {
 	if (entity->fd != -1)
@@ -157,6 +163,9 @@ int v4l2_subdev_set_selection(struct media_entity *entity,
 		struct v4l2_subdev_crop crop;
 	} u;
 	int ret;
+
+	D_DEBUG_AT( VSP1_V4L2, "%s( " DFB_RECT_FORMAT ", pad %u, target %u )\n", __FUNCTION__,
+		       rect->left, rect->top, rect->width, rect->height, pad, target );
 
 	ret = v4l2_subdev_open(entity);
 	if (ret < 0)
@@ -529,6 +538,9 @@ static int set_format(struct media_pad *pad,
 		      struct v4l2_mbus_framefmt *format)
 {
 	int ret;
+
+	D_DEBUG_AT( VSP1_V4L2, "%s( %ux%u, '%s' )\n", __FUNCTION__,
+			  format->width, format->height, pad->entity->devname );
 
 	if (format->width == 0 || format->height == 0)
 		return 0;

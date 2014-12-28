@@ -6,6 +6,9 @@
 #include "vsp1_types.h"
 
 
+// define 0 or 1
+#define VSP1_USE_THREAD	1
+
 
 #define VSP1_SUPPORTED_DRAWINGFLAGS      (DSDRAW_BLEND)
 

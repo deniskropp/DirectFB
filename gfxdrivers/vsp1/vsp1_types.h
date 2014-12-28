@@ -16,6 +16,21 @@
 #endif
 
 
+
+/*
+ 
+ 
+     vsp1GenBlit()
+ 
+          vsp1GenSetup()
+ 
+      
+ 
+ 
+*/
+
+
+
 typedef struct {
      /* state validation */
      int                      v_flags;
@@ -59,6 +74,9 @@ typedef struct {
      u32                           fd;
      int                           pitch;
      DFBDimension                  size;
+
+     DFBUpdates			   updates;
+     DFBRegion			   updates_regions[4];
 } VSP1Buffer;
 
 typedef struct {
@@ -85,6 +103,7 @@ typedef struct {
 
 
      bool                     idle;
+     bool                     quit;
 
 
      VSP1Buffer              *current;
