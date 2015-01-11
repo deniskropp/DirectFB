@@ -233,6 +233,7 @@ public:
                EGL_BLUE_SIZE,       0,
                EGL_DEPTH_SIZE,      depth ? 16 : 0,
                EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+               EGL_SURFACE_TYPE,    0,
                EGL_NONE
           };
 
