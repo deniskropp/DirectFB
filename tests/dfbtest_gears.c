@@ -844,7 +844,7 @@ InitGL( Test *test )
           EGL_RED_SIZE,        0,
           EGL_GREEN_SIZE,      0,
           EGL_RED_SIZE,        0,
-          //EGL_SURFACE_TYPE,    0,
+          EGL_SURFACE_TYPE,    0,
           EGL_DEPTH_SIZE,      16,
           EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
           EGL_NONE
@@ -876,7 +876,7 @@ InitGL( Test *test )
 
 
      // get configs
-     EGL_CHECK(!eglGetConfigs(display, configs, 2, &nconfigs))
+//     EGL_CHECK(!eglGetConfigs(display, configs, 2, &nconfigs))
 
      // choose config
      EGL_CHECK(!eglChooseConfig(display, attribs, configs, 2, &nconfigs))
