@@ -346,8 +346,30 @@ Display::ChooseConfig( const EGLint *attrib_list, Config **confs, EGLint config_
                return EGLTLS.Get()->GetError();   // FIXME: avoid double SetError by using TLS more intelligently
           }
 
-          for (EGLint i=0; i<(EGLint) configs.size() && i < config_size; i++)
+          for (EGLint i=0; i<(EGLint) configs.size() && i < config_size; i++) {
                confs[i] = configs[i];
+
+               Direct::String v;
+
+               confs[i]->gfx_config->DumpValues( {
+                    "BUFFER_SIZE",
+                    "ALPHA_SIZE",
+                    "RED_SIZE",
+                    "GREEN_SIZE",
+                    "BLUE_SIZE",
+                    "DEPTH_SIZE",
+                    "STENCIL_SIZE",
+                    "NATIVE_VISUAL_ID",
+                    "NATIVE_VISUAL_TYPE",
+                    "NATIVE_RENDERABLE",
+                    "RENDERABLE_TYPE",
+                    "SURFACE_TYPE",
+                    "COLOR_BUFFER_TYPE",
+                    "CONFIG_ID",
+                    }, v );
+
+               D_INFO( "EGLDisplay: Choose EGLConfig %p %s\n", confs[i], *v );
+          }
      }
 
      return EGL_SUCCESS;
