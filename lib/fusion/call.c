@@ -79,14 +79,74 @@ typedef struct {
 
 static DirectTLS call_tls_key;
 
+DirectResult
+flush_calls( FusionWorld *world, int lock, CallTLS *call_tls )
+{
+     DirectResult  ret = DR_OK;
+
+     D_DEBUG_AT( Fusion_Call, "%s( %p, lock %d )\n", __FUNCTION__, world, lock );
+
+     if (call_tls->bins_num > 0) {
+#if D_DEBUG_ENABLED
+          D_DEBUG_AT( Fusion_Call, "  -> num %d, length %u\n", call_tls->bins_num, call_tls->bins_data_len );
+
+          if (direct_log_domain_check( &Fusion_Call )) {
+               int i;
+
+               for (i=0; i<call_tls->bins_num; i++) {
+                    D_DEBUG_AT( Fusion_Call, "  -> [%2d] call_id 0x%08x, call_arg %3d, length %3u, flasg 0x%08x\n", i,
+                                call_tls->bins[i].call_id,
+                                call_tls->bins[i].call_arg,
+                                call_tls->bins[i].length,
+                                call_tls->bins[i].flags );
+               }
+          }
+#endif
+
+          if (call_tls->dispatcher) {
+               D_DEBUG_AT( Fusion_Call, "  -> I AM THE DISPATCHER, NOT FLUSHING\n" );
+               D_WARN("no flush in dispatcher");
+               return DR_OK;
+          }
+
+          call_tls->bins[call_tls->bins_num - 1].flags &= ~(FCEF_FOLLOW | FCEF_QUEUE);
+
+          while (ioctl( world->fusion_fd, FUSION_CALL_EXECUTE3, call_tls->bins )) {
+               switch (errno) {
+                    case EINTR:
+                         continue;
+                    case EINVAL:
+                         D_ERROR ("Fusion/Call: invalid call (id 0x%08x)\n", call_tls->bins[0].call_id);
+                         ret = DR_INVARG;
+                         break;
+                    case EIDRM:
+                         D_ERROR ("Fusion/Call: call got destroyed (id 0x%08x)\n", call_tls->bins[0].call_id);
+                         ret = DR_DESTROYED;
+                         break;
+                    default:
+                         break;
+               }
+
+               D_PERROR ("FUSION_CALL_EXECUTE3 (num %d, len %d)", call_tls->bins_num, call_tls->bins_data_len );
+
+               ret = DR_FAILURE;
+               break;
+          }
+
+          call_tls->bins_num      = 0;
+          call_tls->bins_data_len = 0;
+     }
+
+     return ret;
+}
+
 static void
 call_tls_destroy( void *arg )
 {
      CallTLS *call_tls = arg;
-
      D_MAGIC_ASSERT( call_tls, CallTLS );
 
-     fusion_world_flush_calls( call_tls->world, 0 );
+     flush_calls( call_tls->world, 0, call_tls );
 
      D_ASSUME( call_tls->bins_num == 0 );
 
@@ -600,65 +660,13 @@ fusion_call_execute3(FusionCall          *call,
 DirectResult
 fusion_world_flush_calls( FusionWorld *world, int lock )
 {
-     DirectResult  ret = DR_OK;
-     CallTLS      *call_tls;
+     CallTLS *call_tls;
 
      call_tls = Call_GetTLS( world );
 
      D_DEBUG_AT( Fusion_Call, "%s( %p, lock %d )\n", __FUNCTION__, world, lock );
 
-     if (call_tls->bins_num > 0) {
-#if D_DEBUG_ENABLED
-          D_DEBUG_AT( Fusion_Call, "  -> num %d, length %u\n", call_tls->bins_num, call_tls->bins_data_len );
-
-          if (direct_log_domain_check( &Fusion_Call )) {
-               int i;
-
-               for (i=0; i<call_tls->bins_num; i++) {
-                    D_DEBUG_AT( Fusion_Call, "  -> [%2d] call_id 0x%08x, call_arg %3d, length %3u, flasg 0x%08x\n", i,
-                                call_tls->bins[i].call_id,
-                                call_tls->bins[i].call_arg,
-                                call_tls->bins[i].length,
-                                call_tls->bins[i].flags );
-               }
-          }
-#endif
-
-          if (call_tls->dispatcher) {
-               D_DEBUG_AT( Fusion_Call, "  -> I AM THE DISPATCHER, NOT FLUSHING\n" );
-               D_WARN("no flush in dispatcher");
-               return DR_OK;
-          }
-
-          call_tls->bins[call_tls->bins_num - 1].flags &= ~(FCEF_FOLLOW | FCEF_QUEUE);
-
-          while (ioctl( world->fusion_fd, FUSION_CALL_EXECUTE3, call_tls->bins )) {
-               switch (errno) {
-                    case EINTR:
-                         continue;
-                    case EINVAL:
-                         D_ERROR ("Fusion/Call: invalid call (id 0x%08x)\n", call_tls->bins[0].call_id);
-                         ret = DR_INVARG;
-                         break;
-                    case EIDRM:
-                         D_ERROR ("Fusion/Call: call got destroyed (id 0x%08x)\n", call_tls->bins[0].call_id);
-                         ret = DR_DESTROYED;
-                         break;
-                    default:
-                         break;
-               }
-
-               D_PERROR ("FUSION_CALL_EXECUTE3 (num %d, len %d)", call_tls->bins_num, call_tls->bins_data_len );
-
-               ret = DR_FAILURE;
-               break;
-          }
-
-          call_tls->bins_num      = 0;
-          call_tls->bins_data_len = 0;
-     }
-
-     return ret;
+     return flush_calls( world, lock, call_tls );
 }
 
 DirectResult
