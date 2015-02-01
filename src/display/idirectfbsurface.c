@@ -155,6 +155,8 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      D_ASSERT( data != NULL );
      D_ASSERT( data->children_data == NULL );
 
+     D_DEBUG_AT( Surface, "  -> flushing graphics state...\n" );
+
      if (data->memory_permissions_count) {
           // FIXME: currently just enough for df_dok
           CoreGraphicsStateClient_FlushCurrent( 1 );
@@ -166,8 +168,11 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      else
           CoreGraphicsStateClient_FlushCurrent( 0 );
 
-     if (data->surface_client)
+     if (data->surface_client) {
+          D_DEBUG_AT( Surface, "  -> releasing surface client...\n" );
+
           dfb_surface_client_unref( data->surface_client );
+     }
 
      parent = data->parent;
      if (parent) {
@@ -199,12 +204,20 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      dfb_state_destroy( &data->state );
 
-     if (data->font)
+     if (data->font) {
+          D_DEBUG_AT( Surface, "  -> releasing font...\n" );
+
           data->font->Release( data->font );
+     }
 
      if (data->surface) {
-          if (data->locked)
+          if (data->locked) {
+               D_DEBUG_AT( Surface, "  -> unlocking buffer...\n" );
+
                dfb_surface_unlock_buffer( data->surface, &data->lock );
+          }
+
+          D_DEBUG_AT( Surface, "  -> releasing surface...\n" );
 
           dfb_surface_unref( data->surface );
      }
@@ -218,8 +231,13 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 
-     if (parent)
+     if (parent) {
+          D_DEBUG_AT( Surface, "  -> releasing parent...\n" );
+
           parent->Release( parent );
+     }
+
+     D_DEBUG_AT( Surface, "  -> done.\n" );
 }
 
 static DirectResult
@@ -3642,6 +3660,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->state.modified = SMF_ALL;
 
      data->src_eye = DSSE_LEFT;
+
+     D_DEBUG_AT( Surface, "  -> initializing CoreGraphicsStateClient...\n" );
 
      ret = CoreGraphicsStateClient_Init( &data->state_client, &data->state );
      if (ret)
