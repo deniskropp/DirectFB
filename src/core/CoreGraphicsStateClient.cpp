@@ -273,12 +273,14 @@ public:
           client( client ),
           last_cookie(0)
      {
-          dfb_graphics_state_attach( client->gfx_state, CoreGraphicsStateClient_Reaction, this, &gfx_reaction );
+          if (client->gfx_state)
+               dfb_graphics_state_attach( client->gfx_state, CoreGraphicsStateClient_Reaction, this, &gfx_reaction );
      }
 
      virtual ~CoreGraphicsStateClientPrivate()
      {
-          dfb_graphics_state_detach( client->gfx_state, &gfx_reaction );
+          if (client->gfx_state)
+               dfb_graphics_state_detach( client->gfx_state, &gfx_reaction );
      }
 
      void handleDone( u32 cookie )
@@ -328,6 +330,22 @@ CoreGraphicsStateClient_Reaction( const void *msg_data,
 }
 
 
+static DFBResult
+CoreGraphicsStateClient_init_state( CoreGraphicsStateClient *client )
+{
+     DFBResult ret;
+
+     if (!client->gfx_state) {
+          ret = ::CoreDFB_CreateState( client->core, &client->gfx_state );
+          if (ret)
+               return ret;
+
+          D_DEBUG_AT( Core_GraphicsStateClient, "  -> gfxstate id 0x%x\n", client->gfx_state->object.ref.multi.id );
+     }
+
+     return DFB_OK;
+}
+
 DFBResult
 CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
                               CardState               *state )
@@ -347,19 +365,21 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
      client->requestor = NULL;
      client->throttle  = NULL;
 
-     ret = CoreDFB_CreateState( state->core, &client->gfx_state );
-     if (ret)
-          return ret;
-
-     D_DEBUG_AT( Core_GraphicsStateClient, "  -> gfxstate id 0x%x\n", client->gfx_state->object.ref.multi.id );
-
      if (dfb_config->task_manager) {
           if (dfb_config->call_nodirect) {
                if (direct_thread_get_tid( direct_thread_self() ) == fusion_dispatcher_tid(state->core->world)) {
+                    ret = CoreGraphicsStateClient_init_state( client );
+                    if (ret)
+                         return ret;
+
                     client->renderer = new DirectFB::Renderer( client->state, client->gfx_state );
                }
           }
           else if (!fusion_config->secure_fusion || dfb_core_is_master( client->core )) {
+               ret = CoreGraphicsStateClient_init_state( client );
+               if (ret)
+                    return ret;
+
                client->renderer = new DirectFB::Renderer( client->state, client->gfx_state );
                client->throttle = new ThrottleBlocking( *client->renderer );
                client->renderer->SetThrottle( client->throttle );
@@ -370,6 +390,10 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
          !(!dfb_config->call_nodirect &&
            (dfb_core_is_master( client->core ) || !fusion_config->secure_fusion)))
      {
+          ret = CoreGraphicsStateClient_init_state( client );
+          if (ret)
+               return ret;
+
           client->requestor = new DirectFB::IGraphicsState_Requestor( core_dfb, client->gfx_state );
      }
 
@@ -388,7 +412,7 @@ CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
 void
 CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
 {
-     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p, gfxstate id 0x%x )\n", __FUNCTION__, client, client->gfx_state->object.ref.multi.id );
+     D_DEBUG_AT( Core_GraphicsStateClient, "%s( client %p, gfxstate id 0x%x )\n", __FUNCTION__, client, client->gfx_state ? client->gfx_state->object.ref.multi.id : 0 );
 
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
 
@@ -412,7 +436,8 @@ CoreGraphicsStateClient_Deinit( CoreGraphicsStateClient *client )
 
      delete (CoreGraphicsStateClientPrivate *) client->priv;
 
-     dfb_graphics_state_unref( client->gfx_state );
+     if (client->gfx_state)
+          dfb_graphics_state_unref( client->gfx_state );
 
      client_list.RemoveClient( client );
 
