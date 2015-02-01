@@ -161,14 +161,8 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                    CoreSurfaceAccessorID   accessor,
                    CoreSurfaceAccessFlags  access )
 {
-     int locks;
-
-     locks = dfb_surface_allocation_locks( allocation );
-
      /*
       * Manage access interlocks.
-      *
-      * SOON FIXME: Clearing flags only when not locked yet. Otherwise nested GPU/CPU locks are a problem.
       */
      /* Software read/write access... */
      if (accessor != CSAID_GPU) {
@@ -180,13 +174,11 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                /* Software read access after hardware write requires flush of the (bus) read cache. */
                dfb_gfxcard_flush_read_cache();
 
-               if (!locks) {
-                    /* ...clear hardware write access. */
-                    allocation->accessed[CSAID_GPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_GPU] & ~CSAF_WRITE);
+               /* ...clear hardware write access. */
+               allocation->accessed[CSAID_GPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_GPU] & ~CSAF_WRITE);
 
-                    /* ...clear hardware read access (to avoid syncing twice). */
-                    allocation->accessed[CSAID_GPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_GPU] & ~CSAF_READ);
-               }
+               /* ...clear hardware read access (to avoid syncing twice). */
+               allocation->accessed[CSAID_GPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_GPU] & ~CSAF_READ);
           }
 
           /* Software write access... */
@@ -197,8 +189,7 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                     dfb_gfxcard_wait_serial( &allocation->gfx_serial );
 
                     /* ...clear hardware read access. */
-                    if (!locks)
-                         allocation->accessed[CSAID_GPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_GPU] & ~CSAF_READ);
+                    allocation->accessed[CSAID_GPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_GPU] & ~CSAF_READ);
                }
           }
      }
@@ -218,8 +209,7 @@ manage_interlocks( CoreSurfaceAllocation  *allocation,
                dfb_gfxcard_flush_texture_cache();
 
                /* ...clear software read and write access. */
-               if (!locks)
-                    allocation->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_CPU] & ~(CSAF_READ | CSAF_WRITE));
+               allocation->accessed[CSAID_CPU] = (CoreSurfaceAccessFlags)(allocation->accessed[CSAID_CPU] & ~(CSAF_READ | CSAF_WRITE));
           }
      }
 
