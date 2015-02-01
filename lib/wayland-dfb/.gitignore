@@ -1,1 +1,4 @@
+wayland-dfb-client-protocol.h
+wayland-dfb-protocol.c
+wayland-dfb-server-protocol.h
 wayland-dfb.pc
