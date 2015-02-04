@@ -1,3 +1,81 @@
+commit 56ba4031a184031c1149f1e0f73214509e9c0293
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Nov 17 12:19:49 2014 +0100
+
+    Core: allow access to core part data during its initialisation
+
+commit 0b0c22d6a1ddfa894b1240cd375931934f033e60
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 31 13:53:07 2014 +0100
+
+    configure: Evaluate module directory to show final directory
+
+commit 6fece410a5b946f1c0c017a66ea5884c7747dbcf
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 31 13:51:13 2014 +0100
+
+    configure: Change --with-sysroot option to --with-runtime-sysroot to avoid conflict with newer autoconf
+
+commit 549eb402b3141fb98c64f31bf84d116e2234fbe0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sat Sep 20 15:35:10 2014 +0200
+
+    mknames: add typecast to avoid errors with C++
+
+commit 4d422fbdf6add491f20164b8b33a0b7b9064b06c
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Feb 1 10:15:13 2015 +0100
+
+    Client: Create extended Graphics State object when needed for later usage
+
+commit 3a960cc384f97ea07e72385b442d6f65583a40cf
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Feb 1 10:18:12 2015 +0100
+
+    ignore
+
+commit 618c81557d92e75351303c95aa086dd9657d7170
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Feb 1 10:16:23 2015 +0100
+
+    debug: add some timing info to surface interface construct / destruct
+
+commit e5c8ab0e391ef139b9efc143053994a0bb34c409
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Feb 1 10:04:27 2015 +0100
+
+    Core: Cascaded interlock in favor of optimization.
+
+commit 6f09d498b57d3559ba22e0d043664303a0ee1c37
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Feb 1 10:01:24 2015 +0100
+
+    libfusion: deallocate call tls properly
+
+commit 36566929135390deb249c89ed657c057942a58fc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Feb 1 09:58:42 2015 +0100
+
+    1.7.7
+
+commit 2f4f78cc43fa7e6ee8411c5f284aa533ad003729
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Sun Feb 1 09:56:19 2015 +0100
+
+    2015
+
+commit 09d8d058ced264a3a7fd4041bbc4c95893d42691
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Nov 4 08:38:19 2014 +0100
+
+    Core: When creating the layer surface also pass along the DSCAPS_GL flag.
+
+commit e2221b1dcad2c44f57b8f8e962c3e0816f393b94
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Aug 14 09:21:39 2014 +0200
+
+    directfb 1.7.6
+
 commit 4b4ca723b8dc7d83b8cd8c709f4b0d5e7a96e06b
 Author: Denis Oliver Kropp <dok@directfb.org>
 Date:   Thu Aug 14 09:17:21 2014 +0200
