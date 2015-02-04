@@ -141,13 +141,17 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           gfxs->Astep = gfxs->Bstep = 1;
 
 
-     int mask_x = 0;
-     int mask_y = 0;
+     int mask_x = rect->x;
+     int mask_y = rect->y;
      int mask_h = gfxs->mask_height;
 
-     if ((state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) && (state->src_mask_flags & DSMF_STENCIL)) {
-          mask_x = state->src_mask_offset.x;
-          mask_y = state->src_mask_offset.y;
+     if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+          if (state->src_mask_flags & DSMF_STENCIL) {
+               mask_x = 0;
+               mask_y = 0;
+          }
+          mask_x += state->src_mask_offset.x;
+          mask_y += state->src_mask_offset.y;
      }
 
      if (rotflip_blittingflags == (DSBLIT_FLIP_HORIZONTAL | DSBLIT_FLIP_VERTICAL)) { // 180 deg
