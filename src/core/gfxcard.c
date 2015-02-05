@@ -1294,10 +1294,28 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
           /* if using a mask... */
           if (state->blittingflags & (DSBLIT_SRC_MASK_ALPHA | DSBLIT_SRC_MASK_COLOR)) {
+               CoreSurface       *src_mask;
+               CoreSurfaceBuffer *src_mask_buffer;
+
+               src_mask = state->source_mask;
+
+               if (state->source_flip_count_used)
+                    src_mask_buffer = dfb_surface_get_buffer3( src_mask, state->from, state->from_eye, state->source_flip_count );
+               else
+                    src_mask_buffer = dfb_surface_get_buffer3( src_mask, state->from, state->from_eye, src_mask->flips );
+
+               D_MAGIC_ASSERT( src_mask_buffer, CoreSurfaceBuffer );
+
+               if (src_mask_buffer->policy == CSP_SYSTEMONLY && !(card->caps.flags & CCF_READSYSMEM)) {
+                    D_DEBUG_AT( Core_Graphics, "  -> cannot read source sysmem\n" );
+
+                    /* Clear 'accelerated blitting functions'. */
+                    state->accel   &= ~DFXL_ALL_BLIT;
+                    state->checked |=  DFXL_ALL_BLIT;
+               }
+
                /* ...lock source mask for reading */
-               ret = dfb_surface_lock_buffer2( state->source_mask, state->from, state->source_mask->flips,
-                                               state->from_eye,
-                                               CSAID_GPU, CSAF_READ, &state->src_mask );
+               ret = dfb_surface_buffer_lock( src_mask_buffer, CSAID_GPU, CSAF_READ, &state->src_mask );
                if (ret) {
                     D_DEBUG_AT( Core_Graphics, "  -> Could not lock source mask for GPU access!\n" );
                     dfb_surface_unlock_buffer( src, &state->src );
@@ -1312,10 +1330,27 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
 
           /* if using source2... */
           if (accel == DFXL_BLIT2) {
-               /* ...lock source2 for reading */
-               ret = dfb_surface_lock_buffer2( state->source2, state->from, state->source2->flips,
-                                               state->from_eye,
-                                               CSAID_GPU, CSAF_READ, &state->src2 );
+               CoreSurface       *src2;
+               CoreSurfaceBuffer *src2_buffer;
+
+               src2 = state->source;
+
+               if (state->source_flip_count_used)
+                    src2_buffer = dfb_surface_get_buffer3( src2, state->from, state->from_eye, state->source_flip_count );
+               else
+                    src2_buffer = dfb_surface_get_buffer3( src2, state->from, state->from_eye, src2->flips );
+
+               D_MAGIC_ASSERT( src2_buffer, CoreSurfaceBuffer );
+
+               if (src2_buffer->policy == CSP_SYSTEMONLY && !(card->caps.flags & CCF_READSYSMEM)) {
+                    D_DEBUG_AT( Core_Graphics, "  -> cannot read source sysmem\n" );
+
+                    /* Clear Blit2. */
+                    state->accel   &= ~DFXL_BLIT2;
+                    state->checked |=  DFXL_BLIT2;
+               }
+
+               ret = dfb_surface_buffer_lock( src2_buffer, CSAID_GPU, CSAF_READ, &state->src2 );
                if (ret) {
                     D_DEBUG_AT( Core_Graphics, "  -> Could not lock source2 for GPU access!\n" );
                     if (state->flags & CSF_SOURCE_MASK_LOCKED) {
