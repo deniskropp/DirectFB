@@ -633,11 +633,11 @@ Task::Push()
 
      DFB_TASK_LOG( "Push()" );
 
-     return Run();
+//     return Run();
 
-//     TaskManager::threads->Push( this );
+     TaskManager::threads->Push( this );
 
-//     return DFB_OK;
+     return DFB_OK;
 }
 
 DFBResult

@@ -105,7 +105,7 @@ TaskManager_DumpTasks()
 bool              TaskManager::running;
 DirectThread     *TaskManager::thread;
 FIFO<Task*>       TaskManager::fifo;
-//TaskThreads      *TaskManager::threads;
+TaskThreads      *TaskManager::threads;
 #if DFB_TASK_DEBUG_TASKS
 std::list<Task*>  TaskManager::tasks;
 DirectMutex       TaskManager::tasks_lock;
@@ -130,7 +130,7 @@ TaskManager::Initialise()
 
           thread = direct_thread_create( DTT_CRITICAL, managerLoop, NULL, "Task Manager" );
 
-//          threads = new TaskThreads( "Task", 4 );
+          threads = new TaskThreads( "Task", 4 );
      }
 
      return DFB_OK;
@@ -157,10 +157,10 @@ TaskManager::Shutdown()
           thread = NULL;
      }
 
-//     if (threads != NULL) {
-//          delete threads;
-//          threads = NULL;
-//     }
+     if (threads != NULL) {
+          delete threads;
+          threads = NULL;
+     }
 
 #if DFB_TASK_DEBUG_TASKS
      direct_mutex_deinit( &tasks_lock );
