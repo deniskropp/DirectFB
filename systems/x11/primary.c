@@ -785,8 +785,8 @@ primarySetRegion( CoreLayer                  *layer,
      if (lds->lock_right.allocation)
           dfb_surface_allocation_unref( lds->lock_right.allocation );
 
-     if (lds->lock_left.buffer)
-          dfb_surface_buffer_unref( lds->lock_left.buffer );
+//     if (lds->lock_left.buffer)
+//          dfb_surface_buffer_unref( lds->lock_left.buffer );
 
      if (lds->lock_right.buffer)
           dfb_surface_buffer_unref( lds->lock_right.buffer );
@@ -853,8 +853,8 @@ primaryRemoveRegion( CoreLayer             *layer,
      if (lds->lock_right.allocation)
           dfb_surface_allocation_unref( lds->lock_right.allocation );
 
-     if (lds->lock_left.buffer)
-          dfb_surface_buffer_unref( lds->lock_left.buffer );
+//     if (lds->lock_left.buffer)
+//          dfb_surface_buffer_unref( lds->lock_left.buffer );
 
      if (lds->lock_right.buffer)
           dfb_surface_buffer_unref( lds->lock_right.buffer );
@@ -940,11 +940,15 @@ primaryFlipUpdate( CoreLayer             *layer,
      if (lds->lock_right.allocation)
           dfb_surface_allocation_unref( lds->lock_right.allocation );
 
-     if (lds->lock_left.buffer)
-          dfb_surface_buffer_unref( lds->lock_left.buffer );
+//     if (lds->lock_left.buffer) {
+//          D_DEBUG_AT( X11_Layer, "  -> old left %p\n", lds->lock_left.buffer );
+//          dfb_surface_buffer_unref( lds->lock_left.buffer );
+//     }
 
-     if (lds->lock_right.buffer)
+     if (lds->lock_right.buffer) {
+          D_DEBUG_AT( X11_Layer, "  -> old right %p\n", lds->lock_right.buffer );
           dfb_surface_buffer_unref( lds->lock_right.buffer );
+     }
 
 
      lds->lock_left = *left_lock;
@@ -964,10 +968,15 @@ primaryFlipUpdate( CoreLayer             *layer,
           dfb_surface_allocation_ref( lds->lock_right.allocation );
 
 
-     dfb_surface_buffer_ref( lds->lock_left.buffer );
+//     D_DEBUG_AT( X11_Layer, "  -> left %p\n", lds->lock_left.buffer );
 
-     if (lds->lock_right.buffer)
+//     dfb_surface_buffer_ref( lds->lock_left.buffer );
+
+     if (lds->lock_right.buffer) {
+          D_DEBUG_AT( X11_Layer, "  -> right %p\n", lds->lock_right.buffer );
+
           dfb_surface_buffer_ref( lds->lock_right.buffer );
+     }
 
      x11->Sync( x11 );
 
