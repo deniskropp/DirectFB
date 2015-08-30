@@ -135,8 +135,10 @@ typedef struct {
      CoreDFB               *core;
      IDirectFB             *idirectfb;
 
+     IDirectFBSurface      *thiz;
      IDirectFBSurface      *parent;
      DirectLink            *children_data;
+     DirectLink            *children_free;
      pthread_mutex_t        children_lock;
 
      CoreGraphicsStateClient  state_client;

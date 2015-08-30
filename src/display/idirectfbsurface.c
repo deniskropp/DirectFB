@@ -158,6 +158,29 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      D_ASSERT( data != NULL );
      D_ASSERT( data->children_data == NULL );
 
+
+     pthread_mutex_lock( &data->children_lock );
+
+     while (data->children_free) {
+          IDirectFBSurface_data *child_data;
+          IDirectFBSurface      *child;
+
+          child_data = (IDirectFBSurface_data *) data->children_free;
+
+          direct_list_remove( &data->children_free, &child_data->link );
+
+          pthread_mutex_unlock( &data->children_lock );
+
+          child = child_data->thiz;
+
+          child->Release( child );
+
+          pthread_mutex_lock( &data->children_lock );
+     }
+
+     pthread_mutex_unlock( &data->children_lock );
+
+
      if (data->memory_permissions_count) {
           CoreGraphicsStateClient_FlushCurrent( 0, CGSCFF_AUTO_COOKIE );
 
@@ -251,6 +274,22 @@ IDirectFBSurface_Release( IDirectFBSurface *thiz )
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (data->ref == 1 && data->parent && direct_config_get_int_value_with_default( "subsurface-caching", 0 )) {
+          IDirectFBSurface_data *parent_data;
+
+          D_MAGIC_ASSERT( (IAny*) data->parent, DirectInterface );
+
+          parent_data = data->parent->priv;
+          D_ASSERT( parent_data != NULL );
+
+          pthread_mutex_lock( &parent_data->children_lock );
+
+          direct_list_remove( &parent_data->children_data, &data->link );
+          direct_list_append( &parent_data->children_free, &data->link );
+
+          pthread_mutex_unlock( &parent_data->children_lock );
+     }
 
      if (--data->ref == 0)
           IDirectFBSurface_Destruct( thiz );
@@ -2817,6 +2856,30 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
      if (!surface)
           return DFB_INVARG;
 
+
+     pthread_mutex_lock( &data->children_lock );
+
+     if (data->children_free) {
+          IDirectFBSurface_data *child_data;
+
+          child_data = (IDirectFBSurface_data *) data->children_free;
+
+          direct_list_remove( &data->children_free, &child_data->link );
+          direct_list_append( &data->children_data, &child_data->link );
+
+          pthread_mutex_unlock( &data->children_lock );
+
+          *surface = child_data->thiz;
+
+          ret = (*surface)->MakeSubSurface( *surface, thiz, rect );
+          D_ASSERT( ret == DFB_OK );
+
+          return DFB_OK;
+     }
+
+     pthread_mutex_unlock( &data->children_lock );
+
+
      /* Allocate interface */
      DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
@@ -3825,6 +3888,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->caps      = caps | surface->config.caps;
      data->core      = core;
      data->idirectfb = idirectfb;
+     data->thiz      = thiz;
 
      data->local_flip_count = surface->flips;
      data->frame_ack        = surface->flips;//_acked;
@@ -3838,7 +3902,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      D_DEBUG_AT( Surface, "  -> flips   %d\n", data->local_flip_count );
      D_DEBUG_AT( Surface, "  -> acked   %d\n", data->frame_ack );
 
-     if (parent && dfb_config->startstop) {
+     if (parent/* && dfb_config->startstop*/) {
           IDirectFBSurface_data *parent_data;
 
           if (parent->AddRef( parent )) {

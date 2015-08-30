@@ -198,6 +198,30 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
      if (!surface)
           return DFB_INVARG;
 
+
+     pthread_mutex_lock( &data->base.children_lock );
+
+     if (data->base.children_free) {
+          IDirectFBSurface_data *child_data;
+
+          child_data = (IDirectFBSurface_data *) data->base.children_free;
+
+          direct_list_remove( &data->base.children_free, &child_data->link );
+          direct_list_append( &data->base.children_data, &child_data->link );
+
+          pthread_mutex_unlock( &data->base.children_lock );
+
+          *surface = child_data->thiz;
+
+          ret = (*surface)->MakeSubSurface( *surface, thiz, rect );
+          D_ASSERT( ret == DFB_OK );
+
+          return DFB_OK;
+     }
+
+     pthread_mutex_unlock( &data->base.children_lock );
+
+
      /* Allocate interface */
      DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
