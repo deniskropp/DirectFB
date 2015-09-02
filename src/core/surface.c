@@ -176,12 +176,16 @@ surface_destructor_buffers_iterator( FusionHash *hash,
 {
      CoreSurface       *surface = (CoreSurface *) ctx;
      CoreSurfaceBuffer *buffer  = (CoreSurfaceBuffer *) value;
-
-     D_ASSERT( buffer->flags & CSBF_DECOUPLE );
+     int                i;
 
      buffer->busy = 0;
 
      dfb_surface_buffer_decouple( buffer );
+
+     for (i=0; i<surface->num_buffers; i++) {
+          if (surface->buffers[i] == buffer)
+               surface->buffers[i] = NULL;
+     }
 
      fusion_hash_remove( surface->frames, key, NULL, NULL );
 
@@ -220,19 +224,21 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
           dfb_palette_unlink( &surface->palette );
      }
 
+     while (fusion_hash_size( surface->frames ) > 0)
+          fusion_hash_iterate( surface->frames, surface_destructor_buffers_iterator, surface );
+
      /* Destroy the Surface Buffers. */
      num_eyes = surface->config.caps & DSCAPS_STEREO ? 2 : 1;
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<surface->num_buffers; i++) {
-               dfb_surface_buffer_decouple( surface->buffers[i] );
-               surface->buffers[i] = NULL;
+               if (surface->buffers[i]) {
+                    dfb_surface_buffer_decouple( surface->buffers[i] );
+                    surface->buffers[i] = NULL;
+               }
           }
      }
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
-
-     while (fusion_hash_size( surface->frames ) > 0)
-          fusion_hash_iterate( surface->frames, surface_destructor_buffers_iterator, surface );
 
      /* release the system driver specific surface data */
      if (surface->data) {
@@ -485,8 +491,10 @@ error:
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<MAX_SURFACE_BUFFERS; i++) {
-               if (surface->buffers[i])
+               if (surface->buffers[i]) {
                     dfb_surface_buffer_decouple( surface->buffers[i] );
+                    surface->buffers[i] = NULL;
+               }
           }
      }
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
@@ -986,8 +994,10 @@ dfb_surface_reconfig( CoreSurface             *surface,
      for (eye=DSSE_LEFT; num_eyes>0; num_eyes--, eye=DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i=0; i<surface->num_buffers; i++) {
-               dfb_surface_buffer_decouple( surface->buffers[i] );
-               surface->buffers[i] = NULL;
+               if (surface->buffers[i]) {
+                    dfb_surface_buffer_decouple( surface->buffers[i] );
+                    surface->buffers[i] = NULL;
+               }
           }
      }
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
@@ -1073,8 +1083,10 @@ dfb_surface_destroy_buffers( CoreSurface *surface )
      for (eye = DSSE_LEFT; num_eyes > 0; num_eyes--, eye = DSSE_RIGHT) {
           dfb_surface_set_stereo_eye(surface, eye);
           for (i = 0; i < surface->num_buffers; i++) {
-               dfb_surface_buffer_decouple( surface->buffers[i] );
-               surface->buffers[i] = NULL;
+               if (surface->buffers[i]) {
+                    dfb_surface_buffer_decouple( surface->buffers[i] );
+                    surface->buffers[i] = NULL;
+               }
           }
      }
      dfb_surface_set_stereo_eye(surface, DSSE_LEFT);
