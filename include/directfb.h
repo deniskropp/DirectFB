@@ -1064,6 +1064,32 @@ typedef enum {
                                            get below them. */
 } DFBWindowStackingClass;
 
+/*
+ * These are hints for the window manager that indicate what type of function
+ * the window has. The window manager can use this when determining decoration
+ * and behaviour of the window. The hint must be set before mapping the window.
+ *
+ * See the [Extended Window Manager Hints](http://www.freedesktop.org/Standards/wm-spec)
+ * specification for more details about window types.
+ */
+typedef enum {
+     DWTH_NORMAL         = 0x00000000,  /* Normal toplevel window. */
+     DWTH_DIALOG         = 0x00000001,  /* Dialog window. */
+     DWTH_MENU           = 0x00000002,  /* Window used to implement a menu; GTK+ uses
+                                           this hint only for torn-off menus, see #GtkTearoffMenuItem. */
+     DWTH_TOOLBAR        = 0x00000003,  /* Window used to implement toolbars. */
+     DWTH_SPLASHSCREEN   = 0x00000004,  /* Window used to display a splash screen during application startup. */
+     DWTH_UTLIITY        = 0x00000005,  /* Utility windows which are not detached toolbars or dialogs. */
+     DWTH_DOCK           = 0x00000006,  /* Used for creating dock or panel windows. */
+     DWTH_DESKTOP        = 0x00000007,  /* Used for creating the desktop background window. */
+     DWTH_DROPDOWN_MENU  = 0x00000008,  /* A menu that belongs to a menubar. */
+     DWTH_POPUP_MENU     = 0x00000009,  /* A menu that does not belong to a menubar, e.g. a context menu. */
+     DWTH_TOOLTIP        = 0x0000000A,  /* A tooltip. */
+     DWTH_NOTIFICATION   = 0x0000000B,  /* A notification - typically a bubble that belongs to a status icon. */
+     DWTH_COMBO          = 0x0000000C,  /* A popup from a combo box. */
+     DWTH_DND            = 0x0000000D   /* A window that is used to implement a DND cursor. */
+} DFBWindowTypeHint;
+
 
 /*
  * Flags describing how to load a font.
@@ -6817,6 +6843,17 @@ D_DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz,
           const DFBWindowGeometry       *src,
           const DFBWindowGeometry       *dst
+     );
+
+
+   /** Extended **/
+
+     /*
+      * Set the window type hint.
+      */
+     DFBResult (*SetTypeHint) (
+          IDirectFBWindow               *thiz,
+          DFBWindowTypeHint              type_hint
      );
 )
 

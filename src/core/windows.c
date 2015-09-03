@@ -876,6 +876,40 @@ dfb_window_change_stacking( CoreWindow             *window,
 }
 
 DFBResult
+dfb_window_set_type_hint( CoreWindow        *window,
+                          DFBWindowTypeHint  type_hint )
+{
+     DFBResult         ret;
+     CoreWindowStack  *stack;
+     CoreWindowConfig  config;
+
+     D_MAGIC_ASSERT( window, CoreWindow );
+     D_ASSERT( window->stack != NULL );
+
+     stack = window->stack;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     config.type_hint = type_hint;
+
+     /* Let the window manager do its work. */
+     ret = dfb_wm_set_window_config( window, &config, CWCF_TYPE_HINT );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+
+DFBResult
 dfb_window_raise( CoreWindow *window )
 {
      DFBResult        ret;

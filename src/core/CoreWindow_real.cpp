@@ -502,6 +502,16 @@ IWindow_Real::PostEvent(
     return DFB_OK;
 }
 
+DFBResult
+IWindow_Real::SetTypeHint( DFBWindowTypeHint type_hint )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_set_type_hint( obj, type_hint );
+}
+
 
 }
 

@@ -484,5 +484,16 @@ interface {
                         typename	DFBWindowEvent
                 }
         }
+
+        method {
+                name	SetTypeHint
+
+                arg {
+                        name	    type_hint
+                        direction   input
+                        type        enum
+                        typename    DFBWindowTypeHint
+                }
+        }
 }
 

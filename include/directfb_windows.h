@@ -80,7 +80,9 @@ typedef enum {
 
      DWCONF_APPLICATION_ID         = 0x00080000,
 
-     DWCONF_ALL                    = 0x000F7F7F
+     DWCONF_TYPE_HINT              = 0x00100000,
+
+     DWCONF_ALL                    = 0x001F7F7F
 } DFBWindowConfigFlags;
 
 typedef struct {
@@ -110,6 +112,8 @@ typedef struct {
 
      u64                           application_id;
      int                           stereo_depth;
+
+     DFBWindowTypeHint             type_hint;
 } DFBWindowConfig;
 
 

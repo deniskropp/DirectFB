@@ -1467,6 +1467,20 @@ IDirectFBWindow_SetGeometry( IDirectFBWindow         *thiz,
      return CoreWindow_SetConfig( data->window, &config, NULL, 0, CWCF_SRC_GEOMETRY | CWCF_DST_GEOMETRY );
 }
 
+static DFBResult
+IDirectFBWindow_SetTypeHint( IDirectFBWindow   *thiz,
+                             DFBWindowTypeHint  type_hint )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     return CoreWindow_SetTypeHint( data->window, type_hint );
+}
+
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
@@ -1553,6 +1567,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->GetStereoDepth = IDirectFBWindow_GetStereoDepth;
      thiz->SetStereoDepth = IDirectFBWindow_SetStereoDepth;
      thiz->SetGeometry = IDirectFBWindow_SetGeometry;
+     thiz->SetTypeHint = IDirectFBWindow_SetTypeHint;
 
      return DFB_OK;
 }
