@@ -81,8 +81,9 @@ typedef enum {
      DWCONF_APPLICATION_ID         = 0x00080000,
 
      DWCONF_TYPE_HINT              = 0x00100000,
+     DWCONF_HINT_FLAGS             = 0x00200000,
 
-     DWCONF_ALL                    = 0x001F7F7F
+     DWCONF_ALL                    = 0x003F7F7F
 } DFBWindowConfigFlags;
 
 typedef struct {

@@ -495,5 +495,23 @@ interface {
                         typename    DFBWindowTypeHint
                 }
         }
+
+        method {
+                name	ChangeHintFlags
+
+                arg {
+                        name	    clear
+                        direction   input
+                        type        enum
+                        typename    DFBWindowHintFlags
+                }
+
+                arg {
+                        name	    set
+                        direction   input
+                        type        enum
+                        typename    DFBWindowHintFlags
+                }
+        }
 }
 

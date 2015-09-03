@@ -70,6 +70,7 @@ typedef enum {
 #define CWCF_ROTATION              DWCONF_ROTATION
 #define CWCF_APPLICATION_ID        DWCONF_APPLICATION_ID
 #define CWCF_TYPE_HINT             DWCONF_TYPE_HINT
+#define CWCF_HINT_FLAGS            DWCONF_HINT_FLAGS
 #define CWCF_ALL                   DWCONF_ALL
 
 struct __DFB_CoreWindowConfig {
@@ -101,6 +102,7 @@ struct __DFB_CoreWindowConfig {
      DFBDimension             cursor_resolution;
 
      DFBWindowTypeHint        type_hint;
+     DFBWindowHintFlags       hint_flags;
 };
 
 
@@ -202,6 +204,14 @@ dfb_window_change_stacking( CoreWindow             *window,
 DFBResult
 dfb_window_set_type_hint( CoreWindow        *window,
                           DFBWindowTypeHint  type_hint );
+
+/*
+ * chnages hint flags
+ */
+DFBResult
+dfb_window_change_hint_flags( CoreWindow         *window,
+                              DFBWindowHintFlags  clear,
+                              DFBWindowHintFlags  set );
 
 /*
  * move a window up one step in window stack

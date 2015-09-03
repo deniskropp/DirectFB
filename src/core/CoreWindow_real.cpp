@@ -512,6 +512,17 @@ IWindow_Real::SetTypeHint( DFBWindowTypeHint type_hint )
      return dfb_window_set_type_hint( obj, type_hint );
 }
 
+DFBResult
+IWindow_Real::ChangeHintFlags( DFBWindowHintFlags clear,
+                               DFBWindowHintFlags set )
+{
+     D_DEBUG_AT( Core_Window, "IWindow_Real::%s( %p )\n", __FUNCTION__, obj );
+
+     D_MAGIC_ASSERT( obj, CoreWindow );
+
+     return dfb_window_change_hint_flags( obj, clear, set );
+}
+
 
 }
 

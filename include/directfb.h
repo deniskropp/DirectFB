@@ -1090,6 +1090,25 @@ typedef enum {
      DWTH_DND            = 0x0000000D   /* A window that is used to implement a DND cursor. */
 } DFBWindowTypeHint;
 
+/*
+ * These are hints for the window manager that indicate what type of function
+ * the window has. The window manager can use this when determining decoration
+ * and behaviour of the window. The hint must be set before mapping the window.
+ *
+ * See the [Extended Window Manager Hints](http://www.freedesktop.org/Standards/wm-spec)
+ * specification for more details about window types.
+ */
+typedef enum {
+     DWHF_NONE           = 0x00000000,  /* None of these. */
+
+     DWHF_MODAL          = 0x00000001,  /* Set modal hint. */
+     DWHF_SKIP_TASKBAR   = 0x00000002,  /* Set skip taskbar hint. */
+     DWHF_SKIP_PAGER     = 0x00000004,  /* Set skip pager hint. */
+     DWHF_URGENCY        = 0x00000008,  /* Set urgency hint. */
+
+     DWHF_ALL            = 0x0000000F   /* All of these. */
+} DFBWindowHintFlags;
+
 
 /*
  * Flags describing how to load a font.
@@ -6854,6 +6873,15 @@ D_DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*SetTypeHint) (
           IDirectFBWindow               *thiz,
           DFBWindowTypeHint              type_hint
+     );
+
+     /*
+      * Change window hint flags.
+      */
+     DFBResult (*ChangeHintFlags) (
+          IDirectFBWindow               *thiz,
+          DFBWindowHintFlags             clear,
+          DFBWindowHintFlags             set
      );
 )
 

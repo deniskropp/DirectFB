@@ -1481,6 +1481,21 @@ IDirectFBWindow_SetTypeHint( IDirectFBWindow   *thiz,
      return CoreWindow_SetTypeHint( data->window, type_hint );
 }
 
+static DFBResult
+IDirectFBWindow_ChangeHintFlags( IDirectFBWindow    *thiz,
+                                 DFBWindowHintFlags  clear,
+                                 DFBWindowHintFlags  set )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     D_DEBUG_AT( IDirectFB_Window, "%s()\n", __FUNCTION__ );
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     return CoreWindow_ChangeHintFlags( data->window, clear, set );
+}
+
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
@@ -1568,6 +1583,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->SetStereoDepth = IDirectFBWindow_SetStereoDepth;
      thiz->SetGeometry = IDirectFBWindow_SetGeometry;
      thiz->SetTypeHint = IDirectFBWindow_SetTypeHint;
+     thiz->ChangeHintFlags = IDirectFBWindow_ChangeHintFlags;
 
      return DFB_OK;
 }
