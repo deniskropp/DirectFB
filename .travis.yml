@@ -1,0 +1,36 @@
+language: cpp
+sudo: false
+
+compiler:
+  - gcc
+  
+addons:
+  apt:
+    packages:
+    - xorg-dev
+    - libasound2-dev
+    - libpng12-dev
+    - libjpeg8-dev
+
+env:
+  - DFB_MULTI=no  # single core
+  - DFB_MULTI=yes # multi core
+
+before_install:
+  - git clone https://github.com/deniskropp/flux.git
+  - cd flux && autoreconf -fi && ./configure --prefix=$HOME/flux && make && make install
+  - export PATH=$PATH:$HOME/flux/bin
+  - cd .. && rm -rf flux
+  - git clone https://github.com/deniskropp/linux-fusion $HOME/linux-fusion
+
+script:
+  - if test "$DFB_MULTI" == yes; then ./autogen.sh --prefix=$HOME/directfb --enable-network --with-gfxdrivers=none --enable-multi --enable-fusiondale --enable-fusionsound --enable-sawman --enable-one CPPFLAGS="-I$HOME/linux-fusion/linux/include -I$HOME/linux-fusion/include/" ; fi
+  - if test "$DFB_MULTI" == no; then ./autogen.sh --prefix=$HOME/directfb --enable-network --with-gfxdrivers=none --enable-fusionsound ; fi
+  - make && make install
+
+branches:
+  only:
+    - master
+    
+os:
+  - linux
