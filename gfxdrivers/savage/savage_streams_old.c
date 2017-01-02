@@ -683,7 +683,7 @@ secondary_calc_regs(SavageDriverData         *sdrv,
                slay->regs.BLEND_CTRL = SAVAGE_BLEND_CONTROL_COMP_SSTREAM;
                break;
           default:
-               D_BUG("unexcpected layer option");
+               D_BUG("unexpected layer option");
      }
 
      slay->regs.SSTREAM_H_SCALE = ((32768 * src_w) / drw_w) & 0x0000FFFF;
