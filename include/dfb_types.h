@@ -75,9 +75,9 @@ typedef enum {
      /*
       * Aliases for backward compatibility and uniform look in DirectFB code
       */
-     DFB_OK              = DR_OK,                 /* No error occured. */
-     DFB_FAILURE         = DR_FAILURE,            /* A general or unknown error occured. */
-     DFB_INIT            = DR_INIT,               /* A general initialization error occured. */
+     DFB_OK              = DR_OK,                 /* No error occurred. */
+     DFB_FAILURE         = DR_FAILURE,            /* A general or unknown error occurred. */
+     DFB_INIT            = DR_INIT,               /* A general initialization error occurred. */
      DFB_BUG             = DR_BUG,                /* Internal bug or inconsistency has been detected. */
      DFB_DEAD            = DR_DEAD,               /* Interface has a zero reference counter (available in debug mode). */
      DFB_UNSUPPORTED     = DR_UNSUPPORTED,        /* The requested operation or an argument is (currently) not supported. */
@@ -90,7 +90,7 @@ typedef enum {
      DFB_LOCKED          = DR_LOCKED,             /* The resource is (already) locked. */
      DFB_BUFFEREMPTY     = DR_BUFFEREMPTY,        /* The buffer is empty. */
      DFB_FILENOTFOUND    = DR_FILENOTFOUND,       /* The specified file has not been found. */
-     DFB_IO              = DR_IO,                 /* A general I/O error occured. */
+     DFB_IO              = DR_IO,                 /* A general I/O error occurred. */
      DFB_BUSY            = DR_BUSY,               /* The resource or device is busy. */
      DFB_NOIMPL          = DR_NOIMPL,             /* No implementation for this interface or content type has been found. */
      DFB_TIMEOUT         = DR_TIMEOUT,            /* The operation timed out. */

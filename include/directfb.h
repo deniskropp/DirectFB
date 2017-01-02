@@ -5787,11 +5787,11 @@ typedef enum {
      DVPET_NONE           = 0x00000000,
      DVPET_STARTED        = 0x00000001,  /* The video provider has started the playback     */
      DVPET_STOPPED        = 0x00000002,  /* The video provider has stopped the playback     */
-     DVPET_SPEEDCHANGE    = 0x00000004,  /* A speed change has occured                      */
-     DVPET_STREAMCHANGE   = 0x00000008,  /* A stream description change has occured         */
-     DVPET_FATALERROR     = 0x00000010,  /* A fatal error has occured: restart must be done */
+     DVPET_SPEEDCHANGE    = 0x00000004,  /* A speed change has occurred                      */
+     DVPET_STREAMCHANGE   = 0x00000008,  /* A stream description change has occurred         */
+     DVPET_FATALERROR     = 0x00000010,  /* A fatal error has occurred: restart must be done */
      DVPET_FINISHED       = 0x00000020,  /* The video provider has finished the playback    */
-     DVPET_SURFACECHANGE  = 0x00000040,  /* A surface description change has occured        */
+     DVPET_SURFACECHANGE  = 0x00000040,  /* A surface description change has occurred        */
      DVPET_FRAMEDECODED   = 0x00000080,  /* A frame has been decoded by the decoder         */
      DVPET_FRAMEDISPLAYED = 0x00000100,  /* A frame has been rendered to the output         */
      DVPET_DATAEXHAUSTED  = 0x00000200,  /* There is no more data available for consumption */

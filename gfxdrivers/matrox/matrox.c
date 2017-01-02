@@ -735,7 +735,7 @@ matroxSetState( void *drv, void *dev,
           /*
            * Work around TMU bug(?), under some unclear circumstances
            * the TMU's read address (src & dst) gets corrupted (negative offset
-           * applied to written values) until soft reset occured.
+           * applied to written values) until soft reset occurred.
            */
           if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200)
                mga_waitidle( mdrv, mdev );
