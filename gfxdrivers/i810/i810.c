@@ -161,7 +161,7 @@ i810_wait_for_space(I810DriverData *i810drv,
 		}
 		tries++;
 	}
-	D_BUG("warning: buffer space timout error");
+	D_BUG("warning: buffer space timeout error");
 	return 1;
 }
 

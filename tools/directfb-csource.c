@@ -286,9 +286,9 @@ static void print_usage (const char *prg_name)
 {
      fprintf (stderr, "directfb-csource version %s\n\n", DIRECTFB_VERSION);
      fprintf (stderr, "Usage: %s [options] <imagefile>\n", prg_name);
-     fprintf (stderr, "   --name=<identifer>      specifies variable name\n");
-     fprintf (stderr, "   --format=<identifer>    specifies surface format\n");
-     fprintf (stderr, "   --rgbformat=<identifer> specifies format for non-alpha images\n");
+     fprintf (stderr, "   --name=<identifier>      specifies variable name\n");
+     fprintf (stderr, "   --format=<identifier>    specifies surface format\n");
+     fprintf (stderr, "   --rgbformat=<identifier> specifies format for non-alpha images\n");
      fprintf (stderr, "   --multi                 multiple images\n");
      fprintf (stderr, "   --raw                   dump a single file directly to header\n");
      fprintf (stderr, "   --dither-rgb16          dither images rendered to RGB16 surfaces\n");

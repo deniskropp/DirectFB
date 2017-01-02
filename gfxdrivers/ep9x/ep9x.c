@@ -126,7 +126,7 @@ ep9x_set_src(EP9XDriverData *ep9xdrv,
           ep9xdev->fb_store = false;
      }
      else
-          D_ERROR("NOT vaild addr\n");
+          D_ERROR("NOT valid addr\n");
 
      ep9xdev->srcpitch = state->src.pitch;
 
@@ -331,7 +331,7 @@ ep9xBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 
      if (!(ep9xdev->clip.x1 <= dx) || !(ep9xdev->clip.y1 <= dy) || 
          !( ep9xdev->clip.x2 >= (dx + rect->w - 1) ) || !( ep9xdev->clip.y2 >= (dy + rect->h - 1) )) {
-          D_ERROR("the blit region is not vaild\n");
+          D_ERROR("the blit region is not valid\n");
           return false;
      }
 

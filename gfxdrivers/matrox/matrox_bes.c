@@ -494,12 +494,12 @@ static bool bes_set_buffer( MatroxDriverData *mdrv, MatroxBesLayerData *mbes, bo
 
      status = mga_in32( mmio, BESSTATUS );
 
-     /* Had the previous flip actually occured? */
+     /* Had the previous flip actually occurred? */
      ret = !(status & 0x2) != !(mbes->regs.besCTL & 0x4000000);
 
      /*
       * Pick the next buffer based on what's being displayed right now
-      * so that it's possible to detect if the flip actually occured
+      * so that it's possible to detect if the flip actually occurred
       * regardless of how many times the buffers are flipped during one
       * displayed frame.
       */

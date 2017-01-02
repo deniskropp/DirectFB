@@ -557,7 +557,7 @@ Lists the DirectFB options that can be passed to df_neo.
 
 .SH OTHER INFO
 
-The canonical place to find informations about DirectFB is at
+The canonical place to find information about DirectFB is at
 http://www.directfb.org/.  Here you can find the FAQ, tutorials,
 mailing list archives, the CVS tree and can download the latest
 version of the DirectFB library as well as a number of applications.

@@ -360,7 +360,7 @@ unique_device_disconnect( UniqueDevice    *device,
      }
 
      if (!connection) {
-          D_WARN( "source not found amoung connections" );
+          D_WARN( "source not found among connections" );
           return DFB_ITEMNOTFOUND;
      }
 

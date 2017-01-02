@@ -23,8 +23,8 @@ DirectResult__init(void)
 {
      DirectResult__strings[0] = "DirectResult";
 
-     DirectResult__strings[D_RESULT_INDEX(DR_FAILURE)] = "A general or unknown error occured";
-     DirectResult__strings[D_RESULT_INDEX(DR_INIT)] = "A general initialization error occured";
+     DirectResult__strings[D_RESULT_INDEX(DR_FAILURE)] = "A general or unknown error occurred";
+     DirectResult__strings[D_RESULT_INDEX(DR_INIT)] = "A general initialization error occurred";
      DirectResult__strings[D_RESULT_INDEX(DR_BUG)] = "Internal bug or inconsistency has been detected";
      DirectResult__strings[D_RESULT_INDEX(DR_DEAD)] = "Interface has a zero reference counter (available in debug mode)";
      DirectResult__strings[D_RESULT_INDEX(DR_UNSUPPORTED)] = "The requested operation or an argument is (currently) not supported";
@@ -37,7 +37,7 @@ DirectResult__init(void)
      DirectResult__strings[D_RESULT_INDEX(DR_LOCKED)] = "The resource is (already) locked";
      DirectResult__strings[D_RESULT_INDEX(DR_BUFFEREMPTY)] = "The buffer is empty";
      DirectResult__strings[D_RESULT_INDEX(DR_FILENOTFOUND)] = "The specified file has not been found";
-     DirectResult__strings[D_RESULT_INDEX(DR_IO)] = "A general I/O error occured";
+     DirectResult__strings[D_RESULT_INDEX(DR_IO)] = "A general I/O error occurred";
      DirectResult__strings[D_RESULT_INDEX(DR_BUSY)] = "The resource or device is busy";
      DirectResult__strings[D_RESULT_INDEX(DR_NOIMPL)] = "No implementation for this interface or content type has been found";
      DirectResult__strings[D_RESULT_INDEX(DR_TIMEOUT)] = "The operation timed out";

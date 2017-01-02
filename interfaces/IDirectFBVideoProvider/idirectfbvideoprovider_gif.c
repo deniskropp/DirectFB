@@ -362,7 +362,7 @@ static int LWZReadByte( IDirectFBVideoProvider_GIF_data *data, int flag, int inp
                     ;
 
                if (count != 0)
-                    GIFERRORMSG("missing EOD in data stream (common occurence)");
+                    GIFERRORMSG("missing EOD in data stream (common occurrence)");
 
                return -2;
           }
@@ -600,7 +600,7 @@ static DFBResult GIFReadFrame( IDirectFBVideoProvider_GIF_data *data )
 
           if (c == '!') { /* Extension */
                if (FetchData( data->buffer, &c, 1)) {
-                    GIFERRORMSG("EOF / read error on extention function code");
+                    GIFERRORMSG("EOF / read error on extension function code");
                     return DFB_EOF;
                }
                DoExtension( data, c );

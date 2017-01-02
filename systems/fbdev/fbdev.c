@@ -500,7 +500,7 @@ system_initialize( CoreDFB *core, void **data )
 
      ret = DFB_INIT;
 
-     /* Retrieve fixed informations like video ram size */
+     /* Retrieve fixed information like video ram size */
      if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &shared->fix ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not get fixed screen information!\n" );

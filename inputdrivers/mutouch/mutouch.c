@@ -37,7 +37,7 @@
    Calibration process has also been omitted since there are applications
    to do the calibration process.
 
-   Lastly, please don't email me regarding technical informations. I
+   Lastly, please don't email me regarding technical information. I
    don't work for 3M. But if you have any new ideas on improving this
    driver, please don't hesitate to share it with me.
    */

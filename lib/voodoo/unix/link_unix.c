@@ -400,7 +400,7 @@ voodoo_link_init_connect( VoodooLink *link,
                     return DR_TEMPUNAVAIL;
 
                default:
-                    D_ERROR( "Direct/Log: Unknown error occured!?\n" );
+                    D_ERROR( "Direct/Log: Unknown error occurred!?\n" );
                     return DR_FAILURE;
           }
      }

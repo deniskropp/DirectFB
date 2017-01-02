@@ -96,13 +96,13 @@
 /**********************************************************************************************************************/
 
 typedef enum {
-     DR_OK,              /* No error occured */
+     DR_OK,              /* No error occurred */
 
 
      DR__RESULT_BASE = D_RESULT_TYPE_CODE_BASE( 'D','R','_', '1' ),
 
-     DR_FAILURE,         /* A general or unknown error occured */
-     DR_INIT,            /* A general initialization error occured */
+     DR_FAILURE,         /* A general or unknown error occurred */
+     DR_INIT,            /* A general initialization error occurred */
      DR_BUG,             /* Internal bug or inconsistency has been detected */
      DR_DEAD,            /* Interface has a zero reference counter (available in debug mode) */
      DR_UNSUPPORTED,     /* The requested operation or an argument is (currently) not supported */
@@ -115,7 +115,7 @@ typedef enum {
      DR_LOCKED,          /* The resource is (already) locked */
      DR_BUFFEREMPTY,     /* The buffer is empty */
      DR_FILENOTFOUND,    /* The specified file has not been found */
-     DR_IO,              /* A general I/O error occured */
+     DR_IO,              /* A general I/O error occurred */
      DR_BUSY,            /* The resource or device is busy */
      DR_NOIMPL,          /* No implementation for this interface or content type has been found */
      DR_TIMEOUT,         /* The operation timed out */
