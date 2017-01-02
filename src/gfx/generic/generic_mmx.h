@@ -193,7 +193,7 @@ static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
                "movl     %0, %%edx\n\t"
                "andl     $0xFFFF0000, %%edx\n\t"
                "shrl     $14, %%edx\n\t"
-#ifdef ARCH_X86_64
+#if defined(ARCH_X86_64) && !defined(__ILP32__)
                "addq     %%rdx, %3\n\t"
 #else
                "addl     %%edx, %3\n\t"
