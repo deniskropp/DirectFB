@@ -362,7 +362,7 @@ static int LWZReadByte( IDirectFBVideoProvider_GIF_data *data, int flag, int inp
                     ;
 
                if (count != 0)
-                    GIFERRORMSG("missing EOD in data stream (common occurence)");
+                    GIFERRORMSG("missing EOD in data stream (common occurrence)");
 
                return -2;
           }
