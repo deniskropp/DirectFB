@@ -127,7 +127,7 @@ track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
      /* Update track's description. */
      provider->GetTrackDescription( provider, &desc );
           
-     /* Print some informations about the track. */
+     /* Print some information about the track. */
      printf( "\nTrack %d:\n"
              "  Artist:     %s\n"
              "  Title:      %s\n"

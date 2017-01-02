@@ -81,5 +81,5 @@ surface using the surface description from the header file:
 \fBdirectfb-csource\fP was inspired by and uses code from
 \fBgdk-pixbuf-csource\fP, a similar program written by Tim Janik.
 
-The canonical place to find informations about DirectFB is at
+The canonical place to find information about DirectFB is at
 http://www.directfb.org/.

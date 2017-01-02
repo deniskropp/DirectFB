@@ -1332,7 +1332,7 @@ Construct( IFusionSoundMusicProvider *thiz,
      data->info = ov_info( &data->vf, -1 );
      if (!data->info) {
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
-                   "Error getting stream informations!\n" );
+                   "Error getting stream information!\n" );
           IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
           return DR_FAILURE;
      }
