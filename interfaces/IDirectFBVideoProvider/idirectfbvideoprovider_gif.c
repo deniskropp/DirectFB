@@ -600,7 +600,7 @@ static DFBResult GIFReadFrame( IDirectFBVideoProvider_GIF_data *data )
 
           if (c == '!') { /* Extension */
                if (FetchData( data->buffer, &c, 1)) {
-                    GIFERRORMSG("EOF / read error on extention function code");
+                    GIFERRORMSG("EOF / read error on extension function code");
                     return DFB_EOF;
                }
                DoExtension( data, c );

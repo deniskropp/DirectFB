@@ -795,7 +795,7 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
 
           if (c == '!') {         /* Extension */
                if (! ReadOK( data->base.buffer, &c, 1)) {
-                    GIFERRORMSG("OF / read error on extention function code");
+                    GIFERRORMSG("OF / read error on extension function code");
                }
                DoExtension( data, c );
             continue;
