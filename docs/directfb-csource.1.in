@@ -27,7 +27,7 @@ dumped. This can be useful for example for icons or sprites.
 .B --name=identifier
 Specifies the identifier name (prefix) for the generated variables.
 If this option is not used, the identifier is generated from the
-filename. You have to specify an identifer name when processing
+filename. You have to specify an identifier name when processing
 multiple images.
 
 .TP
