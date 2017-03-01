@@ -42,6 +42,7 @@ libdirectfb_davinci_la_SOURCES =	\
 	davinci_2d.c		\
 	davinci_2d.h		\
 	davinci_gfxdriver.c	\
+	davinci_gfxdriver.h	\
 	davinci_osd.c		\
 	davinci_osd.h		\
 	davinci_osd_pool.c	\
@@ -51,7 +52,8 @@ libdirectfb_davinci_la_SOURCES =	\
 	davinci_video.c		\
 	davinci_video.h		\
 	davinci_video_pool.c	\
-	davinci_video_pool.h
+	davinci_video_pool.h	\
+	davincifb.h
 
 libdirectfb_davinci_la_LDFLAGS = \
 	-module			\
