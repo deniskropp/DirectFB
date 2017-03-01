@@ -46,7 +46,6 @@ libdirectfb_x11_la_SOURCES = \
 	x11_surface_pool.c	\
 	x11_surface_pool.h	\
 	x11_window_pool.c	\
-	x11_window_pool.h	\
 	x11types.h		\
 	xwindow.h		\
 	xwindow.c
