@@ -33,7 +33,8 @@ includedir = @INCLUDEDIR@
 includelinuxdir = @INCLUDEDIR@/linux
 
 libdavinci_c64x_la_SOURCES =	\
-	davinci_c64x.c
+	davinci_c64x.c \
+	davinci_c64x.h
 
 libdavinci_c64x_la_LIBADD =	\
 	$(top_builddir)/lib/direct/libdirect.la
