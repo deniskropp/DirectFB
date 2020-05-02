@@ -39,6 +39,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// Required for `makedev` in glibc >= 2.28
+#if defined(__GNU_LIBRARY__)
+#include <sys/sysmacros.h>
+#endif
+
 #include <directfb_util.h>
 
 #include <direct/clock.h>
