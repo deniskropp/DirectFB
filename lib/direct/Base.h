@@ -56,7 +56,7 @@ extern "C" {
 #include <memory>
 #include <set>
 #include <string>
-
+#include <functional>
 #include <stdexcept>
 
 //#include <typeindex>
