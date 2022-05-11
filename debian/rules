@@ -38,7 +38,7 @@ ifeq ($(DEB_HOST_ARCH_OS), linux)
     --enable-sawman \
     --enable-fusiondale \
     --enable-divine \
-    --enbale-imlib2 \
+    --enable-imlib2 \
     --enable-mng \
     --disable-unique \
     --disable-mesa
