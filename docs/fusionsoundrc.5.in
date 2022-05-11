@@ -156,7 +156,7 @@ Start fsmaster using ALSA driver with intel8x0 device.
 
 .SH OTHER INFO
 
-The canonical place to find informations about FusionSound is at
+The canonical place to find information about FusionSound is at
 http://www.directfb.org/.  Here you can find the FAQ, tutorials,
 mailing list archives, the CVS tree and can download the latest
 version of the FusionSound library as well as a number of applications.

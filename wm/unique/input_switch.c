@@ -235,7 +235,7 @@ unique_input_switch_remove( UniqueInputSwitch *input_switch,
      }
 
      if (!connection) {
-          D_WARN( "device not found amoung connections" );
+          D_WARN( "device not found among connections" );
           return DFB_ITEMNOTFOUND;
      }
 

@@ -441,7 +441,7 @@ cdda_get_metadata( struct cdda_track *tracks,
      for (i = 0; i < D_ARRAY_SIZE( cddb_cats ); i++) {
           cddb_disc_set_category_str( disc, cddb_cats[i] );
 
-          /* retrieve informations from the server */
+          /* retrieve information from the server */
           if (cddb_read( conn, disc )) {
                const char *artist;
                const char *title;
