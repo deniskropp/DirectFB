@@ -54,7 +54,7 @@ include_HEADERS = \
 	Lists.h				\
 	LockWQ.h			\
 	Magic.h				\
-	Map.h				\
+	Map.hxx				\
 	Mutex.h				\
 	Performer.h			\
 	String.h			\

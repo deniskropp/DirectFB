@@ -39,7 +39,7 @@ extern "C" {
 #include <direct/debug.h>
 }
 
-#include <direct/Map.h>
+#include <direct/Map.hxx>
 #include <direct/ToString.h>
 #include <direct/Type.h>
 

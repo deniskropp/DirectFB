@@ -47,7 +47,7 @@ extern "C" {
 
 #include <direct/Types++.h>
 
-#include <direct/Map.h>
+#include <direct/Map.hxx>
 #include <direct/String.h>
 #include <direct/ToString.h>
 
