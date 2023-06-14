@@ -44,7 +44,7 @@ void      dfb_x11_egl_display_unregister( void );
 }
 
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 #include <core/CoreSurface.h>
 #include <core/Graphics.h>

@@ -45,7 +45,7 @@ extern "C" {
 }
 
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 
 /*

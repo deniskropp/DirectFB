@@ -45,7 +45,7 @@
 #include <direct/util.h>
 #include <direct/Utils.h>
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 
 #ifdef HAVE_EXECINFO_H

@@ -40,7 +40,7 @@
 #include <direct/messages.h>
 #include <direct/signals.h>
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 #include <fusion/conf.h>
 #include <fusion/shmalloc.h>

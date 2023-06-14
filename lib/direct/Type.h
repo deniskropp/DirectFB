@@ -46,7 +46,7 @@ extern "C" {
 
 #include <direct/Base.h>
 #include <direct/Map.hxx>
-#include <direct/String.h>
+#include <direct/String.hxx>
 #include <direct/ToString.h>
 
 #include <list>
@@ -78,16 +78,16 @@ public:
           D_DEBUG_AT( Direct_Type, "Types::%s()\n", __FUNCTION__ );
      }
 
-     template <typename _T, typename _P=TypeBase> // TODO: add RelationType?
-     class Type : public _P::MyType
+     template <typename _T, typename _Px=TypeBase> // TODO: add RelationType?
+     class Type : public _Px::MyType
      {
      public:
           class Info;
 
-          typedef typename _P::MyType   ParentType;
-          typedef typename _P::MyInfo   ParentInfo;
+          typedef typename _Px::MyType   ParentType;
+          typedef typename _Px::MyInfo   ParentInfo;
           typedef _T                    RealType;
-          typedef typename _P::RealType RealTypeParent;
+          typedef typename _Px::RealType RealTypeParent;
           typedef Type                  MyType;
           typedef Info                  MyInfo;
 
@@ -113,7 +113,7 @@ public:
                parent( parent )
           {
                D_DEBUG_AT( Direct_Type, "Type::%s( %p ) <--= '%s' :: '%s' :: '%s'\n",
-                           __FUNCTION__, this, *TypeID<_NS>(), *TypeID<_P>(), *TypeID<_T>() );
+                           __FUNCTION__, this, *TypeID<_NS>(), *TypeID<_Px>(), *TypeID<_T>() );
 
                if (direct_log_domain_check( &GetLogDomain() ))
                     D_INFO( "New %s %p\n", *TypeID<_T>(), this );

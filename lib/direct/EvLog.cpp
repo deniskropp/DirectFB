@@ -34,7 +34,7 @@
 
 #include <direct/EvLog.h>
 #include <direct/Mutex.h>
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 extern "C" {
 #include <direct/log.h>

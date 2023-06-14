@@ -52,7 +52,7 @@ const char *ToString_SaWManProcess( const SaWManProcess *process );
 }
 
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 #include <direct/ToString.h>
 
 

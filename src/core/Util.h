@@ -58,7 +58,7 @@ void FPS_Delete( DFB_Util_FPS *fps );
 
 
 #include <direct/Magic.h>
-#include <direct/String.h>
+#include <direct/String.hxx>
 #include <direct/Type.h>
 
 

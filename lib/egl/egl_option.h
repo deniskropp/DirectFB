@@ -46,7 +46,7 @@ extern "C" {
 }
 
 #include <direct/Map.hxx>
-#include <direct/String.h>
+#include <direct/String.hxx>
 #include <direct/TLSObject.h>
 
 #include <core/CoreSurface.h>

@@ -41,7 +41,7 @@
 
 #include <direct/messages.h>
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 #include <directfb.h>
 #include <directfb_strings.h>

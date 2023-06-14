@@ -31,7 +31,7 @@
 #define ___DirectFB__core__Graphics__H___
 
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 #include <direct/Type.h>
 
 #include <core/CoreSurface.h>

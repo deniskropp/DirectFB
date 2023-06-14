@@ -57,7 +57,7 @@ include_HEADERS = \
 	Map.hxx				\
 	Mutex.h				\
 	Performer.h			\
-	String.h			\
+	String.hxx			\
 	TLSObject.h			\
 	ToString.h			\
 	Type.h				\

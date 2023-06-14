@@ -36,7 +36,7 @@
 
 #include <directfb.h>
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 #include <fusion/shmalloc.h>
 

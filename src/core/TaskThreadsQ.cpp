@@ -52,7 +52,7 @@ extern "C" {
 #include <misc/conf.h>
 }
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 #include <core/TaskManager.h>
 #include <core/TaskThreadsQ.h>

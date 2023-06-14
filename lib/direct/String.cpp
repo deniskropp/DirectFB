@@ -34,7 +34,7 @@
 
 #include <config.h>
 
-#include "String.h"
+#include "String.hxx"
 
 extern "C" {
 #include <stdarg.h>

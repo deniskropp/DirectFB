@@ -71,7 +71,7 @@ long long        DisplayTask_GetPTS   ( DFB_DisplayTask         *task );
 #include <direct/Magic.h>
 #include <direct/Mutex.h>
 #include <direct/Performer.h>
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 #include <core/Fifo.h>
 #include <core/SurfaceTask.h>

@@ -47,7 +47,7 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 #include <gfx/convert.h>
 

@@ -31,7 +31,7 @@
 #define ___DirectFB__DRMKMS__DFBGBM__H___
 
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 #include <core/CoreSurface.h>
 #include <core/Graphics.h>

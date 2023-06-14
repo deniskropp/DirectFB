@@ -48,7 +48,7 @@ const char *D_Demangle( const char *symbol );
 
 #include <direct/Types++.h>
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 #include <direct/ToString.h>
 
 #include <map>

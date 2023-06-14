@@ -46,7 +46,7 @@ const char *ToString_FusionObject       ( FusionObject          *object );
 }
 
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 #include <direct/ToString.h>
 
 

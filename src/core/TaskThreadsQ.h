@@ -59,7 +59,7 @@ extern "C" {
 #include <direct/Magic.h>
 #include <direct/Mutex.h>
 #include <direct/Performer.h>
-#include <direct/String.h>
+#include <direct/String.hxx>
 
 #include <core/Fifo.h>
 #include <core/Util.h>

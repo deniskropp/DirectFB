@@ -70,7 +70,7 @@ const char *ToString_Task                     ( const DFB_Task                  
 }
 
 
-#include <direct/String.h>
+#include <direct/String.hxx>
 #include <direct/ToString.h>
 
 
