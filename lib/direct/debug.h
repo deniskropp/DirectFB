@@ -44,6 +44,9 @@
 #include <direct/trace.h>
 #include <direct/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // @deprecated
 #define D_DEBUG_DOMAIN( _identifier, _name, _description )                                          \
@@ -414,6 +417,12 @@ void DIRECT_API direct_assumption( const char *exp,
      do {                                                                                                \
      } while (0)
 #endif
+
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif
 

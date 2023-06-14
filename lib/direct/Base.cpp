@@ -35,9 +35,7 @@
 #include <config.h>
 
 
-extern "C" {
 #include <direct/debug.h>
-}
 
 #include <direct/Base.h>
 
