@@ -345,7 +345,7 @@ driver_get_available( void )
                return 0;
      }
 
-     fd = open( "/dev/tty0", O_RDWR | O_NOCTTY );
+     fd = open( "/dev/tty", O_RDWR | O_NOCTTY );
      if (fd < 0)
           return 0;
 
@@ -389,9 +389,9 @@ driver_open_device( CoreInputDevice  *device,
           }
      }
      else {
-          fd = open( "/dev/tty0", O_RDWR | O_NOCTTY );
+          fd = open( "/dev/tty", O_RDWR | O_NOCTTY );
           if (fd < 0) {
-               D_PERROR( "DirectFB/Keyboard: Could not open() /dev/tty0!\n" );
+               D_PERROR( "DirectFB/Keyboard: Could not open() /dev/tty!\n" );
                return DFB_INIT;
           }
      }

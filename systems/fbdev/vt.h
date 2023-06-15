@@ -41,7 +41,7 @@
 #include <directfb.h>
 
 typedef struct {
-     int fd0;                      /* file descriptor of /dev/tty0 */
+     int fd0;                      /* file descriptor of /dev/tty */
      int fd;                       /* file descriptor of /dev/ttyN
                                       where N is the number of the allocated VT,
                                       may be equal to 'fd0' if VT allocation
