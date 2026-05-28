@@ -1,0 +1,46 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ master, 'feature/*' ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          autoconf automake libtool pkg-config \
+          libfreetype6-dev libjpeg-dev libpng-dev zlib1g-dev
+
+    - name: Bootstrap build system
+      run: |
+        if [ -f autogen.sh ]; then
+          ./autogen.sh
+        else
+          autoreconf -fi
+        fi
+
+    - name: Configure
+      run: ./configure --enable-multi --enable-debug
+
+    - name: Build
+      run: make -j$(nproc)
+
+    - name: Verify build artifacts
+      run: |
+        ls -la src/.libs/ || true
+        file directfb-config || true
+
+# Note: This is a basic CI foundation.
+# Full driver testing and cross-compilation will be expanded in later phases.
+# For embedded targets, additional jobs (e.g. cross-compile) can be added.
