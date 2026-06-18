@@ -220,7 +220,7 @@ void DIRECT_API direct_md5_sum( void *dst, const void *src, const int len );
 static __inline__ int
 direct_util_count_bits( unsigned int mask )
 {
-     register int ret = 0;
+     int ret = 0;
 
      while (mask) {
           ret += mask & 1;
@@ -325,7 +325,7 @@ D_ICEIL(float f)
 static __inline__ int
 direct_log2( int val )
 {
-     register int ret = 0;
+     int ret = 0;
 
      while (val >> ++ret);
 
