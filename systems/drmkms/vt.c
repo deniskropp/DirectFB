@@ -114,14 +114,14 @@ dfb_vt_initialize( void )
           return D_OOM();
 
      setsid();
-     dfb_vt->fd0 = open( "/dev/tty0", O_RDONLY | O_NOCTTY );
+     dfb_vt->fd0 = open( "/dev/tty", O_RDONLY | O_NOCTTY );
      if (dfb_vt->fd0 < 0) {
           if (errno == ENOENT) {
                dfb_vt->fd0 = open( "/dev/vc/0", O_RDONLY | O_NOCTTY );
                if (dfb_vt->fd0 < 0) {
                     if (errno == ENOENT) {
                          D_PERROR( "DirectFB/core/vt: Couldn't open "
-                                    "neither `/dev/tty0' nor `/dev/vc/0'!\n" );
+                                    "neither `/dev/tty' nor `/dev/vc/0'!\n" );
                     }
                     else {
                          D_PERROR( "DirectFB/core/vt: "
@@ -135,7 +135,7 @@ dfb_vt_initialize( void )
                }
           }
           else {
-               D_PERROR( "DirectFB/core/vt: Error opening `/dev/tty0'!\n");
+               D_PERROR( "DirectFB/core/vt: Error opening `/dev/tty'!\n");
 
                D_FREE( dfb_vt );
                dfb_vt = NULL;
@@ -322,7 +322,7 @@ dfb_vt_shutdown( bool emergency )
 
      if (close( dfb_vt->fd0 ) < 0)
           D_PERROR( "DirectFB/core/vt: Unable to "
-                     "close file descriptor of tty0!\n" );
+                     "close file descriptor of tty!\n" );
 
      D_FREE( dfb_vt );
      dfb_vt = m_data->vt = NULL;

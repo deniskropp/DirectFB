@@ -1266,7 +1266,7 @@ driver_get_available( void )
           D_ASSERT( dfb_fbdev );
 
           // Only allow USB keyboard and mouse support if the systems driver has
-          // the Virtual Terminal file ("/dev/tty0") open and available for use.
+          // the Virtual Terminal file ("/dev/tty") open and available for use.
           // FIXME:  Additional logic needed for system drivers not similar to fbdev?
           if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0)
                return 0;
@@ -1466,7 +1466,7 @@ is_created( int index, void *data)
  * provider if the Virtual Terminal was opened for use by the systems driver.
  *
  * Note:  The systems driver will open the Virtual Terminal file
- *        ("/dev/tty0") based on the directfbrc commands "vt" and "no-vt".
+ *        ("/dev/tty") based on the directfbrc commands "vt" and "no-vt".
  */
 static InputDriverCapability
 get_capability( void )
@@ -1483,7 +1483,7 @@ get_capability( void )
           D_ASSERT( dfb_fbdev );
 
           // Only allow USB keyboard and mouse support if the systems driver has
-          // the Virtual Terminal file ("/dev/tty0") open and available for use.
+          // the Virtual Terminal file ("/dev/tty") open and available for use.
           // FIXME:  Additional logic needed for system drivers not similar to fbdev?
           if (!dfb_fbdev->vt || dfb_fbdev->vt->fd < 0) {
                D_DEBUG_AT( Debug_LinuxInput, "  -> no VT\n" );
@@ -1865,10 +1865,10 @@ driver_open_device( CoreInputDevice  *device,
                     data->vt_fd = dup( dfb_fbdev->vt->fd );
           }
           if (data->vt_fd < 0)
-               data->vt_fd = open( "/dev/tty0", O_RDWR | O_NOCTTY );
+               data->vt_fd = open( "/dev/tty", O_RDWR | O_NOCTTY );
 
           if (data->vt_fd < 0)
-               D_WARN( "no keymap support (requires /dev/tty0 - CONFIG_VT)" );
+               D_WARN( "no keymap support (requires /dev/tty - CONFIG_VT)" );
      }
 
      /* check if the device has LEDs */
