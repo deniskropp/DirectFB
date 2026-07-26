@@ -121,7 +121,7 @@ public:
      static void       dumpTasks();
 
 
-     bool operator()( Task *t1, Task *t2 )
+     bool operator()( Task *t1, Task *t2 ) const
      {
           return t1->ts_emit < t2->ts_emit;
      }
